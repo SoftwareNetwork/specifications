@@ -2,7 +2,7 @@ void build(Solution &sln)
 {
     auto &s = sln.addDirectory("demo");
     auto &bzip2 = s.addTarget<LibraryTarget>("bzip2", "1.0.6");
-    bzip2.Source = RemoteFile("http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz");
+    bzip2.Source = RemoteFile("http://www.bzip.org/{M}.{m}.{p}/bzip2-{M}.{m}.{p}.tar.gz");
     bzip2 +=
         "blocksort.c",
         "bzlib.[hc]"_r,
@@ -36,4 +36,4 @@ void build(Solution &sln)
         "#   define BZ_API(func) (WINAPI * func)\n#   define BZ_EXTERN",
         "#   define BZ_API(func) func\n#   define BZ_EXTERN __declspec(dllimport)"
     );
-}
+} 

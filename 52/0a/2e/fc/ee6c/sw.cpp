@@ -18,7 +18,7 @@ void build(Solution &sln)
 
     gss.Public += "pub.cppan2.demo.gnu.gettext.intl"_dep;
 
-    gss.Definitions["PACKAGE"] = "\"" + gss.Name.toString() + "\"";
+    gss.Definitions["PACKAGE"] = "\"" + gss.pkg.ppath.toString() + "\"";
     gss.Definitions["PACKAGE_VERSION"] = "\"1.0.3\"";
     gss.Public += "PO_SUFFIX=\".po\""_d;
 

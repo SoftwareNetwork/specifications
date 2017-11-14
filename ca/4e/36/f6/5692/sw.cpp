@@ -135,7 +135,7 @@ void build(Solution &s)
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
     *boost_targets["iostreams"] -= "src/lzma.cpp";
     *boost_targets["iostreams"] += "pub.cppan2.demo.bzip2"_dep;
-    *boost_targets["iostreams"] += "pub.cppan2.demo.zlib"_dep;
+    *boost_targets["iostreams"] += "pub.cppan2.demo.madler.zlib"_dep;
     boost_targets["stacktrace"]->HeaderOnly = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
         boost_targets["random"]->LinkLibraries.insert("Advapi32.lib");

@@ -1,9 +1,8 @@
 void build(Solution &sln)
 {
     auto &s = sln.addDirectory("demo");
-    auto &t = s.addTarget<LibraryTarget>("png");
-    t.Version = "1.6.33";
-    t.Source = Git("https://github.com/glennrp/libpng", "v1.6.33");
+    auto &t = s.addTarget<LibraryTarget>("png", "1.6.33");
+    t.Source = Git("https://github.com/glennrp/libpng", "v{M}.{m}.{p}");
     t +=
         "png.c",
         "png.h",
@@ -30,5 +29,5 @@ void build(Solution &sln)
     if (t.Settings.TargetOS.Type == OSType::Windows)
         t.Public += sw::Shared, "_WINDLL"_d;
     t.configureFile("scripts/pnglibconf.h.prebuilt", "pnglibconf.h");
-    t += "pub.cppan2.demo.zlib"_dep;
+    t += "pub.cppan2.demo.madler.zlib"_dep;
 }
