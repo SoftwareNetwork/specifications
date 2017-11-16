@@ -3,7 +3,7 @@ void build(Solution &sln)
     auto &s = sln.addDirectory("demo");
     auto &openssl = s.addProject("openssl", "1.10.6");
     openssl.Source = Git("https://github.com/openssl/openssl", "OpenSSL_{M}_1_0f");
-    
+
     auto &crypto = openssl.addTarget<LibraryTarget>("crypto");
 
     crypto.ExportAllSymbols = true;
@@ -36,6 +36,13 @@ void build(Solution &sln)
 
     crypto.Public +=
         "include"_id;
+
+    crypto +=
+        "crypto/bf/bf_enc.c",
+        "crypto/bf/bf_skey.c",
+        "crypto/bf/bf_ecb.c",
+        "crypto/bf/bf_cfb64.c",
+        "crypto/bf/bf_ofb64.c";
 
     crypto.Private += "NO_WINDOWS_BRAINDEATH"_d;
     crypto.Private += "OPENSSL_NO_DYNAMIC_ENGINE"_d;
@@ -352,9 +359,9 @@ void build(Solution &sln)
     crypto.configureFile(crypto.BinaryDir / "openssl/opensslconf.h.in", "openssl/opensslconf.h");
     crypto.configureFile(crypto.BinaryDir / "internal/bn_conf.h.in", "internal/bn_conf.h");
     crypto.configureFile(crypto.BinaryDir / "internal/dso_conf.h.in", "internal/dso_conf.h");
-    
-    
-    
+
+
+
     auto &ssl = openssl.addTarget<LibraryTarget>("ssl");
 
     ssl.ExportAllSymbols = true;

@@ -222,6 +222,7 @@ void check(Checker &c)
     s.checkFunctionExists("acl_get_perm_np");
     s.checkFunctionExists("acl_init");
     s.checkFunctionExists("acl_is_trivial_np");
+    s.checkFunctionExists("acl_set_link_np");
     s.checkFunctionExists("acl_set_fd");
     s.checkFunctionExists("acl_set_fd_np");
     s.checkFunctionExists("acl_set_file");
@@ -422,7 +423,6 @@ void check(Checker &c)
     s.checkTypeSize("pid_t");
     s.checkTypeSize("size_t");
     s.checkTypeSize("ssize_t");
-    s.checkTypeSize("struct");
     s.checkTypeSize("uid_t");
     s.checkTypeSize("uint16_t");
     s.checkTypeSize("uint32_t");
@@ -439,87 +439,87 @@ void check(Checker &c)
     s.checkLibraryFunctionExists("charset", "locale_charset");
     s.checkLibraryFunctionExists("md", "MD5Init");
     {
-        auto &c = s.checkStructMemberExists("struct dirent", "d_namlen");
-        c.Parameters.Includes.push_back("dirent.h");
+        auto &str = s.checkStructMemberExists("struct dirent", "d_namlen");
+        str.Parameters.Includes.push_back("dirent.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct statfs", "f_namemax");
+        auto &str = s.checkStructMemberExists("struct statfs", "f_namemax");
     }
     {
-        auto &c = s.checkStructMemberExists("struct statvfs", "f_iosize");
+        auto &str = s.checkStructMemberExists("struct statvfs", "f_iosize");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_birthtime");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_birthtime");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_birthtimespec.tv_nsec");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_birthtimespec.tv_nsec");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_blksize");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_blksize");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_flags");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_flags");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_mtimespec.tv_nsec");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_mtimespec.tv_nsec");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_mtime_n");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_mtime_n");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_mtime_usec");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_mtime_usec");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_mtim.tv_nsec");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_mtim.tv_nsec");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct stat", "st_umtime");
-        c.Parameters.Includes.push_back("sys/stat.h");
+        auto &str = s.checkStructMemberExists("struct stat", "st_umtime");
+        str.Parameters.Includes.push_back("sys/stat.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct tm", "tm_gmtoff");
-        c.Parameters.Includes.push_back("time.h");
+        auto &str = s.checkStructMemberExists("struct tm", "tm_gmtoff");
+        str.Parameters.Includes.push_back("time.h");
     }
     {
-        auto &c = s.checkStructMemberExists("struct tm", "__tm_gmtoff");
-        c.Parameters.Includes.push_back("time.h");
+        auto &str = s.checkStructMemberExists("struct tm", "__tm_gmtoff");
+        str.Parameters.Includes.push_back("time.h");
     }
     s.checkSourceCompiles("HAVE_READDIR_R", R"sw_xxx(#include <dirent.h>
 
-     int main() {
+int main() {
 
-    DIR *dir; struct dirent e, *r;
-                    return(readdir_r(dir, &e, &r));
+DIR *dir; struct dirent e, *r;
+        return(readdir_r(dir, &e, &r));
 
-     ; return 0; })sw_xxx");
+; return 0; })sw_xxx");
     s.checkSourceCompiles("HAVE_TIME_WITH_SYS_TIME", R"sw_xxx(
-    #include <time.h>
-    #include <sys/time.h>
-    int main() {return 0;}
-    )sw_xxx");
+#include <time.h>
+#include <sys/time.h>
+int main() {return 0;}
+)sw_xxx");
     s.checkSourceCompiles("MAJOR_IN_MKDEV", R"sw_xxx(
-    #include <sys/mkdev.h>
-    int main() { makedev(0, 0); return 0; }
-    )sw_xxx");
+#include <sys/mkdev.h>
+int main() { makedev(0, 0); return 0; }
+)sw_xxx");
     s.checkSourceCompiles("MAJOR_IN_SYSMACROS", R"sw_xxx(
-    #include <sys/sysmacros.h>
-    int main() { makedev(0, 0); return 0; }
-    )sw_xxx");
+#include <sys/sysmacros.h>
+int main() { makedev(0, 0); return 0; }
+)sw_xxx");
     s.checkSourceCompiles("STDC_HEADERS", R"sw_xxx(
-    #include <stdlib.h>
-    #include <stdarg.h>
-    #include <string.h>
-    #include <float.h>
-    int main() {return 0;}
-    )sw_xxx");
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <float.h>
+int main() {return 0;}
+)sw_xxx");
     s.checkDeclarationExists("ACL_USER");
     s.checkDeclarationExists("D_MD_ORDER");
     s.checkDeclarationExists("EFTYPE");

@@ -1,8 +1,8 @@
 void build(Solution &sln)
 {
     auto &s = sln.addDirectory("demo");
-    auto &openssl = s.addProject("openssl", "1.10.6");
-    openssl.Source = Git("https://github.com/openssl/openssl", "OpenSSL_{M}_1_0f");
+    auto &openssl = s.addProject("openssl", "1.10.7");
+    openssl.Source = Git("https://github.com/openssl/openssl", "OpenSSL_{M}_1_0g");
 
     auto &crypto = openssl.addTarget<LibraryTarget>("crypto");
 
