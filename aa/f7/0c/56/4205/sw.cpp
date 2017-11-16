@@ -78,6 +78,7 @@ void check(Checker &c)
 int main() {return 0;}
 )sw_xxx");
 
+    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
     s.checkSourceCompiles("HAVE_O_NONBLOCK", R"sw_xxx(
 #include <sys/types.h>
 #include <unistd.h>
@@ -102,6 +103,7 @@ int flags = fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 )sw_xxx");
 
+    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
     s.checkSourceCompiles("HAVE_FIONBIO", R"sw_xxx(
 /* FIONBIO test (old-style unix) */
 #include <unistd.h>

@@ -321,7 +321,7 @@ int main() {return 0;}
 
             for (auto &f : {
                 "ioctl",
-                "ioctlsocket",
+                //"ioctlsocket",
                 "recv",
                 "recvfrom",
                 "send",
