@@ -287,8 +287,10 @@ int main() {return 0;}
                         "ws2tcpip.h",
                         "windows.h"})
         {
-            for (auto &t : {
-                     "SOCKET",
+                auto &c = s.checkTypeSize("SOCKET", "HAVE_TYPE_SOCKET");
+                c.Parameters.Includes.push_back(h);
+
+                for (auto &t : {
                      "socklen_t",
                      "ssize_t",
                      "bool",

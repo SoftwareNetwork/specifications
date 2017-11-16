@@ -204,4 +204,10 @@ void check(Checker &c)
     )sw_xxx");
     s.checkDeclarationExists("CLOCK_MONOTONIC");
     s.checkDeclarationExists("_mm_movemask_epi8");
+
+        s.checkStructMemberExists("struct stat", "st_atimensec").Parameters.Includes.push_back("sys/stat.h");
+        s.checkStructMemberExists("struct stat", "st_atimespec.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+        s.checkStructMemberExists("struct stat", "st_atim.st__tim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+        s.checkStructMemberExists("struct stat", "st_atim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+        s.checkStructMemberExists("struct stat", "st_uatime").Parameters.Includes.push_back("sys/stat.h");
 }
