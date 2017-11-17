@@ -1,5 +1,7 @@
 void build(Solution &sln)
 {
+
+
     auto &s = sln.addDirectory("demo");
     auto &p = s.addProject("gnu.iconv", "1.15.0");
     p.Source = RemoteFile("http://ftp.gnu.org/pub/gnu/libiconv/libiconv-{M}.{m}.tar.gz");
@@ -46,6 +48,8 @@ void build(Solution &sln)
         "lib/.*\\.gperf"_rr,
         "lib/.*\\.h"_rr,
         "lib/iconv.c";
+    // prevent adding to linker
+    libiconv -= "lib/.*\\.def"_rr;
 
     libiconv.Public += libcharset;
     libiconv.Public.Definitions["ICONV_CONST"] = "const";
