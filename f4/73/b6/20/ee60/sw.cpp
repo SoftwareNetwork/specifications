@@ -2,9 +2,9 @@ void build(Solution &sln)
 {
     auto &s = sln.addDirectory("demo");
     auto &p = s.addProject("gnu.iconv", "1.15.0");
+    p.Source = RemoteFile("http://ftp.gnu.org/pub/gnu/libiconv/libiconv-{M}.{m}.tar.gz");
 
     auto &libcharset = p.addTarget<LibraryTarget>("libcharset");
-    libcharset.Source = RemoteFile("http://ftp.gnu.org/pub/gnu/libiconv/libiconv-{M}.{m}.tar.gz");
 
     libcharset.setChecks("libcharset");
 
@@ -38,8 +38,6 @@ void build(Solution &sln)
 
 
     auto &libiconv = p.addTarget<LibraryTarget>("libiconv");
-    libiconv.Source = RemoteFile("http://ftp.gnu.org/pub/gnu/libiconv/libiconv-{M}.{m}.tar.gz");
-
     libiconv.setChecks("libiconv");
 
     libiconv +=
