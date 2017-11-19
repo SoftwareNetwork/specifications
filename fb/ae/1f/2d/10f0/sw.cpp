@@ -3,6 +3,7 @@ void build(Solution &sln)
     auto &s = sln.addDirectory("demo");
     auto &jpeg = s.addTarget<LibraryTarget>("jpeg", "9.2.0");
     jpeg.Source = RemoteFile("http://www.ijg.org/files/jpegsr9b.zip");
+    jpeg.ApiName = "JPEG_API";
 
     jpeg +=
         ".*\\.h"_rr,
@@ -62,6 +63,6 @@ void build(Solution &sln)
         jpeg.configureFile("jconfig.cfg", "jconfig.h");
 
     jpeg.replaceInFileOnce("jmorecfg.h",
-        "#define EXTERN(type)       extern type",
-        "#define EXTERN(type)       extern ${LIBRARY_API} type");
+        "extern type",
+        "extern JPEG_API type");
 }
