@@ -91,15 +91,26 @@ void build(Solution &sln)
     tiff.Variables["TIFF_INT16_T"] = "signed short";
     tiff.Variables["TIFF_UINT16_T"] = "unsigned short";
 
-    if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == "4")
+    if (tiff.Variables["SIZEOF_SIGNED_INT"] == "4")
     {
         tiff.Variables["TIFF_INT32_T"] = "signed int";
         tiff.Variables["TIFF_INT32_FORMAT"] = "%d";
     }
-    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == "4")
+    else if (tiff.Variables["SIZEOF_SIGNED_LONG"] == "4")
     {
         tiff.Variables["TIFF_INT32_T"] = "signed long";
         tiff.Variables["TIFF_INT32_FORMAT"] = "%ld";
+    }
+
+    if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == "4")
+    {
+        tiff.Variables["TIFF_UINT32_T"] = "unsigned int";
+        tiff.Variables["TIFF_UINT32_FORMAT"] = "%d";
+    }
+    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == "4")
+    {
+        tiff.Variables["TIFF_UINT32_T"] = "unsigned long";
+        tiff.Variables["TIFF_UINT32_FORMAT"] = "%ld";
     }
 
     if (tiff.Variables["SIZEOF_SIGNED_LONG"] == "8")

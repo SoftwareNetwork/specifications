@@ -48,11 +48,8 @@ void build(Solution &sln)
             f->BuildAs = NativeSourceFile::CPP;
     }
 
-    /*if (MSVC)
-    file(GLOB_RECURSE csrc "${SDIR}/*.c")
-    set_source_files_properties(${ csrc } PROPERTIES LANGUAGE CXX)
-    endif()*/
-
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        leptonica += "User32.lib"_l, "Gdi32.lib"_l;
 }
 
 void check(Checker &c)
