@@ -137,10 +137,12 @@ void build(Solution &sln)
             c->IncludeDirectories.insert(libffi.BinaryDir);
             c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
             c->IncludeDirectories.insert(libffi.SourceDir / "src");
-            c->CopyOutputToStdOut = true;
-            c->CSourceFile = libffi.SourceDir / "src" / "x86" / ("win"s + (have64bit ? "64" : "32") + ".S");
+            //c->CopyOutputToStdOut = true;
+            //c->CSourceFile = libffi.SourceDir / "src" / "x86" / ("win"s + (have64bit ? "64" : "32") + ".S");
+            c->setSourceFile(libffi.SourceDir / "src" / "x86" / ("win"s + (have64bit ? "64" : "32") + ".S"), libffi.BinaryDir / "pre.asm");
             auto cmd = c->getCommand();
-            cmd->redirectStdout(libffi.BinaryDir / "pre.asm");
+            //cmd->addOutput(libffi.BinaryDir / "pre.asm");
+            //cmd->redirectStdout(libffi.BinaryDir / "pre.asm");
         }
 
         {
