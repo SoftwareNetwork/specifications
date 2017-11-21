@@ -128,7 +128,7 @@ void build(Solution &sln)
     gobject.Public += "pub.cppan2.demo.weltling.winlibs.libffi-3"_dep;
     gobject.Public += glib;
 
-    /*auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
+    auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
     gmodule.setChecks("glib");
     gmodule +=
         "gmodule/[^/]*\\.c"_rr,
@@ -140,7 +140,7 @@ void build(Solution &sln)
     gmodule.Public +=
         "gmodule"_id;
 
-    gmodule.Public += glib;*/
+    gmodule.Public += glib;
 }
 
 void check(Checker &c)
