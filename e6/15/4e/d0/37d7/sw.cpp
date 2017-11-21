@@ -132,6 +132,7 @@ void build(Solution &sln)
     {
         {
             auto ch = s.Settings.Native.CCompiler->clone();
+            libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioCCompiler>();
             c->IncludeDirectories.insert(libffi.BinaryDir);
             c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
@@ -144,6 +145,7 @@ void build(Solution &sln)
 
         {
             auto ch = s.Settings.Native.ASMCompiler->clone();
+            libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioASMCompiler>();
             c->PreserveSymbolCase = true;
             c->SafeSEH = true;
