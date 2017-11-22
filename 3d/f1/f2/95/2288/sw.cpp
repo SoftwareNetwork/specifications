@@ -12,7 +12,7 @@ auto &addTarget(Solution &s, const PackagePath &p, const String &v)
     if (url == "numeric")
         url = "numeric_conversion";
 
-    t.Source = Git("https://github.com/boostorg/" + url, "", "master");
+    t.Source = Git("https://github.com/boostorg/" + url, "boost-{v}");
     return t;
 }
 
@@ -5068,4 +5068,4 @@ void boost_deps()
     add_public_dependency("xpressive", "type_traits", true);
     add_public_dependency("xpressive", "typeof", true);
     add_public_dependency("xpressive", "utility", true);
-}
+} 
