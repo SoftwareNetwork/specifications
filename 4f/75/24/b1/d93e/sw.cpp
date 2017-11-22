@@ -3,7 +3,7 @@
 std::unordered_map<String, NativeExecutedTarget*> boost_targets;
 
 template <class T>
-auto &addTarget(Solution &s, const ProjectPath &p, const String &v)
+auto &addTarget(Solution &s, const PackagePath &p, const String &v)
 {
     static Directory &d = s.addDirectory("demo");
     auto &t = d.TargetBase::addTarget<T>(p, v);
@@ -12,14 +12,14 @@ auto &addTarget(Solution &s, const ProjectPath &p, const String &v)
     if (url == "numeric")
         url = "numeric_conversion";
 
-    t.Source = Git("https://github.com/boostorg/" + url, "boost-{v}");
+    t.Source = Git("https://github.com/boostorg/" + url, "", "master");
     return t;
 }
 
 template <class T>
 auto &addBoostTarget(Solution &s, const String &name)
 {
-    static const ProjectPath b = "boost";
+    static const PackagePath b = "boost";
     return addTarget<T>(s, b / name, "1.65.1");
 }
 
@@ -239,7 +239,7 @@ void boost_deps()
         if (!t1 || !t2)
             return;
         auto &dt = t1->Public + *t2;
-        dt.IncludeDirectoriesOnly = idir_only;
+        dt->IncludeDirectoriesOnly = idir_only;
     };
 
     add_public_dependency("accumulators", "algorithm", true);
