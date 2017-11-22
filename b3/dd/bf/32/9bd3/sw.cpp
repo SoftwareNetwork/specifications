@@ -18,12 +18,6 @@ void build(Solution &sln)
         "src/.*\\.cc"_rr,
         "src/.*\\.h"_rr;
 
-    freetype.Private +=
-        "src"_id;
-
-    freetype.Public +=
-        "include"_id;
-
     freetype.Private += "FT2_BUILD_LIBRARY"_d;
     freetype.Private += sw::Shared, "freetype_EXPORTS"_d;
 
@@ -34,7 +28,7 @@ void build(Solution &sln)
     #ifdef FT_BASE
     #undef FT_BASE
     #ifdef __cplusplus
-    #define FT_BASE(x) extern \"C\" SW_FREETYPE_LIBRARY_API x
+    #define FT_BASE(x) extern "C" SW_FREETYPE_LIBRARY_API x
     #else
     #define FT_BASE(x) extern SW_FREETYPE_LIBRARY_API x
     #endif
@@ -43,7 +37,7 @@ void build(Solution &sln)
     #ifdef FT_EXPORT
     #undef FT_EXPORT
     #ifdef __cplusplus
-    #define FT_EXPORT(x) extern \"C\" SW_FREETYPE_LIBRARY_API x
+    #define FT_EXPORT(x) extern "C" SW_FREETYPE_LIBRARY_API x
     #else
     #define FT_EXPORT(x) extern SW_FREETYPE_LIBRARY_API x
     #endif
@@ -54,7 +48,6 @@ void build(Solution &sln)
     if (freetype.Settings.TargetOS.Type != OSType::Windows)
     {
         const auto cfg = freetype.SourceDir / "builds/unix/ftconfig.in";
-        //auto s = read_file();
         if (freetype.Variables["HAVE_UNISTD_H"] == "1")
             freetype.replaceInFileOnce(cfg, "#undef +(HAVE_UNISTD_H)", "#define \\1");
         if (freetype.Variables["HAVE_FCNTL_H"] == "1")

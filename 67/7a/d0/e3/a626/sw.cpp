@@ -149,11 +149,11 @@ void build(Solution &sln)
         "PCRE_EXP_DECL const pcre_uint32 PRIV(ucp_gentype)[];"
     );
 
-    auto &d16 = pcre16 + pcre8;
-    d16.IncludeDirectoriesOnly = true;
+    auto d16 = pcre16 + pcre8;
+    d16->IncludeDirectoriesOnly = true;
 
-    auto &d32 = pcre32 + pcre8;
-    d32.IncludeDirectoriesOnly = true;
+    auto d32 = pcre32 + pcre8;
+    d32->IncludeDirectoriesOnly = true;
 
     auto &pcreposix = p.addTarget<LibraryTarget>("pcreposix");
     pcreposix +=

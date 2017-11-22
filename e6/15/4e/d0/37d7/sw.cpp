@@ -130,6 +130,7 @@ void build(Solution &sln)
 
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
     {
+        const auto f = "win"s + (have64bit ? "64" : "32");
         {
             auto ch = s.Settings.Native.CCompiler->clone();
             libffi.Storage.push_back(ch);
@@ -137,12 +138,12 @@ void build(Solution &sln)
             c->IncludeDirectories.insert(libffi.BinaryDir);
             c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
             c->IncludeDirectories.insert(libffi.SourceDir / "src");
-            //c->CopyOutputToStdOut = true;
-            //c->CSourceFile = libffi.SourceDir / "src" / "x86" / ("win"s + (have64bit ? "64" : "32") + ".S");
-            c->setSourceFile(libffi.SourceDir / "src" / "x86" / ("win"s + (have64bit ? "64" : "32") + ".S"), libffi.BinaryDir / "pre.asm");
+            c->PreprocessToStdout = true; // supress #line directives
+            c->PreprocessToFile = true;
+            c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
             auto cmd = c->getCommand();
-            //cmd->addOutput(libffi.BinaryDir / "pre.asm");
-            //cmd->redirectStdout(libffi.BinaryDir / "pre.asm");
+            cmd->working_directory = libffi.BinaryDir;
+            cmd->addOutput(libffi.BinaryDir / (f + ".i"));
         }
 
         {
@@ -153,7 +154,7 @@ void build(Solution &sln)
             c->SafeSEH = true;
             const auto o = libffi.BinaryDir / "pre.obj";
             c->ObjectFile = o;
-            c->InputFile = libffi.BinaryDir / "pre.asm";
+            c->InputFile = libffi.BinaryDir / (f + ".i");
             auto cmd = c->getCommand();
             cmd->addOutput(o);
             libffi += o;

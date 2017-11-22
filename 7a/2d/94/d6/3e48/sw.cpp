@@ -100,7 +100,10 @@ void build(Solution &sln)
     cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define vsnprintf _vsnprintf");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        cairo += "src/win32/.*"_rr, "Gdi32.lib"_l, "User32.lib"_l, "Msimg32.lib"_l;
+    {
+        cairo += "src/win32/.*"_rr;
+        cairo.Public += "Gdi32.lib"_l, "User32.lib"_l, "Msimg32.lib"_l;
+    }
 }
 
 void check(Checker &c)
