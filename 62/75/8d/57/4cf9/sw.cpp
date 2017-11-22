@@ -29,5 +29,5 @@ void build(Solution &sln)
     if (t.Settings.TargetOS.Type == OSType::Windows)
         t.Public += sw::Shared, "_WINDLL"_d;
     t.configureFile("scripts/pnglibconf.h.prebuilt", "pnglibconf.h");
-    t += "pub.cppan2.demo.madler.zlib"_dep;
+    t.Public += "pub.cppan2.demo.madler.zlib"_dep;
 }
