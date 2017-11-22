@@ -16,7 +16,7 @@ void build(Solution &sln)
     magick.Public += "QuantumDepth=16"_d;
     magick.Public += "_MAGICKLIB_"_d;
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
-        magick.Public += "restrict=__restrict"_d;
+        magick += "restrict=__restrict"_d;
     if (s.Settings.TargetOS.Type != OSType::Windows)
     {
         magick.Public += "HAVE_PTHREAD"_d;
