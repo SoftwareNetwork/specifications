@@ -60,7 +60,7 @@ void build(Solution &sln)
         write_file(ibc, s);
     });
     c->addOutput(ibc);
-    ilmbase_config += ibc;
+    ilmbase_config.Public += ibc;
 
     auto &half = ilmbase.addTarget<LibraryTarget>("half");
 
@@ -97,55 +97,6 @@ void build(Solution &sln)
     auto &b44explogtable = openexr.addTarget<ExecutableTarget>("b44explogtable");
     b44explogtable += "IlmImf/b44ExpLogTable.cpp";
     b44explogtable.Public += half;
-
-    auto &openexr_config = openexr.addTarget<LibraryTarget>("config");
-    openexr_config += "config.windows/.*"_rr;
-
-    const auto oc = openexr_config.BinaryDir / "OpenEXRConfig.h";
-    auto c2 = std::make_shared<ExecuteCommand>([oc, &openexr_config]()
-    {
-        std::string s;
-        if (openexr_config.Settings.TargetOS.Type == OSType::Windows)
-        {
-            s = read_file(openexr_config.SourceDir / "config.windows" / "OpenEXRConfig.h");
-            s += "#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1";
-        }
-        else if (openexr_config.Settings.TargetOS.Type == OSType::Macos)
-        {
-            s += R"(#define OPENEXR_IMF_HAVE_DARWIN 1
-#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1
-#include <string.h>
-)";
-        }
-        else
-        {
-            s += R"(#define OPENEXR_IMF_HAVE_LINUX_PROCFS 1
-#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1
-#define OPENEXR_IMF_HAVE_LARGE_STACK 1
-)";
-        }
-
-        s += R"(
-#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 0
-#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf
-#define OPENEXR_IMF_NAMESPACE Imf
-
-#define OPENEXR_VERSION_STRING ")" + openexr_config.Variables["PACKAGE_VERSION"] + R"("
-#define OPENEXR_PACKAGE_STRING "IlmBase )" + openexr_config.Variables["PACKAGE_VERSION"] + R"("
-#define OPENEXR_VERSION_MAJOR )" + openexr_config.Variables["PACKAGE_VERSION_MAJOR"] + R"(
-#define OPENEXR_VERSION_MINOR )" + openexr_config.Variables["PACKAGE_VERSION_MINOR"] + R"(
-#define OPENEXR_VERSION_PATCH )" + openexr_config.Variables["PACKAGE_VERSION_PATCH"] + R"(
-
-// Version as a single hex number, e.g. 0x01000300 == 1.0.3
-#define OPENEXR_VERSION_HEX ((OPENEXR_VERSION_MAJOR << 24) | \\
-                                (OPENEXR_VERSION_MINOR << 16) | \\
-                                (OPENEXR_VERSION_PATCH <<  8))
-)";
-
-        write_file(openexr_config.BinaryDir / "OpenEXRConfig.h", s);
-    });
-    c2->addOutput(oc);
-    openexr_config += oc;
 
     //
     auto &iex = ilmbase.addTarget<LibraryTarget>("iex");
@@ -199,9 +150,57 @@ void build(Solution &sln)
         ilmthread -= "IlmThread/IlmThreadWin32.cpp";
     }
 
+    auto &openexr_config = openexr.addTarget<LibraryTarget>("config");
+    openexr_config += "config.windows/.*"_rr;
+
+    const auto oc = openexr_config.BinaryDir / "OpenEXRConfig.h";
+    auto c2 = std::make_shared<ExecuteCommand>([oc, &openexr_config]()
+    {
+        std::string s;
+        if (openexr_config.Settings.TargetOS.Type == OSType::Windows)
+        {
+            s = read_file(openexr_config.SourceDir / "config.windows" / "OpenEXRConfig.h");
+            s += "#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1";
+        }
+        else if (openexr_config.Settings.TargetOS.Type == OSType::Macos)
+        {
+            s += R"(#define OPENEXR_IMF_HAVE_DARWIN 1
+#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1
+#include <string.h>
+)";
+        }
+        else
+        {
+            s += R"(#define OPENEXR_IMF_HAVE_LINUX_PROCFS 1
+#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1
+#define OPENEXR_IMF_HAVE_LARGE_STACK 1
+)";
+        }
+
+        s += R"(
+#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 0
+#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf
+#define OPENEXR_IMF_NAMESPACE Imf
+
+#define OPENEXR_VERSION_STRING ")" + openexr_config.Variables["PACKAGE_VERSION"] + R"("
+#define OPENEXR_PACKAGE_STRING "IlmBase )" + openexr_config.Variables["PACKAGE_VERSION"] + R"("
+#define OPENEXR_VERSION_MAJOR )" + openexr_config.Variables["PACKAGE_VERSION_MAJOR"] + R"(
+#define OPENEXR_VERSION_MINOR )" + openexr_config.Variables["PACKAGE_VERSION_MINOR"] + R"(
+#define OPENEXR_VERSION_PATCH )" + openexr_config.Variables["PACKAGE_VERSION_PATCH"] + R"(
+
+// Version as a single hex number, e.g. 0x01000300 == 1.0.3
+#define OPENEXR_VERSION_HEX ((OPENEXR_VERSION_MAJOR << 24) | \\
+                                (OPENEXR_VERSION_MINOR << 16) | \\
+                                (OPENEXR_VERSION_PATCH <<  8))
+)";
+
+        write_file(openexr_config.BinaryDir / "OpenEXRConfig.h", s);
+    });
+    c2->addOutput(oc);
+    openexr_config.Public += oc;
+
     auto &dwalookups = openexr.addTarget<ExecutableTarget>("dwalookups");
     dwalookups += "IlmImf/dwaLookups.cpp";
-    dwalookups["IlmImf/dwaLookups.cpp"].addDependencies(openexr_config.BinaryDir / "OpenEXRConfig.h");
     dwalookups.Public += imath;
     dwalookups.Public += ilmthread;
     dwalookups.Public += openexr_config;
