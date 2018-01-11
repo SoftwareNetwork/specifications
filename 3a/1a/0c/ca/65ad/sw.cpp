@@ -49,7 +49,7 @@ void build(Solution &sln)
 #ifdef HAVE_INTTYPES_H
 #define OPJ_HAVE_INTTYPES_H 1
 #endif
-#define OPJ_PACKAGE_VERSION "@PACKAGE_VERSION@"
+#define OPJ_PACKAGE_VERSION @PACKAGE_VERSION@
 
 #cmakedefine _LARGEFILE_SOURCE
 #cmakedefine _LARGE_FILES
@@ -74,7 +74,9 @@ void build(Solution &sln)
 #endif
 #endif
 
-# define OPJ_BIG_ENDIAN @WORDS_BIGENDIAN@
+    #if @WORDS_BIGENDIAN@
+    #define OPJ_BIG_ENDIAN @WORDS_BIGENDIAN@
+    #endif
 )", true);
 
     openjp2.configureFile("opj_config.h.in", "opj_config.h");
