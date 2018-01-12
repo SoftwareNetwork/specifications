@@ -4488,7 +4488,7 @@ void boost_deps()
     add_public_dependency("test", "winapi", true);
     add_public_dependency("thread", "atomic", false);
     add_public_dependency("thread", "chrono", false);
-    add_public_dependency("thread", "date_time", false);
+    add_public_dependency("thread", "date_time", true);
     add_public_dependency("thread", "system", false);
     add_public_dependency("thread", "algorithm", true);
     add_public_dependency("thread", "array", true);
