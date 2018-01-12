@@ -33,8 +33,12 @@ void addPrivateDefinitions(TargetOptionsGroup &t, const String &N)
 
 void addStaticDefinitions(TargetOptionsGroup &t, const String &N)
 {
+    DefinitionsType defs2;
+    defs2["BOOST_" + N + "_BUILD_LIB"];
+    t.Private << sw::Shared << defs2;
+    
     DefinitionsType defs;
-    defs["BOOST_" + N + "_BUILD_LIB"];
+    defs["BOOST_" + N + "_USE_LIB"];
     defs["BOOST_" + N + "_STATIC_LINK"];
     t.Public << sw::Static << defs;
 }
@@ -46,8 +50,8 @@ void addSharedDefinitions(TargetOptionsGroup &t, const String &N)
     t.Private << sw::Shared << defs2;
 
     DefinitionsType defs;
-    defs["BOOST_" + N + "_DYN_LINK"];
     defs["BOOST_" + N + "_USE_DLL"];
+    defs["BOOST_" + N + "_DYN_LINK"];
     t.Public << sw::Shared << defs;
 }
 
