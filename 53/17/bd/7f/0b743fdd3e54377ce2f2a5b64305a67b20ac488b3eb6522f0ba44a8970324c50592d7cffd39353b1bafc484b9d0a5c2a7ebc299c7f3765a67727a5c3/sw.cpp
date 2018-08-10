@@ -165,7 +165,7 @@ void addStaticDefinitions(TargetOptionsGroup &t, const String &N)
 {
     DefinitionsType defs2;
     defs2["BOOST_" + N + "_BUILD_LIB"];
-    t.Private << sw::Shared << defs2;
+    t.Private << sw::Static << defs2;
 
     DefinitionsType defs;
     defs["BOOST_" + N + "_USE_LIB"];
@@ -327,6 +327,12 @@ void build(Solution &s)
     *boost_targets["pool"] += "include/.*\\.[ih]pp"_rr;
     *boost_targets["spirit"] += "include/.*\\.[cih]pp"_rr;
 
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        boost_targets["config"]->Public.Definitions["BOOST_USE_WINDOWS_H"];
+        boost_targets["config"]->Public.Definitions["BOOST_USE_INTRIN_H"];
+    }
+
     // compiled
     auto compiled_target_names = {
         "atomic",
@@ -435,7 +441,6 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
-        boost_targets["log"]->Public.Definitions["BOOST_USE_WINDOWS_H"];
         boost_targets["log"]->Public.Definitions["NOMINMAX"];
     }
     else
