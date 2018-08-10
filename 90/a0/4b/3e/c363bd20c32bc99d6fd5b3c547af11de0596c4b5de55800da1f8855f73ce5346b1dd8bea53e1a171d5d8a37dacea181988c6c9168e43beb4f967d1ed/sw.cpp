@@ -3,17 +3,20 @@ void build(Solution &s)
     auto &uv = s.addTarget<LibraryTarget>("libuv", "1.22.0");
     uv += Git("https://github.com/libuv/libuv", "v{v}");
 
-    uv.Interface += "USING_UV_SHARED"_d;
-    uv.Private += sw::Shared, "BUILDING_UV_SHARED"_d;
+    uv.Private << sw::Shared << "BUILDING_UV_SHARED"_d;
+    uv.Interface << sw::Shared << "USING_UV_SHARED"_d;
 
-    uv += "src/.*"_r;
+    uv += "include/.*"_rr;
+    uv += "src/.*"_rr;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
+        uv -= "src/unix/.*"_rr;
         uv += "src/win/.*"_rr;
         uv.Public += "iphlpapi.lib"_lib, "psapi.lib"_lib, "userenv.lib"_lib;
     }
     else
     {
+        uv -= "src/win/.*"_rr;
         uv +=
             "src/unix/async.c",
             "src/unix/atomic-ops.h",
