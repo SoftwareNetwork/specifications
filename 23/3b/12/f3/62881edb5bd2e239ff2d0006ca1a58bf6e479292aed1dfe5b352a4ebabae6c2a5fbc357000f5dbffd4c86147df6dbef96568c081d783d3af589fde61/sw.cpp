@@ -2,9 +2,8 @@ void build(Solution &s)
 {
     auto &libarchive = s.addTarget<LibraryTarget>("libarchive.libarchive", "3.3.2");
     libarchive += Git("https://github.com/libarchive/libarchive", "v{v}");
-
+    
     libarchive.setChecks("libarchive");
-
     libarchive +=
         "build/cmake/CheckFuncs.cmake",
         "build/cmake/CheckFuncs_stub.c.in",
@@ -46,6 +45,10 @@ void build(Solution &s)
     libarchive.Public += "HAVE_NETTLE_SHA_H"_d;
     libarchive.Public += "HAVE_ZLIB_H"_d;
     libarchive.Public += sw::Static, "LIBARCHIVE_STATIC"_d;
+    libarchive += "ICONV_CONST=const"_v;
+
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        libarchive.Public += "Advapi32.lib"_l, "User32.lib"_l;
 
     libarchive.Public += "org.sw.demo.bzip2-1"_dep;
     libarchive.Public += "org.sw.demo.gnu.nettle.nettle-3"_dep;
@@ -55,18 +58,17 @@ void build(Solution &s)
     libarchive.Public += "org.sw.demo.oberhumer.lzo.lzo-2"_dep;
     libarchive.Public += "org.sw.demo.xz_utils.lzma-5"_dep;
 
-    libarchive += "ICONV_CONST=const"_v;
+    libarchive.Variables["HAVE_WCSCPY"] = 1;
+    libarchive.Variables["HAVE_WCSLEN"] = 1;
+    libarchive.Variables["HAVE_WMEMCMP"] = 1;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-        libarchive.Public += "Advapi32.lib"_l, "User32.lib"_l;
-
-    if (libarchive.Variables["HAVE_DEV_T"] == "0")
+    if (!libarchive.Variables["HAVE_DEV_T"])
     {
         if (s.Settings.Native.CompilerType == CompilerType::MSVC)
             libarchive.Variables["dev_t"] = "unsigned int";
     }
 
-    if (libarchive.Variables["HAVE_GID_T"] == "0")
+    if (!libarchive.Variables["HAVE_GID_T"])
     {
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["gid_t"] = "short";
@@ -74,7 +76,7 @@ void build(Solution &s)
             libarchive.Variables["gid_t"] = "unsigned int";
     }
 
-    if (libarchive.Variables["HAVE_ID_T"] == "0")
+    if (!libarchive.Variables["HAVE_ID_T"])
     {
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["id_t"] = "short";
@@ -82,7 +84,7 @@ void build(Solution &s)
             libarchive.Variables["id_t"] = "unsigned int";
     }
 
-    if (libarchive.Variables["HAVE_UID_T"] == "0")
+    if (!libarchive.Variables["HAVE_UID_T"])
     {
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["uid_t"] = "short";
@@ -90,7 +92,7 @@ void build(Solution &s)
             libarchive.Variables["uid_t"] = "unsigned int";
     }
 
-    if (libarchive.Variables["HAVE_MODE_T"] == "0")
+    if (!libarchive.Variables["HAVE_MODE_T"])
     {
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["mode_t"] = "unsigned short";
@@ -98,12 +100,12 @@ void build(Solution &s)
             libarchive.Variables["mode_t"] = "int";
     }
 
-    if (libarchive.Variables["HAVE_OFF_T"] == "0")
+    if (!libarchive.Variables["HAVE_OFF_T"])
     {
         libarchive.Variables["off_t"] = "__int64";
     }
 
-    if (libarchive.Variables["HAVE_SIZE_T"] == "0")
+    if (!libarchive.Variables["HAVE_SIZE_T"])
     {
         if (s.Settings.TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["size_t"] = "uint64_t";
@@ -111,7 +113,7 @@ void build(Solution &s)
             libarchive.Variables["size_t"] = "uint32_t";
     }
 
-    if (libarchive.Variables["HAVE_SSIZE_T"] == "0")
+    if (!libarchive.Variables["HAVE_SSIZE_T"])
     {
         if (s.Settings.TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["ssize_t"] = "int64_t";
@@ -119,7 +121,7 @@ void build(Solution &s)
             libarchive.Variables["ssize_t"] = "long";
     }
 
-    if (libarchive.Variables["HAVE_PID_T"] == "0")
+    if (!libarchive.Variables["HAVE_PID_T"])
     {
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["pid_t"] = "int";
@@ -127,7 +129,7 @@ void build(Solution &s)
             throw std::runtime_error("pid_t doesn't exist on this platform?");
     }
 
-    if (libarchive.Variables["HAVE_INTPTR_T"] == "0")
+    if (!libarchive.Variables["HAVE_INTPTR_T"])
     {
         if (s.Settings.TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["intptr_t"] = "int64_t";
@@ -135,7 +137,7 @@ void build(Solution &s)
             libarchive.Variables["intptr_t"] = "int32_t";
     }
 
-    if (libarchive.Variables["HAVE_UINTPTR_T"] == "0")
+    if (!libarchive.Variables["HAVE_UINTPTR_T"])
     {
         if (s.Settings.TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["intptr_t"] = "uint64_t";
@@ -143,13 +145,13 @@ void build(Solution &s)
             libarchive.Variables["intptr_t"] = "uint32_t";
     }
 
-    if (libarchive.Variables["HAVE_SIZEOF_WCHAR_T"] != "0")
+    if (!libarchive.Variables["HAVE_SIZEOF_WCHAR_T"])
     {
-        libarchive.Variables["HAVE_WCHAR_T"] = "1";
+        libarchive.Variables["HAVE_WCHAR_T"] = 1;
     }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        libarchive.Variables["HAVE_WINCRYPT_H"] = "1";
+        libarchive.Variables["HAVE_WINCRYPT_H"] = 1;
 
     // TODO: add 'or cygwin'
     // IF(NOT WIN32 OR CYGWIN)

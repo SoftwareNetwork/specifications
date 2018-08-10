@@ -50,6 +50,9 @@ void build(Solution &s)
     nettle.configureFile("version.h.in", "version.h");
     nettle.fileWriteOnce(nettle.BinaryPrivateDir / "config.h", "", true);
     nettle.fileWriteOnce("nettle-stdint.h", "#include <stdint.h>", true);
+    nettle.replaceInFileOnce(nettle.SourceDir / "pss-mgf1.h",
+        "#include \"sha2.h\"",
+        "#include \"sha2.h\"\n#include \"sha3.h\"");
 
     const std::map<int,std::vector<int>> args =
     {
