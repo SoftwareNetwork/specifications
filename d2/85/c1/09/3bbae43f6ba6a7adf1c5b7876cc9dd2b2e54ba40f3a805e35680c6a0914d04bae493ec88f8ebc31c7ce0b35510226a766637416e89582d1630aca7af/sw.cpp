@@ -1,6 +1,6 @@
 #ifdef SW_PRAGMA_HEADER
 
-void gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
+auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
 {
     auto protoc = THIS_PREFIX "." "google.protobuf.protoc" "-" THIS_VERSION_DEPENDENCY;
     {
@@ -18,8 +18,6 @@ void gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     auto oh = o;
     oh += ".pb.h";
 
-    PackageId protoc_pkg(THIS_PREFIX "." "google.protobuf.protoc", THIS_VERSION);
-
     auto c = std::make_shared<Command>();
     c->setProgram(protoc);
     c->working_directory = bdir;
@@ -28,7 +26,10 @@ void gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     c->args.push_back("-I");
     c->args.push_back(d.u8string());
     c->args.push_back("-I");
-    c->args.push_back((protoc_pkg.getDirSrc2() / "src").u8string());
+    c->pushLazyArg([protoc]()
+    {
+        return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
+    });
     c->addInput(f);
     c->addOutput(ocpp);
     c->addOutput(oh);
@@ -38,6 +39,8 @@ void gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     t += protobuf;
     if (public_protobuf)
         t.Public += protobuf;
+
+    return protoc;
 };
 
 #endif
@@ -69,5 +72,18 @@ void build(Solution &s)
 
     auto &protoc = p.addTarget<ExecutableTarget>("protoc");
     protoc.ImportFromBazel = true;
+    protoc +=
+        "src/google/protobuf/any.proto",
+        "src/google/protobuf/api.proto",
+        "src/google/protobuf/compiler/plugin.proto",
+        "src/google/protobuf/descriptor.proto",
+        "src/google/protobuf/duration.proto",
+        "src/google/protobuf/empty.proto",
+        "src/google/protobuf/field_mask.proto",
+        "src/google/protobuf/source_context.proto",
+        "src/google/protobuf/struct.proto",
+        "src/google/protobuf/timestamp.proto",
+        "src/google/protobuf/type.proto",
+        "src/google/protobuf/wrappers.proto";
     protoc.Public += protoc_lib;
 }
