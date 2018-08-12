@@ -1,4 +1,9 @@
 #ifdef SW_PRAGMA_HEADER
+#pragma sw header on
+
+#pragma sw require pub.egorpugin.primitives.context-master
+
+#include <primitives/context.h>
 
 void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
 {
@@ -94,6 +99,7 @@ void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, const path
     gen_flex_bison(t, f += ".ll", b += ".yy", { "--prefix=ll_" + name }, { "-Dapi.prefix={yy_" + name + "}" });
 };
 
+#pragma sw header off
 #endif
 
 void build(Solution &s)

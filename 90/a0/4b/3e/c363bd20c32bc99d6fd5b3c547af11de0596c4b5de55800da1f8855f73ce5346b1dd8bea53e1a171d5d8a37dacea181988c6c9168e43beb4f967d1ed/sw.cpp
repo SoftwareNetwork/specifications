@@ -12,7 +12,13 @@ void build(Solution &s)
     {
         uv -= "src/unix/.*"_rr;
         uv += "src/win/.*"_rr;
-        uv.Public += "iphlpapi.lib"_lib, "psapi.lib"_lib, "userenv.lib"_lib;
+        uv.Public +=
+            "ws2_32.lib"_lib,
+            "user32.lib"_lib,
+            "Advapi32.lib"_lib,
+            "iphlpapi.lib"_lib,
+            "psapi.lib"_lib,
+            "userenv.lib"_lib;
     }
     else
     {

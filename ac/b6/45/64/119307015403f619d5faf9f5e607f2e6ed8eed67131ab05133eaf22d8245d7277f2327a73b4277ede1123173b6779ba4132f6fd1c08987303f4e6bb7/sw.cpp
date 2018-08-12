@@ -1,4 +1,5 @@
 #ifdef SW_PRAGMA_HEADER
+#pragma sw header on
 
 void gen_ragel(NativeExecutedTarget &t, const path &in)
 {
@@ -18,6 +19,7 @@ void gen_ragel(NativeExecutedTarget &t, const path &in)
     t += o;
 }
 
+#pragma sw header off
 #endif
 
 void build(Solution &s)
