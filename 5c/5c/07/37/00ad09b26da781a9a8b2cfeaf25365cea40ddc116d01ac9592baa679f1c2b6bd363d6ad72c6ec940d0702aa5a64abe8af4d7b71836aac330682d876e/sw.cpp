@@ -1,4 +1,7 @@
 #ifdef SW_PRAGMA_HEADER
+#pragma sw header on
+
+#pragma sw require header org.sw.demo.google.protobuf.protoc-3
 
 void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
 {
@@ -46,6 +49,7 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     t += ocpp, oh;
 };
 
+#pragma sw header off
 #endif
 
 void build(Solution &s)

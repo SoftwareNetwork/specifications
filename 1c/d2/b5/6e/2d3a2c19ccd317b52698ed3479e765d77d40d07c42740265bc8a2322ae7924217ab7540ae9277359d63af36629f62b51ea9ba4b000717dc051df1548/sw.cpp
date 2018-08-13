@@ -389,6 +389,7 @@ void build(Solution &s)
         *boost_targets["locale"] -= "src/icu/.*"_rr;
         *boost_targets["locale"] -= "src/posix/.*"_rr;
         boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_NO_POSIX_BACKEND"];
+        boost_targets["locale"]->Definitions["NOMINMAX"];
     }
     else
     {
@@ -463,6 +464,9 @@ void build(Solution &s)
     else
         *((LibraryTarget*)boost_targets["thread"]) -= "src/win32/.*"_rr;
     //*boost_targets["thread"] += *boost_targets["date_time"];
+
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_lib;
 
     boost_deps(boost_targets);
 

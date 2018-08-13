@@ -90,7 +90,7 @@ void build(Solution &s)
     libcurl.Public += "HAVE_LIBZ"_d;
     libcurl.Public += "HAVE_SOCKET"_d;
     libcurl.Public += "HAVE_ZLIB_H"_d;
-    libcurl.Public += "USE_ARES"_d;
+    //libcurl.Public += "USE_ARES"_d;
     libcurl.Public += "USE_LIBSSH2"_d;
     libcurl.Public += "USE_NGHTTP2"_d;
     libcurl.Public += "USE_OPENSSL"_d;
@@ -100,7 +100,7 @@ void build(Solution &s)
     }
     libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
-    libcurl.Public += "org.sw.demo.c_ares-1"_dep;
+    //libcurl.Public += "org.sw.demo.c_ares-1"_dep;
     libcurl.Public += "org.sw.demo.gnu.gss-1"_dep;
     libcurl.Public += "org.sw.demo.nghttp2-1"_dep;
     libcurl.Public += "org.sw.demo.libssh2-1"_dep;

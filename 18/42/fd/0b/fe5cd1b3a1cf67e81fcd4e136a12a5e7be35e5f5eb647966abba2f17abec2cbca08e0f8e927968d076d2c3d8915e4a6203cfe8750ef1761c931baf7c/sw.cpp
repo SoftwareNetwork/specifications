@@ -1,4 +1,5 @@
 #ifdef SW_PRAGMA_HEADER
+#pragma sw header on
 
 auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
 {
@@ -43,6 +44,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     return protoc;
 };
 
+#pragma sw header off
 #endif
 
 void build(Solution &s)
