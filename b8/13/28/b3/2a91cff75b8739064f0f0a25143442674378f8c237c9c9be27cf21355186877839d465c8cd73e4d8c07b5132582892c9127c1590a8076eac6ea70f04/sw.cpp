@@ -56,14 +56,14 @@ void embed(NativeExecutedTarget &t, const path &in)
 
 void configure(Solution &s)
 {
-    s.Settings.Native.LibrariesType = LibraryType::Static;
+    //s.Settings.Native.LibrariesType = LibraryType::Static;
     s.Settings.Native.ConfigurationType = ConfigurationType::Debug;
 }
 
 void build(Solution &s)
 {
     auto &p = s.addProject("primitives", "master");
-    p += Git("https://github.com/egorpugin/primitives", "", "{v}");
+    p += Git("https://github.com/egorpugin/primitives", "", "master");
 
     auto setup_primitives_no_all_sources = [](auto &t)
     {
@@ -128,8 +128,12 @@ void build(Solution &s)
         "org.sw.demo.boost.interprocess-1"_dep;
 
     ADD_LIBRARY(log);
-    log.Public +=
-        "org.sw.demo.boost.log-1"_dep;
+    log.Public += "org.sw.demo.boost.log-1"_dep;
+
+#ifndef SW_SELF_BUILD
+    ADD_LIBRARY(cron);
+    cron.Public += executor, log;
+#endif
 
     ADD_LIBRARY(yaml);
     yaml.Public += string,
@@ -164,6 +168,11 @@ void build(Solution &s)
 
     ADD_LIBRARY_WITH_NAME(db_sqlite3, "db.sqlite3");
     db_sqlite3.Public += db_common, "org.sw.demo.sqlite3"_dep;
+
+#ifndef SW_SELF_BUILD
+    ADD_LIBRARY_WITH_NAME(db_postgresql, "db.postgresql");
+    db_postgresql.Public += db_common, "org.sw.demo.jtv.pqxx-*"_dep;
+#endif
 
     auto &main = p.addTarget<StaticLibraryTarget>("main");
     setup_primitives(main);
