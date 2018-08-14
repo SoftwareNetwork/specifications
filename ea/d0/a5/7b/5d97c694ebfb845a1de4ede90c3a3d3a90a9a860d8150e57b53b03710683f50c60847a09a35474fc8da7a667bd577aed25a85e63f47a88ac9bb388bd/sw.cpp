@@ -120,7 +120,7 @@ void build(Solution &s)
 
         pcre.Variables["SUPPORT_PCRE" + sbits] = "1";
 
-        pcre.configureFile("config-cmake.h.in", "config.h");
+        pcre.configureFile("config-cmake.h.in", pcre.BinaryPrivateDir / "config.h");
         pcre.configureFile("pcre.h.in", "pcre.h");
     };
 
