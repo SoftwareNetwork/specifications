@@ -3,8 +3,8 @@ void build(Solution &sln)
     auto &s = sln.addDirectory("gnome");
     auto &p = s.addProject("pango", "1.42.3");
     p += RemoteFile("https://ftp.gnome.org/pub/GNOME/sources/pango/{M}.{m}/pango-{v}.tar.xz");
-    auto &pango = p.addTarget<LibraryTarget>("pango");
 
+    auto &pango = p.addTarget<LibraryTarget>("pango");
     pango.ApiName = "SW_PANGO_LIBRARY_API";
     pango.setChecks("pango");
 
@@ -61,7 +61,7 @@ void build(Solution &sln)
 
     //
     auto &pangoft2 = p.addTarget<LibraryTarget>("pangoft2");
-
+    pangoft2.ApiName = "SW_PANGOFT2_LIBRARY_API";
     pangoft2.setChecks("pango");
 
     pangoft2 +=
@@ -95,9 +95,12 @@ void build(Solution &sln)
     pangoft2.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig-2"_dep;
 
     pangoft2.writeFileOnce(pangoft2.BinaryPrivateDir / "config.h");
+    pangoft2.replaceInFileOnce("pango/pango-version-macros.h",
+        "#define _PANGO_EXTERN extern", "#define _PANGO_EXTERN extern SW_PANGOFT2_LIBRARY_API");
 
     //
     auto &pangocairo = p.addTarget<LibraryTarget>("pangocairo");
+    pangocairo.ApiName = "SW_PANGOCAIRO_LIBRARY_API";
     pangocairo.setChecks("pango");
 
     pangocairo +=
@@ -132,6 +135,8 @@ void build(Solution &sln)
         "pango/pangowin32.*"_rr;
 
     pangocairo.writeFileOnce(pangocairo.BinaryPrivateDir / "config.h");
+    pangocairo.replaceInFileOnce("pango/pango-version-macros.h",
+        "#define _PANGO_EXTERN extern", "#define _PANGO_EXTERN extern SW_PANGOCAIRO_LIBRARY_API");
 }
 
 void check(Checker &c)
