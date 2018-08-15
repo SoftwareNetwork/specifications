@@ -6,6 +6,8 @@ void build(Solution &s)
     cairo.setChecks("cairo");
 
     cairo.ApiNames.insert("cairo_public");
+    cairo.CPPVersion = CPPLanguageStandard::CPP11;
+        
     cairo +=
         "cairo-version.h",
         "src/cairo.*\\.c"_rr,
@@ -87,7 +89,10 @@ void build(Solution &s)
         cairo.Public += "CAIRO_HAS_XLIB_XCB_FUNCTIONS=0"_d;
         cairo.Public += "CAIRO_HAS_XLIB_XRENDER_SURFACE=0"_d;
         cairo.Public += "CAIRO_HAS_XML_SURFACE=0"_d;
+        
     }
+    
+    cairo.Public += "HAVE_CXX11_ATOMIC_PRIMITIVES=1"_d;
 
     cairo.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig-2"_dep;
     cairo.Public += "org.sw.demo.freedesktop.pixman-0"_dep;
