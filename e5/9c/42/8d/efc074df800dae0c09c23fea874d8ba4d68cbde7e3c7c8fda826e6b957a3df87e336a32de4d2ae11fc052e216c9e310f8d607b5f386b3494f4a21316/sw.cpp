@@ -94,6 +94,7 @@ void build(Solution &sln)
         c->addInput(i);
         c->addOutput(o);
         wt += o;
+        wt.Storage.push_back(c);
     };
 
     file2string("src/web/skeleton/Plain.html", "Plain_html");

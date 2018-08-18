@@ -17,6 +17,7 @@ void gen_ragel(NativeExecutedTarget &t, const path &in)
     c->addInput(t.SourceDir / in);
     c->addOutput(o);
     t += o;
+    t.Storage.push_back(c);
 }
 
 #pragma sw header off

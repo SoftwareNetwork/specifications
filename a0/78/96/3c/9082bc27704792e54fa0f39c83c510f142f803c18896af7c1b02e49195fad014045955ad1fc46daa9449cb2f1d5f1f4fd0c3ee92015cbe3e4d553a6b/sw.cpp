@@ -35,6 +35,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     c->addOutput(ocpp);
     c->addOutput(oh);
     t += ocpp, oh;
+    t.Storage.push_back(c);
 
     auto protobuf = THIS_PREFIX "." "google.protobuf.protobuf" "-" THIS_VERSION_DEPENDENCY;
     t += protobuf;

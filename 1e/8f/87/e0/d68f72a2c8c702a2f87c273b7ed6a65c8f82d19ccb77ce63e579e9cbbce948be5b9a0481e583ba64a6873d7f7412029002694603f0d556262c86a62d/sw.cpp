@@ -30,9 +30,9 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     c->args.push_back("--grpc_out=" + bdir.u8string());
     c->pushLazyArg([c = c.get(), grpc_cpp_plugin]()
     {
-        if (!grpc_cpp_plugin->target)
+        if (!grpc_cpp_plugin->target.lock())
             throw std::runtime_error("Command dependency target was not resolved: " + grpc_cpp_plugin->getPackage().toString());
-        auto p = grpc_cpp_plugin->target->getOutputFile();
+        auto p = grpc_cpp_plugin->target.lock()->getOutputFile();
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     });
@@ -47,6 +47,7 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     c->addOutput(ocpp);
     c->addOutput(oh);
     t += ocpp, oh;
+    t.Storage.push_back(c);
 };
 
 #pragma sw header off

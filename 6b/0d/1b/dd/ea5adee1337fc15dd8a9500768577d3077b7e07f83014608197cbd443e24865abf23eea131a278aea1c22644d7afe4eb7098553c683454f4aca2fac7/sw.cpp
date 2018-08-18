@@ -19,6 +19,7 @@ void gen_sqlite2cpp(NativeExecutedTarget &t, const path &sql_file, const path &o
     c->addInput(sql_file);
     c->addOutput(out);
     t += out;
+    t.Storage.push_back(c);
 }
 
 void embed(NativeExecutedTarget &t, const path &in)
@@ -40,6 +41,7 @@ void embed(NativeExecutedTarget &t, const path &in)
     c->addInput(in);
     c->addOutput(out);
     t += out;
+    t.Storage.push_back(c);
 }
 
 #pragma sw header off
@@ -208,4 +210,4 @@ void build(Solution &s)
         "org.sw.demo.imageworks.pystring-1"_dep;
     gen_ragel(version, "src/version.rl");
     gen_flex_bison_pair(version, "GLR_CPP_PARSER", "src/range");
-} 
+}
