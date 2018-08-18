@@ -2,7 +2,7 @@ void build(Solution &sln)
 {
     auto &s = sln.addDirectory("emweb");
     auto &p = s.addProject("wt", "4.0.3");
-    p += Git("https://github.com/emweb/wt", "{v}");
+    p += Git("https://github.com/emweb/wt", "", "master");
     auto &wt = p.addTarget<LibraryTarget>("wt");
 
     wt +=
