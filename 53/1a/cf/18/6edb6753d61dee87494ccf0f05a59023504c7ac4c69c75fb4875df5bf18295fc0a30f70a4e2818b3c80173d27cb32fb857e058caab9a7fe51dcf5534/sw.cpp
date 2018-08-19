@@ -71,6 +71,7 @@ void build(Solution &s)
         for (auto &a2 : a)
             c->args.push_back(std::to_string(a2));
         nettle += c->redirectStdout(nettle.BinaryDir / ("ecc-" + std::to_string(k) + ".h"));
+        nettle.Storage.push_back(c);
     }
 }
 
