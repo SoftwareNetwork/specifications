@@ -51,7 +51,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
 void build(Solution &s)
 {
     auto &p = s.addProject("google.protobuf", "3.6.1");
-    p += Git("https://github.com/google/protobuf", "v{v}");
+    p += Git("https://github.com/protocolbuffers/protobuf", "v{v}");
 
     auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
     protobuf_lite.ImportFromBazel = true;

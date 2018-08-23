@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &p = s.addProject("gnome.glib", "2.56.1");
-    p += Git("git://git.gnome.org/glib", "{v}");
+    p += RemoteFile("https://ftp.gnome.org/pub/gnome/sources/glib/{M}.{m}/glib-{v}.tar.xz");
 
     auto &glib = p.addTarget<LibraryTarget>("glib");
     glib.ApiName = "SW_GLIB_API";

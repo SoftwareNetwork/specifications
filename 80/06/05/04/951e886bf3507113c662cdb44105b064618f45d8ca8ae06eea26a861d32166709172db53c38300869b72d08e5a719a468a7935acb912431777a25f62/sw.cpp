@@ -41,6 +41,7 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         c->addOutput(o);
         c->addOutput(oh);
         t += o, oh;
+        t.Storage.push_back(c);
     }
 
     {
@@ -57,6 +58,7 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         c->addInput(oh);
         c->addOutput(o);
         t += o;
+        t.Storage.push_back(c);
     }
 };
 
