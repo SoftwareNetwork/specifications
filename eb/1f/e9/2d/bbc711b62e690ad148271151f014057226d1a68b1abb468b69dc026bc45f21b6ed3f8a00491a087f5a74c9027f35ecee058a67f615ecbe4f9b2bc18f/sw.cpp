@@ -42,7 +42,6 @@ void build(Solution &s)
             "src/unix/stream.c",
             "src/unix/tcp.c",
             "src/unix/thread.c",
-            "src/unix/timer.c",
             "src/unix/tty.c",
             "src/unix/udp.c";
 
