@@ -5,3 +5,4 @@ void build(Solution &s)
     t += "[^/]*\\.[hc]"_rr;
     t += sw::Shared, "ZLIB_DLL"_d;
 }
+

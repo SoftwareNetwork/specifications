@@ -188,11 +188,15 @@ void build(Solution &s)
     auto &sw_main = p.addTarget<StaticLibraryTarget>("sw.main");
     setup_primitives(sw_main);
     sw_main.Public += main, sw_settings,
-        "org.sw.demo.boost.dll-1"_dep,
-        "org.sw.demo.google.breakpad.client.windows.handler-master"_dep,
-        "org.sw.demo.google.breakpad.client.windows.crash_generation.client-master"_dep,
-        "org.sw.demo.google.breakpad.client.windows.crash_generation.server-master"_dep
-        ;
+        "org.sw.demo.boost.dll-1"_dep;
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        sw_main.Public +=
+            "org.sw.demo.google.breakpad.client.windows.handler-master"_dep,
+            "org.sw.demo.google.breakpad.client.windows.crash_generation.client-master"_dep,
+            "org.sw.demo.google.breakpad.client.windows.crash_generation.server-master"_dep
+            ;
+    }
 
     auto &tools_embedder = p.addTarget<ExecutableTarget>("tools.embedder");
     setup_primitives_no_all_sources(tools_embedder);
@@ -210,4 +214,20 @@ void build(Solution &s)
         "org.sw.demo.imageworks.pystring-1"_dep;
     gen_ragel(version, "src/version.rl");
     gen_flex_bison_pair(version, "GLR_CPP_PARSER", "src/range");
-}
+
+    auto &test = p.addDirectory("test");
+    test.Scope = TargetScope::Test;
+
+    /*auto add_test = [](const String &name) -> decltype(auto)
+    {
+        auto &t = test.addTarget<ExecutableTarget>("main");
+        t.CPPVersion = CPPLanguageStandard::CPP17;
+        t += "src/" + name + ".cpp";
+        return t;
+    };
+
+    auto &test_main = add_test("main");
+    auto &test_db = add_test("db");
+    auto &test_settings = add_test("settings");
+    auto &test_version = add_test("version");*/
+} 

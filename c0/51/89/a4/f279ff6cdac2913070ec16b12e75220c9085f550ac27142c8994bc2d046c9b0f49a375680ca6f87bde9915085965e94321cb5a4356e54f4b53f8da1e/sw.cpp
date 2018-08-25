@@ -18,6 +18,7 @@ void build(Solution &s)
         llvm_support_lite.setChecks("support_lite");
         llvm_support_lite +=
             "include/llvm-c/.*Types\\.h"_rr,
+            "include/llvm-c/Error.h",
             "include/llvm-c/ErrorHandling.h",
             "include/llvm-c/Support.h",
             "include/llvm/ADT/.*\\.h"_rr,
@@ -256,3 +257,4 @@ void check(Checker &c)
         c.Parameters.Includes.push_back("stdio.h");
     }
 }
+
