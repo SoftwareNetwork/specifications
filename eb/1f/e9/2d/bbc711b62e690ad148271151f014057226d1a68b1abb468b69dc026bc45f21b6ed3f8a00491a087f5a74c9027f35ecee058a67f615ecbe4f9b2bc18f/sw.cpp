@@ -7,10 +7,10 @@ void build(Solution &s)
     uv.Interface << sw::Shared << "USING_UV_SHARED"_d;
 
     uv += "include/.*"_rr;
-    uv += "src/.*"_rr;
+    uv -= "src/.*"_rr;
+    uv += "src/.*"_r;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        uv -= "src/unix/.*"_rr;
         uv += "src/win/.*"_rr;
         uv.Public +=
             "ws2_32.lib"_lib,

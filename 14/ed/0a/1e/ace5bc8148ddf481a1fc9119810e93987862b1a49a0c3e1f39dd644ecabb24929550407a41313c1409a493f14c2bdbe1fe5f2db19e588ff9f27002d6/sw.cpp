@@ -34,7 +34,7 @@ void build(Solution &s)
         )
         libssh2.Variables["HAVE_DISABLED_NONBLOCKING"] == "1";
 
-
+    libssh2.pushBackToFileOnce("src/libssh2_config_cmake.h.in", "#include <stdint.h>");
     libssh2.configureFile("src/libssh2_config_cmake.h.in", "libssh2_config.h");
 
     libssh2.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;

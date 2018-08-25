@@ -7,13 +7,18 @@
 
 void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
 {
+    // must be HostOS
+    bool win_flex_bison = t.Settings.Native.CompilerType != CompilerType::GNU;
+
     auto flex = THIS_PREFIX "." "lexxmark.winflexbison.flex" "-" THIS_VERSION_DEPENDENCY;
+    if (win_flex_bison)
     {
         auto d = t + flex;
         d->Dummy = true;
     }
 
     auto bison = THIS_PREFIX "." "lexxmark.winflexbison.bison" "-" THIS_VERSION_DEPENDENCY;
+    if (win_flex_bison)
     {
         auto d = t + bison;
         d->Dummy = true;
@@ -30,7 +35,10 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
 
     {
         auto c = std::make_shared<Command>();
-        c->setProgram(bison);
+        if (win_flex_bison)
+            c->setProgram(bison);
+        else
+            c->setProgram("bison");
         c->working_directory = bdir;
         c->args.push_back("-o");
         c->args.push_back(o.u8string());
@@ -48,7 +56,10 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         auto o = bdir / (f.filename().u8string() + ".cpp");
 
         auto c = std::make_shared<Command>();
-        c->setProgram(flex);
+        if (win_flex_bison)
+            c->setProgram(flex);
+        else
+            c->setProgram("flex");
         c->working_directory = bdir;
         c->args.push_back("-o");
         c->args.push_back(o.u8string());
@@ -106,6 +117,10 @@ void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, const path
 
 void build(Solution &s)
 {
+    bool win_flex_bison = s.Settings.Native.CompilerType != CompilerType::GNU;
+    if (!win_flex_bison)
+        return;
+
     auto &winflexbison = s.addProject("lexxmark.winflexbison", "master");
     winflexbison += Git("https://github.com/lexxmark/winflexbison", "", "master");
 
