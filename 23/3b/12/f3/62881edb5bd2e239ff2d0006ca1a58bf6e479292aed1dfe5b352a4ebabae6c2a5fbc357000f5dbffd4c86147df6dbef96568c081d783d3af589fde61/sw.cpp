@@ -126,7 +126,7 @@ void build(Solution &s)
         if (s.Settings.TargetOS.Type == OSType::Windows)
             libarchive.Variables["pid_t"] = "int";
         else
-            throw std::runtime_error("pid_t doesn't exist on this platform?");
+            libarchive.Variables["pid_t"] = "pid_t";
     }
 
     if (!libarchive.Variables["HAVE_INTPTR_T"])
