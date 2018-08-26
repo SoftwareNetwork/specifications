@@ -30,7 +30,7 @@ void build(Solution &s)
         intl += "HAVE_NEWLOCALE=0"_v;
     if (intl.Variables.find("HAVE_ASPRINTF") == intl.Variables.end())
         intl += "HAVE_ASPRINTF=0"_v;
-    if (intl.Variables.find("HAVE_SNPRINTF") == intl.Variables.end())
+    //if (intl.Variables.find("HAVE_SNPRINTF") == intl.Variables.end())
         intl += "HAVE_SNPRINTF=0"_v;
     if (intl.Variables.find("HAVE_WPRINTF") == intl.Variables.end())
         intl += "HAVE_WPRINTF=0"_v;
