@@ -110,6 +110,9 @@ void build(Solution &s)
     c_ares.Variables["CARES_HAVE_WINDOWS_H"] = c_ares.Variables["HAVE_WINDOWS_H"];
     c_ares.Variables["CARES_HAVE_WS2TCPIP_H"] = c_ares.Variables["HAVE_WS2TCPIP_H"];
     c_ares.Variables["CARES_HAVE_WINSOCK2_H"] = c_ares.Variables["HAVE_WINSOCK2_H"];
+    
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+        c_ares.Variables["CARES_TYPEOF_ARES_SSIZE_T"] = "long";
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         c_ares.Public += "ws2_32.lib"_l, "Advapi32.lib"_l;
@@ -156,6 +159,7 @@ void check(Checker &c)
     s.checkFunctionExists("setmode");
     s.checkFunctionExists("setrlimit");
     s.checkFunctionExists("strcasecmp");
+    s.checkFunctionExists("writev");
     s.checkFunctionExists("uname");
     s.checkFunctionExists("utime");
     s.checkIncludeExists("alloca.h");

@@ -96,6 +96,10 @@ void build(Solution &s)
     grpc_nanopb += "third_party/nanopb/[^/]*\\.[hc]"_rr;
     grpc_nanopb.Public += "PB_FIELD_32BIT"_d;
 
+    auto &grpc_address_sorting = p.addTarget<StaticLibraryTarget>("third_party.address_sorting");
+    grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
+    grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
+
     auto &atomic = p.addTarget<StaticLibraryTarget>("atomic");
     setup_grpc(atomic);
     atomic.Public += gpr;
@@ -174,7 +178,7 @@ void build(Solution &s)
 
     auto &grpc_resolver_dns_ares = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_ares");
     setup_grpc(grpc_resolver_dns_ares);
-    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, "org.sw.demo.c_ares-1"_dep;
+    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, "org.sw.demo.c_ares-1"_dep;
 
     auto &grpc_resolver_dns_native = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_native");
     setup_grpc(grpc_resolver_dns_native);

@@ -58,17 +58,29 @@ void build(Solution &s)
         if (t.Variables["HAVE_IOCTL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
 
+        if (s.Settings.TargetOS.Type == OSType::Linux)
+            t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
+
         if (t.Variables["HAVE_IOCTLSOCKET"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_FIONBIO"] = 1;
 
         if (t.Variables["HAVE_IOCTLSOCKET_CAMEL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_CAMEL_FIONBIO"] = 1;
+
+        if (s.Settings.TargetOS.Type == OSType::Linux)
+        {
+            t.Variables["HAVE_STRUCT_TIMEVAL"] = 1;
+            t.Variables["HAVE_BOOL_T"] = 1;
+            t.Variables["HAVE_SEND"] = 1;
+            t.Variables["HAVE_RECV"] = 1;
+        }
     };
 
     auto &libcurl = s.addTarget<LibraryTarget>("badger.curl.libcurl", "7.61.0");
     libcurl += Git("https://github.com/curl/curl", "curl-{M}_{m}_{p}");
 
     libcurl.setChecks("libcurl");
+    libcurl.setChecks("c_ares");
 
     libcurl +=
         "include/.*\\.cmake"_rr,
@@ -117,11 +129,15 @@ void build(Solution &s)
 
     libcurl.Variables["CURL_SIZEOF_LONG"] = libcurl.Variables["SIZEOF_LONG"];
 
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+        libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
+
     if (libcurl.Variables["SIZEOF_LONG"] == 8)
     {
         libcurl.Variables["CURL_TYPEOF_CURL_OFF_T"] = "long";
         libcurl.Variables["CURL_SIZEOF_CURL_OFF_T"] = 8;
         libcurl.Definitions["CURL_SIZEOF_CURL_OFF_T"] = 8;
+        libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
         libcurl.Variables["CURL_FORMAT_CURL_OFF_T"] = "ld";
         libcurl.Variables["CURL_FORMAT_CURL_OFF_TU"] = "lu";
         libcurl.Variables["CURL_FORMAT_OFF_T"] = "%ld";
@@ -134,6 +150,7 @@ void build(Solution &s)
         libcurl.Variables["CURL_TYPEOF_CURL_OFF_T"] = "long long";
         libcurl.Variables["CURL_SIZEOF_CURL_OFF_T"] = 8;
         libcurl.Definitions["CURL_SIZEOF_CURL_OFF_T"] = 8;
+        libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
         libcurl.Variables["CURL_FORMAT_CURL_OFF_T"] = "lld";
         libcurl.Variables["CURL_FORMAT_CURL_OFF_TU"] = "llu";
         libcurl.Variables["CURL_FORMAT_OFF_T"] = "%lld";
@@ -412,6 +429,7 @@ int main() {return 0;}
         s.checkFunctionExists("perror");
         s.checkFunctionExists("pipe");
         s.checkFunctionExists("pthread_create");
+        s.checkFunctionExists("select");
         s.checkFunctionExists("setlocale");
         s.checkFunctionExists("setmode");
         s.checkFunctionExists("setrlimit");

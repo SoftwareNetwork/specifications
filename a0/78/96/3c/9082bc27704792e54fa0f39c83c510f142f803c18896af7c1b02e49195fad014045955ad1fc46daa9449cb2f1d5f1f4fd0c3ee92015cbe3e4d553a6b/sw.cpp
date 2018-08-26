@@ -67,6 +67,12 @@ void build(Solution &s)
     protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
     protobuf.Public += "org.sw.demo.madler.zlib"_dep;
 
+    if (s.Settings.TargetOS.Type == OSType::Linux)
+    {
+        protobuf_lite.Public += "HAVE_PTHREAD"_d;
+        protobuf.Public += "HAVE_PTHREAD"_d;
+    }
+
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
     protoc_lib.ImportFromBazel = true;
     protoc_lib.Private += sw::Shared, "LIBPROTOC_EXPORTS"_d;
