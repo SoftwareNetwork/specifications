@@ -46,6 +46,8 @@ void build(Solution &s)
         {
             llvm_support_lite += "LLVM_HOST_TRIPLE=\"unknown-unknown-unknown\""_v;
             llvm_support_lite += "LLVM_ON_UNIX=1"_v;
+            llvm_support_lite.Public += "HAVE_PTHREAD_H"_d;
+            llvm_support_lite.Public += "HAVE_PTHREAD_MUTEX_LOCK"_d;
         }
         llvm_support_lite += "RETSIGTYPE=void"_v;
 
