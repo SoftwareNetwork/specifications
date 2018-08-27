@@ -17,6 +17,9 @@ void build(Solution &s)
     lz4.Public +=
         "lib"_id;
 
-    lz4.Interface += sw::Shared, "LZ4_DLL_IMPORT"_d;
-    lz4.Private += sw::Shared, "LZ4_DLL_EXPORT"_d;
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        lz4.Interface += sw::Shared, "LZ4_DLL_IMPORT"_d;
+        lz4.Private += sw::Shared, "LZ4_DLL_EXPORT"_d;
+    }
 }
