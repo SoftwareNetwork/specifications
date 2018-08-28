@@ -87,6 +87,14 @@ void build(Solution &s)
     embed(cpp_driver, cpp_driver.SourceDir / "src/driver/cpp/inserts/inserts.cpp.in");
     gen_flex_bison(cpp_driver, "src/driver/cpp/bazel/lexer.ll", "src/driver/cpp/bazel/grammar.yy");
 
+    auto &cppan_driver = p.addTarget<LibraryTarget>("driver.cppan");
+    cppan_driver.ApiName = "SW_DRIVER_CPPAN_API";
+    cppan_driver.ExportIfStatic = true;
+    cppan_driver.CPPVersion = CPPLanguageStandard::CPP17;
+    cppan_driver.Public += builder;
+    cppan_driver += "src/driver/cppan/.*"_rr, "include/sw/driver/cppan/.*"_rr;
+    cppan_driver.Public += "include"_idir, "src/driver/cppan"_idir;
+
 #ifndef SW_SELF_BUILD
     auto &tools = p.addDirectory("tools");
     auto &self_builder = tools.addTarget<ExecutableTarget>("self_builder");
@@ -98,10 +106,14 @@ void build(Solution &s)
         "pub.egorpugin.primitives.sw.main-master"_dep;
     {
         auto c = std::make_shared<Command>();
+        c->fs = s.getSolution()->fs;
         c->setProgram(self_builder);
         c->args.push_back((cpp_driver.BinaryDir / "build_self.generated.h").u8string());
+        c->args.push_back((cpp_driver.BinaryDir / "build_self.packages.generated.h").u8string());
         c->addOutput(cpp_driver.BinaryDir / "build_self.generated.h");
+        c->addOutput(cpp_driver.BinaryDir / "build_self.packages.generated.h");
         cpp_driver += cpp_driver.BinaryDir / "build_self.generated.h";
+        cpp_driver += cpp_driver.BinaryDir / "build_self.packages.generated.h";
         cpp_driver.Storage.push_back(c);
         auto d = cpp_driver + self_builder;
         d->Dummy = true;
@@ -111,7 +123,7 @@ void build(Solution &s)
     client += "src/client/.*"_rr;
     client += "src/client"_idir;
     client.CPPVersion = CPPLanguageStandard::CPP17;
-    client += cpp_driver,
+    client += cpp_driver, cppan_driver,
         "pub.egorpugin.primitives.sw.main-master"_dep,
         "org.sw.demo.giovannidicanio.winreg-master"_dep;
 
