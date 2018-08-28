@@ -66,12 +66,11 @@ void build(Solution &s)
 
     for (auto &[k,a] : args)
     {
-        auto c = std::make_shared<Command>();
-        c->program = eccdata.getOutputFile();
+        auto c = nettle.addCommand();
+        c << cmd::prog(eccdata);
         for (auto &a2 : a)
-            c->args.push_back(std::to_string(a2));
-        nettle += c->redirectStdout(nettle.BinaryDir / ("ecc-" + std::to_string(k) + ".h"));
-        nettle.Storage.push_back(c);
+            c << std::to_string(a2);
+        c << cmd::std_out("ecc-" + std::to_string(k) + ".h");
     }
 }
 

@@ -12,6 +12,7 @@ void gen_sqlite2cpp(NativeExecutedTarget &t, const path &sql_file, const path &o
     auto out = t.BinaryDir / out_file;
 
     auto c = std::make_shared<Command>();
+    c->fs = t.getSolution()->fs;
     c->setProgram(tools_sqlite2cpp);
     c->args.push_back(sql_file.u8string());
     c->args.push_back(out.u8string());
@@ -34,6 +35,7 @@ void embed(NativeExecutedTarget &t, const path &in)
     auto out = t.BinaryDir / in.filename().stem();
 
     auto c = std::make_shared<Command>();
+    c->fs = t.getSolution()->fs;
     c->setProgram(embedder);
     c->working_directory = wdir;
     c->args.push_back(in.u8string());
@@ -155,9 +157,11 @@ void build(Solution &s)
     win32helpers.Public += filesystem,
         "org.sw.demo.boost.dll-1"_dep,
         "org.sw.demo.boost.algorithm-1"_dep;
-    win32helpers += "Shell32.lib"_lib, "Ole32.lib"_lib;
     if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
         win32helpers.Public += "UNICODE"_d;
+        win32helpers += "Shell32.lib"_lib, "Ole32.lib"_lib;
+    }
 
     ADD_LIBRARY_WITH_NAME(db_common, "db.common");
     db_common.Public += filesystem, templates,

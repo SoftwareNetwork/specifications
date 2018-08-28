@@ -20,6 +20,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     oh += ".pb.h";
 
     auto c = std::make_shared<Command>();
+    c->fs = t.getSolution()->fs;
     c->setProgram(protoc);
     c->working_directory = bdir;
     c->args.push_back(f.u8string());
