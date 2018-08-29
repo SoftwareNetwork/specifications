@@ -9,8 +9,7 @@ void gen_ragel(NativeExecutedTarget &t, const path &in)
 
     auto o = t.BinaryDir / (in.filename().u8string() + ".cpp");
 
-    auto c = std::make_shared<Command>();
-    c->fs = t.getSolution()->fs;
+    SW_MAKE_COMMAND_AND_ADD(c, t);
     c->setProgram(ragel);
     c->args.push_back((t.SourceDir / in).u8string());
     c->args.push_back("-o");
@@ -18,7 +17,6 @@ void gen_ragel(NativeExecutedTarget &t, const path &in)
     c->addInput(t.SourceDir / in);
     c->addOutput(o);
     t += o;
-    t.Storage.push_back(c);
 }
 
 #pragma sw header off

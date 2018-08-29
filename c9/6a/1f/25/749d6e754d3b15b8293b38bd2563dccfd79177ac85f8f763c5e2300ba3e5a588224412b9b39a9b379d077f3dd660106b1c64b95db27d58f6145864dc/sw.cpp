@@ -23,8 +23,7 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     auto oh = o;
     oh += ".grpc.pb.h";
 
-    auto c = std::make_shared<Command>();
-    c->fs = t.getSolution()->fs;
+    SW_MAKE_COMMAND_AND_ADD(c, t);
     c->setProgram(protoc);
     c->working_directory = bdir;
     c->args.push_back(f.u8string());
@@ -48,7 +47,6 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     c->addOutput(ocpp);
     c->addOutput(oh);
     t += ocpp, oh;
-    t.Storage.push_back(c);
 };
 
 #pragma sw header off

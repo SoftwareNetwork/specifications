@@ -24,7 +24,8 @@ void build(Solution &s)
         "compat/[^/]*\\.[h]"_rr,
         "generic/[^/]*\\.[hc]"_rr,
         "generic/[^/]*\\.decls"_rr,
-        "libtommath/[^/]*\\.[hc]"_rr,
+        "libtommath/[^/]*\\.[c]"_rr,
+        "libtommath/tommath_.*"_r,
         "unix/[^/]*\\.[hc]"_rr,
         "win/[^/]*\\.[hc]"_rr;
     lib -=

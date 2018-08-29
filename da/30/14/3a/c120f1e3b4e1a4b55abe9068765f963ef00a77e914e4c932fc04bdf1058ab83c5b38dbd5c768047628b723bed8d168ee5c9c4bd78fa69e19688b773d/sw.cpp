@@ -19,8 +19,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     auto oh = o;
     oh += ".pb.h";
 
-    auto c = std::make_shared<Command>();
-    c->fs = t.getSolution()->fs;
+    SW_MAKE_COMMAND_AND_ADD(c, t);
     c->setProgram(protoc);
     c->working_directory = bdir;
     c->args.push_back(f.u8string());
@@ -36,7 +35,6 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     c->addOutput(ocpp);
     c->addOutput(oh);
     t += ocpp, oh;
-    t.Storage.push_back(c);
 
     auto protobuf = THIS_PREFIX "." "google.protobuf.protobuf" "-" THIS_VERSION_DEPENDENCY;
     t += protobuf;

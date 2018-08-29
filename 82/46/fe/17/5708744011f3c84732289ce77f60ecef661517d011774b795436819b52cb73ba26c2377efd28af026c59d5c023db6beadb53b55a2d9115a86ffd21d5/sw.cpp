@@ -34,8 +34,7 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
     fs::create_directories(bdir);
 
     {
-        auto c = std::make_shared<Command>();
-        c->fs = t.getSolution()->fs;
+        SW_MAKE_COMMAND_AND_ADD(c, t);
         if (win_flex_bison)
             c->setProgram(bison);
         else
@@ -50,14 +49,12 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         c->addOutput(o);
         c->addOutput(oh);
         t += o, oh;
-        t.Storage.push_back(c);
     }
 
     {
         auto o = bdir / (f.filename().u8string() + ".cpp");
 
-        auto c = std::make_shared<Command>();
-        c->fs = t.getSolution()->fs;
+        SW_MAKE_COMMAND_AND_ADD(c, t);
         if (win_flex_bison)
             c->setProgram(flex);
         else
@@ -71,7 +68,6 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         c->addInput(oh);
         c->addOutput(o);
         t += o;
-        t.Storage.push_back(c);
     }
 };
 
