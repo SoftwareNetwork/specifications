@@ -77,7 +77,7 @@ void build(Solution &s)
     }
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        lib.Private += "Netapi32.lib"_lib, "user32.lib"_lib;
+        lib.Public += "Netapi32.lib"_lib, "user32.lib"_lib;
     }
     lib.Private += sw::Shared, "TCL_SHARED_BUILD"_d;
     lib.Public += sw::Static, "STATIC_BUILD"_d;
