@@ -41,7 +41,7 @@ void build(Solution &s)
 
     auto &manager = p.addTarget<LibraryTarget>("manager");
     manager.ApiName = "SW_MANAGER_API";
-    //manager.ExportIfStatic = true;
+    manager.ExportIfStatic = true;
     manager.CPPVersion = CPPLanguageStandard::CPP17;
     manager.Public += support, protos,
         "pub.egorpugin.primitives.yaml-master"_dep,
@@ -72,7 +72,8 @@ void build(Solution &s)
     builder += "src/builder/.*"_rr, "include/sw/builder/.*"_rr;
     builder.Public += "include"_idir, "src/builder"_idir;
     builder -= "src/builder/db_sqlite.*"_rr;
-    builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep;
+    builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep,
+        "pub.egorpugin.primitives.context-master"_dep;
 
     auto &cpp_driver = p.addTarget<LibraryTarget>("driver.cpp");
     cpp_driver.ApiName = "SW_DRIVER_CPP_API";
@@ -80,8 +81,7 @@ void build(Solution &s)
     cpp_driver.CPPVersion = CPPLanguageStandard::CPP17;
     cpp_driver.Public += builder,
         "org.sw.demo.boost.assign-1"_dep,
-        "org.sw.demo.boost.uuid-1"_dep,
-        "pub.egorpugin.primitives.context-master"_dep;
+        "org.sw.demo.boost.uuid-1"_dep;
     cpp_driver += "src/driver/cpp/.*"_rr, "include/sw/driver/cpp/.*"_rr;
     cpp_driver.Public += "include"_idir, "src/driver/cpp"_idir;
     embed(cpp_driver, cpp_driver.SourceDir / "src/driver/cpp/inserts/inserts.cpp.in");

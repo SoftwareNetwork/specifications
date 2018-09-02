@@ -89,7 +89,6 @@ void build(Solution &s)
         t += "src/.*"_rr;
     };
 
-    ADD_LIBRARY(context);
     ADD_LIBRARY(error_handling);
 
     auto &templates = p.addTarget<StaticLibraryTarget>("templates");
@@ -100,10 +99,16 @@ void build(Solution &s)
 
     ADD_LIBRARY(filesystem);
     filesystem.Public += string, templates,
-        "org.sw.demo.libuv-1"_dep,
         "org.sw.demo.boost.filesystem-1"_dep,
         "org.sw.demo.boost.thread-1"_dep,
         "org.sw.demo.grisumbras.enum_flags-master"_dep;
+
+    ADD_LIBRARY(file_monitor);
+    file_monitor.Public += filesystem,
+        "org.sw.demo.libuv-1"_dep;
+
+    ADD_LIBRARY(context);
+    context.Public += filesystem;
 
     ADD_LIBRARY(executor);
     executor.Public += templates,
@@ -111,7 +116,7 @@ void build(Solution &s)
         "org.sw.demo.boost.system-1"_dep;
 
     ADD_LIBRARY(command);
-    command.Public += filesystem,
+    command.Public += file_monitor,
         "org.sw.demo.boost.process-1"_dep;
     if (s.Settings.TargetOS.Type == OSType::Windows)
         command.Public += "Shell32.lib"_l;
@@ -214,8 +219,9 @@ void build(Solution &s)
     tools_sqlite2cpp += filesystem, context, sw_main, "org.sw.demo.sqlite3"_dep;
 
     ADD_LIBRARY(version);
-    version.Public += templates,
+    version.Public += string, templates,
         "org.sw.demo.fmt-5"_dep,
+        "org.sw.demo.boost.container_hash-1"_dep,
         "org.sw.demo.imageworks.pystring-1"_dep;
     gen_ragel(version, "src/version.rl");
     gen_flex_bison_pair(version, "GLR_CPP_PARSER", "src/range");
