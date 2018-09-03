@@ -10,11 +10,8 @@ void build(Solution &s)
     auto setup = [](auto &t)
     {
         t.CPPVersion = CPPLanguageStandard::CPP11;
-        t.ApiName = "SW_ICU_" + t.pkg.ppath.back();
-        Definition de{"U_EXPORT=" + t.ApiName};
-        Definition di{"U_IMPORT=" + t.ApiName};
-        t.Public += sw::Shared, de;
-        t.Public += sw::Shared, di;
+        t.Public += sw::Shared, "U_EXPORT=SW_EXPORT"_d;
+        t.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
         t.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
         t.Public += "U_USING_ICU_NAMESPACE=1"_d;
     };
