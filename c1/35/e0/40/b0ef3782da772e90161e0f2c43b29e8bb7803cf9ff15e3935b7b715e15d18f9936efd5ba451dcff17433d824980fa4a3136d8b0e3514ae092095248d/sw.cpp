@@ -7,13 +7,20 @@ void build(Solution &s)
     auto &s_data = stub.addTarget<LibraryTarget>("data");
     auto &s_common = stub.addTarget<LibraryTarget>("common");
 
-    s_data.CPPVersion = CPPLanguageStandard::CPP11;
-    s_data += "source/stubdata/stubdata.cpp", "source"_id;
+    auto setup = [](auto &t)
+    {
+        t.CPPVersion = CPPLanguageStandard::CPP11;
+        t.ApiName = "SW_ICU_" + t.pkg.ppath.back();
+        Definition de{"U_EXPORT=" + t.ApiName};
+        Definition di{"U_IMPORT=" + t.ApiName};
+        t.Public += sw::Shared, de;
+        t.Public += sw::Shared, di;
+        t.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
+        t.Public += "U_USING_ICU_NAMESPACE=1"_d;
+    };
 
-    s_data.Public += "U_USING_ICU_NAMESPACE=1"_d;
-    s_data.Public += sw::Shared, "U_EXPORT=SW_EXPORT"_d;
-    s_data.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
-    s_data.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
+    setup(s_data);
+    s_data += "source/stubdata/stubdata.cpp", "source"_id;
 
     auto dc = s_data.Public + s_common;
     dc->IncludeDirectoriesOnly = true;
@@ -32,18 +39,14 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         s_common += "Advapi32.lib"_l;
 
+    setup(s_common);
     s_common.Private += "U_COMMON_IMPLEMENTATION"_d;
-    s_common.Public += "U_USING_ICU_NAMESPACE=1"_d;
-    s_common.Public += sw::Shared, "U_EXPORT=SW_EXPORT"_d;
-    s_common.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
-    s_common.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
-
     s_common.Public += s_data;
 
     //
     auto &s_i18n = stub.addTarget<LibraryTarget>("i18n");
     s_i18n.setRootDirectory("source");
-    s_i18n.CPPVersion = CPPLanguageStandard::CPP11;
+    setup(s_i18n);
 
     s_i18n +=
         "i18n/.*\\.c"_rr,
@@ -56,7 +59,7 @@ void build(Solution &s)
     //
     auto &s_toolutil = stub.addTarget<LibraryTarget>("toolutil");
     s_toolutil.setRootDirectory("source");
-    s_toolutil.CPPVersion = CPPLanguageStandard::CPP11;
+    setup(s_toolutil);
 
     s_toolutil +=
         "tools/toolutil/.*\\.c"_rr,
@@ -109,7 +112,6 @@ void build(Solution &s)
 
     //
     common.setRootDirectory("source");
-    common.CPPVersion = CPPLanguageStandard::CPP11;
     common.setChecks("common");
 
     common +=
@@ -121,18 +123,14 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         common += "Advapi32.lib"_l;
 
+    setup(common);
     common.Private += "U_COMMON_IMPLEMENTATION"_d;
-    common.Public += "U_USING_ICU_NAMESPACE=1"_d;
-    common.Public += sw::Shared, "U_EXPORT=SW_EXPORT"_d;
-    common.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
-    common.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
-
     common.Public += data;
 
     //
     auto &i18n = icu.addTarget<LibraryTarget>("i18n");
     i18n.setRootDirectory("source");
-    i18n.CPPVersion = CPPLanguageStandard::CPP11;
+    setup(i18n);
 
     i18n +=
         "i18n/.*\\.c"_rr,
@@ -145,7 +143,7 @@ void build(Solution &s)
     //
     auto &io = icu.addTarget<LibraryTarget>("io");
     io.setRootDirectory("source");
-    io.CPPVersion = CPPLanguageStandard::CPP11;
+    setup(io);
 
     io +=
         "io/.*\\.c"_rr,
