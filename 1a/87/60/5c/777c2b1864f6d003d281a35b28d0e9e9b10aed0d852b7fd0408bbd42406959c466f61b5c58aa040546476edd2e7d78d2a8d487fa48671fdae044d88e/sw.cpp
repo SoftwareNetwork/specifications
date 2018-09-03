@@ -53,10 +53,13 @@ void build(Solution &s)
     d->IncludeDirectoriesOnly = true;
 
     auto uv = fribidi.BinaryDir / "fribidi-unicode-version.h";
-    cmd::command() << fribidi << cmd::prog(gen_unicode_version)
+    {
+        auto c = fribidi.addCommand();
+        c << cmd::prog(gen_unicode_version)
         << cmd::in("gen.tab/unidata/ReadMe.txt")
         << cmd::in("gen.tab/unidata/BidiMirroring.txt")
         << cmd::std_out(uv);
+    }
 
     #
     auto add_tab = [&gen, &fribidi, &uv, &set_defs](const String &n, const path &p1, const path &p2 = {})
@@ -72,7 +75,8 @@ void build(Solution &s)
         gen_tab += uv;
         set_defs(gen_tab);
 
-        auto c = cmd::command() << fribidi << cmd::prog(gen_tab) << COMPRESSION << cmd::in(p1);
+        auto c = fribidi.addCommand();
+        c << cmd::prog(gen_tab) << COMPRESSION << cmd::in(p1);
         if (!p2.empty())
             c << cmd::in(p2);
         c << cmd::std_out(n + ".tab.i");

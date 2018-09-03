@@ -53,7 +53,8 @@ void build(Solution &s)
 
     auto ragel = [&harfbuzz](const std::string &f)
     {
-        cmd::command() << harfbuzz
+        auto c = harfbuzz.addCommand();
+        c
             << cmd::prog("org.sw.demo.ragel-6"_dep)
             << cmd::in(path("src") / (f + ".rl"))
             << "-o" << cmd::out(f + ".hh");

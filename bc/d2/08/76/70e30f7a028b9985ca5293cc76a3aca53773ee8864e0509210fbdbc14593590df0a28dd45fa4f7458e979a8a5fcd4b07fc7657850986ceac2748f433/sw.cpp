@@ -97,12 +97,15 @@ void build(Solution &s)
     else
         obj += "o";
 
-    cmd::command() << data
-        << cmd::prog(s_genccode)
-        << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
-        << cmd::in(path("data") / "in" / (namel + ".dat"))
-        << cmd::end() << cmd::out(obj)
-        ;
+    {
+        auto c = data.addCommand();
+        c << data
+            << cmd::prog(s_genccode)
+            << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
+            << cmd::in(path("data") / "in" / (namel + ".dat"))
+            << cmd::end() << cmd::out(obj)
+            ;
+    }
 
     //
     common.setRootDirectory("source");
