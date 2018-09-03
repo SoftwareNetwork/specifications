@@ -56,12 +56,11 @@ void build(Solution &s)
     {
         auto c = fribidi.addCommand();
         c << cmd::prog(gen_unicode_version)
-        << cmd::in("gen.tab/unidata/ReadMe.txt")
-        << cmd::in("gen.tab/unidata/BidiMirroring.txt")
-        << cmd::std_out(uv);
+            << cmd::in("gen.tab/unidata/ReadMe.txt")
+            << cmd::in("gen.tab/unidata/BidiMirroring.txt")
+            << cmd::std_out(uv);
     }
 
-    #
     auto add_tab = [&gen, &fribidi, &uv, &set_defs](const String &n, const path &p1, const path &p2 = {})
     {
         auto COMPRESSION = 2;
