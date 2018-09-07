@@ -13,7 +13,7 @@ void build(Solution &s)
 
     auto &khronos = third_party.addTarget<LibraryTarget>("khronos");
     khronos += "src/third_party/khronos/.*\\.h"_rr;
-    base.Public += "src/third_party/khronos"_idir;
+    khronos.Public += "src/third_party/khronos"_idir;
 
     auto &pmurhash = third_party.addTarget<StaticLibraryTarget>("pmurhash");
     pmurhash += "src/common/third_party/smhasher/.*"_rr;
@@ -59,6 +59,8 @@ void build(Solution &s)
     translator +=
         "src/compiler/translator/.*\\.cpp"_rr,
         "src/compiler/translator/.*\\.h"_rr;
+    translator.Public +=
+        "src"_id;
     translator.Private += "LIBANGLE_IMPLEMENTATION"_d;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
@@ -81,16 +83,12 @@ void build(Solution &s)
     //
     auto &angle = p.addTarget<StaticLibraryTarget>("angle");
     angle +=
-        "src/libANGLE/.*\\.cpp"_rr,
-        "src/libANGLE/.*\\.h"_rr,
-        "src/libANGLE/.*\\.inl"_rr,
-        "src/libANGLE/.*\\.inс"_rr;
+        "src/libANGLE/.*"_rr;
     angle -=
-        "src/libANGLE/renderer/d3d/d3d11/winrt/.*"_rr,
         "src/libANGLE/renderer/gl/egl/android/.*"_rr,
         "src/libANGLE/renderer/gl/egl/ozone/.*"_rr,
         "src/libANGLE/renderer/gl/glx/.*"_rr,
-        "src/libANGLE/renderer/.*"_rr;
+        "src/libANGLE/renderer/vulkan/.*"_rr;
     angle += "src/commit.h";
     angle -= ".*unittest.cpp"_rr;
     angle -= ".*EGLDL.cpp"_rr;
@@ -99,16 +97,18 @@ void build(Solution &s)
     angle.Private += "LIBANGLE_IMPLEMENTATION"_d;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
+        angle += "src/libANGLE/renderer/d3d.*"_rr;
+
         angle.Public += "ANGLE_ENABLE_D3D11"_d;
         angle.Public += "ANGLE_ENABLE_D3D9"_d;
-    }
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
+
         angle.Public += "d3d11.lib"_lib;
         angle.Public += "d3d9.lib"_lib;
         angle.Public += "dxguid.lib"_lib;
         angle.Public += "User32.lib"_lib;
     }
+    angle -=
+        "src/libANGLE/renderer/d3d/d3d11/winrt/.*"_rr;
 
     angle.Public += pmurhash;
     angle.Public += image;
@@ -128,7 +128,7 @@ void build(Solution &s)
         "src"_id;
     gles_v2.Public += "EGLAPIENTRY=__cdecl"_d;
     gles_v2.Public += angle;
-    
+
     auto d = angle + gles_v2;
     d->IncludeDirectoriesOnly = true;
 
