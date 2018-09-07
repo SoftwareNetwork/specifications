@@ -40,7 +40,7 @@ void build(Solution &s)
     {
         common.Public += "NOMINMAX"_d;
     }
-    common.Public += base;
+    common.Public += base, pmurhash;
 
     //
     auto &preprocessor = p.addTarget<StaticLibraryTarget>("compiler.preprocessor");
@@ -83,14 +83,15 @@ void build(Solution &s)
     angle +=
         "src/libANGLE/.*\\.cpp"_rr,
         "src/libANGLE/.*\\.h"_rr,
-        "src/libANGLE/.*\\.inl"_rr;
+        "src/libANGLE/.*\\.inl"_rr,
+        "src/libANGLE/.*\\.inс"_rr;
     angle -=
         "src/libANGLE/renderer/d3d/d3d11/winrt/.*"_rr,
         "src/libANGLE/renderer/gl/egl/android/.*"_rr,
         "src/libANGLE/renderer/gl/egl/ozone/.*"_rr,
         "src/libANGLE/renderer/gl/glx/.*"_rr,
-        "src/libANGLE/renderer/null/.*"_rr,
-        "src/libANGLE/renderer/vulkan/.*"_rr;
+        "src/libANGLE/renderer/.*"_rr;
+    angle += "src/commit.h";
     angle -= ".*unittest.cpp"_rr;
     angle -= ".*EGLDL.cpp"_rr;
     angle.Public +=
@@ -127,6 +128,9 @@ void build(Solution &s)
         "src"_id;
     gles_v2.Public += "EGLAPIENTRY=__cdecl"_d;
     gles_v2.Public += angle;
+    
+    auto d = angle + gles_v2;
+    d->IncludeDirectoriesOnly = true;
 
     //
     auto &egl = p.addTarget<LibraryTarget>("egl");
