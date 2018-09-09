@@ -8,6 +8,7 @@ void build(Solution &s)
     lemon -= "tool/lempar.c";
 
     auto &mkkeywordhash = sql.addTarget<ExecutableTarget>("mkkeywordhash");
+    mkkeywordhash.Scope = TargetScope::Tool;
     mkkeywordhash += "tool/mkkeywordhash.c";
     mkkeywordhash.Private += "SQLCIPHER_CRYPTO_OPENSSL=1"_d;
 
@@ -104,24 +105,13 @@ void build(Solution &s)
             << cmd::out(parse2h);
     }
 
-    auto make_tcl_command = [](auto &t)
     {
-        auto tcl = t + "org.sw.demo.tcl.sh-*"_dep;
-        tcl->Dummy = true;
-
-        auto c = t.addCommand();
-        c << cmd::prog(tcl);
-        c.c->addLazyAction([c = c.c, tcl]()
-        {
-            c->environment["TCL_LIBRARY"] = (tcl->getResolvedPackage().getDirSrc2() / "library").u8string();
-        });
-        return c;
-    };
-
-    make_tcl_command(sqlcipher)
-        << cmd::in("tool/addopcodes.tcl")
-        << cmd::in(parse2h)
-        << cmd::std_out(parseh);
+        auto c = sqlcipher.addCommand();
+        c << cmd::prog("org.sw.demo.tcl.sh-*"_dep)
+            << cmd::in("tool/addopcodes.tcl")
+            << cmd::in(parse2h)
+            << cmd::std_out(parseh);
+    }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
@@ -162,21 +152,30 @@ void build(Solution &s)
         sqlcipher += fts5parseh;
     }
 
-    make_tcl_command(sqlcipher)
-        << cmd::in("tool/mkopcodeh.tcl")
-        << cmd::std_in(tmp1)
-        << cmd::std_out(opcodesh);
+    {
+        auto c = sqlcipher.addCommand();
+        c << cmd::prog("org.sw.demo.tcl.sh-*"_dep)
+            << cmd::in("tool/mkopcodeh.tcl")
+            << cmd::std_in(tmp1)
+            << cmd::std_out(opcodesh);
+    }
 
-    make_tcl_command(sqlcipher)
-        << cmd::in("tool/mkopcodec.tcl")
-        << cmd::in(opcodesh)
-        << cmd::std_out(opcodes);
+    {
+        auto c = sqlcipher.addCommand();
+        c << cmd::prog("org.sw.demo.tcl.sh-*"_dep)
+            << cmd::in("tool/mkopcodec.tcl")
+            << cmd::in(opcodesh)
+            << cmd::std_out(opcodes);
+    }
 
-    make_tcl_command(sqlcipher)
-        << cmd::in("tool/mksqlite3h.tcl")
-        << normalize_path(sqlcipher.SourceDir)
-        << cmd::std_out(sqlite3h)
-        << cmd::end()
-        << cmd::in("src/sqlite.h.in")
+    {
+        auto c = sqlcipher.addCommand();
+        c << cmd::prog("org.sw.demo.tcl.sh-*"_dep)
+            << cmd::in("tool/mksqlite3h.tcl")
+            << normalize_path(sqlcipher.SourceDir)
+            << cmd::std_out(sqlite3h)
+            << cmd::end()
+            << cmd::in("src/sqlite.h.in")
         ;
+    }
 }

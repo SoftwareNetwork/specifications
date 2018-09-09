@@ -1,3 +1,11 @@
+struct TclExecutable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        c.environment["TCL_LIBRARY"] = (SourceDir / "library").u8string();
+    }
+};
+
 void build(Solution &s)
 {
     auto &tcl = s.addProject("tcl", "8.6.8");
@@ -5,7 +13,7 @@ void build(Solution &s)
 
     auto &stub = tcl.addTarget<StaticLibraryTarget>("stub");
     auto &lib = tcl.addTarget<LibraryTarget>("lib");
-    auto &sh = tcl.addTarget<ExecutableTarget>("sh");
+    auto &sh = tcl.addTarget<TclExecutable>("sh");
 
     //
     stub +=

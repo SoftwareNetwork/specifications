@@ -76,6 +76,7 @@ void build(Solution &s)
             "Modules/parsermodule.c",
             "Modules/posixmodule.c",
             "Modules/pwdmodule.c",
+            "Modules/pyexpat.c",
             "Modules/rotatingtree.c",
             "Modules/sha1module.c",
             "Modules/sha256module.c",
@@ -231,6 +232,7 @@ void build(Solution &s)
         lib.Public += "USE_INLINE"_d;
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
+        lib += "_Py_HAVE_ZLIB"_d;
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
             lib -= "Modules/pwdmodule.c";
@@ -266,8 +268,17 @@ void build(Solution &s)
         lib.Public += sw::Static, "Py_NO_ENABLE_SHARED"_d;
 
         lib.Public += "org.sw.demo.madler.zlib-1"_dep;
+        lib.Public += "org.sw.demo.expat-2"_dep;
 
         lib.replaceInFileOnce("PC/pyconfig.h", "#ifdef MS_COREDLL", "#if 0");
+
+        lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 1 -- */", R"xxx(
+            extern PyObject* PyInit_pyexpat(void);
+)xxx");
+        lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 2 -- */", R"xxx(
+            {"pyexpat", PyInit_pyexpat},
+)xxx");
+
     }
 
     auto &exe = python.addTarget<PythonExecutable>("exe");
