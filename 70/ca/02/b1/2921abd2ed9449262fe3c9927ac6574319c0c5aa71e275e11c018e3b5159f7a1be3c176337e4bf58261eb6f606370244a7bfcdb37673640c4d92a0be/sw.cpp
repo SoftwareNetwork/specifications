@@ -1,7 +1,8 @@
 #pragma sw require header pub.egorpugin.primitives.tools.syncqt-master
-#pragma sw require pub.egorpugin.primitives.hash-master
 
 #pragma sw header on
+
+#pragma sw require pub.egorpugin.primitives.hash-master
 
 //#include <iostream>
 #include <regex>
@@ -199,6 +200,7 @@ void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vecto
         else
             t -= o;
 
+        (t + moc)->Dummy = true;
     }
 
     for (auto &f : files)
@@ -289,10 +291,10 @@ void build(Solution &s)
 {
     auto &qt = s.addProject("qtproject.qt", "5.11.1");
 
-    auto change_local_dir = [](auto &t, const path &dir)
+    auto change_local_dir = [&s](auto &t, const path &dir)
     {
-        if (fs::exists(t.SourceDir / "qtbase"))
-            t.SourceDir /= "qtbase";
+        if (fs::exists(t.SourceDir / dir))
+            t.SourceDir /= dir;
     };
 
     auto platform_files = [](auto &t)
