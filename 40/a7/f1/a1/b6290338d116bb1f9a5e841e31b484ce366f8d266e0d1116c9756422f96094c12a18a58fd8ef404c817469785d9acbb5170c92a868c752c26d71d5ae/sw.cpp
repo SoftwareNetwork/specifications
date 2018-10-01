@@ -276,4 +276,4 @@ void build(Solution &s)
     auto &test_db = add_test("db");
     auto &test_settings = add_test("settings");
     auto &test_version = add_test("version");*/
-}
+} 
