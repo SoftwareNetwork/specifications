@@ -65,12 +65,9 @@ void build(Solution &s)
 
     auto copy = [](auto &t, const path &in, const path &out)
     {
-        SW_MAKE_EXECUTE_COMMAND_AND_ADD(c, t);
-        c->f = [in, out]
-        {
-            error_code ec;
-            fs::copy_file(in, out, fs::copy_options::overwrite_existing, ec);
-        };
+        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file");
+        c->args.push_back(in.u8string());
+        c->args.push_back(out.u8string());
         c->addInput(in);
         c->addOutput(out);
         return c;
