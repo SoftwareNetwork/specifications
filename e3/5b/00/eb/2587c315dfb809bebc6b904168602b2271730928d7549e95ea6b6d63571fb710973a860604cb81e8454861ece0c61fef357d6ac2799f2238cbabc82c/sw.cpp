@@ -471,7 +471,7 @@ void build(Solution &s)
     boost_deps(boost_targets);
 
     //
-    boost_targets["config"]->fileWriteOnce("include/boost/config/auto_link.hpp",
+    boost_targets["config"]->fileWriteOnce(boost_targets["config"]->SourceDir / "include/boost/config/auto_link.hpp",
         R"(
 #ifdef BOOST_LIB_PREFIX
 #  undef BOOST_LIB_PREFIX
