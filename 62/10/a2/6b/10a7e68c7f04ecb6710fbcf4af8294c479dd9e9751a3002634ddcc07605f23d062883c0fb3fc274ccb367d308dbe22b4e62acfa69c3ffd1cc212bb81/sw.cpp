@@ -36,6 +36,7 @@ void build(Solution &s)
         intl += "HAVE_WPRINTF=0"_v;
 
     intl.Private += "HAVE_CONFIG_H"_d;
+    intl.Private += "HAVE_GETCWD"_d;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         intl.Public += "Advapi32.lib"_l;
