@@ -34,7 +34,7 @@ void build(Solution &s)
     s_common.Public += "common"_id;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        s_common += "Advapi32.lib"_l;
+        s_common.Public += "Advapi32.lib"_l;
 
     setup(s_common);
     s_common.Private += "U_COMMON_IMPLEMENTATION"_d;
@@ -118,7 +118,7 @@ void build(Solution &s)
     common.Public += "common"_id;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        common += "Advapi32.lib"_l;
+        common.Public += "Advapi32.lib"_l;
 
     setup(common);
     common.Private += "U_COMMON_IMPLEMENTATION"_d;
