@@ -1,3 +1,38 @@
+static int wt_preprocess_file(path i, path o, String name)
+{
+    auto preprocess_file = [](const String &s)
+    {
+        String o;
+        int i = 0;
+        for (auto &c : s)
+        {
+            String h(2, 0);
+            sprintf(&h[0], "%02x", c);
+            o += "0x" + h + ",";
+            if (++i % 25 == 0)
+                o += "\n";
+            else
+                o += " ";
+        }
+        o += "0x00,";
+        if (++i % 25 == 0)
+            o += "\n";
+        return o;
+    };
+
+    auto s = read_file(i);
+    std::string out;
+    out += "#include <string>\n#include <vector>\nnamespace skeletons {\nstatic const std::string s {";
+    out += preprocess_file(s);
+    out += "};\nconst char *" + name + "1 = s.data();\n";
+    out += "std::vector<const char *> " + name + "()\n{\nreturn { " + name + "1 };\n}\n}";
+    write_file(o, out);
+
+    return 0;
+}
+
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(wt_preprocess_file)
+
 void build(Solution &sln)
 {
     auto &s = sln.addDirectory("emweb");
@@ -61,40 +96,13 @@ void build(Solution &sln)
     {
         i = wt.SourceDir / i;
         const auto o = wt.BinaryDir / (name + ".C");
-        auto c = std::make_shared<ExecuteCommand>([i, o, name]()
-        {
-            auto preprocess_file = [](const String &s)
-            {
-                String o;
-                int i = 0;
-                for (auto &c : s)
-                {
-                    String h(2, 0);
-                    sprintf(&h[0], "%02x", c);
-                    o += "0x" + h + ",";
-                    if (++i % 25 == 0)
-                        o += "\n";
-                    else
-                        o += " ";
-                }
-                o += "0x00,";
-                if (++i % 25 == 0)
-                    o += "\n";
-                return o;
-            };
-
-            auto s = read_file(i);
-            std::string out;
-            out += "#include <string>\n#include <vector>\nnamespace skeletons {\nstatic const std::string s {";
-            out += preprocess_file(s);
-            out += "};\nconst char *" + name + "1 = s.data();\n";
-            out += "std::vector<const char *> " + name + "()\n{\nreturn { " + name + "1 };\n}\n}";
-            write_file(o, out);
-        });
+        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, wt, "wt_preprocess_file", &wt_preprocess_file);
+        c->args.push_back(i.u8string());
+        c->args.push_back(o.u8string());
+        c->args.push_back(name);
         c->addInput(i);
         c->addOutput(o);
         wt += o;
-        wt.Storage.push_back(c);
     };
 
     file2string("src/web/skeleton/Plain.html", "Plain_html");
