@@ -251,9 +251,12 @@ void build(Solution &s)
   setup_grpc(tsi_interface);
   tsi_interface.Public += gpr, grpc_trace;
 
+  auto &grpc_shadow_boringssl = p.addTarget<StaticLibraryTarget>("grpc_shadow_boringssl");
+  setup_grpc(grpc_shadow_boringssl);
+
   auto &alts_frame_protector = p.addTarget<StaticLibraryTarget>("alts_frame_protector");
   setup_grpc(alts_frame_protector);
-  alts_frame_protector.Public += gpr, grpc_base, tsi_interface, "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
+  alts_frame_protector.Public += gpr, grpc_base, tsi_interface, grpc_shadow_boringssl, "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
 
   auto &tsi = p.addTarget<StaticLibraryTarget>("tsi");
   setup_grpc(tsi);
