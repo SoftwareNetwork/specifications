@@ -11,7 +11,7 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
     d->Dummy = true;
   }
 
-  auto protoc = gen_protobuf(t, f, public_protobuf);
+  auto [protoc, _] = gen_protobuf(t, f, public_protobuf);
 
   auto n = f.filename().stem().u8string();
   auto d = f.parent_path();
