@@ -1,17 +1,23 @@
 #ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
-auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
+auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
 {
     auto protoc = THIS_PREFIX "." "google.protobuf.protoc" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + protoc;
         d->Dummy = true;
     }
+    
+    if (!f.is_absolute())
+        f = t.SourceDir / f;
 
     auto n = f.filename().stem().u8string();
     auto d = f.parent_path();
-    auto bdir = t.BinaryDir;
+    
+    if (out_dir.is_absolute())
+        throw std::logic_error("Make out_dir relative");
+    auto bdir = t.BinaryDir / out_dir;
 
     auto o = bdir / n;
     auto ocpp = o;
@@ -41,7 +47,7 @@ auto gen_protobuf(NativeExecutedTarget &t, const path &f, bool public_protobuf =
     if (public_protobuf)
         t.Public += protobuf;
 
-    return protoc;
+    return std::tuple{ protoc, c };
 };
 
 #pragma sw header off
