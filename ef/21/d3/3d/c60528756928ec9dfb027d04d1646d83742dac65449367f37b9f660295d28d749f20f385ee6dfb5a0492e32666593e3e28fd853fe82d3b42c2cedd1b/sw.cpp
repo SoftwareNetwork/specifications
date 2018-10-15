@@ -123,6 +123,7 @@ void build(Solution &s)
             glib.Variables["glib_os"] = "#define G_OS_UNIX";
             glib.Variables["g_threads_impl_def"] = "POSIX";
             glib.Public += "THREADS_POSIX"_d;
+            glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
         }
 
         glib.Variables["glib_vacopy"] = R"(
@@ -182,10 +183,11 @@ void build(Solution &s)
     }
     else
     {
-        glib -=
-            "glib/giowin32.c";
+        glib -= "glib/g.*win\\d\\d.*"_r;
 
         glib.Variables["GLIB_HAVE_ALLOCA_H"] = 1;
+        glib += "USE_LIBICONV_GNU"_d;
+        glib += "_INTL_REDIRECT_MACROS"_d;
     }
 
     glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");

@@ -27,9 +27,15 @@ void build(Solution &s)
         pixman += "pixman/pixman-arm-simd.c";
     if (pixman.Variables["USE_MIPS_DSPR2"] == "1")
         pixman += "pixman/pixman-mips-dspr2.c";
+        
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+        pixman.Public += "HAVE_PTHREADS"_d;
 
-    // if clang
-        //set_source_files_properties(${SDIR}/pixman/pixman-ssse3.c PROPERTIES COMPILE_FLAGS -mssse3)
+    if (s.Settings.Native.CompilerType == CompilerType::Clang ||
+        s.Settings.Native.CompilerType == CompilerType::GNU)
+    {
+        pixman["pixman/pixman-ssse3.c"].args.push_back("-mssse3");
+    }
 }
 
 void check(Checker &c)

@@ -34,6 +34,7 @@ void build(Solution &s)
             "lib"_id;
         llvm_support_lite.Public +=
             "include"_id;
+        llvm_support_lite += "LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING"_def;
         if (s.Settings.TargetOS.Type != OSType::Windows)
             llvm_support_lite.Private += "HAVE_PTHREAD_GETSPECIFIC"_d;
         llvm_support_lite.Public += llvm_demangle;
@@ -66,7 +67,8 @@ void build(Solution &s)
 
         llvm_support_lite.configureFile("include/llvm/Config/config.h.cmake", "llvm/Config/config.h");
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
-        llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
+        //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
+        llvm_support_lite.writeFileOnce("llvm/Config/abi-breaking.h");
     }
 }
 

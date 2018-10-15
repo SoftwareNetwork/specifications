@@ -95,13 +95,24 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         obj += "obj";
     else
-        obj += "o";
+        obj += "c";
 
+    if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         auto c = data.addCommand();
         c << data
             << cmd::prog(s_genccode)
             << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
+            << cmd::in(path("data") / "in" / (namel + ".dat"))
+            << cmd::end() << cmd::out(obj)
+            ;
+    }
+    else
+    {
+        auto c = data.addCommand();
+        c << data
+            << cmd::prog(s_genccode)
+            << "--name" << namel << "-e" << name << "-d" << obj.parent_path()
             << cmd::in(path("data") / "in" / (namel + ".dat"))
             << cmd::end() << cmd::out(obj)
             ;

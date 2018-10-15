@@ -69,9 +69,6 @@ void build(Solution &s)
 
     if (freetype.Settings.TargetOS.Type == OSType::Windows)
         freetype += "builds/windows/ftdebug.c";
-    //else if (freetype.Settings.TargetOS.Type == OSType::WinCE)
-    else
-        freetype += "builds/base/ftdebug.c";
 
     freetype += "src/autofit/autofit.c",
         "src/base/ftbase.c",

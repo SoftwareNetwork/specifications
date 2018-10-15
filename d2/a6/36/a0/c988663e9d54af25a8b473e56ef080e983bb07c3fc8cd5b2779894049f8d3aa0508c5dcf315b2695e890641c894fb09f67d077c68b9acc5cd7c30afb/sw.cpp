@@ -25,20 +25,21 @@ void build(Solution &s)
     fontconfig.Public += "HAVE_FT_SELECT_SIZE=1"_d;
     fontconfig += "FC_GPERF_SIZE_T=size_t"_d;
     fontconfig += "FC_TEMPLATEDIR=\"fontconfig/conf.avail\""_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
-    {
-        fontconfig.Public += "FC_CACHEDIR=\"~/.fontconfig/cache/fontconfig\""_d;
-        fontconfig.Public += "FC_DEFAULT_FONTS=\"/usr/share/fonts\""_d;
-    }
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "FC_CACHEDIR=\"LOCAL_APPDATA_FONTCONFIG_CACHE\""_d;
         fontconfig.Public += "FC_DEFAULT_FONTS=\"WINDOWSFONTDIR\""_d;
     }
+    else
+    {
+        fontconfig.Public += "FC_CACHEDIR=\"~/.fontconfig/cache/fontconfig\""_d;
+        fontconfig.Public += "FC_DEFAULT_FONTS=\"/usr/share/fonts\""_d;
+        fontconfig.Public += "FONTCONFIG_PATH=\"/etc/fonts/conf.d\""_d;
+        fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
+    }
 
     fontconfig.Public += "org.sw.demo.expat-2"_dep;
     fontconfig.Public += "org.sw.demo.freetype-2"_dep;
-    fontconfig.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 
     fontconfig.writeFileOnce("fcaliastail.h", "", true);
     fontconfig.writeFileOnce("fcftaliastail.h", "", true);
@@ -47,6 +48,9 @@ void build(Solution &s)
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define FcPublic extern SW_FONTCONFIG_LIBRARY_API");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        fontconfig.Public += "org.sw.demo.tronkko.dirent-master"_dep;
+
         fontconfig.replaceInFileOnce("src/fccache.c", "#include <sys/time.h>", "//#include <sys/time.h>");
         fontconfig.replaceInFileOnce("src/fcfreetype.c", "advances[3] = {};", "advances[3] = {0};");
 
@@ -74,6 +78,12 @@ void build(Solution &s)
             #define ssize_t int32_t
             #endif
 )", true);
+    }
+    else
+    {
+        fontconfig.writeFileOnce("fcalias.h");
+        fontconfig.writeFileOnce("fcftalias.h");
+    }
 }
 
 void check(Checker &c)

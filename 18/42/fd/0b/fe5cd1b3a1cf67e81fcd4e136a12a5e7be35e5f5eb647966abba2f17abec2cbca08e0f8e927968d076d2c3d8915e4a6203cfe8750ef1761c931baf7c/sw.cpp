@@ -1,7 +1,7 @@
 #ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
-auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
+static auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
 {
     auto protoc = THIS_PREFIX "." "google.protobuf.protoc" "-" THIS_VERSION_DEPENDENCY;
     {
@@ -48,7 +48,7 @@ auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf = false,
         t.Public += protobuf;
 
     return std::tuple{ protoc, c };
-};
+}
 
 #pragma sw header off
 #endif

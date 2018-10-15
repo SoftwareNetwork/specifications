@@ -5,7 +5,7 @@
 
 #include <primitives/context.h>
 
-void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
+static void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
 {
     // must be HostOS
     bool win_flex_bison = t.Settings.Native.CompilerType != CompilerType::GNU;
@@ -69,9 +69,9 @@ void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const
         c->addOutput(o);
         t += o;
     }
-};
+}
 
-void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, const path &p)
+static void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, const path &p)
 {
     auto name = p.filename().string();
     auto name_upper = boost::to_upper_copy(name);
@@ -135,6 +135,8 @@ void build(Solution &s)
     flex -= "flex/src/libmain.c";
     flex -= "flex/src/libyywrap.c";
     flex += common;
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        flex += "ws2_32.lib"_lib;
 
     auto &bison = winflexbison.addTarget<ExecutableTarget>("bison");
     bison -= "bison/data/.*"_rr;

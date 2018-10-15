@@ -13,8 +13,8 @@ void build(Solution &s)
 
         if (s.Settings.Native.CompilerType == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        else if (s.Settings.Native.CompilerType == CompilerType::GNU)
-            t.CompileOptions.push_back("-Wa,-mbig-obj");
+        //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+            //t.CompileOptions.push_back("-Wa,-mbig-obj");
 
         Definition d;
         d.d = "AWS_" + boost::to_upper_copy(name) + "_EXPORTS";

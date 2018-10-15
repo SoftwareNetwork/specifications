@@ -2,6 +2,7 @@ void build(Solution &s)
 {
     auto &expat = s.addTarget<LibraryTarget>("expat", "2.2.6");
     expat += Git("https://github.com/libexpat/libexpat", "R_{M}_{m}_{p}");
+    //expat.SourceDir /= "expat";
     expat.setRootDirectory("expat");
 
     expat.setChecks("expat");
@@ -23,6 +24,8 @@ void build(Solution &s)
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         expat += "WIN32"_d;
+    else
+        expat += "XML_DEV_URANDOM"_d;
 
     expat.Variables["XML_CONTEXT_BYTES"] = "1024";
     expat.Variables["XML_DTD"] = "1";
