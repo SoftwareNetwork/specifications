@@ -25,7 +25,9 @@ void build(Solution &s)
 
     //
     intl += "HAVE_VISIBILITY=0"_v;
-    intl += "HAVE_POSIX_PRINTF=0"_v;
+    intl += "HAVE_POSIX_PRINTF=1"_v;
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        intl += "HAVE_POSIX_PRINTF=0"_v;
     if (intl.Variables.find("HAVE_NEWLOCALE") == intl.Variables.end())
         intl += "HAVE_NEWLOCALE=0"_v;
     if (intl.Variables.find("HAVE_ASPRINTF") == intl.Variables.end())
