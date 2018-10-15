@@ -61,6 +61,7 @@ void build(Solution &s)
     auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
     protobuf_lite.ImportFromBazel = true;
     protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
+    protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
     protobuf_lite += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf_lite.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
 
@@ -68,14 +69,22 @@ void build(Solution &s)
     protobuf.ImportFromBazel = true;
     protobuf.BazelNames.insert("protobuf_lite");
     protobuf += "src/.*\\.h"_rr;
+    protobuf += "src/.*\\.inc"_rr;
     protobuf.Private += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
     protobuf.Public += "org.sw.demo.madler.zlib"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Linux)
+    if (s.Settings.TargetOS.Type != OSType::Windows)
     {
         protobuf_lite.Public += "HAVE_PTHREAD"_d;
         protobuf.Public += "HAVE_PTHREAD"_d;
+        
+        for (auto &f : {/*"src/google/protobuf/port_def.inc",*/"src/google/protobuf/stubs/port.h"})
+        for (auto &e : {"#define LIBPROTOBUF_EXPORT"s, "#define LIBPROTOC_EXPORT"s})
+        {
+            protobuf_lite.replaceInFileOnce(f, e, e + " SW_EXPORT");
+            protobuf.replaceInFileOnce(f, e, e + " SW_EXPORT");
+        }
     }
 
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
