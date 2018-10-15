@@ -18,16 +18,23 @@ void build(Solution &s)
     intl.Public += "org.sw.demo.gnu.iconv.libiconv-1"_dep;
 
     intl.Private += "IN_LIBINTL"_d;
+    intl.Private += sw::Shared, "BUILDING_DLL"_d;
     if (s.Settings.TargetOS.Type != OSType::Windows)
     {
         intl.Public += "LOCALE_ALIAS_PATH=\"/etc/locale.alias\""_d;
     }
 
     //
-    intl += "HAVE_VISIBILITY=0"_v;
-    intl += "HAVE_POSIX_PRINTF=1"_v;
     if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
         intl += "HAVE_POSIX_PRINTF=0"_v;
+    }
+    else
+    {
+        intl += "HAVE_VISIBILITY=1"_d;
+        intl += "HAVE_POSIX_PRINTF=1"_v;
+        intl.Public += "HAVE_POSIX_PRINTF=1"_d;
+    }
     if (intl.Variables.find("HAVE_NEWLOCALE") == intl.Variables.end())
         intl += "HAVE_NEWLOCALE=0"_v;
     if (intl.Variables.find("HAVE_ASPRINTF") == intl.Variables.end())
