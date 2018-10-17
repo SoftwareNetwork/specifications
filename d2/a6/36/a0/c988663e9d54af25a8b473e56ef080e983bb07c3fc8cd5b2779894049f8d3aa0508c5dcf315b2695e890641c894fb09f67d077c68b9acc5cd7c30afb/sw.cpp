@@ -40,6 +40,7 @@ void build(Solution &s)
 
     fontconfig.Public += "org.sw.demo.expat-2"_dep;
     fontconfig.Public += "org.sw.demo.freetype-2"_dep;
+    fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     fontconfig.writeFileOnce("fcaliastail.h", "", true);
     fontconfig.writeFileOnce("fcftaliastail.h", "", true);
