@@ -33,7 +33,7 @@ void build(Solution &s)
             "lib/strtoll.c";
 
         gnulib -=
-            "lib/iconv.*"_rr;
+            "lib/iconv.*"_rr;;
 
         gnulib.Public +=
             "lib"_id;
