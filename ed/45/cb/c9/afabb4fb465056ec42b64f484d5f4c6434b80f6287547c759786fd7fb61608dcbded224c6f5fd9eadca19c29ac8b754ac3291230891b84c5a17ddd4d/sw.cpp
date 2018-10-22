@@ -50,12 +50,13 @@ void build(Solution &s)
         getopt.Public +=
             "support"_id;
 
-        getopt.Public += "org.sw.demo.gnu.gettext.intl"_dep;
+        getopt.Public += "org.sw.demo.gnu.gettext.intl-*"_dep;
     }
 
     auto &gawk2 = gawk.addTarget<ExecutableTarget>("gawk");
     {
         auto &gawk = gawk2;
+        gawk.PackageDefinitions = true;
         gawk.setChecks("gawk");
 
         gawk +=
@@ -88,7 +89,7 @@ void build(Solution &s)
         gawk.Private += "HAVE_GETADDRINFO"_d;
         gawk.Private += "HAVE_SOCKADDR_STORAGE"_d;
         gawk.Private += "HAVE_SOCKETS"_d;
-        gawk.Private += "VERSION=\"${PACKAGE_VERSION}\""_d;
+        gawk.Private += Definition{ "VERSION=\"" + gawk.Variables["PACKAGE_VERSION"].toString() + "\"" };
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
             gawk.Private += "HAVE_POPEN_H=1"_d;
@@ -125,7 +126,8 @@ void build(Solution &s)
             gawk += "ws2_32.lib"_lib;
         }
 
-        gawk.writeFileOnce(gawk.BinaryPrivateDir / "cppan_misc.h", R"(
+        gawk.writeFileOnce(gawk.BinaryPrivateDir / "cppan_misc.h",
+            R"(
 #undef param
 #define __MINGW32__
 #define FAKE_FD_VALUE 42
@@ -153,7 +155,8 @@ void build(Solution &s)
 #endif
 )");
 
-        gawk.writeFileOnce(gawk.BinaryPrivateDir / "config.h", R"(
+        gawk.writeFileOnce(gawk.BinaryPrivateDir / "config.h",
+            R"(
 /* The __pure__ attribute was added in gcc 2.96.  */
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)
 # define _GL_ATTRIBUTE_PURE __attribute__ ((__pure__))
