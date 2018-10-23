@@ -24,7 +24,8 @@ void build(Solution &s)
     nghttp2.Variables["PACKAGE_VERSION"] = "1.32.0";
     nghttp2.Variables["PACKAGE_VERSION_NUM"] = "0x013200LL";
 
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (s.Settings.Native.CompilerType == CompilerType::MSVC ||
+        s.Settings.Native.CompilerType == CompilerType::ClangCl)
     {
         if (s.Settings.TargetOS.Arch == ArchType::x86_64)
             nghttp2.Variables["ssize_t"] = "int64_t";
