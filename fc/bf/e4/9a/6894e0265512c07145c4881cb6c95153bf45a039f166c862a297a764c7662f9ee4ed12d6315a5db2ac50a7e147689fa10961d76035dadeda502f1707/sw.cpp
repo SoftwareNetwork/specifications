@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &pixman = s.addTarget<StaticLibraryTarget>("freedesktop.pixman", "0.34.0");
     pixman += RemoteFile("https://www.cairographics.org/releases/pixman-{v}.tar.gz");
 
+    pixman.PackageDefinitions = true;
     pixman.setChecks("pixman");
 
     pixman +=
