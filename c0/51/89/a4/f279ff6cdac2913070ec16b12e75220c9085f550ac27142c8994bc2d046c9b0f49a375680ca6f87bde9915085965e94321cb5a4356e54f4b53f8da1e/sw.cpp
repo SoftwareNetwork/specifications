@@ -42,10 +42,10 @@ void build(Solution &s)
         llvm_support_lite += "LLVM_ENABLE_THREADS=1"_v;
         llvm_support_lite += "LLVM_HAS_ATOMICS=1"_v;
         if (s.Settings.TargetOS.Type == OSType::Windows)
-            llvm_support_lite += "LLVM_HOST_TRIPLE=\"unknown-unknown-windows\""_v;
+            llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-windows"_v;
         else
         {
-            llvm_support_lite += "LLVM_HOST_TRIPLE=\"unknown-unknown-unknown\""_v;
+            llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-unknown"_v;
             llvm_support_lite += "LLVM_ON_UNIX=1"_v;
             llvm_support_lite.Public += "HAVE_PTHREAD_H"_d;
             llvm_support_lite.Public += "HAVE_PTHREAD_MUTEX_LOCK"_d;
