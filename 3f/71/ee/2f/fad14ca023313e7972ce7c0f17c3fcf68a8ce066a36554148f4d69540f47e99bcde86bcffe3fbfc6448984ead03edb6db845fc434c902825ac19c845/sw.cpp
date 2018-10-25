@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &nghttp2 = s.addTarget<LibraryTarget>("nghttp2", "1.32.0");
+    auto &nghttp2 = s.addTarget<LibraryTarget>("nghttp2", "1.34.0");
     nghttp2 += Git("https://github.com/nghttp2/nghttp2", "v{v}");
 
     nghttp2.setChecks("nghttp2");
