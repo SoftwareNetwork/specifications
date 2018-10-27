@@ -239,6 +239,7 @@ void build(Solution &s)
     *boost_targets["iostreams"] -= "src/lzma.cpp";
     *boost_targets["iostreams"] += "org.sw.demo.bzip2"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib"_dep;
+    *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd"_dep;
     boost_targets["stacktrace"]->HeaderOnly = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
         boost_targets["random"]->LinkLibraries.insert("Advapi32.lib");
