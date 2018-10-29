@@ -26,7 +26,7 @@ void build(Solution &s)
         "glib/gtester.c",
         "glib/win_iconv.c",
         "glib/gspawn.c",
-        "glib/gspawn-win??-helper.*"_r
+        "glib/.*helper.*"_rr
         ;
 
     glib.Public +=
