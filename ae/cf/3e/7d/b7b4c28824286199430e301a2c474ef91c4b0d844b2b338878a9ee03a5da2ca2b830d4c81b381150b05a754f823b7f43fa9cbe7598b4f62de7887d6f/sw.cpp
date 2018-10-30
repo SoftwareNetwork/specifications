@@ -521,8 +521,8 @@ void build(Solution &s)
 
             bootstrap.Public += "QT_BOOTSTRAPPED"_d;
             //bootstrap.Public += "QT_NO_QOBJECT"_d;
-            bootstrap.Public += "QT_NO_CAST_FROM_ASCII"_d;
-            bootstrap.Public += "QT_NO_CAST_TO_ASCII"_d;
+            //bootstrap.Public += "QT_NO_CAST_FROM_ASCII"_d;
+            //bootstrap.Public += "QT_NO_CAST_TO_ASCII"_d;
             bootstrap.Public += "QT_NO_FOREACH"_d;
             Definition d;
             d.d = "QT_VERSION_MAJOR=" + bootstrap.Variables["PACKAGE_VERSION_MAJOR"].toString();
@@ -712,7 +712,7 @@ void build(Solution &s)
                 "src/tools/moc/ppkeywords.cpp",
                 "src/tools/moc/mwerks_mac.cpp";
             moc.Public += "QT_MOC"_d;
-            moc.Public += "QT_NO_CAST_FROM_ASCII"_d;
+            //moc.Public += "QT_NO_CAST_FROM_ASCII"_d;
             moc.Public += "QT_NO_CAST_FROM_BYTEARRAY"_d;
             moc.Public += "QT_NO_COMPRESS"_d;
             moc.Public += "QT_NO_FOREACH"_d;
@@ -728,7 +728,7 @@ void build(Solution &s)
         {
             rcc += "src/tools/rcc/.*"_rr;
             rcc.Public += "src/tools/rcc"_id;
-            rcc.Public += "QT_NO_CAST_FROM_ASCII"_d;
+            //rcc.Public += "QT_NO_CAST_FROM_ASCII"_d;
             rcc.Public += "QT_NO_FOREACH"_d;
             rcc.Public += "QT_RCC"_d;
             if (s.Settings.TargetOS.Type == OSType::Windows)
@@ -746,7 +746,7 @@ void build(Solution &s)
                 "src/tools/uic/.*\\.h"_rr;
             uic.Public += "src/tools/uic/cpp"_id;
             uic.Public += "src/tools/uic"_id;
-            uic.Public += "QT_NO_CAST_FROM_ASCII"_d;
+            //uic.Public += "QT_NO_CAST_FROM_ASCII"_d;
             uic.Public += "QT_NO_FOREACH"_d;
             uic.Public += "QT_UIC"_d;
             uic.Public += "QT_UIC_CPP_GENERATOR"_d;
@@ -905,7 +905,7 @@ void build(Solution &s)
 
             core.Private += "QT_BUILD_CORE_LIB"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
-            core.Public += "QT_USE_QSTRINGBUILDER"_d;
+            core += "QT_USE_QSTRINGBUILDER"_d;
             if (s.Settings.Native.CompilerType == CompilerType::MSVC)
             {
                 core.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;

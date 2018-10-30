@@ -38,6 +38,10 @@ void build(Solution &s)
         }
     };
 
+    // fwd decls
+    auto &avcodec = ffmpeg.addTarget<LibraryTarget>("avcodec");
+    auto &avfilter = ffmpeg.addTarget<LibraryTarget>("avfilter");
+
     auto &avutil = ffmpeg.addTarget<LibraryTarget>("avutil");
     {
         avutil.setChecks("avutil");
@@ -115,8 +119,6 @@ void build(Solution &s)
             avutil.Public += "HAVE_W32THREADS=1"_d;
         }
         avutil.Public += sw::Shared, "CONFIG_SHARED"_d;
-
-        //avutil.Public += "org.sw.demo.ffmpeg.avcodec"_dep;
 
         avutil.writeFileOnce("libavutil/avconfig.h");
         avutil.writeFileOnce("libavutil/ffversion.h");
@@ -2225,6 +2227,8 @@ R"(
             avutil.Public += "ARCH_X86_32=0"_def;
             avutil.Public += "ARCH_X86_64=1"_def;
         }
+
+        (avutil + avcodec)->IncludeDirectoriesOnly = true;
     }
 
     auto &swscale = ffmpeg.addTarget<LibraryTarget>("swscale");
@@ -2270,7 +2274,7 @@ R"(
         avresample.Public += avutil;
     }
 
-    auto &avcodec = ffmpeg.addTarget<LibraryTarget>("avcodec");
+    // avcodec
     {
         avcodec +=
             "libavcodec/.*\\.c"_rr,
@@ -2349,8 +2353,8 @@ R"(
         avcodec += "Ole32.lib"_lib;
 
         avcodec.Public += swresample;
-        //avcodec.Public += "org.sw.demo.ffmpeg.avfilter"_dep;
-        //avcodec.Public += "org.sw.demo.ffmpeg.avformat"_dep;
+        (avcodec + avfilter)->IncludeDirectoriesOnly = true;
+        //(avcodec + avformat)->IncludeDirectoriesOnly = true;
 
         avcodec.Public += "org.sw.demo.madler.zlib-1"_dep;
         avcodec.Public += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
@@ -2491,7 +2495,7 @@ R"(
         }
     }
 
-    auto &avfilter = ffmpeg.addTarget<LibraryTarget>("avfilter");
+    // avfilter
     {
         avfilter +=
             "libavfilter/.*\\.c"_rr,
