@@ -64,11 +64,14 @@ struct YASMCompiler :  NativeCompiler,
         InputFile = input_file.u8string();
         setOutputFile(output_file);
     }
+
     void setOutputFile(const path &output_file)
     {
         ObjectFile = output_file;
     }
+
     String getObjectExtension() const override { return ".obj"; }
+
     Files getGeneratedDirs() const override
     {
         Files f;
@@ -95,9 +98,7 @@ void build(Solution &s)
     {
         t.PackageDefinitions = true;
         t.setChecks("libyasm");
-        t -= ".*/tests/.*"_rr;
-        t += ".*\\.re"_rr;
-        t += ".*\\.mac"_rr;
+        t ^= ".*/tests/.*"_rr;
         t += cfg;
     };
 
@@ -108,6 +109,8 @@ void build(Solution &s)
     {
         auto &t = modules.addStaticLibrary(m + "." + n);
         t += FileRegex("modules/" + m + "/" + n + "/.*", true);
+        t += FileRegex("modules/" + m + "/" + n + "/.*\\.re", true);
+        t += FileRegex("modules/" + m + "/" + n + "/.*\\.mac", true);
         setup(t);
         deps.push_back(&t);
         yasm_modules[m.back() == 's' ? m.substr(0, m.size() - 1) : m].insert(n);
@@ -191,7 +194,7 @@ void build(Solution &s)
     auto &dbg_stabs = add_modules_child("dbgfmts", "stabs");
 
     auto &a_lc3b = add_modules_child("arch", "lc3b");
-    re2c(pa_nasm, "modules/arch/lc3b/lc3bid.re", "c");
+    re2c(a_lc3b, "modules/arch/lc3b/lc3bid.re", "c");
 
     auto &a_x86 = add_modules_child("arch", "x86");
     {
