@@ -1,5 +1,86 @@
 #pragma sw require header org.sw.demo.re2c.re2c-1
 
+struct YASMAssemblerOptions
+{
+    COMMAND_LINE_OPTION(ObjectFile, path)
+    {
+        cl::CommandFlag{ "o" },
+        cl::OutputDependency{},
+    };
+
+    COMMAND_LINE_OPTION(ObjectFormat, String)
+    {
+        cl::CommandFlag{ "f" },
+    };
+
+    // goes last
+    COMMAND_LINE_OPTION(InputFile, path)
+    {
+        cl::InputDependency{},
+    };
+};
+DEFINE_OPTION_SPECIALIZATION_DUMMY(YASMAssemblerOptions);
+
+struct YASMCompiler :  NativeCompiler,
+    CompilerToolBase,
+    CommandLineOptions<YASMAssemblerOptions>
+{
+    virtual ~YASMCompiler() = default;
+
+    using NativeCompilerOptions::operator=;
+
+    std::shared_ptr<Program> clone() const override
+    {
+        return std::make_shared<YASMCompiler>(*this);
+    }
+
+    std::shared_ptr<builder::Command> getCommand() const override
+    {
+        if (cmd)
+            return cmd;
+
+        auto c = std::make_shared<driver::cpp::Command>();
+        c->fs = fs;
+
+        if (InputFile)
+        {
+            c->name = normalize_path(InputFile());
+            c->name_short = InputFile().filename().u8string();
+            //c->file = InputFile;
+        }
+        if (ObjectFile)
+            c->working_directory = ObjectFile().parent_path();
+
+        c->base = clone();
+
+        getCommandLineOptions<YASMAssemblerOptions>(c.get(), *this);
+        iterate([c](auto &v, auto &gs) { v.addEverything(*c); });
+
+        return cmd = c;
+    }
+
+    void setSourceFile(const path &input_file, path &output_file) override
+    {
+        InputFile = input_file.u8string();
+        setOutputFile(output_file);
+    }
+    void setOutputFile(const path &output_file)
+    {
+        ObjectFile = output_file;
+    }
+    String getObjectExtension() const override { return ".obj"; }
+    Files getGeneratedDirs() const override
+    {
+        Files f;
+        f.insert(ObjectFile().parent_path());
+        return f;
+    }
+
+protected:
+    Version gatherVersion() const override { return "master"; }
+    Version gatherVersion(const path &program) const override { return "master"; }
+};
+
 void build(Solution &s)
 {
     auto &yasm = s.addExecutable("yasm", "master");
@@ -15,6 +96,8 @@ void build(Solution &s)
         t.PackageDefinitions = true;
         t.setChecks("libyasm");
         t -= ".*/tests/.*"_rr;
+        t += ".*\\.re"_rr;
+        t += ".*\\.mac"_rr;
         t += cfg;
     };
 
@@ -151,7 +234,10 @@ void build(Solution &s)
     {
         setup(libyasm);
         libyasm.ApiName = "YASM_LIB_DECL";
-        libyasm += "libyasm/[^/]*\\.c"_rr;
+        libyasm +=
+            "libyasm/module.in",
+            "libyasm/[^/]*\\.c"_rr
+            ;
         libyasm -= "libyasm/cmake-module.c";
 
         for (auto t : deps)
@@ -205,6 +291,19 @@ void build(Solution &s)
     yasm += "frontends/yasm/.*\\.[hc]"_rr;
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
+
+    auto L = std::make_shared<NativeLanguage>();
+    //L->Type = LanguageType::ASM;
+    L->CompiledExtensions = {
+        ".asm",
+        //".s", ".S"
+    };
+
+    auto C = std::make_shared<YASMCompiler>();
+    //C->Type = CompilerType::Other;
+    C->file = yasm.getOutputFile();
+    L->compiler = C;
+    s.registerProgramAndLanguage(yasm, C, L);
 }
 
 void check(Checker &c)

@@ -16,10 +16,11 @@ void re2c(NativeExecutedTarget &t, const path &f, const String &ext)
     SW_MAKE_COMMAND_AND_ADD(c, t);
     c->setProgram(re2c);
     c->args.push_back("-o");
-    c->args.push_back(out.u8string());
-    c->args.push_back(in.u8string());
+    c->args.push_back(normalize_path(out));
+    c->args.push_back(normalize_path(in));
     c->addInput(in);
     c->addOutput(out);
+    t += f;
     t += out;
 }
 
