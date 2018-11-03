@@ -7,6 +7,7 @@ void build(Solution &s)
     {
         t.PackageDefinitions = true;
         t.ExportAllSymbols = true;
+        //t.Public += IncludeDirectory(t.SourceDir);
 
         SwapAndRestore sr(t.SourceDir, t.SourceDir / d);
         t -=
@@ -36,6 +37,8 @@ void build(Solution &s)
             t -= ".*vdpau.*"_rr;
             t -= ".*videotoolbox.*"_rr;
         }
+
+        t.Settings.Native.ConfigurationType = ConfigurationType::Release;
     };
 
     // fwd decls
@@ -46,15 +49,31 @@ void build(Solution &s)
     {
         avutil.setChecks("avutil");
 
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+            avutil.setExtensionLanguage(".asm", "org.sw.demo.yasm-master"s);
+
         avutil +=
             "compat/.*\\.h"_rr,
             "libavutil/.*\\.S"_rr,
             "libavutil/.*\\.c"_rr,
             "libavutil/.*\\.h"_rr;
+        avutil +=
+            "libavutil/.*\\.asm"_rr;
         setup(avutil, "libavutil");
 
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
+            if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+            {
+                for (auto &[p, f] : avutil["libavutil/.*\\.asm"_rr])
+                    f->args.push_back("-fwin64");
+            }
+
+            avutil += "HAVE_CPUNOP=1"_def;
+            avutil += "HAVE_FMA3_EXTERNAL=0"_def;
+            avutil += "HAVE_AVX_EXTERNAL=0"_def;
+            avutil += "HAVE_AVX2_EXTERNAL=0"_def;
+
             avutil -=
                 "libavutil/hwcontext_vdpau.c",
                 "libavutil/hwcontext_qsv.c",
@@ -68,6 +87,7 @@ void build(Solution &s)
                 ;
             avutil.Protected += "compat/atomics/win32"_idir;
             avutil += "User32.lib"_lib;
+            avutil.Public += "HAVE_STRUCT_ADDRINFO"_def;
         }
 
         avutil.Public += "ARCH_AARCH64=0"_d;
@@ -125,8 +145,8 @@ void build(Solution &s)
 
         std::ostringstream oss;
         {
-        oss <<
-        R"(
+            oss <<
+                R"(
         #define CONFIG_CBS_MPEG2 1
         #define CONFIG_H264_NVDEC_HWACCEL 0
         #define CONFIG_HEVC_NVDEC_HWACCEL 0
@@ -2348,7 +2368,7 @@ R"(
             "libavcodec/va.*"_rr,
             "libavcodec/vda.*"_rr,
             "libavcodec/vdpau.*"_rr
-        ;
+            ;
 
         avcodec += "Ole32.lib"_lib;
 
@@ -2635,7 +2655,6 @@ R"(
             ffmpeg.Public += "AVCONV_DATADIR=\"ffmpeg\""_d;
             ffmpeg.Public += "CC_IDENT=\"Software Network\""_d;
             ffmpeg.Public += "FFMPEG_DATADIR=\"ffmpeg\""_d;
-            ffmpeg += "HAVE_STRUCT_ADDRINFO"_def;
         }
 
         ffmpeg.Public += avdevice;

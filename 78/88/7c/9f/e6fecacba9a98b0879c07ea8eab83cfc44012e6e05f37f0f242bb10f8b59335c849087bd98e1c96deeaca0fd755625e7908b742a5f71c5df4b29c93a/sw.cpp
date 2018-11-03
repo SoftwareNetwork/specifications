@@ -131,13 +131,17 @@ void build(Solution &s)
     //libffi.replaceInFileOnce("include/ffi.h.in", "#define LIBFFI_H", "#define LIBFFI_H\n#include <stdint.h>");
     //libffi.configureFile("include/ffi.h.in", "ffi.h");
 
+    if (!s.PostponeFileResolving)
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
     {
         const auto f = "win"s + (have64bit ? "64" : "32");
         {
-            auto ch = s.Settings.Native.CCompiler->clone();
+            auto p = s.findProgramByExtension(".c");
+            if (!p)
+                throw std::runtime_error("No c compiler found");
+            auto ch = p->clone();
             libffi.Storage.push_back(ch);
-            auto c = ch->as<VisualStudioCCompiler>();
+            auto c = ch->as<VisualStudioCompiler>();
             c->IncludeDirectories.insert(libffi.BinaryDir);
             c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
             c->IncludeDirectories.insert(libffi.SourceDir / "src");
@@ -151,7 +155,10 @@ void build(Solution &s)
         }
 
         {
-            auto ch = s.Settings.Native.ASMCompiler->clone();
+            auto p = s.findProgramByExtension(".asm");
+            if (!p)
+                throw std::runtime_error("No c compiler found");
+            auto ch = p->clone();
             libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioASMCompiler>();
             c->PreserveSymbolCase = true;
@@ -188,4 +195,4 @@ void check(Checker &c)
     #include <float.h>
     int main() {return 0;}
     )sw_xxx");
-} 
+}
