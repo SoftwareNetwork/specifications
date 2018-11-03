@@ -109,22 +109,10 @@ void build(Solution &s)
         glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
         glib.Variables["guintptr_format"] = "G_GINT64_CONSTANT(val)";
 
-        //glib.Public += "G_DISABLE_DEPRECATED"_d;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
-        {
-            glib.Variables["glib_os"] = "#define G_PLATFORM_WIN32";
-            glib.Variables["g_threads_impl_def"] = "WIN32";
-            glib.Public += "G_OS_WIN32"_d;
-            glib.Public += "THREADS_WIN32"_d;
-            glib.Public += "G_ATOMIC_LOCK_FREE"_d;
-        }
-        else
-        {
-            glib.Variables["glib_os"] = "#define G_OS_UNIX";
-            glib.Variables["g_threads_impl_def"] = "POSIX";
-            glib.Public += "THREADS_POSIX"_d;
-            glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
-        }
+        glib.Variables["glib_os"] = "#define G_OS_UNIX";
+        glib.Variables["g_threads_impl_def"] = "POSIX";
+        glib.Public += "THREADS_POSIX"_d;
+        glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
 
         glib.Variables["glib_vacopy"] = R"(
 #define G_VA_COPY va_copy
@@ -174,6 +162,12 @@ void build(Solution &s)
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
+        glib.Variables["glib_os"] = "#define G_PLATFORM_WIN32";
+        glib.Variables["g_threads_impl_def"] = "WIN32";
+        glib.Public += "G_OS_WIN32"_d;
+        glib.Public += "THREADS_WIN32"_d;
+        glib.Public += "G_ATOMIC_LOCK_FREE"_d;
+
         glib -=
             "glib/giounix.c",
             "glib/gspawn.c",
