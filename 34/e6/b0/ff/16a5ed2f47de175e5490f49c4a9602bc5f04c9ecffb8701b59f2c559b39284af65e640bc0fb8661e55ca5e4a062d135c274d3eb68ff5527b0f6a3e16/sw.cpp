@@ -47,7 +47,7 @@ void build(Solution &s)
         auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
         auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
-        auto cc = s.Settings.Native.CPPCompiler->clone();
+        auto cc = s.findProgramByExtension(".cpp")->clone();
         auto c = cc->getCommand();
         c->args.push_back("-I");
         c->args.push_back(fontconfig.SourceDir.u8string());
