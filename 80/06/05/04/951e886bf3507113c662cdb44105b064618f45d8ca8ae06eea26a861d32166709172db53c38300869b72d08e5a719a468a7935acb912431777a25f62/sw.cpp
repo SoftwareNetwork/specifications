@@ -80,7 +80,7 @@ static void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, con
 
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"];
 
-    Context ctx;
+    primitives::Context ctx;
     ctx.addLine("#pragma once");
     ctx.addLine();
     ctx.addLine("#undef  THIS_PARSER_NAME");
