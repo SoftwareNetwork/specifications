@@ -202,7 +202,7 @@ void build(Solution &s)
 
         glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
         glib.replaceInFileOnce("glib/glib-init.c", "#if defined (G_OS_WIN32)", R"(
-#if defined (G_OS_WIN32) && defined(GLIB_STATIC_COMPILATION)
+#if defined  (G_OS_WIN32) && defined(GLIB_STATIC_COMPILATION)
 HMODULE glib_dll;
 
 int is_glib_initialized = 0;
@@ -220,7 +220,7 @@ glib_init_ctor(void)
         is_glib_initialized = 1;
     }
 }
-#elif defined (G_OS_WIN32)
+#elif defined  (G_OS_WIN32)
         )");
         glib.replaceInFileOnce("glib/gthread-win32.c", "g_thread_impl_vtable.InitializeSRWLock (mutex);", R"(
 #ifdef GLIB_STATIC_COMPILATION
