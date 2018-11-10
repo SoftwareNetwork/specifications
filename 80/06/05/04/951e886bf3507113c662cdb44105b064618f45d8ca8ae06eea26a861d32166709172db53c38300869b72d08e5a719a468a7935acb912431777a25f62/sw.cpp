@@ -145,7 +145,7 @@ void build(Solution &s)
     bison += "bison"_idir;
     bison.Public += "bison/src"_idir;
     bison += common;
-    bison.replaceInFileOnce("bison/src/config.h", "data", normalize_path(bison.SourceDir / "bison/data/"));
+    bison.replaceInFileOnce("bison/src/config.h", "\"data", "\"" + normalize_path(bison.SourceDir / "bison/data/"));
     bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
     bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
 }

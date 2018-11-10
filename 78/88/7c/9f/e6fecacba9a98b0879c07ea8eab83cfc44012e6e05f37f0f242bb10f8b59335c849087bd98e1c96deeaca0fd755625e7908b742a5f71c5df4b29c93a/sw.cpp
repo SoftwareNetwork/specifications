@@ -29,7 +29,7 @@ void build(Solution &s)
     libffi.writeFileOnce("fficonfig.h", true);
     libffi.replaceInFileOnce("include/ffi.h", "#define FFI_EXTERN extern", "");
     libffi.replaceInFileOnce("include/ffi.h", "__declspec(dllimport)", "");
-    libffi.replaceInFileOnce("include/ffi.h", "} ffi_type;", "}  ffi_type;\n#define FFI_EXTERN extern SW_FFI_API");
+    libffi.replaceInFileOnce("include/ffi.h", "} ffi_type;", "}  ffi_type;\n#define  FFI_EXTERN extern SW_FFI_API");
     libffi.replaceInFileOnce("src/types.c", "maybe_const ffi_type ffi_type_##name", "FFI_EXTERN maybe_const  ffi_type ffi_type_##name");
     libffi.replaceInFileOnce("src/types.c", "const ffi_type ffi_type_void", "FFI_EXTERN const  ffi_type ffi_type_void");
 
@@ -157,7 +157,7 @@ void build(Solution &s)
         {
             auto p = s.findProgramByExtension(".asm");
             if (!p)
-                throw std::runtime_error("No c compiler found");
+                throw std::runtime_error("No asm compiler found");
             auto ch = p->clone();
             libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioASMCompiler>();
