@@ -208,6 +208,9 @@ void build(Solution &s)
         endif()
         */
     }
+    
+    libarchive.replaceInFileOnce("libarchive/archive.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
+    libarchive.replaceInFileOnce("libarchive/archive_entry.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
 
     libarchive.configureFile("build/cmake/config.h.in", libarchive.BinaryPrivateDir / "config.h");
 }

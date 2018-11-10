@@ -96,6 +96,9 @@ void build(Solution &s)
         "include"_id;
 
     libcurl.Private += "BUILDING_LIBCURL"_d;
+    libcurl.Public += "CURL_HIDDEN_SYMBOLS"_d;
+    libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
+    
     libcurl.Public += "HAVE_GSSAPI"_d;
     libcurl.Public += "HAVE_GSSGNU"_d;
     libcurl.Public += "HAVE_LIBSSH2_H"_d;
@@ -110,7 +113,6 @@ void build(Solution &s)
     {
         libcurl.Private += "HAVE_CONFIG_H"_d;
     }
-    libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
     //libcurl.Public += "org.sw.demo.c_ares-1"_dep;
     libcurl.Public += "org.sw.demo.gnu.gss-1"_dep;
@@ -192,6 +194,8 @@ void build(Solution &s)
     }
 
     recv_args(libcurl);
+    
+    libcurl.Variables["CURL_EXTERN_SYMBOL"] = "SW_EXPORT";
 
     libcurl.configureFile("lib/curl_config.h.cmake", "curl_config.h");
 }

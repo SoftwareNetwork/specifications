@@ -5,6 +5,9 @@ void build(Solution &s)
 
     libxml2.setChecks("libxml2");
 
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+        libxml2.ExportAllSymbols = true;
+
     libxml2 +=
         ".*\\.h"_rr,
         "DOCBparser.c",
@@ -63,6 +66,8 @@ void build(Solution &s)
         "trionan.c",
         "triostr.c";
 
+    libxml2 ^= "include/libxml/xmlversion.h";
+
     libxml2.Public +=
         "include"_id;
 
@@ -119,8 +124,6 @@ void build(Solution &s)
         "WITH_ISO8859X=1"_v,
         "WITH_THREADS=1"_v,
         "WITH_THREAD_ALLOC=1"_v;
-    error_code ec;
-    fs::remove(libxml2.SourceDir / "include/libxml/xmlversion.h", ec);
     libxml2.configureFile(
         libxml2.SourceDir / "include/libxml/xmlversion.h.in",
         libxml2.BinaryDir / "libxml/xmlversion.h");

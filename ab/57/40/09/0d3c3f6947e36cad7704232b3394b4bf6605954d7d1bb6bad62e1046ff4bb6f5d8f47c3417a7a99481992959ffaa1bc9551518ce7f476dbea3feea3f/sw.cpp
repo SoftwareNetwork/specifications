@@ -2,6 +2,7 @@ void build(Solution &s)
 {
     auto &bzip2 = s.addTarget<LibraryTarget>("bzip2", "1.0.6");
     bzip2 += RemoteFile("https://github.com/cppan-packages/126e737764020d88047fdbec142795dc490ad6738b6be43ddedd8510b8fff3b1/raw/master/cppan.tar.gz");
+    
     bzip2 +=
         "blocksort.c",
         "bzlib.[hc]"_r,
@@ -14,6 +15,9 @@ void build(Solution &s)
         ;
     bzip2.Public += sw::Shared, "BZ_SHARED"_d;
     bzip2.Interface += sw::Shared, "BZ_IMPORT"_d;
+    
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+        bzip2.ExportAllSymbols = true;
 
     bzip2.replaceInFileOnce("bzlib.h",
         "#ifdef _WIN32",

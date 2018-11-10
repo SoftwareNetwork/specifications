@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &libssh2 = s.addTarget<LibraryTarget>("libssh2", "1.8.0");
     libssh2 += Git("https://github.com/libssh2/libssh2", "libssh2-{v}");
 
+    libssh2.ApiName = "LIBSSH2_API";
     libssh2.setChecks("libssh2");
 
     libssh2 +=
