@@ -57,9 +57,16 @@ void build(Solution &s)
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
         fontconfig.Storage.push_back(c);
 
+        fontconfig.Public -= "org.sw.demo.gnu.sed.sed-*"_dep;
+        fontconfig.Public -= "org.sw.demo.gnu.gawk.gawk-*"_dep;
+
         {
             auto c = fontconfig.addCommand();
-            c << cmd::prog("org.sw.demo.gnu.sed.sed-*"_dep)
+            if (s.Settings.TargetOS.Type == OSType::Windows)
+                c << cmd::prog("org.sw.demo.gnu.sed.sed-*"_dep);
+            else
+                c << "sed";
+            c
                 << "s/^ *//;s/ *, */,/"
                 << cmd::std_in(o1)
                 << cmd::std_out(o2)
@@ -68,7 +75,11 @@ void build(Solution &s)
 
         {
             auto c = fontconfig.addCommand();
-            c << cmd::prog("org.sw.demo.gnu.gawk.gawk-*"_dep)
+            if (s.Settings.TargetOS.Type == OSType::Windows)
+                c << cmd::prog("org.sw.demo.gnu.gawk.gawk-*"_dep);
+            else
+                c << "awk";
+            c
                 << "\\\n\
 		            /CUT_OUT_BEGIN/ { no_write=1; next; }; \\\n\
 		            /CUT_OUT_END/ { no_write=0; next; }; \\\n\
@@ -96,7 +107,7 @@ void build(Solution &s)
     fontconfig.writeFileOnce("fcftaliastail.h", "", true);
     fontconfig.writeFileOnce("fcstdint.h", "#include <stdint.h>", true);
 
-    fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define FcPublic extern SW_FONTCONFIG_LIBRARY_API");
+    fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define  FcPublic extern SW_FONTCONFIG_LIBRARY_API");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
