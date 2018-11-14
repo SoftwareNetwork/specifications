@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &catch2 = s.addTarget<LibraryTarget>("catchorg.catch2", "2.3.0");
+    auto &catch2 = s.addTarget<LibraryTarget>("catchorg.catch2", "2.4.2");
     catch2 += Git("https://github.com/catchorg/Catch2", "v{v}");
 
     catch2 +=
