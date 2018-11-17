@@ -115,9 +115,9 @@ static void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, con
 
 void build(Solution &s)
 {
-    /*bool win_flex_bison = s.Settings.Native.CompilerType != CompilerType::GNU;
+    bool win_flex_bison = s.Settings.Native.CompilerType != CompilerType::GNU;
     if (!win_flex_bison && !s.DryRun)
-        return;*/
+        return;
 
     auto &winflexbison = s.addProject("lexxmark.winflexbison", "master1");
     winflexbison += Git("https://github.com/lexxmark/winflexbison", "", "master");
