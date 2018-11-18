@@ -19,5 +19,7 @@ void build(Solution &s)
         t.Public += "USE_WINDOWS_DLL_SEMANTICS"_d;
         t.Public += "WIN32"_d;
     }
+    else
+        t -= "source/visualc/.*"_rr;
 }
 
