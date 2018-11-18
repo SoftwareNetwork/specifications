@@ -21,5 +21,7 @@ void build(Solution &s)
     }
     else
         t -= "source/visualc/.*"_rr;
+        
+    t.replaceInFileOnce("source/intel/crc32c_sse42_asm.c", "+c", "+g");
+    t.replaceInFileOnce("source/intel/crc32c_sse42_asm.c", "+d", "+g");
 }
-
