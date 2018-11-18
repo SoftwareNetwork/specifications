@@ -69,7 +69,7 @@ void build(Solution &s)
 
         core += "org.sw.demo.badger.curl.libcurl-*"_dep;
         core += "org.sw.demo.openssl.ssl-*"_dep;
-        core += "org.sw.demo.amazon.awslabs.c_event_stream-master"_dep;
+        core.Public += "org.sw.demo.amazon.awslabs.c_event_stream-master"_dep;
 
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
