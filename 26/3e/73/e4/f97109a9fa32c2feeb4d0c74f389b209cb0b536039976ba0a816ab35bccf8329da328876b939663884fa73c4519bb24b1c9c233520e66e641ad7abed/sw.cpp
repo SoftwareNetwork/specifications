@@ -43,7 +43,7 @@ void build(Solution &s)
                     config += "ILMBASE_HAVE_CONTROL_REGISTER_SUPPORT=1"_v;
                 }
             }
-            config.configureFile("IlmBase/config/IlmBaseConfig.h.in", "IlmBaseConfig.h");
+            config.configureFile("IlmBase/config/IlmBaseConfig.h.in", "IlmBaseConfig.h", ConfigureFlags::EnableUndefReplacements);
         }
 
         {
@@ -135,7 +135,7 @@ void build(Solution &s)
         {
             config += "OPENEXR_IMF_HAVE_DARWIN=1"_v;
         }
-        config.configureFile("OpenEXR/config/OpenEXRConfig.h.in", "OpenEXRConfig.h");
+        config.configureFile("OpenEXR/config/OpenEXRConfig.h.in", "OpenEXRConfig.h", ConfigureFlags::EnableUndefReplacements);
     }
 
     auto &IlmImf = openexr.addLibrary("IlmImf");

@@ -48,13 +48,13 @@ void build(Solution &s)
         //
         auto &H5detect = tools.addExecutable("H5detect");
         H5detect += "src/H5detect.c";
-        H5detect += IncludeDirectory(hdf5.BinaryDir);
+        (H5detect + hdf5)->IncludeDirectoriesOnly = true;
         if (s.Settings.TargetOS.Type == OSType::Windows)
             H5detect += "ws2_32.lib"_lib;
 
         auto &H5make_libsettings = tools.addExecutable("H5make_libsettings");
         H5make_libsettings += "src/H5make_libsettings.c";
-        H5make_libsettings += IncludeDirectory(hdf5.BinaryDir);
+        (H5make_libsettings + hdf5)->IncludeDirectoriesOnly = true;
         if (s.Settings.TargetOS.Type == OSType::Windows)
             H5make_libsettings += "ws2_32.lib"_lib;
 
