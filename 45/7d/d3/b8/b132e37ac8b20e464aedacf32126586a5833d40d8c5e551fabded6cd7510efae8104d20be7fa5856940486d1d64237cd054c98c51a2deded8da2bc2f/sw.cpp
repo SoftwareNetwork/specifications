@@ -23,6 +23,9 @@ void gen_sqlite2cpp(NativeExecutedTarget &t, const path &sql_file, const path &o
 
 void embed(NativeExecutedTarget &t, const path &in)
 {
+    if (in.is_absolute())
+        throw std::runtime_error("embed: in must be relative to SourceDir");
+
     auto embedder = THIS_PREFIX "." "primitives.tools.embedder" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + embedder;
@@ -41,6 +44,7 @@ void embed(NativeExecutedTarget &t, const path &in)
     c->addInput(f);
     c->addOutput(out);
     t += in, out;
+    t += IncludeDirectory(out.parent_path()); // but remove this later
 }
 
 void syncqt(NativeExecutedTarget &t, const Strings &modules)
