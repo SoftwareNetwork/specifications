@@ -11,5 +11,5 @@ void build(Solution &s)
         "lib"_id;
 
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
-        gif.writeFileOnce("lib/unistd.h");
+        gif.writeFileOnce("unistd.h");
 }
