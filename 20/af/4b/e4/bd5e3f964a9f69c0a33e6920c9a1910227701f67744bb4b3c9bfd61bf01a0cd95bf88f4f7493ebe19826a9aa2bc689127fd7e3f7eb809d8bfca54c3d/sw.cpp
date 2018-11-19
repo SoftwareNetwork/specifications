@@ -1,13 +1,14 @@
 void build(Solution &s)
 {
     auto &tess = s.addProject("google.tesseract", "master");
-    tess += Git("https://github.com/tesseract-ocr/tesseract", "", "master");
+    tess += Git("https://github.com/tesseract-ocr/tesseract", "", "{v}");
 
     auto &libtesseract = tess.addTarget<LibraryTarget>("libtesseract");
     {
         libtesseract.setChecks("libtesseract");
 
         libtesseract.ExportAllSymbols = true;
+        libtesseract.PackageDefinitions = true;
         libtesseract +=
             "src/api/.*\\.cpp"_rr,
             "src/api/.*\\.h"_rr,
@@ -101,6 +102,7 @@ void build(Solution &s)
     auto &unicharset_training = tess.addStaticLibrary("unicharset_training");
     unicharset_training +=
         "src/training/fileio.*"_rr,
+        "src/training/icuerrorcode.*"_rr,
         "src/training/icuerrorcode.h",
         "src/training/lang_model_helpers.*"_rr,
         "src/training/lstmtester.*"_rr,
@@ -185,4 +187,4 @@ void check(Checker &c)
         auto &c = s.checkSymbolExists("snprintf");
         c.Parameters.Includes.push_back("stdio.h");
     }
-}
+} 

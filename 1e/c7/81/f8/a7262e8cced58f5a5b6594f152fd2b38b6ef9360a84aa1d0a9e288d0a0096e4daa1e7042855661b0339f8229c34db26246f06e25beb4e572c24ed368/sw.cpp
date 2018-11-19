@@ -44,7 +44,10 @@ void build(Solution &s)
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
     {
         for (auto *f : leptonica.gatherSourceFiles())
-            f->BuildAs = NativeSourceFile::CPP;
+        {
+            //f->BuildAs = NativeSourceFile::CPP;
+            f->args.push_back("-TP");
+        }
     }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
