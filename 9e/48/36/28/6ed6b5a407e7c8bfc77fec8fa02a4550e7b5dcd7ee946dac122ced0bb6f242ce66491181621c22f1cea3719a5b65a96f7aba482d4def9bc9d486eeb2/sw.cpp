@@ -62,13 +62,6 @@ void build(Solution &s)
     tiff.Public +=
         "libtiff"_id;
 
-    tiff.Public += "JBIG_SUPPORT"_d;
-    tiff.Public += "JPEG_SUPPORT"_d;
-    tiff.Public += "LZMA_SUPPORT"_d;
-    tiff.Public += "OJPEG_SUPPORT"_d;
-    tiff.Public += "TIF_PLATFORM_CONSOLE"_d;
-    tiff.Public += "ZIP_SUPPORT"_d;
-
     tiff.Public += "org.sw.demo.xz_utils.lzma-5"_dep;
     tiff.Public += "org.sw.demo.jpeg-9"_dep;
     tiff.Public += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
@@ -80,6 +73,13 @@ void build(Solution &s)
     else
         tiff -= "libtiff/tif_win32.c";
 
+    tiff += "JBIG_SUPPORT=1"_v;
+    tiff += "JPEG_SUPPORT=1"_v;
+    tiff += "LZMA_SUPPORT=1"_v;
+    tiff += "OJPEG_SUPPORT=1"_v;
+    tiff += "TIF_PLATFORM_CONSOLE=1"_v;
+    tiff += "ZIP_SUPPORT=1"_v;
+
     tiff.Variables["HAVE_IEEEFP"] = "1";
     tiff.Variables["HOST_FILLORDER"] = "FILLORDER_LSB2MSB";
     tiff.Variables["HOST_BIG_ENDIAN"] = tiff.Variables["WORDS_BIGENDIAN"];
@@ -90,57 +90,65 @@ void build(Solution &s)
     tiff.Variables["TIFF_INT16_T"] = "signed short";
     tiff.Variables["TIFF_UINT16_T"] = "unsigned short";
 
-    if (tiff.Variables["SIZEOF_SIGNED_INT"] == "4")
+    if (tiff.Variables["SIZEOF_SIGNED_INT"] == 4)
     {
         tiff.Variables["TIFF_INT32_T"] = "signed int";
         tiff.Variables["TIFF_INT32_FORMAT"] = "%d";
     }
-    else if (tiff.Variables["SIZEOF_SIGNED_LONG"] == "4")
+    else if (tiff.Variables["SIZEOF_SIGNED_LONG"] == 4)
     {
         tiff.Variables["TIFF_INT32_T"] = "signed long";
         tiff.Variables["TIFF_INT32_FORMAT"] = "%ld";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
-    if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == "4")
+    if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == 4)
     {
         tiff.Variables["TIFF_UINT32_T"] = "unsigned int";
         tiff.Variables["TIFF_UINT32_FORMAT"] = "%d";
     }
-    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == "4")
+    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == 4)
     {
         tiff.Variables["TIFF_UINT32_T"] = "unsigned long";
         tiff.Variables["TIFF_UINT32_FORMAT"] = "%ld";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
-    if (tiff.Variables["SIZEOF_SIGNED_LONG"] == "8")
+    if (tiff.Variables["SIZEOF_SIGNED_LONG"] == 8)
     {
         tiff.Variables["TIFF_INT64_T"] = "signed long";
         tiff.Variables["TIFF_INT64_FORMAT"] = "%ld";
     }
-    else if (tiff.Variables["SIZEOF_SIGNED_LONG_LONG"] == "8")
+    else if (tiff.Variables["SIZEOF_SIGNED_LONG_LONG"] == 8)
     {
         tiff.Variables["TIFF_INT64_T"] = "signed long long";
+        tiff.Variables["TIFF_INT64_FORMAT"] = "%lld";
         /*
             if (MINGW)
                 set(TIFF_INT64_FORMAT "%I64d")
             else()*/
-        tiff.Variables["TIFF_INT64_FORMAT"] = "%lld";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
-    if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == "8")
+    if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == 8)
     {
         tiff.Variables["TIFF_UINT64_T"] = "unsigned long";
         tiff.Variables["TIFF_UINT64_FORMAT"] = "%lu";
     }
-    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG_LONG"] == "8")
+    else if (tiff.Variables["SIZEOF_UNSIGNED_LONG_LONG"] == 8)
     {
         tiff.Variables["TIFF_UINT64_T"] = "unsigned long long";
+        tiff.Variables["TIFF_UINT64_FORMAT"] = "%llu";
         /*
         if (MINGW)
         set(TIFF_UINT64_FORMAT "%I64u")
         else()*/
-        tiff.Variables["TIFF_UINT64_FORMAT"] = "%llu";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == tiff.Variables["SIZEOF_SIZE_T"])
     {
@@ -154,13 +162,15 @@ void build(Solution &s)
     }
     else if (tiff.Variables["SIZEOF_UNSIGNED_LONG_LONG"] == tiff.Variables["SIZEOF_SIZE_T"])
     {
-        tiff.Variables["TIFF_SIZE_T"] = "unsigned long";
+        tiff.Variables["TIFF_SIZE_T"] = "unsigned long long";
+        tiff.Variables["TIFF_SIZE_FORMAT"] = "%llu";
         /*
         if (MINGW)
         set(TIFF_UINT64_FORMAT "%I64u")
         else()*/
-        tiff.Variables["TIFF_SIZE_FORMAT"] = "%llu";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
     if (tiff.Variables["SIZEOF_SIGNED_INT"] == tiff.Variables["SIZEOF_UNSIGNED_CHAR_P"])
     {
@@ -175,12 +185,14 @@ void build(Solution &s)
     else if (tiff.Variables["SIZEOF_SIGNED_LONG_LONG"] == tiff.Variables["SIZEOF_UNSIGNED_CHAR_P"])
     {
         tiff.Variables["TIFF_SSIZE_T"] = "signed long long";
+        tiff.Variables["TIFF_SSIZE_FORMAT"] = "%lld";
         /*
         if (MINGW)
         set(TIFF_UINT64_FORMAT "%I64d")
         else()*/
-        tiff.Variables["TIFF_SSIZE_FORMAT"] = "%lld";
     }
+    else
+        throw std::runtime_error("tiff: no type");
 
     if (tiff.Variables.find("SIZEOF_PTRDIFF_T") == tiff.Variables.end())
     {
@@ -195,7 +207,7 @@ void build(Solution &s)
 
     if (s.Settings.TargetOS.Type != OSType::Windows)
     {
-        tiff += "_FILE_OFFSET_BITS=64"_d;
+        //tiff += "_FILE_OFFSET_BITS=64"_d;
         tiff.Variables["FILE_OFFSET_BITS"] = "64";
     }
 
