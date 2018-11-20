@@ -182,13 +182,13 @@ void build(Solution &s)
     {
         highgui.Public += imgcodecs;
         highgui -=
-            "modules/highgui/src/window_w32.cpp",
             "modules/highgui/src/window_carbon.cpp",
             "modules/highgui/src/window_winrt.cpp",
             "modules/highgui/src/window_winrt_bridge.cpp"
             ;
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
+            highgui.Public += "HAVE_WIN32UI"_def;
             highgui.Public +=
                 "Comdlg32.lib"_lib,
                 "Gdi32.lib"_lib,

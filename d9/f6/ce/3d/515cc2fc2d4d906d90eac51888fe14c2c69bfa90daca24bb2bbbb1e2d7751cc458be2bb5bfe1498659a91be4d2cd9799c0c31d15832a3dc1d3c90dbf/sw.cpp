@@ -182,13 +182,13 @@ void build(Solution &s)
     {
         highgui.Public += imgcodecs;
         highgui -=
-            "modules/highgui/src/window_w32.cpp",
             "modules/highgui/src/window_carbon.cpp",
             "modules/highgui/src/window_winrt.cpp",
             "modules/highgui/src/window_winrt_bridge.cpp"
             ;
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
+            highgui.Public += "HAVE_WIN32UI"_def;
             highgui.Public +=
                 "Comdlg32.lib"_lib,
                 "Gdi32.lib"_lib,
@@ -343,6 +343,7 @@ void build(Solution &s)
     auto &text = add_target("text");
     text.Public += imgproc, dnn, ml, "org.sw.demo.google.tesseract.libtesseract-master"_dep;
     text.writeFileOnce("text_config.hpp");
+    text.Public += "HAVE_TESSERACT"_def;
 
     auto &hdf = add_target("hdf");
     hdf.Public += imgproc, "org.sw.demo.hdfgroup.hdf5.hdf5-1"_dep;
