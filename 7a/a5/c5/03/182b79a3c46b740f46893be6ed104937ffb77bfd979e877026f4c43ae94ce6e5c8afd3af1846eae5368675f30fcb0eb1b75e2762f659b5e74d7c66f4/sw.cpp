@@ -200,6 +200,13 @@ void build(Solution &s)
     auto &videoio = add_target("videoio");
     {
         videoio.Public += imgcodecs;
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+        {
+            videoio += "HAVE_DSHOW"_def;
+            videoio += "HAVE_MSMF"_def;
+            videoio += "HAVE_VFW"_def;
+            videoio.Public += "Vfw32.lib"_lib;
+        }
         videoio -=
             "modules/videoio/src/cap_winrt.*"_rr,
             "modules/videoio/src/cap_mfx.*"_rr,
