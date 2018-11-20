@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &p = s.addProject("gnu.nettle", "3.4.0");
+    auto &p = s.addProject("gnu.nettle", "3.3.0");
     p += RemoteFile("https://ftp.gnu.org/gnu/nettle/nettle-{M}.{m}.tar.gz");
 
     auto &eccdata = p.addTarget<ExecutableTarget>("eccdata");

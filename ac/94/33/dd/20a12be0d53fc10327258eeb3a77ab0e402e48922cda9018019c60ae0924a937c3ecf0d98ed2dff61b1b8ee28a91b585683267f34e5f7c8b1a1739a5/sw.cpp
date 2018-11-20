@@ -35,7 +35,6 @@ void build(Solution &s)
         "twofishdata.c";
 
     nettle.Private += "UNUSED="_d;
-    nettle += eccdata;
 
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
     {
