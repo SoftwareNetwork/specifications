@@ -344,6 +344,8 @@ void build(Solution &s)
     text.Public += imgproc, dnn, ml, "org.sw.demo.google.tesseract.libtesseract-master"_dep;
     text.writeFileOnce("text_config.hpp");
     text.Public += "HAVE_TESSERACT"_def;
+    text.replaceInFileOnce("modules/text/src/precomp.hpp", "#include <tesseract/baseapi.h>", "#include <baseapi.h>");
+    text.replaceInFileOnce("modules/text/src/precomp.hpp", "#include <tesseract/resultiterator.h>", "#include <resultiterator.h>");
 
     auto &hdf = add_target("hdf");
     hdf.Public += imgproc, "org.sw.demo.hdfgroup.hdf5.hdf5-1"_dep;
