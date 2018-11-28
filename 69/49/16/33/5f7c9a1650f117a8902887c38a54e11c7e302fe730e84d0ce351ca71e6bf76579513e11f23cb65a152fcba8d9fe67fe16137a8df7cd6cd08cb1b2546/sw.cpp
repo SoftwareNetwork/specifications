@@ -44,7 +44,5 @@ void build(Solution &s)
 
     lua.Private += "LUA_LIB"_d;
     if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        lua.Public += "LUA_BUILD_AS_DLL"_d;
-    }
+        lua.Public += sw::Shared, "LUA_BUILD_AS_DLL"_d;
 }
