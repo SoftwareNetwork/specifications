@@ -89,7 +89,7 @@ void build(Solution &s)
             "Objects/boolobject.c",
             "Objects/bufferobject.c",
             "Objects/bytearrayobject.c",
-            "Objects/bytesobject.c",
+            //"Objects/bytesobject.c",
             "Objects/bytes_methods.c",
             "Objects/capsule.c",
             "Objects/cellobject.c",
