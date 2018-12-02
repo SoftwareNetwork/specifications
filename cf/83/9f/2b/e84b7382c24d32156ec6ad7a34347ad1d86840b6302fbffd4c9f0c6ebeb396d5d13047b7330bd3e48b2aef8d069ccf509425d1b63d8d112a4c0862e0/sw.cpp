@@ -10,6 +10,7 @@ void build(Solution &s)
         "include/.*\\.c"_rr,
         "source/windows/.*"_rr,
         "source/posix/.*"_rr;
+    t -= "source/arch/encoding_avx2.c";
 
     if (s.Settings.Native.CompilerType == CompilerType::MSVC)
         t.CompileOptions.push_back("-bigobj");

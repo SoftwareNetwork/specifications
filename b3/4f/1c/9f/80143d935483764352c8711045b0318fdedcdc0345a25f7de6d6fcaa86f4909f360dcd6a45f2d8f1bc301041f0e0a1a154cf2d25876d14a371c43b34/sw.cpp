@@ -22,9 +22,9 @@ static int wt_preprocess_file(path i, path o, String name)
 
     auto s = read_file(i);
     std::string out;
-    out += "#include <string>\n#include <vector>\nnamespace skeletons {\nstatic const std::string s {";
+    out += "#include <string>\n#include <vector>\nnamespace skeletons {\nstatic const char s[] {";
     out += preprocess_file(s);
-    out += "};\nconst char *" + name + "1 = s.data();\n";
+    out += "};\nconst char *" + name + "1 = s;\n";
     out += "std::vector<const char *> " + name + "()\n{\nreturn { " + name + "1 };\n}\n}";
     write_file(o, out);
 
