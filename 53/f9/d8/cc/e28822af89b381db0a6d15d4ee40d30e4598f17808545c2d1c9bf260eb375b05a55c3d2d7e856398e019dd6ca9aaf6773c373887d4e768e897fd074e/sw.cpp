@@ -38,6 +38,7 @@ void build(Solution &s)
     protos.Public += "src/protocol"_idir;
     protos.Public +=
         "org.sw.demo.google.grpc.grpcpp-1"_dep,
+        "pub.egorpugin.primitives.templates-master"_dep,
         "pub.egorpugin.primitives.log-master"_dep;
     gen_grpc(protos, protos.SourceDir / "src/protocol/api.proto", true);
 
@@ -84,18 +85,19 @@ void build(Solution &s)
     cpp_driver.Public += builder,
         "org.sw.demo.microsoft.gsl-*"_dep,
         "org.sw.demo.boost.assign-1"_dep,
+        "org.sw.demo.boost.bimap-1"_dep,
         "org.sw.demo.boost.uuid-1"_dep;
     cpp_driver += "src/driver/cpp/.*"_rr, "include/sw/driver/cpp/.*"_rr;
+    cpp_driver -= "src/driver/cpp/inserts/.*"_rr;
     if (s.Settings.TargetOS.Type != OSType::Windows)
         cpp_driver -= "src/driver/cpp/misc/.*"_rr;
     cpp_driver.Public += "include"_idir, "src/driver/cpp"_idir;
     embed(cpp_driver, "src/driver/cpp/inserts/inserts.cpp.in");
     gen_flex_bison(cpp_driver, "src/driver/cpp/bazel/lexer.ll", "src/driver/cpp/bazel/grammar.yy");
-#ifdef _MSC_VER
-    if (auto sf = cpp_driver["src/driver/cpp/solution.cpp"].template as<NativeSourceFile>())
-        if (auto c = sf->compiler->template as<VisualStudioCompiler>())
-            c->BigObj = true;
-#endif
+    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        cpp_driver.CompileOptions.push_back("-bigobj");
+    //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+        //cpp_driver.CompileOptions.push_back("-Wa,-mbig-obj");
 
     auto &tools = p.addDirectory("tools");
     auto &self_builder = tools.addTarget<ExecutableTarget>("self_builder");
@@ -141,4 +143,4 @@ void build(Solution &s)
         if (s.Settings.TargetOS.Type == OSType::Windows)
             client.Public += "UNICODE"_d;
     }
-} 
+}
