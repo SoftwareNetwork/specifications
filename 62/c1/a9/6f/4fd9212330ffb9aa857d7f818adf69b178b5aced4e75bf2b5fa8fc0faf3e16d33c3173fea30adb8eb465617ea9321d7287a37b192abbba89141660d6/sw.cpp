@@ -53,6 +53,9 @@ void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vecto
     }();
     static StringSet HeaderFileExtensionsSet(HeaderFileExtensions.begin(), HeaderFileExtensions.end());
 
+    // before dry run
+    (t + moc)->Dummy = true;
+
     if (t.PostponeFileResolving || t.DryRun)
         return;
 
@@ -217,6 +220,9 @@ void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vecto
 void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const path &fn)
 {
     static std::regex r("<file([^<]+)");
+
+    // before dry run
+    (t + rcc)->Dummy = true;
 
     if (t.PostponeFileResolving || t.DryRun)
         return;
