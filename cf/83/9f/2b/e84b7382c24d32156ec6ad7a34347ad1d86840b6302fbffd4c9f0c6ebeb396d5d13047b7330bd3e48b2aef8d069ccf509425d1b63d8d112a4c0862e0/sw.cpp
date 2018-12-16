@@ -31,5 +31,5 @@ void build(Solution &s)
         t += "source/posix/.*"_rr;
         t += "HAVE_BUILTIN_CPU_SUPPORTS"_d;
     }
+    t.writeFileOnce("aws/common/config.h");
 }
-
