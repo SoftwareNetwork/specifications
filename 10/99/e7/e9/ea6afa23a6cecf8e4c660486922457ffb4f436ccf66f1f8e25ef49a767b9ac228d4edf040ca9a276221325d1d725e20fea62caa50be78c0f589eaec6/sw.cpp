@@ -834,6 +834,7 @@ void build(Solution &s)
                 "src/3rdparty/rfc6234/.*\\.[hc]"_rr,
                 "src/3rdparty/sha1/sha1.cpp",
                 "src/3rdparty/sha3/.*"_rr,
+                "src/3rdparty/tinycbor/src/.*"_rr,
                 "src/platformheaders/.*\\.h"_rr;
             core -=
                 "src/3rdparty/easing/easing.cpp",
@@ -844,10 +845,12 @@ void build(Solution &s)
                 "src/3rdparty/rfc6234/sha224-256.c",
                 "src/3rdparty/rfc6234/sha384-512.c",
                 "src/3rdparty/sha1/sha1.cpp",
+                "src/3rdparty/tinycbor/src/.*"_rr,
                 "src/3rdparty/sha3/.*"_rr;
             core -=
                 ".*\\.qdoc"_rr;
             core -= "src/3rdparty/sha3/.*"_rr;
+            core += "src/3rdparty/tinycbor/src"_idir;
 
             if (s.Settings.Native.CompilerType == CompilerType::MSVC)
                 core.Public += "mkspecs/win32-msvc"_idir;
@@ -990,7 +993,6 @@ void build(Solution &s)
             core.Public += "org.sw.demo.madler.zlib-1"_dep;
             core.Public += "org.sw.demo.pcre.pcre16-10"_dep;
             core += harfbuzz;
-            core += tinycbor;
 
             String module = "QtCore";
             String module_lower = module;
