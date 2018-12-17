@@ -91,7 +91,7 @@ void build(Solution &sln)
         "pango"_id;
 
     pangoft2.Public += pango;
-    pangoft2.Public += "org.sw.demo.behdad.harfbuzz-1"_dep;
+    pangoft2.Public += "org.sw.demo.behdad.harfbuzz-*"_dep;
     pangoft2.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig-2"_dep;
 
     pangoft2.writeFileOnce(pangoft2.BinaryPrivateDir / "config.h");
