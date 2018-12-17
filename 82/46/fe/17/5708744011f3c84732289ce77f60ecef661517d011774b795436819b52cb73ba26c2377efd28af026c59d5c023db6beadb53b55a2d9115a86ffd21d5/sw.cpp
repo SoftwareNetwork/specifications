@@ -129,6 +129,10 @@ void build(Solution &s)
     common -= ".*\\.def"_rr;
     common.Public += "common/m4/lib"_idir;
     common.Public += "common/misc"_idir;
+    // clang does not like static assert on win
+    common.replaceInFileOnce("common/misc/verify.h",
+        "verify(R) static_assert",
+        "verify(R) //static_assert");
 
     auto &flex = winflexbison.addTarget<ExecutableTarget>("flex");
     flex += "flex/.*"_rr;
