@@ -246,6 +246,9 @@ void build(Solution &s)
 
             lib.replaceInFileOnce("Modules/timemodule.c", "timezone);", "_timezone );");
             lib.replaceInFileOnce("Modules/timemodule.c", "timezone-3600", "_timezone -3600");
+
+            lib.replaceInFileOnce("Modules/posixmodule.c", "const int i1 = fd >> IOINFO_L2E;", "return 1;\n}\n#if 0\nconst int i1 = fd >> IOINFO_L2E;");
+            lib.replaceInFileOnce("Modules/posixmodule.c", "/* the special case of checking dup2.", "#endif\n/* the special case of checking dup2.");
         }
         else
         {
