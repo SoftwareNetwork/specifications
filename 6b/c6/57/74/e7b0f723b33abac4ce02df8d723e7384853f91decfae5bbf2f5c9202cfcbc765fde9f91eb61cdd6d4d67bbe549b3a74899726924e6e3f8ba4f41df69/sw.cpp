@@ -814,6 +814,20 @@ void build(Solution &s)
             uic.Public += bootstrap;
         }
 
+        auto &qlalr = base_tools.addTarget<ExecutableTarget>("qlalr");
+        {
+            qlalr +=
+                "src/tools/qlalr/[^/]*\\.cpp"_rr,
+                "src/tools/qlalr/[^/]*\\.[gh]"_rr;
+            qlalr.Public += "src/tools/qlalr"_id;
+            if (s.Settings.TargetOS.Type == OSType::Windows)
+            {
+                qlalr.Private += "UNICODE"_d;
+                qlalr.Public += "WIN32"_d;
+            }
+            qlalr.Public += bootstrap;
+        }
+
         auto write_tracepoints = [](auto &t)
         {
             t.writeFileOnce(t.BinaryDir / ("qt" + t.pkg.ppath.back() + "_tracepoints_p.h"), R"xxx(
