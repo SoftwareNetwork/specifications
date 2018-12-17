@@ -234,6 +234,9 @@ void build(Solution &s)
             lib.Private += "PYTHONPATH=L\"\""_d;
             lib.Public += "MS_WINDOWS"_d;
             lib.Public += "NT_THREADS"_d;
+            lib.Public += "WIN32"_d;
+            if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+                lib.Public += "MS_WINI64"_d;
 
             lib.Public += "advapi32.lib"_lib;
             lib.Public += "Mincore.lib"_lib;
@@ -263,6 +266,7 @@ void build(Solution &s)
             lib.Public += "__EXTENSIONS__=1"_d;
         }
         lib.Public += sw::Static, "Py_NO_ENABLE_SHARED"_d;
+        lib.Public += sw::Shared, "Py_ENABLE_SHARED"_d;
 
         lib.Public += "org.sw.demo.madler.zlib-1"_dep;
         lib.Public += "org.sw.demo.expat-2"_dep;
@@ -270,10 +274,10 @@ void build(Solution &s)
         lib.replaceInFileOnce("PC/pyconfig.h", "#ifdef MS_COREDLL", "#if 0");
 
         lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 1 -- */", R"xxx(
-            //extern PyObject* PyInit_pyexpat(void);
+            extern void initpyexpat(void);
 )xxx");
         lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 2 -- */", R"xxx(
-            //{"pyexpat", PyInit_pyexpat},
+            {"pyexpat", initpyexpat},
 )xxx");
 
     }
@@ -885,4 +889,4 @@ void check(Checker &c)
         return 0;
     }
     )sw_xxx");
-} 
+}
