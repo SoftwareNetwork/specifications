@@ -36,7 +36,7 @@ struct MocCommand : Command
     }
 };
 
-void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
+static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
 {
     static Strings HeaderFileExtensions = []()
     {
@@ -217,38 +217,59 @@ void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vecto
 };
 
 // http://doc.qt.io/qt-5/rcc.html
-void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const path &fn)
+static Files rcc_read_files(NativeExecutedTarget &t, const path &fn)
 {
-    static std::regex r("<file([^<]+)");
-
-    // before dry run
-    (t + rcc)->Dummy = true;
-
     if (t.PostponeFileResolving || t.DryRun)
-        return;
+        return {};
 
+    static std::regex r("<file([^<]+)");
     std::smatch m;
     auto s = read_file(fn);
     Files files;
     while (std::regex_search(s, m, r))
     {
         auto f = m[1].str();
-        files.insert(fn.parent_path() / f.substr(f.find('>') + 1));
+        path f2 = f.substr(f.find('>') + 1);
+        if (fs::exists(fn.parent_path() / f2))
+            f2 = fn.parent_path() / f2;
+        else
+        {
+            auto rel = (fn.parent_path() / f2).lexically_relative(t.SourceDir).lexically_normal();
+            if (t.check_absolute(rel, true))
+                f2 = rel;
+            else
+                t.check_absolute(f2);
+        }
+        files.insert(f2);
         s = m.suffix().str();
     }
 
+    return files;
+}
+
+static auto rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const path &fn)
+{
+    // before dry run
+    (t + rcc)->Dummy = true;
+
+    auto c = t.addCommand();
+    if (t.PostponeFileResolving || t.DryRun)
+        return c;
+
+    auto files = rcc_read_files(t, fn);
+
     auto outfilename = fn.filename().stem();
     auto outfile = t.BinaryDir / ("qrc_" + outfilename.u8string() + ".cpp");
-    auto c = t.addCommand();
     c << cmd::prog(rcc)
         << "--name" << outfilename.u8string()
         << "--output" << cmd::out(outfile)
         << cmd::in(fn)
         << cmd::end()
         << cmd::in(files);
+    return c;
 }
 
-void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const Files &files)
+static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const Files &files)
 {
     for (auto &f : files)
         ::rcc(rcc, t, f);
@@ -256,14 +277,13 @@ void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const Files &files)
 
 struct RccData
 {
-    path fn;
+    std::unordered_map<path, String /* alias */> files;
     String name;
     String prefix;
-    String base;
-    String alias;
+    String base; // unused for now
 };
 
-void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData &d)
+static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData &d)
 {
     String s;
     s += "<!DOCTYPE RCC><RCC version=\"1.0\">";
@@ -271,7 +291,15 @@ void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData &d)
     if (!d.prefix.empty())
         s += " prefix=\"" + d.prefix + "/\"";
     s += ">";
-    s += "<file alias=\"" + d.fn.filename().string() + "\">" + normalize_path(d.fn) + "</file>";
+    for (auto &[fn, alias] : d.files)
+    {
+        s += "<file alias=\"";
+        if (alias.empty())
+            s += fn.filename().string();
+        else
+            s += alias;
+        s += "\">" + normalize_path(fn) + "</file>";
+    }
     s += "</qresource>";
     s += "</RCC>";
     auto in = t.BinaryDir / (d.name + ".qrc");
@@ -285,12 +313,13 @@ void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData &d)
         << "--name" << outfilename
         << "--output" << cmd::out(outfile)
         << cmd::in(in)
-        << cmd::end()
-        << cmd::in(d.fn);
+        << cmd::end();
+    for (auto &[fn, _] : d.files)
+        c << cmd::in(fn);
 }
 
 // http://doc.qt.io/qt-5/uic.html
-void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const path &fn)
+static void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const path &fn)
 {
     auto outfilename = fn.filename().stem();
     auto outfile = t.BinaryDir / ("ui_" + outfilename.u8string() + ".h");
@@ -301,13 +330,13 @@ void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const path &fn)
     t += outfile;
 }
 
-void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const Files &files)
+static void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const Files &files)
 {
     for (auto &f : files)
         ::uic(uic, t, f);
 }
 
-void platform_files(NativeExecutedTarget &t)
+static void platform_files(NativeExecutedTarget &t)
 {
     // remove platform
     t -= ".*.mm"_rr;
@@ -871,6 +900,7 @@ void build(Solution &s)
 
             syncqt(core, { "QtCore", "QtPlatformHeaders" });
 
+            SwapAndRestore sr(core.SourceDir);
             core.SourceDir /= "src/corelib";
             core +=
                 "animation/.*"_rr,
@@ -968,6 +998,7 @@ void build(Solution &s)
                 "kernel"_id;
             core.Private +=
                 "global"_id;
+            core += IncludeDirectory(core.SourceDir);
 
             Definition d;
             d.d = "QT_VERSION_MAJOR=" + core.Variables["PACKAGE_VERSION_MAJOR"].toString();
@@ -1198,6 +1229,7 @@ void build(Solution &s)
         {
             syncqt(gui, { "QtGui" });
             gui += "src/3rdparty/icc/sRGB2014.icc";
+            SwapAndRestore sr(gui.SourceDir);
             gui.SourceDir /= "src/gui";
             gui +=
                 "accessible/.*"_rr,
@@ -1343,7 +1375,7 @@ void build(Solution &s)
             ::rcc(rcc, gui, Files{ gui.SourceDir / "painting/qpdf.qrc", });
 
             RccData wg;
-            wg.fn = gui.SourceDir / "painting/webgradients.binaryjson";
+            wg.files[gui.SourceDir / "painting/webgradients.binaryjson"];
             wg.name = "webgradients";
             wg.base = "painting";
             wg.prefix = "qgradient";
@@ -1353,6 +1385,8 @@ void build(Solution &s)
         auto &widgets = base.addTarget<LibraryTarget>("widgets");
         {
             syncqt(widgets, { "QtWidgets" });
+
+            SwapAndRestore sr(widgets.SourceDir);
             widgets.SourceDir /= "src/widgets";
             widgets +=
                 "accessible/.*"_rr,
@@ -1503,6 +1537,8 @@ void build(Solution &s)
         auto &network = base.addTarget<LibraryTarget>("network");
         {
             syncqt(network, { "QtNetwork" });
+
+            SwapAndRestore sr(network.SourceDir);
             network.SourceDir /= "src/network";
             network +=
                 "access/.*"_rr,
@@ -1609,6 +1645,8 @@ void build(Solution &s)
         auto &xml = base.addTarget<LibraryTarget>("xml");
         {
             syncqt(xml, { "QtXml" });
+
+            SwapAndRestore sr(xml.SourceDir);
             xml.SourceDir /= "src/xml";
             xml +=
                 "dom/qdom.*"_rr,
@@ -1682,6 +1720,7 @@ void build(Solution &s)
                 String module = "QtEventDispatcherSupport";
                 syncqt(eventdispatchers, { module });
 
+                SwapAndRestore sr(eventdispatchers.SourceDir);
                 eventdispatchers.SourceDir /= "src/platformsupport/eventdispatchers";
                 eventdispatchers += ".*"_rr;
                 eventdispatchers -= ".*_glib.*"_rr;
@@ -1901,6 +1940,8 @@ void build(Solution &s)
             auto &t = printsupport;
 
             syncqt(printsupport, { module });
+
+            SwapAndRestore sr(printsupport.SourceDir);
             printsupport.SourceDir /= "src/printsupport";
 
             printsupport +=
