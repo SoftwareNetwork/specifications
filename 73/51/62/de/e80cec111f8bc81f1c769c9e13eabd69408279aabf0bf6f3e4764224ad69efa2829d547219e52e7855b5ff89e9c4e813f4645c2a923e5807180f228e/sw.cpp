@@ -58,6 +58,9 @@ void build(Solution &s)
         pcre.Variables["PCRE2_PRERELEASE"] = "\"\"";
         pcre.Variables["PCRE2_DATE"] = "\"\"";
 
+        pcre.Variables["PCRE2_HAVE_STDINT_H"] = pcre.Variables["HAVE_STDINT_H"];
+        pcre.Variables["PCRE2_HAVE_INTTYPES_H"] = pcre.Variables["HAVE_INTTYPES_H"];
+
         pcre.configureFile("config-cmake.h.in", pcre.BinaryPrivateDir / "config.h");
         pcre.configureFile("src/pcre2.h.in", "pcre2.h");
         return pcre;
