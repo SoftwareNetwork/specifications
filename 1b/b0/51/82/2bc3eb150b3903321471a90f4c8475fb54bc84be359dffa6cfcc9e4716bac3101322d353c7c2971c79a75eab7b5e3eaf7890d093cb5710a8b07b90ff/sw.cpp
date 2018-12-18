@@ -187,4 +187,4 @@ void check(Checker &c)
         auto &c = s.checkSymbolExists("snprintf");
         c.Parameters.Includes.push_back("stdio.h");
     }
-} 
+}
