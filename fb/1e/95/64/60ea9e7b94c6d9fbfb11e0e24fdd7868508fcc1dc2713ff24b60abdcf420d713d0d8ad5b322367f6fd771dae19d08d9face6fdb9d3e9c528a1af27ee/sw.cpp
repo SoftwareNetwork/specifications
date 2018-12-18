@@ -1,3 +1,85 @@
+#pragma sw header on
+
+void qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, const Files &ts_files)
+{
+    // before dry run
+    (t + lrelease)->Dummy = true;
+
+    if (t.PostponeFileResolving || t.DryRun)
+        return;
+
+    for (auto &ts : ts_files)
+    {
+        auto c = t.addCommand();
+        c << cmd::prog(lrelease)
+            << cmd::in(ts)
+            << "-qm"
+            << cmd::out(ts.filename().stem().u8string() + ".qm");
+    }
+}
+
+void qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
+{
+    // before dry run
+    (t + lupdate)->Dummy = true;
+    (t + lrelease)->Dummy = true;
+
+    if (t.PostponeFileResolving || t.DryRun)
+        return;
+
+    auto ts_lst_fn = t.BinaryDir / "ts.lst";
+    String ts_lst_file;
+    Files ts_files, sources;
+    for (auto &[p, f] : t)
+    {
+        if (f->skip)
+            continue;
+        auto ext = p.extension().u8string();
+        if (ext == ".ts")
+            ts_files.insert(p);
+        else
+        {
+            sources.insert(p);
+            ts_lst_file += normalize_path(p) + "\n";
+        }
+    }
+
+    // get current idirs
+    // we do not need them as args, because args will get all target idirs and defs
+    FilesOrdered idirs;
+    //t.IncludeDirectories.insert(t.BinaryDir); // add bdir early
+    t.TargetOptionsGroup::iterate<WithoutSourceFileStorage, WithNativeOptions>(
+        [&idirs](auto &v, auto &s)
+    {
+        if (s.Inheritance == InheritanceType::Interface)
+            return;
+        for (auto &i : v.IncludeDirectories)
+            idirs.push_back(i);
+    });
+    for (auto &d : idirs)
+        ts_lst_file += "-I" + normalize_path(d) + "\n";
+
+    //
+    t.writeFileOnce(ts_lst_fn, ts_lst_file);
+
+    // add update commands
+    for (auto &ts : ts_files)
+    {
+        auto c = t.addCommand();
+        c << cmd::prog(lupdate)
+            << cmd::in(ts_lst_fn, cmd::Prefix{ "@" })
+            << "-ts"
+            << cmd::in(ts)
+            << cmd::end();
+        for (auto &f : sources)
+            c << cmd::in(sources);
+    }
+
+    qt_add_translation(lrelease, t, ts_files);
+}
+
+#pragma sw header off
+
 void build(Solution &s)
 {
     auto &qt = s.addProject("qtproject.qt", "5.12.0");
@@ -31,9 +113,8 @@ void build(Solution &s)
 
             formats.Public += "org.sw.demo.qtproject.qt.base.xml-5"_dep;
 
-            /*replace_in_file_once(${SDIR}/qm.cpp
-                "Q_CONSTRUCTOR_FUNCTION(initQM)"
-                "int initTS();Q_CONSTRUCTOR_FUNCTION(initTS)Q_CONSTRUCTOR_FUNCTION(initQM )")*/
+            formats.replaceInFileOnce("qm.cpp", "Q_CONSTRUCTOR_FUNCTION(initQM)",
+                "int initTS();Q_CONSTRUCTOR_FUNCTION(initTS)Q_CONSTRUCTOR_FUNCTION(initQM )");
         }
 
         auto &convert = linguist.addTarget<ExecutableTarget>("convert");
@@ -114,8 +195,9 @@ void build(Solution &s)
             update.Public += proparser;
             update.Public += formats;
 
-            /*
-    replace_in_file_once(${SDIR}/src/linguist/lupdate/main.cpp "int main(int argc, char **argv)" "int initTS(); Q_CONSTRUCTOR_FUNCTION(initTS) int main(int argc, char **argv )")*/
+            update.replaceInFileOnce("src/linguist/lupdate/main.cpp",
+                "int main(int argc, char **argv)",
+                "int initTS(); Q_CONSTRUCTOR_FUNCTION(initTS) int main(int argc, char **argv )");
         }
     }
 }
