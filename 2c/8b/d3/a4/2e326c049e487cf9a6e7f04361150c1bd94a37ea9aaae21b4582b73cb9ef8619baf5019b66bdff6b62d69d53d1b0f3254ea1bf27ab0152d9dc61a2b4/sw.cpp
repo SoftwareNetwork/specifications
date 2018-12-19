@@ -18,9 +18,7 @@ void build(Solution &s)
 
     expat += "HAVE_EXPAT_CONFIG_H"_d;
     expat.Public += sw::Static, "XML_STATIC"_d;
-
-    //if (s.Settings.TargetOS.Type != OSType::Windows)
-    //expat -= "lib/libexpat.def";
+    expat -= sw::Static, "lib/libexpat.def";
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         expat += "WIN32"_d;

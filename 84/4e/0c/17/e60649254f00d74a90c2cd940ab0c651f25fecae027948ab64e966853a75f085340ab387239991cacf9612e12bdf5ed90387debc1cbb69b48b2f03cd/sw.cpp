@@ -11,7 +11,7 @@ void build(Solution &s)
     auto &python = s.addProject("python", "3.7.1");
     python += Git("https://github.com/python/cpython", "v{v}");
 
-    auto &lib = python.addSharedLibrary("lib");
+    auto &lib = python.addLibrary("lib");
     {
         lib.setChecks("lib");
         lib +=
@@ -279,10 +279,12 @@ void build(Solution &s)
             {"pyexpat", PyInit_pyexpat},
 )xxx");
 
+        lib -= ".*.def"_rr;
     }
 
     auto &exe = python.addTarget<PythonExecutable>("exe");
     exe += "Lib/.*"_rr;
+    exe -= ".*.def"_rr;
     exe += "Programs/python.c";
     exe.Public += lib;
 }
