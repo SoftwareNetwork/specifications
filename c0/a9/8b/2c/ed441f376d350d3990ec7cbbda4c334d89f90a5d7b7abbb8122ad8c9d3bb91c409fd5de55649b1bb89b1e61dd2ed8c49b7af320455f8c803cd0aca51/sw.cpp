@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &png = s.addTarget<LibraryTarget>("glennrp.png", "1.6.36");
     png += Git("https://github.com/glennrp/libpng", "v{v}");
 
+    png.ApiName = "PNG_IMPEXP";
     png +=
         "png.c",
         "png.h",
@@ -26,11 +27,6 @@ void build(Solution &s)
         "pngwtran.c",
         "pngwutil.c",
         "scripts/pnglibconf.h.prebuilt";
-
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        png.Public += "_WINDLL"_d;
-    }
 
     png.Public += "org.sw.demo.madler.zlib-1"_dep;
     png.configureFile("scripts/pnglibconf.h.prebuilt", "pnglibconf.h");
