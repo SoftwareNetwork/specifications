@@ -212,6 +212,7 @@ void build(Solution &s)
         {
             auto c = a_x86.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::wdir(a_x86.BinaryDir)
                 << cmd::in("modules/arch/x86/gen_x86_insn.py")
                 << cmd::out("x86insns.c")
                 << cmd::out("x86insn_gas.gperf")
@@ -232,7 +233,7 @@ void build(Solution &s)
         libyasm.ApiName = "YASM_LIB_DECL";
         libyasm +=
             "libyasm/module.in",
-            "libyasm/[^/]*\\.c"_rr
+            "libyasm/[^/]*\\.[hc]"_rr
             ;
         libyasm -= "libyasm/cmake-module.c";
 
