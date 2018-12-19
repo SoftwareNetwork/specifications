@@ -5,7 +5,7 @@ struct YASMAssemblerOptions
     COMMAND_LINE_OPTION(ObjectFile, path)
     {
         cl::CommandFlag{ "o" },
-        cl::OutputDependency{},
+            cl::OutputDependency{},
     };
 
     COMMAND_LINE_OPTION(ObjectFormat, String)
@@ -21,7 +21,7 @@ struct YASMAssemblerOptions
 };
 DEFINE_OPTION_SPECIALIZATION_DUMMY(YASMAssemblerOptions);
 
-struct YASMCompiler :  NativeCompiler,
+struct YASMCompiler : NativeCompiler,
     CompilerToolBase,
     CommandLineOptions<YASMAssemblerOptions>
 {
@@ -71,13 +71,6 @@ struct YASMCompiler :  NativeCompiler,
     }
 
     String getObjectExtension() const override { return ".obj"; }
-
-    Files getGeneratedDirs() const override
-    {
-        Files f;
-        f.insert(ObjectFile().parent_path());
-        return f;
-    }
 
 protected:
     Version gatherVersion() const override { return "master"; }
