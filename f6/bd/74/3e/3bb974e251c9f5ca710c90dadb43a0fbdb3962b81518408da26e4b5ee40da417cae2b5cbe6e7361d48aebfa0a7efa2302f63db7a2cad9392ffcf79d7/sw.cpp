@@ -11,7 +11,7 @@ void build(Solution &s)
     auto &python = s.addProject("python", "3.7.0");
     python += Git("https://github.com/python/cpython", "v{v}");
 
-    auto &lib = python.addTarget<LibraryTarget>("lib");
+    auto &lib = python.addSharedLibrary("lib");
     {
         lib.setChecks("lib");
         lib +=
@@ -243,7 +243,7 @@ void build(Solution &s)
             lib.Public += "MS_WINDOWS"_d;
             lib.Public += "NT_THREADS"_d;
 
-            lib += "advapi32.lib"_lib;
+            lib.Public += "advapi32.lib"_lib;
             lib.Public += "Mincore.lib"_lib;
             lib.Public += "Shlwapi.lib"_lib;
         }
