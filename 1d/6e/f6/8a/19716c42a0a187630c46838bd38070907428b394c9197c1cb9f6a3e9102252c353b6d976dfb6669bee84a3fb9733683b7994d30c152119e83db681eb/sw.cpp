@@ -151,10 +151,14 @@ void build(Solution &s)
     setup_grpc(grpc_deadline_filter);
     grpc_deadline_filter.Public += grpc_base;
 
+    auto &health_proto = p.addTarget<StaticLibraryTarget>("health_proto");
+    setup_grpc(health_proto);
+    health_proto.Public += grpc_nanopb;
+
     auto &grpc_client_channel = p.addTarget<StaticLibraryTarget>("grpc_client_channel");
     setup_grpc(grpc_client_channel);
     grpc_client_channel.Public += gpr_base, grpc_base, grpc_client_authority_filter, grpc_deadline_filter, inlined_vector,
-        orphanable, ref_counted, ref_counted_ptr, grpc_nanopb;
+        orphanable, ref_counted, ref_counted_ptr, health_proto;
 
     auto &grpc_lb_subchannel_list = p.addTarget<StaticLibraryTarget>("grpc_lb_subchannel_list");
     setup_grpc(grpc_lb_subchannel_list);
@@ -267,9 +271,13 @@ void build(Solution &s)
     setup_grpc(grpc_secure);
     grpc_secure.Public += alts_util, grpc_base, grpc_transport_chttp2_alpn, tsi;
 
+    auto &grpclb_proto = p.addTarget<StaticLibraryTarget>("grpclb_proto");
+    setup_grpc(grpclb_proto);
+    grpclb_proto.Public += grpc_nanopb;
+
     auto &grpc_lb_policy_grpclb_secure = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_grpclb_secure");
     setup_grpc(grpc_lb_policy_grpclb_secure);
-    grpc_lb_policy_grpclb_secure.Public += grpc_base, grpc_client_channel, grpc_resolver_fake, grpc_secure, grpc_nanopb;
+    grpc_lb_policy_grpclb_secure.Public += grpc_base, grpc_client_channel, grpc_resolver_fake, grpc_secure, grpclb_proto;
 
     auto &grpc_transport_chttp2_client_secure = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_client_secure");
     setup_grpc(grpc_transport_chttp2_client_secure);
