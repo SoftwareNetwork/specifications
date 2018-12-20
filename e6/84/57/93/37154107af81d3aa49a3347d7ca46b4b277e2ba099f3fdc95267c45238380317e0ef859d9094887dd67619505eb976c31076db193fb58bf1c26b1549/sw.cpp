@@ -34,13 +34,12 @@ struct YasmCompiler : NativeCompiler,
         return std::make_shared<YasmCompiler>(*this);
     }
 
-    std::shared_ptr<builder::Command> getCommand() const override
+    std::shared_ptr<builder::Command> prepareCommand(const TargetBase &t) override
     {
         if (cmd)
             return cmd;
 
-        auto c = std::make_shared<driver::cpp::Command>();
-        c->fs = fs;
+        SW_MAKE_COMPILER_COMMAND(driver::cpp::Command);
 
         if (InputFile)
         {
@@ -51,7 +50,14 @@ struct YasmCompiler : NativeCompiler,
         if (ObjectFile)
             c->working_directory = ObjectFile().parent_path();
 
-        c->base = clone();
+        if (!ObjectFormat)
+        if (t.Settings.TargetOS.Type == OSType::Windows)
+        {
+            if (t.Settings.TargetOS.Arch == ArchType::x86_64)
+                ObjectFormat = "win64";
+            else
+                ObjectFormat = "win32";
+        }
 
         getCommandLineOptions<YasmAssemblerOptions>(c.get(), *this);
         iterate([c](auto &v, auto &gs) { v.addEverything(*c); });
@@ -76,25 +82,6 @@ protected:
     Version gatherVersion() const override { return "master"; }
     Version gatherVersion(const path &program) const override { return "master"; }
 };
-
-struct YasmSourceFile : NativeSourceFile
-{
-    YasmSourceFile(const Target &t, NativeCompiler *c, const path &input, const path &output)
-        : NativeSourceFile(t, c, input, output)
-    {
-        auto compiler = std::static_pointer_cast<YasmCompiler>(this->compiler);
-
-        if (t.Settings.TargetOS.Type == OSType::Windows)
-        {
-            if (t.Settings.TargetOS.Arch == ArchType::x86_64)
-                compiler->ObjectFormat = "win64";
-            else
-                compiler->ObjectFormat = "win32";
-        }
-    }
-};
-
-using YasmLanguage = SimpleNativeLanguageFactory<YasmSourceFile>;
 
 void build(Solution &s)
 {
@@ -308,7 +295,7 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-    auto L = std::make_shared<YasmLanguage>();
+    auto L = std::make_shared<NativeLanguage>();
     L->CompiledExtensions = { ".asm", };
 
     auto C = std::make_shared<YasmCompiler>();
