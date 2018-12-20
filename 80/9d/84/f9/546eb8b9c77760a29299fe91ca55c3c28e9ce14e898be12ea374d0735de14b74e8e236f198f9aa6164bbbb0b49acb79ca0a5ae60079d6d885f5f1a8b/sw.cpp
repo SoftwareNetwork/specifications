@@ -235,17 +235,8 @@ void build(Solution &s)
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
-        {
-            for (auto &[p, f] : vpx[".*\\.asm"_rr])
-                f->args.push_back("-fwin64");
-        }
-        else
-        {
-            vpx -= ".*\\.x86_64\\.asm"_rr;
-            for (auto &[p, f] : vpx[".*\\.asm"_rr])
-                f->args.push_back("-fwin32");
-        }
+        if (s.Settings.TargetOS.Arch != ArchType::x86_64)
+            vpx -= ".*_x86_64.asm"_rr;
     }
 
     vpx.writeFileOnce("vpx_version.h",
@@ -460,8 +451,8 @@ void build(Solution &s)
         #define vp8_short_inv_walsh4x4 vp8_short_inv_walsh4x4_sse2
 
 )"
-            <<
-            R"(
+<<
+R"(
 
         void vp8_short_inv_walsh4x4_1_c(short *input, short *output);
         #define vp8_short_inv_walsh4x4_1 vp8_short_inv_walsh4x4_1_c

@@ -1,6 +1,6 @@
 #pragma sw require header org.sw.demo.re2c.re2c-1
 
-struct YASMAssemblerOptions
+struct YasmAssemblerOptions
 {
     COMMAND_LINE_OPTION(ObjectFile, path)
     {
@@ -19,19 +19,19 @@ struct YASMAssemblerOptions
         cl::InputDependency{},
     };
 };
-DEFINE_OPTION_SPECIALIZATION_DUMMY(YASMAssemblerOptions);
+DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 
-struct YASMCompiler : NativeCompiler,
+struct YasmCompiler : NativeCompiler,
     CompilerToolBase,
-    CommandLineOptions<YASMAssemblerOptions>
+    CommandLineOptions<YasmAssemblerOptions>
 {
-    virtual ~YASMCompiler() = default;
+    virtual ~YasmCompiler() = default;
 
     using NativeCompilerOptions::operator=;
 
     std::shared_ptr<Program> clone() const override
     {
-        return std::make_shared<YASMCompiler>(*this);
+        return std::make_shared<YasmCompiler>(*this);
     }
 
     std::shared_ptr<builder::Command> getCommand() const override
@@ -53,7 +53,7 @@ struct YASMCompiler : NativeCompiler,
 
         c->base = clone();
 
-        getCommandLineOptions<YASMAssemblerOptions>(c.get(), *this);
+        getCommandLineOptions<YasmAssemblerOptions>(c.get(), *this);
         iterate([c](auto &v, auto &gs) { v.addEverything(*c); });
 
         return cmd = c;
@@ -76,6 +76,25 @@ protected:
     Version gatherVersion() const override { return "master"; }
     Version gatherVersion(const path &program) const override { return "master"; }
 };
+
+struct YasmSourceFile : NativeSourceFile
+{
+    YasmSourceFile(const Target &t, NativeCompiler *c, const path &input, const path &output)
+        : NativeSourceFile(t, c, input, output)
+    {
+        auto compiler = std::static_pointer_cast<YasmCompiler>(this->compiler);
+
+        if (t.Settings.TargetOS.Type == OSType::Windows)
+        {
+            if (t.Settings.TargetOS.Arch == ArchType::x86_64)
+                compiler->ObjectFormat = "win64";
+            else
+                compiler->ObjectFormat = "win32";
+        }
+    }
+};
+
+using YasmLanguage = SimpleNativeLanguageFactory<YasmSourceFile>;
 
 void build(Solution &s)
 {
@@ -289,15 +308,10 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-    auto L = std::make_shared<NativeLanguage>();
-    //L->Type = LanguageType::ASM;
-    L->CompiledExtensions = {
-        ".asm",
-        //".s", ".S"
-    };
+    auto L = std::make_shared<YasmLanguage>();
+    L->CompiledExtensions = { ".asm", };
 
-    auto C = std::make_shared<YASMCompiler>();
-    //C->Type = CompilerType::Other;
+    auto C = std::make_shared<YasmCompiler>();
     C->file = yasm.getOutputFile();
     L->compiler = C;
     s.registerProgramAndLanguage(yasm, C, L);
