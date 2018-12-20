@@ -287,10 +287,14 @@ void build(Solution &s)
     setup_grpc(grpc_transport_chttp2_server_secure);
     grpc_transport_chttp2_server_secure.Public += grpc_base, grpc_secure, grpc_transport_chttp2, grpc_transport_chttp2_server;
 
+    auto &grpc_lb_policy_xds_secure = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_xds_secure");
+    setup_grpc(grpc_lb_policy_xds_secure);
+    grpc_lb_policy_xds_secure.Public += grpc_base, grpc_secure, grpclb_proto, grpc_client_channel, grpc_resolver_fake;
+
     auto &grpc = p.addTarget<StaticLibraryTarget>("grpc");
     setup_grpc(grpc);
     grpc.Public += grpc_common, grpc_lb_policy_grpclb_secure, grpc_secure, grpc_transport_chttp2_client_secure,
-        grpc_transport_chttp2_server_secure;
+        grpc_transport_chttp2_server_secure, grpc_lb_policy_xds_secure;
 
     auto &grpcpp_codegen_base = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_base");
     grpcpp_codegen_base.BazelTargetName = "grpc++_codegen_base";
