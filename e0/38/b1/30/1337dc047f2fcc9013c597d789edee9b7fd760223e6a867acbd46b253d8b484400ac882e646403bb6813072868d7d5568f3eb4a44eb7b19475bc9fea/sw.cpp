@@ -318,6 +318,12 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
         c << cmd::in(fn);
 }
 
+static void qt_rcc(const DependencyPtr &rcc, NativeExecutedTarget &t)
+{
+    for (const auto &[p, _] : t[".*\\.qrc"_rr])
+        ::rcc(rcc, t, p);
+}
+
 // http://doc.qt.io/qt-5/uic.html
 static void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const path &fn)
 {
@@ -334,6 +340,28 @@ static void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const Files &
 {
     for (auto &f : files)
         ::uic(uic, t, f);
+}
+
+static void qt_uic(const DependencyPtr &uic, NativeExecutedTarget &t)
+{
+    for (const auto &[p, _] : t[".*\\.ui"_rr])
+        ::uic(uic, t, p);
+}
+
+static void qt_moc_rcc_uic(const DependencyPtr &base, NativeExecutedTarget &t)
+{
+    auto moc = std::make_shared<Dependency>(base->package);
+    moc->package.ppath /= "base.tools.moc";
+
+    auto rcc = std::make_shared<Dependency>(base->package);
+    rcc->package.ppath /= "base.tools.rcc";
+
+    auto uic = std::make_shared<Dependency>(base->package);
+    uic->package.ppath /= "base.tools.uic";
+
+    automoc(moc, t);
+    qt_rcc(rcc, t);
+    qt_uic(uic, t);
 }
 
 static void platform_files(NativeExecutedTarget &t)

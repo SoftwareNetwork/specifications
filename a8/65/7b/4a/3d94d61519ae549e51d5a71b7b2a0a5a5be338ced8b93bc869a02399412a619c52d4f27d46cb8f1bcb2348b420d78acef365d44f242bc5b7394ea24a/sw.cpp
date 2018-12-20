@@ -1,6 +1,6 @@
 #pragma sw header on
 
-void qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, const Files &ts_files)
+static void qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, const Files &ts_files)
 {
     // before dry run
     (t + lrelease)->Dummy = true;
@@ -18,7 +18,7 @@ void qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, 
     }
 }
 
-void qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
+static void qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
 {
     // before dry run
     (t + lupdate)->Dummy = true;
@@ -76,6 +76,22 @@ void qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lr
     }
 
     qt_add_translation(lrelease, t, ts_files);
+}
+
+static void qt_create_translation(const DependencyPtr &base, NativeExecutedTarget &t)
+{
+    auto update = std::make_shared<Dependency>(base->package);
+    update->package.ppath /= "tools.linguist.update";
+
+    auto release = std::make_shared<Dependency>(base->package);
+    release->package.ppath /= "tools.linguist.release";
+
+    qt_create_translation(update, release, t);
+}
+
+static void qt_tr(const DependencyPtr &base, NativeExecutedTarget &t)
+{
+    qt_create_translation(base, t);
 }
 
 #pragma sw header off
