@@ -30,13 +30,16 @@ void build(Solution &s)
             "lib/strerror-override.c",
             "lib/strtoimax.c",
             "lib/strtol.c",
-            "lib/strtoll.c";
+            "lib/strtoll.c",
+            "lib/sigaction.c",
+            "lib/sig-handler.c",
+            "lib/sigprocmask.c"//,
+            //"lib/xalloc.c"
+            ;
 
-        gnulib -=
-            "lib/iconv.*"_rr;;
-
-        gnulib.Public +=
-            "lib"_id;
+        gnulib += "lib/opendirat.[hc]"_rr;
+        gnulib -= "lib/iconv.*"_rr;
+        gnulib.Public += "lib"_id;
 
         gnulib.Private += "__USE_GNU"_d;
 
@@ -53,10 +56,10 @@ void build(Solution &s)
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "unistd.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "configmake.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "config.h",
-"#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-"#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
-"#define PACKAGE_URL \"" + gnulib.Variables["PACKAGE_URL"].toString() + "\"\n" +
-"#define PACKAGE_BUGREPORT \"" + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\"\n" +
+            "#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
+            "#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
+            "#define PACKAGE_URL \"" + gnulib.Variables["PACKAGE_URL"].toString() + "\"\n" +
+            "#define PACKAGE_BUGREPORT \"" + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\"\n" +
             R"(
 #define mode_t int
 #define nlink_t short
@@ -135,6 +138,8 @@ void *mempcpy(void * __dest, void const * __src,
 #else
 # define _GL_ATTRIBUTE_PURE /* empty */
 #endif
+
+#define _GL_ATTRIBUTE_MALLOC
 
 #define HAVE_WORKING_O_NOFOLLOW 1
 
@@ -275,11 +280,20 @@ void *mempcpy(void * __dest, void const * __src,
         gnulib.Variables["GNULIB_ALPHASORT"] = "0";
 
         if (s.Settings.TargetOS.Type == OSType::Windows)
+        {
+            //gnulib += "__inline=inline"_def;
             gnulib.Variables["NEXT_DIRENT_H"] = "\"dirent-private.h\"";
+        }
 
         //#set(HAVE_GETOPT_H 1)
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "alloca.h");
+
+        gnulib.Variables["HAVE_FNMATCH"] = 0;
+        gnulib.Variables["HAVE_FNMATCH_H"] = 0;
+        gnulib.Variables["REPLACE_FNMATCH"] = 0;
+        gnulib.Variables["GNULIB_FNMATCH"] = 1;
+        gnulib.Variables["GNULIB_FNMATCH_GNU"] = 1;
 
         //gnulib.configureFile("lib/getopt.in.h", "getopt.h");
         gnulib.configureFile("lib/fnmatch.in.h", "fnmatch.h");
@@ -287,6 +301,7 @@ void *mempcpy(void * __dest, void const * __src,
         gnulib.configureFile("lib/unistr.in.h", "unistr.h");
         gnulib.configureFile("lib/uniwidth.in.h", "uniwidth.h");
         gnulib.configureFile("lib/unitypes.in.h", "unitypes.h");
+        //gnulib.configureFile("lib/wchar.in.h", "wchar.h");
 
         gnulib.Variables["HAVE_LANGINFO_H"] = "0";
         gnulib.Variables["HAVE_LANGINFO_CODESET"] = "0";
@@ -315,12 +330,15 @@ void *mempcpy(void * __dest, void const * __src,
         grep.Private += "__USE_GNU"_d;
         grep.Public += gnulib;
 
+        if (auto L = grep.Linker->as<VisualStudioLinker>(); L)
+            L->Force = vs::ForceType::Multiple;
+
         grep.writeFileOnce(grep.BinaryPrivateDir / "unistd.h");
         grep.writeFileOnce(grep.BinaryPrivateDir / "configmake.h");
         grep.writeFileOnce(grep.BinaryPrivateDir / "config.h",
-"#define PACKAGE_NAME \"" + grep.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-"#define VERSION \"" + grep.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
-R"(
+            "#define PACKAGE_NAME \"" + grep.Variables["PACKAGE_NAME"].toString() + "\"\n" +
+            "#define VERSION \"" + grep.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
+            R"(
 #define mode_t int
 #define nlink_t short
 
@@ -398,6 +416,8 @@ void *mempcpy(void * __dest, void const * __src,
 #else
 # define _GL_ATTRIBUTE_PURE /* empty */
 #endif
+
+#define _GL_ATTRIBUTE_MALLOC
 
 #define HAVE_WORKING_O_NOFOLLOW 1
 
@@ -528,11 +548,14 @@ void check(Checker &c)
     {
         auto &s = c.addSet("gnulib");
         s.checkFunctionExists("lstat");
+        s.checkFunctionExists("mbsinit");
         s.checkFunctionExists("strerror_r");
         s.checkTypeSize("long long int");
         s.checkTypeSize("size_t");
         s.checkTypeSize("unsigned long long int");
         s.checkTypeSize("void *");
+        s.checkIncludeExists("wchar.h");
+        s.checkIncludeExists("features.h");
     }
     {
         auto &s = c.addSet("grep");
@@ -548,6 +571,8 @@ void check(Checker &c)
         s.checkIncludeExists("sys/stat.h");
         s.checkIncludeExists("sys/types.h");
         s.checkIncludeExists("unistd.h");
+        s.checkIncludeExists("wchar.h");
+        s.checkIncludeExists("features.h");
         s.checkTypeSize("long long int");
         s.checkTypeSize("size_t");
         s.checkTypeSize("unsigned long long int");

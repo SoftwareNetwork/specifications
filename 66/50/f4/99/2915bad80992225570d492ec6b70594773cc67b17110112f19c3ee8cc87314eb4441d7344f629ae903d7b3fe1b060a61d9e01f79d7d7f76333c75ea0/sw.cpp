@@ -31,9 +31,9 @@ void build(Solution &s)
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "configmake.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "config.h",
-"#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-"#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
-R"(
+            "#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
+            "#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
+            R"(
 #define mode_t int
 #define nlink_t short
 
@@ -149,6 +149,8 @@ void * memrchr (const void *, int, size_t);
 #else
 # define _GL_ATTRIBUTE_PURE /* empty */
 #endif
+
+#define _GL_ATTRIBUTE_MALLOC
 
 #define HAVE_WORKING_O_NOFOLLOW 1
 
@@ -279,7 +281,7 @@ void * memrchr (const void *, int, size_t);
 # endif
 #endif
 )"
-        );
+);
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "sys/time.h", "#include <time.h>\n#include <windows.h>");
 
@@ -310,6 +312,9 @@ void * memrchr (const void *, int, size_t);
 
         if (s.Settings.TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
+
+        if (auto L = sed.Linker->as<VisualStudioLinker>(); L)
+            L->Force = vs::ForceType::Multiple;
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "configmake.h");
         sed.writeFileOnce(sed.BinaryPrivateDir / "config.h",
@@ -434,6 +439,8 @@ void * memrchr (const void *, int, size_t);
 # define _GL_ATTRIBUTE_PURE /* empty */
 #endif
 
+#define _GL_ATTRIBUTE_MALLOC
+
 #define HAVE_WORKING_O_NOFOLLOW 1
 
 #ifndef O_DIRECTORY
@@ -563,7 +570,7 @@ void * memrchr (const void *, int, size_t);
 # endif
 #endif
 )"
-        );
+);
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "version.h", "extern char const *Version;");
         sed.writeFileOnce(sed.BinaryPrivateDir / "version.c", "char const *Version = \"" + sed.Variables["PACKAGE_VERSION"].toString() + "\";");
