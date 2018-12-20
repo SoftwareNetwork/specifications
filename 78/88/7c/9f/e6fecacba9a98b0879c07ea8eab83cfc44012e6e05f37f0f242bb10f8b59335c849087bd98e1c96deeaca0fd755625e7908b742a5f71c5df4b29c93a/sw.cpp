@@ -139,7 +139,7 @@ void build(Solution &s)
             auto p = s.findProgramByExtension(".c");
             if (!p)
                 throw std::runtime_error("No c compiler found");
-            auto ch = p->clone();
+            auto ch = std::static_pointer_cast<Compiler>(p->clone());
             libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioCompiler>();
             c->IncludeDirectories.insert(libffi.BinaryDir);
@@ -149,7 +149,7 @@ void build(Solution &s)
             c->PreprocessToStdout = true; // supress #line directives
             c->PreprocessToFile = true;
             c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->getCommand();
+            auto cmd = c->getCommand(libffi);
             cmd->working_directory = libffi.BinaryDir;
             cmd->addOutput(libffi.BinaryDir / (f + ".i"));
         }
@@ -158,7 +158,7 @@ void build(Solution &s)
             auto p = s.findProgramByExtension(".asm");
             if (!p)
                 throw std::runtime_error("No asm compiler found");
-            auto ch = p->clone();
+            auto ch = std::static_pointer_cast<Compiler>(p->clone());
             libffi.Storage.push_back(ch);
             auto c = ch->as<VisualStudioASMCompiler>();
             c->PreserveSymbolCase = true;
@@ -166,7 +166,7 @@ void build(Solution &s)
             const auto o = libffi.BinaryDir / "pre.obj";
             c->ObjectFile = o;
             c->InputFile = libffi.BinaryDir / (f + ".i");
-            auto cmd = c->getCommand();
+            auto cmd = c->getCommand(libffi);
             cmd->addOutput(o);
             libffi += o;
         }

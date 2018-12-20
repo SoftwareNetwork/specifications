@@ -47,8 +47,8 @@ void build(Solution &s)
         auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
         auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
-        auto cc = s.findProgramByExtension(".cpp")->clone();
-        auto c = cc->getCommand();
+        auto cc = std::static_pointer_cast<Compiler>(s.findProgramByExtension(".cpp")->clone());
+        auto c = cc->getCommand(fontconfig);
         c->args.push_back("-I");
         c->args.push_back(fontconfig.SourceDir.u8string());
         c->args.push_back("-E");
