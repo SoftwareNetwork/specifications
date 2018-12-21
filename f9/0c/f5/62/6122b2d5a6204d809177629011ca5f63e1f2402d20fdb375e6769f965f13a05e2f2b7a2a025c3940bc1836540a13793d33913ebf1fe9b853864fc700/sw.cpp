@@ -51,7 +51,7 @@ void build(Solution &s)
         "typedef ZTHREAD (zbar_thread_proc_t)(void*);",
         "typedef ZTHREAD (WINAPI *zbar_thread_proc_t)(void*);");
 
-    zbar.pushFrontToFileOnce("zbar/processor/win.c", "#define GWL_USERDATA        (-21)");
+    zbar.replaceInFileOnce("zbar/processor/win.c", "#include <windows.h>", "#define GWL_USERDATA        (-21)");
 
     //zbar -= "zbar/svg.c";
     zbar -= "zbar/video/.*"_rr;
