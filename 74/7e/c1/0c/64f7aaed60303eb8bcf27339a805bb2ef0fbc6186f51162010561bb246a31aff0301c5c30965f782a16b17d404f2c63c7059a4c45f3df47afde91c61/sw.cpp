@@ -115,6 +115,7 @@ void build(Solution &s)
             qml += "qml/v8"_idir;
             qml += "compiler"_idir;
             qml += "debugger"_idir;
+            qml += "qml/jsapi"_idir;
             qml.Protected += "jsruntime"_idir;
 
             qml += "QT_BUILD_QML_LIB"_d;
