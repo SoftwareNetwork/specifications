@@ -154,7 +154,7 @@ auto &addBoostTarget(Solution &s, const String &name)
     return t;
 }
 
-void addPrivateDefinitions(TargetOptionsGroup &t, const String &N)
+void addPrivateDefinitions(NativeExecutedTarget &t, const String &N)
 {
     DefinitionsType defs;
     defs["BOOST_" + N + "_BUILDING_THE_LIB"];
@@ -162,7 +162,7 @@ void addPrivateDefinitions(TargetOptionsGroup &t, const String &N)
     t.Private += defs;
 }
 
-void addStaticDefinitions(TargetOptionsGroup &t, const String &N)
+void addStaticDefinitions(NativeExecutedTarget &t, const String &N)
 {
     DefinitionsType defs2;
     defs2["BOOST_" + N + "_BUILD_LIB"];
@@ -174,7 +174,7 @@ void addStaticDefinitions(TargetOptionsGroup &t, const String &N)
     t.Public << sw::Static << defs;
 }
 
-void addSharedDefinitions(TargetOptionsGroup &t, const String &N)
+void addSharedDefinitions(NativeExecutedTarget &t, const String &N)
 {
     DefinitionsType defs2;
     defs2["BOOST_" + N + "_BUILD_DLL"];
@@ -450,7 +450,7 @@ void build(Solution &s)
 
     //((LibraryTarget*)boost_targets["fiber"])->Shared.Private.Definitions["BOOST_FIBERS_SOURCE"];
     //boost_targets["fiber"]->Private.Definitions["BOOST_FIBERS_DYN_LINK"];
-    
+
     //*boost_targets["python"] += "pvt.cppan.demo.python.libcompat";
 
     *((LibraryTarget*)boost_targets["thread"]) -= "src/pthread/once_atomic.cpp";
