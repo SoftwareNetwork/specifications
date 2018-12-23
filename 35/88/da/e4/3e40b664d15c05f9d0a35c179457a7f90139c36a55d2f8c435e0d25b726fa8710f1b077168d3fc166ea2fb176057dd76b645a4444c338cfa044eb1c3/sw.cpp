@@ -79,8 +79,9 @@ void build(Solution &s)
         // qml
         {
             String module = "QtQml";
-            syncqt(qml, { module });
-            qml.SourceDir /= "src/qml";
+            auto sync_result = syncqt(qml, { module });
+            //masm += sync_result;
+            SwapAndRestore sr(qml.SourceDir, qml.SourceDir / "src/qml");
             qml += "qtqmlglobal.*"_rr;
             qml += "animations/.*"_rr;
             qml -= "compiler/.*"_rr;
@@ -112,6 +113,7 @@ void build(Solution &s)
             qml -=
                 "compiler/qv4compilationunitmapper_.*.cpp"_rr;
 
+            qml += "."_idir;
             qml += "qml/v8"_idir;
             qml += "compiler"_idir;
             qml += "debugger"_idir;
@@ -193,7 +195,8 @@ void build(Solution &s)
         // quick
         {
             String module = "QtQuick";
-            syncqt(quick, { module });
+            auto sync_result = syncqt(quick, { module });
+            //masm += sync_result;
             quick.SourceDir /= "src/quick";
 
             quick += "[^/]*"_rr;
@@ -254,5 +257,51 @@ void build(Solution &s)
             #endif
 )xxx");
         }
+
+        auto &imports = qml.addDirectory("imports");
+
+        auto add_import = [&imports, &quick](const String &name) -> decltype(auto)
+        {
+            auto &t = imports.addLibrary(name);
+            t.setRootDirectory("src/imports");
+            t.Public += quick;
+            t += FileRegex(name + "/plugin.*", true);
+            t += FileRegex(name + "/.*\\.cpp", true);
+            t += FileRegex(name + "/.*\\.h", true);
+            t += IncludeDirectory(name);
+
+            auto qmldir = path(name) / "qmldir";
+            t += qmldir;
+            t.patch(qmldir, "plugin ", "# plugi n");
+
+            auto settings = path(name) / (name + ".pro");
+            t += settings;
+
+            if (t.DryRun)
+                return t;
+
+            t.configureFile(qmldir, t.BinaryDir / qmldir, ConfigureFlags::CopyOnly);
+            t.pushBackToFileOnce(t.BinaryDir / qmldir, "plugin " + t.getOutputFile().filename().stem().string());
+            t += t.BinaryDir / qmldir;
+            t[t.BinaryDir / qmldir].install_dir = ".";
+
+            auto s = read_file(t.SourceDir / settings);
+            static std::regex r("TARGETPATH\\s*=\\s*(\\S+)");
+            std::smatch m;
+            if (!std::regex_search(s, m, r))
+                throw std::runtime_error("No .pro file found");
+            auto mod = m[1].str();
+            t.setOutputDir("qml/" + mod);
+
+            automoc("org.sw.demo.qtproject.qt.base.tools.moc-5"_dep, t);
+
+            return t;
+        };
+
+        add_import("qtquick2");
+        add_import("layouts");
+        add_import("window");
+        add_import("settings");
+        add_import("folderlistmodel");
     }
 }
