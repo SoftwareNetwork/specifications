@@ -39,6 +39,21 @@ void build(Solution &s)
 
         regex.deleteInFileOnce("support/regex_internal.c", "__attribute ((pure))");
         regex.deleteInFileOnce("support/regexec.c", "__attribute ((always_inline))");
+
+        regex.patch("support/regex.c", "#ifdef __cplusplus", R"(
+
+#ifndef NDEBUG
+inline int __CRTDECL mbsinit(
+    mbstate_t const* _P
+)
+{
+    return _P == NULL || _P->_Wchar == 0;
+}
+#endif
+
+#ifdef __cplusplus
+
+)");
     }
 
     auto &getopt = gawk.addTarget<StaticLibraryTarget>("getopt");

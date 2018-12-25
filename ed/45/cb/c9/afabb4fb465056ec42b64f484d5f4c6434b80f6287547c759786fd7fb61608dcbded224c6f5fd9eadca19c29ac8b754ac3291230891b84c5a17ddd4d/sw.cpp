@@ -3,44 +3,6 @@ void build(Solution &s)
     auto &gawk = s.addProject("gnu.gawk", "4.2.1");
     gawk += RemoteFile("https://ftp.gnu.org/gnu/gawk/gawk-{v}.tar.xz");
 
-    auto &regex = gawk.addTarget<StaticLibraryTarget>("regex");
-    {
-        regex.setChecks("regex");
-
-        regex +=
-            "support/reg.*"_rr;
-
-        regex -=
-            "support/regcomp.c",
-            "support/regex_internal.c",
-            "support/regexec.c";
-
-        regex.Public +=
-            "support"_id;
-
-        regex.Private += "GAWK"_d;
-        regex.Private += "HAVE_CONFIG_H"_d;
-
-        regex.writeFileOnce(regex.BinaryPrivateDir / "config.h", R"(
-        #ifdef _WIN32
-            #ifdef _WIN64
-            #define ssize_t long long
-            #else
-            #define ssize_t int
-            #endif
-
-            #define _CRT_DECLARE_NONSTDC_NAMES 1
-        #endif
-
-        #include <stdint.h>
-        #include <string.h>
-        #include <stdio.h>
-)");
-
-        regex.deleteInFileOnce("support/regex_internal.c", "__attribute ((pure))");
-        regex.deleteInFileOnce("support/regexec.c", "__attribute ((always_inline))");
-    }
-
     auto &getopt = gawk.addTarget<StaticLibraryTarget>("getopt");
     {
         getopt +=
@@ -104,6 +66,21 @@ void build(Solution &s)
 
         gawk.replaceInFileOnce("support/regex_internal.c", "__attribute ((pure))", "");
         gawk.replaceInFileOnce("support/regexec.c", "__attribute ((always_inline))", "");
+
+        gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
+
+#ifndef NDEBUG
+inline int __CRTDECL mbsinit(
+    mbstate_t const* _P
+)
+{
+    return _P == NULL || _P->_Wchar == 0;
+}
+#endif
+
+#ifdef __cplusplus
+
+)");
 
         gawk.replaceInFileOnce("nonposix.h", "#define setlocale", "//#define setlocale");
         gawk.replaceInFileOnce("gawkmisc.c", "#if defined(__EMX__)", "#include \"cppan_misc.h\"\n#if defined(__EMX__)");
