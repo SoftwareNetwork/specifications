@@ -782,7 +782,7 @@ R"(
 
         void vpx_ssim_parms_8x8_c(const uint8_t *s, int sp, const uint8_t *r, int rp, uint32_t *sum_s, uint32_t *sum_r, uint32_t *sum_sq_s, uint32_t *sum_sq_r, uint32_t *sum_sxr);
         void vpx_ssim_parms_8x8_sse2(const uint8_t *s, int sp, const uint8_t *r, int rp, uint32_t *sum_s, uint32_t *sum_r, uint32_t *sum_sq_s, uint32_t *sum_sq_r, uint32_t *sum_sxr);
-        #define vpx_ssim_parms_8x8 vpx_ssim_parms_8x8_sse2
+        #define vpx_ssim_parms_8x8 vpx_ssim_parms_8x8_c
 
         unsigned int vpx_avg_4x4_c(const uint8_t *, int p);
         unsigned int vpx_avg_4x4_sse2(const uint8_t *, int p);
