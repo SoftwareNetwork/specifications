@@ -45,7 +45,6 @@ struct YasmCompiler : NativeCompiler,
         {
             c->name = normalize_path(InputFile());
             c->name_short = InputFile().filename().u8string();
-            //c->file = InputFile;
         }
         if (ObjectFile)
             c->working_directory = ObjectFile().parent_path();
