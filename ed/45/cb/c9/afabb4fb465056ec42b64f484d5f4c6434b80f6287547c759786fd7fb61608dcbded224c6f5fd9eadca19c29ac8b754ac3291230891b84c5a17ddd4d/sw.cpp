@@ -69,7 +69,7 @@ void build(Solution &s)
 
         gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
 
-#if defined(_WIN32) && !defined(_WIN64)
+#if defined(_WIN32) && !defined(_WIN64) && !defined(SW_STATIC)
 #ifndef NDEBUG
 inline int __CRTDECL mbsinit(
     mbstate_t const* _P
