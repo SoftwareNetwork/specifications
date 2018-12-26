@@ -1,3 +1,11 @@
+struct M4Executable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        c.environment["M4PATH"] = (SourceDir / "m4").u8string();
+    }
+};
+
 void build(Solution &s)
 {
     auto &m4 = s.addProject("gnu.m4", "1.4.18");
@@ -71,8 +79,8 @@ void build(Solution &s)
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
             gnulib.Public += "org.sw.demo.tronkko.dirent-master"_dep;
+            //gnulib.Public += "HAVE_FCNTL"_def;
         }
-
 
         gnulib.Variables["GUARD_PREFIX"] = "_CPPAN_GNULIB";
         gnulib.Variables["INCLUDE_NEXT"] = "include";
@@ -745,16 +753,19 @@ char * strsignal(int);
         )");
     }
 
-    auto &m4_2 = m4.addTarget<ExecutableTarget>("m4");
+    auto &m4_2 = m4.addTarget<M4Executable>("m4");
     {
         auto &m4 = m4_2;
         m4.PackageDefinitions = true;
         m4.setChecks("m4");
         m4 +=
             "src/.*"_rr;
+        m4 +=
+            "m4/.*"_rr;
         m4.Public +=
             "src"_id;
         m4.Private += "__USE_GNU"_d;
+        m4.Private += "ENABLE_CHANGEWORD"_d;
         m4.Public += gnulib;
 
         if (s.Settings.TargetOS.Type == OSType::Windows)
@@ -763,6 +774,14 @@ char * strsignal(int);
             m4 += "SYSCMD_SHELL=\"cmd\""_def;
 
             m4.patch("src/m4.c", "sigaction (", "// sigaction(");
+
+            m4.patch("src/path.c", "path_end = strchr (path, ':');", R"(
+#ifdef _WIN32
+      path_end = strchr(path, ';');
+#else
+      path_end = strchr(path, ':');
+#endif
+)");
         }
         else
         {

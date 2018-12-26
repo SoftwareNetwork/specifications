@@ -6,7 +6,9 @@ struct BisonExecutable : ExecutableTarget
     {
         if (!m4)
             throw std::runtime_error("m4 not found");
-        c.environment["M4"] = m4->target.lock()->getOutputFile().u8string();
+        auto f = m4->target.lock()->getOutputFile();
+        c.addInput(f);
+        c.environment["M4"] = f.u8string();
         c.environment["BISON_PKGDATADIR"] = (SourceDir / "data").u8string();
     }
 };
@@ -121,6 +123,9 @@ void build(Solution &s)
 
             gnulib.Variables["NEXT_DIRENT_H"] = "\"dirent-private.h\"";
             gnulib.writeFileOnce("sys/time.h");
+
+            gnulib.Public += "HAVE_MSVC_INVALID_PARAMETER_HANDLER"_def;
+            gnulib += "lib/msvc-.*"_rr;
         }
 
         gnulib.Public += "LOCALEDIR=\"\""_def;
@@ -208,7 +213,7 @@ void build(Solution &s)
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
-#include <stdint.h>
+//#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -794,6 +799,7 @@ char * strsignal(int);
         bison.Public += gnulib;
         bison.m4 = "org.sw.demo.gnu.m4.m4-1"_dep;
         bison.m4->Dummy = true;
+        //bison.m4->Runtime = true;
         bison += bison.m4;
 
         bison -= "src/scan-code.c";
@@ -834,7 +840,7 @@ char * strsignal(int);
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
-#include <stdint.h>
+//#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
