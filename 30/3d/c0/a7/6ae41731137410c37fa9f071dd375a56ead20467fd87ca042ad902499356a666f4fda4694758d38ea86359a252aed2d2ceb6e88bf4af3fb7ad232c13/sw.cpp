@@ -59,8 +59,8 @@ void build(Solution &s)
         jpeg += "Utilities/gdcmjpeg/.*\\.in"_rr;
         jpeg -= "Utilities/gdcmjpeg/example.c";
 
-        jpeg += sw::Shared, "JPEGDLL"_def;
-        jpeg += sw::Static, "JPEGSTATIC"_def;
+        jpeg.Public += sw::Shared, "JPEGDLL"_def;
+        jpeg.Public += sw::Static, "JPEGSTATIC"_def;
 
         jpeg.replaceInFileOnce("Utilities/gdcmjpeg/jmorecfg.h", "__declspec(dllexport)", "extern  __declspec(dllexport )");
         jpeg.replaceInFileOnce("Utilities/gdcmjpeg/jmorecfg.h", "__declspec(dllimport)", "extern \"C\" __declspec(dllimport )");
@@ -68,7 +68,7 @@ void build(Solution &s)
         jpeg.configureFile("Utilities/gdcmjpeg/jpegcmake.h.in", bits + "/jpegcmake.h");
         jpeg.Variables["MANGLE_PREFIX"] = "jpeg" + bits;
         jpeg.configureFile("Utilities/gdcmjpeg/mangle_jpeg.h.in", bits + "/mangle_jpeg" + bits + "bits.h");
-        for (auto &f : {"jmorecfg.h"s, "jconfig.h"s, "jpeglib.h"s, "jerror.h"s, "jinclude.h"s})
+        for (auto &f : { "jmorecfg.h"s, "jconfig.h"s, "jpeglib.h"s, "jerror.h"s, "jinclude.h"s })
             jpeg.configureFile("Utilities/gdcmjpeg/" + f, bits + "/" + f, ConfigureFlags::CopyOnly);
         jpeg.Public += IncludeDirectory(jpeg.BinaryDir / bits);
     }
@@ -114,6 +114,7 @@ void build(Solution &s)
         gdcm.Public += "GDCM_USE_SYSTEM_OPENSSL"_d;
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
+            gdcm.Public += "Ws2_32.lib"_lib;
             gdcm.Public += "Rpcrt4.lib"_lib;
         }
         gdcm.Private += sw::Shared, "gdcmCommon_EXPORTS"_d;
