@@ -232,6 +232,7 @@ void build(Solution &s)
     tiff.configureFile("libtiff/tiffconf.h.cmake.in", "tiffconf.h");
 
     tiff.pushBackToFileOnce("libtiff/libtiff.def", "\t_TIFFDataSize\n");
+    tiff -= sw::Static, "libtiff/libtiff.def";
 }
 
 void check(Checker &c)
