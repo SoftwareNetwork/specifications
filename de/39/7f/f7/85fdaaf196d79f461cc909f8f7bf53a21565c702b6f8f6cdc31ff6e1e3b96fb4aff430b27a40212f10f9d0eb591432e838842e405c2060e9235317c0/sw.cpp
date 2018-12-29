@@ -26,7 +26,7 @@ static int wt_preprocess_file(path i, path o, String name)
     out += preprocess_file(s);
     out += "};\nconst char *" + name + "1 = s;\n";
     out += "std::vector<const char *> " + name + "()\n{\nreturn { " + name + "1 };\n}\n}";
-    write_file(o, out);
+    write_file_if_different(o, out);
 
     return 0;
 }
