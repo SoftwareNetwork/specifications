@@ -26,12 +26,12 @@ static int wt_preprocess_file(path i, path o, String name)
     out += preprocess_file(s);
     out += "};\nconst char *" + name + "1 = s;\n";
     out += "std::vector<const char *> " + name + "()\n{\nreturn { " + name + "1 };\n}\n}";
-    write_file_if_different(o, out);
+    write_file(o, out);
 
     return 0;
 }
 
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(wt_preprocess_file)
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD("wt_preprocess_file", wt_preprocess_file)
 
 void build(Solution &sln)
 {
