@@ -31,7 +31,7 @@ static int wt_preprocess_file(path i, path o, String name)
     return 0;
 }
 
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD("wt_preprocess_file", wt_preprocess_file)
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(wt_preprocess_file, wt_preprocess_file)
 
 void build(Solution &sln)
 {
