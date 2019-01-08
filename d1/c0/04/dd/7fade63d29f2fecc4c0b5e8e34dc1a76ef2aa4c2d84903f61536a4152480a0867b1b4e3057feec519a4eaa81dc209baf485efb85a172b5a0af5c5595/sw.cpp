@@ -69,7 +69,7 @@ void build(Solution &s)
     c_ares += Git("https://github.com/c-ares/c-ares", "cares-{M}_{m}_{p}");
 
     c_ares.setChecks("c_ares");
-    
+
     if (s.Settings.TargetOS.Type != OSType::Windows)
         c_ares.ExportAllSymbols = true;
 
@@ -87,7 +87,7 @@ void build(Solution &s)
     c_ares.Private += "CARES_BUILDING_LIBRARY"_d;
     c_ares.Public += "CARES_SYMBOL_HIDING"_d;
     c_ares.Public += sw::Static, "CARES_STATICLIB"_d;
-    
+
     c_ares.Private += "HAVE_CONFIG_H"_d;
     c_ares.Public += "HAVE_RECV"_d;
     c_ares.Public += "HAVE_RECVFROM"_d;
@@ -115,7 +115,7 @@ void build(Solution &s)
     c_ares.Variables["CARES_HAVE_WINDOWS_H"] = c_ares.Variables["HAVE_WINDOWS_H"];
     c_ares.Variables["CARES_HAVE_WS2TCPIP_H"] = c_ares.Variables["HAVE_WS2TCPIP_H"];
     c_ares.Variables["CARES_HAVE_WINSOCK2_H"] = c_ares.Variables["HAVE_WINSOCK2_H"];
-    
+
     if (s.Settings.TargetOS.Type != OSType::Windows || s.Settings.TargetOS.is(ArchType::x86))
         c_ares.Variables["CARES_TYPEOF_ARES_SSIZE_T"] = "long";
     else
@@ -128,7 +128,7 @@ void build(Solution &s)
     {
         c_ares.Public.Definitions["MSG_NOSIGNAL"] = 0;
     }
-    
+
     c_ares.Variables["CARES_SYMBOL_SCOPE_EXTERN"] = "SW_EXPORT";
     c_ares.replaceInFileOnce("ares_config.h.cmake",
         "#undef CARES_SYMBOL_SCOPE_EXTERN",
@@ -284,8 +284,9 @@ int main() {return 0;}
 )sw_xxx");
 
     {
-        for (auto &h : {"stdbool.h",
+        for (auto &h : { "stdbool.h",
                         "sys/types.h",
+                        "sys/stat.h",
                         "arpa/inet.h",
                         "arpa/nameser.h",
                         "netdb.h",
@@ -293,6 +294,7 @@ int main() {return 0;}
                         "netinet/in.h",
                         "netinet/tcp.h",
                         "signal.h",
+                        "stdio.h",
                         "stdlib.h",
                         "string.h",
                         "strings.h",
@@ -306,22 +308,22 @@ int main() {return 0;}
                         "unistd.h",
                         "winsock2.h",
                         "ws2tcpip.h",
-                        "windows.h"})
+                        "windows.h" })
         {
-                auto &c = s.checkTypeSize("SOCKET", "HAVE_TYPE_SOCKET");
-                c.Parameters.Includes.push_back(h);
+            auto &c = s.checkTypeSize("SOCKET", "HAVE_TYPE_SOCKET");
+            c.Parameters.Includes.push_back(h);
 
-                for (auto &t : {
-                     "socklen_t",
-                     "ssize_t",
-                     "bool",
-                     "sig_atomic_t",
-                     "long long",
-                     "struct addrinfo",
-                     "struct in6_addr",
-                     "struct sockaddr_in6",
-                     "struct sockaddr_storage",
-                     "struct timeval"})
+            for (auto &t : {
+                 "socklen_t",
+                 "ssize_t",
+                 "bool",
+                 "sig_atomic_t",
+                 "long long",
+                 "struct addrinfo",
+                 "struct in6_addr",
+                 "struct sockaddr_in6",
+                 "struct sockaddr_storage",
+                 "struct timeval" })
             {
                 auto &c = s.checkTypeSize(t);
                 c.Parameters.Includes.push_back(h);
@@ -334,7 +336,7 @@ int main() {return 0;}
                      "SIOCGIFADDR",
                      "MSG_NOSIGNAL",
                      "PF_INET6",
-                     "SO_NONBLOCK"})
+                     "SO_NONBLOCK" })
             {
                 auto &c = s.checkSymbolExists(se);
                 c.Parameters.Includes.push_back(h);
