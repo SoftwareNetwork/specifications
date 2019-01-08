@@ -89,7 +89,7 @@ void build(Solution &sln)
     wt.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
     wt.Public += "org.sw.demo.howardhinnant.date.date_full-2"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (sln.Settings.TargetOS.Type == OSType::Windows)
         wt.Public += "Ole32.lib"_lib, "Shell32.lib"_lib;
 
     auto file2string = [&wt](path i, const std::string &name)
@@ -109,7 +109,7 @@ void build(Solution &sln)
     file2string("src/web/skeleton/Hybrid.html", "Hybrid_html");
     file2string("src/web/skeleton/Boot.html", "Boot_html");
 
-    if (s.Settings.Native.ConfigurationType == ConfigurationType::Debug)
+    if (sln.Settings.Native.ConfigurationType == ConfigurationType::Debug)
     {
         file2string("src/web/skeleton/Wt.js", "Wt_js");
         file2string("src/web/skeleton/Boot.js", "Boot_js");
@@ -147,7 +147,7 @@ void build(Solution &sln)
     wt.Variables["VERSION_MINOR"] = wt.Variables["PACKAGE_VERSION_PATCH"];
 
     std::string cfg = ".";
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (sln.Settings.TargetOS.Type != OSType::Windows)
         cfg = "/etc/wt";
 
     wt.Variables["CONFIGURATION"] = cfg + "/wt_config.xml";

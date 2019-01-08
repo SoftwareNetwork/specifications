@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &icu = s.addProject("unicode.icu", "63.1.0");
-    icu += RemoteFile("http://download.icu-project.org/files/icu4c/{M}.{m}/icu4c-{M}_{m}-src.tgz");
+    icu += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.tgz");
     auto &stub = icu.addDirectory("stub");
 
     auto &s_data = stub.addTarget<LibraryTarget>("data");
@@ -77,7 +77,7 @@ void build(Solution &s)
     auto &common = icu.addTarget<LibraryTarget>("common");
 
     auto &data = icu.addTarget<LibraryTarget>("data");
-    data += RemoteFile("http://download.icu-project.org/files/icu4c/{M}.{m}/icu4c-{M}_{m}-src.zip");
+    data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
     data.setRootDirectory("source");
     data += "data/in/.*\\.dat"_rr;
     if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
@@ -193,6 +193,6 @@ void check(Checker &c)
     s.checkLibraryFunctionExists("pthread", "pthread_attr_init");
     s.checkLibraryFunctionExists("pthread", "pthread_mutex_init");
 
-    for (auto &[s, check] : s.checks)
+    for (auto &check : s.all)
         check->Prefixes.insert("U_");
 }
