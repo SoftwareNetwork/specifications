@@ -63,8 +63,14 @@ void check(Checker &c)
     s.checkIncludeExists("sys/un.h");
     s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("windows.h");
-    s.checkIncludeExists("winsock2.h");
-    s.checkIncludeExists("ws2tcpip.h");
+    {
+        auto &c = s.checkIncludeExists("winsock2.h");
+        c.Parameters.Includes.push_back("windows.h");
+    }
+    {
+        auto &c = s.checkIncludeExists("ws2tcpip.h");
+        c.Parameters.Includes.push_back("windows.h");
+    }
     s.checkTypeSize("long");
     s.checkTypeSize("size_t");
     s.checkTypeSize("void *");
@@ -82,7 +88,7 @@ int main() {return 0;}
 )sw_xxx");
 
     if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-    s.checkSourceCompiles("HAVE_O_NONBLOCK", R"sw_xxx(
+        s.checkSourceCompiles("HAVE_O_NONBLOCK", R"sw_xxx(
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -107,7 +113,7 @@ int flags = fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 )sw_xxx");
 
     if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-    s.checkSourceCompiles("HAVE_FIONBIO", R"sw_xxx(
+        s.checkSourceCompiles("HAVE_FIONBIO", R"sw_xxx(
 /* FIONBIO test (old-style unix) */
 #include <unistd.h>
 #include <stropts.h>
@@ -119,7 +125,7 @@ int flags = ioctl(socket, FIONBIO, &flags);
 )sw_xxx");
 
     if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-    s.checkSourceCompiles("HAVE_IOCTLSOCKET", R"sw_xxx(
+        s.checkSourceCompiles("HAVE_IOCTLSOCKET", R"sw_xxx(
 /* ioctlsocket test (Windows) */
 #undef inline
 #ifndef WIN32_LEAN_AND_MEAN
@@ -137,7 +143,7 @@ ioctlsocket(sd, FIONBIO, &flags);
 )sw_xxx");
 
     if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-    s.checkSourceCompiles("HAVE_IOCTLSOCKET_CASE", R"sw_xxx(
+        s.checkSourceCompiles("HAVE_IOCTLSOCKET_CASE", R"sw_xxx(
 /* IoctlSocket test (Amiga?) */
 #include <sys/ioctl.h>
 int main()
