@@ -25,6 +25,7 @@ void build(Solution &s)
     }
 
     //
+    intl += "HAVE_STDINT_H_WITH_UINTMAX=1"_d;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         intl += "HAVE_POSIX_PRINTF=0"_v;
@@ -40,7 +41,7 @@ void build(Solution &s)
     if (intl.Variables.find("HAVE_ASPRINTF") == intl.Variables.end())
         intl += "HAVE_ASPRINTF=0"_v;
     //if (intl.Variables.find("HAVE_SNPRINTF") == intl.Variables.end())
-        intl += "HAVE_SNPRINTF=0"_v;
+    intl += "HAVE_SNPRINTF=0"_v;
     if (intl.Variables.find("HAVE_WPRINTF") == intl.Variables.end())
         intl += "HAVE_WPRINTF=0"_v;
 
