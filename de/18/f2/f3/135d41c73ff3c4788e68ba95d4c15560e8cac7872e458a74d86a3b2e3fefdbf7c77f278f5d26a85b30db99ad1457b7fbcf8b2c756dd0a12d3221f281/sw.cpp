@@ -98,7 +98,7 @@ void build(Solution &s)
     libcurl.Private += "BUILDING_LIBCURL"_d;
     libcurl.Public += "CURL_HIDDEN_SYMBOLS"_d;
     libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
-    
+
     libcurl.Public += "HAVE_GSSAPI"_d;
     libcurl.Public += "HAVE_GSSGNU"_d;
     libcurl.Public += "HAVE_LIBSSH2_H"_d;
@@ -194,7 +194,7 @@ void build(Solution &s)
     }
 
     recv_args(libcurl);
-    
+
     libcurl.Variables["CURL_EXTERN_SYMBOL"] = "SW_EXPORT";
 
     libcurl.configureFile("lib/curl_config.h.cmake", "curl_config.h");
@@ -234,6 +234,7 @@ void check(Checker &c)
         s.checkFunctionExists("setmode");
         s.checkFunctionExists("setrlimit");
         s.checkFunctionExists("strcasecmp");
+        s.checkFunctionExists("writev");
         s.checkFunctionExists("uname");
         s.checkFunctionExists("utime");
         s.checkIncludeExists("alloca.h");
@@ -309,22 +310,34 @@ void check(Checker &c)
         s.checkIncludeExists("winsock2.h");
         s.checkIncludeExists("ws2tcpip.h");
         s.checkIncludeExists("x509.h");
+        s.checkTypeSize("bool");
         s.checkTypeSize("int");
         s.checkTypeSize("long");
+        s.checkTypeSize("long long");
         s.checkTypeSize("off_t");
         s.checkTypeSize("short");
         s.checkTypeSize("signal");
+        s.checkTypeSize("sig_atomic_t");
         s.checkTypeSize("size_t");
+        s.checkTypeSize("socket");
+        s.checkTypeSize("socklen_t");
+        s.checkTypeSize("ssize_t");
+        s.checkTypeSize("struct addrinfo");
+        s.checkTypeSize("struct in6_addr");
+        s.checkTypeSize("struct sockaddr_in6");
+        s.checkTypeSize("struct sockaddr_storage");
+        s.checkTypeSize("struct timeval");
         s.checkTypeSize("time_t");
         s.checkTypeSize("void *");
         s.checkLibraryFunctionExists("nsl", "gethostbyname");
         s.checkLibraryFunctionExists("pthread", "pthread_create");
         s.checkLibraryFunctionExists("resolve", "strcasecmp");
         s.checkSourceCompiles("HAVE_TIME_WITH_SYS_TIME", R"sw_xxx(
-#include <sys/time.h>
-#include <time.h>
-int main() {return 0;}
-)sw_xxx");
+    #include <time.h>
+    #include <sys/time.h>
+    int main() {return 0;}
+    )sw_xxx");
+
         s.checkSourceCompiles("STDC_HEADERS", R"sw_xxx(
 #include <float.h>
 #include <stdarg.h>
@@ -334,82 +347,89 @@ int main() {return 0;}
 )sw_xxx");
 
         {
-            for (auto &h : {"stdbool.h",
-                            "sys/types.h",
-                            "arpa/inet.h",
-                            "arpa/nameser.h",
-                            "netdb.h",
-                            "net/if.h",
-                            "netinet/in.h",
-                            "netinet/tcp.h",
-                            "signal.h",
-                            "stdlib.h",
-                            "string.h",
-                            "strings.h",
-                            "sys/ioctl.h",
-                            "sys/select.h",
-                            "sys/socket.h",
-                            "sys/time.h",
-                            "sys/uio.h",
-                            "time.h",
-                            "fcntl.h",
-                            "unistd.h",
-                            "winsock2.h",
-                            "ws2tcpip.h",
-                            "windows.h"})
+            auto add_headers = [](auto &c)
             {
-                for (auto &t : {
-                         "SOCKET",
-                         "socklen_t",
-                         "ssize_t",
-                         "bool",
-                         "sig_atomic_t",
-                         "long long",
-                         "struct addrinfo",
-                         "struct in6_addr",
-                         "struct sockaddr_in6",
-                         "struct sockaddr_storage",
-                         "struct timeval"})
-                {
-                    auto &c = s.checkTypeSize(t);
+                for (auto &h : { "stdbool.h",
+                                "sys/types.h",
+                                "sys/stat.h",
+                                "arpa/inet.h",
+                                "arpa/nameser.h",
+                                "netdb.h",
+                                "net/if.h",
+                                "netinet/in.h",
+                                "netinet/tcp.h",
+                                "signal.h",
+                                "stdio.h",
+                                "stdlib.h",
+                                "string.h",
+                                "strings.h",
+                                "sys/ioctl.h",
+                                "sys/select.h",
+                                "sys/socket.h",
+                                "sys/time.h",
+                                "sys/uio.h",
+                                "time.h",
+                                "fcntl.h",
+                                "unistd.h",
+                                "winsock2.h",
+                                "ws2tcpip.h",
+                                "windows.h" })
                     c.Parameters.Includes.push_back(h);
-                }
+            };
 
-                for (auto &se : {
-                         "AF_INET6",
-                         "O_NONBLOCK",
-                         "FIONBIO",
-                         "SIOCGIFADDR",
-                         "MSG_NOSIGNAL",
-                         "PF_INET6",
-                         "SO_NONBLOCK"})
-                {
-                    auto &c = s.checkSymbolExists(se);
-                    c.Parameters.Includes.push_back(h);
-                }
+            auto &c = s.checkTypeSize("SOCKET", "HAVE_TYPE_SOCKET");
+            add_headers(c);
 
-                for (auto &f : {
-                    "ioctl",
-                    "ioctlsocket",
-                    "recv",
-                    "recvfrom",
-                    "send",
-                    "sendto",
-                    "socket" })
-                {
-                    auto &c = s.checkFunctionExists(f);
-                    c.Parameters.Includes.push_back(h);
-                }
+            for (auto &t : {
+                    "socklen_t",
+                    "ssize_t",
+                    "bool",
+                    "sig_atomic_t",
+                    "long long",
+                    "struct addrinfo",
+                    "struct in6_addr",
+                    "struct sockaddr_in6",
+                    "struct sockaddr_storage",
+                    "struct timeval" })
+            {
+                auto &c = s.checkTypeSize(t);
+                add_headers(c);
+            }
 
-                {
-                    auto &c = s.checkFunctionExists("CloseSocket", "HAVE_CLOSESOCKET_CAMEL");
-                    c.Parameters.Includes.push_back(h);
-                }
+            for (auto &se : {
+                        "AF_INET6",
+                        "O_NONBLOCK",
+                        "FIONBIO",
+                        "SIOCGIFADDR",
+                        "MSG_NOSIGNAL",
+                        "PF_INET6",
+                        "SO_NONBLOCK" })
+            {
+                auto &c = s.checkSymbolExists(se);
+                add_headers(c);
+            }
 
-                {
-                    auto &c = s.checkFunctionExists("IoctlSocket", "HAVE_IOCTLSOCKET_CAMEL");
-                    c.Parameters.Includes.push_back(h);
-                }
+            for (auto &f : {
+                "ioctl",
+                //"ioctlsocket",
+                "recv",
+                "recvfrom",
+                "send",
+                "sendto",
+                "socket" })
+            {
+                auto &c = s.checkFunctionExists(f);
+                add_headers(c);
+            }
+
+            {
+                auto &c = s.checkFunctionExists("CloseSocket", "HAVE_CLOSESOCKET_CAMEL");
+                add_headers(c);
+            }
+
+            {
+                auto &c = s.checkFunctionExists("IoctlSocket", "HAVE_IOCTLSOCKET_CAMEL");
+                add_headers(c);
             }
         }
     }
