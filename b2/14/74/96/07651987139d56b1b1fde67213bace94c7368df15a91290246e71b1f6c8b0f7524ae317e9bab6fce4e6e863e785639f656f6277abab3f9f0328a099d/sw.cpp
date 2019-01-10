@@ -50,13 +50,13 @@ struct YasmCompiler : NativeCompiler,
             c->working_directory = ObjectFile().parent_path();
 
         if (!ObjectFormat)
-        if (t.Settings.TargetOS.Type == OSType::Windows)
-        {
-            if (t.Settings.TargetOS.Arch == ArchType::x86_64)
-                ObjectFormat = "win64";
-            else
-                ObjectFormat = "win32";
-        }
+            if (t.getSolution()->Settings.TargetOS.Type == OSType::Windows)
+            {
+                if (t.getSolution()->Settings.TargetOS.Arch == ArchType::x86_64)
+                    ObjectFormat = "win64";
+                else
+                    ObjectFormat = "win32";
+            }
 
         getCommandLineOptions<YasmAssemblerOptions>(c.get(), *this);
         iterate([c](auto &v, auto &gs) { v.addEverything(*c); });
