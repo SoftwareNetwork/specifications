@@ -106,9 +106,9 @@ void build(Solution &s)
     auto add_modules_child = [&modules, &setup, &deps, &yasm_modules](const String &m, const String &n) -> decltype(auto)
     {
         auto &t = modules.addStaticLibrary(m + "." + n);
-        t += FileRegex("modules/" + m + "/" + n + "/.*", true);
-        t += FileRegex("modules/" + m + "/" + n + "/.*\\.re", true);
-        t += FileRegex("modules/" + m + "/" + n + "/.*\\.mac", true);
+        t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*"), true);
+        t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*\\.re"), true);
+        t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*\\.mac"), true);
         setup(t);
         deps.push_back(&t);
         yasm_modules[m.back() == 's' ? m.substr(0, m.size() - 1) : m].insert(n);
