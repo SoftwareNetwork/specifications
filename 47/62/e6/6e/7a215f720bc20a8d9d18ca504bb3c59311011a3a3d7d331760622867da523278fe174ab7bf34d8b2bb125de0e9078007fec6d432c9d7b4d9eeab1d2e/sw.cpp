@@ -373,9 +373,10 @@ void build(Solution &s)
 
     // some settings
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
-    *boost_targets["iostreams"] -= "src/lzma.cpp";
-    *boost_targets["iostreams"] += "org.sw.demo.bzip2"_dep;
-    *boost_targets["iostreams"] += "org.sw.demo.madler.zlib"_dep;
+    *boost_targets["iostreams"] += "org.sw.demo.xz_utils.lzma-*"_dep;
+    *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
+    *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
+    *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
     boost_targets["stacktrace"]->HeaderOnly = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
         boost_targets["random"]->LinkLibraries.insert("Advapi32.lib");
@@ -4990,4 +4991,3 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("yap", "utility", true);
     }
 }
-
