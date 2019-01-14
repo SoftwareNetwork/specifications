@@ -1,8 +1,17 @@
+//#pragma sw require pub.egorpugin.primitives.command-master
+
 struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
         c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
+    }
+
+    void setupCommandForRun(builder::Command &c) const override
+    {
+        setupCommand(c);
+        c.create_new_console = true;
+        //c.setInteractive(true);
     }
 };
 
