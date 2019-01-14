@@ -205,7 +205,7 @@ void build(Solution &s)
         "org.sw.demo.libarchive.libarchive-3"_dep;
 
     ADD_LIBRARY(patch);
-    pack.Public += filesystem, templates;
+    patch.Public += filesystem, templates;
 
     ADD_LIBRARY(http);
     http.Public += filesystem, templates,
@@ -344,6 +344,7 @@ void build(Solution &s)
             c->addPathDirectory(pq.LinkDirectories.begin()->parent_path() / "bin");
         });
     }
+    s.addTest(test_patch);
     s.addTest(test_settings);
     s.addTest(test_version);
 }
