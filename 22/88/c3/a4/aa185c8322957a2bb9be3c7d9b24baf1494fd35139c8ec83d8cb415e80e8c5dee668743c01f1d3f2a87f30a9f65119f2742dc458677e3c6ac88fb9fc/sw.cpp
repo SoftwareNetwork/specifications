@@ -36,7 +36,7 @@ struct MocCommand : Command
     }
 };
 
-static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
+static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
 {
     static Strings HeaderFileExtensions = []()
     {
@@ -57,7 +57,7 @@ static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std
     (t + moc)->Dummy = true;
 
     if (t.PostponeFileResolving || t.DryRun)
-        return;
+        return {};
 
     // get current idirs
     // we do not need them as args, because args will get all target idirs and defs
@@ -145,6 +145,7 @@ static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std
 
     auto moc_dir = t.BinaryDir / "moc";
     Files used_files;
+    Files mocs;
     for (auto &f : files)
     {
 #ifdef _WIN32
@@ -205,8 +206,7 @@ static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std
             t += o;
         else
             t -= o;
-
-        (t + moc)->Dummy = true;
+        mocs.insert(o);
     }
 
     for (auto &f : files)
@@ -214,7 +214,22 @@ static void automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const std
         auto dir = sha256(f.p.parent_path().u8string()).substr(0, 8);
         t.IncludeDirectories.insert(moc_dir / dir);
     }
-};
+
+    return mocs;
+}
+
+#define SW_QT_ADD_MOC_DEPS(t)                                                                          \
+    do                                                                                                 \
+    {                                                                                                  \
+        for (auto &m : mocs)                                                                           \
+        {                                                                                              \
+            auto mg = File(m, *t.getSolution()->fs).getFileRecord().getGenerator();                    \
+            for (auto &c : sqt)                                                                        \
+            {                                                                                          \
+                mg->dependencies.insert(File(c, *t.getSolution()->fs).getFileRecord().getGenerator()); \
+            }                                                                                          \
+        }                                                                                              \
+    } while (0)
 
 // http://doc.qt.io/qt-5/rcc.html
 static Files rcc_read_files(NativeExecutedTarget &t, const path &fn)
@@ -454,7 +469,7 @@ struct QtConfig
     String print() const
     {
         String s;
-        for (auto &[k,v] : definitions)
+        for (auto &[k, v] : definitions)
             s += "#define " + k + " " + v + "\n";
         s += "\n";
         for (auto &f : features)
@@ -520,8 +535,8 @@ static QtLibrary qt_desc{
     "q",
     // config
     {
-        // public
-        {
+    // public
+    {
             // features
             {
                 {"accessibility", true},
@@ -587,8 +602,8 @@ static QtLibrary qt_core_desc{
     "QtCore",
     // config
     {
-        // public
-        {
+    // public
+    {
             // features
             {
                 {"animation", true},
@@ -658,8 +673,8 @@ static QtLibrary qt_gui_desc{
     "QtGui",
     // config
     {
-        // public
-        {
+    // public
+    {
             // features
             {
                 {"accessibility", true},
@@ -771,8 +786,8 @@ static QtLibrary qt_widgets_desc{
     "QtWidgets",
     // config
     {
-        // public
-        {
+    // public
+    {
             // features
             {
                 {"abstractbutton", true},
@@ -952,8 +967,8 @@ static QtLibrary qt_printsupport_desc{
     "QtPrintSupport",
     // config
     {
-        // public
-        {
+    // public
+    {
             // features
             {
                 {"printer", true},
@@ -983,9 +998,9 @@ static QtLibrary qt_printsupport_desc{
     },
 };
 
-void automoc(NativeExecutedTarget &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
+auto automoc(NativeExecutedTarget &moc, NativeExecutedTarget &t, const std::vector<moc_file> &additions = {})
 {
-    ::automoc(moc.getDependency(), t, additions);
+    return ::automoc(moc.getDependency(), t, additions);
 }
 
 void rcc(NativeExecutedTarget &rcc, NativeExecutedTarget &t, const path &fn)
@@ -1424,7 +1439,7 @@ void build(Solution &s)
             if (s.Settings.Native.CompilerType == CompilerType::MSVC)
                 core.Public += "mkspecs/win32-msvc"_idir;
 
-            syncqt(core, { "QtCore", "QtPlatformHeaders" });
+            auto sqt = syncqt(core, { "QtCore", "QtPlatformHeaders" });
 
             SwapAndRestore sr(core.SourceDir);
             core.SourceDir /= "src/corelib";
@@ -1624,7 +1639,8 @@ void build(Solution &s)
             write_tracepoints(core);
             platform_files(core);
 
-            automoc(moc, core);
+            auto mocs = automoc(moc, core);
+            SW_QT_ADD_MOC_DEPS(core);
             ::rcc(rcc, core, core.SourceDir / "mimetypes/mimetypes.qrc");
 
             // after moc
@@ -1637,7 +1653,7 @@ void build(Solution &s)
 
         auto &gui = base.addTarget<LibraryTarget>("gui");
         {
-            syncqt(gui, { "QtGui" });
+            auto sqt = syncqt(gui, { "QtGui" });
             gui += "src/3rdparty/icc/sRGB2014.icc";
             SwapAndRestore sr(gui.SourceDir);
             gui.SourceDir /= "src/gui";
@@ -1670,7 +1686,8 @@ void build(Solution &s)
             gui.replaceInFileOnce("text/qharfbuzzng_p.h", "#include <harfbuzz/hb.h>", "#include <hb.h>");
             gui.replaceInFileOnce("text/qfontengine.cpp", "#  include <harfbuzz/hb-ot.h>", "#include <hb-ot.h>");
 
-            automoc(moc, gui);
+            auto mocs = automoc(moc, gui);
+            SW_QT_ADD_MOC_DEPS(gui);
             ::rcc(rcc, gui, Files{ gui.SourceDir / "painting/qpdf.qrc", });
 
             RccData wg;
@@ -1683,7 +1700,7 @@ void build(Solution &s)
 
         auto &widgets = base.addTarget<LibraryTarget>("widgets");
         {
-            syncqt(widgets, { "QtWidgets" });
+            auto sqt = syncqt(widgets, { "QtWidgets" });
 
             SwapAndRestore sr(widgets.SourceDir);
             widgets.SourceDir /= "src/widgets";
@@ -1719,14 +1736,15 @@ void build(Solution &s)
             write_tracepoints(widgets);
             platform_files(widgets);
 
-            automoc(moc, widgets);
+            auto mocs = automoc(moc, widgets);
+            SW_QT_ADD_MOC_DEPS(widgets);
             ::rcc(rcc, widgets, Files{ widgets.SourceDir / "styles/qstyle.qrc", widgets.SourceDir / "dialogs/qmessagebox.qrc" });
             ::uic(uic, widgets, widgets.SourceDir / "dialogs/qfiledialog.ui");
         }
 
         auto &network = base.addTarget<LibraryTarget>("network");
         {
-            syncqt(network, { "QtNetwork" });
+            auto sqt = syncqt(network, { "QtNetwork" });
 
             SwapAndRestore sr(network.SourceDir);
             network.SourceDir /= "src/network";
@@ -1786,7 +1804,8 @@ void build(Solution &s)
             }
 
             platform_files(network);
-            automoc(moc, network);
+            auto mocs = automoc(moc, network);
+            SW_QT_ADD_MOC_DEPS(network);
         }
 
         auto &xml = base.addTarget<LibraryTarget>("xml");
@@ -1839,7 +1858,7 @@ void build(Solution &s)
             // eventdispatchers
             {
                 String module = "QtEventDispatcherSupport";
-                syncqt(eventdispatchers, { module });
+                auto sqt = syncqt(eventdispatchers, { module });
 
                 SwapAndRestore sr(eventdispatchers.SourceDir);
                 eventdispatchers.SourceDir /= "src/platformsupport/eventdispatchers";
@@ -1854,7 +1873,8 @@ void build(Solution &s)
                 eventdispatchers.Public += gui;
                 auto &t = eventdispatchers;
 
-                automoc(moc, eventdispatchers);
+                auto mocs = automoc(moc, eventdispatchers);
+                SW_QT_ADD_MOC_DEPS(eventdispatchers);
 
                 t.writeFileOnce(module + "/" + module + "Depends", R"xxx(
                 #ifdef __cplusplus
@@ -2024,7 +2044,7 @@ void build(Solution &s)
 
         auto &printsupport = base.addTarget<LibraryTarget>("printsupport");
         {
-            syncqt(printsupport, { "QtPrintSupport" });
+            auto sqt = syncqt(printsupport, { "QtPrintSupport" });
 
             SwapAndRestore sr(printsupport.SourceDir);
             printsupport.SourceDir /= "src/printsupport";
@@ -2048,7 +2068,8 @@ void build(Solution &s)
             qt_printsupport_desc.print(printsupport);
 
             platform_files(printsupport);
-            automoc(moc, printsupport);
+            auto mocs = automoc(moc, printsupport);
+            SW_QT_ADD_MOC_DEPS(printsupport);
 
             ::rcc(rcc, printsupport, printsupport.SourceDir / "dialogs/qprintdialog.qrc");
 

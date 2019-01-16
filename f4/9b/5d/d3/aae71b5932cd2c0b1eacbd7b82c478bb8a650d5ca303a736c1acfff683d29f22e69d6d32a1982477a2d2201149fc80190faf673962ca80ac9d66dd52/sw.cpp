@@ -4,6 +4,12 @@ struct PythonExecutable : ExecutableTarget
     {
         c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
     }
+
+    void setupCommandForRun(builder::Command &c) const override
+    {
+        setupCommand(c);
+        c.create_new_console = true;
+    }
 };
 
 void build(Solution &s)
@@ -870,7 +876,7 @@ void check(Checker &c)
     #include <time.h>
     int main() { struct tm t; return 0; }
     )sw_xxx");
-    if (s.checker->solution->Settings.TargetOS.Type != OSType::Windows)
+    if (s.checker.solution->Settings.TargetOS.Type != OSType::Windows)
     {
         s.checkSourceCompiles("VA_LIST_IS_ARRAY", R"sw_xxx(#if ${HAVE_STDARG_PROTOTYPES}
     #include <stdarg.h>
