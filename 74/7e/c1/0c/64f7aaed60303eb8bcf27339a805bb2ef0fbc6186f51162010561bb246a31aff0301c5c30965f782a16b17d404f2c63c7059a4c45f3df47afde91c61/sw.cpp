@@ -79,8 +79,10 @@ void build(Solution &s)
         // qml
         {
             String module = "QtQml";
-            auto sync_result = syncqt(qml, { module });
-            //masm += sync_result;
+            auto sqt = syncqt(qml, { module });
+            masm += sqt; // masm needs this sqt dependency, but creates cyclic dep
+            qml ^= sqt; // so we remove sqt from qml
+
             SwapAndRestore sr(qml.SourceDir, qml.SourceDir / "src/qml");
             qml += "qtqmlglobal.*"_rr;
             qml += "animations/.*"_rr;
@@ -142,7 +144,8 @@ void build(Solution &s)
 )xxx");
 
             platform_files(qml);
-            automoc("org.sw.demo.qtproject.qt.base.tools.moc-5"_dep, qml);
+            auto mocs = automoc("org.sw.demo.qtproject.qt.base.tools.moc-5"_dep, qml);
+            SW_QT_ADD_MOC_DEPS(qml);
 
             String module_lower = module;
             std::transform(module_lower.begin(), module_lower.end(), module_lower.begin(), tolower);
@@ -195,8 +198,7 @@ void build(Solution &s)
         // quick
         {
             String module = "QtQuick";
-            auto sync_result = syncqt(quick, { module });
-            //masm += sync_result;
+            auto sqt = syncqt(quick, { module });
             quick.SourceDir /= "src/quick";
 
             quick += "[^/]*"_rr;
@@ -216,7 +218,8 @@ void build(Solution &s)
 
             quick.Public += qml, "org.sw.demo.qtproject.qt.base.gui-5"_dep;
 
-            automoc("org.sw.demo.qtproject.qt.base.tools.moc-5"_dep, quick);
+            auto mocs = automoc("org.sw.demo.qtproject.qt.base.tools.moc-5"_dep, quick);
+            SW_QT_ADD_MOC_DEPS(quick);
             ::rcc("org.sw.demo.qtproject.qt.base.tools.rcc-5"_dep, quick, quick.SourceDir / "items/items.qrc");
             ::rcc("org.sw.demo.qtproject.qt.base.tools.rcc-5"_dep, quick, quick.SourceDir / "scenegraph/scenegraph.qrc");
 
