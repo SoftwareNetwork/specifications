@@ -3,7 +3,7 @@
 
 #pragma sw header on
 
-static Files qt_translations_create_qm_files(const DependencyPtr &base, TargetBase &t)
+static std::tuple<Target &, Files> qt_translations_create_qm_files(const DependencyPtr &base, TargetBase &t)
 {
     auto ts = std::make_shared<Dependency>(base->package);
     ts->package.ppath /= "translations";
@@ -11,7 +11,8 @@ static Files qt_translations_create_qm_files(const DependencyPtr &base, TargetBa
     auto qt_trs_r = FileRegex(ts->getPackage().resolve().getDirSrc2() / "translations", std::regex(".*\\.ts"));
     auto &qt_trs = t.addStaticLibrary("qt_translations");
     qt_trs += qt_trs_r;
-    return qt_tr(base, qt_trs);
+    qt_trs += ts;
+    return { qt_trs, qt_tr(base, qt_trs) };
 }
 
 static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget &t, path in, const Files &qms)
