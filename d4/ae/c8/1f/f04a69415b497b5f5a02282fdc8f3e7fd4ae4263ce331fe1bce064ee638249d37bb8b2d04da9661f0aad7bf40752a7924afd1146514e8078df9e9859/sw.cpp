@@ -1,31 +1,35 @@
 #pragma sw header on
 
-static void qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, const Files &ts_files)
+static Files qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTarget &t, const Files &ts_files)
 {
     // before dry run
     (t + lrelease)->Dummy = true;
 
     if (t.PostponeFileResolving || t.DryRun)
-        return;
+        return {};
 
+    Files out;
     for (auto &ts : ts_files)
     {
         auto c = t.addCommand();
+        auto o = t.BinaryDir / (ts.filename().stem().u8string() + ".qm");
         c << cmd::prog(lrelease)
             << cmd::in(ts)
             << "-qm"
-            << cmd::out(ts.filename().stem().u8string() + ".qm");
+            << cmd::out(o);
+        out.insert(o);
     }
+    return out;
 }
 
-static void qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
+static Files qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
 {
     // before dry run
     (t + lupdate)->Dummy = true;
     (t + lrelease)->Dummy = true;
 
     if (t.PostponeFileResolving || t.DryRun)
-        return;
+        return {};
 
     auto ts_lst_fn = t.BinaryDir / "ts.lst";
     String ts_lst_file;
@@ -75,10 +79,10 @@ static void qt_create_translation(const DependencyPtr &lupdate, const Dependency
             c << cmd::in(sources);
     }
 
-    qt_add_translation(lrelease, t, ts_files);
+    return qt_add_translation(lrelease, t, ts_files);
 }
 
-static void qt_create_translation(const DependencyPtr &base, NativeExecutedTarget &t)
+static auto qt_create_translation(const DependencyPtr &base, NativeExecutedTarget &t)
 {
     auto update = std::make_shared<Dependency>(base->package);
     update->package.ppath /= "tools.linguist.update";
@@ -86,12 +90,12 @@ static void qt_create_translation(const DependencyPtr &base, NativeExecutedTarge
     auto release = std::make_shared<Dependency>(base->package);
     release->package.ppath /= "tools.linguist.release";
 
-    qt_create_translation(update, release, t);
+    return qt_create_translation(update, release, t);
 }
 
-static void qt_tr(const DependencyPtr &base, NativeExecutedTarget &t)
+static auto qt_tr(const DependencyPtr &base, NativeExecutedTarget &t)
 {
-    qt_create_translation(base, t);
+    return qt_create_translation(base, t);
 }
 
 #pragma sw header off
