@@ -3,7 +3,7 @@
 
 #pragma sw header on
 
-static std::tuple<Target &, Files> qt_translations_create_qm_files(const DependencyPtr &base, TargetBase &t)
+static std::tuple<StaticLibraryTarget &, Files> qt_translations_create_qm_files(const DependencyPtr &base, TargetBase &t)
 {
     auto ts = std::make_shared<Dependency>(base->package);
     ts->package.ppath /= "translations";
@@ -41,6 +41,13 @@ static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget 
     rcc(r, t,
         t.BinaryDir / in.filename())
         .c->working_directory = t.BinaryDir;
+}
+
+static void qt_translations_rcc(const DependencyPtr &base, TargetBase &tr_base, NativeExecutedTarget &t, path in)
+{
+    auto [qt_trs, qms] = qt_translations_create_qm_files(base, tr_base);
+    qt_translations_rcc("org.sw.demo.qtproject.qt-*"_dep, t, in, qms);
+    (t + qt_trs)->Dummy = true;
 }
 
 #pragma sw header off

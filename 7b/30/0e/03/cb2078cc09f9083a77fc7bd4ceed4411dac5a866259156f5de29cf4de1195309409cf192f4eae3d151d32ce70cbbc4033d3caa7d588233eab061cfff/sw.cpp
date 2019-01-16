@@ -63,9 +63,7 @@ void build(Solution &s)
         network.Public += "Setupapi.lib"_lib, "Winspool.lib"_lib;
     automoc("org.sw.demo.qtproject.qt.base.tools.moc-*"_dep, network);
 
-    auto [qt_trs, qms] = qt_translations_create_qm_files("org.sw.demo.qtproject.qt-*"_dep, aspia);
-
-    auto qt_progs_and_tr = [&qms](auto &t, bool qt = false)
+    auto qt_progs_and_tr = [](auto &t)
     {
         automoc("org.sw.demo.qtproject.qt.base.tools.moc-*"_dep, t);
         rcc("org.sw.demo.qtproject.qt.base.tools.rcc-*"_dep, t, t.SourceDir / ("resources/" + t.pkg.ppath.back() + ".qrc"));
@@ -79,11 +77,6 @@ void build(Solution &s)
         rcc("org.sw.demo.qtproject.qt.base.tools.rcc-*"_dep, t,
             t.BinaryDir / (t.pkg.ppath.back() + "_translations.qrc"))
             .c->working_directory = t.BinaryDir;
-
-        if (qt)
-        {
-            qt_translations_rcc("org.sw.demo.qtproject.qt-*"_dep, t, "translations/qt_translations.qrc", qms);
-        }
     };
 
     auto &updater = add_lib("updater");
@@ -98,7 +91,8 @@ void build(Solution &s)
     common.Public += "org.sw.demo.openssl.crypto-*.*.*.*"_dep;
     common.Public += "org.sw.demo.qtproject.qt.base.widgets-*"_dep;
     common.Public += "org.sw.demo.qtproject.qt.winextras-*"_dep;
-    qt_progs_and_tr(common, true);
+    qt_progs_and_tr(common);
+    qt_translations_rcc("org.sw.demo.qtproject.qt-*"_dep, aspia, common, "translations/qt_translations.qrc");
 
     auto &host = aspia.addSharedLibrary("host");
     setup_target(host, "host");
@@ -152,7 +146,7 @@ void build(Solution &s)
 
     //
     auto &console = add_exe(aspia, "console");
-    console.setRootDirectory("source/host");
+    console.setRootDirectory("source/console");
     setup_target(console, "console");
     console.Public += client;
     console.Public += "org.sw.demo.qtproject.qt.base.plugins.platforms.windows-*"_dep;
