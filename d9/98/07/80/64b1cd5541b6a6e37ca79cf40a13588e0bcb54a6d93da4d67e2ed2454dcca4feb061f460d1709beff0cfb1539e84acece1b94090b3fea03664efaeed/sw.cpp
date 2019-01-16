@@ -63,7 +63,7 @@ void build(Solution &s)
         network.Public += "Setupapi.lib"_lib, "Winspool.lib"_lib;
     automoc("org.sw.demo.qtproject.qt.base.tools.moc-*"_dep, network);
 
-    auto qms = qt_translations_create_qm_files("org.sw.demo.qtproject.qt-*"_dep, s);
+    auto qms = qt_translations_create_qm_files("org.sw.demo.qtproject.qt-*"_dep, aspia);
 
     auto qt_progs_and_tr = [&qms](auto &t, bool qt = false)
     {
