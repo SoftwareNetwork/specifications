@@ -121,19 +121,16 @@ void build(Solution &s)
     };
 
     auto &host_config = add_exe(host, "config");
-    host_config.setRootDirectory("source/host");
     host_config += "host_config_entry_point.cc";
     host_config += "host_config.rc";
     host_config += host;
 
     auto &host_service = add_exe(host, "service");
-    host_service.setRootDirectory("source/host");
     host_service += "win/host_service_entry_point.cc";
     host_service += "win/host_service.rc";
     host_service += host;
 
     auto &host_session = add_exe(host, "session");
-    host_session.setRootDirectory("source/host");
     host_session += "win/host_session_entry_point.cc";
     host_session += "win/host_session.rc";
     host_session += host;
@@ -146,7 +143,6 @@ void build(Solution &s)
 
     //
     auto &console = add_exe(aspia, "console");
-    console.setRootDirectory("source/console");
     setup_target(console, "console");
     console.Public += client;
     console.Public += "org.sw.demo.qtproject.qt.base.plugins.platforms.windows-*"_dep;
