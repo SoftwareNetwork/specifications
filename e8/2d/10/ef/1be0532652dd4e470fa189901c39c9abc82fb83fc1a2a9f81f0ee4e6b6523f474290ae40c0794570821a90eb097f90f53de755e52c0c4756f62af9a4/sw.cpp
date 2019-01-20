@@ -330,6 +330,8 @@ void build(Solution &s)
     *boost_targets["pool"] += "include/.*\\.[ih]pp"_rr;
     *boost_targets["spirit"] += "include/.*\\.[cih]pp"_rr;
 
+    boost_targets["config"]->patch("include/boost/config/stdlib/libstdcpp3.hpp", "|| defined(_WIN32)", "||  defined(_WIN32) || defined(__CYGWIN__)");
+
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         boost_targets["config"]->Public.Definitions["BOOST_USE_WINDOWS_H"];
