@@ -1,26 +1,40 @@
-#ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
 #pragma sw require pub.egorpugin.primitives.context-master
 
 #include <primitives/context.h>
 
-static void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
+namespace flex_bison
+{
+
+static bool need_build(Solution &s)
+{
+    return
+        //s.Settings.Native.CompilerType != CompilerType::GNU
+        s.HostOS.Type == OSType::Windows && !::sw::detail::isHostCygwin()
+        ;
+}
+
+}
+
+static void gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
+    const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
 {
     // must be HostOS
-    bool win_flex_bison =
-        //t.getSolution()->Settings.Native.CompilerType != CompilerType::GNU
-        t.getSolution()->HostOS.Type == OSType::Windows
-        ;
+    bool win_flex_bison = flex_bison::need_build(*t.getSolution());
 
-    auto flex = THIS_PREFIX "." "lexxmark.winflexbison.flex" "-" THIS_VERSION_DEPENDENCY;
+    auto flex = std::make_shared<Dependency>(base->package);
+    flex->package.ppath /= "flex";
+
+    auto bison = std::make_shared<Dependency>(base->package);
+    bison->package.ppath /= "bison";
+
     if (win_flex_bison)
     {
         auto d = t + flex;
         d->Dummy = true;
     }
 
-    auto bison = THIS_PREFIX "." "lexxmark.winflexbison.bison" "-" THIS_VERSION_DEPENDENCY;
     if (win_flex_bison)
     {
         auto d = t + bison;
@@ -74,7 +88,7 @@ static void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b
     }
 }
 
-static void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, const path &p)
+static void gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget &t, const String &type, const path &p)
 {
     auto name = p.filename().string();
     auto name_upper = boost::to_upper_copy(name);
@@ -110,15 +124,14 @@ static void gen_flex_bison_pair(NativeExecutedTarget &t, const String &type, con
 
     auto f = p;
     auto b = p;
-    gen_flex_bison(t, f += ".ll", b += ".yy", { "--prefix=ll_" + name }, { "-Dapi.prefix={yy_" + name + "}" });
+    gen_flex_bison(base, t, f += ".ll", b += ".yy", { "--prefix=ll_" + name }, { "-Dapi.prefix={yy_" + name + "}" });
 };
 
 #pragma sw header off
-#endif
 
 void build(Solution &s)
 {
-    bool win_flex_bison = s.Settings.Native.CompilerType != CompilerType::GNU;
+    bool win_flex_bison = flex_bison::need_build(s);
     if (!win_flex_bison && !s.DryRun)
         return;
 

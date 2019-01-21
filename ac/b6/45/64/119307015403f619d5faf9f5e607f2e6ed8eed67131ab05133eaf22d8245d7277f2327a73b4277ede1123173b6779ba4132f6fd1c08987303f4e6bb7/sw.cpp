@@ -1,10 +1,7 @@
-#ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
-void gen_ragel(NativeExecutedTarget &t, const path &in)
+void gen_ragel(const DependencyPtr &ragel, NativeExecutedTarget &t, const path &in)
 {
-    auto ragel = THIS_PACKAGE_DEPENDENCY;
-
     auto c = t.addCommand();
     c << cmd::prog(ragel)
         << cmd::in(in)
@@ -12,7 +9,6 @@ void gen_ragel(NativeExecutedTarget &t, const path &in)
 }
 
 #pragma sw header off
-#endif
 
 void build(Solution &s)
 {
