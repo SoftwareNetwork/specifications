@@ -127,7 +127,7 @@ void build(Solution &s)
     libxml2.configureFile(
         libxml2.SourceDir / "include/libxml/xmlversion.h.in",
         libxml2.BinaryDir / "libxml/xmlversion.h");
-    libxml2.fileWriteOnce(libxml2.BinaryPrivateDir / "config.h",
+    libxml2.writeFileOnce(libxml2.BinaryPrivateDir / "config.h",
         R"(
 #ifdef _WIN32
 #define _WINSOCKAPI_ 1
@@ -147,8 +147,7 @@ void build(Solution &s)
 #define SUPPORT_IP6 0
 
 #endif
-)",
-true
+)"
 );
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {

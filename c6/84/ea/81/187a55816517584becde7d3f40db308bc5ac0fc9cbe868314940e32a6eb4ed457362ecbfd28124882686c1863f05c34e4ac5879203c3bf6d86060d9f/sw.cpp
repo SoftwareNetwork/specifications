@@ -27,5 +27,5 @@ void build(Solution &s)
     turf.Variables["TURF_HAS_MOVE"] = "1";
 
     turf.configureFile("cmake/turf_config.h.in", "turf_config.h");
-    turf.fileWriteOnce("turf_userconfig.h", "", true);
+    turf.writeFileOnce("turf_userconfig.h");
 }

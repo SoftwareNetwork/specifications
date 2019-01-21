@@ -16,5 +16,5 @@ void build(Solution &s)
     junction.Variables["JUNCTION_USE_STRIPING"] = "TRUE";
 
     junction.configureFile("cmake/junction_config.h.in", "junction_config.h");
-    junction.fileWriteOnce("junction_userconfig.h", "", true);
+    junction.writeFileOnce("junction_userconfig.h");
 }

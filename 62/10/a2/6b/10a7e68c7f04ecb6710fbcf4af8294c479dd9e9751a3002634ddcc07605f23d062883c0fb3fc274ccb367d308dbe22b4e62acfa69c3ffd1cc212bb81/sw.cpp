@@ -66,7 +66,7 @@ void build(Solution &s)
     intl.configureFile("gettext-runtime/intl/libgnuintl.in.h", "libintl.h");
     intl.configureFile("gettext-runtime/intl/libgnuintl.in.h", "gettext.h");
 
-    intl.fileWriteOnce(intl.BinaryPrivateDir / "config.h", R"xxx(
+    intl.writeFileOnce(intl.BinaryPrivateDir / "config.h", R"xxx(
 #pragma once
 
 #define HAVE_ICONV 1
@@ -237,7 +237,7 @@ GCC -Wunused-parameter.  */
 # define DLL_VARIABLE
 #endif
 
-)xxx", true
+)xxx"
 );
 }
 

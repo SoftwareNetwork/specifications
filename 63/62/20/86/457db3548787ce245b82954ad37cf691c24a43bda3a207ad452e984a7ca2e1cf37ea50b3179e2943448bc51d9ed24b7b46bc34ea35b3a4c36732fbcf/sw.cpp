@@ -21,7 +21,7 @@ void build(Solution &s)
     gss.Definitions["PACKAGE_VERSION"] = "\"1.0.3\"";
     gss.Public += "PO_SUFFIX=\".po\""_d;
 
-    gss.fileWriteOnce(gss.BinaryPrivateDir / "config.h", "", true);
+    gss.writeFileOnce(gss.BinaryPrivateDir / "config.h");
     gss.pushFrontToFileOnce("lib/version.c", R"xxx(
 #include "gl/strverscmp.c"
 #define strverscmp __strverscmp

@@ -48,7 +48,7 @@ void build(Solution &s)
     lzma.replaceInFileOnce("src/liblzma/check/check.h",
         "#ifndef LZMA_SHA256FUNC",
         "#undef LZMA_SHA256FUNC\n#ifndef LZMA_SHA256FUNC");
-    lzma.fileWriteOnce(lzma.BinaryPrivateDir / "config.h", R"(
+    lzma.writeFileOnce(lzma.BinaryPrivateDir / "config.h", R"(
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -146,7 +146,7 @@ void build(Solution &s)
 
 /* Define to 1 to enable hc4 match finder. */
 #define HAVE_MF_HC4 1
-)", true);
+)");
 }
 
 void check(Checker &c)
@@ -205,9 +205,9 @@ void check(Checker &c)
     s.checkDeclarationExists("CLOCK_MONOTONIC");
     s.checkDeclarationExists("_mm_movemask_epi8");
 
-        s.checkStructMemberExists("struct stat", "st_atimensec").Parameters.Includes.push_back("sys/stat.h");
-        s.checkStructMemberExists("struct stat", "st_atimespec.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
-        s.checkStructMemberExists("struct stat", "st_atim.st__tim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
-        s.checkStructMemberExists("struct stat", "st_atim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
-        s.checkStructMemberExists("struct stat", "st_uatime").Parameters.Includes.push_back("sys/stat.h");
+    s.checkStructMemberExists("struct stat", "st_atimensec").Parameters.Includes.push_back("sys/stat.h");
+    s.checkStructMemberExists("struct stat", "st_atimespec.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+    s.checkStructMemberExists("struct stat", "st_atim.st__tim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+    s.checkStructMemberExists("struct stat", "st_atim.tv_nsec").Parameters.Includes.push_back("sys/stat.h");
+    s.checkStructMemberExists("struct stat", "st_uatime").Parameters.Includes.push_back("sys/stat.h");
 }

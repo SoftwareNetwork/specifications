@@ -137,13 +137,13 @@ void build(Solution &s)
     else
         crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".so";
 
-    crypto.fileWriteOnce(crypto.BinaryPrivateDir / "buildinf.h", R"xxx(
+    crypto.writeFileOnce(crypto.BinaryPrivateDir / "buildinf.h", R"xxx(
 #define DATE ""
 #define compiler_flags ""
 #define PLATFORM ""
     )xxx");
 
-    crypto.fileWriteOnce("openssl/opensslconf.h.in", R"xxx(
+    crypto.writeFileOnce("openssl/opensslconf.h.in", R"xxx(
 /*
      *
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
@@ -323,9 +323,9 @@ void build(Solution &s)
     #ifdef  __cplusplus
     }
     #endif
-)xxx", true);
+)xxx");
 
-    crypto.fileWriteOnce("internal/bn_conf.h.in", R"xxx(
+    crypto.writeFileOnce("internal/bn_conf.h.in", R"xxx(
     /*
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
      *
@@ -352,9 +352,9 @@ void build(Solution &s)
     # ${THIRTY_TWO_BIT} THIRTY_TWO_BIT
 
     #endif
-)xxx", true);
+)xxx");
 
-    crypto.fileWriteOnce("internal/dso_conf.h.in", R"xxx(
+    crypto.writeFileOnce("internal/dso_conf.h.in", R"xxx(
     /*
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
      *
@@ -369,7 +369,7 @@ void build(Solution &s)
 
     # define DSO_EXTENSION "${CPPAN_SHARED_LIBRARY_SUFFIX}"
     #endif
-)xxx", true);
+)xxx");
 
     crypto.configureFile(crypto.BinaryDir / "openssl/opensslconf.h.in", "openssl/opensslconf.h");
     crypto.configureFile(crypto.BinaryDir / "internal/bn_conf.h.in", "internal/bn_conf.h");

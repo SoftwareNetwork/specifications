@@ -47,13 +47,13 @@ void build(Solution &s)
     const auto GMP_NUMB_BITS = nettle.Variables["SIZEOF_UNSIGNED_LONG"] * 8;
     nettle.Variables["GMP_NUMB_BITS"] = std::to_string(GMP_NUMB_BITS);
     nettle.configureFile("version.h.in", "version.h");
-    nettle.fileWriteOnce(nettle.BinaryPrivateDir / "config.h", "", true);
-    nettle.fileWriteOnce("nettle-stdint.h", "#include <stdint.h>", true);
+    nettle.writeFileOnce(nettle.BinaryPrivateDir / "config.h", "");
+    nettle.writeFileOnce("nettle-stdint.h", "#include <stdint.h>");
     nettle.replaceInFileOnce(nettle.SourceDir / "pss-mgf1.h",
         "#include \"sha2.h\"",
         "#include \"sha2.h\"\n#include \"sha3.h\"");
 
-    const std::map<int,std::vector<int>> args =
+    const std::map<int, std::vector<int>> args =
     {
         { 192,{192,7,6,GMP_NUMB_BITS} },
         { 224,{224,12,6,GMP_NUMB_BITS} },
@@ -63,7 +63,7 @@ void build(Solution &s)
         { 25519,{255,14,6,GMP_NUMB_BITS} },
     };
 
-    for (auto &[k,a] : args)
+    for (auto &[k, a] : args)
     {
         auto c = nettle.addCommand();
         c << cmd::prog(eccdata);
