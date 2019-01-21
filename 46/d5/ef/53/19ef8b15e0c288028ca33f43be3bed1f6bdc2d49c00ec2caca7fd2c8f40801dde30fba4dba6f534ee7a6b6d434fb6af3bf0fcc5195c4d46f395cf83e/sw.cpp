@@ -58,15 +58,6 @@ void build(Solution &s)
         llvm_support_lite += "LLVM_VERSION_MINOR=0"_v;
         llvm_support_lite += "LLVM_VERSION_PATCH=1"_v;
 
-        llvm_support_lite.replaceInFileOnce("lib/Support/CommandLine.cpp",
-            "GlobalParser->addOption(this);",
-            "//GlobalParser->addOption(this);"
-        );
-        llvm_support_lite.replaceInFileOnce("lib/Support/CommandLine.cpp",
-            "GlobalParser->registerCategory(this);",
-            "//GlobalParser->registerCategory(this);"
-        );
-
         llvm_support_lite.configureFile("include/llvm/Config/config.h.cmake", "llvm/Config/config.h");
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");

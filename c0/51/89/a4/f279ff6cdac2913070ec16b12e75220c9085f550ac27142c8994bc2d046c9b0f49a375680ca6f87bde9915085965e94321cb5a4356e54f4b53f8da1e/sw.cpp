@@ -7,6 +7,7 @@ void build(Solution &s)
 
     auto &llvm_demangle = llvm.addTarget<StaticLibraryTarget>("demangle");
     {
+        llvm_demangle.CPPVersion = CPPLanguageStandard::CPP14;
         llvm_demangle +=
             "include/llvm/Demangle/.*"_rr,
             "lib/Demangle/.*\\.cpp"_rr,
@@ -15,6 +16,7 @@ void build(Solution &s)
 
     auto &llvm_support_lite = llvm.addTarget<StaticLibraryTarget>("support_lite");
     {
+        llvm_support_lite.CPPVersion = CPPLanguageStandard::CPP14;
         llvm_support_lite.setChecks("support_lite");
         llvm_support_lite +=
             "include/llvm-c/.*Types\\.h"_rr,
@@ -55,7 +57,7 @@ void build(Solution &s)
         llvm_support_lite += "LLVM_VERSION_MAJOR=0"_v;
         llvm_support_lite += "LLVM_VERSION_MINOR=0"_v;
         llvm_support_lite += "LLVM_VERSION_PATCH=1"_v;
-        
+
         llvm_support_lite.replaceInFileOnce("lib/Support/CommandLine.cpp",
             "GlobalParser->addOption(this);",
             "//GlobalParser->addOption(this);"
