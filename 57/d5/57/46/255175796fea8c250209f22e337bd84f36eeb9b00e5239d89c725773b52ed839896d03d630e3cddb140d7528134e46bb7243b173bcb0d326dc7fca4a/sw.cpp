@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &yaml_cpp = s.addTarget<LibraryTarget>("jbeder.yaml_cpp", "master");
     yaml_cpp += Git("https://github.com/jbeder/yaml-cpp", "", "master");
 
+    yaml_cpp.CPPVersion = CPPLanguageStandard::CPP11;
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         yaml_cpp.Private += sw::Shared, "yaml_cpp_EXPORTS"_d;
