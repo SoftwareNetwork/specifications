@@ -31,9 +31,9 @@ void build(Solution &s)
 
     pqxx.Public += "org.sw.demo.find.libpq-master"_dep;
 
-    pqxx.writeFileOnce("pqxx/config-public-compiler.h", true);
-    pqxx.writeFileOnce("pqxx/config-internal-libpq.h", true);
-    pqxx.writeFileOnce("pqxx/config-internal-compiler.h", true);
+    pqxx.writeFileOnce("pqxx/config-public-compiler.h");
+    pqxx.writeFileOnce("pqxx/config-internal-libpq.h");
+    pqxx.writeFileOnce("pqxx/config-internal-compiler.h");
 }
 
 void check(Checker &c)
