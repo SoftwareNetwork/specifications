@@ -13,7 +13,7 @@ void build(Solution &s)
 
     libcharset += "HAVE_VISIBILITY=0"_v;
     libcharset.ApiName = "LIBCHARSET_DLL_EXPORTED";
-    libcharset.fileWriteOnce(libcharset.BinaryPrivateDir / "config.h", "", true);
+    libcharset.writeFileOnce(libcharset.BinaryPrivateDir / "config.h");
     libcharset.replaceInFileOnce("libcharset/include/localcharset.h.build.in",
         "#define LIBCHARSET_DLL_EXPORTED",
         "//#define LIBCHARSET_DLL_EXPORTED");
@@ -60,7 +60,7 @@ void build(Solution &s)
         "dummy1[28]",
         "dummy1[40]");
     libiconv.configureFile(libiconv.SourceDir / "include/iconv.h.build.in", libiconv.BinaryDir / "iconv.h");
-    libiconv.fileWriteOnce(libiconv.BinaryPrivateDir / "config.h",
+    libiconv.writeFileOnce(libiconv.BinaryPrivateDir / "config.h",
         R"(
 #define ENABLE_NLS 1
 #define WORDS_LITTLEENDIAN ( ! ( WORDS_BIGENDIAN ) )
@@ -125,8 +125,7 @@ void build(Solution &s)
 //#else
 //# define DLL_VARIABLE
 //#endif
-)",
-true
+)"
 );
 
 }
