@@ -4,19 +4,11 @@
 void gen_ragel(NativeExecutedTarget &t, const path &in)
 {
     auto ragel = THIS_PACKAGE_DEPENDENCY;
-    auto d = t + ragel;
-    d->Dummy = true;
 
-    auto o = t.BinaryDir / (in.filename().u8string() + ".cpp");
-
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->setProgram(ragel);
-    c->args.push_back((t.SourceDir / in).u8string());
-    c->args.push_back("-o");
-    c->args.push_back(o.u8string());
-    c->addInput(t.SourceDir / in);
-    c->addOutput(o);
-    t += o;
+    auto c = t.addCommand();
+    c << cmd::prog(ragel)
+        << cmd::in(in)
+        << cmd::out(in.filename() += ".cpp", cmd::Prefix{ "-o" });
 }
 
 #pragma sw header off
