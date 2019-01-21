@@ -1,20 +1,24 @@
-#ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
-static auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
+static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
 {
-    auto protoc = THIS_PREFIX "." "google.protobuf.protoc" "-" THIS_VERSION_DEPENDENCY;
+    auto protoc = std::make_shared<Dependency>(base->package);
+    protoc->package.ppath /= "protoc";
+
+    auto protobuf = std::make_shared<Dependency>(base->package);
+    protobuf->package.ppath /= "protobuf";
+
     {
         auto d = t + protoc;
         d->Dummy = true;
     }
-    
+
     if (!f.is_absolute())
         f = t.SourceDir / f;
 
     auto n = f.filename().stem().u8string();
     auto d = f.parent_path();
-    
+
     if (out_dir.is_absolute())
         throw std::logic_error("Make out_dir relative");
     auto bdir = t.BinaryDir / out_dir;
@@ -42,7 +46,6 @@ static auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf =
     c->addOutput(oh);
     t += ocpp, oh;
 
-    auto protobuf = THIS_PREFIX "." "google.protobuf.protobuf" "-" THIS_VERSION_DEPENDENCY;
     t += protobuf;
     if (public_protobuf)
         t.Public += protobuf;
@@ -51,7 +54,6 @@ static auto gen_protobuf(NativeExecutedTarget &t, path f, bool public_protobuf =
 }
 
 #pragma sw header off
-#endif
 
 void build(Solution &s)
 {
@@ -78,13 +80,13 @@ void build(Solution &s)
     {
         protobuf_lite.Public += "HAVE_PTHREAD"_d;
         protobuf.Public += "HAVE_PTHREAD"_d;
-        
-        for (auto &f : {/*"src/google/protobuf/port_def.inc",*/"src/google/protobuf/stubs/port.h"})
-        for (auto &e : {"#define LIBPROTOBUF_EXPORT"s, "#define LIBPROTOC_EXPORT"s})
-        {
-            protobuf_lite.replaceInFileOnce(f, e, e + " SW_EXPORT");
-            protobuf.replaceInFileOnce(f, e, e + " SW_EXPORT");
-        }
+
+        for (auto &f : {/*"src/google/protobuf/port_def.inc",*/"src/google/protobuf/stubs/port.h" })
+            for (auto &e : { "#define LIBPROTOBUF_EXPORT"s, "#define LIBPROTOC_EXPORT"s })
+            {
+                protobuf_lite.replaceInFileOnce(f, e, e + " SW_EXPORT");
+                protobuf.replaceInFileOnce(f, e, e + " SW_EXPORT");
+            }
     }
 
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");

@@ -1,17 +1,15 @@
-#ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
 #pragma sw require header org.sw.demo.google.protobuf.protoc-3
 
-void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
+static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_cpp_plugin, NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
 {
-    auto grpc_cpp_plugin = THIS_PREFIX "." "google.grpc.grpc_cpp_plugin" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + grpc_cpp_plugin;
         d->Dummy = true;
     }
 
-    auto[protoc, _] = gen_protobuf(t, f, public_protobuf);
+    auto[protoc, _] = gen_protobuf(protoc_in, t, f, public_protobuf);
 
     auto n = f.filename().stem().u8string();
     auto d = f.parent_path();
@@ -50,7 +48,6 @@ void gen_grpc(NativeExecutedTarget &t, const path &f, bool public_protobuf = fal
 };
 
 #pragma sw header off
-#endif
 
 void build(Solution &s)
 {
