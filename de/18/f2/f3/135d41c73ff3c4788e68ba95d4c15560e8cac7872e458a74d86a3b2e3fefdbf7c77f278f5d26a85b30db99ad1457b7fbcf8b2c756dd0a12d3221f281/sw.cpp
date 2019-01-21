@@ -67,7 +67,7 @@ void build(Solution &s)
         if (t.Variables["HAVE_IOCTLSOCKET_CAMEL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_CAMEL_FIONBIO"] = 1;
 
-        if (s.Settings.TargetOS.Type == OSType::Linux)
+        if (s.Settings.TargetOS.Type != OSType::Windows)
         {
             t.Variables["HAVE_STRUCT_TIMEVAL"] = 1;
             t.Variables["HAVE_BOOL_T"] = 1;

@@ -5,6 +5,7 @@ void build(Solution &s)
 
     pqxx.setChecks("pqxx");
 
+    pqxx.CPPVersion = CPPLanguageStandard::CPP17;
     pqxx.Public += "HAVE_PQEXEC"_d;
     pqxx.Public += "PGSTD=std"_d;
     pqxx.Public += "PQXXTR1=std"_d;

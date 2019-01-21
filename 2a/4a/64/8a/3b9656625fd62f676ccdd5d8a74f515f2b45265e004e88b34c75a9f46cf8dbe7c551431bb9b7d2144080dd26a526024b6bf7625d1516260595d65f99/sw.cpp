@@ -8,7 +8,10 @@
 static void gen_flex_bison(NativeExecutedTarget &t, const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
 {
     // must be HostOS
-    bool win_flex_bison = t.getSolution()->Settings.Native.CompilerType != CompilerType::GNU;
+    bool win_flex_bison =
+        //t.getSolution()->Settings.Native.CompilerType != CompilerType::GNU
+        t.getSolution()->HostOS.Type == OSType::Windows
+        ;
 
     auto flex = THIS_PREFIX "." "lexxmark.winflexbison.flex" "-" THIS_VERSION_DEPENDENCY;
     if (win_flex_bison)
