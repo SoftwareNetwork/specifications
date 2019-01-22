@@ -7,7 +7,7 @@ void build(Solution &s)
 
     cairo.ApiNames.insert("cairo_public");
     cairo.CPPVersion = CPPLanguageStandard::CPP11;
-        
+
     cairo +=
         "cairo-version.h",
         "src/cairo.*\\.c"_rr,
@@ -46,7 +46,7 @@ void build(Solution &s)
 
     cairo.Public +=
         "src"_id;
-        
+
     cairo.Public += "CAIRO_FEATURES_H=1"_d;
     cairo.Public += "CAIRO_HAS_BEOS_SURFACE=0"_d;
     cairo.Public += "CAIRO_HAS_COGL_SURFACE=0"_d;
@@ -94,7 +94,7 @@ void build(Solution &s)
     {
         cairo.Public += "CAIRO_HAS_PTHREAD"_d;
     }
-    
+
     //cairo.Public += "HAVE_CXX11_ATOMIC_PRIMITIVES=1"_d;
 
     cairo.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig-2"_dep;
@@ -103,7 +103,7 @@ void build(Solution &s)
     cairo.Public += "org.sw.demo.madler.zlib-1"_dep;
     cairo.Public += "org.sw.demo.glennrp.png-1"_dep;
 
-    cairo.writeFileOnce("cairo-features.h", "", true);
+    cairo.writeFileOnce("cairo-features.h");
     cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define vsnprintf _vsnprintf");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)

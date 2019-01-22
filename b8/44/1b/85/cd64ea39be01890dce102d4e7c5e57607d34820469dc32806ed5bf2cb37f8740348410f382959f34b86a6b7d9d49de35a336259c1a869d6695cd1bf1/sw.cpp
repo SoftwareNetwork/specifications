@@ -229,8 +229,8 @@ glib_init_ctor(void)
 #endif
     g_thread_impl_vtable.InitializeSRWLock (mutex);
         )");
-        glib.writeFileOnce(glib.BinaryPrivateDir / "config.h", true);
-        //glib.writeFileOnce(glib.BinaryPrivateDir / "unistd.h", true);
+        glib.writeFileOnce(glib.BinaryPrivateDir / "config.h");
+        //glib.writeFileOnce(glib.BinaryPrivateDir / "unistd.h");
         //glib.replaceInFileOnce("glib/gmessages.c", "myInvalidParameterHandler", "myInvalidParameterHandler_gmessages");
     }
 
@@ -254,7 +254,7 @@ glib_init_ctor(void)
 
         gobject.Public += "org.sw.demo.weltling.winlibs.libffi-3"_dep;
         gobject.Public += glib;
-        gobject.writeFileOnce(gobject.BinaryPrivateDir / "config.h", true);
+        gobject.writeFileOnce(gobject.BinaryPrivateDir / "config.h");
     }
 
     /*auto &gmodule = p.addTarget<LibraryTarget>("gmodule");

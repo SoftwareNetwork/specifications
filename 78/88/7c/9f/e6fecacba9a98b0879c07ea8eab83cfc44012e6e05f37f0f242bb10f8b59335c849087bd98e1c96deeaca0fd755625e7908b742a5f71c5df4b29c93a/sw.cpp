@@ -26,7 +26,7 @@ void build(Solution &s)
     }
     libffi.Private += sw::Shared, "FFI_BUILDING"_d;
 
-    libffi.writeFileOnce("fficonfig.h", true);
+    libffi.writeFileOnce("fficonfig.h");
     libffi.replaceInFileOnce("include/ffi.h", "#define FFI_EXTERN extern", "");
     libffi.replaceInFileOnce("include/ffi.h", "__declspec(dllimport)", "");
     libffi.replaceInFileOnce("include/ffi.h", "} ffi_type;", "}  ffi_type;\n#define  FFI_EXTERN extern SW_FFI_API");
@@ -132,45 +132,45 @@ void build(Solution &s)
     //libffi.configureFile("include/ffi.h.in", "ffi.h");
 
     if (!s.PostponeFileResolving)
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
-    {
-        const auto f = "win"s + (have64bit ? "64" : "32");
+        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
         {
-            auto p = s.findProgramByExtension(".c");
-            if (!p)
-                throw std::runtime_error("No c compiler found");
-            auto ch = std::static_pointer_cast<Compiler>(p->clone());
-            libffi.Storage.push_back(ch);
-            auto c = ch->as<VisualStudioCompiler>();
-            c->IncludeDirectories.insert(libffi.BinaryDir);
-            c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
-            c->IncludeDirectories.insert(libffi.SourceDir / "src");
-            c->IncludeDirectories.insert(libffi.SourceDir / "include");
-            c->PreprocessToStdout = true; // supress #line directives
-            c->PreprocessToFile = true;
-            c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->getCommand(libffi);
-            cmd->working_directory = libffi.BinaryDir;
-            cmd->addOutput(libffi.BinaryDir / (f + ".i"));
-        }
+            const auto f = "win"s + (have64bit ? "64" : "32");
+            {
+                auto p = s.findProgramByExtension(".c");
+                if (!p)
+                    throw std::runtime_error("No c compiler found");
+                auto ch = std::static_pointer_cast<Compiler>(p->clone());
+                libffi.Storage.push_back(ch);
+                auto c = ch->as<VisualStudioCompiler>();
+                c->IncludeDirectories.insert(libffi.BinaryDir);
+                c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
+                c->IncludeDirectories.insert(libffi.SourceDir / "src");
+                c->IncludeDirectories.insert(libffi.SourceDir / "include");
+                c->PreprocessToStdout = true; // supress #line directives
+                c->PreprocessToFile = true;
+                c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
+                auto cmd = c->getCommand(libffi);
+                cmd->working_directory = libffi.BinaryDir;
+                cmd->addOutput(libffi.BinaryDir / (f + ".i"));
+            }
 
-        {
-            auto p = s.findProgramByExtension(".asm");
-            if (!p)
-                throw std::runtime_error("No asm compiler found");
-            auto ch = std::static_pointer_cast<Compiler>(p->clone());
-            libffi.Storage.push_back(ch);
-            auto c = ch->as<VisualStudioASMCompiler>();
-            c->PreserveSymbolCase = true;
-            c->SafeSEH = true;
-            const auto o = libffi.BinaryDir / "pre.obj";
-            c->ObjectFile = o;
-            c->InputFile = libffi.BinaryDir / (f + ".i");
-            auto cmd = c->getCommand(libffi);
-            cmd->addOutput(o);
-            libffi += o;
+            {
+                auto p = s.findProgramByExtension(".asm");
+                if (!p)
+                    throw std::runtime_error("No asm compiler found");
+                auto ch = std::static_pointer_cast<Compiler>(p->clone());
+                libffi.Storage.push_back(ch);
+                auto c = ch->as<VisualStudioASMCompiler>();
+                c->PreserveSymbolCase = true;
+                c->SafeSEH = true;
+                const auto o = libffi.BinaryDir / "pre.obj";
+                c->ObjectFile = o;
+                c->InputFile = libffi.BinaryDir / (f + ".i");
+                auto cmd = c->getCommand(libffi);
+                cmd->addOutput(o);
+                libffi += o;
+            }
         }
-    }
 }
 
 void check(Checker &c)

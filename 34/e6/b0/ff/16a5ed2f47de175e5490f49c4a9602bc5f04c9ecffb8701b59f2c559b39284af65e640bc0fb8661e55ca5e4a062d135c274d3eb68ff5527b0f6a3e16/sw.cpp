@@ -103,9 +103,9 @@ void build(Solution &s)
         }
     }
 
-    fontconfig.writeFileOnce("fcaliastail.h", "", true);
-    fontconfig.writeFileOnce("fcftaliastail.h", "", true);
-    fontconfig.writeFileOnce("fcstdint.h", "#include <stdint.h>", true);
+    fontconfig.writeFileOnce("fcaliastail.h");
+    fontconfig.writeFileOnce("fcftaliastail.h");
+    fontconfig.writeFileOnce("fcstdint.h", "#include <stdint.h>");
 
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define  FcPublic extern SW_FONTCONFIG_LIBRARY_API");
 
@@ -139,7 +139,7 @@ void build(Solution &s)
             #else
             #define ssize_t int32_t
             #endif
-)", true);
+)");
     }
     else
     {
