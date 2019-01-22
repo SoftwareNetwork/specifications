@@ -5,8 +5,8 @@ void re2c(const DependencyPtr &d, NativeExecutedTarget &t, const path &f, const 
     auto c = t.addCommand();
     c << cmd::prog(d)
         << "-o"
-        << cmd::out(path(f) += ext)
-        << cmd::in(f)
+        << cmd::out(normalize_path(path(f) += ext))
+        << cmd::in(normalize_path(f))
         ;
 }
 
