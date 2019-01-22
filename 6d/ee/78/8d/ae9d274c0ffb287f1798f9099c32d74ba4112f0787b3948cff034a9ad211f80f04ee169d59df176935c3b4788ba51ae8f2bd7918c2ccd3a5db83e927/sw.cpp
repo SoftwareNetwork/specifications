@@ -35,16 +35,16 @@ void build(Solution &s)
     openjp2.Private += sw::Shared, "OPJ_EXPORTS"_d;
     openjp2.Public += sw::Static, "OPJ_STATIC"_d;
 
-    openjp2.fileWriteOnce("opj_config.h.in", R"(
+    openjp2.writeFileOnce("opj_config.h.in", R"(
 #ifdef HAVE_STDINT_H
 #define OPJ_HAVE_STDINT_H 1
 #endif
 #define OPJ_VERSION_MAJOR @PACKAGE_VERSION_MAJOR@
 #define OPJ_VERSION_MINOR @PACKAGE_VERSION_MINOR@
 #define OPJ_VERSION_BUILD @PACKAGE_VERSION_PATCH@
-)", true);
+)");
 
-    openjp2.fileWriteOnce("opj_config_private.h.in", R"(
+    openjp2.writeFileOnce("opj_config_private.h.in", R"(
 #ifdef HAVE_INTTYPES_H
 #define OPJ_HAVE_INTTYPES_H 1
 #endif
@@ -76,7 +76,7 @@ void build(Solution &s)
     #if @WORDS_BIGENDIAN@
     #define OPJ_BIG_ENDIAN @WORDS_BIGENDIAN@
     #endif
-)", true);
+)");
 
     openjp2.configureFile("opj_config.h.in", "opj_config.h");
     openjp2.configureFile("opj_config_private.h.in", "opj_config_private.h");
