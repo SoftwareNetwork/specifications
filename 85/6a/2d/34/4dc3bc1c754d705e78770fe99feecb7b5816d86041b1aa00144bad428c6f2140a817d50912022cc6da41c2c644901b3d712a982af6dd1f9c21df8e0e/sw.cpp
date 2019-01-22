@@ -1318,7 +1318,7 @@ void build(Solution &s)
             };
 
             copy(bootstrap, bootstrap.SourceDir / "src/xml/sax/qxml_p.h", bootstrap.BinaryDir / "private/qxml_p.h");
-            syncqt(bootstrap, { "QtCore", "QtXml" });
+            syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, bootstrap, { "QtCore", "QtXml" });
 
             if (s.Settings.Native.CompilerType == CompilerType::MSVC)
                 bootstrap.Public += "mkspecs/win32-msvc"_idir;
@@ -1439,7 +1439,7 @@ void build(Solution &s)
             if (s.Settings.Native.CompilerType == CompilerType::MSVC)
                 core.Public += "mkspecs/win32-msvc"_idir;
 
-            auto sqt = syncqt(core, { "QtCore", "QtPlatformHeaders" });
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, core, { "QtCore", "QtPlatformHeaders" });
 
             SwapAndRestore sr(core.SourceDir);
             core.SourceDir /= "src/corelib";
@@ -1653,7 +1653,7 @@ void build(Solution &s)
 
         auto &gui = base.addTarget<LibraryTarget>("gui");
         {
-            auto sqt = syncqt(gui, { "QtGui" });
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, gui, { "QtGui" });
             gui += "src/3rdparty/icc/sRGB2014.icc";
             SwapAndRestore sr(gui.SourceDir);
             gui.SourceDir /= "src/gui";
@@ -1700,7 +1700,7 @@ void build(Solution &s)
 
         auto &widgets = base.addTarget<LibraryTarget>("widgets");
         {
-            auto sqt = syncqt(widgets, { "QtWidgets" });
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, widgets, { "QtWidgets" });
 
             SwapAndRestore sr(widgets.SourceDir);
             widgets.SourceDir /= "src/widgets";
@@ -1744,7 +1744,7 @@ void build(Solution &s)
 
         auto &network = base.addTarget<LibraryTarget>("network");
         {
-            auto sqt = syncqt(network, { "QtNetwork" });
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, network, { "QtNetwork" });
 
             SwapAndRestore sr(network.SourceDir);
             network.SourceDir /= "src/network";
@@ -1810,7 +1810,7 @@ void build(Solution &s)
 
         auto &xml = base.addTarget<LibraryTarget>("xml");
         {
-            syncqt(xml, { "QtXml" });
+            syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, xml, { "QtXml" });
 
             SwapAndRestore sr(xml.SourceDir);
             xml.SourceDir /= "src/xml";
@@ -1845,7 +1845,7 @@ void build(Solution &s)
                 String module = "QtAccessibilitySupport";
                 auto &t = accessibility;
 
-                syncqt(accessibility, { module });
+                syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, accessibility, { module });
 
                 t.writeFileOnce(module + "/" + module + "Depends", R"xxx(
                 #ifdef __cplusplus
@@ -1858,7 +1858,7 @@ void build(Solution &s)
             // eventdispatchers
             {
                 String module = "QtEventDispatcherSupport";
-                auto sqt = syncqt(eventdispatchers, { module });
+                auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, eventdispatchers, { module });
 
                 SwapAndRestore sr(eventdispatchers.SourceDir);
                 eventdispatchers.SourceDir /= "src/platformsupport/eventdispatchers";
@@ -1895,7 +1895,7 @@ void build(Solution &s)
                 themes.Public += gui;
 
                 String module = "QtThemeSupport";
-                syncqt(themes, { module });
+                syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, themes, { module });
                 themes.writeFileOnce(module + "/" + module + "Depends", R"xxx(
                 #ifdef __cplusplus
                 #include <QtCore/QtCore>
@@ -1916,7 +1916,7 @@ void build(Solution &s)
                 windowsuiautomation.Public += gui;
 
                 String module = "QtWindowsUIAutomationSupport";
-                syncqt(windowsuiautomation, { module });
+                syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, windowsuiautomation, { module });
                 windowsuiautomation.writeFileOnce(module + "/" + module + "Depends", R"xxx(
                     #ifdef __cplusplus
                     #include <QtCore/QtCore>
@@ -1930,7 +1930,7 @@ void build(Solution &s)
                 auto &freetype = fontdatabases.addTarget<StaticLibraryTarget>("freetype");
                 {
                     String module = "QtFontDatabaseSupport";
-                    syncqt(freetype, { module });
+                    syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, freetype, { module });
 
                     freetype +=
                         "src/platformsupport/fontdatabases/freetype/.*"_rr;
@@ -1949,7 +1949,7 @@ void build(Solution &s)
                     auto &windows = fontdatabases_windows;
 
                     String module = "QtFontDatabaseSupport";
-                    syncqt(windows, { module });
+                    syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, windows, { module });
 
                     windows +=
                         "src/platformsupport/fontdatabases/.*\\.h"_rr,
@@ -2044,7 +2044,7 @@ void build(Solution &s)
 
         auto &printsupport = base.addTarget<LibraryTarget>("printsupport");
         {
-            auto sqt = syncqt(printsupport, { "QtPrintSupport" });
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, printsupport, { "QtPrintSupport" });
 
             SwapAndRestore sr(printsupport.SourceDir);
             printsupport.SourceDir /= "src/printsupport";

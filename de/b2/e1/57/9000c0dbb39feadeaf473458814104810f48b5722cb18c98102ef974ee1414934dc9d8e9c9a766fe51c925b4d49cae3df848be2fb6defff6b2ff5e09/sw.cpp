@@ -10,7 +10,7 @@ void build(Solution &s)
 
     {
         String module = "QtWinExtras";
-        syncqt(winextras, { module });
+        syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, winextras, { module });
         auto &t = winextras;
 
         winextras.SourceDir /= "src/winextras";

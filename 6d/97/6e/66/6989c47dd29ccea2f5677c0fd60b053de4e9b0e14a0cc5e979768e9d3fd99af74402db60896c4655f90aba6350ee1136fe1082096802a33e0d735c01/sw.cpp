@@ -22,7 +22,6 @@ struct YasmAssemblerOptions
 DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 
 struct YasmCompiler : NativeCompiler,
-    CompilerToolBase,
     CommandLineOptions<YasmAssemblerOptions>
 {
     virtual ~YasmCompiler() = default;
@@ -34,20 +33,15 @@ struct YasmCompiler : NativeCompiler,
         return std::make_shared<YasmCompiler>(*this);
     }
 
-    std::shared_ptr<builder::Command> prepareCommand(const TargetBase &t) override
+    void prepareCommand1(const TargetBase &t) override
     {
-        if (cmd)
-            return cmd;
-
-        SW_MAKE_COMPILER_COMMAND(driver::cpp::Command);
-
         if (InputFile)
         {
-            c->name = normalize_path(InputFile());
-            c->name_short = InputFile().filename().u8string();
+            cmd->name = normalize_path(InputFile());
+            cmd->name_short = InputFile().filename().u8string();
         }
         if (ObjectFile)
-            c->working_directory = ObjectFile().parent_path();
+            cmd->working_directory = ObjectFile().parent_path();
 
         if (!ObjectFormat)
             if (t.getSolution()->Settings.TargetOS.Type == OSType::Windows)
@@ -58,10 +52,8 @@ struct YasmCompiler : NativeCompiler,
                     ObjectFormat = "win32";
             }
 
-        getCommandLineOptions<YasmAssemblerOptions>(c.get(), *this);
-        iterate([c](auto &v, auto &gs) { v.addEverything(*c); });
-
-        return cmd = c;
+        getCommandLineOptions<YasmAssemblerOptions>(cmd.get(), *this);
+        iterate([this](auto &v, auto &gs) { v.addEverything(*cmd); });
     }
 
     void setSourceFile(const path &input_file, path &output_file) override
@@ -79,7 +71,6 @@ struct YasmCompiler : NativeCompiler,
 
 protected:
     Version gatherVersion() const override { return "master"; }
-    Version gatherVersion(const path &program) const override { return "master"; }
 };
 
 void build(Solution &s)
@@ -162,10 +153,10 @@ void build(Solution &s)
     auto &parsers = modules.addDirectory("parsers");
 
     auto &pa_gas = add_modules_child("parsers", "gas");
-    re2c(pa_gas, "modules/parsers/gas/gas-token.re", "c");
+    re2c("org.sw.demo.re2c.re2c-1"_dep, pa_gas, "modules/parsers/gas/gas-token.re");
 
     auto &pa_nasm = add_modules_child("parsers", "nasm");
-    re2c(pa_nasm, "modules/parsers/nasm/nasm-token.re", "c");
+    re2c("org.sw.demo.re2c.re2c-1"_dep, pa_nasm, "modules/parsers/nasm/nasm-token.re");
     gen_macro(pa_nasm, "modules/parsers/nasm/nasm-std.mac", "nasm-macros.c", "nasm_standard_mac");
 
     auto &objfmts = modules.addDirectory("objfmts");
@@ -192,7 +183,7 @@ void build(Solution &s)
     auto &dbg_stabs = add_modules_child("dbgfmts", "stabs");
 
     auto &a_lc3b = add_modules_child("arch", "lc3b");
-    re2c(a_lc3b, "modules/arch/lc3b/lc3bid.re", "c");
+    re2c("org.sw.demo.re2c.re2c-1"_dep, a_lc3b, "modules/arch/lc3b/lc3bid.re");
 
     auto &a_x86 = add_modules_child("arch", "x86");
     {

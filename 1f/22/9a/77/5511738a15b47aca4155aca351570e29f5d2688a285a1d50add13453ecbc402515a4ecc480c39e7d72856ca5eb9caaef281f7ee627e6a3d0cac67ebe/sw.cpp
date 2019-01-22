@@ -26,6 +26,7 @@ void build(Solution &s)
             "glib/gtester.c",
             "glib/win_iconv.c",
             "glib/gspawn.c",
+            "glib/gstdio-private.c",
             "glib/.*helper.*"_rr
             ;
 
