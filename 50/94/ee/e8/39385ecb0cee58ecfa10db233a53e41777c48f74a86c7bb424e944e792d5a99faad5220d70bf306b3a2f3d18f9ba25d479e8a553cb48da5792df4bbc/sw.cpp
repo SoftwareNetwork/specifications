@@ -1,31 +1,16 @@
-#ifdef SW_PRAGMA_HEADER
 #pragma sw header on
 
-void re2c(NativeExecutedTarget &t, const path &f, const String &ext)
+void re2c(const DependencyPtr &d, NativeExecutedTarget &t, const path &f, const String &ext = ".c")
 {
-    auto re2c = THIS_PREFIX "." "re2c.re2c" "-" THIS_VERSION_DEPENDENCY;
-    {
-        auto d = t + re2c;
-        d->Dummy = true;
-    }
-
-    auto in = t.SourceDir / f;
-    auto out = t.BinaryPrivateDir / (f.u8string() + "." + ext);
-    fs::create_directories(out.parent_path());
-
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->setProgram(re2c);
-    c->args.push_back("-o");
-    c->args.push_back(normalize_path(out));
-    c->args.push_back(normalize_path(in));
-    c->addInput(in);
-    c->addOutput(out);
-    t += f;
-    t += out;
+    auto c = t.addCommand();
+    c << cmd::prog(d)
+        << "-o"
+        << cmd::out(path(f) += ext)
+        << cmd::in(f)
+        ;
 }
 
 #pragma sw header off
-#endif
 
 void build(Solution &s)
 {
