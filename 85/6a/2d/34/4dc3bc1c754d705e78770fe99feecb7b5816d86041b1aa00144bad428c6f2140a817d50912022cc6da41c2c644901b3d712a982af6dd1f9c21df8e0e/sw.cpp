@@ -1907,11 +1907,8 @@ void build(Solution &s)
             // windowsuiautomation
             {
                 windowsuiautomation +=
-                    "src/platformsupport/windowsuiautomation/.*"_rr,
-                    "src/plugins/platforms/windows/.*\\.h"_rr;
-
-                windowsuiautomation.Private +=
-                    "src/plugins/platforms/windows"_id;
+                    "src/platformsupport/windowsuiautomation/.*"_rr
+                    ;
 
                 windowsuiautomation.Public += gui;
 
@@ -2054,6 +2051,8 @@ void build(Solution &s)
                 "kernel/.*"_rr,
                 "widgets/.*"_rr;
 
+            printsupport.Protected += "dialogs"_idir, "kernel"_idir, "widgets"_idir;
+
             printsupport.Private += "QT_BUILD_PRINTSUPPORT_LIB"_d;
             if (s.Settings.TargetOS.Type == OSType::Windows)
             {
@@ -2075,6 +2074,22 @@ void build(Solution &s)
 
             for (auto &f : enumerate_files_like(printsupport.SourceDir / "dialogs", ".*\\.ui"))
                 ::uic(uic, printsupport, f);
+        }
+
+        auto &plugins_printsupport = plugins.addDirectory("printsupport");
+
+        auto &plugins_printsupport_windows = plugins_printsupport.addTarget<LibraryTarget>("windows");
+        {
+            plugins_printsupport_windows.setOutputDir("plugins/printsupport");
+            plugins_printsupport_windows +=
+                "src/plugins/printsupport/windows/.*"_rr;
+            plugins_printsupport_windows.Public +=
+                "src/plugins/printsupport/windows"_id;
+            plugins_printsupport_windows += "Winspool.lib"_lib;
+
+            plugins_printsupport_windows.Private += sw::Static, "QT_STATICPLUGIN"_d;
+            plugins_printsupport_windows.Public += printsupport;
+            automoc(moc, plugins_printsupport_windows);
         }
     }
 }
