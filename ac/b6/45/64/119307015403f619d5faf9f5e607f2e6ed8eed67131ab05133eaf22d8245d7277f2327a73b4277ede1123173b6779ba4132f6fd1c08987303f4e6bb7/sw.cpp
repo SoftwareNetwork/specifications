@@ -1,6 +1,6 @@
 #pragma sw header on
 
-void gen_ragel(const DependencyPtr &ragel, NativeExecutedTarget &t, const path &in)
+static void gen_ragel(const DependencyPtr &ragel, NativeExecutedTarget &t, const path &in)
 {
     auto c = t.addCommand();
     c << cmd::prog(ragel)
