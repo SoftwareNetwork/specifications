@@ -5,7 +5,7 @@
 void configure(Solution &s)
 {
     s.Settings.Native.LibrariesType = LibraryType::Static;
-    //s.Settings.Native.ConfigurationType = ConfigurationType::ReleaseWithDebugInformation;
+    s.Settings.Native.ConfigurationType = ConfigurationType::ReleaseWithDebugInformation;
     //s.Settings.Native.CompilerType = CompilerType::ClangCl;
     //s.Settings.Native.CompilerType = CompilerType::Clang;
 }
@@ -68,10 +68,11 @@ void build(Solution &s)
     embed("pub.egorpugin.primitives.tools.embedder-master"_dep, manager, "src/manager/inserts/inserts.cpp.in");
     gen_sqlite2cpp("pub.egorpugin.primitives.tools.sqlpp11.sqlite2cpp-master"_dep, manager, manager.SourceDir / "src/manager/inserts/packages_db_schema.sql", "db_packages.h", "db::packages");
     gen_sqlite2cpp("pub.egorpugin.primitives.tools.sqlpp11.sqlite2cpp-master"_dep, manager, manager.SourceDir / "src/manager/inserts/service_db_schema.sql", "db_service.h", "db::service");
+
+    PrecompiledHeader pch;
     if (!s.Variables["SW_SELF_BUILD"])
     {
-        PrecompiledHeader pch;
-        pch.header = "src/manager/pch.h";
+        pch.header = manager.SourceDir / "src/manager/pch.h";
         pch.force_include_pch = true;
         manager.addPrecompiledHeader(pch);
     }
@@ -95,6 +96,13 @@ void build(Solution &s)
     builder -= "src/builder/db_sqlite.*"_rr;
     builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep,
         "pub.egorpugin.primitives.context-master"_dep;
+    if (!s.Variables["SW_SELF_BUILD"])
+    {
+        /*PrecompiledHeader pch;
+        pch.header = "src/builder/pch.h";
+        pch.force_include_pch = true;*/
+        //builder.addPrecompiledHeader(pch);
+    }
 
     auto &cpp_driver = p.addTarget<LibraryTarget>("driver.cpp");
     cpp_driver.ApiName = "SW_DRIVER_CPP_API";
@@ -124,9 +132,17 @@ void build(Solution &s)
             << cmd::out("build_self.packages.generated.h")
             ;
     }
+    if (!s.Variables["SW_SELF_BUILD"])
+    {
+        /*PrecompiledHeader pch;
+        pch.header = "src/driver/cpp/pch.h";
+        pch.force_include_pch = true;*/
+        //cpp_driver.addPrecompiledHeader(pch);
+    }
 
     auto &client = p.addTarget<ExecutableTarget>("sw");
     client.PackageDefinitions = true;
+    client.StartupProject = true;
     client += "src/client/.*"_rr;
     client += "src/client"_idir;
     client.CPPVersion = CPPLanguageStandard::CPP17;
