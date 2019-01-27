@@ -6,6 +6,12 @@ void configure(Solution &s)
 {
     s.Settings.Native.LibrariesType = LibraryType::Static;
     s.Settings.Native.ConfigurationType = ConfigurationType::ReleaseWithDebugInformation;
+
+    if (s.isConfigSelected("cygwin2macos"))
+        s.loadModule("utils/cc/cygwin2macos.cpp").call<void(Solution&)>("configure", s);
+    else if (s.isConfigSelected("win2macos"))
+        s.loadModule("utils/cc/win2macos.cpp").call<void(Solution&)>("configure", s);
+
     //s.Settings.Native.CompilerType = CompilerType::ClangCl;
     //s.Settings.Native.CompilerType = CompilerType::Clang;
 }
@@ -31,6 +37,8 @@ void build(Solution &s)
     support.ApiName = "SW_SUPPORT_API";
     if (s.Settings.TargetOS.Type == OSType::Windows)
         support.Public += "UNICODE"_d;
+    if (s.Settings.TargetOS.Type == OSType::Macos)
+        support.Public += "BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"_def;
 
     auto &protos = p.addTarget<StaticLibraryTarget>("protos");
     protos.CPPVersion = CPPLanguageStandard::CPP17;
