@@ -37,7 +37,8 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     c->args.push_back("-I");
     c->args.push_back(d.u8string());
     c->args.push_back("-I");
-    c->pushLazyArg([protoc]()
+    // we cannot capture binding ref
+    c->pushLazyArg([protoc = protoc]()
     {
         return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
     });
