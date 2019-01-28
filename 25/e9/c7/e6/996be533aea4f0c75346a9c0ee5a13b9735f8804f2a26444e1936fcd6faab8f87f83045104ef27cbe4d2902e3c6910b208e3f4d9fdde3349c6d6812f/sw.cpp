@@ -82,7 +82,7 @@ void build(Solution &s)
     
     uv.patch("include/uv.h", R"(--- bef5/include/uv.h	2019-01-14 19:34:30.586129300 +0300
 +++ bef51/include/uv.h	2019-01-14 04:33:15.209648100 +0300
-@@ -930,6 +930,12 @@
+@@ -931,6 +931,12 @@
     */
    uv_uid_t uid;
    uv_gid_t gid;
@@ -95,7 +95,7 @@ void build(Solution &s)
  } uv_process_options_t;
  
  /*
-@@ -978,7 +984,11 @@
+@@ -979,7 +985,11 @@
     * option is only meaningful on Windows systems. On Unix it is silently
     * ignored.
     */
