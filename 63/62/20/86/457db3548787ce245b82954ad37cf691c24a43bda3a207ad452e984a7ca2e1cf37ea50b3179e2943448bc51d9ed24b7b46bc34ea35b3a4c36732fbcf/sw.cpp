@@ -22,9 +22,10 @@ void build(Solution &s)
     gss.Public += "PO_SUFFIX=\".po\""_d;
 
     gss.writeFileOnce(gss.BinaryPrivateDir / "config.h");
-    gss.pushFrontToFileOnce("lib/version.c", R"xxx(
+    gss.patch("lib/version.c", "#include \"internal.h\"", R"xxx(
 #include "gl/strverscmp.c"
 #define strverscmp __strverscmp
+#include  "internal.h"
 )xxx");
 }
 
