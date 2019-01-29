@@ -28,9 +28,9 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     c->args.push_back("--grpc_out=" + bdir.u8string());
     c->pushLazyArg([c = c.get(), grpc_cpp_plugin]()
     {
-        if (!grpc_cpp_plugin->target.lock())
+        if (!grpc_cpp_plugin->target)
             throw std::runtime_error("Command dependency target was not resolved: " + grpc_cpp_plugin->getPackage().toString());
-        auto p = grpc_cpp_plugin->target.lock()->getOutputFile();
+        auto p = ((NativeTarget*)grpc_cpp_plugin->target)->getOutputFile();
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     });
