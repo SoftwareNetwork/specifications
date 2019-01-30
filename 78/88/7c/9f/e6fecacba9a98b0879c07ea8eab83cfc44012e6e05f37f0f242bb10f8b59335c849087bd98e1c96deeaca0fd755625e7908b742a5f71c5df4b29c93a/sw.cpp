@@ -164,7 +164,7 @@ void build(Solution &s)
                 c->PreserveSymbolCase = true;
                 c->SafeSEH = true;
                 const auto o = libffi.BinaryDir / "pre.obj";
-                c->ObjectFile = o;
+                c->Output = o;
                 c->InputFile = libffi.BinaryDir / (f + ".i");
                 auto cmd = c->getCommand(libffi);
                 cmd->addOutput(o);
