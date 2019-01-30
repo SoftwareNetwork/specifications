@@ -11,7 +11,7 @@ static bool need_build(Solution &s)
 {
     return
         //s.Settings.Native.CompilerType != CompilerType::GNU
-        s.HostOS.Type == OSType::Windows && !::sw::detail::isHostCygwin()
+        s.HostOS.Type == OSType::Windows// && !::sw::detail::isHostCygwin()
         ;
 }
 
