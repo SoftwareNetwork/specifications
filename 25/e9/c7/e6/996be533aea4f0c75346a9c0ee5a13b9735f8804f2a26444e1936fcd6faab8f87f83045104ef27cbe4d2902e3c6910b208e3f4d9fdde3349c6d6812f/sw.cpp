@@ -13,12 +13,12 @@ void build(Solution &s)
     {
         uv += "src/win/.*"_rr;
         uv.Public +=
-            "ws2_32.lib"_lib,
-            "user32.lib"_lib,
-            "Advapi32.lib"_lib,
-            "iphlpapi.lib"_lib,
-            "psapi.lib"_lib,
-            "userenv.lib"_lib;
+            "ws2_32.lib"_slib,
+            "user32.lib"_slib,
+            "Advapi32.lib"_slib,
+            "iphlpapi.lib"_slib,
+            "psapi.lib"_slib,
+            "userenv.lib"_slib;
     }
     else
     {
@@ -79,7 +79,7 @@ void build(Solution &s)
     }
 
     // windows patches that add extended startup info and attribute lists
-    
+
     uv.patch("include/uv.h", R"(--- bef5/include/uv.h	2019-01-14 19:34:30.586129300 +0300
 +++ bef51/include/uv.h	2019-01-14 04:33:15.209648100 +0300
 @@ -931,6 +931,12 @@

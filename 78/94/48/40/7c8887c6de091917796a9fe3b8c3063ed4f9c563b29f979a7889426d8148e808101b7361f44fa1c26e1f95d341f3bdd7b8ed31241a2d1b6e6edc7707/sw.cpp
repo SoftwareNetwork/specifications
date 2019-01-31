@@ -46,13 +46,13 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         crypto.Private += "DSO_WIN32"_d;
-        crypto.Public += "Crypt32.lib"_l;
+        crypto.Public += "Crypt32.lib"_slib;
         crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
     }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        crypto.Public += "ws2_32.lib"_l, "advapi32.lib"_l, "User32.lib"_l;
+        crypto.Public += "ws2_32.lib"_slib, "advapi32.lib"_slib, "User32.lib"_slib;
     }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)

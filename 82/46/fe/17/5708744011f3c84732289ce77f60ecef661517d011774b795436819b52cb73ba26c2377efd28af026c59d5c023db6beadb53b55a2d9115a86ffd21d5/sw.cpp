@@ -156,7 +156,7 @@ void build(Solution &s)
     flex -= "flex/src/libyywrap.c";
     flex += common;
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        flex += "ws2_32.lib"_lib;
+        flex += "ws2_32.lib"_slib;
 
     auto &bison = winflexbison.addTarget<ExecutableTarget>("bison");
     bison -= "bison/data/.*"_rr;

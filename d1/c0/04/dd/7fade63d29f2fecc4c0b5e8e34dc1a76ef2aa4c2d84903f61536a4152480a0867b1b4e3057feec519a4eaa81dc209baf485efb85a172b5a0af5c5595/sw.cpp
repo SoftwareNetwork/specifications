@@ -122,7 +122,7 @@ void build(Solution &s)
         c_ares.Variables["CARES_TYPEOF_ARES_SSIZE_T"] = "long long";
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        c_ares.Public += "ws2_32.lib"_l, "Advapi32.lib"_l;
+        c_ares.Public += "ws2_32.lib"_slib, "Advapi32.lib"_slib;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {

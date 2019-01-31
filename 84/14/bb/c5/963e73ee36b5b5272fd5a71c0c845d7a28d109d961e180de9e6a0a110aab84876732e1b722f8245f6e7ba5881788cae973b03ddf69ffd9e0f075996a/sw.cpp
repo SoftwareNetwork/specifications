@@ -151,7 +151,7 @@ void build(Solution &s)
 );
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        libxml2.Public << "ws2_32.lib"_l;
+        libxml2.Public << "ws2_32.lib"_slib;
     }
 }
 

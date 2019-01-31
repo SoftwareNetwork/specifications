@@ -2,7 +2,7 @@ void build(Solution &s)
 {
     auto &libarchive = s.addTarget<LibraryTarget>("libarchive.libarchive", "3.3.3");
     libarchive += Git("https://github.com/libarchive/libarchive", "v{v}");
-    
+
     libarchive.setChecks("libarchive");
     libarchive +=
         "build/cmake/CheckFuncs.cmake",
@@ -48,7 +48,7 @@ void build(Solution &s)
     libarchive += "ICONV_CONST=const"_v;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        libarchive.Public += "Advapi32.lib"_l, "User32.lib"_l;
+        libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
 
     libarchive.Public += "org.sw.demo.bzip2-1"_dep;
     libarchive.Public += "org.sw.demo.gnu.nettle.nettle-3"_dep;
@@ -208,7 +208,7 @@ void build(Solution &s)
         endif()
         */
     }
-    
+
     libarchive.replaceInFileOnce("libarchive/archive.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
     libarchive.replaceInFileOnce("libarchive/archive_entry.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
 

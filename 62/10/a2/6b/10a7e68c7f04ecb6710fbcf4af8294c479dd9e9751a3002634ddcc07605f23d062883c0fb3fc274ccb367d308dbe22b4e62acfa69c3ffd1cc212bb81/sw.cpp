@@ -49,7 +49,7 @@ void build(Solution &s)
     intl.Private += "HAVE_GETCWD"_d;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        intl.Public += "Advapi32.lib"_l;
+        intl.Public += "Advapi32.lib"_slib;
 
     if (intl.Variables["HAVE_LANGINFO_H"] == "1" && intl.Variables["HAVE_NL_LANGINFO"] == "1")
         intl.Public.Definitions["HAVE_LANGINFO_CODESET"];

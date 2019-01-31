@@ -121,9 +121,9 @@ void build(Solution &s)
     libcurl.Public += "org.sw.demo.madler.zlib-1"_dep;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        libcurl.Public += "Wldap32.lib"_l;
+        libcurl.Public += "Wldap32.lib"_slib;
     else
-        libcurl.Public += "lber"_l, "ldap"_l;
+        libcurl.Public += "lber"_slib, "ldap"_slib;
 
     libcurl.Variables["OPERATING_SYSTEM"] = "${CMAKE_SYSTEM_NAME}";
     libcurl.Variables["OS"] = "\"${CMAKE_SYSTEM_NAME}\"";

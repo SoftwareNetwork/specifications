@@ -466,7 +466,7 @@ void build(Solution &s)
     //*boost_targets["thread"] += *boost_targets["date_time"];
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_lib;
+        ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_slib;
 
     boost_deps(boost_targets);
 
