@@ -82,7 +82,7 @@ void build(Solution &s)
     {
         pch.header = manager.SourceDir / "src/manager/pch.h";
         pch.force_include_pch = true;
-        manager.addPrecompiledHeader(pch);
+        //manager.addPrecompiledHeader(pch);
     }
 
     auto &tools = p.addDirectory("tools");
@@ -188,7 +188,7 @@ void build(Solution &s)
         client +=
             "org.sw.demo.boost.dll-1"_dep,
             "org.sw.demo.boost.filesystem-1"_dep,
-            "user32.lib"_lib;
+            "user32.lib"_slib;
         if (s.Settings.TargetOS.Type == OSType::Windows)
             client.Public += "UNICODE"_d;
     }
