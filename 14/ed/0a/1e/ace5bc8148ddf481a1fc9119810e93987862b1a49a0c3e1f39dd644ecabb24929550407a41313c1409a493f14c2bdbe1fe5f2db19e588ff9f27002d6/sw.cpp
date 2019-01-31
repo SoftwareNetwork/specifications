@@ -33,7 +33,7 @@ void build(Solution &s)
         libssh2.Variables["HAVE_IOCTLSOCKET_CASE"] == "0" &&
         libssh2.Variables["HAVE_SO_NONBLOCK"] == "0"
         )
-        libssh2.Variables["HAVE_DISABLED_NONBLOCKING"] == "1";
+        libssh2.Variables["HAVE_DISABLED_NONBLOCKING"] = "1";
 
     libssh2.pushBackToFileOnce("src/libssh2_config_cmake.h.in", "#include <stdint.h>");
     libssh2.configureFile("src/libssh2_config_cmake.h.in", "libssh2_config.h");
