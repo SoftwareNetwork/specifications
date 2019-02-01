@@ -1,6 +1,7 @@
 void build(Solution &s)
 {
     auto &libpq = s.addTarget<LibraryTarget>("libpq", "master");
+    libpq += EmptySource();
     libpq.AutoDetectOptions = false;
     libpq.Empty = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
@@ -23,6 +24,6 @@ void build(Solution &s)
     else if (s.Settings.TargetOS.Type == OSType::Linux)
     {
         libpq.Public.IncludeDirectories.insert("/usr/include/postgresql");
-        libpq.Public += "pq"_lib;
+        libpq.Public += "pq"_slib;
     }
 }
