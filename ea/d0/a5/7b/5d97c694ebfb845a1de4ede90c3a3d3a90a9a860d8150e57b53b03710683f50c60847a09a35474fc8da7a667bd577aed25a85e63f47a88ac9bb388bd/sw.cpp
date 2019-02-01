@@ -161,7 +161,7 @@ void build(Solution &s)
         "pcreposix.h";
     pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
     pcreposix.Public += sw::Static, "PCRE_STATIC"_d;
-    pcreposix.Public += "pub.cppan2.demo.pcre.pcre"_dep;
+    pcreposix.Public += pcre8;
 }
 
 void check(Checker &c)
