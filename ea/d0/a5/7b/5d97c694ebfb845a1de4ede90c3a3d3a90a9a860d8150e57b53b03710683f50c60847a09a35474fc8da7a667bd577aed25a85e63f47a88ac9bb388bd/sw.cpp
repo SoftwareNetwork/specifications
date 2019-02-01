@@ -39,7 +39,8 @@ void build(Solution &s)
     pcre8.Public += "HAVE_CONFIG_H"_d;
     pcre8.Public += "SUPPORT_UCP"_d;
 
-    if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") && !fs::exists(pcre8.BinaryDir / "pcre_chartables.c.dist"))
+    if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") &&
+        !fs::exists(pcre8.BinaryDir / "pcre_chartables.c"))
     {
         fs::copy_file(pcre8.SourceDir / "pcre_chartables.c.dist",
             pcre8.BinaryDir / "pcre_chartables.c", fs::copy_options::overwrite_existing);
