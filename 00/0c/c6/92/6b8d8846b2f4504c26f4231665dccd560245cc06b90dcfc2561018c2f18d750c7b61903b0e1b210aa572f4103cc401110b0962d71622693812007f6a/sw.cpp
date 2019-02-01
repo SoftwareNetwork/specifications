@@ -44,8 +44,8 @@ void build(Solution &s)
     {
         fs::copy_file(pcre8.SourceDir / "pcre_chartables.c.dist",
             pcre8.BinaryDir / "pcre_chartables.c", fs::copy_options::overwrite_existing);
-        pcre8 += pcre8.BinaryDir / "pcre_chartables.c";
     }
+    pcre8 += pcre8.BinaryDir / "pcre_chartables.c";
 
     auto setup = [](auto &pcre, int bits)
     {
@@ -162,6 +162,7 @@ void build(Solution &s)
     pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
     pcreposix.Public += sw::Static, "PCRE_STATIC"_d;
     pcreposix.Public += pcre8;
+    pcreposix += IncludeDirectory(pcre8.BinaryPrivateDir);
 }
 
 void check(Checker &c)
