@@ -1,4 +1,5 @@
 #pragma sw require header org.sw.demo.re2c.re2c-1
+#pragma sw require pub.egorpugin.primitives.filesystem-master
 
 struct YasmAssemblerOptions
 {
@@ -31,6 +32,11 @@ struct YasmCompiler : NativeCompiler,
     std::shared_ptr<Program> clone() const override
     {
         return std::make_shared<YasmCompiler>(*this);
+    }
+
+    path getOutputFile(void) const override
+    {
+        return ObjectFile();
     }
 
     void prepareCommand1(const TargetBase &t) override
