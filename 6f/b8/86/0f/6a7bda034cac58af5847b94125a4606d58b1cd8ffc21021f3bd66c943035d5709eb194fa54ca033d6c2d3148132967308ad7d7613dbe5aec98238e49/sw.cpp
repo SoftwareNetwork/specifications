@@ -1779,6 +1779,8 @@ void build(Solution &s)
             SW_QT_ADD_MOC_DEPS(widgets);
             ::rcc(rcc, widgets, Files{ widgets.SourceDir / "styles/qstyle.qrc", widgets.SourceDir / "dialogs/qmessagebox.qrc" });
             ::uic(uic, widgets, widgets.SourceDir / "dialogs/qfiledialog.ui");
+
+            widgets.patch("kernel/qwidgetsvariant.cpp", "qRegisterMetaType<QWidget*>();", "//qRegisterMetaType<QWidget*>();");
         }
 
         // network
