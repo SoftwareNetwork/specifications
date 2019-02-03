@@ -152,6 +152,7 @@ void build(Solution &s)
                 auto cmd = c->getCommand(libffi);
                 cmd->working_directory = libffi.BinaryDir;
                 cmd->addOutput(libffi.BinaryDir / (f + ".i"));
+                libffi.registerCommand(*cmd);
             }
 
             {
