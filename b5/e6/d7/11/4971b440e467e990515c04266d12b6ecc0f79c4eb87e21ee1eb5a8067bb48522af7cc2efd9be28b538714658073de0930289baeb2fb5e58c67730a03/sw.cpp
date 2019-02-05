@@ -290,12 +290,12 @@ void build(Solution &s)
         RTCD_EXTERN void (*vp8_bilinear_predict16x16)(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
 
         void vp8_bilinear_predict4x4_c(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
-        void vp8_bilinear_predict4x4_mmx(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
-        #define vp8_bilinear_predict4x4 vp8_bilinear_predict4x4_mmx
+        void vp8_bilinear_predict4x4_sse2(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
+        #define vp8_bilinear_predict4x4 vp8_bilinear_predict4x4_sse2
 
         void vp8_bilinear_predict8x4_c(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
-        void vp8_bilinear_predict8x4_mmx(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
-        #define vp8_bilinear_predict8x4 vp8_bilinear_predict8x4_mmx
+        void vp8_bilinear_predict8x4_sse2(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
+        #define vp8_bilinear_predict8x4 vp8_bilinear_predict4x4_sse2
 
         void vp8_bilinear_predict8x8_c(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
         void vp8_bilinear_predict8x8_sse2(unsigned char *src, int src_pitch, int xofst, int yofst, unsigned char *dst, int dst_pitch);
@@ -1077,6 +1077,11 @@ R"(
         void vpx_h_predictor_8x8_sse2(uint8_t *dst, ptrdiff_t y_stride, const uint8_t *above, const uint8_t *left);
         #define vpx_h_predictor_8x8 vpx_h_predictor_8x8_sse2
 
+        void vpx_hadamard_32x32_c(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
+        void vpx_hadamard_32x32_sse2(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
+        void vpx_hadamard_32x32_avx2(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
+        RTCD_EXTERN void (*vpx_hadamard_32x32)(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
+
         void vpx_hadamard_16x16_c(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
         void vpx_hadamard_16x16_sse2(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
         void vpx_hadamard_16x16_avx2(const int16_t *src_diff, ptrdiff_t src_stride, int16_t *coeff);
@@ -1829,6 +1834,8 @@ R"(
             //if (flags & HAS_SSSE3) vpx_fdct8x8 = vpx_fdct8x8_ssse3;
             vpx_get16x16var = vpx_get16x16var_sse2;
             if (flags & HAS_AVX2) vpx_get16x16var = vpx_get16x16var_avx2;
+            vpx_hadamard_32x32 = vpx_hadamard_32x32_sse2;
+            if (flags & HAS_AVX2) vpx_hadamard_32x32 = vpx_hadamard_32x32_avx2;
             vpx_hadamard_16x16 = vpx_hadamard_16x16_sse2;
             if (flags & HAS_AVX2) vpx_hadamard_16x16 = vpx_hadamard_16x16_avx2;
             vpx_hadamard_8x8 = vpx_hadamard_8x8_sse2;
