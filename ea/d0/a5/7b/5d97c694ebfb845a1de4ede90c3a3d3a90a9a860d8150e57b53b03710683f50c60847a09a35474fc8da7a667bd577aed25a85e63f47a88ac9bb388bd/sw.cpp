@@ -37,22 +37,6 @@ void build(Solution &s)
     pcre8 -= "sljit/.*"_rr;
     pcre8.Protected += "HAVE_CONFIG_H"_d;
 
-    auto fix_ucd = [&pcre8](const path &p)
-    {
-        pcre8.patch(p, "PRIV(ucd_records)", "PUBL(ucd_records)");
-        pcre8.patch(p, "PRIV(ucd_stage1)", "PUBL(ucd_stage1)");
-        pcre8.patch(p, "PRIV(ucd_stage2)", "PUBL(ucd_stage2)");
-        pcre8.patch(p, "PRIV(ucp_gentype)", "PUBL(ucp_gentype)");
-    };
-    fix_ucd("pcre_internal.h");
-    fix_ucd("pcre_ucd.c");
-    fix_ucd("pcre_xclass.c");
-    fix_ucd("pcre_jit_compile.c");
-    fix_ucd("pcre_exec.c");
-    fix_ucd("pcre_dfa_exec.c");
-    fix_ucd("pcre_compile.c");
-    fix_ucd("pcre_tables.c");
-
     if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") &&
         !fs::exists(pcre8.BinaryDir / "pcre_chartables.c"))
     {
@@ -146,26 +130,6 @@ void build(Solution &s)
     setup(pcre16, 16);
     setup(pcre32, 32);
 
-    pcre8.replaceInFileOnce("pcre_internal.h",
-        "extern const ucd_record  PRIV(ucd_records)[];",
-        "PCRE_EXP_DECL const ucd_record  PRIV(ucd_records)[];"
-    );
-
-    pcre8.replaceInFileOnce("pcre_internal.h",
-        "extern const pcre_uint8  PRIV(ucd_stage1)[];",
-        "PCRE_EXP_DECL const pcre_uint8  PRIV(ucd_stage1)[];"
-    );
-
-    pcre8.replaceInFileOnce("pcre_internal.h",
-        "extern const pcre_uint16 PRIV(ucd_stage2)[];",
-        "PCRE_EXP_DECL const pcre_uint16 PRIV(ucd_stage2)[];"
-    );
-
-    pcre8.replaceInFileOnce("pcre_internal.h",
-        "extern const pcre_uint32 PRIV(ucp_gentype)[];",
-        "PCRE_EXP_DECL const pcre_uint32 PRIV(ucp_gentype)[];"
-    );
-
     auto d16 = pcre16 + pcre8;
     d16->IncludeDirectoriesOnly = true;
 
@@ -180,6 +144,49 @@ void build(Solution &s)
     pcreposix.Public += sw::Static, "PCRE_STATIC"_d;
     pcreposix.Public += pcre8;
     pcreposix += IncludeDirectory(pcre8.BinaryPrivateDir);
+
+    // fix import vars
+
+    String exp = "PCRE_EXP_DECL";
+    if (s.Settings.TargetOS.is(OSType::Windows))
+        exp = "extern __declspec(dllimport)";
+    //else
+        //PCRE_EXP_DECL = ""; // unix
+
+    //
+    pcre8.replaceInFileOnce("pcre_internal.h",
+        "extern const ucd_record  PRIV(ucd_records)[];",
+        "" + exp + " const ucd_record  PRIV(ucd_records)[];"
+    );
+    pcre8.replaceInFileOnce("pcre_internal.h",
+        "extern const pcre_uint8  PRIV(ucd_stage1)[];",
+        "" + exp + " const pcre_uint8  PRIV(ucd_stage1)[];"
+    );
+    pcre8.replaceInFileOnce("pcre_internal.h",
+        "extern const pcre_uint16 PRIV(ucd_stage2)[];",
+        "" + exp + " const pcre_uint16 PRIV(ucd_stage2)[];"
+    );
+    pcre8.replaceInFileOnce("pcre_internal.h",
+        "extern const pcre_uint32 PRIV(ucp_gentype)[];",
+        "" + exp + " const pcre_uint32 PRIV(ucp_gentype)[];"
+    );
+
+    // remove first underscore
+    auto fix_ucd = [&pcre8](const path &p)
+    {
+        pcre8.patch(p, "PRIV(ucd_records)", "PUBL(ucd_records)");
+        pcre8.patch(p, "PRIV(ucd_stage1)", "PUBL(ucd_stage1)");
+        pcre8.patch(p, "PRIV(ucd_stage2)", "PUBL(ucd_stage2)");
+        pcre8.patch(p, "PRIV(ucp_gentype)", "PUBL(ucp_gentype)");
+    };
+    fix_ucd("pcre_internal.h");
+    fix_ucd("pcre_ucd.c");
+    fix_ucd("pcre_xclass.c");
+    fix_ucd("pcre_jit_compile.c");
+    fix_ucd("pcre_exec.c");
+    fix_ucd("pcre_dfa_exec.c");
+    fix_ucd("pcre_compile.c");
+    fix_ucd("pcre_tables.c");
 }
 
 void check(Checker &c)
