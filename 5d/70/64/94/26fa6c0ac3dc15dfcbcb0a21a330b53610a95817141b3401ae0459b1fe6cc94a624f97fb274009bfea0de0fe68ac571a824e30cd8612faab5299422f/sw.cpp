@@ -37,7 +37,6 @@ void build(Solution &s)
     pcre8 -= "sljit/.*"_rr;
 
     pcre8.Public += "HAVE_CONFIG_H"_d;
-    pcre8.Public += "SUPPORT_UCP"_d;
 
     if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") &&
         !fs::exists(pcre8.BinaryDir / "pcre_chartables.c"))
@@ -81,6 +80,9 @@ void build(Solution &s)
         }
 
         pcre.Public += sw::Static, "PCRE_STATIC"_d;
+        pcre += Definition("COMPILE_PCRE" + sbits);
+        pcre.Public += "SUPPORT_UCP"_def;
+        pcre.Public += "SUPPORT_UTF"_def;
 
         pcre.setChecks("pcre");
 
