@@ -35,8 +35,23 @@ void build(Solution &s)
         "sljit/.*"_rr,
         "ucp.h";
     pcre8 -= "sljit/.*"_rr;
+    pcre8.Protected += "HAVE_CONFIG_H"_d;
 
-    pcre8.Public += "HAVE_CONFIG_H"_d;
+    auto fix_ucd = [&pcre8](const path &p)
+    {
+        pcre8.patch(p, "PRIV(ucd_records)", "PUBL(ucd_records)");
+        pcre8.patch(p, "PRIV(ucd_stage1)", "PUBL(ucd_stage1)");
+        pcre8.patch(p, "PRIV(ucd_stage2)", "PUBL(ucd_stage2)");
+        pcre8.patch(p, "PRIV(ucp_gentype)", "PUBL(ucp_gentype)");
+    };
+    fix_ucd("pcre_internal.h");
+    fix_ucd("pcre_ucd.c");
+    fix_ucd("pcre_xclass.c");
+    fix_ucd("pcre_jit_compile.c");
+    fix_ucd("pcre_exec.c");
+    fix_ucd("pcre_dfa_exec.c");
+    fix_ucd("pcre_compile.c");
+    fix_ucd("pcre_tables.c");
 
     if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") &&
         !fs::exists(pcre8.BinaryDir / "pcre_chartables.c"))
@@ -80,7 +95,7 @@ void build(Solution &s)
         }
 
         pcre.Public += sw::Static, "PCRE_STATIC"_d;
-        pcre += Definition("COMPILE_PCRE" + sbits);
+
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;
 
