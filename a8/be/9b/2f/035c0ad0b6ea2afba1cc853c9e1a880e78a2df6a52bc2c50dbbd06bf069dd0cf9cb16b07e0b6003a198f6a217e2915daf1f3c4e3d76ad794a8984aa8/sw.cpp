@@ -184,6 +184,13 @@ void build(Solution &s)
         lib -= "dist/.*"_rr;
         lib -= "ext/.*"_rr;
         lib -= "cpan/.*"_rr;
+
+        lib -= "pod/.*"_rr;
+        lib -= "regen/.*"_rr;
+
+        lib -= "Cross/.*"_rr;
+        lib -= "Porting/.*"_rr;
+
         lib -= ".*"_r;
         lib -= "win32/.*"_rr;
         lib += base, "win32/perllib.c";
