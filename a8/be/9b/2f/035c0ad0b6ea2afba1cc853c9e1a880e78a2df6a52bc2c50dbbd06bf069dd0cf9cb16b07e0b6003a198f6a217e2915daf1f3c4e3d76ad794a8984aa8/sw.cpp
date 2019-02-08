@@ -131,6 +131,7 @@ void build(Solution &s)
         mp -= ".*\\.[hc]"_r;
         mp -= ".*\\.inc"_r;
         mp -= ".*\\.tab"_r;
+        mp -= ".*\\.act"_r;
         mp -= "win32/.*"_rr;
         mp += base, "miniperlmain.c";
 
