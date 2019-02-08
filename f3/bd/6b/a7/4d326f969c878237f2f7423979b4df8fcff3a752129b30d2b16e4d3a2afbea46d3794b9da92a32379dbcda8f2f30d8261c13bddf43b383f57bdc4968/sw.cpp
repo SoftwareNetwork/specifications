@@ -129,6 +129,8 @@ void build(Solution &s)
 )";
 
         mp -= ".*\\.[hc]"_r;
+        mp -= ".*\\.inc"_r;
+        mp -= ".*\\.tab"_r;
         mp -= "win32/.*"_rr;
         mp += base, "miniperlmain.c";
 
@@ -181,8 +183,7 @@ void build(Solution &s)
         lib -= "dist/.*"_rr;
         lib -= "ext/.*"_rr;
         lib -= "cpan/.*"_rr;
-        lib -= ".*\\.[hc]"_r;
-        lib -= ".*\\.pl"_r;
+        lib -= ".*"_r;
         lib -= "win32/.*"_rr;
         lib += base, "win32/perllib.c";
         if (auto nsf = lib["win32/perllib.c"].as<NativeSourceFile>())
@@ -238,6 +239,7 @@ void build(Solution &s)
                 //<< cmd::out("git_version.h")
                 << cmd::out(lib.SourceDir / "lib/Config_git.pl")
                 ;
+            make_patchnum.c->record_inputs_mtime = true;
 
             auto configpm = lib.addCommand();
             configpm << cmd::prog(mp)
