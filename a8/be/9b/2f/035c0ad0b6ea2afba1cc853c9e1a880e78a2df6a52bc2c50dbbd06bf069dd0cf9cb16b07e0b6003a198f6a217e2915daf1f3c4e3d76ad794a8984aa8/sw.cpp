@@ -160,6 +160,8 @@ void build(Solution &s)
         mp += "CONSERVATIVE"_def;*/
 
         auto &gu = p.addTarget<Executable>("generate_uudmap");
+        gu.Scope = TargetScope::Tool;
+        gu.SourceDir = mp.SourceDir;
         gu += "generate_uudmap.c";
         {
             auto c = mp.addCommand();
