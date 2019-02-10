@@ -8,7 +8,7 @@ static std::tuple<StaticLibraryTarget &, Files> qt_translations_create_qm_files(
     auto ts = std::make_shared<Dependency>(base->package);
     ts->package.ppath /= "translations";
 
-    auto qt_trs_r = FileRegex(ts->getPackage().resolve().getDirSrc2() / "translations", std::regex(".*\\.ts"));
+    auto qt_trs_r = FileRegex(ts->getPackage().resolve().getDirSrc2() / "translations", ".*\\.ts", false);
     auto &qt_trs = t.addStaticLibrary("qt_translations");
     qt_trs += qt_trs_r;
     qt_trs += ts;
@@ -45,7 +45,7 @@ static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget 
 
 static void qt_translations_rcc(const DependencyPtr &base, TargetBase &tr_base, NativeExecutedTarget &t, path in)
 {
-    auto [qt_trs, qms] = qt_translations_create_qm_files(base, tr_base);
+    auto[qt_trs, qms] = qt_translations_create_qm_files(base, tr_base);
     qt_translations_rcc("org.sw.demo.qtproject.qt-*"_dep, t, in, qms);
     (t + qt_trs)->Dummy = true;
 }
