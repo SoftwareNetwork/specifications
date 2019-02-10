@@ -35,12 +35,12 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
     c->args.push_back("-I");
     c->args.push_back(normalize_path(d));
     c->args.push_back("-I");
-    c->args.push_back(normalize_path(f));
-    c->args.push_back("--cpp_out=" + normalize_path(bdir));
     c->pushLazyArg([protoc]()
     {
         return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src");
     });
+    c->args.push_back("--cpp_out=" + normalize_path(bdir));
+    c->args.push_back(normalize_path(f));
     c->addInput(f);
     c->addOutput(ocpp);
     c->addOutput(oh);
