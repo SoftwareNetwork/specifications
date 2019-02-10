@@ -32,14 +32,14 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
     SW_MAKE_COMMAND_AND_ADD(c, t);
     c->setProgram(protoc);
     c->working_directory = bdir;
-    c->args.push_back(f.u8string());
-    c->args.push_back("--cpp_out=" + bdir.u8string());
     c->args.push_back("-I");
-    c->args.push_back(d.u8string());
+    c->args.push_back(normalize_path(d));
     c->args.push_back("-I");
+    c->args.push_back(normalize_path(f));
+    c->args.push_back("--cpp_out=" + normalize_path(bdir));
     c->pushLazyArg([protoc]()
     {
-        return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
+        return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src");
     });
     c->addInput(f);
     c->addOutput(ocpp);
