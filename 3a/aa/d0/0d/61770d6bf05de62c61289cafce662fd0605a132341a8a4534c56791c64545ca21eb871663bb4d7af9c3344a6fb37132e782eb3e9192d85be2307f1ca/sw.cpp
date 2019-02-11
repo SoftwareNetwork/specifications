@@ -247,10 +247,10 @@ static Files rcc_read_files(NativeExecutedTarget &t, const path &fn)
         path f2 = f.substr(f.find('>') + 1);
         if (fs::exists(fn.parent_path() / f2))
             f2 = fn.parent_path() / f2;
-        else
+        else if (!t.check_absolute(f2, true))
         {
             auto rel = (fn.parent_path() / f2).lexically_relative(t.SourceDir).lexically_normal();
-            if (t.check_absolute(rel, true))
+            if (!rel.empty() && t.check_absolute(rel, true))
                 f2 = rel;
             else
                 t.check_absolute(f2);
