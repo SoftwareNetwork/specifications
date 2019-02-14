@@ -20,15 +20,15 @@ void build(Solution &s)
     pixman.Public +=
         "pixman"_id;
 
-    if (pixman.Variables["USE_VMX"] == "1")
+    if (pixman.Variables["USE_VMX"] == 1)
         pixman += "pixman/pixman-vmx.c";
-    if (pixman.Variables["USE_ARM_NEON"] == "1")
+    if (pixman.Variables["USE_ARM_NEON"] == 1)
         pixman += "pixman/pixman-arm-neon.c";
-    if (pixman.Variables["USE_ARM_SIMD"] == "1")
+    if (pixman.Variables["USE_ARM_SIMD"] == 1)
         pixman += "pixman/pixman-arm-simd.c";
-    if (pixman.Variables["USE_MIPS_DSPR2"] == "1")
+    if (pixman.Variables["USE_MIPS_DSPR2"] == 1)
         pixman += "pixman/pixman-mips-dspr2.c";
-        
+
     if (s.Settings.TargetOS.Type != OSType::Windows)
         pixman.Public += "HAVE_PTHREADS"_d;
 
@@ -229,4 +229,4 @@ void check(Checker &c)
     s.checkDeclarationExists("decl");
     s.checkDeclarationExists("decl");
     s.checkDeclarationExists("decl");
-} 
+}

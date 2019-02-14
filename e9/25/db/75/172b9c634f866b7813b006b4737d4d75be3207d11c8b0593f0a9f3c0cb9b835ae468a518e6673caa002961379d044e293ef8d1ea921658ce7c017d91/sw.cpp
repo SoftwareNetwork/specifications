@@ -47,11 +47,11 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type != OSType::Windows)
     {
         const auto cfg = freetype.SourceDir / "builds/unix/ftconfig.in";
-        if (freetype.Variables["HAVE_UNISTD_H"] == "1")
+        if (freetype.Variables["HAVE_UNISTD_H"] == 1)
             freetype.replaceInFileOnce(cfg, "#undef +(HAVE_UNISTD_H)", "#define \\1");
-        if (freetype.Variables["HAVE_FCNTL_H"] == "1")
+        if (freetype.Variables["HAVE_FCNTL_H"] == 1)
             freetype.replaceInFileOnce(cfg, "#undef +(HAVE_FCNTL_H)", "#define \\1");
-        if (freetype.Variables["HAVE_STDINT_H"] == "1")
+        if (freetype.Variables["HAVE_STDINT_H"] == 1)
             freetype.replaceInFileOnce(cfg, "#undef +(HAVE_STDINT_H)", "#define \\1");
         freetype.replaceInFileOnce(cfg, "/undef ", "#undef ");
         freetype.configureFile(cfg, "include/freetype/config/ftconfig.h");

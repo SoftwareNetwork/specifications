@@ -30,12 +30,12 @@ void build(Solution &s)
     expat.Variables["XML_NS"] = "1";
     expat.Variables["HAVE_MEMMOVE"] = 1;
 
-    if (expat.Variables["WORDS_BIGENDIAN"] == "1")
+    if (expat.Variables["WORDS_BIGENDIAN"] == 1)
         expat.Variables["BYTEORDER"] = "4321";
     else
         expat.Variables["BYTEORDER"] = "1234";
 
-    if (expat.Variables["HAVE_SYS_TYPES_H"] == "0")
+    if (expat.Variables["HAVE_SYS_TYPES_H"] == 0)
     {
         expat.Variables["OFF_T"] = "long";
         expat.Variables["SIZE_T"] = "unsigned";

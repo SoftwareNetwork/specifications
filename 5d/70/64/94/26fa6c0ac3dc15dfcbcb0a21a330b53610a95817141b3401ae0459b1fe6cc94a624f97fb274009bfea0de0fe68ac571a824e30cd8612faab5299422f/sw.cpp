@@ -96,19 +96,19 @@ void build(Solution &s)
         pcre.Variables["pcre_have_type_traits"] = "0";
         pcre.Variables["pcre_have_bits_type_traits"] = "0";
 
-        if (pcre.Variables["HAVE_TYPE_TRAITS_H"] == "1")
+        if (pcre.Variables["HAVE_TYPE_TRAITS_H"] == 1)
             pcre.Variables["pcre_have_type_traits"] = "1";
 
-        if (pcre.Variables["HAVE_BITS_TYPE_TRAITS_H"] == "1")
+        if (pcre.Variables["HAVE_BITS_TYPE_TRAITS_H"] == 1)
             pcre.Variables["pcre_have_bits_type_traits"] = "1";
 
         pcre.Variables["pcre_have_long_long"] = "0";
         pcre.Variables["pcre_have_ulong_long"] = "0";
 
-        if (pcre.Variables["HAVE_LONG_LONG"] == "1")
+        if (pcre.Variables["HAVE_LONG_LONG"] == 1)
             pcre.Variables["pcre_have_long_long"] = "1";
 
-        if (pcre.Variables["HAVE_UNSIGNED_LONG_LONG"] == "1")
+        if (pcre.Variables["HAVE_UNSIGNED_LONG_LONG"] == 1)
             pcre.Variables["pcre_have_ulong_long"] = "1";
 
         pcre.Variables["SUPPORT_PCREGREP_JIT"] = "1";

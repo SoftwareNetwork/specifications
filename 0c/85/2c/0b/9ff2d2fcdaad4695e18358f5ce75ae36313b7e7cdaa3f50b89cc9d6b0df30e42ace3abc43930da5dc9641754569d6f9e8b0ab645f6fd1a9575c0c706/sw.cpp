@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &leptonica = s.addTarget<LibraryTarget>("danbloomberg.leptonica", "master");
-    leptonica += Git("https://github.com/DanBloomberg/leptonica", "{v}");
+    leptonica += Git("https://github.com/DanBloomberg/leptonica", "", "{v}");
 
     {
         leptonica.setChecks("leptonica");
@@ -33,7 +33,7 @@ void build(Solution &s)
         leptonica += "org.sw.demo.tiff-4"_dep;
         leptonica += "org.sw.demo.webmproject.webp-*"_dep;
 
-        if (leptonica.Variables["WORDS_BIGENDIAN"] == "1")
+        if (leptonica.Variables["WORDS_BIGENDIAN"] == 1)
             leptonica.Variables["ENDIANNESS"] = "L_BIG_ENDIAN";
         else
             leptonica.Variables["ENDIANNESS"] = "L_LITTLE_ENDIAN";
