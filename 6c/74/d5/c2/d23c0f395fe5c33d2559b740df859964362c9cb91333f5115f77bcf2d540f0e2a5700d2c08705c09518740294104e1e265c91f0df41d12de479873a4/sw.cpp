@@ -5,7 +5,7 @@ void build(Solution &s)
 
     auto &gnulib = grep.addTarget<StaticLibraryTarget>("gnulib");
     {
-        gnulib.setChecks("gnulib");
+        gnulib.setChecks("gnulib", true);
 
         gnulib +=
             "lib/.*"_rr;
@@ -322,7 +322,7 @@ void *mempcpy(void * __dest, void const * __src,
     auto &grep2 = grep.addTarget<ExecutableTarget>("grep");
     {
         auto &grep = grep2;
-        grep.setChecks("grep");
+        grep.setChecks("grep", true);
         grep +=
             "src/.*"_rr;
         grep.Public +=

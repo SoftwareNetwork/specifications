@@ -7,7 +7,7 @@ void build(Solution &s)
     {
         glib.ApiName = "SW_GLIB_API";
 
-        glib.setChecks("glib");
+        glib.setChecks("glib", true);
 
         glib +=
             "build/win32/dirent/.*\\.c"_rr,
@@ -238,7 +238,7 @@ glib_init_ctor(void)
     //
     auto &gobject = p.addTarget<LibraryTarget>("gobject");
     {
-        gobject.setChecks("glib");
+        gobject.setChecks("glib", true);
         gobject +=
             "gobject/[^/]*\\.c"_rr,
             "gobject/[^/]*\\.h"_rr;

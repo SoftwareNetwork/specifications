@@ -19,7 +19,7 @@ void build(Solution &s)
     {
         auto &gawk = gawk2;
         gawk.PackageDefinitions = true;
-        gawk.setChecks("gawk");
+        gawk.setChecks("gawk", true);
 
         gawk +=
             "[^/]*\\.[hc]"_rr,

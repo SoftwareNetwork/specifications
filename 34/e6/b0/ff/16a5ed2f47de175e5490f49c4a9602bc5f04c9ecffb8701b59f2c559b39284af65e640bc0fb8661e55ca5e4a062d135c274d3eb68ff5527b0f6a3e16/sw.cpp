@@ -4,7 +4,7 @@ void build(Solution &s)
     fontconfig += RemoteFile("https://www.freedesktop.org/software/fontconfig/release/fontconfig-{v}.tar.bz2");
 
     fontconfig.ApiName = "SW_FONTCONFIG_LIBRARY_API";
-    fontconfig.setChecks("fontconfig");
+    fontconfig.setChecks("fontconfig", true);
 
     fontconfig +=
         "fc-case/fccase.h",
