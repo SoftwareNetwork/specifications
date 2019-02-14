@@ -80,7 +80,7 @@ void build(Solution &s)
     tiff += "TIF_PLATFORM_CONSOLE=1"_v;
     tiff += "ZIP_SUPPORT=1"_v;
 
-    tiff.Variables["HAVE_IEEEFP"] = "1";
+    tiff.Variables["HAVE_IEEEFP"] = 1;
     tiff.Variables["HOST_FILLORDER"] = "FILLORDER_LSB2MSB";
     tiff.Variables["HOST_BIG_ENDIAN"] = tiff.Variables["WORDS_BIGENDIAN"];
 

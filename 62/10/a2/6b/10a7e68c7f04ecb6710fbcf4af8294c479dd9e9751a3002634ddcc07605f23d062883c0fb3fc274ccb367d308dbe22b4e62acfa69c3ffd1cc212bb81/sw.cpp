@@ -51,7 +51,7 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         intl.Public += "Advapi32.lib"_slib;
 
-    if (intl.Variables["HAVE_LANGINFO_H"] == "1" && intl.Variables["HAVE_NL_LANGINFO"] == "1")
+    if (intl.Variables["HAVE_LANGINFO_H"] == 1 && intl.Variables["HAVE_NL_LANGINFO"] == 1)
         intl.Public.Definitions["HAVE_LANGINFO_CODESET"];
 
     intl.ApiName = "CPPAN_LIBINTL_DLL_EXPORT";

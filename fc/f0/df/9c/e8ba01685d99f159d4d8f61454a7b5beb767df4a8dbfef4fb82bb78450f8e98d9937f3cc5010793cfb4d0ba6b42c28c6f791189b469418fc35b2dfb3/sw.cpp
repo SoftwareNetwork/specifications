@@ -31,7 +31,7 @@ void build(Solution &s)
         libcharset.Public.Definitions["LOCALEDIR"] = "\"/usr/share/locale\"";
     }
 
-    if (libcharset.Variables["HAVE_LANGINFO_H"] == "1" && libcharset.Variables["HAVE_NL_LANGINFO"] == "1")
+    if (libcharset.Variables["HAVE_LANGINFO_H"] == 1 && libcharset.Variables["HAVE_NL_LANGINFO"] == 1)
         libcharset.Public.Definitions["HAVE_LANGINFO_CODESET"];
 
     auto &libiconv = p.addTarget<LibraryTarget>("libiconv");
