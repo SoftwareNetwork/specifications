@@ -4,7 +4,7 @@ void build(Solution &s)
     libffi += Git("https://github.com/winlibs/libffi", "libffi-{v}");
     libffi.ApiName = "SW_FFI_API";
 
-    libffi.setChecks("libffi");
+    libffi.setChecks("libffi", true);
 
     libffi.ExportAllSymbols = true;
     libffi +=

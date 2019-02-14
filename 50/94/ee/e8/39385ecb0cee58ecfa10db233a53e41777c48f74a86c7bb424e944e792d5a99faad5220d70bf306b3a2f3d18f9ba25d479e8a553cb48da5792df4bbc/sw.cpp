@@ -32,7 +32,7 @@ void build(Solution &s)
 
     auto &re2c = p.addExecutable("re2c");
     re2c.PackageDefinitions = true;
-    re2c.setChecks("re2c");
+    re2c.setChecks("re2c", true);
     re2c.SourceDir /= "re2c";
     re2c += "bootstrap/src/.*"_rr;
     re2c += "src/.*"_rr;
