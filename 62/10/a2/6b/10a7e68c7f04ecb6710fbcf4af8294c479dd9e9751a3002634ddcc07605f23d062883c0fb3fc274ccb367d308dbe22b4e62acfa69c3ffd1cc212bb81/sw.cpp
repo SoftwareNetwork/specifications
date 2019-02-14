@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &intl = s.addTarget<LibraryTarget>("gnu.gettext.intl", "0.19.8");
     intl += RemoteFile("https://ftp.gnu.org/pub/gnu/gettext/gettext-{v}.1.tar.gz");
 
-    intl.setChecks("intl");
+    intl.setChecks("intl", true);
 
     intl +=
         "gettext-runtime/intl/.*\\.c"_rr,

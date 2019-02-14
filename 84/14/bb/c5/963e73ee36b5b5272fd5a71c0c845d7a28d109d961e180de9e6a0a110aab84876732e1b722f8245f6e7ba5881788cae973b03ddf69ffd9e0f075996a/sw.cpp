@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &libxml2 = s.addTarget<LibraryTarget>("libxml2", "2.9.9");
     libxml2 += RemoteFile("ftp://xmlsoft.org/libxml2/libxml2-{v}.tar.gz");
 
-    libxml2.setChecks("libxml2");
+    libxml2.setChecks("libxml2", true);
 
     if (s.Settings.TargetOS.Type != OSType::Windows)
         libxml2.ExportAllSymbols = true;
