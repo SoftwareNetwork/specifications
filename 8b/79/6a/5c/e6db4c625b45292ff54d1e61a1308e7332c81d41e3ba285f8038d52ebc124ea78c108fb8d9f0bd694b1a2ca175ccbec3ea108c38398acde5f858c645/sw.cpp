@@ -240,6 +240,7 @@ glib_init_ctor(void)
     {
         gobject.setChecks("glib", true);
         gobject +=
+            "gobject/[^/]*\\.in"_rr, // for glib-mkenums.in
             "gobject/[^/]*\\.c"_rr,
             "gobject/[^/]*\\.h"_rr;
 
