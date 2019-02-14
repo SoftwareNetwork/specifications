@@ -12,28 +12,17 @@ void build(Solution &s)
         "src/.*\\.h"_rr,
         "src/.*\\.in"_rr;
 
-    libssh2.Private +=
-        "src"_id;
-
-    libssh2.Public +=
-        "include"_id;
-
-    libssh2.Private += "LIBSSH2_LIBRARY"_d;
     libssh2.Public += "LIBSSH2_OPENSSL"_d;
     if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        libssh2 += "HAVE_IOCTLSOCKET"_d;
-        libssh2.Variables["HAVE_IOCTLSOCKET"] = "1";
         libssh2.Public += sw::Shared, "LIBSSH2_WIN32"_d;
-    }
 
     if (
-        libssh2.Variables["HAVE_O_NONBLOCK"] == "0" &&
-        libssh2.Variables["HAVE_IOCTLSOCKET"] == "0" &&
-        libssh2.Variables["HAVE_IOCTLSOCKET_CASE"] == "0" &&
-        libssh2.Variables["HAVE_SO_NONBLOCK"] == "0"
+        libssh2.Variables["HAVE_O_NONBLOCK"] == 0 &&
+        libssh2.Variables["HAVE_IOCTLSOCKET"] == 0 &&
+        libssh2.Variables["HAVE_IOCTLSOCKET_CASE"] == 0 &&
+        libssh2.Variables["HAVE_SO_NONBLOCK"] == 0
         )
-        libssh2.Variables["HAVE_DISABLED_NONBLOCKING"] = "1";
+        libssh2.Variables["HAVE_DISABLED_NONBLOCKING"] = 1;
 
     libssh2.pushBackToFileOnce("src/libssh2_config_cmake.h.in", "#include <stdint.h>");
     libssh2.configureFile("src/libssh2_config_cmake.h.in", "libssh2_config.h");
@@ -124,7 +113,7 @@ int flags = ioctl(socket, FIONBIO, &flags);
 }
 )sw_xxx");
 
-    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
+    if (c.solution->Settings.TargetOS.Type == OSType::Windows)
         s.checkSourceCompiles("HAVE_IOCTLSOCKET", R"sw_xxx(
 /* ioctlsocket test (Windows) */
 #undef inline
