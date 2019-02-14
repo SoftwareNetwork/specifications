@@ -4,7 +4,7 @@ void build(Solution &s)
     p += RemoteFile("https://ftp.gnu.org/gnu/nettle/nettle-{M}.{m}{po}.tar.gz");
 
     auto &eccdata = p.addTarget<ExecutableTarget>("eccdata");
-    eccdata.setChecks("nettle");
+    eccdata.setChecks("nettle", true);
 
     eccdata +=
         "eccdata.c",
@@ -16,7 +16,7 @@ void build(Solution &s)
 
     auto &nettle = p.addTarget<StaticLibraryTarget>("nettle");
     nettle.InstallDirectory = "nettle";
-    nettle.setChecks("nettle");
+    nettle.setChecks("nettle", true);
 
     nettle +=
         "[^/]*\\.c"_rr,

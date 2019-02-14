@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &lzma = s.addTarget<LibraryTarget>("xz_utils.lzma", "5.2.4");
     lzma += RemoteFile("https://tukaani.org/xz/xz-{v}.tar.gz");
 
-    lzma.setChecks("lzma");
+    lzma.setChecks("lzma", true);
 
     lzma +=
         "src/common/.*\\.c"_rr,
