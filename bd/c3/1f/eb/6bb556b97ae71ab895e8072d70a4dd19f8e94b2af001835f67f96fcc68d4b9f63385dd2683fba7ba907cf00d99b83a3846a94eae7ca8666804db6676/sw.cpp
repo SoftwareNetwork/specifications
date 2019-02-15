@@ -65,7 +65,7 @@ void build(Solution &sln)
     pango.Variables["PANGO_VERSION_MICRO"] = pango.Variables["PACKAGE_VERSION_PATCH"];
 
     pango.configureFile("pango/pango-features.h.meson", "pango/pango-features.h");
-    pango += IncludeDirectory(pango.BinaryDir / "pango");
+    pango.Protected += IncludeDirectory(pango.BinaryDir / "pango");
 
     for (auto ext : {"h", "c"})
     {
