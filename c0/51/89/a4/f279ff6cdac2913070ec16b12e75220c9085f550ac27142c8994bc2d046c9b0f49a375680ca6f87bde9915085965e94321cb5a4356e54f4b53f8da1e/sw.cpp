@@ -12,6 +12,13 @@ void build(Solution &s)
             "include/llvm/Demangle/.*"_rr,
             "lib/Demangle/.*\\.cpp"_rr,
             "lib/Demangle/.*\\.h"_rr;
+        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        {
+            llvm_demangle.Public.CompileOptions.push_back("-wd4141");
+            llvm_demangle.Public.CompileOptions.push_back("-wd4146");
+            llvm_demangle.Public.CompileOptions.push_back("-wd4244");
+            llvm_demangle.Public.CompileOptions.push_back("-wd4267");
+        }
     }
 
     auto &llvm_support_lite = llvm.addTarget<StaticLibraryTarget>("support_lite");
@@ -272,4 +279,3 @@ void check(Checker &c)
         c.Parameters.Includes.push_back("stdio.h");
     }
 }
-
