@@ -70,7 +70,7 @@ void build(Solution &s)
         util -= "src/Win.*"_rr;
 
     auto &crypto = add_library("Crypto");
-    crypto.Public += util, "org.sw.demo.openssl.ssl-1"_dep;
+    crypto.Public += util, "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
 
     auto &net = add_library("Net");
     net.Public += util;
