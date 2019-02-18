@@ -8,7 +8,7 @@ void build(Solution &s)
 
     auto &lib = gmp.addTarget<LibraryTarget>("lib");
     {
-        lib.setChecks("gmp");
+        lib.setChecks("gmp", true);
 
         lib +=
             ".*\\.h"_rr,
@@ -56,7 +56,7 @@ void build(Solution &s)
         lib.Variables["HAVE_HOST_CPU_FAMILY_power"] = 0;
         lib.Variables["HAVE_HOST_CPU_FAMILY_powerpc"] = 0;
 
-        lib.Variables["GMP_LIMB_BITS"] = 8 * lib.Variables["SIZEOF_VOID_P"];
+        lib.Variables["GMP_LIMB_BITS"] = lib.Variables["SIZEOF_VOID_P"].get<int>() * 8;
         lib.Variables["GMP_NAIL_BITS"] = 0;
 
         lib.writeFileOnce(lib.BinaryPrivateDir / "config.h");
@@ -305,11 +305,4 @@ void check(Checker &c)
     #include <float.h>
     int main() {return 0;}
     )sw_xxx");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
-    s.checkDeclarationExists("decl");
 }
