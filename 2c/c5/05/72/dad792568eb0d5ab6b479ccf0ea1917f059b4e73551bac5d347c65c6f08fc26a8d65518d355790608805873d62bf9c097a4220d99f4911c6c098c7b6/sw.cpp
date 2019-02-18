@@ -320,7 +320,7 @@ void * memrchr (const void *, int, size_t);
         gpgme.Private += "BUILD_TIMESTAMP=\"\""_d;
         gpgme.Private += "CRIGHTBLURB=\"\""_d;
         gpgme.Private += "HAVE_CONFIG_H"_d;
-        gpgme.Private += "VERSION=\"${PACKAGE_VERSION}\""_d;
+        gpgme.Private += Definition("VERSION=\"" + gpgme.Variables["PACKAGE_VERSION"].toString() + "\"");
         if (s.Settings.TargetOS.Type == OSType::Windows)
         {
             gpgme.Private += "REPLACE_TTYNAME_R"_d;
