@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &cairo = s.addTarget<LibraryTarget>("cairographics.cairo", "1.16.0");
     cairo += Git("git://git.cairographics.org/git/cairo", "{v}");
 
-    cairo.setChecks("cairo");
+    cairo.setChecks("cairo", true);
 
     cairo.ApiNames.insert("cairo_public");
     cairo.CPPVersion = CPPLanguageStandard::CPP11;
@@ -147,4 +147,3 @@ void check(Checker &c)
     s.checkLibraryFunctionExists("be", "main");
     s.checkLibraryFunctionExists("rt", "shm_open");
 }
-
