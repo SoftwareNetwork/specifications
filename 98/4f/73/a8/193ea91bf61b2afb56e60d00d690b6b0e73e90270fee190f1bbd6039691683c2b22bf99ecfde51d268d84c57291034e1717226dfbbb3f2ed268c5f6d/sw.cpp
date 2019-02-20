@@ -4,6 +4,12 @@ struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
+        if (getSolution()->Settings.TargetOS.Type != OSType::Windows)
+        {
+            c.program = "python3"; // python3?
+            return;
+        }
+        ExecutableTarget::setupCommand(c);
         c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
     }
 
@@ -19,6 +25,12 @@ void build(Solution &s)
 {
     auto &python = s.addProject("python", "3.7.2");
     python += Git("https://github.com/python/cpython", "v{v}");
+
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+    {
+        auto &exe = python.addTarget<PythonExecutable>("exe");
+        return;
+    }
 
     auto &lib = python.addLibrary("lib");
     {
@@ -138,13 +150,6 @@ void build(Solution &s)
             "Objects/unicodectype.c",
             "Objects/unicodeobject.c",
             "Objects/weakrefobject.c",
-            "PC/.*\\.h"_rr,
-            "PC/config.c",
-            "PC/dl_nt.c",
-            "PC/getpathp.c",
-            "PC/invalid_parameter_handler.c",
-            "PC/msvcrtmodule.c",
-            "PC/winreg.c",
             "Parser/.*\\.h"_rr,
             "Parser/acceler.c",
             "Parser/bitset.c",
@@ -217,10 +222,20 @@ void build(Solution &s)
         lib -= "Modules/_blake2/impl/.*"_rr;
         lib -= "Python/dynload_.*"_rr;
 
-        lib.Public +=
-            "PC"_id;
-        lib.Public +=
-            "Include"_id;
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+        {
+            lib +=
+                "PC/.*\\.h"_rr,
+                "PC/config.c",
+                "PC/dl_nt.c",
+                "PC/getpathp.c",
+                "PC/invalid_parameter_handler.c",
+                "PC/msvcrtmodule.c",
+                "PC/winreg.c"
+                ;
+            lib.Public += "PC"_id;
+        }
+        lib.Public += "Include"_id;
 
         lib.Private += "EXEC_PREFIX=\"\""_d;
         lib.Private += "PREFIX=\"\""_d;

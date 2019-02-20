@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &magick = s.addTarget<LibraryTarget>("graphicsmagick.magick", "1.3.30");
     magick += RemoteFile("https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/{v}/GraphicsMagick-{v}-windows-source.7z");
 
-    magick.setChecks("magick");
+    magick.setChecks("magick", true);
 
     magick +=
         "coders/.*\\.[hc]"_rr,
