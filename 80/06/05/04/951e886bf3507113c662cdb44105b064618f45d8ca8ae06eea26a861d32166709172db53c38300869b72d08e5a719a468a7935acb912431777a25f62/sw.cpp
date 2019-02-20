@@ -7,13 +7,13 @@
 namespace flex_bison
 {
 
-static bool need_build(Solution &s)
-{
-    return
-        //s.Settings.Native.CompilerType != CompilerType::GNU
-        s.HostOS.Type == OSType::Windows// && !::sw::detail::isHostCygwin()
-        ;
-}
+    static bool need_build(Solution &s)
+    {
+        return
+            //s.Settings.Native.CompilerType != CompilerType::GNU
+            s.HostOS.Type == OSType::Windows// && !::sw::detail::isHostCygwin()
+            ;
+    }
 
 }
 
