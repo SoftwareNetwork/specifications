@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &json_c = s.addTarget<StaticLibraryTarget>("json_c", "master");
     json_c += Git("https://github.com/json-c/json-c", "", "{v}");
 
-    json_c.setChecks("json_c");
+    json_c.setChecks("json_c", true);
 
     json_c +=
         ".*\\.c"_rr,
