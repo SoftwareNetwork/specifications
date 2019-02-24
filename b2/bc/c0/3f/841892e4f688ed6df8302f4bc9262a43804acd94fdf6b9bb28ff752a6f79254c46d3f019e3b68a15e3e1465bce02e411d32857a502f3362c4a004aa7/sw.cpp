@@ -239,7 +239,7 @@ void build(Solution &s)
         add_dispatch_file(dnn, "layers/layers_common");
 
         for (auto &f : enumerate_files_like(dnn.SourceDir / "modules/dnn/src", ".*\\.proto", true))
-            gen_protobuf(dnn, f);
+            gen_protobuf("org.sw.demo.google.protobuf-3"_dep, dnn, f);
     }
 
     auto &stitching = add_target("stitching");
