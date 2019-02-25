@@ -10,5 +10,5 @@ void build(Solution &s)
         t += Git(url, branch ? "" : "v{v}", "{v}");
     };
 
-    add_repo("robin-map", "0.6.1");
+    add_repo("hat-trie", "0.6.0");
 }

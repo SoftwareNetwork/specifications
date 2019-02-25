@@ -1,5 +1,14 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<LibraryTarget>("tessil.hopscotch_map", "2.2.1");
-    t += Git("https://github.com/Tessil/hopscotch-map", "v{v}");
+    auto &p = s.addProject("Tessil");
+
+    auto add_repo = [&p](String n, const String &v, bool branch = false)
+    {
+        auto url = "https://github.com/Tessil/" + n;
+        boost::replace_all(n, "-", "_");
+        auto &t = p.addTarget<LibraryTarget>(n, v);
+        t += Git(url, branch ? "" : "v{v}", "{v}");
+    };
+
+    add_repo("hopscotch-map", "2.2.1");
 }
