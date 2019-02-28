@@ -5,139 +5,139 @@ auto &addBoostTarget(Solution &s, const String &name)
 {
     static std::map<String, String> commits{
         { "accumulators", "bfcbfe3c58064cd1ffabbce49a95c6c20351c96e" },
-        { "algorithm", "5af3e3b174cdd5f06d21fc50e9b5ffa4f953cfe7" },
-        { "align", "25b1b0afd8d3fb7963697a0e71fe4316ecab14fb" },
-        { "any", "40a0e4b89697cba0b1784867a29773e5f074e55b" },
-        { "array", "8f3aea2200fa45ed4c1829b3d3148432867dda87" },
-        { "asio", "7c8c58b48849a5dac7b64d3ab664312a3ef051ec" },
-        { "assert", "dbe3f8c641151c6c1b33485cd04f6e5285799102" },
-        { "assign", "2d5f5f96de4a89367c73576c8ee731bcf020fb0a" },
-        { "atomic", "c22cc0812d7c3c615e57d5bd6ddbde4b1457ac57" },
-        { "beast", "320037a6bc6e70adb5ec715dc2bdfce9ed0ba41e" },
-        { "bimap", "223b2cf3a5d633c5a4f11e07ce242f51bcf61a06" },
-        { "bind", "d67200bd2a1f67135a4c677636546ec9615e21ea" },
-        { "callable_traits", "04a469afe15cf09ce5ac4b78cd9574e067631c60" },
-        { "chrono", "763fae0708aeab9f7a02e2e5b89025a78426dea4" },
-        { "circular_buffer", "3dc0e1c56b55ff072bb06d4bb03a236865e92497" },
-        { "compatibility", "445fbc1633cbaf49b0c3310db95a642e9c3fe89b" },
-        { "compute", "9189a761b79fcd4be2f38158b9cad164bac22fa2" },
-        { "concept_check", "7dbaa8541362bb2011f766cf16e6d1f0169af375" },
-        { "config", "67102d043643c51104663c5b00e375c2f476cdf5" },
-        { "container", "43c0257871e2f4a5d533c059f197a635a58361f2" },
-        { "container_hash", "9fbda1a98a32498c52a1c8ebf62311bb36a44ad4" },
-        { "context", "bcc3ed785bc2f4f3c82e2ec163abb4d3d2c4b24e" },
-        { "contract", "27dba1d8e9b9d7521ef3802ae73a07d5357f1773" },
-        { "conversion", "e8d104f34d1dd97c619a01639fe7b56bce5b671d" },
-        { "convert", "8b6a8e4e01e9e39395945983c7038de3d2875f3e" },
-        { "core", "d60775659b893fc71a8e37df8830067efdbc5c72" },
-        { "coroutine", "8df277dc820701e6a62f5ae4018e7b7190490eb8" },
-        { "coroutine2", "e1b3ca3179f3daecc5fab6ffeb35ae321e6b138f" },
-        { "crc", "28d2df3803fbab1e3799cdfd91296f7006b8a495" },
-        { "date_time", "81d60863b6382547cc0cb070cf1f13f82411c386" },
-        { "detail", "622c7c4ee6046943164fc7bde49023369969de92" },
-        { "disjoint_sets", "4980fe2a87ead3b2e8260aed6e9c8835266cd5d7" },
-        { "dll", "b317d6506810eae6abf626dcc91b2de20979501a" },
-        { "dynamic_bitset", "a580c496faa497335d589f8426b48deaccc9215a" },
-        { "endian", "bde5937912662321c45596367b229ad7298b316c" },
-        { "exception", "c87b9c55b1e4d5937b32abe2b84f249171f950ba" },
-        { "fiber", "8c1142fe7e4abf62b0cb27210ce4573936ee61d2" },
-        { "filesystem", "7dc1712f2df87f28bfd02ab26d3af25c7823eb2c" },
-        { "flyweight", "9f8ccdc7fb79545c3d81a55b54684bfc5abf1bad" },
-        { "foreach", "4240a1d095cf4a5e04093a1b91b1f0c791a58da9" },
-        { "format", "1d347079b1096f4f5a3a6ea85dfcaf5143b42802" },
-        { "function", "3f46081c59edd66ea93294d02a962e929c67b03e" },
-        { "function_types", "ae4fde2e2ae88291d6d656137169ff4003d184a1" },
-        { "functional", "7516442815900430cc9c4a6190354e11bcbe72dd" },
-        { "fusion", "62137c0ab7693d781bf7c487363dfc2aeff7b5e9" },
-        { "geometry", "292e3df03eb2e9720bfaf1f3ebfe4bb0b309923c" },
-        { "gil", "28df5bc4821bd5d17ffc9e77c0f2b3c271e509b2" },
-        { "graph", "815268534fc04adf00c9f5bd6803328e20fe14c1" },
-        { "graph_parallel", "6d4757c56f8d3d5bb2efa4c5d46119af305ef441" },
-        { "hana", "490dbf656d36dc183f492ab973fd2df19c83841d" },
-        { "heap", "e4b3a2ea733fcb4bb3b50f362af83e8480e016ae" },
-        { "hof", "7e7610854ecec699af8503e44c48383828c44734" },
-        { "icl", "adaf950fadf370ed4b8a33153d6510bff242ff06" },
-        { "integer", "099cf261b0d73a71ebcaf26e6f8afa6e30ba54cf" },
-        { "interprocess", "4e60b89783980bdb6393e66a54f9fe629b996cca" },
-        { "intrusive", "247e1824297d84cad9ecfca78779523d24f9604a" },
-        { "io", "5fa66f1f76fb9142765692cc0cf6e40af8d08c45" },
-        { "iostreams", "29a831798ec6337848d1f2e8595b59e5503e4f21" },
-        { "iterator", "3cc4107d01b152bc2417d434b6fa22925a34aecd" },
-        { "lambda", "8824e81d52489be9c8cb21d8f8477b03e675ce66" },
-        { "lexical_cast", "5cd977133786b58acab162344024e3a12f795034" },
-        { "local_function", "9ea3674299e3185ccdacf9dad5060d070ae9d77e" },
-        { "locale", "ccb8fbb9a1a0dbdffb1054ffa34e4aba1e425642" },
-        { "lockfree", "38f0cfc28d984cba8b368695491f9cc45bca2363" },
-        { "log", "b22211073860190985d700c3f30a32a494878436" },
-        { "logic", "fd021e5eb747eaa77c94720ef1ea17e7e73911ae" },
-        { "math", "dff5644a1198667127d4549ee271288123f54929" },
-        { "metaparse", "1cb74cdbe1b989a576b0b8f7fe34151562840797" },
-        { "move", "1decc552eb92ebd1e76e1b66cb4bf690c3384432" },
-        { "mp11", "dbe0378d65de4aaedab2baca1b64e4d04036861a" },
-        { "mpi", "c6b59c05995e2e467c794f5f9673aba662109116" },
-        { "mpl", "ac67f5952e6c849e461d7651ffb4fa0e7f380bb0" },
-        { "msm", "fc3671a41c583aefd6b40c15673b83589e4f4220" },
-        { "multi_array", "804dff44def8a00315a2f096b204e252b325c2e5" },
-        { "multi_index", "335252403093efb348e41ae40a004e442082e711" },
-        { "multiprecision", "3edbab951ef7f1adfb9d1ef1737d4b7247ba51ec" },
-        { "numeric", "36f969a4c5129d11a8913fcbd8d2732ba957315b" },
-        { "interval", "aa46846917fb1b3e3df91345d2590f8ef9528bea" },
-        { "odeint", "6ff2719b6907b86596c3d43e88c1bcfdf29df560" },
-        { "ublas", "e8607b3eea238e590eca93bfe498c21f470155c1" },
-        { "optional", "a192204b41bd9744d85f202849f860b66fd1c2bc" },
-        { "parameter", "5d3e39325e13a74645b60af33b16e8369f5ee61d" },
-        { "parameter_python", "787d8d38d9fd49c34a757b20361f8042dd5ac820" },
-        { "phoenix", "d274d83c28b67ca1bde83a547055954a1f2bca6c" },
-        { "poly_collection", "78e8a8e64b2d7eb98fe0c7030ca1667ddb7b0b6c" },
-        { "polygon", "8738898fc130a12cca349cdac60ca5d659c7cfab" },
-        { "pool", "e4b44b276ca6c68ccf9eac4232157340b699453c" },
-        { "predef", "aa94d69718a8d4d0a6fd80cb1e62ed62d9b23d83" },
-        { "preprocessor", "d135cad759062ba646cb4bc40c163e590d381001" },
-        { "process", "c3b707b709995b2ac7c6d419f222deba34868068" },
-        { "program_options", "bc0c90a70f0435ee4ce65b97a68d864a7d627e35" },
-        { "property_map", "c9b86a852b053b8df3f69a2e98e688a5e6a00f6a" },
-        { "property_tree", "bdfe275d172ac30bc5e89a6375a5a64dea20b3c0" },
-        { "proto", "d70c74c3a8d2abe746fe017edee564e6e8ae0efc" },
-        { "ptr_container", "cc5aefee30dc349360e8030464503c5641840e7b" },
-        { "python", "6f72675bff276599ffdccb9681018d8b2e367bc2" },
-        { "qvm", "69039e2ec0076846bd9f9a03d15c4f82ba4d5728" },
-        { "random", "1559df6b194cbba86653a2e2fefc2ea15e2cecd2" },
-        { "range", "9f94c8703b73d7935e4529070ec03e392a97e2a1" },
-        { "ratio", "7d40521682bd5367057340c27aade5976d368f32" },
-        { "rational", "3fc4192167fa289035878cc4f007208ff6316e1e" },
-        { "regex", "866d546fd0d75105be76654a6bb3a1b4cdbb4087" },
-        { "safe_numerics", "b75ea6243f605dca1b1e4fc5ccaa4ed1062f1f65" },
-        { "scope_exit", "3a2c1d7da44af2bb4bf47a4dc051998a80d3194f" },
-        { "serialization", "f01148e421d2072294a6bc5faf70a5f6d4a709c2" },
-        { "signals2", "0c51b5dcbf5961054447ce83f467e6e99db16c54" },
-        { "smart_ptr", "04f0847af4c1e32d1ad4e785c514b5a49f439acc" },
-        { "sort", "62dbaee9779b6f3e84c20e66c20861ecc6d98749" },
-        { "spirit", "d59dc0158f742c88210dc7f0dd1cc1168a480d89" },
-        { "stacktrace", "39486260ae5c3dfcaf29afe23507cde827f3cb6f" },
-        { "statechart", "dc794c0ab2b3b58bc566c0d24239ecef6988eee5" },
-        { "static_assert", "feaaf3d14ab42d1f248d2b627a60c446fa9f2600" },
-        { "system", "3a4fff686e81320d346304b978f866c4136bd863" },
-        { "test", "0003131130d522861e049440342e1763721d6e66" },
-        { "thread", "8d0f077ab233a978c869922ef3bd8f26b1c2d451" },
-        { "throw_exception", "074bc77efb421388461cfadca751bca7e28ca112" },
-        { "timer", "cb59c5cff1d044d875b4c5984a46efcffa6c9df5" },
-        { "tokenizer", "c79bd240272e49e7788a41b6df6cba5097689454" },
-        { "tti", "31736e3dff24934430b038b85f794432eb949a29" },
-        { "tuple", "fb55aa6d4d5e6917f55dbd7aee58afde97879b85" },
-        { "type_erasure", "4afdf7ea52018be41e0c41abeab43fc5d2764573" },
-        { "type_index", "f3da852bca7dcc4f7768c48183a1894023c0e1fd" },
-        { "type_traits", "efc694d679263652520d965b94debbec69a17d85" },
-        { "typeof", "e35962f3f07f9eca1efb1e816348bb42794b8a51" },
-        { "units", "57389b7374a6f7a4caf87cc44092bb8d0db65ec6" },
-        { "unordered", "9abce00f240f4d7b38c335c1f86262e7ea16018d" },
-        { "utility", "05dda09fd3b4312594144b5a8617ba6fc694a2d6" },
-        { "uuid", "14a90261c790a5ed84fdc97bf21a122f033ad9eb" },
-        { "variant", "4a448b2bf7e766f13dd8765514c868ab49fa2c90" },
-        { "vmd", "c939f908abe79fcb194c12b782e2fbcc6c0d52e7" },
-        { "wave", "ac64abce4a3492a18aee3450d180c1d8ae5b490d" },
-        { "winapi", "95884f6932054ca6b7fb0adca444da267268db5d" },
-        { "xpressive", "4d4bc69f8b05e63c744e6f477df6a364affbc603" },
-        { "yap", "1593ff054b932676cd55f4e8706902597228d896" },
+    { "algorithm", "5af3e3b174cdd5f06d21fc50e9b5ffa4f953cfe7" },
+    { "align", "25b1b0afd8d3fb7963697a0e71fe4316ecab14fb" },
+    { "any", "40a0e4b89697cba0b1784867a29773e5f074e55b" },
+    { "array", "8f3aea2200fa45ed4c1829b3d3148432867dda87" },
+    { "asio", "7c8c58b48849a5dac7b64d3ab664312a3ef051ec" },
+    { "assert", "dbe3f8c641151c6c1b33485cd04f6e5285799102" },
+    { "assign", "2d5f5f96de4a89367c73576c8ee731bcf020fb0a" },
+    { "atomic", "c22cc0812d7c3c615e57d5bd6ddbde4b1457ac57" },
+    { "beast", "320037a6bc6e70adb5ec715dc2bdfce9ed0ba41e" },
+    { "bimap", "223b2cf3a5d633c5a4f11e07ce242f51bcf61a06" },
+    { "bind", "d67200bd2a1f67135a4c677636546ec9615e21ea" },
+    { "callable_traits", "04a469afe15cf09ce5ac4b78cd9574e067631c60" },
+    { "chrono", "763fae0708aeab9f7a02e2e5b89025a78426dea4" },
+    { "circular_buffer", "3dc0e1c56b55ff072bb06d4bb03a236865e92497" },
+    { "compatibility", "445fbc1633cbaf49b0c3310db95a642e9c3fe89b" },
+    { "compute", "9189a761b79fcd4be2f38158b9cad164bac22fa2" },
+    { "concept_check", "7dbaa8541362bb2011f766cf16e6d1f0169af375" },
+    { "config", "67102d043643c51104663c5b00e375c2f476cdf5" },
+    { "container", "43c0257871e2f4a5d533c059f197a635a58361f2" },
+    { "container_hash", "9fbda1a98a32498c52a1c8ebf62311bb36a44ad4" },
+    { "context", "bcc3ed785bc2f4f3c82e2ec163abb4d3d2c4b24e" },
+    { "contract", "27dba1d8e9b9d7521ef3802ae73a07d5357f1773" },
+    { "conversion", "e8d104f34d1dd97c619a01639fe7b56bce5b671d" },
+    { "convert", "8b6a8e4e01e9e39395945983c7038de3d2875f3e" },
+    { "core", "d60775659b893fc71a8e37df8830067efdbc5c72" },
+    { "coroutine", "8df277dc820701e6a62f5ae4018e7b7190490eb8" },
+    { "coroutine2", "e1b3ca3179f3daecc5fab6ffeb35ae321e6b138f" },
+    { "crc", "28d2df3803fbab1e3799cdfd91296f7006b8a495" },
+    { "date_time", "81d60863b6382547cc0cb070cf1f13f82411c386" },
+    { "detail", "622c7c4ee6046943164fc7bde49023369969de92" },
+    { "disjoint_sets", "4980fe2a87ead3b2e8260aed6e9c8835266cd5d7" },
+    { "dll", "b317d6506810eae6abf626dcc91b2de20979501a" },
+    { "dynamic_bitset", "a580c496faa497335d589f8426b48deaccc9215a" },
+    { "endian", "bde5937912662321c45596367b229ad7298b316c" },
+    { "exception", "c87b9c55b1e4d5937b32abe2b84f249171f950ba" },
+    { "fiber", "8c1142fe7e4abf62b0cb27210ce4573936ee61d2" },
+    { "filesystem", "7dc1712f2df87f28bfd02ab26d3af25c7823eb2c" },
+    { "flyweight", "9f8ccdc7fb79545c3d81a55b54684bfc5abf1bad" },
+    { "foreach", "4240a1d095cf4a5e04093a1b91b1f0c791a58da9" },
+    { "format", "1d347079b1096f4f5a3a6ea85dfcaf5143b42802" },
+    { "function", "3f46081c59edd66ea93294d02a962e929c67b03e" },
+    { "function_types", "ae4fde2e2ae88291d6d656137169ff4003d184a1" },
+    { "functional", "7516442815900430cc9c4a6190354e11bcbe72dd" },
+    { "fusion", "62137c0ab7693d781bf7c487363dfc2aeff7b5e9" },
+    { "geometry", "292e3df03eb2e9720bfaf1f3ebfe4bb0b309923c" },
+    { "gil", "28df5bc4821bd5d17ffc9e77c0f2b3c271e509b2" },
+    { "graph", "815268534fc04adf00c9f5bd6803328e20fe14c1" },
+    { "graph_parallel", "6d4757c56f8d3d5bb2efa4c5d46119af305ef441" },
+    { "hana", "490dbf656d36dc183f492ab973fd2df19c83841d" },
+    { "heap", "e4b3a2ea733fcb4bb3b50f362af83e8480e016ae" },
+    { "hof", "7e7610854ecec699af8503e44c48383828c44734" },
+    { "icl", "adaf950fadf370ed4b8a33153d6510bff242ff06" },
+    { "integer", "099cf261b0d73a71ebcaf26e6f8afa6e30ba54cf" },
+    { "interprocess", "4e60b89783980bdb6393e66a54f9fe629b996cca" },
+    { "intrusive", "247e1824297d84cad9ecfca78779523d24f9604a" },
+    { "io", "5fa66f1f76fb9142765692cc0cf6e40af8d08c45" },
+    { "iostreams", "29a831798ec6337848d1f2e8595b59e5503e4f21" },
+    { "iterator", "3cc4107d01b152bc2417d434b6fa22925a34aecd" },
+    { "lambda", "8824e81d52489be9c8cb21d8f8477b03e675ce66" },
+    { "lexical_cast", "5cd977133786b58acab162344024e3a12f795034" },
+    { "local_function", "9ea3674299e3185ccdacf9dad5060d070ae9d77e" },
+    { "locale", "ccb8fbb9a1a0dbdffb1054ffa34e4aba1e425642" },
+    { "lockfree", "38f0cfc28d984cba8b368695491f9cc45bca2363" },
+    { "log", "b22211073860190985d700c3f30a32a494878436" },
+    { "logic", "fd021e5eb747eaa77c94720ef1ea17e7e73911ae" },
+    { "math", "dff5644a1198667127d4549ee271288123f54929" },
+    { "metaparse", "1cb74cdbe1b989a576b0b8f7fe34151562840797" },
+    { "move", "1decc552eb92ebd1e76e1b66cb4bf690c3384432" },
+    { "mp11", "dbe0378d65de4aaedab2baca1b64e4d04036861a" },
+    { "mpi", "c6b59c05995e2e467c794f5f9673aba662109116" },
+    { "mpl", "ac67f5952e6c849e461d7651ffb4fa0e7f380bb0" },
+    { "msm", "fc3671a41c583aefd6b40c15673b83589e4f4220" },
+    { "multi_array", "804dff44def8a00315a2f096b204e252b325c2e5" },
+    { "multi_index", "335252403093efb348e41ae40a004e442082e711" },
+    { "multiprecision", "3edbab951ef7f1adfb9d1ef1737d4b7247ba51ec" },
+    { "numeric", "36f969a4c5129d11a8913fcbd8d2732ba957315b" },
+    { "interval", "aa46846917fb1b3e3df91345d2590f8ef9528bea" },
+    { "odeint", "6ff2719b6907b86596c3d43e88c1bcfdf29df560" },
+    { "ublas", "e8607b3eea238e590eca93bfe498c21f470155c1" },
+    { "optional", "a192204b41bd9744d85f202849f860b66fd1c2bc" },
+    { "parameter", "5d3e39325e13a74645b60af33b16e8369f5ee61d" },
+    { "parameter_python", "787d8d38d9fd49c34a757b20361f8042dd5ac820" },
+    { "phoenix", "d274d83c28b67ca1bde83a547055954a1f2bca6c" },
+    { "poly_collection", "78e8a8e64b2d7eb98fe0c7030ca1667ddb7b0b6c" },
+    { "polygon", "8738898fc130a12cca349cdac60ca5d659c7cfab" },
+    { "pool", "e4b44b276ca6c68ccf9eac4232157340b699453c" },
+    { "predef", "aa94d69718a8d4d0a6fd80cb1e62ed62d9b23d83" },
+    { "preprocessor", "d135cad759062ba646cb4bc40c163e590d381001" },
+    { "process", "c3b707b709995b2ac7c6d419f222deba34868068" },
+    { "program_options", "bc0c90a70f0435ee4ce65b97a68d864a7d627e35" },
+    { "property_map", "c9b86a852b053b8df3f69a2e98e688a5e6a00f6a" },
+    { "property_tree", "bdfe275d172ac30bc5e89a6375a5a64dea20b3c0" },
+    { "proto", "d70c74c3a8d2abe746fe017edee564e6e8ae0efc" },
+    { "ptr_container", "cc5aefee30dc349360e8030464503c5641840e7b" },
+    { "python", "6f72675bff276599ffdccb9681018d8b2e367bc2" },
+    { "qvm", "69039e2ec0076846bd9f9a03d15c4f82ba4d5728" },
+    { "random", "1559df6b194cbba86653a2e2fefc2ea15e2cecd2" },
+    { "range", "9f94c8703b73d7935e4529070ec03e392a97e2a1" },
+    { "ratio", "7d40521682bd5367057340c27aade5976d368f32" },
+    { "rational", "3fc4192167fa289035878cc4f007208ff6316e1e" },
+    { "regex", "866d546fd0d75105be76654a6bb3a1b4cdbb4087" },
+    { "safe_numerics", "b75ea6243f605dca1b1e4fc5ccaa4ed1062f1f65" },
+    { "scope_exit", "3a2c1d7da44af2bb4bf47a4dc051998a80d3194f" },
+    { "serialization", "f01148e421d2072294a6bc5faf70a5f6d4a709c2" },
+    { "signals2", "0c51b5dcbf5961054447ce83f467e6e99db16c54" },
+    { "smart_ptr", "04f0847af4c1e32d1ad4e785c514b5a49f439acc" },
+    { "sort", "62dbaee9779b6f3e84c20e66c20861ecc6d98749" },
+    { "spirit", "d59dc0158f742c88210dc7f0dd1cc1168a480d89" },
+    { "stacktrace", "39486260ae5c3dfcaf29afe23507cde827f3cb6f" },
+    { "statechart", "dc794c0ab2b3b58bc566c0d24239ecef6988eee5" },
+    { "static_assert", "feaaf3d14ab42d1f248d2b627a60c446fa9f2600" },
+    { "system", "3a4fff686e81320d346304b978f866c4136bd863" },
+    { "test", "0003131130d522861e049440342e1763721d6e66" },
+    { "thread", "8d0f077ab233a978c869922ef3bd8f26b1c2d451" },
+    { "throw_exception", "074bc77efb421388461cfadca751bca7e28ca112" },
+    { "timer", "cb59c5cff1d044d875b4c5984a46efcffa6c9df5" },
+    { "tokenizer", "c79bd240272e49e7788a41b6df6cba5097689454" },
+    { "tti", "31736e3dff24934430b038b85f794432eb949a29" },
+    { "tuple", "fb55aa6d4d5e6917f55dbd7aee58afde97879b85" },
+    { "type_erasure", "4afdf7ea52018be41e0c41abeab43fc5d2764573" },
+    { "type_index", "f3da852bca7dcc4f7768c48183a1894023c0e1fd" },
+    { "type_traits", "efc694d679263652520d965b94debbec69a17d85" },
+    { "typeof", "e35962f3f07f9eca1efb1e816348bb42794b8a51" },
+    { "units", "57389b7374a6f7a4caf87cc44092bb8d0db65ec6" },
+    { "unordered", "9abce00f240f4d7b38c335c1f86262e7ea16018d" },
+    { "utility", "05dda09fd3b4312594144b5a8617ba6fc694a2d6" },
+    { "uuid", "14a90261c790a5ed84fdc97bf21a122f033ad9eb" },
+    { "variant", "4a448b2bf7e766f13dd8765514c868ab49fa2c90" },
+    { "vmd", "c939f908abe79fcb194c12b782e2fbcc6c0d52e7" },
+    { "wave", "ac64abce4a3492a18aee3450d180c1d8ae5b490d" },
+    { "winapi", "95884f6932054ca6b7fb0adca444da267268db5d" },
+    { "xpressive", "4d4bc69f8b05e63c744e6f477df6a364affbc603" },
+    { "yap", "1593ff054b932676cd55f4e8706902597228d896" },
     };
 
     PackagePath p = "boost";
@@ -186,9 +186,11 @@ void addSharedDefinitions(NativeExecutedTarget &t, const String &N)
     t.Public << sw::Shared << defs;
 }
 
-auto &addCompiledBoostTarget(Solution &s, const String &name)
+auto &addCompiledBoostTarget(Solution &s, String name)
 {
     auto &t = addBoostTarget<LibraryTarget>(s, name);
+    if (name == "fiber")
+        name += "s";
     auto N = boost::to_upper_copy(name);
     addPrivateDefinitions(t, N);
     addSharedDefinitions(t, N);
@@ -341,12 +343,12 @@ void build(Solution &s)
         "atomic",
         "chrono",
         "container",
-        //"context",
+        "context",
         "contract",
         //"coroutine",
         "date_time",
         //"exception", added below
-        //"fiber",
+        "fiber",
         "filesystem",
         "graph",
         //"graph_parallel",
@@ -356,7 +358,7 @@ void build(Solution &s)
         "math",
         //"mpi",
         "program_options",
-        //"python",
+        "python",
         "random",
         "regex",
         "serialization",
@@ -468,6 +470,56 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_slib;
 
+    // context, fiber
+    *boost_targets["context"] += "src/.*"_rr;
+    *boost_targets["context"] -= "src/asm/.*"_rr;
+    //*boost_targets["context"] -= "src/dummy.cpp";
+    *boost_targets["context"] -= "src/untested.cpp";
+
+    String a = ".*";
+    if (s.Settings.TargetOS.is(ArchType::x86_64))
+        a += "x86_64";
+    else
+        a += "i386";
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        a += "_ms_pe_masm.asm";
+
+        *boost_targets["context"] += sw::Shared, "BOOST_CONTEXT_EXPORT=EXPORT"_def;
+        *boost_targets["context"] += sw::Static, "BOOST_CONTEXT_EXPORT="_def;
+        *boost_targets["context"] += "BOOST_USE_WINFIB"_def;
+
+        *boost_targets["context"] -= "src/posix/.*"_rr;
+    }
+    else if (s.Settings.TargetOS.Type == OSType::Macos)
+    {
+        a += "_sysv_macho_gas.S";
+    }
+    else
+    {
+        a += "_sysv_elf_gas.S";
+
+        *boost_targets["context"] -= "src/windows/.*"_rr;
+    }
+    *boost_targets["context"] += FileRegex("src/asm/", a, false);
+
+    *boost_targets["fiber"] += "include/.*"_rr;
+    *boost_targets["fiber"] += "src/.*"_r;
+    *boost_targets["fiber"] += "src/algo/.*"_rr;
+    *boost_targets["fiber"] += "src/numa/algo/.*"_r;
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+        *boost_targets["fiber"] += "src/numa/windows/.*"_rr;
+    else if (s.Settings.TargetOS.Type == OSType::Linux)
+        *boost_targets["fiber"] += "src/numa/linux/.*"_rr;
+    else
+        *boost_targets["fiber"] += "src/numa/.*"_r;
+    //
+
+    //
+    *boost_targets["python"] += "org.sw.demo.python.lib"_dep;
+    *boost_targets["python"] -= "src/numpy/.*"_rr;
+    //
+
     boost_deps(boost_targets);
 
     //
@@ -496,10 +548,6 @@ void build(Solution &s)
 #endif
 )"
 );
-
-    boost_targets["config"]->replaceInFileOnce("include/boost/config/compiler/visualc.hpp",
-        "#if (_MSC_VER > 1911)",
-        "#if (_MSC_VER > 1912)");
 }
 
 void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets)
