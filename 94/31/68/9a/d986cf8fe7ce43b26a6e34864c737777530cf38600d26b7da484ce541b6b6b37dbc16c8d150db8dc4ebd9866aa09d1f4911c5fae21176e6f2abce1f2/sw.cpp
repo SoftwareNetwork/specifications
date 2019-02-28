@@ -471,6 +471,7 @@ void build(Solution &s)
         ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_slib;
 
     // context, fiber
+    *boost_targets["context"] += "include/.*"_rr;
     *boost_targets["context"] += "src/.*"_rr;
     *boost_targets["context"] -= "src/asm/.*"_rr;
     //*boost_targets["context"] -= "src/dummy.cpp";
