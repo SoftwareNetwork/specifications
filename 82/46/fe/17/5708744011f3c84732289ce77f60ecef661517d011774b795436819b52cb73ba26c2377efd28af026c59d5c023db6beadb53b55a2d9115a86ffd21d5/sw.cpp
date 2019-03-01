@@ -50,9 +50,9 @@ static auto gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t, c
 
     fs::create_directories(bdir);
 
-    SW_MAKE_COMMAND_AND_ADD(fc, t);
+    SW_MAKE_COMMAND_AND_ADD(bc, t);
     {
-        auto c = fc;
+        auto c = bc;
         if (win_flex_bison)
             c->setProgram(bison);
         else
@@ -69,11 +69,11 @@ static auto gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t, c
         t += o, oh;
     }
 
-    SW_MAKE_COMMAND_AND_ADD(bc, t);
+    SW_MAKE_COMMAND_AND_ADD(fc, t);
     {
         auto o = bdir / (f.filename().u8string() + ".cpp");
 
-        auto c = bc;
+        auto c = fc;
         if (win_flex_bison)
             c->setProgram(flex);
         else
