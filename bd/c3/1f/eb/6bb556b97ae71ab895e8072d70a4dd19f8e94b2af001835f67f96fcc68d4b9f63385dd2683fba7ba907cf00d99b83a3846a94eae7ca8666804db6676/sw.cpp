@@ -38,8 +38,8 @@ void build(Solution &sln)
     pango.Public += "HAVE_DIRENT_H=1"_d;
     pango.Public += "HAVE_FREETYPE=1"_d;
     pango.Public.Definitions["PANGO_BINARY_AGE"] = "0x"s +
-        pango.Variables["PACKAGE_VERSION_MINOR_NUM"] +
-        pango.Variables["PACKAGE_VERSION_PATCH_NUM"];
+        pango.Variables["PACKAGE_VERSION_MINOR_NUM"].toString() +
+        pango.Variables["PACKAGE_VERSION_PATCH_NUM"].toString();
     pango.Public += "PANGO_ENABLE_BACKEND=1"_d;
     pango.Public += "PANGO_ENABLE_ENGINE=1"_d;
     if (sln.Settings.TargetOS.Type != OSType::Windows)

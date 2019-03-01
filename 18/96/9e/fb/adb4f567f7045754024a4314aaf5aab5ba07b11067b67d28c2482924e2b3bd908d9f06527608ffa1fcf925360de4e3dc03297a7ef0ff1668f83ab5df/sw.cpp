@@ -266,9 +266,9 @@ void build(Solution &s)
             lib.Public += "MS_WINDOWS"_d;
             lib.Public += "NT_THREADS"_d;
 
-            lib.Public += "advapi32.lib"_lib;
-            lib.Public += "Mincore.lib"_lib;
-            lib.Public += "Shlwapi.lib"_lib;
+            lib.Public += "advapi32.lib"_slib;
+            lib.Public += "Mincore.lib"_slib;
+            lib.Public += "Shlwapi.lib"_slib;
         }
         else
         {
