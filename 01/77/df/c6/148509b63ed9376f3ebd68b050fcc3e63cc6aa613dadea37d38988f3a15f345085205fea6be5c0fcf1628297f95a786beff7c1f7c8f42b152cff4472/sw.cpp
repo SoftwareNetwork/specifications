@@ -22,8 +22,8 @@ struct YasmAssemblerOptions
 };
 DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 
-struct YasmCompiler : NativeCompiler,
-    CommandLineOptions<YasmAssemblerOptions>
+struct YasmCompiler : sw::NativeCompiler,
+    sw::CommandLineOptions<YasmAssemblerOptions>
 {
     virtual ~YasmCompiler() = default;
 
@@ -50,6 +50,7 @@ struct YasmCompiler : NativeCompiler,
             cmd->working_directory = ObjectFile().parent_path();
 
         if (!ObjectFormat)
+        {
             if (t.getSolution()->Settings.TargetOS.Type == OSType::Windows)
             {
                 if (t.getSolution()->Settings.TargetOS.Arch == ArchType::x86_64)
@@ -57,8 +58,9 @@ struct YasmCompiler : NativeCompiler,
                 else
                     ObjectFormat = "win32";
             }
+        }
 
-        getCommandLineOptions<YasmAssemblerOptions>(cmd.get(), *this);
+        sw::getCommandLineOptions<YasmAssemblerOptions>(cmd.get(), *this);
         iterate([this](auto &v, auto &gs) { v.addEverything(*cmd); });
     }
 
