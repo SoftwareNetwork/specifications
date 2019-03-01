@@ -66,6 +66,8 @@ void build(Solution &s)
         protobuf_lite.ExportAllSymbols = true;
     protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
     protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
+    protobuf_lite += "src/google/protobuf/io/strtod.cc";
+    protobuf_lite += "src/google/protobuf/parse_context.cc";
     protobuf_lite += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf_lite.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
 
@@ -76,6 +78,8 @@ void build(Solution &s)
     protobuf.BazelNames.insert("protobuf_lite");
     protobuf += "src/.*\\.h"_rr;
     protobuf += "src/.*\\.inc"_rr;
+    protobuf += "src/google/protobuf/io/strtod.cc";
+    protobuf += "src/google/protobuf/parse_context.cc";
     protobuf.Private += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
     protobuf.Public += "org.sw.demo.madler.zlib"_dep;
