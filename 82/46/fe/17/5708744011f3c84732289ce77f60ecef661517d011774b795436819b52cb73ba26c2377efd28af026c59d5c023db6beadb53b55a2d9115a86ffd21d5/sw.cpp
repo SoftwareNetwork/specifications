@@ -7,18 +7,18 @@
 namespace flex_bison
 {
 
-    static bool need_build(Solution &s)
-    {
-        return
-            //s.Settings.Native.CompilerType != CompilerType::GNU
-            s.HostOS.Type == OSType::Windows// && !::sw::detail::isHostCygwin()
-            ;
-    }
-
+static bool need_build(Solution &s)
+{
+    return
+        // s.Settings.Native.CompilerType != CompilerType::GNU
+        s.HostOS.Type == OSType::Windows // && !::sw::detail::isHostCygwin()
+        ;
 }
 
-static void gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
-    const path &f, const path &b, const Strings &flex_args = {}, const Strings &bison_args = {})
+} // namespace flex_bison
+
+static auto gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &f, const path &b,
+                           const Strings &flex_args = {}, const Strings &bison_args = {})
 {
     // must be HostOS
     bool win_flex_bison = flex_bison::need_build(*t.getSolution());
@@ -50,8 +50,9 @@ static void gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
 
     fs::create_directories(bdir);
 
+    SW_MAKE_COMMAND_AND_ADD(fc, t);
     {
-        SW_MAKE_COMMAND_AND_ADD(c, t);
+        auto c = fc;
         if (win_flex_bison)
             c->setProgram(bison);
         else
@@ -68,10 +69,11 @@ static void gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
         t += o, oh;
     }
 
+    SW_MAKE_COMMAND_AND_ADD(bc, t);
     {
         auto o = bdir / (f.filename().u8string() + ".cpp");
 
-        SW_MAKE_COMMAND_AND_ADD(c, t);
+        auto c = bc;
         if (win_flex_bison)
             c->setProgram(flex);
         else
@@ -86,9 +88,11 @@ static void gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
         c->addOutput(o);
         t += o;
     }
+
+    return std::tuple{fc, bc};
 }
 
-static void gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget &t, const String &type, const path &p)
+static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget &t, const String &type, const path &p)
 {
     auto name = p.filename().string();
     auto name_upper = boost::to_upper_copy(name);
@@ -124,7 +128,7 @@ static void gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
     auto f = p;
     auto b = p;
-    gen_flex_bison(base, t, f += ".ll", b += ".yy", { "--prefix=ll_" + name }, { "-Dapi.prefix={yy_" + name + "}" });
+    return gen_flex_bison(base, t, f += ".ll", b += ".yy", {"--prefix=ll_" + name}, {"-Dapi.prefix={yy_" + name + "}"});
 };
 
 #pragma sw header off
@@ -146,9 +150,7 @@ void build(Solution &s)
     common.Public += "common/m4/lib"_idir;
     common.Public += "common/misc"_idir;
     // clang does not like static assert on win
-    common.replaceInFileOnce("common/misc/verify.h",
-        "verify(R) static_assert",
-        "verify(R) //static_assert");
+    common.replaceInFileOnce("common/misc/verify.h", "verify(R) static_assert", "verify(R) //static_assert");
 
     auto &flex = winflexbison.addTarget<ExecutableTarget>("flex");
     flex += "flex/.*"_rr;
