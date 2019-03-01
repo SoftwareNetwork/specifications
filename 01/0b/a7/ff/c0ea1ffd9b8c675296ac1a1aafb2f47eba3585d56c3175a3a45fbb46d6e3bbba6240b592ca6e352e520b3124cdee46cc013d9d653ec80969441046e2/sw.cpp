@@ -1,5 +1,3 @@
-#include <boost/algorithm/string.hpp>
-
 template <class T>
 auto &addBoostTarget(Solution &s, const String &name)
 {
@@ -381,7 +379,7 @@ void build(Solution &s)
     *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
     boost_targets["stacktrace"]->HeaderOnly = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
-        boost_targets["random"]->LinkLibraries.insert("Advapi32.lib");
+        *boost_targets["random"] += "Advapi32.lib"_slib;
 
     boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src/tr1");
     boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src");
@@ -488,7 +486,7 @@ void build(Solution &s)
 
         *boost_targets["context"] += sw::Shared, "BOOST_CONTEXT_EXPORT=EXPORT"_def;
         *boost_targets["context"] += sw::Static, "BOOST_CONTEXT_EXPORT="_def;
-        *boost_targets["context"] += "BOOST_USE_WINFIB"_def;
+        boost_targets["context"]->Public += "BOOST_USE_WINFIB"_def;
 
         *boost_targets["context"] -= "src/posix/.*"_rr;
     }
