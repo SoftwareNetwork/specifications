@@ -27,7 +27,7 @@ void build(Solution &s)
     t += "plugins/plain.c";
     t -= "win32/include/.*"_rr;
 
-    t += "GCC_FALLTHROUGH"_def;
+    t += "GCC_FALLTHROUGH="_def;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
