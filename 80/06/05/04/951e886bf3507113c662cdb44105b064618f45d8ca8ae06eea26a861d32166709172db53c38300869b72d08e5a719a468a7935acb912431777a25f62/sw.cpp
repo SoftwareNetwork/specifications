@@ -92,6 +92,8 @@ auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData
         c << "bison";
     c << cmd::out(d.out, cmd::Prefix{ "--output=" });
     c << cmd::out(d.outh, cmd::Prefix{ "--defines=" });
+    for (auto &a : d.args)
+        c << a;
     c << cmd::in(d.in);
 
     return c.c;
@@ -125,6 +127,8 @@ auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData 
     else
         c << "flex";
     c << "-o" << cmd::out(d.out);
+    for (auto &a : d.args)
+        c << a;
     c << cmd::in(d.in);
 
     return c.c;
