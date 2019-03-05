@@ -45,15 +45,15 @@ struct FlexBisonData
         {
             if (in.extension() == cext)
             {
-                out = wdir / (in.stem() += ".c");
+                out = wdir / (in.filename() += ".c");
                 if (outh.empty())
-                    outh = wdir / (in.stem() += ".h");
+                    outh = wdir / (in.filename() += ".h");
             }
             else
             {
-                out = wdir / (in.stem() += ".cpp");
+                out = wdir / (in.filename() += ".cpp");
                 if (outh.empty())
-                    outh = wdir / (in.stem() += ".hpp");
+                    outh = wdir / (in.filename() += ".hpp");
             }
         }
 
