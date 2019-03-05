@@ -46,10 +46,6 @@ void build(Solution &s)
     libarchive.Public += "HAVE_NETTLE_SHA_H"_d;
     libarchive.Public += "HAVE_ZLIB_H"_d;
 
-    libarchive += "__LIBARCHIVE_BUILD"_d;
-    libarchive.Public += sw::Static, "LIBARCHIVE_STATIC"_d;
-    libarchive.patch("libarchive/archive_platform.h", "#define	__LIBARCHIVE_BUILD 1", "//#define	__LIBARCHIVE_BUILD   1");
-
     if (s.Settings.TargetOS.Type == OSType::Windows)
         libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
 
@@ -212,8 +208,13 @@ void build(Solution &s)
         */
     }
 
-    libarchive.replaceInFileOnce("libarchive/archive.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
-    libarchive.replaceInFileOnce("libarchive/archive_entry.h", "# define __LA_DECL", "#  define __LA_DECL SW_EXPORT");
+    libarchive += "__LIBARCHIVE_BUILD"_d;
+    libarchive.Public += sw::Static, "LIBARCHIVE_STATIC"_d;
+    libarchive.patch("libarchive/archive_platform.h", "#define	__LIBARCHIVE_BUILD 1", "//#define	__LIBARCHIVE_BUILD   1");
+
+    libarchive.ApiName = "SW_LIBARCHIVE_API";
+    libarchive.replaceInFileOnce("libarchive/archive.h", "# define __LA_DECL", "#  define __LA_DECL SW_LIBARCHIVE_API");
+    libarchive.replaceInFileOnce("libarchive/archive_entry.h", "# define __LA_DECL", "#  define __LA_DECL SW_LIBARCHIVE_API");
 
     libarchive.configureFile("build/cmake/config.h.in", libarchive.BinaryPrivateDir / "config.h");
 }

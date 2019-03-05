@@ -38,7 +38,7 @@ struct FlexBisonData
         else
         {
             // user will handle includes himself
-            out.parent_path();
+            wdir = out.parent_path();
         }
 
         if (out.empty())
@@ -77,7 +77,7 @@ struct FlexBisonData
     }
 };
 
-auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
+static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
     auto bison = std::make_shared<Dependency>(base->package);
     bison->package.ppath /= "bison";
@@ -99,13 +99,13 @@ auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData
     return c.c;
 }
 
-auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
+static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
 {
     d.in = in;
     return gen_bison(base, t, d);
 }
 
-auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
+static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
 {
     FlexBisonData d;
     d.out = out;
@@ -113,7 +113,7 @@ auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &i
     return gen_bison(base, t, in, d);
 }
 
-auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
+static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
     auto flex = std::make_shared<Dependency>(base->package);
     flex->package.ppath /= "flex";
@@ -134,13 +134,13 @@ auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData 
     return c.c;
 }
 
-auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
+static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
 {
     d.in = in;
     return gen_flex(base, t, d);
 }
 
-auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
+static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
 {
     FlexBisonData d;
     d.out = out;
