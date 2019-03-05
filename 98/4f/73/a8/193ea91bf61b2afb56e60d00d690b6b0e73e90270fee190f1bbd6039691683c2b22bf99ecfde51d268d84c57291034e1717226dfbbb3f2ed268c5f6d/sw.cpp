@@ -26,12 +26,6 @@ void build(Solution &s)
     auto &python = s.addProject("python", "3.7.2");
     python += Git("https://github.com/python/cpython", "v{v}");
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
-    {
-        auto &exe = python.addTarget<PythonExecutable>("exe");
-        return;
-    }
-
     auto &lib = python.addLibrary("lib");
     {
         lib.setChecks("lib");
@@ -303,6 +297,12 @@ void build(Solution &s)
 )xxx");
 
         lib -= ".*.def"_rr;
+    }
+
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+    {
+        auto &exe = python.addTarget<PythonExecutable>("exe");
+        return;
     }
 
     auto &exe = python.addTarget<PythonExecutable>("exe");
