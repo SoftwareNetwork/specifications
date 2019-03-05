@@ -25,6 +25,7 @@ void build(Solution &s)
     libarchive.Public += "HAVE_CONFIG_H"_d;
     libarchive.Public += "HAVE_ICONV"_d;
     libarchive.Public += "HAVE_ICONV_H"_d;
+    libarchive += "ICONV_CONST=const"_v;
     libarchive.Public += "HAVE_LIBLZ4"_d;
     libarchive.Public += "HAVE_LIBLZMA"_d;
     libarchive.Public += "HAVE_LIBNETTLE"_d;
@@ -44,8 +45,10 @@ void build(Solution &s)
     libarchive.Public += "HAVE_NETTLE_RIPEMD160_H"_d;
     libarchive.Public += "HAVE_NETTLE_SHA_H"_d;
     libarchive.Public += "HAVE_ZLIB_H"_d;
+
+    libarchive += "__LIBARCHIVE_BUILD"_d;
     libarchive.Public += sw::Static, "LIBARCHIVE_STATIC"_d;
-    libarchive += "ICONV_CONST=const"_v;
+    libarchive.patch("libarchive/archive_platform.h", "#define	__LIBARCHIVE_BUILD 1", "//#define	__LIBARCHIVE_BUILD   1");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
@@ -173,38 +176,38 @@ void build(Solution &s)
         /*
         # acl
         if (UNIX)
-            CHECK_LIBRARY_EXISTS(acl "acl_get_file" "" HAVE_LIBACL)
-            IF(HAVE_LIBACL)
-                SET(CMAKE_REQUIRED_LIBRARIES "acl")
-                FIND_LIBRARY(ACL_LIBRARY NAMES acl)
-                LIST(APPEND ADDITIONAL_LIBS ${ACL_LIBRARY})
-            ENDIF(HAVE_LIBACL)
-            #
-            include(build/cmake/CheckFuncs.cmake)
-            include(build/cmake/CheckTypeExists.cmake)
-            CHECK_FUNCTION_EXISTS_GLIBC(acl_create_entry HAVE_ACL_CREATE_ENTRY)
-            CHECK_FUNCTION_EXISTS_GLIBC(acl_init HAVE_ACL_INIT)
-            CHECK_FUNCTION_EXISTS_GLIBC(acl_set_fd HAVE_ACL_SET_FD)
-            CHECK_FUNCTION_EXISTS_GLIBC(acl_set_fd_np HAVE_ACL_SET_FD_NP)
-            CHECK_FUNCTION_EXISTS_GLIBC(acl_set_file HAVE_ACL_SET_FILE)
-            CHECK_TYPE_EXISTS(acl_permset_t "${INCLUDES}"    HAVE_ACL_PERMSET_T)
+        CHECK_LIBRARY_EXISTS(acl "acl_get_file" "" HAVE_LIBACL)
+        IF(HAVE_LIBACL)
+        SET(CMAKE_REQUIRED_LIBRARIES "acl")
+        FIND_LIBRARY(ACL_LIBRARY NAMES acl)
+        LIST(APPEND ADDITIONAL_LIBS ${ACL_LIBRARY})
+        ENDIF(HAVE_LIBACL)
+        #
+        include(build/cmake/CheckFuncs.cmake)
+        include(build/cmake/CheckTypeExists.cmake)
+        CHECK_FUNCTION_EXISTS_GLIBC(acl_create_entry HAVE_ACL_CREATE_ENTRY)
+        CHECK_FUNCTION_EXISTS_GLIBC(acl_init HAVE_ACL_INIT)
+        CHECK_FUNCTION_EXISTS_GLIBC(acl_set_fd HAVE_ACL_SET_FD)
+        CHECK_FUNCTION_EXISTS_GLIBC(acl_set_fd_np HAVE_ACL_SET_FD_NP)
+        CHECK_FUNCTION_EXISTS_GLIBC(acl_set_file HAVE_ACL_SET_FILE)
+        CHECK_TYPE_EXISTS(acl_permset_t "${INCLUDES}"    HAVE_ACL_PERMSET_T)
 
-            # The "acl_get_perm()" function was omitted from the POSIX draft.
-            # (It's a pretty obvious oversight; otherwise, there's no way to
-            # test for specific permissions in a permset.)  Linux uses the obvious
-            # name, FreeBSD adds _np to mark it as "non-Posix extension."
-            # Test for both as a double-check that we really have POSIX-style ACL support.
-            CHECK_FUNCTION_EXISTS(acl_get_fd_np HAVE_ACL_GET_FD_NP)
-            CHECK_FUNCTION_EXISTS(acl_get_perm HAVE_ACL_GET_PERM)
-            CHECK_FUNCTION_EXISTS(acl_get_perm_np HAVE_ACL_GET_PERM_NP)
-            CHECK_FUNCTION_EXISTS(acl_get_link HAVE_ACL_GET_LINK)
-            CHECK_FUNCTION_EXISTS(acl_get_link_np HAVE_ACL_GET_LINK_NP)
-            CHECK_FUNCTION_EXISTS(acl_is_trivial_np HAVE_ACL_IS_TRIVIAL_NP)
-            CHECK_FUNCTION_EXISTS(acl_set_link_np HAVE_ACL_SET_LINK_NP)
+        # The "acl_get_perm()" function was omitted from the POSIX draft.
+        # (It's a pretty obvious oversight; otherwise, there's no way to
+        # test for specific permissions in a permset.)  Linux uses the obvious
+        # name, FreeBSD adds _np to mark it as "non-Posix extension."
+        # Test for both as a double-check that we really have POSIX-style ACL support.
+        CHECK_FUNCTION_EXISTS(acl_get_fd_np HAVE_ACL_GET_FD_NP)
+        CHECK_FUNCTION_EXISTS(acl_get_perm HAVE_ACL_GET_PERM)
+        CHECK_FUNCTION_EXISTS(acl_get_perm_np HAVE_ACL_GET_PERM_NP)
+        CHECK_FUNCTION_EXISTS(acl_get_link HAVE_ACL_GET_LINK)
+        CHECK_FUNCTION_EXISTS(acl_get_link_np HAVE_ACL_GET_LINK_NP)
+        CHECK_FUNCTION_EXISTS(acl_is_trivial_np HAVE_ACL_IS_TRIVIAL_NP)
+        CHECK_FUNCTION_EXISTS(acl_set_link_np HAVE_ACL_SET_LINK_NP)
 
-            # MacOS has an acl.h that isn't POSIX.  It can be detected by
-            # checking for ACL_USER
-            CHECK_SYMBOL_EXISTS(ACL_USER "${INCLUDES}" HAVE_ACL_USER)
+        # MacOS has an acl.h that isn't POSIX.  It can be detected by
+        # checking for ACL_USER
+        CHECK_SYMBOL_EXISTS(ACL_USER "${INCLUDES}" HAVE_ACL_USER)
         endif()
         */
     }
