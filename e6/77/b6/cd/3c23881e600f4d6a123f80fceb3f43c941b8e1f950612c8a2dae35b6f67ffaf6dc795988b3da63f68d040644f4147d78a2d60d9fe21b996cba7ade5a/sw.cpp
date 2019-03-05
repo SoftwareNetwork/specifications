@@ -62,6 +62,8 @@ void build(Solution &s)
     apr += "memory/.*"_rr;
     apr += "file_io/unix/fullrw.*"_rr;
     apr += "file_io/unix/filepath_util.*"_rr;
+    apr += "file_io/unix/mktemp.*"_rr;
+    apr += "file_io/unix/tempdir.*"_rr;
     apr += "network_io/unix/sockaddr.*"_rr;
     apr += "network_io/unix/inet_.*"_rr;
     apr += "poll/unix/.*"_rr;
