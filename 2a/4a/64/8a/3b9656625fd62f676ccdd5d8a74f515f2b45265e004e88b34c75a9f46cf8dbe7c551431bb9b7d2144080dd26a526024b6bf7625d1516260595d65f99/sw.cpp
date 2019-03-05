@@ -17,77 +17,144 @@ static bool need_build(Solution &s)
 
 } // namespace flex_bison
 
-static auto gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &f, const path &b,
-                           const Strings &flex_args = {}, const Strings &bison_args = {})
+struct FlexBisonData
 {
-    // must be HostOS
-    bool win_flex_bison = flex_bison::need_build(*t.getSolution());
+    path out;
+    path outh;
+    //bool cpp = true;
 
-    auto flex = std::make_shared<Dependency>(base->package);
-    flex->package.ppath /= "flex";
+    path in;
+    path wdir;
 
+    Strings args; // additional
+
+    void setupFiles(NativeExecutedTarget &t, const String &cext)
+    {
+        if (out.empty())
+        {
+            wdir = t.BinaryPrivateDir / "fb" / in.filename();
+            t += IncludeDirectory(wdir);
+        }
+        else
+        {
+            // user will handle includes himself
+            out.parent_path();
+        }
+
+        if (out.empty())
+        {
+            if (in.extension() == cext)
+            {
+                out = wdir / (in.stem() += ".c");
+                if (outh.empty())
+                    outh = wdir / (in.stem() += ".h");
+            }
+            else
+            {
+                out = wdir / (in.stem() += ".cpp");
+                if (outh.empty())
+                    outh = wdir / (in.stem() += ".hpp");
+            }
+        }
+
+        if (out.is_relative())
+            out = t.BinaryPrivateDir / out;
+
+        if (outh.empty())
+        {
+            String ext = out.extension().string();
+            if (ext.size() > 1)
+            {
+                ext[1] = 'h';
+                boost::replace_all(ext, "c", "h"); // for .cc
+            }
+            else
+                ext = ".hpp";
+            outh = out.parent_path() / (out.stem() += ext);
+        }
+
+        wdir = out.parent_path();
+    }
+};
+
+auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
+{
     auto bison = std::make_shared<Dependency>(base->package);
     bison->package.ppath /= "bison";
 
-    if (win_flex_bison)
-    {
-        auto d = t + flex;
-        d->Dummy = true;
-    }
+    d.setupFiles(t, ".y");
 
-    if (win_flex_bison)
-    {
-        auto d = t + bison;
-        d->Dummy = true;
-    }
+    auto c = t.addCommand();
+    c << cmd::wdir(d.wdir);
+    if (flex_bison::need_build(*t.getSolution()))
+        c << cmd::prog(bison);
+    else
+        c << "bison";
+    c << cmd::out(d.out, cmd::Prefix{ "--output=" });
+    c << cmd::out(d.outh, cmd::Prefix{ "--defines=" });
+    c << cmd::in(d.in);
 
-    auto d = b.filename();
-    auto bdir = t.BinaryPrivateDir / "fb" / d;
+    return c.c;
+}
 
-    auto o = bdir / (b.filename().u8string() + ".cpp");
-    auto oh = bdir / (b.filename().u8string() + ".hpp");
-    t += IncludeDirectory(oh.parent_path());
+auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
+{
+    d.in = in;
+    return gen_bison(base, t, d);
+}
 
-    fs::create_directories(bdir);
+auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
+{
+    FlexBisonData d;
+    d.out = out;
+    d.outh = outh;
+    return gen_bison(base, t, in, d);
+}
 
-    SW_MAKE_COMMAND_AND_ADD(bc, t);
-    {
-        auto c = bc;
-        if (win_flex_bison)
-            c->setProgram(bison);
-        else
-            c->setProgram("bison");
-        c->working_directory = bdir;
-        c->args.push_back("-o");
-        c->args.push_back(o.u8string());
-        c->args.push_back("--defines=" + oh.u8string());
-        c->args.insert(c->args.end(), bison_args.begin(), bison_args.end());
-        c->args.push_back((t.SourceDir / b).u8string());
-        c->addInput(t.SourceDir / b);
-        c->addOutput(o);
-        c->addOutput(oh);
-        t += o, oh;
-    }
+auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
+{
+    auto flex = std::make_shared<Dependency>(base->package);
+    flex->package.ppath /= "flex";
 
-    SW_MAKE_COMMAND_AND_ADD(fc, t);
-    {
-        auto o = bdir / (f.filename().u8string() + ".cpp");
+    d.setupFiles(t, ".l");
 
-        auto c = fc;
-        if (win_flex_bison)
-            c->setProgram(flex);
-        else
-            c->setProgram("flex");
-        c->working_directory = bdir;
-        c->args.push_back("-o");
-        c->args.push_back(o.u8string());
-        c->args.insert(c->args.end(), flex_args.begin(), flex_args.end());
-        c->args.push_back((t.SourceDir / f).u8string());
-        c->addInput(t.SourceDir / f);
-        c->addInput(oh);
-        c->addOutput(o);
-        t += o;
-    }
+    auto c = t.addCommand();
+    c << cmd::wdir(d.wdir);
+    if (flex_bison::need_build(*t.getSolution()))
+        c << cmd::prog(flex);
+    else
+        c << "flex";
+    c << "-o" << cmd::out(d.out);
+    c << cmd::in(d.in);
+
+    return c.c;
+}
+
+auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
+{
+    d.in = in;
+    return gen_flex(base, t, d);
+}
+
+auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, const path &out = {}, const path &outh = {})
+{
+    FlexBisonData d;
+    d.out = out;
+    d.outh = outh;
+    return gen_flex(base, t, in, d);
+}
+
+static auto gen_flex_bison(const DependencyPtr &base, NativeExecutedTarget &t,
+    const path &f, const path &b,
+    const Strings &flex_args = {}, const Strings &bison_args = {})
+{
+    FlexBisonData bd;
+    bd.args = bison_args;
+    auto bc = gen_bison(base, t, b, bd);
+
+    FlexBisonData fd;
+    fd.args = flex_args;
+    auto fc = gen_flex(base, t, f, fd);
 
     return std::tuple{fc, bc};
 }
