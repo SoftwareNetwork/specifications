@@ -14,7 +14,8 @@ void build(Solution &s)
     charls += "Utilities/gdcm_charls.h";
     charls.Public += "Utilities"_id;
     charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
-    charls.Interface += sw::Shared, "CHARLS_DLL"_def;
+    charls.Public += "WIN32"_def; // stupid necessary defs
+    charls.Public += sw::Shared, "CHARLS_DLL"_def; // stupid necessary defs
     charls.Public += sw::Static, "CHARLS_STATIC"_def;
 
     auto &socketxx = gdcm.addTarget<LibraryTarget>("socketxx");
