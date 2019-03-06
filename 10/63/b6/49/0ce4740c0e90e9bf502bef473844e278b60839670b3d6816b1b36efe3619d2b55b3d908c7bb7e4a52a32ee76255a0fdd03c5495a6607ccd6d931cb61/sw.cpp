@@ -10,7 +10,8 @@ void build(Solution &s)
     rle.Public += "Utilities"_id;
 
     auto &charls = gdcm.addLibrary("util.charls");
-    charls.setRootDirectory("Utilities/gdcmcharls");
+    charls += "Utilities/gdcmcharls/.*"_rr;
+    charls += "Utilities/gdcm_charls.h";
     charls.Public += "Utilities"_id;
     charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
     charls.Interface += sw::Shared, "CHARLS_DLL"_def;
