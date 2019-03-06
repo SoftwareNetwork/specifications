@@ -9,6 +9,13 @@ void build(Solution &s)
     rle -= "Utilities/gdcmrle/main.cxx";
     rle.Public += "Utilities"_id;
 
+    auto &charls = gdcm.addLibrary("util.charls");
+    charls.setRootDirectory("Utilities/gdcmcharls");
+    charls.Public += "Utilities"_id;
+    charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
+    charls.Interface += sw::Shared, "CHARLS_DLL"_def;
+    charls.Public += sw::Static, "CHARLS_STATIC"_def;
+
     auto &socketxx = gdcm.addTarget<LibraryTarget>("socketxx");
     {
         socketxx.setChecks("socketxx");
@@ -82,8 +89,7 @@ void build(Solution &s)
         gdcm +=
             "Source/.*\\.cpp"_rr,
             "Source/.*\\.cxx"_rr,
-            "Source/.*\\.h"_rr,
-            "Source/.*\\.hpp"_rr,
+            "Source/.*\\.h.*"_rr,
             "Source/.*\\.txx"_rr,
             "Source/Common/gdcmConfigure.h.in";
 
@@ -109,7 +115,6 @@ void build(Solution &s)
             "Source/MediaStorageAndFileFormat"_id;
 
         gdcm.Public += "GDCM_USE_OPENJPEG_V2"_d;
-        gdcm.Public += "GDCM_USE_SYSTEM_CHARLS"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_EXPAT"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_JSON"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_OPENSSL"_d;
@@ -130,7 +135,7 @@ void build(Solution &s)
         gdcm.Public += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
         gdcm.Public += "org.sw.demo.json_c-master"_dep;
         gdcm.Public += "org.sw.demo.expat-2"_dep;
-        gdcm.Public += "org.sw.demo.vbaderks.charls-1"_dep;
+        gdcm.Public += charls;
 
         gdcm.Variables["GDCM_MAJOR_VERSION"] = gdcm.Variables["PACKAGE_VERSION_MAJOR"];
         gdcm.Variables["GDCM_MINOR_VERSION"] = gdcm.Variables["PACKAGE_VERSION_MINOR"];
@@ -167,9 +172,6 @@ void build(Solution &s)
         gdcm.replaceInFileOnce("Source/MediaStorageAndFileFormat/gdcmJPEG16Codec.cxx", "#include \"gdcm_ljpeg16.h\"",
             "extern \"C\" {\n#include \"16/jinclude.h\"\n#include \"16/jpeglib.h\"\n#include \"16/jerror.h\"\n}");
         gdcm.replaceInFileOnce("Source/Common/gdcmOpenSSLP7CryptographicMessageSyntax.cxx", "cert_ctx", "*cert_ctx");
-
-        gdcm.replaceInFileOnce("Source/MediaStorageAndFileFormat/gdcmJPEGLSCodec.cxx", "#include \"gdcm_charls.h\"",
-            "#include <header.h>\n#include <interface.h>\n#include <util.h>\n#include <defaulttraits.h>\n#include <losslesstraits.h>\n#include <colortransform.h>\n#include <processline.h>");
 
         for (auto f : {
             "gdcmByteValue.cxx",
