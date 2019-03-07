@@ -39,9 +39,9 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     c->args.push_back("-I");
     // we cannot capture binding ref
     c->pushLazyArg([protoc = protoc]()
-    {
-        return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
-    });
+        {
+            return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
+        });
     c->addInput(f);
     c->addOutput(ocpp);
     c->addOutput(oh);
@@ -117,6 +117,10 @@ void build(Solution &s)
     auto &debug_location = p.addTarget<StaticLibraryTarget>("debug_location");
     setup_grpc(debug_location);
 
+    auto &optional = p.addTarget<StaticLibraryTarget>("optional");
+    setup_grpc(optional);
+    optional.Public += gpr_base;
+
     auto &ref_counted_ptr = p.addTarget<StaticLibraryTarget>("ref_counted_ptr");
     setup_grpc(ref_counted_ptr);
     gpr_base.Public += gpr_base;
@@ -131,7 +135,7 @@ void build(Solution &s)
 
     auto &grpc_base_c = p.addTarget<StaticLibraryTarget>("grpc_base_c");
     setup_grpc(grpc_base_c);
-    grpc_base_c.Public += gpr_base, grpc_trace, inlined_vector, orphanable, ref_counted, "org.sw.demo.madler.zlib-1"_dep;
+    grpc_base_c.Public += gpr_base, grpc_trace, inlined_vector, optional, orphanable, ref_counted, "org.sw.demo.madler.zlib-1"_dep;
 
     auto &grpc_base = p.addTarget<StaticLibraryTarget>("grpc_base");
     setup_grpc(grpc_base);
