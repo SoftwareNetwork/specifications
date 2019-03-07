@@ -1,5 +1,3 @@
-#pragma sw require header org.sw.demo.qtproject.qt.base.tools.moc-*
-
 void build(Solution &s)
 {
     auto &t = s.addTarget<StaticLibrary>("jmcnamara.libxlsxwriter", "0.8.5");
