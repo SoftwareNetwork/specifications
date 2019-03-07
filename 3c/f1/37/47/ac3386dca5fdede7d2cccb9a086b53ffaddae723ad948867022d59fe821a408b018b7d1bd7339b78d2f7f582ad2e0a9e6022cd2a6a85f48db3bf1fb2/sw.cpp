@@ -3,7 +3,7 @@
 void build(Solution &s)
 {
     auto &t = s.addTarget<StaticLibrary>("libxls", "1.5.0");
-    t += Git("https://github.com/libxls/libxls", "", "v{v}");
+    t += Git("https://github.com/libxls/libxls", "v{v}");
 
     t.PackageDefinitions = true;
     t -= "src/xls2csv.c";

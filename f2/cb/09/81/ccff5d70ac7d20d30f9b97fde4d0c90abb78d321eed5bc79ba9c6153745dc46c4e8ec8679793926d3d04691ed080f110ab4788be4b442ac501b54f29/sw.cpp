@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &t = s.addTarget<Library>("nih_at.libzip", "1.5.1");
-    t += Git("https://github.com/nih-at/libzip", "", "rel-{M}-{m}-{p}");
+    t += Git("https://github.com/nih-at/libzip", "rel-{M}-{m}-{p}");
 
     t.setChecks("libzip", true);
 

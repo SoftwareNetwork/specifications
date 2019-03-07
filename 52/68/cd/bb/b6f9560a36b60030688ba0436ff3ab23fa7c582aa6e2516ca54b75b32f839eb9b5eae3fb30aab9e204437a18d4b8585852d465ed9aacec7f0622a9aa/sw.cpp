@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &t = s.addTarget<Library>("ctabin.libzippp", "2.1.0");
-    t += Git("https://github.com/ctabin/libzippp", "", "libzippp-v{M}.{m}-1.5.1");
+    t += Git("https://github.com/ctabin/libzippp", "libzippp-v{M}.{m}-1.5.1");
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         t.Public += "WIN32"_def;
