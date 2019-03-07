@@ -18,25 +18,24 @@ void build(Solution &s)
 
     t.Public += "lib"_id;
 
+    t += "HAVE_OPENSSL"_def;
+    t += "lib/zip_crypto_op.*"_rr;
+    t += "org.sw.demo.openssl.crypto-*.*.*.*"_dep;
+
     t += "org.sw.demo.bzip2"_dep;
     t += "org.sw.demo.madler.zlib"_dep;
-    t -= "org.sw.demo.openssl.crypto-*.*.*.*"_dep;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        t += "HAVE_WINDOWS_CRYPTO"_def;
+        //t += "HAVE_WINDOWS_CRYPTO"_def;
         t -= "lib/.*unix.*"_rr;
         t -= "lib/zip_source_file.c";
-        t += "lib/zip_crypto_wi.*"_rr;
-        t += "advapi32.lib"_slib;
+        //t += "lib/zip_crypto_wi.*"_rr;
+        //t += "advapi32.lib"_slib;
     }
     else
     {
         t -= "lib/.*win.*"_rr;
-
-        t += "lib/zip_crypto_op.*"_rr;
-        t += "org.sw.demo.openssl.crypto-*.*.*.*"_dep;
-        t += "HAVE_OPENSSL"_def;
     }
 
     t.Variables["LIBZIP_VERSION"] = "PACKAGE_VERSION";
