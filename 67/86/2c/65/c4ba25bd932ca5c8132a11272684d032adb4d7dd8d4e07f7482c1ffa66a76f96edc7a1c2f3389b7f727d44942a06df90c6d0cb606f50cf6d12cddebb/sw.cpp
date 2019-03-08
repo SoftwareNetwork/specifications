@@ -252,7 +252,7 @@ void build(Solution &s)
     current_project = &contrib;
 
     //if (contrib.Local)
-        //contrib.SourceDir /= path("..") / "opencv_contrib";
+    //contrib.SourceDir /= path("..") / "opencv_contrib";
 
     auto &aruco = add_target("aruco");
     aruco.Public += calib3d;
@@ -313,18 +313,24 @@ void build(Solution &s)
         {
             String url = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/fccf7cd6a4b12079f73bbfb21745f9babcd4eb1d/";
             for (auto f : { "vgg_generated_48.i","vgg_generated_64.i","vgg_generated_80.i","vgg_generated_120.i" })
-                download_file(url + f, xfeatures2d.BinaryDir / f);
+            {
+                if (!fs::exists(xfeatures2d.BinaryDir / f))
+                    download_file(url + f, xfeatures2d.BinaryDir / f);
+            }
             url = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/34e4206aef44d50e6bbcd0ab06354b52e7466d26/";
             for (auto f : {
-                     "boostdesc_bgm.i",
-                     "boostdesc_bgm_bi.i",
-                     "boostdesc_bgm_hd.i",
-                     "boostdesc_binboost_064.i",
-                     "boostdesc_binboost_128.i",
-                     "boostdesc_binboost_256.i",
-                     "boostdesc_lbgm.i",
+                "boostdesc_bgm.i",
+                "boostdesc_bgm_bi.i",
+                "boostdesc_bgm_hd.i",
+                "boostdesc_binboost_064.i",
+                "boostdesc_binboost_128.i",
+                "boostdesc_binboost_256.i",
+                "boostdesc_lbgm.i",
                 })
-                download_file(url + f, xfeatures2d.BinaryDir / f);
+            {
+                if (!fs::exists(xfeatures2d.BinaryDir / f))
+                    download_file(url + f, xfeatures2d.BinaryDir / f);
+            }
         }
     }
 
