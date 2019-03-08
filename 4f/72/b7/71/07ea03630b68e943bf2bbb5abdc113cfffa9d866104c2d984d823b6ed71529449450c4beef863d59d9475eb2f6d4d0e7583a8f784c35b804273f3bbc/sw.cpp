@@ -11,16 +11,21 @@ void build(Solution &s)
             FileRegex("src/SFML/" + name, ".*", false);
         if (s.Settings.TargetOS.is(OSType::Windows))
             t += FileRegex("src/SFML/" + name + "/Win32", ".*", true);
+        t += path("include/SFML/" + name + ".hpp");
         t.Private += sw::Shared, Definition("SFML_" + boost::to_upper_copy(name) + "_EXPORTS");
         t.Public += sw::Static, "SFML_STATIC"_d;
         return t;
     };
 
     auto &system = add_library("System");
+    system += "include/SFML/Config.hpp";
+    system += "include/SFML/Main.hpp";
     if (s.Settings.TargetOS.is(OSType::Windows))
         system.Protected += "winmm.lib"_slib;
 
     auto &window = add_library("Window");
+    window += "include/SFML/OpenGL.hpp";
+    window += "include/SFML/GpuPreference.hpp";
     if (s.Settings.TargetOS.is(OSType::Windows))
     {
         window.Protected += "UNICODE"_def;
