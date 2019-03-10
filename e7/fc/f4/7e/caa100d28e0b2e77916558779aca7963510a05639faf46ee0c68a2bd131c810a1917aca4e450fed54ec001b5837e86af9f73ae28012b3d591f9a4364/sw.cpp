@@ -14,8 +14,8 @@ void build(Solution &s)
         schema.CPPVersion = CPPLanguageStandard::CPP17;
         schema.ApiName = "SCHEMA_API";
         schema += "include/.*"_rr;
-        schema += "src/schema/.*\.h"_rr;
-        schema += "src/schema/.*\.cpp"_rr;
+        schema += "src/schema/.*\\.h"_rr;
+        schema += "src/schema/.*\\.cpp"_rr;
 
         schema.Public += "include"_idir;
         schema += "include/Polygon4/DataManager/Schema"_idir;
@@ -27,7 +27,7 @@ void build(Solution &s)
         schema.Public += "org.sw.demo.boost.algorithm-1"_dep;
         schema.Public += "org.sw.demo.boost.variant-1"_dep;
         schema.Public += memory;
-        gen_flex_bison_pair(schema, "LALR1_CPP_VARIANT_PARSER", "src/schema/schema");
+        gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, schema, "LALR1_CPP_VARIANT_PARSER", "src/schema/schema");
     }
 
     auto &generator = DataManager.addExecutable("tools.generator");
@@ -48,8 +48,8 @@ void build(Solution &s)
         DataManager += "src/manager"_idir;
 
         DataManager.Public += schema;
-        DataManager.Public += "org.sw.demo.boost.log-1"_dep;
         DataManager.Public += "org.sw.demo.sqlite3-3"_dep;
+        DataManager.Public += "pub.egorpugin.primitives.log-master"_dep;
 
         {
             auto c = DataManager.addCommand();
