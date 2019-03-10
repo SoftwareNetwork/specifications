@@ -298,6 +298,7 @@ void build(Solution &s)
         "smart_ptr",
         "sort",
         "spirit",
+        "stacktrace",
         "statechart",
         "static_assert",
         "system",
@@ -360,7 +361,6 @@ void build(Solution &s)
         "random",
         "regex",
         "serialization",
-        "stacktrace",
         //"test",
         "thread",
         "timer",
@@ -377,7 +377,6 @@ void build(Solution &s)
     *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
-    boost_targets["stacktrace"]->HeaderOnly = true;
     if (s.Settings.TargetOS.Type == OSType::Windows)
         *boost_targets["random"] += "Advapi32.lib"_slib;
 
