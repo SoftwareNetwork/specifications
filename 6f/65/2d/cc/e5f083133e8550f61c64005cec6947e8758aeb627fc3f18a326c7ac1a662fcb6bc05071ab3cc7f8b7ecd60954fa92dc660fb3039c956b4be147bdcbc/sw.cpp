@@ -65,12 +65,12 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     //t.IncludeDirectories.insert(t.BinaryDir); // add bdir early
     t.TargetOptionsGroup::iterate<WithoutSourceFileStorage, WithNativeOptions>(
         [&idirs](auto &v, auto &s)
-    {
-        if (s.Inheritance == InheritanceType::Interface)
-            return;
-        for (auto &i : v.IncludeDirectories)
-            idirs.push_back(i);
-    });
+        {
+            if (s.Inheritance == InheritanceType::Interface)
+                return;
+            for (auto &i : v.IncludeDirectories)
+                idirs.push_back(i);
+        });
 
     auto find_header = [](const auto &dir, const auto &base, path &o)
     {
@@ -165,9 +165,9 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
             }
             else if (
                 !std::any_of(idirs.begin(), idirs.end(), [&f, &find_header](auto &i)
-            {
-                return find_header(i, f.p.stem(), f.p);
-            }))
+                    {
+                        return find_header(i, f.p.stem(), f.p);
+                    }))
             {
                 f.p += ".cpp";
                 //throw std::runtime_error("moc: nothing found for: " + f.p.u8string());
@@ -535,8 +535,8 @@ static QtLibrary qt_desc{
     "q",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"accessibility", true},
@@ -602,8 +602,8 @@ static QtLibrary qt_core_desc{
     "QtCore",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"animation", true},
@@ -673,8 +673,8 @@ static QtLibrary qt_gui_desc{
     "QtGui",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"accessibility", true},
@@ -777,17 +777,15 @@ static QtLibrary qt_gui_desc{
         },
     },
     // deps
-    {
-        "QtCore"
-    },
+    {"QtCore"},
 };
 
 static QtLibrary qt_widgets_desc{
     "QtWidgets",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"abstractbutton", true},
@@ -900,8 +898,8 @@ static QtLibrary qt_network_desc{
     "QtNetwork",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"bearermanagement", true},
@@ -940,17 +938,15 @@ static QtLibrary qt_network_desc{
         },
     },
     // deps
-    {
-        "QtCore"
-    },
+    {"QtCore"},
 };
 
 static QtLibrary qt_xml_desc{
     "QtXml",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"dom", true},
@@ -958,17 +954,15 @@ static QtLibrary qt_xml_desc{
         },
     },
     // deps
-    {
-        "QtCore"
-    },
+    {"QtCore"},
 };
 
 static QtLibrary qt_printsupport_desc{
     "QtPrintSupport",
     // config
     {
-    // public
-    {
+        // public
+        {
             // features
             {
                 {"printer", true},
@@ -1001,8 +995,7 @@ static QtLibrary qt_printsupport_desc{
 static QtLibrary qt_svg_desc{
     "QtSvg",
     // config
-    {
-    },
+    {},
     // deps
     {
         "QtCore",
@@ -1014,8 +1007,7 @@ static QtLibrary qt_svg_desc{
 static QtLibrary qt_winextras_desc{
     "QtWinExtras",
     // config
-    {
-    },
+    {},
     // deps
     {
         "QtCore",
@@ -1714,7 +1706,7 @@ void build(Solution &s)
             gui.Private += "QT_BUILD_GUI_LIB"_d;
 
             gui.Public += "org.sw.demo.glennrp.png-1"_dep;
-            gui.Public += "org.sw.demo.behdad.harfbuzz-1"_dep;
+            gui.Public += "org.sw.demo.behdad.harfbuzz"_dep;
             gui.Public += core;
 
             qt_gui_desc.print(gui);
