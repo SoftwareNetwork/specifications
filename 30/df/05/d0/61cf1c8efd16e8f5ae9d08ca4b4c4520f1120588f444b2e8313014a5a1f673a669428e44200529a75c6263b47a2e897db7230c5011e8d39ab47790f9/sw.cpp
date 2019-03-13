@@ -256,6 +256,24 @@ glib_init_ctor(void)
         gobject.Public += "org.sw.demo.weltling.winlibs.libffi-3"_dep;
         gobject.Public += glib;
         gobject.writeFileOnce(gobject.BinaryPrivateDir / "config.h");
+
+        for (auto ext : {"h", "c"})
+        {
+            // glib.mkenums
+            auto c = gobject.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gobject/glib-mkenums.in")
+                << "--template"
+                << cmd::in("gobject/glib-enumtypes."s + ext + ".template")
+                << "--output"
+                << cmd::out("gobject/glib-enumtypes."s + ext)
+                ;
+            for (auto &[p, f] : glib["glib\\gunicode.h"_rr])
+            {
+                if (!f->skip)
+                    c << cmd::in(p);
+            }
+        }
     }
 
     /*auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
