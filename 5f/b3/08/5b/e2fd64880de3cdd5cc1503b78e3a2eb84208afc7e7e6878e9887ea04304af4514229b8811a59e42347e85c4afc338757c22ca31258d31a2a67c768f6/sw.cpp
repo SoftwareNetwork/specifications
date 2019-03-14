@@ -615,7 +615,7 @@ void check(Checker &c)
     s.checkTypeSize("intmax_t");
     s.checkTypeSize("ip_mreqn");
     s.checkTypeSize("long");
-    s.checkTypeSize("long_long");
+    s.checkTypeSize("long long");
     s.checkTypeSize("ptrdiff_t");
     s.checkTypeSize("short");
     s.checkTypeSize("size_t");
