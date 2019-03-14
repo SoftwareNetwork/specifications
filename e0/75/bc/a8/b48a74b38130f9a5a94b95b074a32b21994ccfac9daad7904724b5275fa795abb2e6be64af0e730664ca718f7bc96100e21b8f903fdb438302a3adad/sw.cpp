@@ -5,8 +5,8 @@ void build(Solution &s)
 
     auto &glib = p.addTarget<LibraryTarget>("glib");
     {
-        glib.ApiName = "SW_GLIB_API";
-
+        //glib.ApiName = "SW_GLIB_API";
+        glib.ExportAllSymbols = true;
         glib.setChecks("glib", true);
 
         glib +=
@@ -39,7 +39,7 @@ void build(Solution &s)
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;
         glib.Public += "GLIB_LOCALE_DIR=\"\""_d;
         glib.Public += "USE_SYSTEM_PCRE"_d;
-        glib.Public += "_GLIB_EXTERN=SW_GLIB_API"_d;
+        //glib.Public += "_GLIB_EXTERN=SW_GLIB_API"_d;
         glib.Public.Definitions["ALIGNOF_GUINT32"] += glib.Variables["ALIGNOF_UINT32_T"];
         glib.Public.Definitions["ALIGNOF_GUINT64"] += glib.Variables["ALIGNOF_UINT64_T"];
 
@@ -237,7 +237,9 @@ glib_init_ctor(void)
     //
     auto &gobject = p.addTarget<LibraryTarget>("gobject");
     {
+        gobject.ExportAllSymbols = true;
         gobject.setChecks("glib", true);
+
         gobject +=
             "gobject/[^/]*\\.in"_rr, // for glib-mkenums.in
             "gobject/[^/]*\\.c"_rr,
@@ -276,19 +278,222 @@ glib_init_ctor(void)
         }
     }
 
-    /*auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
-    gmodule.setChecks("glib");
-    gmodule +=
-    "gmodule/[^/]*\\.c"_rr,
-    "gmodule/[^/]*\\.h"_rr;
+    auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
+    {
+        gmodule.ExportAllSymbols = true;
+        gmodule.setChecks("glib");
 
-    gmodule -=
-    "gmodule/gmodule-.*"_rr;
+        gmodule +=
+            "gmodule/[^/]*\\.c"_rr,
+            "gmodule/[^/]*\\.h"_rr;
+        gmodule -=
+            "gmodule/gmodule-.*"_rr;
+        gmodule.Public +=
+            "gmodule"_id;
 
-    gmodule.Public +=
-    "gmodule"_id;
+        gmodule.Public += glib;
 
-    gmodule.Public += glib;*/
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+            gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_WIN32";
+        else if (s.Settings.TargetOS.Type == OSType::Macos)
+            gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DYLD";
+        else
+            gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DL";
+        // G_MODULE_IMPL_AR
+
+        gmodule.Variables["G_MODULE_HAVE_DLERROR"] = 1;
+        gmodule.Variables["G_MODULE_NEED_USCORE"] = 0;
+        gmodule.Variables["G_MODULE_BROKEN_RTLD_GLOBAL"] = 0;
+
+        gmodule.configureFile("gmodule/gmoduleconf.h.in", "gmoduleconf.h");
+
+        gmodule.writeFileOnce(gmodule.BinaryPrivateDir / "config.h");
+    }
+
+    auto &gio = p.addTarget<LibraryTarget>("gio");
+    {
+        gio.ExportAllSymbols = true;
+        gio.PackageDefinitions = true;
+        gio.setChecks("glib", true);
+
+        gio -= "gio/.*"_rr;
+
+        gio.Public += "gio"_id;
+        gio += IncludeDirectory(gio.BinaryDir / "gio");
+
+        gio += "gio/.*\\.c"_r;
+        gio += "gio/.*\\.h"_r;
+        gio += "GIO_COMPILATION"_def;
+
+        gio -= "gio/gio-launch-desktop.c";
+        gio -= "gio/gio-querymodules.c";
+        gio -= "gio/glib-compile-resources.c";
+        gio -= "gio/glib-compile-.*.c"_rr;
+        gio -= "gio/.*tool.*"_rr;
+        gio -= "gio/.*-win32.*"_rr;
+
+        gio -= "gio/gdbusauthmechanism.h";
+        gio -= "gio/gwin32registrykey.h";
+
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+        {
+            gio -= "gio/gdesktopappinfo.c";
+
+            gio -= "gio/.*portal.*\\.c"_rr;
+
+            gio -= "gio/.*unix.*\\.c"_rr;
+            gio -= "gio/.*networkmonitornetlink.*\\.c"_rr;
+            gio -= "gio/.*networkmonitornm.*\\.c"_rr;
+
+            gio += "gio/win32/.*"_rr;
+
+            gio.Variables["WSPIAPI_INCLUDE"] = "#include <wspiapi.h>";
+
+            gio += "ws2_32.lib"_slib;
+            gio += "Iphlpapi.lib"_slib;
+            gio += "shell32.lib"_slib;
+            gio += "Dnsapi.lib"_slib;
+            gio += "User32.lib"_slib;
+            gio += "Shlwapi.lib"_slib;
+
+            gio.writeFileOnce(gio.BinaryPrivateDir / "unistd.h");
+            gio.writeFileOnce(gio.BinaryPrivateDir / "fnmatch.h", R"(#include <shlwapi.h>
+
+inline int fnmatch (const char *__pattern, const char *__string,
+			 int __flags)
+{
+    return PathMatchSpecA(__string, __pattern);
+}
+)");
+            gio.writeFileOnce(gio.BinaryPrivateDir / "netinet/in.h");
+            gio.writeFileOnce(gio.BinaryPrivateDir / "sys/time.h", R"(#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <stdint.h> // portable: uint64_t   MSVC: __int64
+
+// also see https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/port/gettimeofday.c;h=75a91993b74414c0a1c13a2a09ce739cb8aa8a08;hb=HEAD
+
+// MSVC defines this in winsock2.h!?
+typedef struct timeval {
+    long tv_sec;
+    long tv_usec;
+} timeval;
+
+inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
+}
+)");
+            gio.patch("gio/xdgmime/xdgmimecache.c", "#warning", "//# warning");
+        }
+        else
+            gio -= "gio/.*win32.*"_rr;
+
+        gio.CompileOptions.push_back("/W0");
+
+        gio.Public += gobject, gmodule;
+        gio.Public += "org.sw.demo.madler.zlib"_dep;
+        gio.Public += "org.sw.demo.tronkko.dirent-master"_dep;
+
+        gio.writeFileOnce(gio.BinaryPrivateDir / "config.h");
+
+        gio.configureFile("gio/gnetworking.h.in", "gio/gnetworking.h");
+
+        for (auto ext : {"h", "c"})
+        {
+            // glib.mkenums
+            auto c = gio.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << gio.getFile(gobject, "gobject/glib-mkenums.in")
+                << "--template"
+                << cmd::in("gio/gioenumtypes."s + ext + ".template")
+                << "--output"
+                << cmd::out("gio/gioenumtypes."s + ext)
+                ;
+            for (auto &[p, f] : gio[".*\\.h"_rr])
+            {
+                if (!f->skip)
+                    c << cmd::in(p);
+            }
+            c.c->first_response_file_argument = 1;
+        }
+
+        gio.Variables["VERSION"] = gio.Variables["PACKAGE_VERSION"];
+        gio.configureFile("gio/gdbus-2.0/codegen/config.py.in", gio.SourceDir / "gio/gdbus-2.0/codegen/config.py");
+
+        gio.patch("gio/gdbus-2.0/codegen/codegen.py",
+            "'#  include <gio/gunixfdlist.h>\\n'",
+            "'#endif\\n'\n"
+            "'#if 1\\n'\n"
+            "'#   include <gio/gunixfdlist.h>\\n'");
+
+        {
+            auto c = gio.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gio/gdbus-2.0/codegen/gdbus-codegen.in")
+                << "--interface-prefix" << "org."
+                << "--output-directory" << gio.BinaryDir
+                << "--generate-c-code" << "gdbus-daemon-generated"
+                << "--c-namespace" << "_G"
+                << cmd::in("gio/dbus-daemon.xml")
+                << cmd::end()
+                << cmd::out("gdbus-daemon-generated.h")
+                << cmd::out("gdbus-daemon-generated.c")
+                ;
+        }
+
+        if (s.Settings.TargetOS.Type != OSType::Windows)
+        {
+            auto c = gio.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gio/gdbus-2.0/codegen/gdbus-codegen.in")
+                << "--interface-prefix" << "org.freedesktop.portal."
+                << "--output-directory" << gio.BinaryDir
+                << "--generate-c-code" << "xdp-dbus"
+                << "--c-namespace" << "GXdp" <<
+
+                "--annotate" << "org.freedesktop.portal.Documents.Add()" <<
+                "org.gtk.GDBus.C.UnixFD" << "true" <<
+                "--annotate" << "org.freedesktop.portal.Documents.AddNamed()" <<
+                "org.gtk.GDBus.C.UnixFD" << "true" <<
+                "--annotate" << "org.freedesktop.portal.Documents.AddFull()" <<
+                "org.gtk.GDBus.C.UnixFD" << "true" <<
+                "--annotate" << "org.freedesktop.portal.OpenURI.OpenFile()" <<
+                "org.gtk.GDBus.C.UnixFD" << "true" <<
+                "--annotate" << "org.freedesktop.portal.Trash.TrashFile()" <<
+                "org.gtk.GDBus.C.UnixFD" << "true"
+
+                << cmd::in("gio/org.freedesktop.portal.Documents.xml")
+                << cmd::in("gio/org.freedesktop.portal.OpenURI.xml")
+                << cmd::in("gio/org.freedesktop.portal.ProxyResolver.xml")
+                << cmd::in("gio/org.freedesktop.portal.Trash.xml")
+                << cmd::end()
+
+                << cmd::out("xdp-dbus.h")
+                << cmd::out("xdp-dbus.c")
+                ;
+
+        }
+
+        gio += "XDG_PREFIX=_gio_xdg"_def;
+        gio += "gio/xdgmime/.*"_rr;
+        gio += "gio/gvdb/.*"_rr;
+    }
 }
 
 void check(Checker &c)
