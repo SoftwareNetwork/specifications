@@ -33,17 +33,17 @@ void build(Solution &s)
         "src/liblzma/api"_id;
 
     lzma.Private += "HAVE_CONFIG_H"_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
-    {
-        lzma.Private += "MYTHREAD_POSIX"_d;
-    }
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         lzma.Private += "MYTHREAD_WIN95"_d;
     }
+    else
+    {
+        lzma.Private += "MYTHREAD_POSIX"_d;
+        lzma.Public += "HAVE_VISIBILITY"_d;
+    }
     lzma.Private += sw::Shared, "DLL_EXPORT"_d;
     lzma.Public += sw::Static, "LZMA_API_STATIC"_d;
-    lzma.Public += "HAVE_VISIBILITY"_d;
 
     lzma.replaceInFileOnce("src/liblzma/check/check.h",
         "#ifndef LZMA_SHA256FUNC",
