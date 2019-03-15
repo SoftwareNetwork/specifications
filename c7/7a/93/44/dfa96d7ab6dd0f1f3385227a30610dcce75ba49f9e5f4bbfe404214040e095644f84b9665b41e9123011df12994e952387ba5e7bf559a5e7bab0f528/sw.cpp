@@ -3,7 +3,7 @@
 void build(Solution &s)
 {
     auto &p = s.addProject("gnome.glib", "2.59.1");
-    p += RemoteFile("http://ftp.gnome.org/pub/GNOME/sources/glibmm/{M}.{m}/glibmm-{v}.tar.xz");
+    p += RemoteFile("https://ftp.gnome.org/pub/GNOME/sources/glibmm/{M}.{m}/glibmm-{v}.tar.xz");
 
     auto &glibmm = p.addTarget<Library>("glibmm");
 
