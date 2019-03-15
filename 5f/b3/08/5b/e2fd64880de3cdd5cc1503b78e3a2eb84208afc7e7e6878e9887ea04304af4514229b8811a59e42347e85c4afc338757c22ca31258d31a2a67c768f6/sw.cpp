@@ -283,11 +283,8 @@ glib_init_ctor(void)
         gmodule.ExportAllSymbols = true;
         gmodule.setChecks("glib");
 
-        gmodule +=
-            "gmodule/[^/]*\\.c"_rr,
-            "gmodule/[^/]*\\.h"_rr;
-        gmodule -=
-            "gmodule/gmodule-.*"_rr;
+        gmodule += "gmodule/.*"_rr;
+        gmodule -= "gmodule/gmodule-.*"_rr;
         gmodule.Public +=
             "gmodule"_id;
 
