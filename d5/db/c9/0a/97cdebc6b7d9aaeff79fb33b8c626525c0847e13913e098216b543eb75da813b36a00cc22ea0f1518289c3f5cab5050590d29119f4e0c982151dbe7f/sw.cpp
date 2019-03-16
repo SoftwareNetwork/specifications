@@ -3,7 +3,7 @@
 
 void build(Solution &s)
 {
-    auto &qt = s.addProject("qtproject.qt", "5.12.1");
+    auto &qt = s.addProject("qtproject.qt", "5.12.2");
 
     auto &declarative = qt.addProject("declarative");
     declarative += Git("https://github.com/qt/qtdeclarative", "v{v}");

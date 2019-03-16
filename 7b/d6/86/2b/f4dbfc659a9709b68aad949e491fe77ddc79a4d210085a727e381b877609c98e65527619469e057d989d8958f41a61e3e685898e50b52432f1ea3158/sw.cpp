@@ -280,7 +280,7 @@ void build(Solution &s)
             auto settings = path(name) / (name + ".pro");
             t += settings;
 
-            if (t.DryRun)
+            if (t.DryRun || t.PostponeFileResolving)
                 return t;
 
             t.configureFile(qmldir, t.BinaryDir / qmldir, ConfigureFlags::CopyOnly);
