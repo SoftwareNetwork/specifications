@@ -1,5 +1,8 @@
 void build(Solution &s)
 {
-    auto &vulkan = s.addTarget<LibraryTarget>("khronos.vulkan", "1.1.103");
-    vulkan += Git("https://github.com/KhronosGroup/Vulkan-Headers", "v{v}");
+    auto &t = s.addTarget<LibraryTarget>("khronos.vulkan", "1.1.103");
+    t += Git("https://github.com/KhronosGroup/Vulkan-Headers", "v{v}");
+
+    t += "include/.*"_rr;
+    t += "registry/.*"_rr;
 }
