@@ -199,39 +199,28 @@ void build(Solution &s)
         }
 
         glib.configureFile("glib/glibconfig.h.in", "glibconfig.h");
+        glib.writeFileOnce(glib.BinaryPrivateDir / "config.h");
 
         glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
-        glib.replaceInFileOnce("glib/glib-init.c", "#if defined (G_OS_WIN32)", R"(
-#if defined  (G_OS_WIN32) && defined(GLIB_STATIC_COMPILATION)
+
+        // win+static
+        glib.replaceInFileOnce("glib/glib-init.c", "#if defined (G_OS_WIN32)",
+            "#if defined  (G_OS_WIN32) && !defined(GLIB_STATIC_COMPILATION)");
+        glib.replaceInFileOnce("glib/glib-init.c", "G_DEFINE_CONSTRUCTOR(glib_init_ctor)",
+            R"(G_DEFINE_CONSTRUCTOR (glib_init_ctor)
+
+#if defined  (G_OS_WIN32)
 HMODULE glib_dll;
-
-int is_glib_initialized = 0;
-
-void
-glib_init_ctor(void)
-{
-    static int is_glib_initialized = 0;
-    if (is_glib_initialized == 0)
-    {
-        glib_dll = 0;
-        g_clock_win32_init();
-        g_thread_win32_init();
-        glib_init();
-        is_glib_initialized = 1;
-    }
-}
-#elif defined  (G_OS_WIN32)
-        )");
-        glib.replaceInFileOnce("glib/gthread-win32.c", "g_thread_impl_vtable.InitializeSRWLock (mutex);", R"(
-#ifdef GLIB_STATIC_COMPILATION
-    extern void glib_init_ctor(void);
-    glib_init_ctor();
 #endif
-    g_thread_impl_vtable.InitializeSRWLock (mutex);
-        )");
-        glib.writeFileOnce(glib.BinaryPrivateDir / "config.h");
-        //glib.writeFileOnce(glib.BinaryPrivateDir / "unistd.h");
-        //glib.replaceInFileOnce("glib/gmessages.c", "myInvalidParameterHandler", "myInvalidParameterHandler_gmessages");
+)");
+        glib.replaceInFileOnce("glib/glib-init.c", "glib_inited = TRUE;",
+            R"(glib_inited = TRUE;
+
+#if defined  (G_OS_WIN32)
+    g_clock_win32_init();
+    g_thread_win32_init();
+#endif
+)");
     }
 
     //
@@ -285,8 +274,7 @@ glib_init_ctor(void)
 
         gmodule += "gmodule/.*"_rr;
         gmodule -= "gmodule/gmodule-.*"_rr;
-        gmodule.Public +=
-            "gmodule"_id;
+        gmodule.Public += "gmodule"_id;
 
         gmodule.Public += glib;
 
@@ -484,12 +472,32 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
                 << cmd::out("xdp-dbus.h")
                 << cmd::out("xdp-dbus.c")
                 ;
-
         }
 
         gio += "XDG_PREFIX=_gio_xdg"_def;
         gio += "gio/xdgmime/.*"_rr;
         gio += "gio/gvdb/.*"_rr;
+    }
+
+    auto &rc = p.addTarget<Executable>("compile_resources");
+    {
+        rc.PackageDefinitions = true;
+        rc +=
+            "gio/gvdb/gvdb-builder.c",
+            "gio/gvdb/.*\\.h"_r,
+            "gio/glib-compile-resources.c";
+        rc += "GIO_COMPILATION"_def;
+        rc += gio;
+        rc.writeFileOnce(rc.BinaryPrivateDir / "config.h");
+
+        {
+            auto c = rc.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in(rc.getFile(gio, "gio/data-to-c.py"))
+                << cmd::in(rc.getFile(glib, "glib/gconstructor.h"))
+                << "gconstructor_code"
+                << cmd::out("gconstructor_as_data.h");
+        }
     }
 }
 
