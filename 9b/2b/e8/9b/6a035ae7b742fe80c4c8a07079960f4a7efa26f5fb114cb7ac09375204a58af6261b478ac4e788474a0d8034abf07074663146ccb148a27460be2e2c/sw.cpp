@@ -51,6 +51,7 @@ void build(Solution &s)
                 "Setupapi.lib"_lib
                 ;
         }
+        sdl -= "src/.*\\.def"_rr;
     }
 
     auto &main = sdl.addTarget<StaticLibraryTarget>("main");
