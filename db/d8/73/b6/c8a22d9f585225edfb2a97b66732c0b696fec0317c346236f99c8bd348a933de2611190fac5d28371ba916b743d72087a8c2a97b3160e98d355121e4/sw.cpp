@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &leptonica = s.addTarget<LibraryTarget>("danbloomberg.leptonica", "1.78.0");
-    leptonica += Git("https://github.com/DanBloomberg/leptonica", "", "master");
+    leptonica += Git("https://github.com/DanBloomberg/leptonica", "{v}");
 
     {
         leptonica.setChecks("leptonica");
