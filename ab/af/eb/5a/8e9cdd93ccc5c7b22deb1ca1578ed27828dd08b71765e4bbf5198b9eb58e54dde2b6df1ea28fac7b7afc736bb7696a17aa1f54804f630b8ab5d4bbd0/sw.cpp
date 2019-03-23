@@ -18,7 +18,7 @@ void build(Solution &s)
     t.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE=1"_def;
     t.Public += "FOLLY_HAVE_LIBGFLAGS=1"_def;
 
-    t.Public += "org.sw.demo.google.glog-master"_dep;
+    t.Public += "org.sw.demo.google.glog"_dep;
     t.Public += "org.sw.demo.google.double_conversion"_dep;
     t.Public += "org.sw.demo.boost.crc"_dep;
     t.Public += "org.sw.demo.boost.intrusive"_dep;

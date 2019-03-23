@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
-    auto &glog = s.addTarget<LibraryTarget>("google.glog", "master");
-    glog += Git("https://github.com/google/glog", "", "{v}");
+    auto &glog = s.addTarget<LibraryTarget>("google.glog", "0.4.0");
+    glog += Git("https://github.com/google/glog", "v{v}");
 
     glog.setChecks("glog", true);
 
