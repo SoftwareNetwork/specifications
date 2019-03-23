@@ -15,6 +15,14 @@ void build(Solution &s)
     t -= ".*exercises.*"_rr;
     t -= ".*[tT]est.*"_rr;
 
+    if (s.Settings.TargetOS.Type == OSType::Windows)
+    {
+        t -= "folly/Demangle.cpp";
+        t -= "folly/Poly.cpp";
+        t -= "folly/Subprocess.cpp";
+        t -= "folly/python/.*"_rr;
+    }
+
     t.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE=1"_def;
     t.Public += "FOLLY_HAVE_LIBGFLAGS=1"_def;
 
@@ -27,7 +35,7 @@ void build(Solution &s)
     t.Public += "org.sw.demo.boost.context"_dep;
     t.Public += "org.sw.demo.openssl.ssl-*.*.*.*"_dep;
     t.Public += "org.sw.demo.libevent-master"_dep;
-    t.Public += "org.sw.demo.python.lib"_dep;
+    //t.Public += "org.sw.demo.python.lib"_dep;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         t += "NOMINMAX"_d;
