@@ -27,9 +27,9 @@ void build(Solution &s)
 
     libevent.Public += "org.sw.demo.openssl.ssl-1"_dep;
 
-    libevent.Variables["EVENT_VERSION_MAJOR"] = libevent.Variables["PACKAGE_VERSION_MAJOR"];
-    libevent.Variables["EVENT_VERSION_MINOR"] = libevent.Variables["PACKAGE_VERSION_MINOR"];
-    libevent.Variables["EVENT_VERSION_PATCH"] = libevent.Variables["PACKAGE_VERSION_PATCH"];
+    libevent.Variables["EVENT_VERSION_MAJOR"] = 2;
+    libevent.Variables["EVENT_VERSION_MINOR"] = 1;
+    libevent.Variables["EVENT_VERSION_PATCH"] = 9;
 
     libevent.Variables["EVENT_NUMERIC_VERSION"] =
         "0x" + libevent.Variables["EVENT_VERSION_MAJOR"].toString() +
