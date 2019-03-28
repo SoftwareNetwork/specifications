@@ -45,6 +45,7 @@ void build(Solution &s)
     libarchive.Public += "HAVE_NETTLE_RIPEMD160_H"_d;
     libarchive.Public += "HAVE_NETTLE_SHA_H"_d;
     libarchive.Public += "HAVE_ZLIB_H"_d;
+    libarchive.Public += "HAVE_ZSTD_H"_d;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
         libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
@@ -56,6 +57,7 @@ void build(Solution &s)
     libarchive.Public += "org.sw.demo.madler.zlib-1"_dep;
     libarchive.Public += "org.sw.demo.oberhumer.lzo.lzo-2"_dep;
     libarchive.Public += "org.sw.demo.xz_utils.lzma-5"_dep;
+    libarchive.Public += "org.sw.demo.facebook.zstd.zstd-1"_dep;
 
     libarchive.Variables["HAVE_WCSCPY"] = 1;
     libarchive.Variables["HAVE_WCSLEN"] = 1;

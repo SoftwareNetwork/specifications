@@ -17,6 +17,7 @@ void build(Solution &s)
         "lib/decompress"_idir,
         "lib/deprecated"_idir
         ;
+    lib.Public += "lib"_idir;
     if (s.Settings.TargetOS.is(OSType::Windows))
     {
         lib += sw::Shared, "ZSTD_DLL_EXPORT"_def;
