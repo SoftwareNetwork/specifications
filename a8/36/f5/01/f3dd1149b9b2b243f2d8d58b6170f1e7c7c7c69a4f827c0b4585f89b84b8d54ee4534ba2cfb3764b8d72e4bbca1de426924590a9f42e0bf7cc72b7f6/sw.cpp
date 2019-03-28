@@ -45,6 +45,8 @@ void build(Solution &s)
         "src/client/windows/crash_generation/minidump_generator.*"_rr;
 
     server.Public +=
+        "src"_id;
+    server.Public +=
         "src/client/windows/crash_generation"_id;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
