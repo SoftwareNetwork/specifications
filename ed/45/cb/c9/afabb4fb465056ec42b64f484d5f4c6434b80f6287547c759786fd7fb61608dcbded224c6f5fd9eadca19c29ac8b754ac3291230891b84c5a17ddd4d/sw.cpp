@@ -41,6 +41,7 @@ void build(Solution &s)
         gawk.removeFile("pc/socket.h");
 
         gawk.Private +=
+            "."_id,
             "support"_id,
             "pc"_id;
 
