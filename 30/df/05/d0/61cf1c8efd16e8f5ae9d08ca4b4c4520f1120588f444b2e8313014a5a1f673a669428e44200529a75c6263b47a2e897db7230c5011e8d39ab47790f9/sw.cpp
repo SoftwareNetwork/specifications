@@ -483,6 +483,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         gio += "XDG_PREFIX=_gio_xdg"_def;
         gio += "gio/xdgmime/.*"_rr;
         gio += "gio/gvdb/.*"_rr;
+
+        gio ^= "gio/.*__pycache__.*"_rr;
     }
 
     auto &rc = p.addTarget<Executable>("compile_resources");
