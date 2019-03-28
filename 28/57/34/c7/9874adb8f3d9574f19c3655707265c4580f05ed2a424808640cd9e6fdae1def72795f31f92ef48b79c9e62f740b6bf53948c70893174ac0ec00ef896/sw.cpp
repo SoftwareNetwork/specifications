@@ -11,6 +11,7 @@ void build(Solution &s)
         t.setChecks("ldap");
         t += "include/ac/.*"_rr;
         t += "include/lber.*"_rr;
+        t += "include/.*\\.hin"_rr;
         t += "include/ldap_cdefs.h";
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
