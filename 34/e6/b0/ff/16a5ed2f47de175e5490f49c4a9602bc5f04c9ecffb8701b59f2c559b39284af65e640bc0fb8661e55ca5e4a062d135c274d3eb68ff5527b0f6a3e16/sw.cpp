@@ -14,6 +14,8 @@ void build(Solution &s)
         "src/.*\\.h"_rr;
 
     fontconfig.Public +=
+        "."_id;
+    fontconfig.Public +=
         "src"_id;
 
     fontconfig.Public += "FLEXIBLE_ARRAY_MEMBER=1"_d;

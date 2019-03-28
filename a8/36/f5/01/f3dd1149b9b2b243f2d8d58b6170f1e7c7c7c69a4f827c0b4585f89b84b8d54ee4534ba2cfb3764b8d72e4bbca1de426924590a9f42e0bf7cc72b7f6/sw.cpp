@@ -65,6 +65,8 @@ void build(Solution &s)
         "src/client/windows/handler/exception_handler.h";
 
     handler.Public +=
+        "src"_id;
+    handler.Public +=
         "src/client/windows/handler"_id;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
