@@ -238,6 +238,7 @@ HMODULE glib_dll;
             "gobject/glib-genmarshal.c";
 
         gobject.Public +=
+            "."_id,
             "gobject"_id;
 
         gobject.Private += "GOBJECT_COMPILATION"_d;
@@ -274,7 +275,10 @@ HMODULE glib_dll;
 
         gmodule += "gmodule/.*"_rr;
         gmodule -= "gmodule/gmodule-.*"_rr;
-        gmodule.Public += "gmodule"_id;
+
+        gmodule.Public +=
+            "."_id,
+            "gmodule"_id;
 
         gmodule.Public += glib;
 
@@ -303,7 +307,9 @@ HMODULE glib_dll;
 
         gio -= "gio/.*"_rr;
 
-        gio.Public += "gio"_id;
+        gio.Public +=
+            "."_id,
+            "gio"_id;
         gio += IncludeDirectory(gio.BinaryDir / "gio");
 
         gio += "gio/.*\\.c"_r;
@@ -389,7 +395,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         else
             gio -= "gio/.*win32.*"_rr;
 
-        gio.CompileOptions.push_back("/W0");
+        //gio.CompileOptions.push_back("/W0");
 
         gio.Public += gobject, gmodule;
         gio.Public += "org.sw.demo.madler.zlib"_dep;
