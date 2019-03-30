@@ -45,8 +45,8 @@ void build(Solution &s)
     fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     {
-        auto o1 = fontconfig.BinaryDir / "fcobjshash1.h";
-        auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
+        //auto o1 = fontconfig.BinaryDir / "fcobjshash1.h";
+        //auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
         auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
         auto cc = std::static_pointer_cast<Compiler>(s.findProgramByExtension(".cpp")->clone());
@@ -55,7 +55,7 @@ void build(Solution &s)
         c->args.push_back(fontconfig.SourceDir.u8string());
         c->args.push_back("-E");
         c->args.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
-        c->redirectStdout(o1);
+        //c->redirectStdout(o1);
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
         fontconfig.Storage.push_back(c);
 
@@ -63,39 +63,24 @@ void build(Solution &s)
         fontconfig.Public -= "org.sw.demo.gnu.gawk.gawk-*"_dep;
 
         {
-            auto c = fontconfig.addCommand();
-            if (s.Settings.TargetOS.Type == OSType::Windows)
-                c << cmd::prog("org.sw.demo.gnu.sed.sed-*"_dep);
-            else
-                c << "sed";
-            c
+            auto c1 = fontconfig.addCommand();
+            *c | *c1.c;
+            c1
+                << cmd::prog("org.sw.demo.gnu.sed.sed-*"_dep)
                 << "s/^ *//;s/ *, */,/"
-                << cmd::std_in(o1)
-                << cmd::std_out(o2)
-                ;
-        }
-
-        {
-            auto c = fontconfig.addCommand();
-            if (s.Settings.TargetOS.Type == OSType::Windows)
-                c << cmd::prog("org.sw.demo.gnu.gawk.gawk-*"_dep);
-            else
-                c << "awk";
-            c
+                |
+                fontconfig.addCommand()
+                << cmd::prog("org.sw.demo.gnu.gawk.gawk-*"_dep)
                 << "\\\n\
 		            /CUT_OUT_BEGIN/ { no_write=1; next; }; \\\n\
 		            /CUT_OUT_END/ { no_write=0; next; }; \\\n\
 		            /^$$/||/^#/ { next; }; \\\n\
 		            { if (!no_write) print; next; }; \\\n\
 	            "
-                << cmd::std_in(o2)
-                << cmd::std_out(o3)
-                ;
-        }
+                << cmd::std_out(o3);
 
-        {
-            auto c = fontconfig.addCommand();
-            c << cmd::prog("org.sw.demo.gnu.gperf-*"_dep)
+            fontconfig.addCommand()
+                << cmd::prog("org.sw.demo.gnu.gperf-*"_dep)
                 << cmd::wdir(fontconfig.BinaryDir)
                 << "--pic"
                 << "-m100"
