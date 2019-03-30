@@ -1,3 +1,16 @@
+struct SedExecutable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        if (getSolution()->Settings.TargetOS.Type != OSType::Windows)
+        {
+            c.program = "sed";
+            return;
+        }
+        ExecutableTarget::setupCommand(c);
+    }
+};
+
 void build(Solution &s)
 {
     auto &sed = s.addProject("gnu.sed", "4.7.0");
@@ -295,12 +308,20 @@ void * memrchr (const void *, int, size_t);
         }
     }
 
-    auto &sed2 = sed.addTarget<ExecutableTarget>("sed");
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+    {
+        sed.addTarget<SedExecutable>("sed");
+        return;
+    }
+
+    auto &sed2 = sed.addTarget<SedExecutable>("sed");
     {
         auto &sed = sed2;
         sed +=
             "basicdefs.h",
             "sed/.*"_rr;
+
+        sed += "."_idir;
 
         sed.Private += "HAVE_ISASCII"_d;
         sed.Private += "STDC_HEADERS"_d;
