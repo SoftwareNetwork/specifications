@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &harfbuzz = s.addTarget<LibraryTarget>("behdad.harfbuzz", "2.4.0");
-    harfbuzz += Git("https://github.com/behdad/harfbuzz", "{v}");
+    harfbuzz += Git("https://github.com/behdad/harfbuzz");
 
     harfbuzz +=
         "src/[^/]*\\.c"_rr,
@@ -27,6 +27,9 @@ void build(Solution &s)
 
     harfbuzz.Public +=
         "src"_id;
+
+    // fix msvc build issue
+    harfbuzz.Private += "HAVE_ROUND"_d;
 
     harfbuzz.Private += "HAVE_CAIRO"_d;
     harfbuzz.Private += "HAVE_CAIRO_FT"_d;
