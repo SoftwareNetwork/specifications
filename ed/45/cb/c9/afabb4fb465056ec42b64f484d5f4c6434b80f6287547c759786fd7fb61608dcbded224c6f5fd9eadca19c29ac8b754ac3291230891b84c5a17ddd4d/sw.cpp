@@ -1,3 +1,16 @@
+struct GawkExecutable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        if (getSolution()->Settings.TargetOS.Type != OSType::Windows)
+        {
+            c.program = "gawk";
+            return;
+        }
+        ExecutableTarget::setupCommand(c);
+    }
+};
+
 void build(Solution &s)
 {
     auto &gawk = s.addProject("gnu.gawk", "4.2.1");
@@ -15,7 +28,13 @@ void build(Solution &s)
         getopt.Public += "org.sw.demo.gnu.gettext.intl-*"_dep;
     }
 
-    auto &gawk2 = gawk.addTarget<ExecutableTarget>("gawk");
+    if (s.Settings.TargetOS.Type != OSType::Windows)
+    {
+        gawk.addTarget<GawkExecutable>("gawk");
+        return;
+    }
+
+    auto &gawk2 = gawk.addTarget<GawkExecutable>("gawk");
     {
         auto &gawk = gawk2;
         gawk.PackageDefinitions = true;
@@ -63,6 +82,7 @@ void build(Solution &s)
             gawk.Private += "pclose=_pclose"_d;
             gawk.Private += "popen=_popen"_d;
             gawk.Private += "restrict="_d;
+            gawk.Private += "S_IFIFO=_S_IFIFO"_d;
         }
 
         gawk.replaceInFileOnce("support/regex_internal.c", "__attribute ((pure))", "");
