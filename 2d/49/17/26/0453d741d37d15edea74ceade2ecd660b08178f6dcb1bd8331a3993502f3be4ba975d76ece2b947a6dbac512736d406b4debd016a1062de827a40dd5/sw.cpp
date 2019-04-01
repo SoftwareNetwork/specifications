@@ -52,10 +52,6 @@ void build(Solution &s)
         }
     };
 
-    //
-    //auto &t = s.addLibrary("musl", "1.1.21");
-    //auto alltypes = t.BinaryDir / "bits/alltypes.h";
-
     auto &b = s.addLibrary("llvm_project.compiler_rt.builtins", "master");
     {
         b += Git("https://llvm.org/git/compiler-rt");
@@ -64,10 +60,10 @@ void build(Solution &s)
         b += "lib/builtins/.*"_r;
         b += FileRegex("lib/builtins", arch + "/.*", true);
         b -= "lib/builtins/gcc_personality_v0.c";
-        //b += alltypes; // generate early
-        // not working atm, "bits/alltypes.h" is not generated before compiler rt build
-        //(b + "org.sw.demo.musl"_dep)->IncludeDirectoriesOnly = true;
-        (b + "org.sw.demo.musl"_dep)->IncludeDirectoriesOnly = true;
+        auto d = "org.sw.demo.musl"_dep;
+        d->IncludeDirectoriesOnly = true;
+        d->GenerateCommandsBefore = true;
+        b += d;
         filter_out(b);
     }
 }
