@@ -92,7 +92,7 @@ void build(Solution &s)
         if (auto sf = t["crt/crt1.c"].as<NativeSourceFile>())
             sf->skip_linking = true;
 
-        // for -static -fPIE
+        // for -static -fPIE (-static-pie?)
         // unused for now
         t += "crt/rcrt1.c";
         if (auto sf = t["crt/rcrt1.c"].as<NativeSourceFile>())
@@ -106,19 +106,24 @@ void build(Solution &s)
         if (auto sf = t["crt/" + arch + "/crtn.s"].as<NativeSourceFile>())
             sf->skip_linking = true;
 
-        s.registerCallback([&musl = t](auto &t, auto cbt)
+        auto add_crt1 = [&t](auto nt)
+        {
+            if (auto L = nt->Linker->as<sw::GNULinker>())
+            {
+                std::decay_t<decltype(L->StartFiles())> f;
+                f.push_back(t["crt/crt1.c"].as<NativeSourceFile>()->output.file);
+                f.insert(f.end(), L->StartFiles().begin(), L->StartFiles().end());
+                L->StartFiles() = f;
+            }
+        };
+
+        s.registerCallback([add_crt1](auto &t, auto cbt)
         {
             if (cbt == sw::CallbackType::CreateTargetInitialized)
             {
                 if (auto nt = dynamic_cast<ExecutableTarget*>(&t))
                 {
-                    if (auto L = nt->Linker->as<sw::GNULinker>())
-                    {
-                        std::decay_t<decltype(L->StartFiles())> f;
-                        f.push_back(musl["crt/crt1.c"].as<NativeSourceFile>()->output.file);
-                        f.insert(f.end(), L->StartFiles().begin(), L->StartFiles().end());
-                        L->StartFiles() = f;
-                    }
+                    add_crt1(nt);
                 }
             }
         });
@@ -142,7 +147,11 @@ void build(Solution &s)
         for (auto &[pkg,t] : s.getChildren()) // and old targets (including this one)
         {
             if (auto nt = dynamic_cast<NativeExecutedTarget*>(&*t))
+            {
                 setup_linker(nt->Linker);
+                if (auto e = dynamic_cast<ExecutableTarget*>(nt))
+                    add_crt1(e);
+            }
         }
 
         t += "_XOPEN_SOURCE=700"_def;
