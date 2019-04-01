@@ -66,7 +66,7 @@ void build(Solution &s)
         t += "include/.*"_rr;
         t += "src/.*"_rr;
         t -= "crt/.*"_rr;
-        t -= "lsdo/.*"_rr;
+        t -= "ldso/.*"_rr;
 
         t.Public += "include"_idir;
 
@@ -137,8 +137,13 @@ void build(Solution &s)
             }
         };
 
-        setup_linker(t.Linker);
-        setup_linker(s.Settings.Native.Linker); // for other targets
+        // rewrite
+        setup_linker(s.Settings.Native.Linker); // new targets
+        for (auto &[pkg,t] : s.getChildren()) // and old targets (including this one)
+        {
+            if (auto nt = dynamic_cast<NativeExecutedTarget*>(&*t))
+                setup_linker(nt->Linker);
+        }
 
         t += "_XOPEN_SOURCE=700"_def;
 
