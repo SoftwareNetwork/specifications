@@ -38,7 +38,7 @@ void build(Solution &s)
             t -= ".*videotoolbox.*"_rr;
         }
 
-        t.Settings.Native.ConfigurationType = ConfigurationType::Release;
+        s.Settings.Native.ConfigurationType = ConfigurationType::Release;
     };
 
     // fwd decls
@@ -2437,7 +2437,7 @@ R"(
         }
 
         avformat.Public += avcodec;
-        avformat.Public += "org.sw.demo.libxml2-2"_dep;
+        avformat.Public += "org.sw.demo.xmlsoft.libxml2"_dep;
         avformat.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
 
         avformat.writeFileOnce("libavformat/protocol_list.c", R"(
@@ -2554,7 +2554,7 @@ R"(
         }
 
         /*if (NOT APPLE)
-            remove_src(libavfilter/vf_coreimage.m)
+        remove_src(libavfilter/vf_coreimage.m)
         endif()*/
 
         avfilter.Public += avformat;

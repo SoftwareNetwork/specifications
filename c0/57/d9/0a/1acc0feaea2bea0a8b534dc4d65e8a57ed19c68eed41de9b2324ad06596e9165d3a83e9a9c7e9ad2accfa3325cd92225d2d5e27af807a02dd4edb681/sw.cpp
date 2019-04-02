@@ -53,7 +53,7 @@ void build(Solution &s)
     libarchive.Public += "org.sw.demo.bzip2-1"_dep;
     libarchive.Public += "org.sw.demo.gnu.nettle.nettle-3"_dep;
     libarchive.Public += "org.sw.demo.lz4-1"_dep;
-    libarchive.Public += "org.sw.demo.libxml2-2"_dep;
+    libarchive.Public += "org.sw.demo.xmlsoft.libxml2"_dep;
     libarchive.Public += "org.sw.demo.madler.zlib-1"_dep;
     libarchive.Public += "org.sw.demo.oberhumer.lzo.lzo-2"_dep;
     libarchive.Public += "org.sw.demo.xz_utils.lzma-5"_dep;

@@ -28,5 +28,5 @@ void build(Solution &s)
         hwloc.configureFile("contrib/windows/static-components.h", "static-components.h");
     }
 
-    hwloc.Public += "org.sw.demo.libxml2-2"_dep;
+    hwloc.Public += "org.sw.demo.xmlsoft.libxml2"_dep;
 }
