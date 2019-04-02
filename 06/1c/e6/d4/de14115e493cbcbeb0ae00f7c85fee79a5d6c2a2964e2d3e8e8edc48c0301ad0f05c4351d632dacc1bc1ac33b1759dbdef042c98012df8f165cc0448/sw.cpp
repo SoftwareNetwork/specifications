@@ -1,5 +1,5 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<LibraryTarget>("gnzlbg.static_vector", "master");
-    t += Git("https://github.com/gnzlbg/static_vector");
+    auto &p = s.addTarget<LibraryTarget>("gnzlbg.static_vector", "master");
+    p += Git("https://github.com/gnzlbg/static_vector");
 }

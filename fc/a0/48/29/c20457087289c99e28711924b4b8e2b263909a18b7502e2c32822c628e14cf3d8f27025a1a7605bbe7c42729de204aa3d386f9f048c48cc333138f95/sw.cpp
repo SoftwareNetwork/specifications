@@ -19,6 +19,7 @@ void build(Solution &s)
     {
         botan -= ".*darwin_.*"_rr;
         botan -= ".*commoncrypto.*"_rr;
+        botan -= ".*macos.*"_rr;
     }
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
