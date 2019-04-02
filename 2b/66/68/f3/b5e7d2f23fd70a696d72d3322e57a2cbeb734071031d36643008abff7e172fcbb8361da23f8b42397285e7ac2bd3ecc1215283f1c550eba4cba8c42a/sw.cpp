@@ -75,8 +75,6 @@ struct YasmCompiler : sw::NativeCompiler,
         ObjectFile = output_file;
     }
 
-    String getObjectExtension() const override { return ".obj"; }
-
 protected:
     Version gatherVersion() const override { return "master"; }
 };
