@@ -66,7 +66,7 @@ void build(Solution &s)
         auto COMPRESSION = 2;
 
         String name = "gen-" + n + "-tab";
-        auto &gen_tab = gen.addTarget<ExecutableTarget>(n + "_tab");
+        auto &gen_tab = gen.addTarget<ExecutableTarget>(boost::replace_all_copy(n, "-", "_") + "_tab");
         auto d = gen_tab + fribidi;
         d->IncludeDirectoriesOnly = true;
         gen_tab += path("gen.tab/" + name + ".c");
