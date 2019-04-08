@@ -41,6 +41,8 @@ struct YasmCompiler : sw::NativeCompiler,
 
     void prepareCommand1(const TargetBase &t) override
     {
+        cmd->addPathDirectory(sw::getStorage().storage_dir_bin / t.getSolution()->getConfig());
+
         if (InputFile)
         {
             cmd->name = normalize_path(InputFile());
