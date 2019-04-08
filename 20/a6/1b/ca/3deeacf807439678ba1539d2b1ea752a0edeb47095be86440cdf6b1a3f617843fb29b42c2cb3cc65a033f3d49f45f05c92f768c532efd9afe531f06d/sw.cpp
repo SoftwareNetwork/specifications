@@ -35,7 +35,11 @@ void build(Solution &s)
         t += t.BinaryDir / ("" + name + ".def");
     };
 
-    auto &tbb = p.addTarget<LibraryTarget>("tbb");
+    // tbb is not very suitable to static linking, so use only shared for the moment
+    //using TbbTarget = LibraryTarget;
+    using TbbTarget = SharedLibraryTarget;
+
+    auto &tbb = p.addTarget<TbbTarget>("tbb");
     {
         tbb +=
             "include/.*"_rr,
@@ -88,7 +92,7 @@ void build(Solution &s)
         make_ver(tbb);
     }
 
-    auto &tbbmalloc = tbb.addTarget<LibraryTarget>("malloc");
+    auto &tbbmalloc = tbb.addTarget<TbbTarget>("malloc");
     {
         tbbmalloc +=
             "include/.*"_rr,
@@ -124,7 +128,7 @@ void build(Solution &s)
         make_ver(tbbmalloc);
     }
 
-    auto &tbbmalloc_proxy = tbbmalloc.addTarget<LibraryTarget>("proxy");
+    auto &tbbmalloc_proxy = tbbmalloc.addTarget<TbbTarget>("proxy");
     {
         tbbmalloc_proxy +=
             "include/.*"_rr,
@@ -148,8 +152,8 @@ void build(Solution &s)
 
         tbbmalloc_proxy.writeFileOnce("include/tbb/tbbmalloc_proxy.h");
         if (s.Settings.TargetOS.is(ArchType::x86_64))
-            tbbmalloc_proxy.Interface.LinkOptions.push_back("/INCLUDE:\"__TBB_malloc_proxy\"");
+            tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:__TBB_malloc_proxy");
         else if (s.Settings.TargetOS.is(ArchType::x86))
-            tbbmalloc_proxy.Interface.LinkOptions.push_back("/INCLUDE:\"___TBB_malloc_proxy\"");
+            tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:___TBB_malloc_proxy");
     }
 }
