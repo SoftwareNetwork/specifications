@@ -88,11 +88,7 @@ void build(Solution &s)
         make_ver(tbb);
     }
 
-    // tbb malloc is not very suitable to static linking, so use only shared for the moment
-    //using TbbTarget = LibraryTarget;
-    using TbbTarget = SharedLibraryTarget;
-
-    auto &tbbmalloc = tbb.addTarget<TbbTarget>("malloc");
+    auto &tbbmalloc = tbb.addTarget<SharedLibraryTarget>("malloc");
     {
         tbbmalloc +=
             "include/.*"_rr,
@@ -108,12 +104,13 @@ void build(Solution &s)
         tbb ^= "include/tbb/tbbmalloc_proxy.h";
 
         tbbmalloc.Private += "src"_id;
-
         tbbmalloc.Public += "include"_id;
 
         tbbmalloc.Private += "__TBBMALLOC_BUILD"_d;
         tbbmalloc.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbbmalloc.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
+        if (s.Settings.Native.LibrariesType == LibraryType::Static)
+            tbbmalloc += "__TBB_SOURCE_DIRECTLY_INCLUDED"_def;
         if (s.Settings.TargetOS.Type != OSType::Windows)
         {
             tbbmalloc.Public += "USE_PTHREAD"_d;
@@ -128,7 +125,7 @@ void build(Solution &s)
         make_ver(tbbmalloc);
     }
 
-    auto &tbbmalloc_proxy = tbbmalloc.addTarget<TbbTarget>("proxy");
+    auto &tbbmalloc_proxy = tbbmalloc.addTarget<SharedLibraryTarget>("proxy");
     {
         tbbmalloc_proxy +=
             "include/.*"_rr,
@@ -151,9 +148,12 @@ void build(Solution &s)
         tbbmalloc_proxy.Public += tbbmalloc;
 
         tbbmalloc_proxy.writeFileOnce("include/tbb/tbbmalloc_proxy.h");
-        if (s.Settings.TargetOS.is(ArchType::x86_64))
-            tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:__TBB_malloc_proxy");
-        else if (s.Settings.TargetOS.is(ArchType::x86))
-            tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:___TBB_malloc_proxy");
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+        {
+            if (s.Settings.TargetOS.is(ArchType::x86_64))
+                tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:__TBB_malloc_proxy");
+            else if (s.Settings.TargetOS.is(ArchType::x86))
+                tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:___TBB_malloc_proxy");
+        }
     }
 }
