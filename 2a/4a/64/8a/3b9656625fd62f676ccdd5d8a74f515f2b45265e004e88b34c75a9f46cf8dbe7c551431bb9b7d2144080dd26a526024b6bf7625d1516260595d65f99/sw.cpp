@@ -1,8 +1,8 @@
 #pragma sw header on
 
-#pragma sw require pub.egorpugin.primitives.context-master
+#pragma sw require pub.egorpugin.primitives.emitter-master
 
-#include <primitives/context.h>
+#include <primitives/emitter.h>
 
 namespace flex_bison
 {
@@ -172,7 +172,7 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"];
 
-    primitives::Context ctx;
+    primitives::Emitter ctx;
     ctx.addLine("#pragma once");
     ctx.addLine();
     ctx.addLine("#undef  THIS_PARSER_NAME");
