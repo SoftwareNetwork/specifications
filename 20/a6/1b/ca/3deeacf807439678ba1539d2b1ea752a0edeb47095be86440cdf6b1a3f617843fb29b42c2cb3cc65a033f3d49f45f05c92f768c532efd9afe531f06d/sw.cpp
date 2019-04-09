@@ -35,11 +35,7 @@ void build(Solution &s)
         t += t.BinaryDir / ("" + name + ".def");
     };
 
-    // tbb is not very suitable to static linking, so use only shared for the moment
-    //using TbbTarget = LibraryTarget;
-    using TbbTarget = SharedLibraryTarget;
-
-    auto &tbb = p.addTarget<TbbTarget>("tbb");
+    auto &tbb = p.addTarget<LibraryTarget>("tbb");
     {
         tbb +=
             "include/.*"_rr,
@@ -91,6 +87,10 @@ void build(Solution &s)
 
         make_ver(tbb);
     }
+
+    // tbb malloc is not very suitable to static linking, so use only shared for the moment
+    //using TbbTarget = LibraryTarget;
+    using TbbTarget = SharedLibraryTarget;
 
     auto &tbbmalloc = tbb.addTarget<TbbTarget>("malloc");
     {
