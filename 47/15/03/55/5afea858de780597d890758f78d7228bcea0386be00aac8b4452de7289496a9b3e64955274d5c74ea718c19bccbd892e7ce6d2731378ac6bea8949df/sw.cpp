@@ -51,7 +51,6 @@ void build(Solution &s)
         gawk -=
             "missing_d/.*"_rr,
             "posix/.*"_rr,
-            "replace.c",
             "support/regcomp.c",
             "support/regex_internal.c",
             "support/regexec.c";
@@ -63,6 +62,11 @@ void build(Solution &s)
             "."_id,
             "support"_id,
             "pc"_id;
+
+        gawk += "__USE_GNU"_def;
+        gawk += "HAVE_SETENV"_def;
+        if (s.Settings.TargetOS.Type == OSType::Windows)
+            gawk += "HAVE_USLEEP"_def;
 
         gawk.Private += "DEFLIBPATH=\"\""_d;
         gawk.Private += "DEFPATH=\"\""_d;
@@ -260,11 +264,9 @@ void check(Checker &c)
         s.checkFunctionExists("mkstemp");
         s.checkFunctionExists("mktime");
         s.checkFunctionExists("posix_openpt");
-        s.checkFunctionExists("setenv");
         s.checkFunctionExists("setlocale");
         s.checkFunctionExists("setsid");
         s.checkFunctionExists("sigprocmask");
-        s.checkFunctionExists("snprintf");
         s.checkFunctionExists("strcasecmp");
         s.checkFunctionExists("strchr");
         s.checkFunctionExists("strcoll");
@@ -274,6 +276,7 @@ void check(Checker &c)
         s.checkFunctionExists("strtod");
         s.checkFunctionExists("strtoul");
         s.checkFunctionExists("system");
+        s.checkFunctionExists("timegm");
         s.checkFunctionExists("tmpfile");
         s.checkFunctionExists("towlower");
         s.checkFunctionExists("towupper");
@@ -319,5 +322,7 @@ void check(Checker &c)
         s.checkTypeSize("unsigned int");
         s.checkTypeSize("unsigned long");
         s.checkTypeSize("void *");
+        s.checkSymbolExists("snprintf").Parameters.Includes.push_back("stdio.h");
+        s.checkSymbolExists("vsnprintf").Parameters.Includes.push_back("stdio.h");
     }
 }
