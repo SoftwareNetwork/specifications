@@ -23,7 +23,7 @@ void build(Solution &s)
 
         schema.Public += "pub.egorpugin.primitives.filesystem-master"_dep;
         schema.Public += "pub.egorpugin.primitives.templates-master"_dep;
-        schema.Public += "pub.egorpugin.primitives.context-master"_dep;
+        schema.Public += "pub.egorpugin.primitives.emitter-master"_dep;
         schema.Public += "org.sw.demo.boost.algorithm-1"_dep;
         schema.Public += "org.sw.demo.boost.variant-1"_dep;
         schema.Public += memory;
