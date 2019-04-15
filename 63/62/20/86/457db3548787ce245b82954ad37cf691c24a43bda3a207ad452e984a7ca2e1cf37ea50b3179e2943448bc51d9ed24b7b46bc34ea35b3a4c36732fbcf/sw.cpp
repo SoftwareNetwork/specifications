@@ -17,7 +17,7 @@ void build(Solution &s)
 
     gss.Public += "org.sw.demo.gnu.gettext.intl"_dep;
 
-    gss.Definitions["PACKAGE"] = "\"" + gss.pkg.ppath.toString() + "\"";
+    gss.Definitions["PACKAGE"] = "\"" + gss.getPackage().ppath.toString() + "\"";
     gss.Definitions["PACKAGE_VERSION"] = "\"1.0.3\"";
     gss.Public += "PO_SUFFIX=\".po\""_d;
 

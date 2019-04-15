@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &nghttp2 = s.addTarget<LibraryTarget>("nghttp2", "1.35.1");
+    auto &nghttp2 = s.addTarget<LibraryTarget>("nghttp2", "1.37.0");
     nghttp2 += Git("https://github.com/nghttp2/nghttp2", "v{v}");
 
     nghttp2.setChecks("nghttp2");
@@ -20,7 +20,7 @@ void build(Solution &s)
 
     nghttp2 += "HAVE_CONFIG_H"_d;
 
-    nghttp2.Definitions["PACKAGE"] = "\"" + nghttp2.getPackage().ppath.toString() + "\"";
+    nghttp2.Definitions["PACKAGE"] = "\"" + nghttp2.pkg.ppath.toString() + "\"";
     nghttp2.Variables["PACKAGE_VERSION"] = "1.32.0";
     nghttp2.Variables["PACKAGE_VERSION_NUM"] = "0x013200LL";
 
