@@ -20,9 +20,14 @@ void build(Solution &s)
 
     nghttp2 += "HAVE_CONFIG_H"_d;
 
-    nghttp2.Definitions["PACKAGE"] = "\"" + nghttp2.pkg.ppath.toString() + "\"";
-    nghttp2.Variables["PACKAGE_VERSION"] = "1.32.0";
-    nghttp2.Variables["PACKAGE_VERSION_NUM"] = "0x013200LL";
+    nghttp2.Definitions["PACKAGE"] = "\"" + nghttp2.getPackage().ppath.toString() + "\"";
+    nghttp2.Variables["PACKAGE_VERSION"] = nghttp2.getPackage().version.toString();
+    nghttp2.Variables["PACKAGE_VERSION_NUM"] = "0x0" +
+        std::to_string(nghttp2.getPackage().version.getMajor()) +
+        std::to_string(nghttp2.getPackage().version.getMinor()) +
+        + "0" +
+        std::to_string(nghttp2.getPackage().version.getPatch()) +
+        "LL";
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {

@@ -87,8 +87,12 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
         libxml2 += "ws2_32.lib"_slib;
 
-    libxml2.Variables["VERSION"] = libxml2.pkg.version.toString();
-    libxml2.Variables["LIBXML_VERSION_NUMBER"] = 20908;// std::to_string(libxml2.pkg.version.toNumber());
+    libxml2.Variables["VERSION"] = libxml2.getPackage().version.toString();
+    libxml2.Variables["LIBXML_VERSION_NUMBER"] =
+        libxml2.getPackage().version.getMajor() * 10000 +
+        libxml2.getPackage().version.getMinor() * 100 +
+        libxml2.getPackage().version.getPatch() * 1
+        ;
     libxml2 +=
         "WITH_ZLIB=1"_v,
         "WITH_LZMA=0"_v,
