@@ -127,7 +127,7 @@ void build(Solution &s)
 
     auto &ref_counted = p.addTarget<StaticLibraryTarget>("ref_counted");
     setup_grpc(ref_counted);
-    ref_counted.Public += debug_location, gpr_base, grpc_trace, ref_counted_ptr;
+    ref_counted.Public += atomic, debug_location, gpr_base, grpc_trace, ref_counted_ptr;
 
     auto &orphanable = p.addTarget<StaticLibraryTarget>("orphanable");
     setup_grpc(orphanable);
@@ -139,7 +139,7 @@ void build(Solution &s)
 
     auto &grpc_base = p.addTarget<StaticLibraryTarget>("grpc_base");
     setup_grpc(grpc_base);
-    grpc_base.Public += grpc_base_c, atomic;
+    grpc_base.Public += grpc_base_c;
 
     auto &census = p.addTarget<StaticLibraryTarget>("census");
     setup_grpc(census);
