@@ -180,7 +180,7 @@ void build(Solution &s)
 
     auto &grpc_message_size_filter = p.addTarget<StaticLibraryTarget>("grpc_message_size_filter");
     setup_grpc(grpc_message_size_filter);
-    grpc_message_size_filter.Public += grpc_base;
+    grpc_message_size_filter.Public += grpc_base, grpc_client_channel;
 
     auto &grpc_resolver_dns_ares = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_ares");
     setup_grpc(grpc_resolver_dns_ares);

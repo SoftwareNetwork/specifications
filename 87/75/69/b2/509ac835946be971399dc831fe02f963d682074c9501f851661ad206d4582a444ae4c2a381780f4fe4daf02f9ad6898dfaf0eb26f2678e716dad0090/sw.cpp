@@ -30,7 +30,7 @@ void build(Solution &s)
     }
 
     auto hdrs = "org.sw.demo.khronos.vulkan.headers"_dep;
-    hdrs->package.range = t.pkg.version;
+    hdrs->package.range = t.getPackage().version;
     t.Public += hdrs;
 
     auto GenerateFromVkXml = [&t, &hdrs](const path &output, const path &dep)
