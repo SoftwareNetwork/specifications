@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<LibraryTarget>("taocpp.config", "master");
-    t += Git("https://github.com/taocpp/config", "", "{v}");
-    t += "include/.*"_rr;
+    auto &pegtl = s.addTarget<LibraryTarget>("taocpp.config", "master");
+    pegtl += Git("https://github.com/taocpp/config", "", "{v}");
+    pegtl += "include/.*"_rr;
 }
