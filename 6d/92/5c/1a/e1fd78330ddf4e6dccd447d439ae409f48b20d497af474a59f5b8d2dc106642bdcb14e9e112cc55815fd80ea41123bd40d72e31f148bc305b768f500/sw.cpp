@@ -2,8 +2,8 @@ template <class T>
 auto &addBoostTarget(Solution &s, const String &name)
 {
     std::map<String, String> commits
-{
-    { "accumulators", "bfcbfe3c58064cd1ffabbce49a95c6c20351c96e" },
+    {
+        { "accumulators", "bfcbfe3c58064cd1ffabbce49a95c6c20351c96e" },
     { "algorithm", "5af3e3b174cdd5f06d21fc50e9b5ffa4f953cfe7" },
     { "align", "68adff68f78c0514a71cce844be9ab17804d75c2" },
     { "any", "e5032609ee382d1e32a761e00a08beecec3ac7c2" },
@@ -141,7 +141,7 @@ auto &addBoostTarget(Solution &s, const String &name)
     { "winapi", "1c890b7c1a85535d88f0b6549af7c9e6b1a80239" },
     { "xpressive", "4d4bc69f8b05e63c744e6f477df6a364affbc603" },
     { "yap", "1593ff054b932676cd55f4e8706902597228d896" },
-};
+    };
 
     PackagePath p = "boost";
     p /= name;
@@ -169,24 +169,24 @@ void addStaticDefinitions(NativeExecutedTarget &t, const String &N)
 {
     DefinitionsType defs2;
     defs2["BOOST_" + N + "_BUILD_LIB"];
-    t.Private << sw::Static << defs2;
+    t.Private += sw::Static, defs2;
 
     DefinitionsType defs;
     defs["BOOST_" + N + "_USE_LIB"];
     defs["BOOST_" + N + "_STATIC_LINK"];
-    t.Public << sw::Static << defs;
+    t.Public += sw::Static, defs;
 }
 
 void addSharedDefinitions(NativeExecutedTarget &t, const String &N)
 {
     DefinitionsType defs2;
     defs2["BOOST_" + N + "_BUILD_DLL"];
-    t.Private << sw::Shared << defs2;
+    t.Private += sw::Shared, defs2;
 
     DefinitionsType defs;
     defs["BOOST_" + N + "_USE_DLL"];
     defs["BOOST_" + N + "_DYN_LINK"];
-    t.Public << sw::Shared << defs;
+    t.Public += sw::Shared, defs;
 }
 
 auto &addCompiledBoostTarget(Solution &s, String name)
@@ -391,7 +391,7 @@ void build(Solution &s)
     boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src/tr1");
     boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src");
     boost_targets["math"]->Public.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "include");
-    ((LibraryTarget*)boost_targets["math"])->Public << sw::Shared << "BOOST_MATH_TR1_DYN_LINK"_d;
+    ((LibraryTarget*)boost_targets["math"])->Public += sw::Shared, "BOOST_MATH_TR1_DYN_LINK"_d;
 
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
@@ -407,7 +407,7 @@ void build(Solution &s)
         boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_WITH_ICONV"];
     }
 
-    *boost_targets["log"] <<
+    *boost_targets["log"] +=
         "include/.*"_rr,
         "src/.*\\.mc"_rr,
         "src/.*\\.hpp"_rr,
@@ -464,8 +464,8 @@ void build(Solution &s)
     if (s.Settings.TargetOS.Type == OSType::Windows)
     {
         *((LibraryTarget*)boost_targets["thread"]) -= "src/pthread/.*"_rr;
-        *((LibraryTarget*)boost_targets["thread"]) >> sw::Shared >> "src/win32/tss_pe.cpp";
-        *((LibraryTarget*)boost_targets["thread"]) >> sw::Static >> "src/win32/tss_dll.cpp";
+        *((LibraryTarget*)boost_targets["thread"]) -= sw::Shared, "src/win32/tss_pe.cpp";
+        *((LibraryTarget*)boost_targets["thread"]) -= sw::Static, "src/win32/tss_dll.cpp";
     }
     else
         *((LibraryTarget*)boost_targets["thread"]) -= "src/win32/.*"_rr;
