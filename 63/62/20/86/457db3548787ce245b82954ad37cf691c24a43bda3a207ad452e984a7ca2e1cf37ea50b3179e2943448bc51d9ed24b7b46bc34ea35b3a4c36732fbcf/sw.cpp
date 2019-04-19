@@ -28,12 +28,3 @@ void build(Solution &s)
 #include  "internal.h"
 )xxx");
 }
-
-void check(Checker &c)
-{
-    {
-        auto &s = c.addSet("gss");
-        s.checkTypeSize("size_t");
-        s.checkTypeSize("void *");
-    }
-}
