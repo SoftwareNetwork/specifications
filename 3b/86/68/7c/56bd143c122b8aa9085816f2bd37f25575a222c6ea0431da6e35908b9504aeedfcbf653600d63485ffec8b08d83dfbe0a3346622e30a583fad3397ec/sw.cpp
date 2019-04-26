@@ -25,6 +25,7 @@ DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 struct YasmCompiler : sw::NativeCompiler,
     sw::CommandLineOptions<YasmAssemblerOptions>
 {
+    using NativeCompiler::NativeCompiler;
     virtual ~YasmCompiler() = default;
 
     using NativeCompilerOptions::operator=;
@@ -41,7 +42,7 @@ struct YasmCompiler : sw::NativeCompiler,
 
     void prepareCommand1(const TargetBase &t) override
     {
-        cmd->addPathDirectory(sw::getStorage().storage_dir_bin / t.getSolution()->getConfig());
+        cmd->addPathDirectory(t.getSolution()->swctx.getLocalStorage().storage_dir_bin / t.getSolution()->getConfig());
 
         if (InputFile)
         {
@@ -63,7 +64,7 @@ struct YasmCompiler : sw::NativeCompiler,
         }
 
         sw::getCommandLineOptions<YasmAssemblerOptions>(cmd.get(), *this);
-        iterate([this](auto &v, auto &gs) { v.addEverything(*cmd); });
+        addEverything(*cmd);
     }
 
     void setSourceFile(const path &input_file, path &output_file) override
@@ -296,7 +297,7 @@ void build(Solution &s)
     auto L = std::make_shared<NativeLanguage>();
     L->CompiledExtensions = { ".asm", };
 
-    auto C = std::make_shared<YasmCompiler>();
+    auto C = std::make_shared<YasmCompiler>(yasm.getSolution()->swctx);
     C->file = yasm.getOutputFile();
     L->compiler = C;
     s.registerProgramAndLanguage(yasm, C, L);
