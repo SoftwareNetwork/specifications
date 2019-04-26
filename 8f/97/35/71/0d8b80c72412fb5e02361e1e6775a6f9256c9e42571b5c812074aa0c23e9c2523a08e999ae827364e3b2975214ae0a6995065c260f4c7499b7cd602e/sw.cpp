@@ -13,6 +13,10 @@ void build(Solution &s)
         mkheader += "R_OK=4"_d;
     mkheader.writeFileOnce("unistd.h");
 
+    // for gawk 5.0 see
+    // https://dev.gnupg.org/rE7865041c77f4f7005282f10f9b6666b19072fbdf
+    auto gawk = "org.sw.demo.gnu.gawk.gawk-4"_dep;
+
     auto &mkerrcodes = e.addTarget<ExecutableTarget>("tools.mkerrcodes");
     {
         mkerrcodes += "src/mkerrcodes.c";
@@ -20,7 +24,7 @@ void build(Solution &s)
 
         {
             auto c = mkerrcodes.addCommand();
-            c << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
+            c << cmd::prog(gawk)
                 << "-f"
                 << cmd::in("src/mkerrcodes1.awk")
                 << cmd::in("src/errnos.in")
@@ -47,8 +51,8 @@ void build(Solution &s)
                 << "GPG_ERR_"
                 << cmd::in("mkerrcodes2.h")
                 |
-            mkerrcodes.addCommand()
-                << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
+                mkerrcodes.addCommand()
+                << cmd::prog(gawk)
                 << "-f"
                 << cmd::in("src/mkerrcodes.awk")
                 << cmd::std_out("mkerrcodes.h")
@@ -192,18 +196,18 @@ void * memrchr (const void *, int, size_t);
             gpg_error.addCommand()
                 << cmd::prog(mkerrcodes)
                 |
-            gpg_error.addCommand()
-                << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
+                gpg_error.addCommand()
+                << cmd::prog(gawk)
                 << "-f"
                 << cmd::in("src/mkerrcodes2.awk")
                 << cmd::std_out("code-from-errno.h")
                 ;
         }
 
-        auto awk = [&gpg_error](const auto &f, const auto &s, const Strings &args, const auto &in)
+        auto awk = [&gpg_error, &gawk](const auto &f, const auto &s, const Strings &args, const auto &in)
         {
             auto c = gpg_error.addCommand();
-            c << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
+            c << cmd::prog(gawk)
                 << "-f" << cmd::in(s)
                 ;
             for (auto &a : args)
