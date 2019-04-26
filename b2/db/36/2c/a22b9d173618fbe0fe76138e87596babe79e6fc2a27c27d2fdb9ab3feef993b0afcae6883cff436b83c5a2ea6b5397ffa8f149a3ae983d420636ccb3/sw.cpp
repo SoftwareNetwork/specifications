@@ -34,6 +34,7 @@ void build(Solution &s)
         glfw -= "src/linux.*"_rr;
         glfw -= "src/wl.*"_rr;
         glfw -= "src/glx.*"_rr;
+        glfw -= "src/null.*"_rr;
 
         glfw += "User32.lib"_slib;
         glfw += "gdi32.lib"_slib;

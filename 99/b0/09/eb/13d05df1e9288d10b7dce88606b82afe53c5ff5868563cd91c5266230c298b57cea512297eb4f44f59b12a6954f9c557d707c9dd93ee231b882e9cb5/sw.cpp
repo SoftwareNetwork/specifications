@@ -10,7 +10,7 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
 
     {
         auto d = t + protoc;
-        d->Dummy = true;
+        d->setDummy(true);
     }
 
     if (!f.is_absolute())
@@ -36,9 +36,9 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
     c->args.push_back(normalize_path(d));
     c->args.push_back("-I");
     c->pushLazyArg([protoc]()
-    {
-        return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src");
-    });
+        {
+            return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src");
+        });
     c->args.push_back("--cpp_out=" + normalize_path(bdir));
     c->args.push_back(normalize_path(f));
     c->addInput(f);
