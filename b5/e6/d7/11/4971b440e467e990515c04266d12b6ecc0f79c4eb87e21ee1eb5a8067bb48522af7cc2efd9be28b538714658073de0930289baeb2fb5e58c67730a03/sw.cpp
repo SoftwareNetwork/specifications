@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &vpx = s.addStaticLibrary("webmproject.vpx", "1.8.0");
     vpx += Git("https://github.com/webmproject/libvpx", "v{v}");
 
-    vpx.setExtensionLanguage(".asm", "org.sw.demo.yasm-master"s);
+    vpx.setExtensionProgram(".asm", "org.sw.demo.yasm-master"s);
 
     //vpx.ExportAllSymbols = true;
     vpx.setChecks("vpx");

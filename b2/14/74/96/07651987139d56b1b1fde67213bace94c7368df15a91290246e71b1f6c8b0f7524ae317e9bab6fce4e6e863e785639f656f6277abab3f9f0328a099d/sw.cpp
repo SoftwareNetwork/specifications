@@ -294,13 +294,10 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-    auto L = std::make_shared<NativeLanguage>();
-    L->CompiledExtensions = { ".asm", };
-
     auto C = std::make_shared<YasmCompiler>(yasm.getSolution()->swctx);
     C->file = yasm.getOutputFile();
-    L->compiler = C;
-    s.registerProgramAndLanguage(yasm, C, L);
+    C->input_extensions = { ".asm", };
+    s.registerProgram(yasm, C);
 }
 
 void check(Checker &c)
