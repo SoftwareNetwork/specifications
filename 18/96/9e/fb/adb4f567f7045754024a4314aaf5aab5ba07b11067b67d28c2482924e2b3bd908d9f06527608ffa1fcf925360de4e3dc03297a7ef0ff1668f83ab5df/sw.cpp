@@ -4,8 +4,7 @@ struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        SW_UNIMPLEMENTED;
-        //if (getSolution()->getSettings().TargetOS.Type != OSType::Windows)
+        if (getSolution()->getSettings().TargetOS.Type != OSType::Windows)
         {
             c.program = "python3"; // python3?
             return;
