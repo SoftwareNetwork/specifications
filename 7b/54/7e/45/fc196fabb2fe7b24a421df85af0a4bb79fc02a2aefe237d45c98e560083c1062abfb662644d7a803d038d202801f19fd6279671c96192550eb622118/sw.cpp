@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &uv = s.addTarget<LibraryTarget>("libuv", "1.28.0");
-    uv += Git("https://github.com/libuv/libuv", "v{v}");
+    uv += Git("https://github.com/egorpugin/libuv", "v{v}");
 
     uv.Private += sw::Shared, "BUILDING_UV_SHARED"_d;
     uv.Interface += sw::Shared, "USING_UV_SHARED"_d;
@@ -9,7 +9,7 @@ void build(Solution &s)
     uv += "include/.*"_rr;
     uv -= "src/.*"_rr;
     uv += "src/.*"_r;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (uv.getSettings().TargetOS.Type == OSType::Windows)
     {
         uv += "src/win/.*"_rr;
         uv.Public +=
@@ -45,7 +45,7 @@ void build(Solution &s)
             "src/unix/tty.c",
             "src/unix/udp.c";
 
-        switch (s.Settings.TargetOS.Type)
+        switch (uv.getSettings().TargetOS.Type)
         {
         case OSType::AIX:
             break;
