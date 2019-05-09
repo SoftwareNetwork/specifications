@@ -339,7 +339,7 @@ void build(Solution &s)
     *boost_targets["pool"] += "include/.*\\.[ih]pp"_rr;
     *boost_targets["spirit"] += "include/.*\\.[cih]pp"_rr;*/
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["config"]->getSettings().TargetOS.Type == OSType::Windows)
     {
         boost_targets["config"]->Public.Definitions["BOOST_USE_WINDOWS_H"];
         boost_targets["config"]->Public.Definitions["BOOST_USE_INTRIN_H"];
@@ -385,7 +385,7 @@ void build(Solution &s)
     *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["random"]->getSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["random"] += "Advapi32.lib"_slib;
 
     boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src/tr1");
@@ -393,7 +393,7 @@ void build(Solution &s)
     boost_targets["math"]->Public.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "include");
     ((LibraryTarget*)boost_targets["math"])->Public += sw::Shared, "BOOST_MATH_TR1_DYN_LINK"_d;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["locale"]->getSettings().TargetOS.Type == OSType::Windows)
     {
         *boost_targets["locale"] -= "src/icu/.*"_rr;
         *boost_targets["locale"] -= "src/posix/.*"_rr;
@@ -447,7 +447,7 @@ void build(Solution &s)
         ;
     boost_targets["log"]->Public.Definitions["BOOST_LOG_WITHOUT_EVENT_LOG"];
     boost_targets["log"]->Private += sw::Shared, "BOOST_LOG_DLL"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["log"]->getSettings().TargetOS.Type == OSType::Windows)
     {
         boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
         boost_targets["log"]->Public.Definitions["NOMINMAX"];
@@ -461,7 +461,7 @@ void build(Solution &s)
     //*boost_targets["python"] += "pvt.cppan.demo.python.libcompat";
 
     *((LibraryTarget*)boost_targets["thread"]) -= "src/pthread/once_atomic.cpp";
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["thread"]->getSettings().TargetOS.Type == OSType::Windows)
     {
         *((LibraryTarget*)boost_targets["thread"]) -= "src/pthread/.*"_rr;
         *((LibraryTarget*)boost_targets["thread"]) -= sw::Shared, "src/win32/tss_pe.cpp";
@@ -471,7 +471,7 @@ void build(Solution &s)
         *((LibraryTarget*)boost_targets["thread"]) -= "src/win32/.*"_rr;
     //*boost_targets["thread"] += *boost_targets["date_time"];
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["uuid"]->getSettings().TargetOS.Type == OSType::Windows)
         ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_slib;
 
     // context, fiber
@@ -482,11 +482,11 @@ void build(Solution &s)
     *boost_targets["context"] -= "src/untested.cpp";
 
     String a = ".*";
-    if (s.Settings.TargetOS.is(ArchType::x86_64))
+    if (boost_targets["context"]->getSettings().TargetOS.is(ArchType::x86_64))
         a += "x86_64";
     else
         a += "i386";
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["context"]->getSettings().TargetOS.Type == OSType::Windows)
     {
         a += "_ms_pe_masm.asm";
 
@@ -496,7 +496,7 @@ void build(Solution &s)
 
         *boost_targets["context"] -= "src/posix/.*"_rr;
     }
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
+    else if (boost_targets["context"]->getSettings().TargetOS.Type == OSType::Macos)
     {
         a += "_sysv_macho_gas.S";
     }
@@ -512,9 +512,9 @@ void build(Solution &s)
     *boost_targets["fiber"] += "src/.*"_r;
     *boost_targets["fiber"] += "src/algo/.*"_rr;
     *boost_targets["fiber"] += "src/numa/algo/.*"_r;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (boost_targets["fiber"]->getSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["fiber"] += "src/numa/windows/.*"_rr;
-    else if (s.Settings.TargetOS.Type == OSType::Linux)
+    else if (boost_targets["fiber"]->getSettings().TargetOS.Type == OSType::Linux)
         *boost_targets["fiber"] += "src/numa/linux/.*"_rr;
     else
         *boost_targets["fiber"] += "src/numa/.*"_r;
