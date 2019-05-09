@@ -9,7 +9,7 @@ void build(Solution &s)
     uv += "include/.*"_rr;
     uv -= "src/.*"_rr;
     uv += "src/.*"_r;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (uv.getSettings().TargetOS.Type == OSType::Windows)
     {
         uv += "src/win/.*"_rr;
         uv.Public +=
@@ -45,7 +45,7 @@ void build(Solution &s)
             "src/unix/tty.c",
             "src/unix/udp.c";
 
-        switch (s.Settings.TargetOS.Type)
+        switch (uv.getSettings().TargetOS.Type)
         {
         case OSType::AIX:
             break;

@@ -11,7 +11,7 @@ static bool need_build(Solution &s)
 {
     return
         // s.Settings.Native.CompilerType != CompilerType::GNU
-        s.HostOS.Type == OSType::Windows // && !::sw::detail::isHostCygwin()
+        s.getHostOs().Type == OSType::Windows // && !::sw::detail::isHostCygwin()
         ;
 }
 
@@ -86,7 +86,7 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBi
 
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
-    if (flex_bison::need_build(*t.getSolution()))
+    if (flex_bison::need_build(t.getSolution()))
         c << cmd::prog(bison);
     else
         c << "bison";
@@ -122,7 +122,7 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
 
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
-    if (flex_bison::need_build(*t.getSolution()))
+    if (flex_bison::need_build(t.getSolution()))
         c << cmd::prog(flex);
     else
         c << "flex";
@@ -228,7 +228,7 @@ void build(Solution &s)
     flex -= "flex/src/libmain.c";
     flex -= "flex/src/libyywrap.c";
     flex += common;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (flex.getSettings().TargetOS.Type == OSType::Windows)
         flex += "ws2_32.lib"_slib;
 
     auto &bison = winflexbison.addTarget<ExecutableTarget>("bison");
