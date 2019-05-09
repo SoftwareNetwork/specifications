@@ -6,7 +6,7 @@ void build(Solution &s)
     pqxx.CPPVersion = CPPLanguageStandard::CPP17;
     pqxx.ApiName = "PQXX_LIBEXPORT";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (pqxx.getSettings().TargetOS.Type == OSType::Windows)
         pqxx.Public += "ws2_32.lib"_slib;
 
     pqxx.Public += "org.sw.demo.find.libpq-master"_dep;
