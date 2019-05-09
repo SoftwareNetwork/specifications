@@ -36,7 +36,7 @@ void build(Solution &s)
 
     nettle.Private += "UNUSED="_d;
 
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (nettle.getCompilerType() == CompilerType::MSVC)
     {
         nettle.Private += "alloca=_alloca"_d;
     }

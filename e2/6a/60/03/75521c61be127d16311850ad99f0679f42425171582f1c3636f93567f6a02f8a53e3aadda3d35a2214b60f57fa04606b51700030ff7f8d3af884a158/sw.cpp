@@ -29,9 +29,9 @@ void build(Solution &s)
         std::to_string(nghttp2.getPackage().version.getPatch()) +
         "LL";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (nghttp2.getSettings().TargetOS.Type == OSType::Windows)
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (nghttp2.getSettings().TargetOS.Arch == ArchType::x86_64)
             nghttp2.Variables["ssize_t"] = "int64_t";
         else
             nghttp2.Variables["ssize_t"] = "int";

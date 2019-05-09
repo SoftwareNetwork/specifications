@@ -19,7 +19,7 @@ void build(Solution &s)
         "//#define LIBCHARSET_DLL_EXPORTED");
     libcharset.configureFile(libcharset.SourceDir / "libcharset/include/localcharset.h.build.in", libcharset.BinaryDir / "localcharset.h");
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libcharset.getSettings().TargetOS.Type == OSType::Windows)
     {
         libcharset.Public.Definitions["LIBDIR"] = "\".\"";
         libcharset.Public.Definitions["LOCALEDIR"] = "\"./locale\"";

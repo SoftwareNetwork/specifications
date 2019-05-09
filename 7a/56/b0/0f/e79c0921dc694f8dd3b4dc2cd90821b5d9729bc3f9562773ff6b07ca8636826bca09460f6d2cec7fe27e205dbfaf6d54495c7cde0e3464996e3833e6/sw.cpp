@@ -13,7 +13,7 @@ void build(Solution &s)
             t.Variables["RECVFROM_TYPE_ARG3"] = "int";
         }
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
             t.Variables["RECVFROM_TYPE_ARG1"] = "SOCKET";
         else
             t.Variables["RECVFROM_TYPE_ARG1"] = "int";
@@ -58,7 +58,7 @@ void build(Solution &s)
         if (t.Variables["HAVE_IOCTL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
 
-        if (s.Settings.TargetOS.Type == OSType::Linux)
+        if (t.getSettings().TargetOS.Type == OSType::Linux)
             t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
 
         if (t.Variables["HAVE_IOCTLSOCKET"] && t.Variables["HAVE_FIONBIO"])
@@ -67,7 +67,7 @@ void build(Solution &s)
         if (t.Variables["HAVE_IOCTLSOCKET_CAMEL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_CAMEL_FIONBIO"] = 1;
 
-        if (s.Settings.TargetOS.Type != OSType::Windows)
+        if (t.getSettings().TargetOS.Type != OSType::Windows)
         {
             t.Variables["HAVE_STRUCT_TIMEVAL"] = 1;
             t.Variables["HAVE_BOOL_T"] = 1;
@@ -109,7 +109,7 @@ void build(Solution &s)
     libcurl.Public += "USE_LIBSSH2"_d;
     libcurl.Public += "USE_NGHTTP2"_d;
     libcurl.Public += "USE_OPENSSL"_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libcurl.getSettings().TargetOS.Type != OSType::Windows)
     {
         libcurl.Private += "HAVE_CONFIG_H"_d;
     }
@@ -120,7 +120,7 @@ void build(Solution &s)
     libcurl.Public += "org.sw.demo.libssh2-1"_dep;
     libcurl.Public += "org.sw.demo.madler.zlib-1"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libcurl.getSettings().TargetOS.Type == OSType::Windows)
         libcurl.Public += "Wldap32.lib"_slib;
     else
         libcurl.Public += "lber"_slib, "ldap"_slib;
@@ -131,7 +131,7 @@ void build(Solution &s)
 
     libcurl.Variables["CURL_SIZEOF_LONG"] = libcurl.Variables["SIZEOF_LONG"];
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libcurl.getSettings().TargetOS.Type != OSType::Windows)
         libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
 
     if (libcurl.Variables["SIZEOF_LONG"] == 8)

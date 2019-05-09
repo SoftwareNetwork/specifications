@@ -5,7 +5,7 @@ void build(Solution &s)
 
     libxml2.setChecks("libxml2", true);
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libxml2.getSettings().TargetOS.Type != OSType::Windows)
         libxml2.ExportAllSymbols = true;
 
     libxml2 +=
@@ -74,7 +74,7 @@ void build(Solution &s)
     libxml2.Private += "HAVE_ZLIB_H"_d;
     libxml2.Private += "IN_LIBXML"_d;
     libxml2.Private += "LIBXML_THREAD_ENABLED"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libxml2.getSettings().TargetOS.Type == OSType::Windows)
     {
         libxml2.Private += "WIN32"_d;
         libxml2.Private += "HAVE_WIN32_THREADS"_d;
@@ -84,7 +84,7 @@ void build(Solution &s)
     libxml2.Public += "org.sw.demo.gnu.iconv.libiconv-1"_dep;
     libxml2.Public += "org.sw.demo.madler.zlib-1"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libxml2.getSettings().TargetOS.Type == OSType::Windows)
         libxml2 += "ws2_32.lib"_slib;
 
     libxml2.Variables["VERSION"] = libxml2.getPackage().version.toString();

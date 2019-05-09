@@ -20,7 +20,7 @@ void build(Solution &s)
     expat.Public += sw::Static, "XML_STATIC"_d;
     expat -= sw::Static, "lib/libexpat.def";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (expat.getSettings().TargetOS.Type == OSType::Windows)
         expat += "WIN32"_d;
     else
         expat += "XML_DEV_URANDOM"_d;

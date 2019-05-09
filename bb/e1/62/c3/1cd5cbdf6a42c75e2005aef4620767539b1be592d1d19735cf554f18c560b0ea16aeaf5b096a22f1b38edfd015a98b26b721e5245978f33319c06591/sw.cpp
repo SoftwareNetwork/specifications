@@ -13,7 +13,7 @@ void build(Solution &s)
         "src/.*\\.in"_rr;
 
     libssh2.Public += "LIBSSH2_OPENSSL"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libssh2.getSettings().TargetOS.Type == OSType::Windows)
         libssh2.Public += sw::Shared, "LIBSSH2_WIN32"_d;
 
     if (
@@ -76,8 +76,7 @@ void check(Checker &c)
 int main() {return 0;}
 )sw_xxx");
 
-    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-        s.checkSourceCompiles("HAVE_O_NONBLOCK", R"sw_xxx(
+    s.checkSourceCompiles("HAVE_O_NONBLOCK", R"sw_xxx(
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -101,8 +100,7 @@ int flags = fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 )sw_xxx");
 
-    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-        s.checkSourceCompiles("HAVE_FIONBIO", R"sw_xxx(
+    s.checkSourceCompiles("HAVE_FIONBIO", R"sw_xxx(
 /* FIONBIO test (old-style unix) */
 #include <unistd.h>
 #include <stropts.h>
@@ -113,8 +111,7 @@ int flags = ioctl(socket, FIONBIO, &flags);
 }
 )sw_xxx");
 
-    if (c.solution->Settings.TargetOS.Type == OSType::Windows)
-        s.checkSourceCompiles("HAVE_IOCTLSOCKET", R"sw_xxx(
+    s.checkSourceCompiles("HAVE_IOCTLSOCKET", R"sw_xxx(
 /* ioctlsocket test (Windows) */
 #undef inline
 #ifndef WIN32_LEAN_AND_MEAN
@@ -131,8 +128,7 @@ ioctlsocket(sd, FIONBIO, &flags);
 }
 )sw_xxx");
 
-    if (c.solution->Settings.TargetOS.Type != OSType::Windows)
-        s.checkSourceCompiles("HAVE_IOCTLSOCKET_CASE", R"sw_xxx(
+    s.checkSourceCompiles("HAVE_IOCTLSOCKET_CASE", R"sw_xxx(
 /* IoctlSocket test (Amiga?) */
 #include <sys/ioctl.h>
 int main()
@@ -152,5 +148,4 @@ int socket;
 int flags = setsockopt(socket, SOL_SOCKET, SO_NONBLOCK, &b, sizeof(b));
 }
 )sw_xxx");
-
 }

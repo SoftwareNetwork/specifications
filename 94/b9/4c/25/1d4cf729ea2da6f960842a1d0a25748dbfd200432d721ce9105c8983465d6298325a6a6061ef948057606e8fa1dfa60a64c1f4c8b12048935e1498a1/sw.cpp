@@ -43,19 +43,19 @@ void build(Solution &s)
     crypto.Private += "OPENSSL_NO_DYNAMIC_ENGINE"_d;
     crypto.Private += "OPENSSL_RAND_SEED_OS"_d;
     crypto.Public += "OPENSSL_NO_ASM"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (crypto.getSettings().TargetOS.Type == OSType::Windows)
     {
         crypto.Private += "DSO_WIN32"_d;
         crypto.Public += "Crypt32.lib"_slib;
         crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
     }
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (crypto.getSettings().TargetOS.Type == OSType::Windows)
     {
         crypto.Public += "ws2_32.lib"_slib, "advapi32.lib"_slib, "User32.lib"_slib;
     }
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (crypto.getSettings().TargetOS.Type == OSType::Windows)
     {
         crypto.Public.Definitions["OPENSSLDIR"] = "\"C:/Program Files/Common Files/SSL/\"";
         crypto.Public.Definitions["ENGINESDIR"] = "\"C:/Program Files/OpenSSL/lib/engines/\"";
@@ -86,7 +86,7 @@ void build(Solution &s)
 
         "engines/e_chil.c";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (crypto.getSettings().TargetOS.Type == OSType::Windows)
     {
         crypto -= "crypto/poly1305/poly1305_ieee754.c";
     }
@@ -96,18 +96,18 @@ void build(Solution &s)
     crypto -= "crypto/engine/eng_devcrypto.c";
 
     crypto.Variables["OPENSSL_SYS"] = "UNIX";
-    if (s.Settings.TargetOS.Type == OSType::Linux)
+    if (crypto.getSettings().TargetOS.Type == OSType::Linux)
         crypto.Variables["OPENSSL_SYS"] = "LINUX";
-    else if (s.Settings.TargetOS.Type == OSType::Cygwin)
+    else if (crypto.getSettings().TargetOS.Type == OSType::Cygwin)
         crypto.Variables["OPENSSL_SYS"] = "CYGWIN";
-    else if (s.Settings.TargetOS.Type == OSType::Windows)
+    else if (crypto.getSettings().TargetOS.Type == OSType::Windows)
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (crypto.getSettings().TargetOS.Arch == ArchType::x86_64)
             crypto.Variables["OPENSSL_SYS"] = "WIN64A";
         else
             crypto.Variables["OPENSSL_SYS"] = "WIN32";
     }
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
+    else if (crypto.getSettings().TargetOS.Type == OSType::Macos)
         crypto.Variables["OPENSSL_SYS"] = "MACOSX";
 
     /*
@@ -119,7 +119,7 @@ void build(Solution &s)
     endif()
     endif()*/
 
-    if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+    if (crypto.getSettings().TargetOS.Arch == ArchType::x86_64)
     {
         crypto.Variables["SIXTY_FOUR_BIT"] = "define";
         crypto.Variables["THIRTY_TWO_BIT"] = "undef";
@@ -130,9 +130,9 @@ void build(Solution &s)
         crypto.Variables["THIRTY_TWO_BIT"] = "define";
     }
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (crypto.getSettings().TargetOS.Type == OSType::Windows)
         crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dll";
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
+    else if (crypto.getSettings().TargetOS.Type == OSType::Macos)
         crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dylib";
     else
         crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".so";

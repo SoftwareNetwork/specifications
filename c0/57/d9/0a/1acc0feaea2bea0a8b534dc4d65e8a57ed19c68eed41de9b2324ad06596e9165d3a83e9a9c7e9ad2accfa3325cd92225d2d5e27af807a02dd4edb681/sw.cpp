@@ -47,7 +47,7 @@ void build(Solution &s)
     libarchive.Public += "HAVE_ZLIB_H"_d;
     libarchive.Public += "HAVE_ZSTD_H"_d;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
         libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
 
     libarchive.Public += "org.sw.demo.bzip2-1"_dep;
@@ -65,13 +65,13 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_DEV_T"])
     {
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (libarchive.getCompilerType() == CompilerType::MSVC)
             libarchive.Variables["dev_t"] = "unsigned int";
     }
 
     if (!libarchive.Variables["HAVE_GID_T"])
     {
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
             libarchive.Variables["gid_t"] = "short";
         else
             libarchive.Variables["gid_t"] = "unsigned int";
@@ -79,7 +79,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_ID_T"])
     {
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
             libarchive.Variables["id_t"] = "short";
         else
             libarchive.Variables["id_t"] = "unsigned int";
@@ -87,7 +87,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_UID_T"])
     {
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
             libarchive.Variables["uid_t"] = "short";
         else
             libarchive.Variables["uid_t"] = "unsigned int";
@@ -95,7 +95,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_MODE_T"])
     {
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
             libarchive.Variables["mode_t"] = "unsigned short";
         else
             libarchive.Variables["mode_t"] = "int";
@@ -108,7 +108,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_SIZE_T"])
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (libarchive.getSettings().TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["size_t"] = "uint64_t";
         else
             libarchive.Variables["size_t"] = "uint32_t";
@@ -116,7 +116,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_SSIZE_T"])
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (libarchive.getSettings().TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["ssize_t"] = "int64_t";
         else
             libarchive.Variables["ssize_t"] = "long";
@@ -124,7 +124,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_PID_T"])
     {
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
             libarchive.Variables["pid_t"] = "int";
         else
             libarchive.Variables["pid_t"] = "pid_t";
@@ -132,7 +132,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_INTPTR_T"])
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (libarchive.getSettings().TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["intptr_t"] = "int64_t";
         else
             libarchive.Variables["intptr_t"] = "int32_t";
@@ -140,7 +140,7 @@ void build(Solution &s)
 
     if (!libarchive.Variables["HAVE_UINTPTR_T"])
     {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+        if (libarchive.getSettings().TargetOS.Arch == ArchType::x86_64)
             libarchive.Variables["intptr_t"] = "uint64_t";
         else
             libarchive.Variables["intptr_t"] = "uint32_t";
@@ -151,12 +151,12 @@ void build(Solution &s)
         libarchive.Variables["HAVE_WCHAR_T"] = 1;
     }
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libarchive.getSettings().TargetOS.Type == OSType::Windows)
         libarchive.Variables["HAVE_WINCRYPT_H"] = 1;
 
     // TODO: add 'or cygwin'
     // IF(NOT WIN32 OR CYGWIN)
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libarchive.getSettings().TargetOS.Type != OSType::Windows)
     {
         libarchive -=
             "libarchive/archive_entry_copy_bhfi.c",
@@ -168,7 +168,7 @@ void build(Solution &s)
     }
 
     // if (UNIX)
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libarchive.getSettings().TargetOS.Type != OSType::Windows)
     {
         // TODO:
         /*

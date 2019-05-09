@@ -14,7 +14,7 @@ void build(Solution &s)
     turf.Variables["TURF_ENABLE_CPP11"] = "1";
     turf.Variables["TURF_WITH_BOOST"] = "FALSE";
     turf.Variables["TURF_WITH_EXCEPTIONS"] = "FALSE";
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (turf.getCompilerType() == CompilerType::MSVC)
         turf.Variables["TURF_WITH_SECURE_COMPILER"] = "FALSE";
     turf.Variables["TURF_REPLACE_OPERATOR_NEW"] = "FALSE";
 

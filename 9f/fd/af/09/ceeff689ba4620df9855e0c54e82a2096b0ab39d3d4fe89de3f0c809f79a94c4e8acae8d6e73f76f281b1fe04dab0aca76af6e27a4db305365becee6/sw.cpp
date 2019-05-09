@@ -30,7 +30,7 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     {
         if (!grpc_cpp_plugin->target)
             throw std::runtime_error("Command dependency target was not resolved: " + grpc_cpp_plugin->getPackage().toString());
-        auto p = ((NativeTarget*)grpc_cpp_plugin->target)->getOutputFile();
+        auto p = ((NativeExecutedTarget*)grpc_cpp_plugin->target)->getOutputFile();
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     });
@@ -78,7 +78,7 @@ void build(Solution &s)
 
     auto &gpr_codegen = p.addTarget<StaticLibraryTarget>("gpr_codegen");
     setup_grpc(gpr_codegen);
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (gpr_codegen.getSettings().TargetOS.Type == OSType::Windows)
         gpr_codegen.Public += "_WIN32_WINNT=0x0600"_d;
 
     auto &gpr_base = p.addTarget<StaticLibraryTarget>("gpr_base");
