@@ -15,7 +15,7 @@ void build(Solution &s)
     libharu.Public +=
         "include"_id;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libharu.getSettings().TargetOS.Type == OSType::Windows)
     {
         libharu.Private += sw::Shared, "HPDF_DLL_MAKE_CDECL"_d;
         libharu.Interface += sw::Shared, "HPDF_DLL_CDECL"_d;

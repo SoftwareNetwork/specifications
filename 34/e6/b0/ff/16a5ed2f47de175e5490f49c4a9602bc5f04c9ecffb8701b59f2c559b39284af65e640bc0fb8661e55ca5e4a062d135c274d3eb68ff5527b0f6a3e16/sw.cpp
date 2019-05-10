@@ -27,7 +27,7 @@ void build(Solution &s)
     fontconfig.Public += "HAVE_FT_SELECT_SIZE=1"_d;
     fontconfig += "FC_GPERF_SIZE_T=size_t"_d;
     fontconfig += "FC_TEMPLATEDIR=\"fontconfig/conf.avail\""_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (fontconfig.getSettings().TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "FC_CACHEDIR=\"LOCAL_APPDATA_FONTCONFIG_CACHE\""_d;
         fontconfig.Public += "FC_DEFAULT_FONTS=\"WINDOWSFONTDIR\""_d;
@@ -49,7 +49,7 @@ void build(Solution &s)
         //auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
         auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
-        auto cc = std::static_pointer_cast<Compiler>(s.findProgramByExtension(".cpp")->clone());
+        auto cc = std::static_pointer_cast<Compiler>(fontconfig.findProgramByExtension(".cpp")->clone());
         auto c = cc->getCommand(fontconfig);
         c->args.push_back("-I");
         c->args.push_back(fontconfig.SourceDir.u8string());
@@ -96,7 +96,7 @@ void build(Solution &s)
 
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define  FcPublic extern SW_FONTCONFIG_LIBRARY_API");
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (fontconfig.getSettings().TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 

@@ -26,17 +26,17 @@ void build(Solution &s)
     magick.Public += "HasWEBP"_d;
     magick.Public += "QuantumDepth=16"_d;
     magick.Public += "_MAGICKLIB_"_d;
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (magick.getCompilerType() == CompilerType::MSVC)
     {
         magick.Private += "restrict=__restrict"_d;
     }
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (magick.getSettings().TargetOS.Type != OSType::Windows)
     {
         magick.Public += "HAVE_PREAD=1"_d;
         magick.Public += "HAVE_PTHREAD"_d;
         magick.Public += "HAVE_PWRITE=1"_d;
     }
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (magick.getSettings().TargetOS.Type == OSType::Windows)
     {
         magick.Public += "HAVE_CRYPTGENRANDOM"_d;
         magick.Public += "HAVE_WINCRYPT_H"_d;

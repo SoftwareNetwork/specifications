@@ -1,7 +1,6 @@
-void build(Solution &sln)
+void build(Solution &s)
 {
-    auto &s = sln.addDirectory("gnome");
-    auto &p = s.addProject("pango", "1.43.0");
+    auto &p = s.addProject("gnome.pango", "1.43.0");
     p += RemoteFile("https://ftp.gnome.org/pub/GNOME/sources/pango/{M}.{m}/pango-{v}.tar.xz");
 
     auto &pango = p.addTarget<LibraryTarget>("pango");
@@ -44,11 +43,11 @@ void build(Solution &sln)
             pango.Variables["PACKAGE_VERSION_PATCH_NUM"].toString();
         pango.Public += "PANGO_ENABLE_BACKEND=1"_d;
         pango.Public += "PANGO_ENABLE_ENGINE=1"_d;
-        if (sln.Settings.TargetOS.Type != OSType::Windows)
+        if (pango.getSettings().TargetOS.Type != OSType::Windows)
         {
             pango.Private += "SYSCONFDIR=\"/usr/local/etc\""_d;
         }
-        if (sln.Settings.TargetOS.Type == OSType::Windows)
+        if (pango.getSettings().TargetOS.Type == OSType::Windows)
         {
             pango.Private += "SYSCONFDIR=\"./pango\""_d;
             pango.Public += "HAVE_CAIRO_WIN32"_d;
@@ -154,7 +153,7 @@ void build(Solution &sln)
         pangocairo.Public += "org.sw.demo.cairographics.cairo-1"_dep;
         pangocairo.Public += pangoft2;
 
-        if (sln.Settings.TargetOS.Type == OSType::Windows)
+        if (pangocairo.getSettings().TargetOS.Type == OSType::Windows)
         {
             pangocairo -=
                 "pango/pangocoretext.*"_rr,

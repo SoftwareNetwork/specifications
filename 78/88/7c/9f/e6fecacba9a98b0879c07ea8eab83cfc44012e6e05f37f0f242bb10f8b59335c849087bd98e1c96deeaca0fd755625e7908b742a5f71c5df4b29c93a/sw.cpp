@@ -20,7 +20,7 @@ void build(Solution &s)
         "src/x86"_id;
 
     libffi.Private += "FFI_HIDDEN="_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libffi.getSettings().TargetOS.Type == OSType::Windows)
     {
         libffi.Private += "HAVE_FASTCALL=0"_d;
     }
@@ -48,8 +48,8 @@ void build(Solution &s)
     libffi += "src/.*\\.c"_r;
     libffi -= "src/dlmalloc.c";
 
-    auto have64bit = s.Settings.TargetOS.Arch == ArchType::x86_64;
-    if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+    auto have64bit = libffi.getSettings().TargetOS.Arch == ArchType::x86_64;
+    if (libffi.getSettings().TargetOS.Arch == ArchType::x86_64)
     {
         libffi.Variables["HAVE_64BIT"] = "1";
         libffi.Variables["HAVE_AS_X86_64_UNWIND_SECTION_TYPE"] = "1";
@@ -63,14 +63,14 @@ void build(Solution &s)
     //libffi.Variables["HAVE_LONG_DOUBLE_VARIANT"] = 1;
 
     Files Asm;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (libffi.getSettings().TargetOS.Type == OSType::Windows)
     {
         libffi.pushFrontToFileOnce("src/closures.c", "#include <windows.h>");
         libffi.Variables["FFI_CLOSURES"] = "1";
         libffi.Variables["SYMBOL_UNDERSCORE"] = "1";
         libffi += "src/x86/ffi.c";
     }
-    else if (s.Settings.TargetOS.Type == OSType::Cygwin)
+    else if (libffi.getSettings().TargetOS.Type == OSType::Cygwin)
     {
         libffi.Variables["FFI_CLOSURES"] = "1";
         libffi.Variables["SYMBOL_UNDERSCORE"] = "1";
@@ -86,7 +86,7 @@ void build(Solution &s)
             Asm.insert("src/x86/win32.S");
         }
     }
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
+    else if (libffi.getSettings().TargetOS.Type == OSType::Macos)
     {
         libffi.Variables["TARGET"] = "X86_DARWIN";
         libffi.Variables["FFI_CLOSURES"] = "1";
@@ -114,7 +114,7 @@ void build(Solution &s)
         }
     }
 
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (libffi.getCompilerType() == CompilerType::MSVC)
     {
         if (have64bit)
         {
@@ -131,47 +131,49 @@ void build(Solution &s)
     //libffi.replaceInFileOnce("include/ffi.h.in", "#define LIBFFI_H", "#define LIBFFI_H\n#include <stdint.h>");
     //libffi.configureFile("include/ffi.h.in", "ffi.h");
 
-    if (!s.PostponeFileResolving)
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
-        {
-            const auto f = "win"s + (have64bit ? "64" : "32");
-            {
-                auto p = s.findProgramByExtension(".c");
-                if (!p)
-                    throw std::runtime_error("No c compiler found");
-                auto ch = std::static_pointer_cast<Compiler>(p->clone());
-                libffi.Storage.push_back(ch);
-                auto c = ch->as<VisualStudioCompiler>();
-                c->IncludeDirectories.insert(libffi.BinaryDir);
-                c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
-                c->IncludeDirectories.insert(libffi.SourceDir / "src");
-                c->IncludeDirectories.insert(libffi.SourceDir / "include");
-                c->PreprocessToStdout = true; // supress #line directives
-                c->PreprocessToFile = true;
-                c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
-                auto cmd = c->getCommand(libffi);
-                cmd->working_directory = libffi.BinaryDir;
-                cmd->addOutput(libffi.BinaryDir / (f + ".i"));
-                libffi.registerCommand(*cmd);
-            }
+    if (s.PostponeFileResolving)
+        return;
 
-            {
-                auto p = s.findProgramByExtension(".asm");
-                if (!p)
-                    throw std::runtime_error("No asm compiler found");
-                auto ch = std::static_pointer_cast<Compiler>(p->clone());
-                libffi.Storage.push_back(ch);
-                auto c = ch->as<VisualStudioASMCompiler>();
-                c->PreserveSymbolCase = true;
-                c->SafeSEH = true;
-                const auto o = libffi.BinaryDir / "pre.obj";
-                c->Output = o;
-                c->InputFile = libffi.BinaryDir / (f + ".i");
-                auto cmd = c->getCommand(libffi);
-                cmd->addOutput(o);
-                libffi += o;
-            }
+    if (libffi.getCompilerType() == CompilerType::MSVC)
+    {
+        const auto f = "win"s + (have64bit ? "64" : "32");
+        {
+            auto p = libffi.findProgramByExtension(".c");
+            if (!p)
+                throw std::runtime_error("No c compiler found");
+            auto ch = std::static_pointer_cast<Compiler>(p->clone());
+            libffi.Storage.push_back(ch);
+            auto c = ch->as<VisualStudioCompiler>();
+            c->IncludeDirectories.insert(libffi.BinaryDir);
+            c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
+            c->IncludeDirectories.insert(libffi.SourceDir / "src");
+            c->IncludeDirectories.insert(libffi.SourceDir / "include");
+            c->PreprocessToStdout = true; // supress #line directives
+            c->PreprocessToFile = true;
+            c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
+            auto cmd = c->getCommand(libffi);
+            cmd->working_directory = libffi.BinaryDir;
+            cmd->addOutput(libffi.BinaryDir / (f + ".i"));
+            libffi.registerCommand(*cmd);
         }
+
+        {
+            auto p = libffi.findProgramByExtension(".asm");
+            if (!p)
+                throw std::runtime_error("No asm compiler found");
+            auto ch = std::static_pointer_cast<Compiler>(p->clone());
+            libffi.Storage.push_back(ch);
+            auto c = ch->as<VisualStudioASMCompiler>();
+            c->PreserveSymbolCase = true;
+            c->SafeSEH = true;
+            const auto o = libffi.BinaryDir / "pre.obj";
+            c->Output = o;
+            c->InputFile = libffi.BinaryDir / (f + ".i");
+            auto cmd = c->getCommand(libffi);
+            cmd->addOutput(o);
+            libffi += o;
+        }
+    }
 }
 
 void check(Checker &c)

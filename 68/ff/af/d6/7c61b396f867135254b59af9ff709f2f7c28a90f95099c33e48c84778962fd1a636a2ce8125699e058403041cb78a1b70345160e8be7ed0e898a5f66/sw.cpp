@@ -29,11 +29,11 @@ void build(Solution &s)
     if (pixman.Variables["USE_MIPS_DSPR2"] == 1)
         pixman += "pixman/pixman-mips-dspr2.c";
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (pixman.getSettings().TargetOS.Type != OSType::Windows)
         pixman.Public += "HAVE_PTHREADS"_d;
 
-    if (s.Settings.Native.CompilerType == CompilerType::Clang ||
-        s.Settings.Native.CompilerType == CompilerType::GNU)
+    if (pixman.getCompilerType() == CompilerType::Clang ||
+        pixman.getCompilerType() == CompilerType::GNU)
     {
         pixman["pixman/pixman-ssse3.c"].args.push_back("-mssse3");
     }

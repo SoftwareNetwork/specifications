@@ -11,16 +11,16 @@ void build(Solution &s)
             "include/.*"_rr,
             "source/.*"_rr;
 
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (t.getCompilerType() == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+        //else if (t.getSettings().Native.CompilerType == CompilerType::GNU)
         //t.CompileOptions.push_back("-Wa,-mbig-obj");
 
         Definition d;
         d.d = "AWS_" + boost::to_upper_copy(name) + "_EXPORTS";
         t.Private += sw::Shared, d;
         t.Public += sw::Shared, "USE_IMPORT_EXPORT"_d;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
         {
             t.Public += "USE_WINDOWS_DLL_SEMANTICS"_d;
             t.Public += "WIN32"_d;
@@ -51,7 +51,7 @@ void build(Solution &s)
         d.d = "AWS_SDK_VERSION_STRING="s + core.Variables["PACKAGE_VERSION"].toString();
         core += d;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (core.getSettings().TargetOS.Type == OSType::Windows)
         {
             core.Public += "Version.lib"_lib;
             core.Public += "bcrypt.lib"_lib;
@@ -71,7 +71,7 @@ void build(Solution &s)
         core += "org.sw.demo.openssl.ssl-*.*.*.*"_dep;
         core.Public += "org.sw.demo.amazon.awslabs.c_event_stream-master"_dep;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (core.getSettings().TargetOS.Type == OSType::Windows)
         {
             core += ".*/windows/.*"_rr;
             core -= "source/http/windows/IXmlHttpRequest2HttpClient.cpp";

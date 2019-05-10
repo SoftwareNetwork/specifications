@@ -2,7 +2,7 @@ struct SedExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getSolution()->Settings.TargetOS.Type != OSType::Windows)
+        if (getSettings().TargetOS.Type != OSType::Windows)
         {
             c.program = "sed";
             return;
@@ -298,7 +298,7 @@ void * memrchr (const void *, int, size_t);
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "sys/time.h", "#include <time.h>\n#include <windows.h>");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
         {
             gnulib.writeFileOnce(gnulib.BinaryDir / "alloca.h");
             gnulib.writeFileOnce(gnulib.BinaryDir / "unistd.h");
@@ -308,7 +308,7 @@ void * memrchr (const void *, int, size_t);
         }
     }
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (s.getSettings().TargetOS.Type != OSType::Windows)
     {
         sed.addTarget<SedExecutable>("sed");
         return;
@@ -331,7 +331,7 @@ void * memrchr (const void *, int, size_t);
         sed.Public += "org.sw.demo.gnu.gettext.intl-0"_dep;
         sed.Public -= "org.sw.demo.kimgr.getopt_port-master"_dep;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (sed.getSettings().TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
         if (auto L = sed.Linker->as<VisualStudioLinker>(); L)

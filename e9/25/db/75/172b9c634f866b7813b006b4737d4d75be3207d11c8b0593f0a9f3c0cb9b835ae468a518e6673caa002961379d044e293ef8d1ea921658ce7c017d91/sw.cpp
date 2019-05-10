@@ -44,7 +44,7 @@ void build(Solution &s)
 
 )");
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (freetype.getSettings().TargetOS.Type != OSType::Windows)
     {
         const auto cfg = freetype.SourceDir / "builds/unix/ftconfig.in";
         if (freetype.Variables["HAVE_UNISTD_H"] == 1)
@@ -67,7 +67,7 @@ void build(Solution &s)
     freetype.replaceInFileOnce(ftoption, "/\\* +(#define +FT_CONFIG_OPTION_USE_PNG) +\\*/", "\\1");
     freetype.configureFile(ftoption, "include/freetype/config/ftoption.h");
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (freetype.getSettings().TargetOS.Type == OSType::Windows)
         freetype += "builds/windows/ftdebug.c";
 
     freetype += "src/autofit/autofit.c",

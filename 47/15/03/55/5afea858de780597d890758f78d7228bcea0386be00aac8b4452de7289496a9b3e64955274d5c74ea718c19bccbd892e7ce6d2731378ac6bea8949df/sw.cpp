@@ -2,7 +2,7 @@ struct GawkExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getSolution()->Settings.TargetOS.Type != OSType::Windows)
+        if (getSettings().TargetOS.Type != OSType::Windows)
         {
             c.program = "gawk";
             return;
@@ -28,7 +28,7 @@ void build(Solution &s)
         getopt.Public += "org.sw.demo.gnu.gettext.intl-*"_dep;
     }
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (gawk.getSettings().TargetOS.Type != OSType::Windows)
     {
         gawk.addTarget<GawkExecutable>("gawk");
         return;
@@ -65,7 +65,7 @@ void build(Solution &s)
 
         gawk += "__USE_GNU"_def;
         gawk += "HAVE_SETENV"_def;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gawk.getSettings().TargetOS.Type == OSType::Windows)
             gawk += "HAVE_USLEEP"_def;
 
         gawk.Private += "DEFLIBPATH=\"\""_d;
@@ -76,7 +76,7 @@ void build(Solution &s)
         gawk.Private += "HAVE_SOCKADDR_STORAGE"_d;
         gawk.Private += "HAVE_SOCKETS"_d;
         gawk.Private += Definition{ "VERSION=\"" + gawk.Variables["PACKAGE_VERSION"].toString() + "\"" };
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gawk.getSettings().TargetOS.Type == OSType::Windows)
         {
             gawk.Private += "HAVE_POPEN_H=1"_d;
             gawk.Private += "P_WAIT=0"_d;
@@ -123,7 +123,7 @@ inline int __CRTDECL mbsinit(
 
         gawk.replaceInFileOnce("pc/popen.c", "#include <stdio.h>", "#define _CRT_DECLARE_NONSTDC_NAMES 1\n#include <stdio.h>");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gawk.getSettings().TargetOS.Type == OSType::Windows)
         {
             gawk.writeFileOnce(gawk.BinaryPrivateDir / "unistd.h");
             gawk.pushFrontToFileOnce("pc/getid.c", "#define __MINGW32__ 1");
