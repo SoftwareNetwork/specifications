@@ -1,3 +1,5 @@
+#pragma sw require pub.egorpugin.primitives.filesystem-master
+
 static int wt_preprocess_file(path i, path o, String name)
 {
     auto preprocess_file = [](const String &s)
@@ -33,10 +35,9 @@ static int wt_preprocess_file(path i, path o, String name)
 
 SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(wt_preprocess_file, wt_preprocess_file)
 
-void build(Solution &sln)
+void build(Solution &s)
 {
-    auto &s = sln.addDirectory("emweb");
-    auto &p = s.addProject("wt", "4.0.5");
+    auto &p = s.addProject("emweb.wt", "4.0.5");
     p += Git("https://github.com/emweb/wt", "{v}");
     auto &wt = p.addTarget<LibraryTarget>("wt");
 
@@ -89,7 +90,7 @@ void build(Solution &sln)
     wt.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
     wt.Public += "org.sw.demo.howardhinnant.date.date_full-2"_dep;
 
-    if (sln.Settings.TargetOS.Type == OSType::Windows)
+    if (wt.getSettings().TargetOS.Type == OSType::Windows)
         wt.Public += "Ole32.lib"_lib, "Shell32.lib"_lib;
 
     auto file2string = [&wt](path i, const std::string &name)
@@ -109,7 +110,7 @@ void build(Solution &sln)
     file2string("src/web/skeleton/Hybrid.html", "Hybrid_html");
     file2string("src/web/skeleton/Boot.html", "Boot_html");
 
-    if (sln.Settings.Native.ConfigurationType == ConfigurationType::Debug)
+    if (wt.getSettings().Native.ConfigurationType == ConfigurationType::Debug)
     {
         file2string("src/web/skeleton/Wt.js", "Wt_js");
         file2string("src/web/skeleton/Boot.js", "Boot_js");
@@ -147,7 +148,7 @@ void build(Solution &sln)
     wt.Variables["VERSION_MINOR"] = wt.Variables["PACKAGE_VERSION_PATCH"];
 
     std::string cfg = ".";
-    if (sln.Settings.TargetOS.Type != OSType::Windows)
+    if (wt.getSettings().TargetOS.Type != OSType::Windows)
         cfg = "/etc/wt";
 
     wt.Variables["CONFIGURATION"] = cfg + "/wt_config.xml";

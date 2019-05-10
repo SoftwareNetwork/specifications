@@ -7,7 +7,7 @@
 namespace flex_bison
 {
 
-static bool need_build(Solution &s)
+static bool need_build(const Solution &s)
 {
     return
         // s.Settings.Native.CompilerType != CompilerType::GNU
