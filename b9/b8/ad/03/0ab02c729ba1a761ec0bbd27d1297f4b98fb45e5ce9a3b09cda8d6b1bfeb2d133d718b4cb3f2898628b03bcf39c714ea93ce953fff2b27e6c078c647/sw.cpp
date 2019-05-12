@@ -38,6 +38,7 @@ void build(Solution &s)
             "Modules/_blake2/.*\\.h"_rr,
             "Modules/_codecsmodule.c",
             "Modules/_collectionsmodule.c",
+            "Modules/_contextvarsmodule.c",
             "Modules/_csv.c",
             "Modules/_datetimemodule.c",
             "Modules/_functoolsmodule.c",
