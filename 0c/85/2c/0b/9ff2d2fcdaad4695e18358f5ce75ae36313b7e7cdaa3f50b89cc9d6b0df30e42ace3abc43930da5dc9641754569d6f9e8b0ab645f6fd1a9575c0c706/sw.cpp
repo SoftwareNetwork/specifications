@@ -1,7 +1,27 @@
+#pragma optimize("", off)
 void build(Solution &s)
 {
+    auto add_deps = [](auto &t)
+    {
+        t += "HAVE_LIBGIF"_d;
+        t += "HAVE_LIBJP2K"_d;
+        t += "HAVE_LIBJPEG"_d;
+        t += "HAVE_LIBPNG"_d;
+        t += "HAVE_LIBTIFF"_d;
+        t += "HAVE_LIBWEBP"_d;
+        t += "HAVE_LIBWEBP_ANIM"_d;
+        t += "HAVE_LIBZ"_d;
+
+        t += "org.sw.demo.gif-5"_dep;
+        t += "org.sw.demo.jpeg-9"_dep;
+        t += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
+        t += "org.sw.demo.glennrp.png-1"_dep;
+        t += "org.sw.demo.tiff-4"_dep;
+        t += "org.sw.demo.webmproject.webp"_dep;
+    };
+
     auto &leptonica = s.addTarget<LibraryTarget>("danbloomberg.leptonica", "master");
-    leptonica += Git("https://github.com/DanBloomberg/leptonica", "", "{v}");
+    leptonica += Git("https://github.com/DanBloomberg/leptonica");
 
     {
         leptonica.setChecks("leptonica");
@@ -14,24 +34,12 @@ void build(Solution &s)
         leptonica.Public +=
             "src"_id;
 
-        leptonica.Private += "HAVE_LIBGIF"_d;
-        leptonica.Private += "HAVE_LIBJP2K"_d;
-        leptonica.Private += "HAVE_LIBJPEG"_d;
-        leptonica.Private += "HAVE_LIBPNG"_d;
-        leptonica.Private += "HAVE_LIBTIFF"_d;
-        leptonica.Private += "HAVE_LIBWEBP"_d;
-        leptonica.Private += "HAVE_LIBZ"_d;
-        leptonica.Private += "LIBJP2K_HEADER=\"openjpeg.h\""_d;
-        leptonica.Public += "HAVE_CONFIG_H"_d;
-        leptonica.Private += sw::Shared, "LIBLEPT_EXPORTS"_d;
-        leptonica.Interface += sw::Shared, "LIBLEPT_IMPORTS"_d;
+        add_deps(leptonica);
 
-        leptonica += "org.sw.demo.gif-5"_dep;
-        leptonica += "org.sw.demo.jpeg-9"_dep;
-        leptonica += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
-        leptonica += "org.sw.demo.glennrp.png-1"_dep;
-        leptonica += "org.sw.demo.tiff-4"_dep;
-        leptonica += "org.sw.demo.webmproject.webp-*"_dep;
+        leptonica += "LIBJP2K_HEADER=\"openjpeg.h\""_d;
+        leptonica.Public += "HAVE_CONFIG_H"_d;
+        leptonica += sw::Shared, "LIBLEPT_EXPORTS"_d;
+        leptonica.Interface += sw::Shared, "LIBLEPT_IMPORTS"_d;
 
         if (leptonica.Variables["WORDS_BIGENDIAN"] == 1)
             leptonica.Variables["ENDIANNESS"] = "L_BIG_ENDIAN";
@@ -43,13 +51,13 @@ void build(Solution &s)
         leptonica.configureFile("src/endianness.h.in", "endianness.h");
         leptonica.writeFileOnce("config_auto.h");
 
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (leptonica.getCompilerType() == CompilerType::MSVC)
         {
             for (auto *f : leptonica.gatherSourceFiles())
                 f->BuildAs = NativeSourceFile::CPP;
         }
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (leptonica.getSettings().TargetOS.Type == OSType::Windows)
             leptonica += "User32.lib"_l, "Gdi32.lib"_l;
     }
 
@@ -58,17 +66,18 @@ void build(Solution &s)
         progs.Scope = TargetScope::Test;
 
     {
-        auto add_prog = [&s, &progs, &leptonica](const String &name, const Files &files) -> decltype(auto)
+        auto add_prog = [&s, &progs, &leptonica, &add_deps](const String &name, const Files &files) -> decltype(auto)
         {
             auto &t = progs.addExecutable(name);
             t.setRootDirectory("prog");
             t += files;
             t += leptonica;
-            if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+            if (leptonica.getCompilerType() == CompilerType::MSVC)
             {
                 for (auto *f : t.gatherSourceFiles())
                     f->BuildAs = NativeSourceFile::CPP;
             }
+            add_deps(t);
             return t;
         };
 
@@ -211,6 +220,7 @@ void build(Solution &s)
             {"warper_reg", {"warper_reg.c"}},
             {"watershed_reg", {"watershed_reg.c"}},
             {"webpio_reg", {"webpio_reg.c"}},
+            {"webpanimio_reg", {"webpanimio_reg.c"}},
             {"wordboxes_reg", {"wordboxes_reg.c"}},
             {"writetext_reg", {"writetext_reg.c"}},
             {"xformbox_reg", {"xformbox_reg.c"}},
@@ -276,6 +286,7 @@ void build(Solution &s)
             {"histotest", {"histotest.c"}},
             {"histoduptest", {"histoduptest.c"}},
             {"htmlviewer", {"htmlviewer.c"}},
+            {"imagetops", {"imagetops.c"}},
             {"jbcorrelation", {"jbcorrelation.c"}},
             {"jbrankhaus", {"jbrankhaus.c"}},
             {"jbwords", {"jbwords.c"}},
@@ -298,6 +309,7 @@ void build(Solution &s)
             {"otsutest2", {"otsutest2.c"}},
             {"pagesegtest1", {"pagesegtest1.c"}},
             {"pagesegtest2", {"pagesegtest2.c"}},
+            {"partifytest", {"partifytest.c"}},
             {"partitiontest", {"partitiontest.c"}},
             {"pdfiotest", {"pdfiotest.c"}},
             {"percolatetest", {"percolatetest.c"}},
@@ -322,6 +334,7 @@ void build(Solution &s)
             {"reducetest", {"reducetest.c"}},
             {"removecmap", {"removecmap.c"}},
             {"renderfonts", {"renderfonts.c"}},
+            {"replacebytes", {"replacebytes.c"}},
             {"rotatefastalt", {"rotatefastalt.c"}},
             {"rotateorthtest1", {"rotateorthtest1.c"}},
             {"rotateorth_reg", {"rotateorth_reg.c"}},
@@ -353,6 +366,7 @@ void build(Solution &s)
             add_prog(p, files);
     }
 }
+#pragma optimize("", on)
 
 void check(Checker &c)
 {

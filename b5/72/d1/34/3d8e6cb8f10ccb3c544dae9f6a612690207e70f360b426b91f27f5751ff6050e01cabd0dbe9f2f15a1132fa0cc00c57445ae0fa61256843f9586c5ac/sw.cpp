@@ -48,6 +48,7 @@ void build(Solution &s)
 
     auto &gen_unicode_version = gen.addTarget<ExecutableTarget>("unicode_version");
     gen_unicode_version += "gen.tab/gen-unicode-version.c";
+    gen_unicode_version += "gen.tab/packtab.h";
     set_defs(gen_unicode_version);
     auto d = gen_unicode_version + fribidi;
     d->IncludeDirectoriesOnly = true;

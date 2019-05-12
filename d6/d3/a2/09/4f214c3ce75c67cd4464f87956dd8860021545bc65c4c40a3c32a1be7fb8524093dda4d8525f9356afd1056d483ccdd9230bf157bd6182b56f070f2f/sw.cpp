@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &gif = s.addTarget<LibraryTarget>("gif", "5.1.7");
+    auto &gif = s.addTarget<LibraryTarget>("gif", "5.1.9");
     gif += RemoteFile("https://datapacket.dl.sourceforge.net/project/giflib/giflib-{v}.tar.gz");
 
     gif.ExportAllSymbols = true;

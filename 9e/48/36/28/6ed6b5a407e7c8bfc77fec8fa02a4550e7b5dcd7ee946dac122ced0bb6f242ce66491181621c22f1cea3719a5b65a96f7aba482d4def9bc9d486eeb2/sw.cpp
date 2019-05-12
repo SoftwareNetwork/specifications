@@ -68,7 +68,7 @@ void build(Solution &s)
     tiff.Public += "org.sw.demo.madler.zlib-1"_dep;
     tiff.Public += "org.sw.demo.mgk25.jbig.jbig-2"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (tiff.getSettings().TargetOS.Type == OSType::Windows)
         tiff -= "libtiff/tif_unix.c";
     else
         tiff -= "libtiff/tif_win32.c";
@@ -126,9 +126,9 @@ void build(Solution &s)
         tiff.Variables["TIFF_INT64_T"] = "signed long long";
         tiff.Variables["TIFF_INT64_FORMAT"] = "%lld";
         /*
-            if (MINGW)
-                set(TIFF_INT64_FORMAT "%I64d")
-            else()*/
+        if (MINGW)
+        set(TIFF_INT64_FORMAT "%I64d")
+        else()*/
     }
     else
         throw std::runtime_error("tiff: no type");
@@ -205,7 +205,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_PTRDIFF_FORMAT"] = "%ld";
     }
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (tiff.getSettings().TargetOS.Type != OSType::Windows)
     {
         //tiff += "_FILE_OFFSET_BITS=64"_d;
         tiff.Variables["FILE_OFFSET_BITS"] = "64";

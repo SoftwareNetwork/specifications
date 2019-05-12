@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &jpeg = s.addTarget<LibraryTarget>("jpeg", "9.3.0");
-    jpeg += RemoteFile("http://www.ijg.org/files/jpegsr9c.zip");
+    jpeg += RemoteFile("https://www.ijg.org/files/jpegsr9c.zip");
     jpeg.ApiName = "JPEG_API";
 
     jpeg +=
@@ -56,7 +56,7 @@ void build(Solution &s)
         "jutils.c",
         "transupp.c";
 
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (jpeg.getCompilerType() == CompilerType::MSVC)
         jpeg.configureFile("jconfig.vc", "jconfig.h");
     else
         jpeg.configureFile("jconfig.cfg", "jconfig.h");
