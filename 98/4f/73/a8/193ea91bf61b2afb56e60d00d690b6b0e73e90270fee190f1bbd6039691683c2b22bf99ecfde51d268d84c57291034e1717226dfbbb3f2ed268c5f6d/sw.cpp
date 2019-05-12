@@ -4,7 +4,7 @@ struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getSolution()->getSettings().TargetOS.Type != OSType::Windows)
+        if (getSettings().TargetOS.Type != OSType::Windows)
         {
             c.program = "python3"; // python3?
             return;
@@ -299,13 +299,10 @@ void build(Solution &s)
         lib -= ".*.def"_rr;
     }
 
-    if (s.getSettings().TargetOS.Type != OSType::Windows)
-    {
-        auto &exe = python.addTarget<PythonExecutable>("exe");
-        return;
-    }
-
     auto &exe = python.addTarget<PythonExecutable>("exe");
+    if (exe.getSettings().TargetOS.Type != OSType::Windows)
+        return;
+
     exe += "Lib/.*"_rr;
     exe -= ".*.def"_rr;
     exe += "Programs/python.c";

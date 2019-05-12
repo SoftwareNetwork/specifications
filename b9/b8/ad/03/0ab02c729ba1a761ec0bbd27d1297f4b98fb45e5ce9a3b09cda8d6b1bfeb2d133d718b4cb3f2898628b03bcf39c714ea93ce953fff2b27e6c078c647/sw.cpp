@@ -23,7 +23,7 @@ struct PythonExecutable : ExecutableTarget
 
 void build(Solution &s)
 {
-    auto &python = s.addProject("python", "3.7.2");
+    auto &python = s.addProject("python", "3.7.3");
     python += Git("https://github.com/python/cpython", "v{v}");
 
     auto &lib = python.addLibrary("lib");
