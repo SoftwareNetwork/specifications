@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &llvm_project = s.addProject("llvm_project", "master");
 
     auto &llvm = llvm_project.addProject("llvm");
-    llvm += Git("https://git.llvm.org/git/llvm.git", "", "{v}");
+    llvm += Git("https://git.llvm.org/git/llvm.git");
 
     auto &llvm_demangle = llvm.addTarget<StaticLibraryTarget>("demangle");
     {
@@ -12,7 +12,7 @@ void build(Solution &s)
             "include/llvm/Demangle/.*"_rr,
             "lib/Demangle/.*\\.cpp"_rr,
             "lib/Demangle/.*\\.h"_rr;
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (llvm_demangle.getCompilerType() == CompilerType::MSVC)
         {
             llvm_demangle.Public.CompileOptions.push_back("-wd4141");
             llvm_demangle.Public.CompileOptions.push_back("-wd4146");
@@ -44,13 +44,13 @@ void build(Solution &s)
         llvm_support_lite.Public +=
             "include"_id;
         llvm_support_lite += "LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING"_def;
-        if (s.Settings.TargetOS.Type != OSType::Windows)
+        if (llvm_support_lite.getSettings().TargetOS.Type != OSType::Windows)
             llvm_support_lite.Private += "HAVE_PTHREAD_GETSPECIFIC"_d;
         llvm_support_lite.Public += llvm_demangle;
 
         llvm_support_lite += "LLVM_ENABLE_THREADS=1"_v;
         llvm_support_lite += "LLVM_HAS_ATOMICS=1"_v;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (llvm_support_lite.getSettings().TargetOS.Type == OSType::Windows)
             llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-windows"_v;
         else
         {
