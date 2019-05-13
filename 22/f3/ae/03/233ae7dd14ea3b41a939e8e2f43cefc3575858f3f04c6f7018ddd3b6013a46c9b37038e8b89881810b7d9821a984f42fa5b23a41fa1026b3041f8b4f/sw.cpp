@@ -1,12 +1,13 @@
-#ifdef SW_PRAGMA_HEADER
+#pragma sw require header org.sw.demo.ragel
+#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison-master
+
 #pragma sw header on
 
-static void gen_stamp(NativeExecutedTarget &t)
+static void gen_stamp(const DependencyPtr &tools_stamp_gen, NativeExecutedTarget &t)
 {
-    auto tools_stamp_gen = THIS_PREFIX "." "primitives.tools.stamp_gen" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + tools_stamp_gen;
-        d->Dummy = true;
+        d->setDummy(true);
     }
 
     auto out = t.BinaryPrivateDir / "stamp.h.in";
@@ -19,12 +20,11 @@ static void gen_stamp(NativeExecutedTarget &t)
     t += out;
 }
 
-static void gen_sqlite2cpp(NativeExecutedTarget &t, const path &sql_file, const path &out_file, const String &ns)
+static void gen_sqlite2cpp(const DependencyPtr &tools_sqlite2cpp, NativeExecutedTarget &t, const path &sql_file, const path &out_file, const String &ns)
 {
-    auto tools_sqlite2cpp = THIS_PREFIX "." "primitives.tools.sqlpp11.sqlite2cpp" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + tools_sqlite2cpp;
-        d->Dummy = true;
+        d->setDummy(true);
     }
 
     auto out = t.BinaryDir / out_file;
@@ -39,22 +39,43 @@ static void gen_sqlite2cpp(NativeExecutedTarget &t, const path &sql_file, const 
     t += out;
 }
 
-static void embed(NativeExecutedTarget &t, const path &in)
+static void embed(const DependencyPtr &embedder, NativeExecutedTarget &t, const path &in)
 {
+    struct EmbedCommand : ::sw::driver::Command
+    {
+        using Command::Command;
+
+        std::shared_ptr<Command> clone() const override
+        {
+            return std::make_shared<EmbedCommand>(*this);
+        }
+
+    private:
+        void postProcess1(bool ok) override
+        {
+            for (auto &line : split_lines(out.text))
+            {
+                static const auto prefix = "embedding: "s;
+                boost::trim(line);
+                for (auto &f : outputs)
+                    File(f, *fs).addImplicitDependency(line.substr(prefix.size()));
+            }
+        }
+    };
+
     if (in.is_absolute())
         throw std::runtime_error("embed: in must be relative to SourceDir");
 
-    auto embedder = THIS_PREFIX "." "primitives.tools.embedder" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + embedder;
-        d->Dummy = true;
+        d->setDummy(true);
     }
 
     auto f = t.SourceDir / in;
     auto wdir = f.parent_path();
     auto out = t.BinaryDir / in.parent_path() / in.filename().stem();
 
-    SW_MAKE_COMMAND_AND_ADD(c, t);
+    SW_MAKE_CUSTOM_COMMAND_AND_ADD(EmbedCommand, c, t);
     c->setProgram(embedder);
     c->working_directory = wdir;
     c->args.push_back(f.u8string());
@@ -65,17 +86,16 @@ static void embed(NativeExecutedTarget &t, const path &in)
     t += IncludeDirectory(out.parent_path()); // but remove this later
 }
 
-static Files syncqt(NativeExecutedTarget &t, const Strings &modules)
+static Files syncqt(const DependencyPtr &sqt, NativeExecutedTarget &t, const Strings &modules)
 {
-    auto sqt = THIS_PREFIX "." "primitives.tools.syncqt" "-" THIS_VERSION_DEPENDENCY;
     {
         auto d = t + sqt;
-        d->Dummy = true;
+        d->setDummy(true);
     }
 
     Files out;
     auto i = t.BinaryDir / "include";
-    auto v = t.pkg.version.toString();
+    auto v = t.getPackage().version.toString();
     for (auto &m : modules)
     {
         fs::create_directories(i / m / v / m);
@@ -102,28 +122,17 @@ static Files syncqt(NativeExecutedTarget &t, const Strings &modules)
 }
 
 #pragma sw header off
-#endif
 
-#pragma sw require header org.sw.demo.ragel-6
-#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison-master
-
-#define ADD_LIBRARY_WITH_NAME(var, name)          \
-    auto &var = p.addTarget<LibraryTarget>(name); \
-    setup_primitives(var)
-
-#define ADD_LIBRARY(x) ADD_LIBRARY_WITH_NAME(x, #x)
-
-void configure(Solution &s)
+void configure(Build &s)
 {
-    //s.Settings.Native.LibrariesType = LibraryType::Static;
-    //s.Settings.Native.ConfigurationType = ConfigurationType::Debug;
-    //s.Settings.Native.CompilerType = CompilerType::ClangCl;
+    if (s.isConfigSelected("cyg2mac"))
+        s.loadModule("utils/cc/cygwin2macos.cpp").call<void(Solution&)>("configure", s);
 }
 
 void build(Solution &s)
 {
     auto &p = s.addProject("primitives", "master");
-    p += Git("https://github.com/egorpugin/primitives", "", "master");
+    p += "https://github.com/egorpugin/primitives"_git;
 
     auto setup_primitives_no_all_sources = [](auto &t)
     {
@@ -138,6 +147,8 @@ void build(Solution &s)
         t.ApiName = "PRIMITIVES_" + boost::to_upper_copy(n2.toString("_")) + "_API";
         t.CPPVersion = CPPLanguageStandard::CPP17;
         t.PackageDefinitions = true;
+        // not all code works with this yet (e.g. hh.date)
+        //t.Public.CompileOptions.push_back("-Zc:__cplusplus");
         return p;
     };
 
@@ -150,10 +161,26 @@ void build(Solution &s)
         t += "src/.*"_rr;
     };
 
+#define ADD_LIBRARY_WITH_NAME(var, name)          \
+    auto &var = p.addTarget<LibraryTarget>(name); \
+    setup_primitives(var)
+
+#define ADD_LIBRARY(x) ADD_LIBRARY_WITH_NAME(x, #x)
+
     ADD_LIBRARY(error_handling);
 
     auto &templates = p.addTarget<StaticLibraryTarget>("templates");
     setup_primitives(templates);
+    templates -= "org.sw.demo.boost.stacktrace-1"_dep;
+    if (templates.getSettings().Native.ConfigurationType != ConfigurationType::Release &&
+        templates.getSettings().Native.ConfigurationType != ConfigurationType::MinimalSizeRelease
+        )
+    {
+        templates += "USE_STACKTRACE"_def;
+        templates += "org.sw.demo.boost.stacktrace-1"_dep;
+        //if (s.getSettings().TargetOS.Type == OSType::Windows)
+            //templates += "dbgeng.lib"_slib;
+    }
 
     ADD_LIBRARY(string);
     string.Public += "org.sw.demo.boost.algorithm-1"_dep;
@@ -166,10 +193,10 @@ void build(Solution &s)
 
     ADD_LIBRARY(file_monitor);
     file_monitor.Public += filesystem,
-        "org.sw.demo.libuv-1"_dep;
+        "pub.egorpugin.libuv"_dep;
 
-    ADD_LIBRARY(context);
-    context.Public += filesystem;
+    ADD_LIBRARY(emitter);
+    emitter.Public += filesystem;
 
     ADD_LIBRARY(executor);
     executor.Public += templates,
@@ -179,8 +206,8 @@ void build(Solution &s)
     ADD_LIBRARY(command);
     command.Public += file_monitor,
         "org.sw.demo.boost.process-1"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-        command.Public += "Shell32.lib"_l;
+    if (command.getSettings().TargetOS.Type == OSType::Windows)
+        command.Public += "Shell32.lib"_slib;
 
     ADD_LIBRARY(date_time);
     date_time.Public += string,
@@ -210,8 +237,8 @@ void build(Solution &s)
     ADD_LIBRARY(http);
     http.Public += filesystem, templates,
         "org.sw.demo.badger.curl.libcurl-7"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-        http.Public += "Winhttp.lib"_l;
+    if (http.getSettings().TargetOS.Type == OSType::Windows)
+        http.Public += "Winhttp.lib"_slib;
 
     ADD_LIBRARY(hash);
     hash.Public += filesystem,
@@ -219,13 +246,14 @@ void build(Solution &s)
         "org.sw.demo.openssl.crypto-1.*.*.*"_dep;
 
     ADD_LIBRARY(win32helpers);
+    win32helpers.Public += "BOOST_DLL_USE_STD_FS"_def;
     win32helpers.Public += filesystem,
         "org.sw.demo.boost.dll-1"_dep,
         "org.sw.demo.boost.algorithm-1"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (win32helpers.getSettings().TargetOS.Type == OSType::Windows)
     {
         win32helpers.Public += "UNICODE"_d;
-        win32helpers += "Shell32.lib"_lib, "Ole32.lib"_lib, "Advapi32.lib"_lib, "user32.lib"_lib;
+        win32helpers += "Shell32.lib"_slib, "Ole32.lib"_slib, "Advapi32.lib"_slib, "user32.lib"_slib;
     }
 
     ADD_LIBRARY_WITH_NAME(db_common, "db.common");
@@ -243,12 +271,14 @@ void build(Solution &s)
     main.Public += error_handling;
 
     ADD_LIBRARY(settings);
+    settings.Public += "include"_idir;
     settings.Public += yaml, filesystem, templates,
         "pub.egorpugin.llvm_project.llvm.support_lite-master"_dep;
-    gen_flex_bison_pair(settings, "LALR1_CPP_VARIANT_PARSER", "src/settings");
-    gen_flex_bison_pair(settings, "LALR1_CPP_VARIANT_PARSER", "src/path");
+    gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, settings, "LALR1_CPP_VARIANT_PARSER", "src/settings");
+    gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, settings, "LALR1_CPP_VARIANT_PARSER", "src/path");
 
     ADD_LIBRARY(symbol);
+    symbol.Public += "BOOST_DLL_USE_STD_FS"_def;
     symbol.Public += filesystem, "org.sw.demo.boost.dll-1"_dep;
 
     ADD_LIBRARY_WITH_NAME(sw_settings, "sw.settings");
@@ -257,21 +287,32 @@ void build(Solution &s)
     //sw_settings.Interface += "src/sw.settings.program_name.cpp";
 
     ADD_LIBRARY(version);
+    version.Public += "include"_idir;
+    //version.Public += "src/version.natvis";
+    version += "src/version.natvis";
     version.Public += string, templates,
         "org.sw.demo.fmt-*"_dep,
         "org.sw.demo.boost.container_hash-1"_dep,
         "org.sw.demo.imageworks.pystring-1"_dep;
-    gen_ragel(version, "src/version.rl");
-    gen_flex_bison_pair(version, "GLR_CPP_PARSER", "src/range");
+    gen_ragel("org.sw.demo.ragel-6"_dep, version, "src/version.rl");
+    gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, version, "GLR_CPP_PARSER", "src/range");
+
+    ADD_LIBRARY(source);
+    source.Public += command, hash, http, pack, version, yaml,
+        "org.sw.demo.nlohmann.json"_dep;
+
+    //ADD_LIBRARY(object_path);
+    //object_path.Public += string, templates;
 
     auto &sw_main = p.addTarget<StaticLibraryTarget>("sw.main");
     setup_primitives(sw_main);
+    sw_main.Public += "BOOST_DLL_USE_STD_FS"_def;
     sw_main.Public += main, sw_settings,
         "org.sw.demo.boost.dll-1"_dep;
     sw_main.Interface.LinkLibraries.push_back(main.getImportLibrary()); // main itself
     sw_main.Interface.LinkLibraries.push_back(sw_main.getImportLibrary()); // then me (self, sw.main)
     sw_main.Interface.LinkLibraries.push_back(sw_settings.getImportLibrary()); // then sw.settings
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (sw_main.getSettings().TargetOS.Type == OSType::Windows)
     {
         sw_main.Public +=
             "org.sw.demo.google.breakpad.client.windows.handler-master"_dep,
@@ -288,7 +329,7 @@ void build(Solution &s)
     auto &tools_sqlite2cpp = p.addTarget<ExecutableTarget>("tools.sqlpp11.sqlite2cpp");
     setup_primitives_no_all_sources(tools_sqlite2cpp);
     tools_sqlite2cpp += "src/tools/sqlpp11.sqlite2cpp.cpp";
-    tools_sqlite2cpp += filesystem, context, sw_main, "org.sw.demo.sqlite3"_dep;
+    tools_sqlite2cpp += filesystem, emitter, sw_main, "org.sw.demo.sqlite3"_dep;
 
     auto &tools_syncqt = p.addTarget<ExecutableTarget>("tools.syncqt");
     setup_primitives_no_all_sources(tools_syncqt);
@@ -302,41 +343,50 @@ void build(Solution &s)
     auto &test = p.addDirectory("test");
     test.Scope = TargetScope::Test;
 
-    auto add_test = [&test, &s](const String &name) -> decltype(auto)
+    auto add_test = [&test, &s, &sw_main](const String &name) -> decltype(auto)
     {
         auto &t = test.addTarget<ExecutableTarget>(name);
         t.CPPVersion = CPPLanguageStandard::CPP17;
         t += path("src/" + name + ".cpp");
         t += "org.sw.demo.catchorg.catch2-*"_dep;
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (t.getCompilerType() == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+        //else if (t.getCompilerType() == CompilerType::GNU)
             //t.CompileOptions.push_back("-Wa,-mbig-obj");
+        t += sw_main;
         return t;
     };
 
     auto &test_main = add_test("main");
-    test_main += sw_main, command, date_time,
-        executor, hash, yaml, context, http,
+    test_main += command, date_time,
+        executor, hash, yaml, emitter, http,
         "org.sw.demo.nlohmann.json-*"_dep;
 
     auto &test_db = add_test("db");
-    test_db += sw_main, command, db_sqlite3, db_postgresql, date_time,
+    test_db += command, db_sqlite3, db_postgresql, date_time,
         executor, hash, yaml;
 
     auto &test_settings = add_test("settings");
     test_settings.PackageDefinitions = true;
-    test_settings += sw_main, settings;
+    test_settings += settings;
 
     auto &test_version = add_test("version");
-    test_version += sw_main, version;
+    test_version += version;
+
+    auto &test_source = add_test("source");
+    test_source += source;
 
     auto &test_patch = add_test("patch");
-    test_patch += sw_main, patch;
+    test_patch += patch;
 
-    s.addTest(test_main);
+    return;
+
+    SW_UNIMPLEMENTED;
+
+    /*auto tm = s.addTest(test_main);
+    tm.c->addPathDirectory(getenv("PATH"));
     auto tdb = s.addTest(test_db);
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (tdb.getSettings().TargetOS.Type == OSType::Windows)
     {
         tdb.c->addLazyAction([&s, c = tdb.c]
         {
@@ -346,5 +396,5 @@ void build(Solution &s)
     }
     s.addTest(test_patch);
     s.addTest(test_settings);
-    s.addTest(test_version);
+    s.addTest(test_version);*/
 }
