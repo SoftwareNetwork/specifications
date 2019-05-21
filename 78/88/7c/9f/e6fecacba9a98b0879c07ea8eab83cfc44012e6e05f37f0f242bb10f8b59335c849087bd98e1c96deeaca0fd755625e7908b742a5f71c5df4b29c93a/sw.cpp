@@ -39,7 +39,7 @@ void build(Solution &s)
     libffi.Variables["HAVE_AS_X86_PCREL"] = "0";
     libffi.Variables["HAVE_AS_ASCII_PSEUDO_OP"] = "0";
     libffi.Variables["HAVE_AS_STRING_PSEUDO_OP"] = "1";
-    libffi.Variables["HAVE_MEMCPY"] = 1;
+    //libffi.Variables["HAVE_MEMCPY"] = 1;
     // GCC related settings
     libffi.Variables["HAVE_RO_EH_FRAME"] = "0";
     libffi.Variables["EH_FRAME_FLAGS"] = "aw";
@@ -131,7 +131,7 @@ void build(Solution &s)
     //libffi.replaceInFileOnce("include/ffi.h.in", "#define LIBFFI_H", "#define LIBFFI_H\n#include <stdint.h>");
     //libffi.configureFile("include/ffi.h.in", "ffi.h");
 
-    if (s.PostponeFileResolving)
+    if (s.DryRun)
         return;
 
     if (libffi.getCompilerType() == CompilerType::MSVC)
@@ -180,7 +180,7 @@ void check(Checker &c)
 {
     auto &s = c.addSet("libffi");
     s.checkFunctionExists("alloca");
-    //s.checkFunctionExists("memcpy");
+    s.checkFunctionExists("memcpy");
     s.checkFunctionExists("mkostemp");
     s.checkFunctionExists("mmap");
     s.checkFunctionExists("mmap_blacklist");
