@@ -18,6 +18,9 @@ void build(Solution &s)
     auto &pmurhash = third_party.addTarget<StaticLibraryTarget>("pmurhash");
     pmurhash += "src/common/third_party/smhasher/.*"_rr;
 
+    auto &xxhash = third_party.addTarget<StaticLibraryTarget>("xxhash");
+    xxhash += "src/common/third_party/xxhash/xxhash\\.[hc]"_rr;
+
     //
     auto &common = p.addTarget<StaticLibraryTarget>("common");
     common +=
@@ -113,12 +116,12 @@ void build(Solution &s)
     angle -=
         "src/libANGLE/renderer/d3d/d3d11/winrt/.*"_rr;
 
-    angle.Public += pmurhash;
+    angle.Public += pmurhash, xxhash;
     angle.Public += image;
     angle.Public += translator;
     angle.Public += khronos;
     angle.Public += systeminfo;
-    angle += "org.sw.demo.Cyan4973.xxHash"_dep;
+    //angle += "org.sw.demo.Cyan4973.xxHash"_dep;
 
     angle.configureFile("src/commit.h", "id/commit.h");
 
