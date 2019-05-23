@@ -25,6 +25,7 @@ void build(Solution &s)
         "src/common/[^/]*\\.cpp"_rr,
         "src/common/[^/]*\\.h"_rr,
         "src/common/[^/]*\\.inl"_rr,
+        "src/common/[^/]*\\.inc"_rr,
         "src/compiler/.*\\.h"_rr,
         "src/third_party/.*\\.h"_rr;
 
