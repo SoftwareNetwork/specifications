@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &vpx = s.addStaticLibrary("webmproject.vpx", "1.8.0");
     vpx += Git("https://github.com/webmproject/libvpx", "v{v}");
 
-    vpx.setExtensionProgram(".asm", "org.sw.demo.yasm-master"s);
+    vpx.setExtensionProgram(".asm", "org.sw.demo.yasm-master"_dep);
 
     //vpx.ExportAllSymbols = true;
     vpx.setChecks("vpx");
@@ -35,7 +35,7 @@ void build(Solution &s)
 
     vpx.Variables["ARCH_X86"] = 0;
     vpx.Variables["ARCH_X86_64"] = 0;
-    if (s.Settings.TargetOS.Arch != ArchType::x86_64)
+    if (vpx.getSettings().TargetOS.Arch != ArchType::x86_64)
     {
         vpx.Variables["ARCH_X86"] = 1;
         vpx.Variables["asm"] = "win32";
@@ -50,10 +50,10 @@ void build(Solution &s)
     vpx.Variables["CONFIG_MSVS"] = 0;
     vpx.Variables["CONFIG_BIG_ENDIAN"] = vpx.Variables["WORDS_BIGENDIAN"];
 
-    if (s.Settings.Native.CompilerType == CompilerType::GNU)
+    if (vpx.getCompilerType() == CompilerType::GNU)
         vpx.Variables["CONFIG_GCC"] = 1;
 
-    if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+    if (vpx.getCompilerType() == CompilerType::MSVC)
         vpx.Variables["CONFIG_MSVS"] = 1;
 
     vpx.writeFileOnce("vpx_config.h.in", R"(
@@ -233,9 +233,9 @@ void build(Solution &s)
     vpx.configureFile("vpx_config.asm.in", "vpx_config.asm");
     vpx -= "vpx_config.asm";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (vpx.getSettings().TargetOS.Type == OSType::Windows)
     {
-        if (s.Settings.TargetOS.Arch != ArchType::x86_64)
+        if (vpx.getSettings().TargetOS.Arch != ArchType::x86_64)
             vpx -= ".*_x86_64.asm"_rr;
     }
 
