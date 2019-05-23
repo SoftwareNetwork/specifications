@@ -73,7 +73,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     // before dry run
     (t + moc)->Dummy = true;
 
-    if (t.PostponeFileResolving || t.DryRun)
+    if (t.DryRun)
         return {};
 
     auto idirs = find_idirs(t);
@@ -224,23 +224,20 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     return mocs;
 }
 
-#define SW_QT_ADD_MOC_DEPS(t)                                                                          \
-    do                                                                                                 \
-    {                                                                                                  \
-        for (auto &m : mocs)                                                                           \
-        {                                                                                              \
-            auto mg = File(m, *t.getSolution()->fs).getFileRecord().getGenerator();                    \
-            for (auto &c : sqt)                                                                        \
-            {                                                                                          \
-                mg->dependencies.insert(File(c, *t.getSolution()->fs).getFileRecord().getGenerator()); \
-            }                                                                                          \
-        }                                                                                              \
+#define SW_QT_ADD_MOC_DEPS(t)                                                                      \
+    do {                                                                                           \
+        for (auto &m : mocs) {                                                                     \
+            auto mg = File(m, t.getFs()).getFileRecord().getGenerator();                           \
+            for (auto &c : sqt) {                                                                  \
+                mg->dependencies.insert(File(c, t.getFs()).getFileRecord().getGenerator());        \
+            }                                                                                      \
+        }                                                                                          \
     } while (0)
 
 // http://doc.qt.io/qt-5/rcc.html
 static Files rcc_read_files(NativeExecutedTarget &t, const path &fn)
 {
-    if (t.PostponeFileResolving || t.DryRun)
+    if (t.DryRun)
         return {};
 
     static std::regex r("<file([^<]+)");
@@ -274,7 +271,7 @@ static auto rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const path &f
     (t + rcc)->Dummy = true;
 
     auto c = t.addCommand();
-    if (t.PostponeFileResolving || t.DryRun)
+    if (t.DryRun)
         return c;
 
     auto files = rcc_read_files(t, fn);
@@ -325,7 +322,7 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
     s += "</RCC>";
     auto in = t.BinaryDir / (d.name + ".qrc");
     write_file_if_different(in, s);
-    File(in, *t.getSolution()->fs).getFileRecord().setGenerated(true);
+    File(in, t.getFs()).getFileRecord().setGenerated(true);
 
     auto outfilename = "qmake_" + d.name;
     auto outfile = t.BinaryDir / ("qrc_" + outfilename + ".cpp");
@@ -426,7 +423,7 @@ static Files qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTar
     // before dry run
     (t + lrelease)->Dummy = true;
 
-    if (t.PostponeFileResolving || t.DryRun)
+    if (t.DryRun)
         return {};
 
     Files out;
@@ -449,7 +446,7 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     (t + lupdate)->Dummy = true;
     (t + lrelease)->Dummy = true;
 
-    if (t.PostponeFileResolving || t.DryRun)
+    if (t.DryRun)
         return {};
 
     auto ts_lst_fn = t.BinaryDir / "ts.lst";
@@ -1220,7 +1217,7 @@ void build(Solution &s)
     qt_desc.config.public_.definitions["QT_VERSION_PATCH"] = core.Variables["PACKAGE_VERSION_PATCH"].toString();
     qt_desc.config.public_.definitions["QT_VERSION_STR"] = "\"" + core.getPackage().getVersion().toString() + "\"";
 
-    if (s.Settings.Native.LibrariesType == LibraryType::Static)
+    if (s.getSettings().Native.LibrariesType == LibraryType::Static)
         qt_desc.config.public_.features["static"].enabled = true;
     qt_desc.config.public_.features["shared"].enabled = !qt_desc.config.public_.features["static"].enabled;
 
@@ -1241,7 +1238,7 @@ void build(Solution &s)
                 "src/harfbuzz-impl.c",
                 "src/harfbuzz-stream.c",
                 "src/harfbuzz-shaper-all.cpp";
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (harfbuzz.getSettings().TargetOS.Type == OSType::Windows)
             {
                 harfbuzz.Private += "UNICODE"_d;
                 harfbuzz.Public += "WIN32"_d;
@@ -1252,11 +1249,11 @@ void build(Solution &s)
         {
             iaccessible2 += "src/3rdparty/iaccessible2/generated/.*"_rr;
             iaccessible2.Public += "src/3rdparty/iaccessible2/generated"_idir;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (iaccessible2.getSettings().TargetOS.Type == OSType::Windows)
             {
                 iaccessible2.Private += "UNICODE"_d;
             }
-            if (s.Settings.TargetOS.is(ArchType::x86))
+            if (iaccessible2.getSettings().TargetOS.is(ArchType::x86))
             {
                 iaccessible2 -= "src/3rdparty/iaccessible2/generated/amd64/.*"_rr;
                 iaccessible2.Public += "src/3rdparty/iaccessible2/generated/x86"_idir;
@@ -1431,16 +1428,16 @@ void build(Solution &s)
             //bootstrap.Public += "QT_NO_CAST_FROM_ASCII"_d;
             //bootstrap.Public += "QT_NO_CAST_TO_ASCII"_d;
             bootstrap.Public += "QT_NO_FOREACH"_d;
-            if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+            if (bootstrap.getCompilerType() == CompilerType::MSVC)
             {
                 bootstrap.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
             }
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (bootstrap.getSettings().TargetOS.Type == OSType::Windows)
             {
                 bootstrap.Private += "UNICODE"_d;
                 bootstrap.Public += "WIN32"_d;
             }
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (bootstrap.getSettings().TargetOS.Type == OSType::Windows)
             {
                 bootstrap.Public += "Netapi32.lib"_slib, "Advapi32.lib"_slib, "Ole32.lib"_slib, "Shell32.lib"_slib;
             }
@@ -1449,7 +1446,7 @@ void build(Solution &s)
 
             qt_desc.print(bootstrap);
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (bootstrap.getSettings().TargetOS.Type == OSType::Windows)
             {
                 bootstrap +=
                     "src/corelib/io/qfilesystemengine_win.cpp",
@@ -1471,7 +1468,7 @@ void build(Solution &s)
                     ;
             }
 
-            if (s.Settings.TargetOS.Type == OSType::Macos)
+            if (bootstrap.getSettings().TargetOS.Type == OSType::Macos)
             {
                 bootstrap +=
                     "src/corelib/kernel/qcoreapplication_mac.cpp",
@@ -1497,7 +1494,7 @@ void build(Solution &s)
             copy(bootstrap, bootstrap.SourceDir / "src/xml/sax/qxml_p.h", bootstrap.BinaryDir / "private/qxml_p.h");
             syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, bootstrap, { "QtCore", "QtXml" });
 
-            if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+            if (bootstrap.getCompilerType() == CompilerType::MSVC)
                 bootstrap.Public += "mkspecs/win32-msvc"_idir;
         }
 
@@ -1519,7 +1516,7 @@ void build(Solution &s)
             moc.Public += "QT_NO_CAST_FROM_BYTEARRAY"_d;
             moc.Public += "QT_NO_COMPRESS"_d;
             moc.Public += "QT_NO_FOREACH"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (moc.getSettings().TargetOS.Type == OSType::Windows)
             {
                 moc.Private += "UNICODE"_d;
                 moc.Public += "WIN32"_d;
@@ -1534,7 +1531,7 @@ void build(Solution &s)
             //rcc.Public += "QT_NO_CAST_FROM_ASCII"_d;
             rcc.Public += "QT_NO_FOREACH"_d;
             rcc.Public += "QT_RCC"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (rcc.getSettings().TargetOS.Type == OSType::Windows)
             {
                 rcc.Private += "UNICODE"_d;
                 rcc.Public += "WIN32"_d;
@@ -1553,7 +1550,7 @@ void build(Solution &s)
             uic.Public += "QT_NO_FOREACH"_d;
             uic.Public += "QT_UIC"_d;
             uic.Public += "QT_UIC_CPP_GENERATOR"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (uic.getSettings().TargetOS.Type == OSType::Windows)
             {
                 uic.Private += "UNICODE"_d;
                 uic.Public += "WIN32"_d;
@@ -1567,7 +1564,7 @@ void build(Solution &s)
                 "src/tools/qlalr/[^/]*\\.cpp"_rr,
                 "src/tools/qlalr/[^/]*\\.[gh]"_rr;
             qlalr.Public += "src/tools/qlalr"_id;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (qlalr.getSettings().TargetOS.Type == OSType::Windows)
             {
                 qlalr.Private += "UNICODE"_d;
                 qlalr.Public += "WIN32"_d;
@@ -1613,7 +1610,7 @@ void build(Solution &s)
             core -= "src/3rdparty/sha3/.*"_rr;
             core += "src/3rdparty/tinycbor/src"_idir;
 
-            if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+            if (core.getCompilerType() == CompilerType::MSVC)
                 core.Public += "mkspecs/win32-msvc"_idir;
 
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, core, { "QtCore", "QtPlatformHeaders" });
@@ -1658,7 +1655,7 @@ void build(Solution &s)
 
             core += "io/qfilesystemwatcher_polling.*"_rr;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (core.getSettings().TargetOS.Type == OSType::Windows)
             {
                 core -= "codecs/qiconvcodec.cpp";
                 core += "io/qfilesystemengine_win.cpp";
@@ -1677,7 +1674,7 @@ void build(Solution &s)
                 core += "io/qstandardpaths_unix.cpp";
             }
 
-            if (s.Settings.TargetOS.Type == OSType::Macos)
+            if (core.getSettings().TargetOS.Type == OSType::Macos)
             {
                 core += "kernel/qcoreapplication_mac.cpp";
                 core += "kernel/qcore_mac.cpp";
@@ -1731,17 +1728,17 @@ void build(Solution &s)
             core.Private += "QT_BUILD_CORE_LIB"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
             core += "QT_USE_QSTRINGBUILDER"_d;
-            if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+            if (core.getCompilerType() == CompilerType::MSVC)
             {
                 core.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
                 core.Public += "QT_COMPILER_SUPPORTS_F16C"_d;
             }
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (core.getSettings().TargetOS.Type == OSType::Windows)
             {
                 core.Protected += "UNICODE"_d;
                 core.Public += "WIN32"_d;
             }
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (core.getSettings().TargetOS.Type == OSType::Windows)
             {
                 core.Public += "Mincore.lib"_slib;
                 core.Public += "Mpr.lib"_slib;
@@ -1894,13 +1891,13 @@ void build(Solution &s)
                 "widgets/.*"_rr;
 
             widgets.Private += "QT_BUILD_WIDGETS_LIB"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (widgets.getSettings().TargetOS.Type == OSType::Windows)
             {
                 widgets.Private += "QT_NO_STYLE_ANDROID"_d;
                 widgets.Private += "QT_NO_STYLE_FUSION"_d;
                 widgets.Private += "QT_NO_STYLE_MAC"_d;
             }
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (widgets.getSettings().TargetOS.Type == OSType::Windows)
             {
                 widgets.Public += "dwmapi.lib"_slib;
                 widgets.Public += "uxtheme.lib"_slib;
@@ -1952,7 +1949,7 @@ void build(Solution &s)
 
             network.Private += "QT_BUILD_NETWORK_LIB"_d;
             network += "QT_USE_QSTRINGBUILDER"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (network.getSettings().TargetOS.Type == OSType::Windows)
             {
                 network.Public += "Crypt32.lib"_slib;
                 network.Public += "Dnsapi.lib"_slib;
@@ -1964,7 +1961,7 @@ void build(Solution &s)
 
             qt_network_desc.print(network);
 
-            if (!network.PostponeFileResolving && !network.DryRun)
+            if (!network.DryRun)
             {
                 auto dummy = network.BinaryDir / "private/sw_copy_headers.txt";
                 if (!fs::exists(dummy))
@@ -2044,7 +2041,7 @@ void build(Solution &s)
                 eventdispatchers += ".*"_rr;
                 eventdispatchers -= ".*_glib.*"_rr;
                 eventdispatchers -= ".*_qpa.*"_rr;
-                if (s.Settings.TargetOS.Type == OSType::Windows)
+                if (eventdispatchers.getSettings().TargetOS.Type == OSType::Windows)
                     eventdispatchers -= ".*unix.*"_rr;
                 else
                     eventdispatchers -= ".*windows.*"_rr;
@@ -2134,7 +2131,7 @@ void build(Solution &s)
                     windows.Public +=
                         "src"_id;
 
-                    if (s.Settings.TargetOS.Type == OSType::Windows)
+                    if (windows.getSettings().TargetOS.Type == OSType::Windows)
                         windows.Private += "QT_USE_DIRECTWRITE2"_d;
 
                     windows.Public += freetype;
@@ -2165,7 +2162,7 @@ void build(Solution &s)
             windows.Public +=
                 "src/plugins/platforms/windows"_id;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (windows.getSettings().TargetOS.Type == OSType::Windows)
             {
                 windows.Public += "Dwmapi.lib"_slib;
                 windows.Public += "Imm32.lib"_slib;
@@ -2200,7 +2197,7 @@ void build(Solution &s)
             windowsvista.Public +=
                 "src/plugins/styles/windowsvista"_id;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (windowsvista.getSettings().TargetOS.Type == OSType::Windows)
             {
                 windowsvista.Public += "gdi32.lib"_slib;
                 windowsvista.Public += "user32.lib"_slib;
@@ -2233,7 +2230,7 @@ void build(Solution &s)
             printsupport.Protected += "dialogs"_idir, "kernel"_idir, "widgets"_idir;
 
             printsupport.Private += "QT_BUILD_PRINTSUPPORT_LIB"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (printsupport.getSettings().TargetOS.Type == OSType::Windows)
             {
                 printsupport += "Winspool.lib"_slib;
                 printsupport += "Comdlg32.lib"_slib;
@@ -2313,7 +2310,7 @@ void build(Solution &s)
             (masm + qml)->IncludeDirectoriesOnly = true;
             (masm + qml)->IncludeDirectoriesOnly = true;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (masm.getSettings().TargetOS.Type == OSType::Windows)
             {
                 masm += "src/3rdparty/masm/wtf/OSAllocatorWin.cpp"_rr;
             }
@@ -2393,7 +2390,7 @@ void build(Solution &s)
             qml += "QT_BUILD_QML_LIB"_d;
             qml.Protected += "QT_USE_QSTRINGBUILDER"_d;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (qml.getSettings().TargetOS.Type == OSType::Windows)
             {
                 qml += "compiler/qv4compilationunitmapper_win.cpp";
                 qml.Private += "UNICODE"_d;
@@ -2481,7 +2478,7 @@ void build(Solution &s)
             quick += "QT_BUILD_QUICK_LIB"_d;
             quick += "M_PI=3.14159265358979323846"_d;
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (quick.getSettings().TargetOS.Type == OSType::Windows)
             {
                 quick.Private += "UNICODE"_d;
             }
@@ -2550,7 +2547,7 @@ void build(Solution &s)
             auto settings = path(name) / (name + ".pro");
             t += settings;
 
-            if (t.DryRun || t.PostponeFileResolving)
+            if (t.DryRun)
                 return t;
 
             t.configureFile(qmldir, t.BinaryDir / qmldir, ConfigureFlags::CopyOnly);
@@ -2588,7 +2585,7 @@ void build(Solution &s)
         svg += "src/svg/[^/]*"_rr;
         svg.Private += "QT_BUILD_SVG_LIB"_d;
         svg.Public += widgets;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (svg.getSettings().TargetOS.Type == OSType::Windows)
             svg.Private += "UNICODE"_d;
         auto mocs = automoc(moc, svg);
         SW_QT_ADD_MOC_DEPS(svg);
@@ -2606,7 +2603,7 @@ void build(Solution &s)
         winextras += "[^/]*"_rr;
         winextras.Private += "QT_BUILD_WINEXTRAS_LIB"_d;
         winextras.Public += gui;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (winextras.getSettings().TargetOS.Type == OSType::Windows)
         {
             winextras.Private += "UNICODE"_d;
             winextras += "dwmapi.lib"_lib;
@@ -2626,7 +2623,7 @@ void build(Solution &s)
             t.SourceDir /= "src/plugins/imageformats";
             t.SourceDir /= name;
             t += ".*\\.cpp"_rr, ".*\\.h"_rr, ".*\\.json"_rr;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (t.getSettings().TargetOS.Type == OSType::Windows)
                 t.Private += "UNICODE"_d;
             t.Private += sw::Static, "QT_STATICPLUGIN"_d;
             automoc(moc, t);
@@ -2642,8 +2639,7 @@ void build(Solution &s)
 
         auto add_imageformat_base = [&base, &imageformats, &add_imageformat1](const String &name) -> decltype(auto)
         {
-            auto &t = imageformats.addLibrary("q" + name);
-            t += base.getSource();
+            auto &t = base.addLibrary("q" + name);
             add_imageformat1(t, name);
             return t;
         };
@@ -2682,7 +2678,7 @@ void build(Solution &s)
                 "ts.cpp",
                 "xliff.cpp";
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (formats.getSettings().TargetOS.Type == OSType::Windows)
             {
                 formats.Private += "UNICODE"_d;
             }
@@ -2696,7 +2692,7 @@ void build(Solution &s)
         auto &convert = linguist.addTarget<ExecutableTarget>("convert");
         {
             convert += "src/linguist/lconvert/main.cpp";
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (convert.getSettings().TargetOS.Type == OSType::Windows)
             {
                 convert.Private += "UNICODE"_d;
             }
@@ -2729,7 +2725,7 @@ void build(Solution &s)
             proparser.Public += "PROEVALUATOR_INIT_PROPS"_d;
             proparser.Public += "QMAKE_BUILTIN_PRFS"_d;
             proparser.Public += "QMAKE_OVERRIDE_PRFS"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (proparser.getSettings().TargetOS.Type == OSType::Windows)
             {
                 proparser.Private += "UNICODE"_d;
             }
@@ -2740,7 +2736,7 @@ void build(Solution &s)
         auto &release = linguist.addTarget<ExecutableTarget>("release");
         {
             release += "src/linguist/lrelease/main.cpp";
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (release.getSettings().TargetOS.Type == OSType::Windows)
             {
                 release.Private += "UNICODE"_d;
             }
@@ -2763,7 +2759,7 @@ void build(Solution &s)
 
             update.Public += "PROEVALUATOR_DEBUG"_d;
             update.Public += "QT_NO_QML"_d;
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (update.getSettings().TargetOS.Type == OSType::Windows)
             {
                 update.Private += "UNICODE"_d;
             }
@@ -2794,7 +2790,7 @@ void build(Solution &s)
             auto settings = path(proj_dir) / (t.getPackage().ppath.back() + ".pro");
             t += settings;
 
-            if (t.DryRun || t.PostponeFileResolving)
+            if (t.DryRun)
                 return;
 
             t.configureFile(qmldir, t.BinaryDir / qmldir, ConfigureFlags::CopyOnly);

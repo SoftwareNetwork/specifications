@@ -41,6 +41,28 @@ static void gen_sqlite2cpp(const DependencyPtr &tools_sqlite2cpp, NativeExecuted
 
 static void embed(const DependencyPtr &embedder, NativeExecutedTarget &t, const path &in)
 {
+    struct EmbedCommand : ::sw::driver::Command
+    {
+        using Command::Command;
+
+        std::shared_ptr<Command> clone() const override
+        {
+            return std::make_shared<EmbedCommand>(*this);
+        }
+
+    private:
+        void postProcess1(bool ok) override
+        {
+            for (auto &line : split_lines(out.text))
+            {
+                static const auto prefix = "embedding: "s;
+                boost::trim(line);
+                for (auto &f : outputs)
+                    File(f, *fs).addImplicitDependency(line.substr(prefix.size()));
+            }
+        }
+    };
+
     if (in.is_absolute())
         throw std::runtime_error("embed: in must be relative to SourceDir");
 
@@ -53,7 +75,7 @@ static void embed(const DependencyPtr &embedder, NativeExecutedTarget &t, const 
     auto wdir = f.parent_path();
     auto out = t.BinaryDir / in.parent_path() / in.filename().stem();
 
-    SW_MAKE_COMMAND_AND_ADD(c, t);
+    SW_MAKE_CUSTOM_COMMAND_AND_ADD(EmbedCommand, c, t);
     c->setProgram(embedder);
     c->working_directory = wdir;
     c->args.push_back(f.u8string());
@@ -110,7 +132,7 @@ void configure(Build &s)
 void build(Solution &s)
 {
     auto &p = s.addProject("primitives", "master");
-    p += Git("https://github.com/egorpugin/primitives");
+    p += "https://github.com/egorpugin/primitives"_git;
 
     auto setup_primitives_no_all_sources = [](auto &t)
     {
@@ -150,13 +172,13 @@ void build(Solution &s)
     auto &templates = p.addTarget<StaticLibraryTarget>("templates");
     setup_primitives(templates);
     templates -= "org.sw.demo.boost.stacktrace-1"_dep;
-    if (s.Settings.Native.ConfigurationType != ConfigurationType::Release &&
-        s.Settings.Native.ConfigurationType != ConfigurationType::MinimalSizeRelease
+    if (templates.getSettings().Native.ConfigurationType != ConfigurationType::Release &&
+        templates.getSettings().Native.ConfigurationType != ConfigurationType::MinimalSizeRelease
         )
     {
         templates += "USE_STACKTRACE"_def;
         templates += "org.sw.demo.boost.stacktrace-1"_dep;
-        //if (s.Settings.TargetOS.Type == OSType::Windows)
+        //if (s.getSettings().TargetOS.Type == OSType::Windows)
             //templates += "dbgeng.lib"_slib;
     }
 
@@ -184,7 +206,7 @@ void build(Solution &s)
     ADD_LIBRARY(command);
     command.Public += file_monitor,
         "org.sw.demo.boost.process-1"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (command.getSettings().TargetOS.Type == OSType::Windows)
         command.Public += "Shell32.lib"_slib;
 
     ADD_LIBRARY(date_time);
@@ -215,7 +237,7 @@ void build(Solution &s)
     ADD_LIBRARY(http);
     http.Public += filesystem, templates,
         "org.sw.demo.badger.curl.libcurl-7"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (http.getSettings().TargetOS.Type == OSType::Windows)
         http.Public += "Winhttp.lib"_slib;
 
     ADD_LIBRARY(hash);
@@ -228,7 +250,7 @@ void build(Solution &s)
     win32helpers.Public += filesystem,
         "org.sw.demo.boost.dll-1"_dep,
         "org.sw.demo.boost.algorithm-1"_dep;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (win32helpers.getSettings().TargetOS.Type == OSType::Windows)
     {
         win32helpers.Public += "UNICODE"_d;
         win32helpers += "Shell32.lib"_slib, "Ole32.lib"_slib, "Advapi32.lib"_slib, "user32.lib"_slib;
@@ -290,7 +312,7 @@ void build(Solution &s)
     sw_main.Interface.LinkLibraries.push_back(main.getImportLibrary()); // main itself
     sw_main.Interface.LinkLibraries.push_back(sw_main.getImportLibrary()); // then me (self, sw.main)
     sw_main.Interface.LinkLibraries.push_back(sw_settings.getImportLibrary()); // then sw.settings
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (sw_main.getSettings().TargetOS.Type == OSType::Windows)
     {
         sw_main.Public +=
             "org.sw.demo.google.breakpad.client.windows.handler-master"_dep,
@@ -318,6 +340,8 @@ void build(Solution &s)
     setup_primitives_no_all_sources(stamp_gen);
     stamp_gen += "src/tools/stamp_gen.cpp";
 
+    return;
+
     auto &test = p.addDirectory("test");
     test.Scope = TargetScope::Test;
 
@@ -327,9 +351,9 @@ void build(Solution &s)
         t.CPPVersion = CPPLanguageStandard::CPP17;
         t += path("src/" + name + ".cpp");
         t += "org.sw.demo.catchorg.catch2-*"_dep;
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (t.getCompilerType() == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+        //else if (t.getCompilerType() == CompilerType::GNU)
             //t.CompileOptions.push_back("-Wa,-mbig-obj");
         t += sw_main;
         return t;
@@ -359,15 +383,15 @@ void build(Solution &s)
 
     auto tm = s.addTest(test_main);
     tm.c->addPathDirectory(getenv("PATH"));
-    auto tdb = s.addTest(test_db);
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    /*auto tdb = s.addTest(test_db);
+    if (test_db.getSettings().TargetOS.Type == OSType::Windows)
     {
         tdb.c->addLazyAction([&s, c = tdb.c]
         {
             auto &pq = s.getTarget<LibraryTarget>(PackageId{"org.sw.demo.find.libpq", "master"});
             c->addPathDirectory(pq.LinkDirectories.begin()->parent_path() / "bin");
         });
-    }
+    }*/
     s.addTest(test_patch);
     s.addTest(test_settings);
     s.addTest(test_version);
