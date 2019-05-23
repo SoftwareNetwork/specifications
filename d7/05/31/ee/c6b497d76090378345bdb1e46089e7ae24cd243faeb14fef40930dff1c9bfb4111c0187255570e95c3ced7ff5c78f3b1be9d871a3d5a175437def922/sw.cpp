@@ -203,26 +203,26 @@ void build(Solution &s)
             "modules/highgui/src/window_winrt.cpp",
             "modules/highgui/src/window_winrt_bridge.cpp"
             ;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (highgui.getSettings().TargetOS.Type == OSType::Windows)
         {
             highgui.Public += "HAVE_WIN32UI"_def;
             highgui.Public +=
-                "Comdlg32.lib"_lib,
-                "Gdi32.lib"_lib,
-                "user32.lib"_lib,
-                "advapi32.lib"_lib;
+                "Comdlg32.lib"_slib,
+                "Gdi32.lib"_slib,
+                "user32.lib"_slib,
+                "advapi32.lib"_slib;
         }
     }
 
     auto &videoio = add_target("videoio");
     {
         videoio.Public += imgcodecs;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (videoio.getSettings().TargetOS.Type == OSType::Windows)
         {
             videoio += "HAVE_DSHOW"_def;
             videoio += "HAVE_MSMF"_def;
             videoio += "HAVE_VFW"_def;
-            videoio.Public += "Vfw32.lib"_lib;
+            videoio.Public += "Vfw32.lib"_slib;
         }
         videoio -=
             "modules/videoio/src/cap_android.*"_rr,

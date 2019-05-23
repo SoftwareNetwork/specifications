@@ -29,14 +29,14 @@ void build(Solution &s)
             config.Variables["IEX_NAMESPACE"] = "Iex";
             config.Variables["ILMTHREAD_NAMESPACE"] = "IlmThread";
 
-            if (s.Settings.TargetOS.Type == OSType::Windows)
+            if (config.getSettings().TargetOS.Type == OSType::Windows)
             {
                 config.Public += "PLATFORM_WINDOWS"_def;
             }
             else
             {
                 config += "HAVE_PTHREAD=1"_v;
-                if (s.Settings.TargetOS.Type != OSType::Macos)
+                if (config.getSettings().TargetOS.Type != OSType::Macos)
                 {
                     config += "ILMBASE_HAVE_LARGE_STACK=1"_v;
                     config += "HAVE_POSIX_SEMAPHORES=1"_v;
@@ -115,14 +115,14 @@ void build(Solution &s)
 
         config += "OPENEXR_IMF_HAVE_COMPLETE_IOMANIP=1"_v;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (config.getSettings().TargetOS.Type == OSType::Windows)
         {
             config.Public += "HAVE_COMPLETE_IOMANIP"_def;
         }
         else
         {
             config += "HAVE_PTHREAD=1"_v;
-            if (s.Settings.TargetOS.Type != OSType::Macos)
+            if (config.getSettings().TargetOS.Type != OSType::Macos)
             {
                 config += "OPENEXR_IMF_HAVE_LARGE_STACK=1"_v;
                 config += "HAVE_POSIX_SEMAPHORES=1"_v;
@@ -131,7 +131,7 @@ void build(Solution &s)
                 config += "OPENEXR_IMF_HAVE_LARGE_STACK=1"_v;
             }
         }
-        if (s.Settings.TargetOS.Type == OSType::Macos)
+        if (config.getSettings().TargetOS.Type == OSType::Macos)
         {
             config += "OPENEXR_IMF_HAVE_DARWIN=1"_v;
         }

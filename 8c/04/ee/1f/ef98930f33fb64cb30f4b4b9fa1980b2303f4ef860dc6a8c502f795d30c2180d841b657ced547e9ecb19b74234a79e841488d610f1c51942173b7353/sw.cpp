@@ -46,10 +46,10 @@ void build(Solution &s)
         socketxx += "HAVE_WORKING_FORK=1"_v;
         socketxx += "HAVE_WORKING_VFORK=1"_v;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (socketxx.getSettings().TargetOS.Type == OSType::Windows)
         {
             socketxx.Public += "WIN32"_d;
-            socketxx.Public += "ws2_32.lib"_lib;
+            socketxx.Public += "ws2_32.lib"_slib;
             socketxx -= "Utilities/socketxx/socket++/sockunix.cpp";
         }
         socketxx.Protected += IncludeDirectory(socketxx.BinaryPrivateDir);
@@ -120,10 +120,10 @@ void build(Solution &s)
         gdcm.Public += "GDCM_USE_SYSTEM_EXPAT"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_JSON"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_OPENSSL"_d;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gdcm.getSettings().TargetOS.Type == OSType::Windows)
         {
-            gdcm.Public += "Ws2_32.lib"_lib;
-            gdcm.Public += "Rpcrt4.lib"_lib;
+            gdcm.Public += "Ws2_32.lib"_slib;
+            gdcm.Public += "Rpcrt4.lib"_slib;
         }
         gdcm.Private += sw::Shared, "gdcmCommon_EXPORTS"_d;
         gdcm.Public += sw::Shared, "GDCM_BUILD_SHARED_LIBS"_d;
