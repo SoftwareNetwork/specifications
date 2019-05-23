@@ -40,9 +40,9 @@ struct YasmCompiler : sw::NativeCompiler,
         return ObjectFile();
     }
 
-    void prepareCommand1(const TargetBase &t) override
+    void prepareCommand1(const Target &t) override
     {
-        cmd->addPathDirectory(t.getSolution()->swctx.getLocalStorage().storage_dir_bin / t.getSolution()->getConfig());
+        cmd->addPathDirectory(t.getSolution().swctx.getLocalStorage().storage_dir_bin / t.getConfig());
 
         if (InputFile)
         {
@@ -54,9 +54,9 @@ struct YasmCompiler : sw::NativeCompiler,
 
         if (!ObjectFormat)
         {
-            if (t.getSolution()->Settings.TargetOS.Type == OSType::Windows)
+            if (t.getSettings().TargetOS.Type == OSType::Windows)
             {
-                if (t.getSolution()->Settings.TargetOS.Arch == ArchType::x86_64)
+                if (t.getSettings().TargetOS.Arch == ArchType::x86_64)
                     ObjectFormat = "win64";
                 else
                     ObjectFormat = "win32";
@@ -294,10 +294,9 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-    auto C = std::make_shared<YasmCompiler>(yasm.getSolution()->swctx);
+    auto C = std::make_shared<YasmCompiler>(yasm.getSolution().swctx);
     C->file = yasm.getOutputFile();
-    C->input_extensions = { ".asm", };
-    s.registerProgram(yasm, C);
+    yasm.program = C;
 }
 
 void check(Checker &c)
