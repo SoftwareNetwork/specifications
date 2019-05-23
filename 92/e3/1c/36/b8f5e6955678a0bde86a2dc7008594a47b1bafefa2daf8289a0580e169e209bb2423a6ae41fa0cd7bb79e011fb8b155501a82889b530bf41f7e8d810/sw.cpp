@@ -41,8 +41,8 @@ void build(Solution &s)
         DataManager.CPPVersion = CPPLanguageStandard::CPP17;
         DataManager.ApiName = "DATA_MANAGER_API";
         DataManager += "include/.*"_rr;
-        DataManager += "src/manager/.*\.h"_rr;
-        DataManager += "src/manager/.*\.cpp"_rr;
+        DataManager += "src/manager/.*\\.h"_rr;
+        DataManager += "src/manager/.*\\.cpp"_rr;
 
         DataManager.Public += "include"_idir;
         DataManager += "src/manager"_idir;
@@ -79,7 +79,7 @@ void build(Solution &s)
             DataManager += IncludeDirectory(DataManager.BinaryDir / "src");
         }
 
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (DataManager.getCompilerType() == CompilerType::MSVC)
             DataManager.CompileOptions.push_back("-bigobj");
     }
 }
