@@ -43,6 +43,6 @@ void build(Solution &s)
         "src"_id;
 
     lua.Private += "LUA_LIB"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (lua.getSettings().TargetOS.Type == OSType::Windows)
         lua.Public += sw::Shared, "LUA_BUILD_AS_DLL"_d;
 }

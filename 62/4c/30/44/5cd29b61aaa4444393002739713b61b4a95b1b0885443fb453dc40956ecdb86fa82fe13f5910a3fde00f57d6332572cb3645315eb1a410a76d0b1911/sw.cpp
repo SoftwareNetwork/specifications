@@ -6,7 +6,11 @@ void build(Solution &s)
     t += "xxh3.h";
 
     if (t.getSettings().TargetOS.Type == OSType::Windows)
+    {
         t += "WIN32"_def;
+        t.patch("xxh3.h", "__attribute__((noinline))", "");
+        t.patch("xxh3.h", "#   pragma intrinsic(_umul128)", "//#   pragma intrinsic(_umul128)");
+    }
 
     t += sw::Shared, "XXH_EXPORT"_def;
     t.Interface += sw::Shared, "XXH_IMPORT"_def;
