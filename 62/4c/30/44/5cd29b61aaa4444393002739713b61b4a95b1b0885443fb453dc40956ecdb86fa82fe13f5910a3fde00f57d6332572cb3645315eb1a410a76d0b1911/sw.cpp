@@ -5,7 +5,7 @@ void build(Solution &s)
     t += "xxhash.[hc]"_rr;
     t += "xxh3.h";
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (t.getSettings().TargetOS.Type == OSType::Windows)
         t += "WIN32"_def;
 
     t += sw::Shared, "XXH_EXPORT"_def;
