@@ -36,7 +36,7 @@ void build(Solution &s)
     common -= ".*linux.cpp"_rr;
     common -= ".*mac.cpp"_rr;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (common.getSettings().TargetOS.Type == OSType::Windows)
     {
         common.Public += "NOMINMAX"_d;
     }
@@ -62,7 +62,7 @@ void build(Solution &s)
     translator.Public +=
         "src"_id;
     translator.Private += "LIBANGLE_IMPLEMENTATION"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (translator.getSettings().TargetOS.Type == OSType::Windows)
     {
         translator.Public += "ANGLE_ENABLE_GLSL"_d;
         translator.Public += "ANGLE_ENABLE_HLSL"_d;
@@ -95,7 +95,7 @@ void build(Solution &s)
     angle.Public +=
         "src"_id;
     angle.Private += "LIBANGLE_IMPLEMENTATION"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (angle.getSettings().TargetOS.Type == OSType::Windows)
     {
         angle += "src/libANGLE/renderer/d3d.*"_rr;
 
