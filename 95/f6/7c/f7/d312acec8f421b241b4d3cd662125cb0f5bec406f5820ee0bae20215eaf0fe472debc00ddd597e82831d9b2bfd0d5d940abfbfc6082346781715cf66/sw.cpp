@@ -35,6 +35,12 @@ void build(Solution &s)
         t += t.BinaryDir / ("" + name + ".def");
     };
 
+    auto make_def_simple = [&s](auto &t, const String &name, const String &arch)
+    {
+        t -= "src/.*\\.def"_rr;
+        t += path("src/" + name + "/" + arch + "-" + name + "-export.def");
+    };
+
     auto &tbb = p.addTarget<LibraryTarget>("tbb");
     {
         tbb +=
@@ -119,7 +125,7 @@ void build(Solution &s)
         {
             tbbmalloc.Public += "USE_WINTHREAD"_d;
 
-            make_def(tbbmalloc, "tbbmalloc", arch);
+            make_def_simple(tbbmalloc, "tbbmalloc", arch);
         }
 
         make_ver(tbbmalloc);
