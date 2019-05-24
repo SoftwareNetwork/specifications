@@ -18,11 +18,22 @@ void build(Solution &s)
     cpprestsdk +=
         "src/pch"_id;
 
+    cpprestsdk -= ".*winrt.*"_rr;
+    if (cpprestsdk.getSettings().TargetOS.Type == OSType::Windows)
+    {
+        cpprestsdk -= ".*apple.*"_rr;
+        cpprestsdk -= ".*linux.*"_rr;
+        cpprestsdk -= ".*posix.*"_rr;
+        cpprestsdk -= "src/http/client/http_client_asio.cpp";
+        cpprestsdk -= "src/http/client/http_server_asio.cpp";
+        cpprestsdk -= "src/http/listener/http_server_asio.cpp";
+        cpprestsdk -= "src/pplx/threadpool.cpp";
+    }
+
     cpprestsdk.Public +=
         "include"_id;
 
     cpprestsdk += "CPPREST_NO_SSL_LEAK_SUPPRESS"_d;
-    cpprestsdk += "NOMINMAX"_d;
     cpprestsdk += "SSL_R_SHORT_READ=boost::asio::ssl::error::stream_truncated"_d;
     if (cpprestsdk.getSettings().TargetOS.Type == OSType::Windows)
     {
@@ -35,10 +46,12 @@ void build(Solution &s)
     cpprestsdk.Public += sw::Static, "_NO_ASYNCRTIMP"_d;
     cpprestsdk.Public += sw::Static, "_NO_PPLXIMP"_d;
 
-    cpprestsdk.Public += "org.sw.demo.boost.asio-1"_dep;
-    cpprestsdk.Public += "org.sw.demo.boost.date_time-1"_dep;
-    cpprestsdk.Public += "org.sw.demo.boost.system-1"_dep;
+    cpprestsdk.Public += "org.sw.demo.boost.asio"_dep;
     cpprestsdk.Public += "org.sw.demo.zaphoyd.websocketpp"_dep;
-    cpprestsdk.Public += "org.sw.demo.openssl.ssl-1"_dep;
-    cpprestsdk.Public += "org.sw.demo.madler.zlib-1"_dep;
+    cpprestsdk.Public += "org.sw.demo.openssl.ssl"_dep;
+    cpprestsdk.Public += "org.sw.demo.madler.zlib"_dep;
+    cpprestsdk.Public += "org.sw.demo.google.brotli"_dep;
+
+    cpprestsdk -= "src/websockets/client/ws_client_wspp.cpp";
+    //cpprestsdk.patch("src/websockets/client/ws_client_wspp.cpp", "::SSL_COMP_free_compression_methods();", "");
 }
