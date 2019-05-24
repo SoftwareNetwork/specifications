@@ -225,7 +225,7 @@ void build(Solution &s)
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
         lib += "_Py_HAVE_ZLIB"_d;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (lib.getSettings().TargetOS.Type == OSType::Windows)
         {
             lib -= "Modules/pwdmodule.c";
             lib -= "Modules/getpath.c";
@@ -241,7 +241,7 @@ void build(Solution &s)
             lib.Public += "MS_WINDOWS"_d;
             lib.Public += "NT_THREADS"_d;
             lib.Public += "WIN32"_d;
-            if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+            if (lib.getSettings().TargetOS.Arch == ArchType::x86_64)
                 lib.Public += "MS_WINI64"_d;
 
             lib.Public += "advapi32.lib"_lib;
@@ -876,9 +876,8 @@ void check(Checker &c)
     #include <time.h>
     int main() { struct tm t; return 0; }
     )sw_xxx");
-    if (s.checker.solution->Settings.TargetOS.Type != OSType::Windows)
-    {
-        s.checkSourceCompiles("VA_LIST_IS_ARRAY", R"sw_xxx(#if ${HAVE_STDARG_PROTOTYPES}
+
+    s.checkSourceCompiles("VA_LIST_IS_ARRAY", R"sw_xxx(#if ${HAVE_STDARG_PROTOTYPES}
     #include <stdarg.h>
     #else
     #include <varargs.h>
@@ -889,7 +888,7 @@ void check(Checker &c)
         return 0;
     }
     )sw_xxx");
-    }
+
     s.checkSourceCompiles("WINDOW_HAS_FLAGS", R"sw_xxx(#include <curses.h>
     int main()
     {
