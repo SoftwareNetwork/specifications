@@ -298,10 +298,15 @@ void build(Solution &s)
     grpc.Public += grpc_common, grpc_lb_policy_grpclb_secure, grpc_secure, grpc_transport_chttp2_client_secure,
         grpc_transport_chttp2_server_secure, grpc_lb_policy_xds_secure;
 
+    auto &grpcpp_internal_hdrs_only = p.addTarget<StaticLibraryTarget>("grpcpp_internal_hdrs_only");
+    grpcpp_internal_hdrs_only.BazelTargetName = "grpc++_internal_hdrs_only";
+    setup_grpc(grpcpp_internal_hdrs_only);
+    grpcpp_internal_hdrs_only.Public += gpr_codegen;
+
     auto &grpcpp_codegen_base = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_base");
     grpcpp_codegen_base.BazelTargetName = "grpc++_codegen_base";
     setup_grpc(grpcpp_codegen_base);
-    grpcpp_codegen_base.Public += grpc_codegen;
+    grpcpp_codegen_base.Public += grpc_codegen, grpcpp_internal_hdrs_only;
 
     auto &grpcpp_base = p.addTarget<StaticLibraryTarget>("grpcpp_base");
     grpcpp_base.BazelTargetName = "grpc++_base";
@@ -321,5 +326,6 @@ void build(Solution &s)
     auto &grpcpp = p.addTarget<StaticLibraryTarget>("grpcpp");
     grpcpp.BazelTargetName = "grpc++";
     setup_grpc(grpcpp);
-    grpcpp.Public += gpr, grpc, grpcpp_base, grpcpp_codegen_base, grpcpp_codegen_base_src, grpcpp_codegen_proto;
+    grpcpp.Public += gpr, grpc, grpcpp_base,
+        grpcpp_codegen_base, grpcpp_codegen_base_src, grpcpp_codegen_proto;
 }

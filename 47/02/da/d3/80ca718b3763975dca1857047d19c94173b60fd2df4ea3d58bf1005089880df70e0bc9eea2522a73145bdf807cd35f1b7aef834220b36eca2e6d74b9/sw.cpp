@@ -182,13 +182,18 @@ void build(Solution &s)
     setup_grpc(grpc_message_size_filter);
     grpc_message_size_filter.Public += grpc_base, grpc_client_channel;
 
+    auto &grpc_resolver_dns_selection = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_selection");
+    setup_grpc(grpc_resolver_dns_selection);
+    grpc_resolver_dns_selection.Public += grpc_base;
+
     auto &grpc_resolver_dns_ares = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_ares");
     setup_grpc(grpc_resolver_dns_ares);
-    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, "org.sw.demo.c_ares-1"_dep;
+    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, grpc_resolver_dns_selection,
+        "org.sw.demo.c_ares-1"_dep;
 
     auto &grpc_resolver_dns_native = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_native");
     setup_grpc(grpc_resolver_dns_native);
-    grpc_resolver_dns_native.Public += grpc_base, grpc_client_channel;
+    grpc_resolver_dns_native.Public += grpc_base, grpc_client_channel, grpc_resolver_dns_selection;
 
     auto &grpc_resolver_fake = p.addTarget<StaticLibraryTarget>("grpc_resolver_fake");
     setup_grpc(grpc_resolver_fake);
@@ -298,10 +303,15 @@ void build(Solution &s)
     grpc.Public += grpc_common, grpc_lb_policy_grpclb_secure, grpc_secure, grpc_transport_chttp2_client_secure,
         grpc_transport_chttp2_server_secure, grpc_lb_policy_xds_secure;
 
+    auto &grpcpp_internal_hdrs_only = p.addTarget<StaticLibraryTarget>("grpcpp_internal_hdrs_only");
+    grpcpp_internal_hdrs_only.BazelTargetName = "grpc++_internal_hdrs_only";
+    setup_grpc(grpcpp_internal_hdrs_only);
+    grpcpp_internal_hdrs_only.Public += gpr_codegen;
+
     auto &grpcpp_codegen_base = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_base");
     grpcpp_codegen_base.BazelTargetName = "grpc++_codegen_base";
     setup_grpc(grpcpp_codegen_base);
-    grpcpp_codegen_base.Public += grpc_codegen;
+    grpcpp_codegen_base.Public += grpc_codegen, grpcpp_internal_hdrs_only;
 
     auto &grpcpp_base = p.addTarget<StaticLibraryTarget>("grpcpp_base");
     grpcpp_base.BazelTargetName = "grpc++_base";
@@ -321,5 +331,6 @@ void build(Solution &s)
     auto &grpcpp = p.addTarget<StaticLibraryTarget>("grpcpp");
     grpcpp.BazelTargetName = "grpc++";
     setup_grpc(grpcpp);
-    grpcpp.Public += gpr, grpc, grpcpp_base, grpcpp_codegen_base, grpcpp_codegen_base_src, grpcpp_codegen_proto;
+    grpcpp.Public += gpr, grpc, grpcpp_base,
+        grpcpp_codegen_base, grpcpp_codegen_base_src, grpcpp_codegen_proto;
 }
