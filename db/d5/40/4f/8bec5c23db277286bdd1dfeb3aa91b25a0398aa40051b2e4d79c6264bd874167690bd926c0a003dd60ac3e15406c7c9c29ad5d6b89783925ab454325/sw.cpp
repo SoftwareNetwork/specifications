@@ -182,13 +182,18 @@ void build(Solution &s)
     setup_grpc(grpc_message_size_filter);
     grpc_message_size_filter.Public += grpc_base, grpc_client_channel;
 
+    auto &grpc_resolver_dns_selection = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_selection");
+    setup_grpc(grpc_resolver_dns_selection);
+    grpc_resolver_dns_selection.Public += grpc_base;
+
     auto &grpc_resolver_dns_ares = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_ares");
     setup_grpc(grpc_resolver_dns_ares);
-    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, "org.sw.demo.c_ares-1"_dep;
+    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, grpc_resolver_dns_selection,
+        "org.sw.demo.c_ares-1"_dep;
 
     auto &grpc_resolver_dns_native = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_native");
     setup_grpc(grpc_resolver_dns_native);
-    grpc_resolver_dns_native.Public += grpc_base, grpc_client_channel;
+    grpc_resolver_dns_native.Public += grpc_base, grpc_client_channel, grpc_resolver_dns_selection;
 
     auto &grpc_resolver_fake = p.addTarget<StaticLibraryTarget>("grpc_resolver_fake");
     setup_grpc(grpc_resolver_fake);
