@@ -529,7 +529,7 @@ static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget 
     for (auto &q : qms)
     {
         auto o = t.BinaryDir / q.filename();
-        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, t, "sw_copy_file");
+        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, t, "sw_copy_file", nullptr);
         copy_cmd->args.push_back(normalize_path(q));
         copy_cmd->args.push_back(normalize_path(o));
         copy_cmd->addInput(q);
@@ -1483,7 +1483,7 @@ void build(Solution &s)
 
             auto copy = [](auto &t, const path &in, const path &out)
             {
-                SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file");
+                SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file", nullptr);
                 c->args.push_back(in.u8string());
                 c->args.push_back(out.u8string());
                 c->addInput(in);
@@ -1509,8 +1509,7 @@ void build(Solution &s)
                 "src/tools/moc/[^/]*\\.h"_rr;
             moc -=
                 "src/tools/moc/keywords.cpp",
-                "src/tools/moc/ppkeywords.cpp",
-                "src/tools/moc/mwerks_mac.cpp";
+                "src/tools/moc/ppkeywords.cpp";
             moc.Public += "QT_MOC"_d;
             //moc.Public += "QT_NO_CAST_FROM_ASCII"_d;
             moc.Public += "QT_NO_CAST_FROM_BYTEARRAY"_d;
