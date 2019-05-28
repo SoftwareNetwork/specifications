@@ -35,15 +35,13 @@ struct YasmCompiler : sw::NativeCompiler,
         return std::make_shared<YasmCompiler>(*this);
     }
 
-    path getOutputFile(void) const override
+    path getOutputFile() const override
     {
         return ObjectFile();
     }
 
     void prepareCommand1(const Target &t) override
     {
-        cmd->addPathDirectory(t.getSolution().swctx.getLocalStorage().storage_dir_bin / t.getConfig());
-
         if (InputFile)
         {
             cmd->name = normalize_path(InputFile());
@@ -82,9 +80,27 @@ protected:
     Version gatherVersion() const override { return "master"; }
 };
 
+struct YamlExecutable : Executable
+{
+    sw::ProgramPtr getProgram() const override
+    {
+        auto p = Executable::getProgram();
+        if (program_set_up)
+            return p;
+        auto yc = p->as<YasmCompiler>();
+        auto cmd = yc->createCommand((const sw::SwContext&)p->swctx);
+        setupCommand(*cmd);
+        program_set_up = true;
+        return p;
+    }
+
+private:
+    mutable bool program_set_up = false;
+};
+
 void build(Solution &s)
 {
-    auto &yasm = s.addExecutable("yasm", "master");
+    auto &yasm = s.add<YamlExecutable>("yasm", "master");
     yasm += Git("https://github.com/yasm/yasm", "", "{v}");
 
     auto &cfg = yasm.addLibrary("config");
@@ -296,7 +312,7 @@ void build(Solution &s)
 
     auto C = std::make_shared<YasmCompiler>(yasm.getSolution().swctx);
     C->file = yasm.getOutputFile();
-    yasm.program = C;
+    yasm.setProgram(C);
 }
 
 void check(Checker &c)
