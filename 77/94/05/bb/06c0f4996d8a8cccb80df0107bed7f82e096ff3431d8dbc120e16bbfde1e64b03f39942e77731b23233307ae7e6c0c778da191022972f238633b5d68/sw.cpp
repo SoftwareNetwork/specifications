@@ -8,7 +8,7 @@ void build(Solution &s)
     lemon -= "tool/lempar.c";
 
     auto &mkkeywordhash = sql.addTarget<ExecutableTarget>("mkkeywordhash");
-    mkkeywordhash.Scope = TargetScope::Tool;
+    //mkkeywordhash.Scope = TargetScope::Tool;
     mkkeywordhash += "tool/mkkeywordhash.c";
     mkkeywordhash.Private += "SQLCIPHER_CRYPTO_OPENSSL=1"_d;
 
@@ -52,12 +52,12 @@ void build(Solution &s)
     sqlcipher.Private += "SQLITE_HAS_CODEC"_d;
     sqlcipher.Private += "SQLITE_THREADSAFE"_d;
     sqlcipher.Private += "SQLITE_USER_AUTHENTICATION"_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (sqlcipher.getSettings().TargetOS.Type != OSType::Windows)
     {
         sqlcipher.Public += "dl"_lib;
     }
 
-    if (s.Settings.Native.ConfigurationType == ConfigurationType::Debug)
+    if (sqlcipher.getSettings().Native.ConfigurationType == ConfigurationType::Debug)
         sqlcipher += "SQLITE_DEBUG"_d;
 
     sqlcipher.Public += "org.sw.demo.openssl.crypto-1.*.*.*"_dep;
@@ -65,7 +65,7 @@ void build(Solution &s)
 
     auto copy = [](auto &t, const path &in, const path &out)
     {
-        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file");
+        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file", nullptr);
         c->args.push_back(in.u8string());
         c->args.push_back(out.u8string());
         c->addInput(in);
@@ -110,7 +110,7 @@ void build(Solution &s)
             << cmd::std_out(parseh);
     }
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (sqlcipher.getSettings().TargetOS.Type == OSType::Windows)
     {
         auto c = sqlcipher.addCommand();
         c << "cmd"
@@ -173,6 +173,6 @@ void build(Solution &s)
             << cmd::std_out(sqlite3h)
             << cmd::end()
             << cmd::in("src/sqlite.h.in")
-        ;
+            ;
     }
 }
