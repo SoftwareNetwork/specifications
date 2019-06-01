@@ -55,6 +55,9 @@ void build(Solution &s)
             "support/regex_internal.c",
             "support/regexec.c";
 
+        gawk ^= "pc/config.h";
+        gawk ^= "pc/socket.h";
+
         gawk.Private +=
             "."_id,
             "support"_id,
