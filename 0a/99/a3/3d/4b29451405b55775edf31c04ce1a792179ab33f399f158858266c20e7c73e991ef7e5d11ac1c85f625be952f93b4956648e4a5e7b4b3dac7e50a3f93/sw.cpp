@@ -55,9 +55,6 @@ void build(Solution &s)
             "support/regex_internal.c",
             "support/regexec.c";
 
-        gawk.removeFile("pc/config.h");
-        gawk.removeFile("pc/socket.h");
-
         gawk.Private +=
             "."_id,
             "support"_id,
@@ -91,6 +88,12 @@ void build(Solution &s)
 
         gawk.replaceInFileOnce("support/regex_internal.c", "__attribute ((pure))", "");
         gawk.replaceInFileOnce("support/regexec.c", "__attribute ((always_inline))", "");
+
+        gawk.patch("support/regex.c", "# include <libc-config.h>", R"(
+# include <config.h>
+#define __glibc_likely(x) x
+#define __glibc_unlikely(x) x
+)");
 
         gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
 
