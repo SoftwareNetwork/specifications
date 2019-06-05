@@ -82,7 +82,7 @@ void configure(Build &s)
 void build(Solution &s)
 {
     auto &p = s.addProject("sw.client", "0.3.0");
-    p += Git("https://github.com/SoftwareNetwork/sw", "", "master");
+    p += Git("https://github.com/SoftwareNetwork/sw", "", "", "705d9861f24890d60200a");
 
     auto &support = p.addTarget<StaticLibraryTarget>("support");
     {
@@ -194,21 +194,12 @@ void build(Solution &s)
         }
     }
 
-    auto &core = p.addTarget<LibraryTarget>("core");
-    {
-        core.ApiName = "SW_CORE_API";
-        core.ExportIfStatic = true;
-        core.CPPVersion = CPPLanguageStandard::CPP17;
-        core.Public += builder;
-        core += "src/sw/core/.*"_rr;
-    }
-
     auto &cpp_driver = p.addTarget<LibraryTarget>("driver.cpp");
     {
         cpp_driver.ApiName = "SW_DRIVER_CPP_API";
         cpp_driver.ExportIfStatic = true;
         cpp_driver.CPPVersion = CPPLanguageStandard::CPP17;
-        cpp_driver.Public += core,
+        cpp_driver.Public += builder,
             "pub.egorpugin.primitives.patch-master"_dep,
             "org.sw.demo.boost.assign-1"_dep,
             "org.sw.demo.boost.bimap-1"_dep,
@@ -257,7 +248,7 @@ void build(Solution &s)
         client.StartupProject = true;
         client += "src/sw/client/.*"_rr;
         client.CPPVersion = CPPLanguageStandard::CPP17;
-        client += core, cpp_driver,
+        client += cpp_driver,
             "pub.egorpugin.primitives.sw.main-master"_dep,
             "org.sw.demo.giovannidicanio.winreg-master"_dep;
         embed("pub.egorpugin.primitives.tools.embedder-master"_dep, client, "src/sw/client/inserts/inserts.cpp.in");
