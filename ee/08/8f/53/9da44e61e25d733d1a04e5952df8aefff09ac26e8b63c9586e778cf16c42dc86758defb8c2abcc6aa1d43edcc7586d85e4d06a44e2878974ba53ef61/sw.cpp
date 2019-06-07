@@ -7,6 +7,7 @@ void build(Solution &s)
     auto &t = p.addStaticLibrary("jbig2dec");
     t += "config_.*"_r;
     t += "os_types.h";
+    t += "memento.[hc]"_r;
     t += "jbig2[\\._].*"_r;
     t.Public += "org.sw.demo.glennrp.png"_dep;
 }
