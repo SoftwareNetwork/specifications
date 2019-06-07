@@ -6,5 +6,6 @@ void build(Solution &s)
     auto &t = p.addStaticLibrary("mujs");
     t += ".*\\.[hc]"_r;
     t -= "main.c";
+    t -= "one.c";
     t -= "jsrepr.c";
 }
