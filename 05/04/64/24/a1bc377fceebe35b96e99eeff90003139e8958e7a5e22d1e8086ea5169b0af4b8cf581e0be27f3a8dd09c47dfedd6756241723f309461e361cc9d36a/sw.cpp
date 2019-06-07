@@ -44,6 +44,8 @@ void build(Solution &s)
 		t.Public += "org.sw.demo.ghostscript.thirdparty.lcms2-lcms2mt"_dep;
 		t.Public += "org.sw.demo.ghostscript.mujs-master"_dep;
 		t.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
+
+		t.patch("include/mupdf/fitz/system.h", "#define hypotf _hypotf", "//#define  hypotf _hypotf");
 	}
 
 	auto &mutool = p.addTarget<Executable>("mutool");
