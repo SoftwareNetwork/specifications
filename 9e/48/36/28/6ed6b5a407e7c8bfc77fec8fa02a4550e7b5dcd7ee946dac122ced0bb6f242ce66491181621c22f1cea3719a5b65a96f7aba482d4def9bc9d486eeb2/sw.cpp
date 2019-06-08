@@ -101,7 +101,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_INT32_FORMAT"] = "%ld";
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == 4)
     {
@@ -114,7 +114,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_UINT32_FORMAT"] = "%ld";
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_SIGNED_LONG"] == 8)
     {
@@ -131,7 +131,7 @@ void build(Solution &s)
         else()*/
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == 8)
     {
@@ -148,7 +148,7 @@ void build(Solution &s)
         else()*/
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == tiff.Variables["SIZEOF_SIZE_T"])
     {
@@ -170,7 +170,7 @@ void build(Solution &s)
         else()*/
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_SIGNED_INT"] == tiff.Variables["SIZEOF_UNSIGNED_CHAR_P"])
     {
@@ -192,7 +192,7 @@ void build(Solution &s)
         else()*/
     }
     else
-        throw std::runtime_error("tiff: no type");
+        throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables.find("SIZEOF_PTRDIFF_T") == tiff.Variables.end())
     {
