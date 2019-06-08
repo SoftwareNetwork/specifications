@@ -43,7 +43,6 @@ void build(Solution &s)
             "src/viewer/svpaint.cpp";
 
         libtesseract.Public +=
-            "src/vs2010/port"_id,
             "src/opencl"_id,
             "src/ccmain"_id,
             "src/api"_id,
@@ -95,7 +94,6 @@ void build(Solution &s)
     //
     auto &tessopt = tess.addStaticLibrary("tessopt");
     tessopt += "src/training/tessopt.*"_rr;
-    tessopt.Public += "training"_id;
     tessopt.Public += libtesseract;
 
     //
@@ -105,7 +103,6 @@ void build(Solution &s)
         "src/training/commandlineflags.h",
         "src/training/commontraining.cpp",
         "src/training/commontraining.h";
-    common_training.Public += "training"_id;
     common_training.Public += tessopt;
 
     //
@@ -118,7 +115,6 @@ void build(Solution &s)
         "src/training/normstrngs.*"_rr,
         "src/training/unicharset_training_utils.*"_rr,
         "src/training/validat.*"_rr;
-    unicharset_training.Public += "training"_id;
     unicharset_training.Public += common_training;
     unicharset_training.Public += "org.sw.demo.unicode.icu.i18n"_dep;
 
