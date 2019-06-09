@@ -22,7 +22,7 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     auto c = t.addCommand();
     c << cmd::prog(protoc)
         << cmd::wdir(bdir)
-        << cmd::in(f)
+        << cmd::in(normalize_path(f)) // must be normalized as d
         << "--grpc_out=" + normalize_path(bdir)
         << [c = c.c.get(), grpc_cpp_plugin]()
     {
@@ -32,7 +32,7 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     }
-    << "-I" << normalize_path(d)
+    << "-I" << normalize_path(d) // must be normalized as f
         << "-I" << [protoc = protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
         << cmd::end()
         << cmd::out(ocpp)
