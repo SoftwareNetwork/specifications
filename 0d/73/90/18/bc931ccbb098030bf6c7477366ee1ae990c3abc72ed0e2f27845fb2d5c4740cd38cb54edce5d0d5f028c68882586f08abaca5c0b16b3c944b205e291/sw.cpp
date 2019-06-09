@@ -2,14 +2,9 @@
 
 #pragma sw require header org.sw.demo.google.protobuf.protoc-3
 
-static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_cpp_plugin, NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
+static void gen_grpc(const DependencyPtr & protoc_in, const DependencyPtr & grpc_cpp_plugin, NativeExecutedTarget & t, const path & f, bool public_protobuf = false)
 {
-    {
-        auto d = t + grpc_cpp_plugin;
-        d->setDummy(true);
-    }
-
-    auto[protoc, _] = gen_protobuf(protoc_in, t, f, public_protobuf);
+    auto [protoc, _] = gen_protobuf(protoc_in, t, f, public_protobuf);
 
     auto n = f.filename().stem().u8string();
     auto d = f.parent_path();
@@ -21,31 +16,24 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     auto oh = o;
     oh += ".grpc.pb.h";
 
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->setProgram(protoc);
-    c->working_directory = bdir;
-    c->args.push_back(f.u8string());
-    c->args.push_back("--grpc_out=" + bdir.u8string());
-    c->pushLazyArg([c = c.get(), grpc_cpp_plugin]()
+    auto c = t.addCommand();
+    c << cmd::prog(protoc)
+        << cmd::wdir(bdir)
+        << cmd::in(f)
+        << "--grpc_out=" + normalize_path(bdir)
+        << [c = c.c.get(), grpc_cpp_plugin]()
     {
         if (!grpc_cpp_plugin->target)
             throw std::runtime_error("Command dependency target was not resolved: " + grpc_cpp_plugin->getPackage().toString());
-        auto p = ((NativeExecutedTarget*)grpc_cpp_plugin->target)->getOutputFile();
+        auto p = ((NativeExecutedTarget *)grpc_cpp_plugin->target)->getOutputFile();
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
-    });
-    c->args.push_back("-I");
-    c->args.push_back(d.u8string());
-    c->args.push_back("-I");
-    // we cannot capture binding ref
-    c->pushLazyArg([protoc = protoc]()
-        {
-            return (protoc->getResolvedPackage().getDirSrc2() / "src").u8string();
-        });
-    c->addInput(f);
-    c->addOutput(ocpp);
-    c->addOutput(oh);
-    t += ocpp, oh;
+    }
+    << "-I" << normalize_path(d)
+        << "-I" << [protoc = protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
+        << cmd::end()
+        << cmd::out(ocpp)
+        << cmd::out(oh);
 };
 
 #pragma sw header off

@@ -8,11 +8,6 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
     auto protobuf = std::make_shared<Dependency>(base->package);
     protobuf->package.ppath /= "protobuf";
 
-    {
-        auto d = t + protoc;
-        d->setDummy(true);
-    }
-
     if (!f.is_absolute())
         f = t.SourceDir / f;
 
@@ -29,22 +24,16 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, pat
     auto oh = o;
     oh += ".pb.h";
 
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->setProgram(protoc);
-    c->working_directory = bdir;
-    c->args.push_back("-I");
-    c->args.push_back(normalize_path(d));
-    c->args.push_back("-I");
-    c->pushLazyArg([protoc]()
-        {
-            return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src");
-        });
-    c->args.push_back("--cpp_out=" + normalize_path(bdir));
-    c->args.push_back(normalize_path(f));
-    c->addInput(f);
-    c->addOutput(ocpp);
-    c->addOutput(oh);
-    t += ocpp, oh;
+    auto c = t.addCommand();
+    c << cmd::prog(protoc)
+        << cmd::wdir(bdir)
+        << "-I" << normalize_path(d)
+        << "-I" << [protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
+        << ("--cpp_out=" + normalize_path(bdir))
+        << cmd::in(f)
+        << cmd::end()
+        << cmd::out(ocpp)
+        << cmd::out(oh);
 
     t += protobuf;
     if (public_protobuf)
