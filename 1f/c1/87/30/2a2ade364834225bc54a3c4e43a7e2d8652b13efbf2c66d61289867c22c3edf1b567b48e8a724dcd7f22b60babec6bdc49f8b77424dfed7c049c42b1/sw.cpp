@@ -1,6 +1,7 @@
 #pragma sw header on
 
-static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t, path f, bool public_protobuf = false, const path &out_dir = {})
+static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t,
+    path f, bool public_protobuf = false, const path &out_dir = {})
 {
     auto protoc = std::make_shared<Dependency>(base->package);
     protoc->package.ppath /= "protoc";
