@@ -2,7 +2,8 @@
 
 #pragma sw require header org.sw.demo.google.protobuf.protoc-3
 
-static void gen_grpc(const DependencyPtr & protoc_in, const DependencyPtr & grpc_cpp_plugin, NativeExecutedTarget & t, const path & f, bool public_protobuf = false)
+static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_cpp_plugin,
+    NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
 {
     auto [protoc, _] = gen_protobuf(protoc_in, t, f, public_protobuf);
 
@@ -15,6 +16,8 @@ static void gen_grpc(const DependencyPtr & protoc_in, const DependencyPtr & grpc
     ocpp += ".grpc.pb.cc";
     auto oh = o;
     oh += ".grpc.pb.h";
+
+    (t + grpc_cpp_plugin)->setDummy(true);
 
     auto c = t.addCommand();
     c << cmd::prog(protoc)
