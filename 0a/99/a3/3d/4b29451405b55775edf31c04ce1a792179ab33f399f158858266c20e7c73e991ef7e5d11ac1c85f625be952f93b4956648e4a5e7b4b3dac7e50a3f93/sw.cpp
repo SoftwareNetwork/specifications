@@ -4,7 +4,7 @@ struct GawkExecutable : ExecutableTarget
     {
         if (getSettings().TargetOS.Type != OSType::Windows)
         {
-            c.program = "gawk";
+            c.setProgram("gawk");
             return;
         }
         ExecutableTarget::setupCommand(c);
