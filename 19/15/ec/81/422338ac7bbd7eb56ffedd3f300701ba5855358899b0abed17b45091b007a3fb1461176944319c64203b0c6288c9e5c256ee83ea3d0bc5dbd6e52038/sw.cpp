@@ -19,64 +19,39 @@ void build(Solution &s)
             "lib/.*"_rr;
 
         gnulib -=
-            "lib/at-func.c",
-            "lib/closedir.c",
-            "lib/colorize-posix.c",
-            "lib/fnmatch_loop.c",
-            "lib/fts-cycle.c",
-            "lib/iswblank.c",
             "lib/localcharset.c",
             "lib/localeconv.c",
             "lib/lseek.c",
             "lib/mbsinit.c",
             "lib/memchr.c",
-            "lib/opendir.*"_rr,
-            "lib/readdir.c",
             "lib/regcomp.c",
             "lib/regex_internal.c",
             "lib/regexec.c",
             "lib/strerror-override.c",
-            "lib/strtoimax.c",
-            "lib/strtol.c",
-            "lib/strtoll.c",
-            //"lib/sigaction.c",
-            //"lib/sig-handler.c",
-            //"lib/sigprocmask.c",
 
-            //"lib/waitpid.c",
             "lib/ftell.c",
             "lib/ftello.c",
             "lib/fseek.c",
-            //"lib/tempname.c",
-            //"lib/fatal-signal.c",
             "lib/snprintf.c",
             "lib/frexp.c",
             "lib/frexpl.c",
-            //"lib/gettimeofday.c",
             "lib/btowc.c",
             "lib/fflush.c"
-
-            //,
-            //"lib/xalloc.c"
             ;
 
         gnulib -= "lib/spawn.*"_rr;
         gnulib += "lib/spawn-pipe.c";
         gnulib += "lib/clean-temp.c";
 
-
-
-
-        gnulib += "lib/opendirat.[hc]"_rr;
-        gnulib -= "lib/iconv.*"_rr;
         gnulib.Public += "lib"_id;
 
         gnulib.Private += "__USE_GNU"_d;
+        gnulib.Private += "OK_TO_USE_1S_CLOCK"_def;
 
         gnulib.Public += "org.sw.demo.gnu.gawk.getopt"_dep;
         gnulib.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
         {
             gnulib.Public += "org.sw.demo.tronkko.dirent-master"_dep;
             //gnulib.Public += "HAVE_FCNTL"_def;
@@ -96,10 +71,10 @@ void build(Solution &s)
         gnulib.Variables["GNULIB_SCANDIR"] = "0";
         gnulib.Variables["GNULIB_ALPHASORT"] = "0";
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
         {
             //gnulib += "__inline=inline"_def;
-            if (s.Settings.TargetOS.is(ArchType::x86_64))
+            if (gnulib.getSettings().TargetOS.is(ArchType::x86_64))
             {
                 gnulib += "WINDOWS_64_BIT_ST_SIZE=1"_def;
                 gnulib += "WINDOWS_64_BIT_OFF_T=1"_def;
@@ -768,7 +743,7 @@ char * strsignal(int);
         m4.Private += "ENABLE_CHANGEWORD"_d;
         m4.Public += gnulib;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (m4.getSettings().TargetOS.Type == OSType::Windows)
         {
             m4 += "RENAME_OPEN_FILE_WORKS=0"_def;
             m4 += "SYSCMD_SHELL=\"cmd\""_def;
