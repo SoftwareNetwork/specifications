@@ -1,12 +1,10 @@
-//#pragma sw require pub.egorpugin.primitives.command-master
-
 struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
         if (getSettings().TargetOS.Type != OSType::Windows)
         {
-            c.program = "python3"; // python3?
+            c.setProgram("python3");
             return;
         }
         ExecutableTarget::setupCommand(c);
