@@ -28,10 +28,10 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t,
     auto c = t.addCommand();
     c << cmd::prog(protoc)
         << cmd::wdir(bdir)
-        << "-I" << normalize_path(d)
+        << "-I" << normalize_path(d) // must be normalized as f
         << "-I" << [protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
         << ("--cpp_out=" + normalize_path(bdir))
-        << cmd::in(f)
+        << cmd::in(normalize_path(f)) // must be normalized as d
         << cmd::end()
         << cmd::out(ocpp)
         << cmd::out(oh);
