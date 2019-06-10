@@ -4,7 +4,7 @@ struct SedExecutable : ExecutableTarget
     {
         if (getSettings().TargetOS.Type != OSType::Windows)
         {
-            c.program = "sed";
+            c.setProgram("sed");
             return;
         }
         ExecutableTarget::setupCommand(c);

@@ -51,10 +51,10 @@ void build(Solution &s)
 
         auto cc = std::static_pointer_cast<Compiler>(fontconfig.findProgramByExtension(".cpp")->clone());
         auto c = cc->getCommand(fontconfig);
-        c->args.push_back("-I");
-        c->args.push_back(fontconfig.SourceDir.u8string());
-        c->args.push_back("-E");
-        c->args.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
+        c->arguments.push_back("-I");
+        c->arguments.push_back(fontconfig.SourceDir.u8string());
+        c->arguments.push_back("-E");
+        c->arguments.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
         //c->redirectStdout(o1);
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
         fontconfig.Storage.push_back(c);
