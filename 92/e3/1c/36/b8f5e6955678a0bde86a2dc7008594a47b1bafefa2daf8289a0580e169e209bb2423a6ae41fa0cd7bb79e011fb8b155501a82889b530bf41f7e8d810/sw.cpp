@@ -41,7 +41,6 @@ void build(Solution &s)
         DataManager.CPPVersion = CPPLanguageStandard::CPP17;
         DataManager.ApiName = "DATA_MANAGER_API";
         DataManager += "include/.*"_rr;
-        DataManager += "src/manager/.*\\.h"_rr;
         DataManager += "src/manager/.*\\.cpp"_rr;
 
         DataManager.Public += "include"_idir;
