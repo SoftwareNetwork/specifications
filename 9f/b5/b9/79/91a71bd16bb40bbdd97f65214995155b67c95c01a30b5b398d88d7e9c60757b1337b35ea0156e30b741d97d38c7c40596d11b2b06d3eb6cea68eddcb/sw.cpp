@@ -98,9 +98,9 @@ void build(Solution &s)
         i = wt.SourceDir / i;
         const auto o = wt.BinaryDir / (name + ".C");
         SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, wt, "wt_preprocess_file", &wt_preprocess_file);
-        c->args.push_back(i.u8string());
-        c->args.push_back(o.u8string());
-        c->args.push_back(name);
+        c->push_back(i);
+        c->push_back(o);
+        c->push_back(name);
         c->addInput(i);
         c->addOutput(o);
         wt += o;
