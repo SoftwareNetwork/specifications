@@ -27,8 +27,11 @@ void build(Solution &s)
 					<< cmd::in(fn)
 					<< cmd::out(fn.filename() += ".obj")
 					<< "_binary_" + boost::replace_all_copy(fn.filename().u8string(), ".", "_")
-					<< "x64"
 					;
+				if (t.getSettings().TargetOS.is(ArchType::x86_64))
+					c << "x64";
+				else
+					c << "Win32";
 			}
 		};
 		make_obj("resources/fonts/droid/.*\\.[ot]tf"_rr);
