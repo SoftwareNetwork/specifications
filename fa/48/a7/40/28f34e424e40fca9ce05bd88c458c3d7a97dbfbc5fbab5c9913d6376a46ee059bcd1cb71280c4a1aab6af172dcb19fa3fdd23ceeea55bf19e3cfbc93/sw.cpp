@@ -2,6 +2,7 @@ struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
+        ExecutableTarget::setupCommand(c);
         c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
     }
 
@@ -24,8 +25,6 @@ void build(Solution &s)
             "Include/.*"_rr,
             "Modules/.*\\.h"_rr,
             "Modules/_bisectmodule.c",
-            "Modules/_blake2/.*\\.c"_rr,
-            "Modules/_blake2/.*\\.h"_rr,
             "Modules/_codecsmodule.c",
             "Modules/_collectionsmodule.c",
             "Modules/_csv.c",
@@ -40,10 +39,6 @@ void build(Solution &s)
             "Modules/_lsprof.c",
             "Modules/_math.c",
             "Modules/_randommodule.c",
-            "Modules/_sha3/.*\\.c"_rr,
-            "Modules/_sha3/.*\\.h"_rr,
-            "Modules/_sha3/.*\\.inc"_rr,
-            "Modules/_sha3/.*\\.macros"_rr,
             "Modules/_sre.c",
             "Modules/_struct.c",
             "Modules/_weakref.c",
@@ -90,7 +85,6 @@ void build(Solution &s)
             "Modules/zipimport.c",
             "Modules/zlibmodule.c",
             "Objects/.*\\.h"_rr,
-            "Objects/.*\\.inc"_rr,
             "Objects/abstract.c",
             "Objects/boolobject.c",
             "Objects/bufferobject.c",
@@ -195,8 +189,6 @@ void build(Solution &s)
             "Python/thread.c",
             "Python/traceback.c";
 
-        lib -= "Modules/_sha3/kcp/.*"_rr;
-        lib -= "Modules/_blake2/impl/.*"_rr;
         lib -= "Python/dynload_.*"_rr;
 
         lib.Public +=
