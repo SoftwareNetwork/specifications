@@ -1,149 +1,139 @@
 void build(Solution &s)
 {
     auto &openssl = s.addProject("openssl", "1.1.1.3");
-    openssl += Git("https://github.com/openssl/openssl", "OpenSSL_{M}_{m}_{p}a");
+    openssl += Git("https://github.com/openssl/openssl", "OpenSSL_{M}_{m}_{p}c");
 
     auto &crypto = openssl.addTarget<LibraryTarget>("crypto");
-
-    crypto +=
-        "crypto/.*\\.c"_rr,
-        "crypto/.*\\.h"_rr,
-        "e_os.h",
-        "engines/.*\\.c"_rr,
-        "engines/.*\\.h"_rr,
-        "include/.*"_rr;
-
-    crypto -=
-        "crypto/LPdir_.*"_rr,
-        "crypto/aes/asm/.*"_rr,
-        //"crypto/bf/.*"_rr,
-        "crypto/bn/asm/.*"_rr,
-        "crypto/des/ncbc_enc.c",
-        "crypto/md2/.*"_rr,
-        "crypto/rc2/tab.c",
-        "crypto/rc5/.*"_rr,
-        "engines/e_afalg.*"_rr;
-
-    crypto.Private +=
-        "crypto/include"_id,
-        "."_id,
-        "crypto/modes"_id,
-        "crypto/asn1"_id,
-        "crypto/dsa"_id,
-        "crypto/evp"_id,
-        "crypto/ec/curve448"_id,
-        "crypto/ec/curve448/arch_32"_id;
-
-    crypto.Public +=
-        "include"_id;
-
-    crypto.ExportAllSymbols = true;
-
-    crypto.Private += "NO_WINDOWS_BRAINDEATH"_d;
-    crypto.Private += "OPENSSL_NO_DYNAMIC_ENGINE"_d;
-    crypto.Private += "OPENSSL_RAND_SEED_OS"_d;
-    crypto.Public += "OPENSSL_NO_ASM"_d;
-    if (s.Settings.TargetOS.Type == OSType::Windows)
     {
-        crypto.Private += "DSO_WIN32"_d;
-        crypto.Public += "Crypt32.lib"_slib;
-        crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
-    }
+        crypto +=
+            "crypto/.*\\.c"_rr,
+            "crypto/.*\\.h"_rr,
+            "e_os.h",
+            "engines/.*\\.c"_rr,
+            "engines/.*\\.h"_rr,
+            "include/.*"_rr;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        crypto.Public += "ws2_32.lib"_slib, "advapi32.lib"_slib, "User32.lib"_slib;
-    }
+        crypto -=
+            "crypto/LPdir_.*"_rr,
+            "crypto/aes/asm/.*"_rr,
+            //"crypto/bf/.*"_rr,
+            "crypto/bn/asm/.*"_rr,
+            "crypto/des/ncbc_enc.c",
+            "crypto/md2/.*"_rr,
+            "crypto/rc5/.*"_rr,
+            "engines/e_afalg.*"_rr;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        crypto.Public.Definitions["OPENSSLDIR"] = "\"C:/Program Files/Common Files/SSL/\"";
-        crypto.Public.Definitions["ENGINESDIR"] = "\"C:/Program Files/OpenSSL/lib/engines/\"";
-    }
-    else
-    {
-        crypto.Public.Definitions["OPENSSLDIR"] = "\"/usr/local/ssl\"";
-        crypto.Public.Definitions["ENGINESDIR"] = "\"/usr/local/ssl/lib/engines\"";
-    }
+        crypto.Private +=
+            "crypto/include"_id,
+            "."_id,
+            "crypto/modes"_id,
+            "crypto/asn1"_id,
+            "crypto/dsa"_id,
+            "crypto/evp"_id,
+            "crypto/ec/curve448"_id,
+            "crypto/ec/curve448/arch_32"_id;
 
-    crypto -=
-        // arch stuff
-        "crypto/armcap.c",
-        "crypto/s390xcap.c",
-        "crypto/sparcv9cap.c",
-        "crypto/ppccap.c",
-        "crypto/aes/aes_x86core.c",
+        crypto.Public +=
+            "include"_id;
 
-        // bins
-        "crypto/x509v3/v3conf.c",
-        "crypto/x509v3/v3prin.c",
-        "crypto/x509v3/tabtest.c",
+        crypto.ExportAllSymbols = true;
 
-        "crypto/pkcs7/pk7_enc.c",
+        crypto.Private += "NO_WINDOWS_BRAINDEATH"_d;
+        crypto.Private += "OPENSSL_NO_DYNAMIC_ENGINE"_d;
+        crypto.Private += "OPENSSL_RAND_SEED_OS"_d;
+        crypto.Public += "OPENSSL_NO_ASM"_d;
+        if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            crypto.Private += "DSO_WIN32"_d;
+            crypto.Public += "Crypt32.lib"_slib;
+            crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
+        }
 
-        "crypto/ec/ecp_nistz256.c",
-        "crypto/ec/ecp_nistz256_table.c",
+        if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            crypto.Public += "ws2_32.lib"_slib, "advapi32.lib"_slib, "User32.lib"_slib;
+        }
 
-        "engines/e_chil.c";
-
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        crypto -= "crypto/poly1305/poly1305_ieee754.c";
-    }
-
-    crypto -= "crypto/bf/bf_cbc.c";
-    crypto -= "crypto/poly1305/poly1305_base2_44.c";
-    crypto -= "crypto/engine/eng_devcrypto.c";
-
-    crypto.Variables["OPENSSL_SYS"] = "UNIX";
-    if (s.Settings.TargetOS.Type == OSType::Linux)
-        crypto.Variables["OPENSSL_SYS"] = "LINUX";
-    else if (s.Settings.TargetOS.Type == OSType::Cygwin)
-        crypto.Variables["OPENSSL_SYS"] = "CYGWIN";
-    else if (s.Settings.TargetOS.Type == OSType::Windows)
-    {
-        if (s.Settings.TargetOS.Arch == ArchType::x86_64)
-            crypto.Variables["OPENSSL_SYS"] = "WIN64A";
+        if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            crypto.Public.Definitions["OPENSSLDIR"] = "\"C:/Program Files/Common Files/SSL/\"";
+            crypto.Public.Definitions["ENGINESDIR"] = "\"C:/Program Files/OpenSSL/lib/engines/\"";
+        }
         else
-            crypto.Variables["OPENSSL_SYS"] = "WIN32";
-    }
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
-        crypto.Variables["OPENSSL_SYS"] = "MACOSX";
+        {
+            crypto.Public.Definitions["OPENSSLDIR"] = "\"/usr/local/ssl\"";
+            crypto.Public.Definitions["ENGINESDIR"] = "\"/usr/local/ssl/lib/engines\"";
+        }
 
-    /*
-    if (MINGW)
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(OPENSSL_SYS MINGW64)
-    else()
-    set(OPENSSL_SYS MINGW32)
-    endif()
-    endif()*/
+        crypto -=
+            // arch stuff
+            "crypto/armcap.c",
+            "crypto/s390xcap.c",
+            "crypto/sparcv9cap.c",
+            "crypto/ppccap.c",
+            "crypto/aes/aes_x86core.c",
 
-    if (s.Settings.TargetOS.Arch == ArchType::x86_64)
-    {
-        crypto.Variables["SIXTY_FOUR_BIT"] = "define";
-        crypto.Variables["THIRTY_TWO_BIT"] = "undef";
-    }
-    else
-    {
-        crypto.Variables["SIXTY_FOUR_BIT"] = "undef";
-        crypto.Variables["THIRTY_TWO_BIT"] = "define";
-    }
+            "crypto/ec/ecp_nistz256.c",
+            "crypto/ec/ecp_nistz256_table.c"
+            ;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
-        crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dll";
-    else if (s.Settings.TargetOS.Type == OSType::Macos)
-        crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dylib";
-    else
-        crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".so";
+        if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            crypto -= "crypto/poly1305/poly1305_ieee754.c";
+        }
 
-    crypto.writeFileOnce(crypto.BinaryPrivateDir / "buildinf.h", R"xxx(
+        crypto -= "crypto/poly1305/poly1305_base2_44.c";
+        crypto -= "crypto/engine/eng_devcrypto.c";
+
+        crypto.Variables["OPENSSL_SYS"] = "UNIX";
+        if (crypto.getSettings().TargetOS.Type == OSType::Linux)
+            crypto.Variables["OPENSSL_SYS"] = "LINUX";
+        else if (crypto.getSettings().TargetOS.Type == OSType::Cygwin)
+            crypto.Variables["OPENSSL_SYS"] = "CYGWIN";
+        else if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            if (crypto.getSettings().TargetOS.Arch == ArchType::x86_64)
+                crypto.Variables["OPENSSL_SYS"] = "WIN64A";
+            else
+                crypto.Variables["OPENSSL_SYS"] = "WIN32";
+        }
+        else if (crypto.getSettings().TargetOS.Type == OSType::Macos)
+            crypto.Variables["OPENSSL_SYS"] = "MACOSX";
+
+        /*
+        if (MINGW)
+        if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(OPENSSL_SYS MINGW64)
+        else()
+        set(OPENSSL_SYS MINGW32)
+        endif()
+        endif()*/
+
+        if (crypto.getSettings().TargetOS.Arch == ArchType::x86_64)
+        {
+            crypto.Variables["SIXTY_FOUR_BIT"] = "define";
+            crypto.Variables["THIRTY_TWO_BIT"] = "undef";
+        }
+        else
+        {
+            crypto.Variables["SIXTY_FOUR_BIT"] = "undef";
+            crypto.Variables["THIRTY_TWO_BIT"] = "define";
+        }
+
+        if (crypto.getSettings().TargetOS.Type == OSType::Windows)
+            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dll";
+        else if (crypto.getSettings().TargetOS.Type == OSType::Macos)
+            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dylib";
+        else
+            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".so";
+
+        crypto.writeFileOnce(crypto.BinaryPrivateDir / "buildinf.h", R"xxx(
 #define DATE ""
 #define compiler_flags ""
 #define PLATFORM ""
     )xxx");
 
-    crypto.writeFileOnce("openssl/opensslconf.h.in", R"xxx(
+        crypto.writeFileOnce("openssl/opensslconf.h.in", R"xxx(
 /*
      *
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
@@ -325,7 +315,7 @@ void build(Solution &s)
     #endif
 )xxx");
 
-    crypto.writeFileOnce("internal/bn_conf.h.in", R"xxx(
+        crypto.writeFileOnce("internal/bn_conf.h.in", R"xxx(
     /*
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
      *
@@ -354,7 +344,7 @@ void build(Solution &s)
     #endif
 )xxx");
 
-    crypto.writeFileOnce("internal/dso_conf.h.in", R"xxx(
+        crypto.writeFileOnce("internal/dso_conf.h.in", R"xxx(
     /*
      * Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
      *
@@ -371,21 +361,19 @@ void build(Solution &s)
     #endif
 )xxx");
 
-    crypto.configureFile(crypto.BinaryDir / "openssl/opensslconf.h.in", "openssl/opensslconf.h");
-    crypto.configureFile(crypto.BinaryDir / "internal/bn_conf.h.in", "internal/bn_conf.h");
-    crypto.configureFile(crypto.BinaryDir / "internal/dso_conf.h.in", "internal/dso_conf.h");
+        crypto.configureFile(crypto.BinaryDir / "openssl/opensslconf.h.in", "openssl/opensslconf.h");
+        crypto.configureFile(crypto.BinaryDir / "internal/bn_conf.h.in", "internal/bn_conf.h");
+        crypto.configureFile(crypto.BinaryDir / "internal/dso_conf.h.in", "internal/dso_conf.h");
+    }
 
     auto &ssl = openssl.addTarget<LibraryTarget>("ssl");
+    {
+        ssl.ExportAllSymbols = true;
+        ssl +=
+            "e_os.h",
+            "ssl/.*\\.c"_rr,
+            "ssl/.*\\.h"_rr;
 
-    ssl.ExportAllSymbols = true;
-    ssl +=
-        "e_os.h",
-        "ssl/.*\\.c"_rr,
-        "ssl/.*\\.h"_rr;
-
-    ssl.Private +=
-        "."_id,
-        "tls"_id;
-
-    ssl.Public += crypto;
+        ssl.Public += crypto;
+    }
 }
