@@ -1,3 +1,102 @@
+struct NasmAssemblerOptions
+{
+    COMMAND_LINE_OPTION(ObjectFile, path)
+    {
+        cl::CommandFlag{ "o" },
+            cl::OutputDependency{},
+    };
+
+    COMMAND_LINE_OPTION(ObjectFormat, String)
+    {
+        cl::CommandFlag{ "f" },
+    };
+
+    // goes last
+    COMMAND_LINE_OPTION(InputFile, path)
+    {
+        cl::InputDependency{},
+    };
+};
+DEFINE_OPTION_SPECIALIZATION_DUMMY(NasmAssemblerOptions);
+
+struct NasmCompiler : sw::NativeCompiler,
+    sw::CommandLineOptions<NasmAssemblerOptions>
+{
+    NasmCompiler(ExecutableTarget &nasm)
+        : NativeCompiler(nasm.getSolution().swctx), version(nasm.getPackage().getVersion())
+    {
+    }
+
+    virtual ~NasmCompiler() = default;
+
+    using NativeCompilerOptions::operator=;
+
+    std::shared_ptr<Program> clone() const override
+    {
+        return std::make_shared<NasmCompiler>(*this);
+    }
+
+    path getOutputFile() const override
+    {
+        return ObjectFile();
+    }
+
+    void prepareCommand1(const Target &t) override
+    {
+        if (InputFile)
+        {
+            cmd->name = normalize_path(InputFile());
+            cmd->name_short = InputFile().filename().u8string();
+        }
+        if (ObjectFile)
+            cmd->working_directory = ObjectFile().parent_path();
+
+        if (!ObjectFormat)
+        {
+            if (t.getSettings().TargetOS.Type == OSType::Windows)
+            {
+                if (t.getSettings().TargetOS.Arch == ArchType::x86_64)
+                    ObjectFormat = "win64";
+                else
+                    ObjectFormat = "win32";
+            }
+        }
+
+        switch (t.getSettings().TargetOS.Arch)
+        {
+        case ArchType::x86_64:
+            add("ARCH_X86_32=0"_def);
+            add("ARCH_X86_64=1"_def);
+            break;
+        case ArchType::x86:
+            add("ARCH_X86_32=1"_def);
+            add("ARCH_X86_64=0"_def);
+            break;
+        default:
+            SW_UNIMPLEMENTED;
+        }
+
+        sw::getCommandLineOptions<NasmAssemblerOptions>(cmd.get(), *this);
+        addEverything(*cmd);
+    }
+
+    void setSourceFile(const path &input_file, path &output_file) override
+    {
+        InputFile = input_file.u8string();
+        setOutputFile(output_file);
+    }
+
+    void setOutputFile(const path &output_file)
+    {
+        ObjectFile = output_file;
+    }
+
+private:
+    Version version;
+
+    Version gatherVersion() const override { return version; }
+};
+
 void build(Solution &s)
 {
     auto &nasm = s.addTarget<ExecutableTarget>("nasm", "2.14.2");
@@ -26,6 +125,9 @@ void build(Solution &s)
     nasm.Public +=
         "include"_id;
 
+    auto C = std::make_shared<NasmCompiler>(nasm);
+    C->file = nasm.getOutputFile();
+    nasm.setProgram(C);
 }
 
 void check(Checker &c)
