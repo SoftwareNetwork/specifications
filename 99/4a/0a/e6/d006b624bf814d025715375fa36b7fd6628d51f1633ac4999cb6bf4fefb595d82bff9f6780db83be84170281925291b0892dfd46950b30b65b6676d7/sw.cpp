@@ -1829,12 +1829,14 @@ void build(Solution &s)
     )xxx");
             core += core.BinaryDir / "qconfig.cpp";
 
-            write_tracepoints(core);
             platform_files(core);
 
             auto mocs = automoc(moc, core);
             SW_QT_ADD_MOC_DEPS(core);
             ::rcc(rcc, core, core.SourceDir / "mimetypes/mimetypes.qrc");
+
+            // after moc
+            write_tracepoints(core);
 
             // after moc
             {
@@ -1873,7 +1875,6 @@ void build(Solution &s)
 
             qt_gui_desc.print(gui);
 
-            write_tracepoints(gui);
             platform_files(gui);
 
             gui.replaceInFileOnce("text/qharfbuzzng_p.h", "#include <harfbuzz/hb.h>", "#include <hb.h>");
@@ -1882,6 +1883,9 @@ void build(Solution &s)
             auto mocs = automoc(moc, gui);
             SW_QT_ADD_MOC_DEPS(gui);
             ::rcc(rcc, gui, Files{ gui.SourceDir / "painting/qpdf.qrc", });
+
+            // after moc
+            write_tracepoints(gui);
 
             RccData wg;
             wg.files[gui.SourceDir / "painting/webgradients.binaryjson"];
@@ -1926,13 +1930,15 @@ void build(Solution &s)
 
             qt_widgets_desc.print(widgets);
 
-            write_tracepoints(widgets);
             platform_files(widgets);
 
             auto mocs = automoc(moc, widgets);
             SW_QT_ADD_MOC_DEPS(widgets);
             ::rcc(rcc, widgets, Files{ widgets.SourceDir / "styles/qstyle.qrc", widgets.SourceDir / "dialogs/qmessagebox.qrc" });
             ::uic(uic, widgets, widgets.SourceDir / "dialogs/qfiledialog.ui");
+
+            // after moc
+            write_tracepoints(widgets);
 
             widgets.patch("kernel/qwidgetsvariant.cpp", "qRegisterMetaType<QWidget*>();", "//qRegisterMetaType<QWidget*>();");
         }
