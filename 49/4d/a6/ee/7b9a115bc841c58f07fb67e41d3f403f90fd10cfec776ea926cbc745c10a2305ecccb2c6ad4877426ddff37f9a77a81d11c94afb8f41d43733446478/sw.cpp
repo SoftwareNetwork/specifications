@@ -107,7 +107,8 @@ void build(Solution &s)
             "src/tbbmalloc/proxy.*"_rr,
             "src/tbbmalloc/tbb_function_replacement.*"_rr;
 
-        tbb ^= "include/tbb/tbbmalloc_proxy.h";
+        // disable autolink
+        tbbmalloc.patch("include/tbb/tbbmalloc_proxy.h", "#pragma comment", "//#pragma  comment");
 
         tbbmalloc.Private += "src"_id;
         tbbmalloc.Public += "include"_id;
@@ -153,7 +154,6 @@ void build(Solution &s)
 
         tbbmalloc_proxy.Public += tbbmalloc;
 
-        tbbmalloc_proxy.writeFileOnce("include/tbb/tbbmalloc_proxy.h");
         if (tbbmalloc_proxy.getSettings().TargetOS.Type == OSType::Windows)
         {
             if (tbbmalloc_proxy.getSettings().TargetOS.is(ArchType::x86_64))
