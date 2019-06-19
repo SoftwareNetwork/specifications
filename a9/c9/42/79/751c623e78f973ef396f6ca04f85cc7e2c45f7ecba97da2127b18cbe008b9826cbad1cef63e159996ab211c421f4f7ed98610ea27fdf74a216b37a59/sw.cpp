@@ -2743,30 +2743,21 @@ void build(Solution &s)
         auto &proparser = linguist.addTarget<StaticLibraryTarget>("proparser");
         {
             proparser.SourceDir /= "src/linguist/shared";
-            proparser +=
+            proparser += ".*\\.cpp"_rr;
+            proparser += ".*\\.h"_rr;
+            /*proparser +=
                 "ioutils.cpp",
-                "ioutils.h",
                 "qrcreader.cpp",
-                "qrcreader.h",
                 "runqttool.cpp",
-                "runqttool.h",
                 "projectdescriptionreader.cpp",
-                "projectdescriptionreader.h",
                 "profileevaluator.cpp",
-                "profileevaluator.h",
                 "proitems.cpp",
-                "proitems.h",
-                "qmake_global.h",
                 "qmakebuiltins.cpp",
                 "qmakeevaluator.cpp",
-                "qmakeevaluator.h",
-                "qmakeevaluator_p.h",
                 "qmakeglobals.cpp",
-                "qmakeglobals.h",
                 "qmakeparser.cpp",
-                "qmakeparser.h",
-                "qmakevfs.cpp",
-                "qmakevfs.h";
+                "qmakevfs.cpp"
+                ;*/
 
             proparser.Public += "PROEVALUATOR_CUMULATIVE"_d;
             proparser.Public += "PROEVALUATOR_INIT_PROPS"_d;
@@ -2778,6 +2769,7 @@ void build(Solution &s)
             }
 
             proparser.Public += core;
+            proparser.Public += xml;
         }
 
         auto &release = linguist.addTarget<ExecutableTarget>("release");
