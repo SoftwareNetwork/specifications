@@ -2743,9 +2743,9 @@ void build(Solution &s)
         auto &proparser = linguist.addTarget<StaticLibraryTarget>("proparser");
         {
             proparser.SourceDir /= "src/linguist/shared";
-            proparser += ".*\\.cpp"_rr;
             proparser += ".*\\.h"_rr;
-            /*proparser +=
+            // don't use .cpp regex, there will be ling.tools run failures
+            proparser +=
                 "ioutils.cpp",
                 "qrcreader.cpp",
                 "runqttool.cpp",
@@ -2757,7 +2757,7 @@ void build(Solution &s)
                 "qmakeglobals.cpp",
                 "qmakeparser.cpp",
                 "qmakevfs.cpp"
-                ;*/
+                ;
 
             proparser.Public += "PROEVALUATOR_CUMULATIVE"_d;
             proparser.Public += "PROEVALUATOR_INIT_PROPS"_d;
