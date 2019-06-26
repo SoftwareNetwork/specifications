@@ -1,5 +1,5 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<StaticLibraryTarget>("jlctools.evo", "master");
+    auto &t = s.addTarget<LibraryTarget>("jlctools.evo", "master");
     t += Git("https://github.com/jlctools/evo");
 }
