@@ -10,6 +10,7 @@ void build(Solution &s)
         //t.Public += IncludeDirectory(t.SourceDir);
 
         SwapAndRestore sr(t.SourceDir, t.SourceDir / d);
+        t.AllowEmptyRegexes = true;
         t -=
             "aarch64/.*"_rr,
             "alpha/.*"_rr,
@@ -30,15 +31,16 @@ void build(Solution &s)
         t -= ".*_template.*"_rr;
         t -= "x86/w64xmmtest.c"_rr;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
         {
             t -= ".*qsv.*"_rr;
             t -= ".*vaapi.*"_rr;
             t -= ".*vdpau.*"_rr;
             t -= ".*videotoolbox.*"_rr;
         }
+        t.AllowEmptyRegexes = false;
 
-        s.Settings.Native.ConfigurationType = ConfigurationType::Release;
+        //s.Settings.Native.ConfigurationType = ConfigurationType::Release;
     };
 
     // fwd decls
@@ -49,8 +51,8 @@ void build(Solution &s)
     {
         avutil.setChecks("avutil");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
-            avutil.setExtensionLanguage(".asm", "org.sw.demo.yasm-master"s);
+        if (avutil.getSettings().TargetOS.Type == OSType::Windows)
+            avutil.setExtensionProgram(".asm", "org.sw.demo.yasm-master"_dep);
 
         avutil +=
             "compat/.*\\.h"_rr,
@@ -61,9 +63,9 @@ void build(Solution &s)
             "libavutil/.*\\.asm"_rr;
         setup(avutil, "libavutil");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avutil.getSettings().TargetOS.Type == OSType::Windows)
         {
-            if (s.Settings.TargetOS.Arch == ArchType::x86_64)
+            if (avutil.getSettings().TargetOS.Arch == ArchType::x86_64)
             {
                 for (auto &[p, f] : avutil["libavutil/.*\\.asm"_rr])
                     f->args.push_back("-fwin64");
@@ -81,9 +83,7 @@ void build(Solution &s)
                 "libavutil/hwcontext_vaapi.c",
                 "libavutil/hwcontext_drm.c",
                 "libavutil/hwcontext_videotoolbox.c",
-                "libavutil/hwcontext_opencl.c",
-                "libavutil/opencl.c",
-                "libavutil/opencl_internal.c"
+                "libavutil/hwcontext_opencl.c"
                 ;
             avutil.Protected += "compat/atomics/win32"_idir;
             avutil += "User32.lib"_lib;
@@ -129,7 +129,7 @@ void build(Solution &s)
         avutil.Public += "HAVE_X86ASM=0"_d;
         avutil.Public += "HAVE_YASM=0"_d;
         avutil.Public += "av_restrict="_d;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avutil.getSettings().TargetOS.Type == OSType::Windows)
         {
             avutil.Public += "HAVE_ATOMICS_NATIVE"_d;
             avutil.Public += "HAVE_ATOMICS_WIN32"_d;
@@ -2237,7 +2237,7 @@ R"(
         avutil.writeFileOnce(avutil.BinaryPrivateDir / "config.h", oss.str());
         avutil.Protected += IncludeDirectory(avutil.BinaryPrivateDir);
 
-        if (s.Settings.TargetOS.Arch == ArchType::x86)
+        if (avutil.getSettings().TargetOS.Arch == ArchType::x86)
         {
             avutil.Public += "ARCH_X86_32=1"_def;
             avutil.Public += "ARCH_X86_64=0"_def;
@@ -2306,7 +2306,6 @@ R"(
             "libavcodec/audiotoolboxdec.c",
             "libavcodec/aacpsdata.c",
             "libavcodec/crystalhd.c",
-            "libavcodec/cuvid.c",
             "libavcodec/ffjni.c",
             "libavcodec/hapenc.c",
 
@@ -2326,15 +2325,11 @@ R"(
             "libavcodec/libkvazaar.c",
             "libavcodec/libopus.c",
             "libavcodec/libopusdec.c",
-            "libavcodec/libschroedingerenc.c",
-            "libavcodec/libschroedingerdec.c",
             "libavcodec/libopusenc.c",
             "libavcodec/libshine.c",
-            "libavcodec/libschroedinger.c",
             "libavcodec/libspeexenc.c",
             "libavcodec/libspeexdec.c",
             "libavcodec/libvo-amrwbenc.c",
-            "libavcodec/libschroedinger.c",
             "libavcodec/libvpx.c",
             "libavcodec/libtwolame.c",
             "libavcodec/libvpxdec.c",
@@ -2342,7 +2337,6 @@ R"(
             "libavcodec/libvpxenc.c",
             "libavcodec/libtheoraenc.c",
             "libavcodec/libx265.c",
-            "libavcodec/libxvid_rc.c",
             "libavcodec/libxvid.c",
             "libavcodec/libxavs.c",
             "libavcodec/libx264.c",
@@ -2366,7 +2360,6 @@ R"(
             "libavcodec/.*tablegen.*"_rr,
             "libavcodec/qsv.*"_rr,
             "libavcodec/va.*"_rr,
-            "libavcodec/vda.*"_rr,
             "libavcodec/vdpau.*"_rr
             ;
 
@@ -2426,12 +2419,12 @@ R"(
             "libavformat/.*\\.h"_rr;
         setup(avformat, "libavformat");
 
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (avformat.getCompilerType() == CompilerType::MSVC)
         {
             avformat.Public += "CONFIG_NETWORK"_d;
             avformat.Public += "HAVE_STRUCT_SOCKADDR_STORAGE"_d;
         }
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avformat.getSettings().TargetOS.Type == OSType::Windows)
         {
             avformat.Public += "Secur32.lib"_lib;
         }
@@ -2494,7 +2487,6 @@ R"(
             "libavformat/libsmbclient.c",
             "libavformat/libopenmpt.c",
             "libavformat/librtmp.c",
-            "libavformat/libnut.c",
             "libavformat/libsrt.c",
             "libavformat/rtmpcrypt.c",
             "libavformat/rtmpdh.c",
@@ -2505,7 +2497,7 @@ R"(
             "libavformat/tls_securetransport.c",
             "libavformat/sctp.c"
             ;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avformat.getSettings().TargetOS.Type == OSType::Windows)
         {
             avformat -=
                 "libavformat/unix.c";
@@ -2524,7 +2516,7 @@ R"(
             "libavfilter/.*\\.m"_rr;
         setup(avfilter, "libavfilter");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avfilter.getSettings().TargetOS.Type == OSType::Windows)
         {
             avfilter -=
                 "libavfilter/.*opencl.*.c"_rr,
@@ -2576,7 +2568,7 @@ R"(
             "libavdevice/.*\\.h"_rr;
         setup(avdevice, "libavdevice");
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avdevice.getSettings().TargetOS.Type == OSType::Windows)
         {
             avdevice.Public += "Shlwapi.lib"_lib;
             avdevice.Public += "Strmiids.lib"_lib;
@@ -2587,7 +2579,7 @@ R"(
         avdevice.Public += "org.sw.demo.valve.sdl.sdl-2"_dep;
         avdevice.Public += "org.sw.demo.kcat.openal-1"_dep;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (avdevice.getSettings().TargetOS.Type == OSType::Windows)
         {
             avdevice -=
                 "libavdevice/alsa.c",
@@ -2596,7 +2588,6 @@ R"(
                 "libavdevice/iec61883.c",
                 "libavdevice/caca.c",
                 "libavdevice/fbdev_enc.c",
-                "libavdevice/dv1394.c",
                 "libavdevice/fbdev_common.c",
                 "libavdevice/jack.c",
                 "libavdevice/fbdev_dec.c",
@@ -2605,7 +2596,6 @@ R"(
                 "libavdevice/oss.c",
                 "libavdevice/oss_dec.c",
                 "libavdevice/oss_enc.c",
-                "libavdevice/x11grab.c",
                 "libavdevice/xcbgrab.c",
                 "libavdevice/bktr.c",
                 "libavdevice/xv.c",
@@ -2644,13 +2634,13 @@ R"(
         setup(ffmpeg, "fftools");
 
         ffmpeg.Public += "CONFIG_THIS_YEAR=2018"_d;
-        if (s.Settings.TargetOS.Type != OSType::Windows)
+        if (ffmpeg.getSettings().TargetOS.Type != OSType::Windows)
         {
             ffmpeg.Public += "AVCONV_DATADIR=\"/usr/local/share/ffmpeg\""_d;
             ffmpeg.Public += "CC_IDENT=\"Software Network\""_d;
             ffmpeg.Public += "FFMPEG_DATADIR=\"/usr/local/share/ffmpeg\""_d;
         }
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (ffmpeg.getSettings().TargetOS.Type == OSType::Windows)
         {
             ffmpeg.Public += "AVCONV_DATADIR=\"ffmpeg\""_d;
             ffmpeg.Public += "CC_IDENT=\"Software Network\""_d;
