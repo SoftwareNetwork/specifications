@@ -25,7 +25,11 @@ DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 struct YasmCompiler : sw::NativeCompiler,
     sw::CommandLineOptions<YasmAssemblerOptions>
 {
-    using NativeCompiler::NativeCompiler;
+    YasmCompiler(ExecutableTarget &exe)
+        : NativeCompiler(exe.getSolution().swctx), version(exe.getPackage().getVersion())
+    {
+    }
+
     virtual ~YasmCompiler() = default;
 
     using NativeCompilerOptions::operator=;
@@ -61,6 +65,20 @@ struct YasmCompiler : sw::NativeCompiler,
             }
         }
 
+        switch (t.getSettings().TargetOS.Arch)
+        {
+        case ArchType::x86_64:
+            add("ARCH_X86_32=0"_def);
+            add("ARCH_X86_64=1"_def);
+            break;
+        case ArchType::x86:
+            add("ARCH_X86_32=1"_def);
+            add("ARCH_X86_64=0"_def);
+            break;
+        default:
+            SW_UNIMPLEMENTED;
+        }
+
         sw::getCommandLineOptions<YasmAssemblerOptions>(cmd.get(), *this);
         addEverything(*cmd);
     }
@@ -77,30 +95,14 @@ struct YasmCompiler : sw::NativeCompiler,
     }
 
 protected:
-    Version gatherVersion() const override { return "master"; }
-};
+    Version version;
 
-struct YamlExecutable : Executable
-{
-    sw::ProgramPtr getProgram() const override
-    {
-        auto p = Executable::getProgram();
-        if (program_set_up)
-            return p;
-        auto yc = p->as<YasmCompiler>();
-        auto cmd = yc->createCommand((const sw::SwContext&)p->swctx);
-        setupCommand(*cmd);
-        program_set_up = true;
-        return p;
-    }
-
-private:
-    mutable bool program_set_up = false;
+    Version gatherVersion() const override { return version; }
 };
 
 void build(Solution &s)
 {
-    auto &yasm = s.add<YamlExecutable>("yasm", "master");
+    auto &yasm = s.add<Executable>("yasm", "master");
     yasm += Git("https://github.com/yasm/yasm", "", "{v}");
 
     auto &cfg = yasm.addLibrary("config");
@@ -122,9 +124,11 @@ void build(Solution &s)
     auto add_modules_child = [&modules, &setup, &deps, &yasm_modules](const String &m, const String &n) -> decltype(auto)
     {
         auto &t = modules.addStaticLibrary(m + "." + n);
+        t.AllowEmptyRegexes = true;
         t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*"), true);
         t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*\\.re"), true);
         t += FileRegex(t.SourceDir / ("modules/" + m + "/" + n), std::regex(".*\\.mac"), true);
+        t.AllowEmptyRegexes = false;
         setup(t);
         deps.push_back(&t);
         yasm_modules[m.back() == 's' ? m.substr(0, m.size() - 1) : m].insert(n);
@@ -310,7 +314,7 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-    auto C = std::make_shared<YasmCompiler>(yasm.getSolution().swctx);
+    auto C = std::make_shared<YasmCompiler>(yasm);
     C->file = yasm.getOutputFile();
     yasm.setProgram(C);
 }
