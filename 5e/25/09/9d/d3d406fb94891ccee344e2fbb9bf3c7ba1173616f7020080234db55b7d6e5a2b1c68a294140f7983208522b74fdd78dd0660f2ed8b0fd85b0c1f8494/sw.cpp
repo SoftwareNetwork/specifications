@@ -5,38 +5,20 @@
 
 static void gen_stamp(const DependencyPtr &tools_stamp_gen, NativeExecutedTarget &t)
 {
-    {
-        auto d = t + tools_stamp_gen;
-        d->setDummy(true);
-    }
-
-    auto out = t.BinaryPrivateDir / "stamp.h.in";
-
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->always = true;
-    c->setProgram(tools_stamp_gen);
-    c->redirectStdout(out);
-    c->addOutput(out);
-    t += out;
+    auto c = t.addCommand();
+    c.c->always = true;
+    c << cmd::prog(tools_stamp_gen)
+        << cmd::std_out(t.BinaryPrivateDir / "stamp.h.in")
+        ;
 }
 
 static void gen_sqlite2cpp(const DependencyPtr &tools_sqlite2cpp, NativeExecutedTarget &t, const path &sql_file, const path &out_file, const String &ns)
 {
-    {
-        auto d = t + tools_sqlite2cpp;
-        d->setDummy(true);
-    }
-
-    auto out = t.BinaryDir / out_file;
-
-    SW_MAKE_COMMAND_AND_ADD(c, t);
-    c->setProgram(tools_sqlite2cpp);
-    c->args.push_back(sql_file.u8string());
-    c->args.push_back(out.u8string());
-    c->args.push_back(ns);
-    c->addInput(sql_file);
-    c->addOutput(out);
-    t += out;
+    auto c = t.addCommand();
+    c << cmd::prog(tools_sqlite2cpp)
+        << cmd::in(sql_file)
+        << cmd::out(out_file)
+        << ns;
 }
 
 static void embed(const DependencyPtr &embedder, NativeExecutedTarget &t, const path &in)
@@ -64,35 +46,25 @@ static void embed(const DependencyPtr &embedder, NativeExecutedTarget &t, const 
     };
 
     if (in.is_absolute())
-        throw std::runtime_error("embed: in must be relative to SourceDir");
-
-    {
-        auto d = t + embedder;
-        d->setDummy(true);
-    }
+        throw SW_RUNTIME_ERROR("embed: in must be relative to SourceDir");
 
     auto f = t.SourceDir / in;
-    auto wdir = f.parent_path();
     auto out = t.BinaryDir / in.parent_path() / in.filename().stem();
 
-    SW_MAKE_CUSTOM_COMMAND_AND_ADD(EmbedCommand, c, t);
-    c->setProgram(embedder);
-    c->working_directory = wdir;
-    c->args.push_back(f.u8string());
-    c->args.push_back(out.u8string());
-    c->addInput(f);
-    c->addOutput(out);
-    t += in, out;
+    auto c = t.addCommand();
+    c.c = std::make_shared<EmbedCommand>(c.c->swctx);
+    SW_INTERNAL_INIT_COMMAND(c.c, t);
+    SW_INTERNAL_ADD_COMMAND(c.c, t);
+    c << cmd::prog(embedder)
+        << cmd::wdir(f.parent_path())
+        << cmd::in(in)
+        << cmd::out(out)
+        ;
     t += IncludeDirectory(out.parent_path()); // but remove this later
 }
 
 static Files syncqt(const DependencyPtr &sqt, NativeExecutedTarget &t, const Strings &modules)
 {
-    {
-        auto d = t + sqt;
-        d->setDummy(true);
-    }
-
     Files out;
     auto i = t.BinaryDir / "include";
     auto v = t.getPackage().version.toString();
@@ -340,6 +312,8 @@ void build(Solution &s)
     setup_primitives_no_all_sources(stamp_gen);
     stamp_gen += "src/tools/stamp_gen.cpp";
 
+    return;
+
     auto &test = p.addDirectory("test");
     test.Scope = TargetScope::Test;
 
@@ -379,22 +353,18 @@ void build(Solution &s)
     auto &test_patch = add_test("patch");
     test_patch += patch;
 
-    return;
-
-    SW_UNIMPLEMENTED;
-
-    /*auto tm = s.addTest(test_main);
+    auto tm = s.addTest(test_main);
     tm.c->addPathDirectory(getenv("PATH"));
-    auto tdb = s.addTest(test_db);
-    if (tdb.getSettings().TargetOS.Type == OSType::Windows)
+    /*auto tdb = s.addTest(test_db);
+    if (test_db.getSettings().TargetOS.Type == OSType::Windows)
     {
         tdb.c->addLazyAction([&s, c = tdb.c]
         {
             auto &pq = s.getTarget<LibraryTarget>(PackageId{"org.sw.demo.find.libpq", "master"});
             c->addPathDirectory(pq.LinkDirectories.begin()->parent_path() / "bin");
         });
-    }
+    }*/
     s.addTest(test_patch);
     s.addTest(test_settings);
-    s.addTest(test_version);*/
+    s.addTest(test_version);
 }
