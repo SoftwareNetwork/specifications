@@ -1,49 +1,6 @@
 #pragma sw require header pub.egorpugin.primitives.tools.embedder-master
-#pragma sw require header org.sw.demo.google.grpc.grpc_cpp_plugin-1
+#pragma sw require header org.sw.demo.google.grpc.grpc_cpp_plugin
 #pragma sw require header org.sw.demo.lexxmark.winflexbison.bison-master
-
-static int create_git_rev(path git, path wdir, path outfn)
-{
-    String rev, status, time;
-
-    {
-        primitives::Command c;
-        c.working_directory = wdir;
-        c.args.push_back(git.u8string());
-        c.args.push_back("rev-parse");
-        c.args.push_back("HEAD");
-        c.execute();
-        rev = boost::trim_copy(c.out.text);
-    }
-
-    {
-        primitives::Command c;
-        c.working_directory = wdir;
-        c.args.push_back(git.u8string());
-        c.args.push_back("status");
-        c.args.push_back("--porcelain");
-        c.execute();
-        status = boost::trim_copy(c.out.text);
-        if (status.empty())
-            status = "0";
-        else
-            status = std::to_string(split_lines(status).size());
-    }
-
-    {
-        time = std::to_string(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-    }
-
-    String t;
-    t += "#define SW_GIT_REV \"" + rev + "\"\n";
-    t += "#define SW_GIT_CHANGED_FILES " + status + "\n";
-    t += "#define SW_BUILD_TIME_T " + time + "LL\n";
-
-    write_file(outfn, t);
-    return 0;
-}
-
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(create_git_rev, create_git_rev)
 
 void configure(Build &s)
 {
@@ -95,8 +52,8 @@ void build(Solution &s)
             "pub.egorpugin.primitives.log-master"_dep,
             "pub.egorpugin.primitives.executor-master"_dep,
             "pub.egorpugin.primitives.symbol-master"_dep,
-            "org.sw.demo.boost.property_tree-1"_dep,
-            "org.sw.demo.boost.stacktrace-1"_dep;
+            "org.sw.demo.boost.property_tree"_dep,
+            "org.sw.demo.boost.stacktrace"_dep;
         support.ApiName = "SW_SUPPORT_API";
         if (support.getSettings().TargetOS.Type == OSType::Windows)
         {
@@ -112,11 +69,11 @@ void build(Solution &s)
         protos.CPPVersion = CPPLanguageStandard::CPP17;
         protos += "src/sw/protocol/.*"_rr;
         protos.Public +=
-            "org.sw.demo.google.grpc.grpcpp-1"_dep,
+            "org.sw.demo.google.grpc.grpcpp"_dep,
             "pub.egorpugin.primitives.templates-master"_dep,
             "pub.egorpugin.primitives.log-master"_dep;
         for (auto &[p, _] : protos["src/sw/protocol/.*\\.proto"_rr])
-            gen_grpc("org.sw.demo.google.protobuf-3"_dep, "org.sw.demo.google.grpc.grpc_cpp_plugin-1"_dep, protos, p, true);
+            gen_grpc("org.sw.demo.google.protobuf-3"_dep, "org.sw.demo.google.grpc.grpc_cpp_plugin"_dep, protos, p, true);
     }
 
     auto &manager = p.addTarget<LibraryTarget>("manager");
@@ -136,8 +93,8 @@ void build(Solution &s)
             "pub.egorpugin.primitives.win32helpers-master"_dep,
             "pub.egorpugin.primitives.yaml-master"_dep,
             "org.sw.demo.nlohmann.json-3"_dep,
-            "org.sw.demo.boost.variant-1"_dep,
-            "org.sw.demo.boost.dll-1"_dep,
+            "org.sw.demo.boost.variant"_dep,
+            "org.sw.demo.boost.dll"_dep,
             "org.sw.demo.rbock.sqlpp11_connector_sqlite3-develop"_dep
             ;
         manager += "src/sw/manager/.*"_rr;
@@ -176,6 +133,13 @@ void build(Solution &s)
         "pub.egorpugin.primitives.yaml-master"_dep,
         "pub.egorpugin.primitives.main-master"_dep;
 
+    auto &create_git_rev = tools.addTarget<ExecutableTarget>("create_git_rev");
+    create_git_rev.CPPVersion = CPPLanguageStandard::CPP17;
+    create_git_rev += "src/sw/tools/create_git_rev.*"_rr;
+    create_git_rev +=
+        "pub.egorpugin.primitives.command-master"_dep,
+        "pub.egorpugin.primitives.sw.main-master"_dep;
+
     auto &builder = p.addTarget<LibraryTarget>("builder");
     {
         builder.ApiName = "SW_BUILDER_API";
@@ -183,6 +147,7 @@ void build(Solution &s)
         builder.CPPVersion = CPPLanguageStandard::CPP17;
         builder += "src/sw/builder/.*"_rr;
         builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep,
+            "org.sw.demo.boost.graph"_dep,
             "org.sw.demo.microsoft.gsl-*"_dep,
             "pub.egorpugin.primitives.emitter-master"_dep;
         //if (!s.Variables["SW_SELF_BUILD"])
@@ -210,9 +175,9 @@ void build(Solution &s)
         cpp_driver.CPPVersion = CPPLanguageStandard::CPP17;
         cpp_driver.Public += core,
             "pub.egorpugin.primitives.patch-master"_dep,
-            "org.sw.demo.boost.assign-1"_dep,
-            "org.sw.demo.boost.bimap-1"_dep,
-            "org.sw.demo.boost.uuid-1"_dep;
+            "org.sw.demo.boost.assign"_dep,
+            "org.sw.demo.boost.bimap"_dep,
+            "org.sw.demo.boost.uuid"_dep;
         cpp_driver += "src/sw/driver/.*"_rr;
         cpp_driver -= "src/sw/driver/inserts/.*"_rr;
         if (cpp_driver.getSettings().TargetOS.Type != OSType::Windows)
@@ -269,29 +234,22 @@ void build(Solution &s)
             //client.getSelectedTool()->LinkOptions.push_back("-static-libgcc");
         }
 
-        // TODO: add a condition to skip this in bootstrap build
-        // if (bootstrap build)
         {
-            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, client, "create_git_rev", create_git_rev);
-            c->args.push_back(sw::resolveExecutable("git").u8string());
-            c->args.push_back(client.SourceDir.u8string());
-            c->args.push_back((client.BinaryDir / "gitrev.h").u8string());
-            c->addOutput(client.BinaryDir / "gitrev.h");
-            c->always = true;
-            client += "gitrev.h";
+            auto c = client.addCommand();
+            c << cmd::prog(create_git_rev)
+                << sw::resolveExecutable("git")
+                << client.SourceDir
+                << cmd::out("gitrev.h");
+            c.c->always = true;
         }
-        /*else
-        {
-            client.writeFileOnce("gitrev.h", ...);
-        }*/
 
         if (client.getSettings().TargetOS.Type == OSType::Windows)
         {
             auto &client = tools.addTarget<ExecutableTarget>("client");
             client += "src/sw/tools/client.cpp";
             client +=
-                "org.sw.demo.boost.dll-1"_dep,
-                "org.sw.demo.boost.filesystem-1"_dep,
+                "org.sw.demo.boost.dll"_dep,
+                "org.sw.demo.boost.filesystem"_dep,
                 "user32.lib"_slib;
             if (client.getSettings().TargetOS.Type == OSType::Windows)
                 client.Public += "UNICODE"_d;
