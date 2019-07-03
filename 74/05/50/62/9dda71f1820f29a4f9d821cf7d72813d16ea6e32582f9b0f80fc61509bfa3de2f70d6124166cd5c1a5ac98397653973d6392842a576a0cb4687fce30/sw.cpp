@@ -26,14 +26,15 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
         << "--grpc_out=" + normalize_path(bdir)
         << [c = c.c.get(), grpc_cpp_plugin]()
     {
-        if (!grpc_cpp_plugin->target)
-            throw std::runtime_error("Command dependency target was not resolved: " + grpc_cpp_plugin->getPackage().toString());
-        auto p = ((NativeExecutedTarget *)grpc_cpp_plugin->target)->getOutputFile();
+        auto t = (NativeExecutedTarget*)&grpc_cpp_plugin->getTarget();
+        if (!t)
+            throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved");
+        auto p = t->getOutputFile();
         c->addInput(p);
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     }
     << "-I" << normalize_path(d) // must be normalized as f
-        << "-I" << [protoc = protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
+        << "-I" << [protoc = protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().swctx.getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
         << cmd::end()
         << cmd::out(ocpp)
         << cmd::out(oh);

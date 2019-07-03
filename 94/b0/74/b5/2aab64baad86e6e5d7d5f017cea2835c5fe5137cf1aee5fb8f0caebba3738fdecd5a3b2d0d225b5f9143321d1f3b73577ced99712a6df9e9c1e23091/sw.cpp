@@ -29,7 +29,7 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t,
     c << cmd::prog(protoc)
         << cmd::wdir(bdir)
         << "-I" << normalize_path(d) // must be normalized as f
-        << "-I" << [protoc]() { return normalize_path(protoc->getResolvedPackage().getDirSrc2() / "src"); }
+        << "-I" << [protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().swctx.getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
         << ("--cpp_out=" + normalize_path(bdir))
         << cmd::in(normalize_path(f)) // must be normalized as d
         << cmd::end()
