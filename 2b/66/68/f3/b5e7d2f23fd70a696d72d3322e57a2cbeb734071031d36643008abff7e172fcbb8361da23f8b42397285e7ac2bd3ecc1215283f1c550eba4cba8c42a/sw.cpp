@@ -25,8 +25,11 @@ DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 struct YasmCompiler : sw::NativeCompiler,
     sw::CommandLineOptions<YasmAssemblerOptions>
 {
+    ExecutableTarget &exe;
+
     YasmCompiler(ExecutableTarget &exe)
         : NativeCompiler(exe.getSolution().swctx), version(exe.getPackage().getVersion())
+        , exe(exe)
     {
     }
 
@@ -46,6 +49,8 @@ struct YasmCompiler : sw::NativeCompiler,
 
     void prepareCommand1(const Target &t) override
     {
+        exe.setupCommand(*cmd);
+
         if (InputFile)
         {
             cmd->name = normalize_path(InputFile());
