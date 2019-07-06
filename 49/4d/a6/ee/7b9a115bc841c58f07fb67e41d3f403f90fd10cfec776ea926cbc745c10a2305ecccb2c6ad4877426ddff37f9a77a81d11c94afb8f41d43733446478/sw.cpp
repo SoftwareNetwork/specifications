@@ -140,6 +140,7 @@ void build(Solution &s)
             "src/tbbmalloc/.*\\.h"_rr,
             "src/tbbmalloc/proxy.*"_rr,
             "src/tbbmalloc/tbb_function_replacement.*"_rr;
+        tbbmalloc_proxy ^= "include/tbb/tbbmalloc_proxy.h";
 
         tbbmalloc_proxy.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbbmalloc_proxy.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
