@@ -19,10 +19,6 @@ void build(Solution &s)
         ".*/arm/.*"_rr,
         ".*/mips/.*"_rr,
         ".*/ppc/.*"_rr,
-        "error_concealment.c",
-        "highbd_.*"_rr,
-        "vp9_denoiser.c",
-        "vp9_mfqe.c",
         "vpx_ports/.*"_rr;
 
     vpx +=
@@ -151,7 +147,6 @@ void build(Solution &s)
         ARCH_ARM equ 0
         ARCH_MIPS equ 0
         ARCH_X86 equ ${ARCH_X86}
-        ARCH_X86_64 equ ${ARCH_X86_64}
         ARCH_PPC equ 0
         HAVE_NEON equ 0
         HAVE_NEON_ASM equ 0
