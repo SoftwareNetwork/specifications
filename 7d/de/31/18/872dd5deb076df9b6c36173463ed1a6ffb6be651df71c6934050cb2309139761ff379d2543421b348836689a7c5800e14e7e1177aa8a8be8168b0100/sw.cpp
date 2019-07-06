@@ -224,14 +224,17 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     return mocs;
 }
 
-#define SW_QT_ADD_MOC_DEPS(t)                                                                      \
-    do {                                                                                           \
-        for (auto &m : mocs) {                                                                     \
-            auto mg = File(m, t.getFs()).getFileRecord().getGenerator();                           \
-            for (auto &c : sqt) {                                                                  \
-                mg->dependencies.insert(File(c, t.getFs()).getFileRecord().getGenerator());        \
-            }                                                                                      \
-        }                                                                                          \
+#define SW_QT_ADD_MOC_DEPS(t)                                                                                          \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        for (auto &m : mocs)                                                                                           \
+        {                                                                                                              \
+            auto mg = File(m, t.getFs()).getGenerator();                                                               \
+            for (auto &c : sqt)                                                                                        \
+            {                                                                                                          \
+                mg->dependencies.insert(File(c, t.getFs()).getGenerator());                                            \
+            }                                                                                                          \
+        }                                                                                                              \
     } while (0)
 
 // http://doc.qt.io/qt-5/rcc.html
@@ -322,7 +325,7 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
     s += "</RCC>";
     auto in = t.BinaryDir / (d.name + ".qrc");
     write_file_if_different(in, s);
-    File(in, t.getFs()).getFileRecord().setGenerated(true);
+    File(in, t.getFs()).setGenerated(true);
 
     auto outfilename = "qmake_" + d.name;
     auto outfile = t.BinaryDir / ("qrc_" + outfilename + ".cpp");
