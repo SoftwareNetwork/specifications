@@ -22,7 +22,6 @@ void build(Solution &s)
             "glib/libcharset/.*\\.h"_rr;
 
         glib -=
-            "build/.*"_rr,
             "glib/gtester.c",
             "glib/win_iconv.c",
             "glib/gspawn.c",
@@ -35,6 +34,8 @@ void build(Solution &s)
         glib.Public +=
             "."_id,
             "glib"_id;
+
+        glib ^= "glib/glib-object.h";
 
         glib.Private += "GLIB_COMPILATION"_d;
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
@@ -306,7 +307,11 @@ HMODULE glib_dll;
 
         gobject.Public +=
             "."_id,
-            "gobject"_id;
+            "glib"_id,
+            "gobject"_id
+            ;
+
+        gobject += "glib/glib-object.h";
 
         gobject.Private += "GOBJECT_COMPILATION"_d;
         gobject.Private += sw::Shared, "DLL_EXPORT"_d;
@@ -327,7 +332,7 @@ HMODULE glib_dll;
                 << "--output"
                 << cmd::out("gobject/glib-enumtypes."s + ext)
                 ;
-            for (auto &[p, f] : glib["glib\\gunicode.h"_rr])
+            for (auto &[p, f] : glib["glib/gunicode.h"_rr])
             {
                 if (!f->skip)
                     c << cmd::in(p);
@@ -551,7 +556,9 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         gio += "gio/xdgmime/.*"_rr;
         gio += "gio/gvdb/.*"_rr;
 
+        gio.AllowEmptyRegexes = true;
         gio ^= "gio/.*__pycache__.*"_rr;
+        gio.AllowEmptyRegexes = false;
     }
 
     auto &rc = p.addTarget<Executable>("compile_resources");
