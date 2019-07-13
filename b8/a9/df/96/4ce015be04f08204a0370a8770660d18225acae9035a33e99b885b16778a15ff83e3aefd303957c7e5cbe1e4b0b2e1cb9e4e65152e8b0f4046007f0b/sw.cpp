@@ -1,3 +1,5 @@
+#pragma optimize("", off)
+
 void build(Solution &s)
 {
     auto &fontconfig = s.addTarget<LibraryTarget>("freedesktop.fontconfig.fontconfig", "2.13.91");
@@ -45,19 +47,20 @@ void build(Solution &s)
     fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     {
-        //auto o1 = fontconfig.BinaryDir / "fcobjshash1.h";
-        //auto o2 = fontconfig.BinaryDir / "fcobjshash2.h";
         auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
-        auto cc = std::static_pointer_cast<Compiler>(fontconfig.findProgramByExtension(".cpp")->clone());
-        auto c = cc->getCommand(fontconfig);
-        c->arguments.push_back("-I");
-        c->arguments.push_back(fontconfig.SourceDir.u8string());
+        auto cc = std::static_pointer_cast<sw::NativeCompiler>(fontconfig.findProgramByExtension(".cpp")->clone());
+        cc->IncludeDirectories.push_back(fontconfig.SourceDir);
+        auto c = cc->createCommand(fontconfig.getSolution().swctx);
         c->arguments.push_back("-E");
         c->arguments.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
-        //c->redirectStdout(o1);
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
         fontconfig.Storage.push_back(c);
+        fontconfig.add(sw::CallbackType::EndPrepare, [cc, &fontconfig]()
+        {
+            cc->merge(fontconfig);
+            cc->getCommand(fontconfig);
+        });
 
         fontconfig.Public -= "org.sw.demo.gnu.sed.sed-*"_dep;
         fontconfig.Public -= "org.sw.demo.gnu.gawk.gawk-*"_dep;
