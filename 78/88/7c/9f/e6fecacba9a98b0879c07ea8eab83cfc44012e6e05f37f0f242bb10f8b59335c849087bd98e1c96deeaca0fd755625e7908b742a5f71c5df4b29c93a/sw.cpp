@@ -16,7 +16,9 @@ void build(Solution &s)
         "src/.*"_rr;
 
     libffi.Public +=
+        "."_id,
         "include"_id,
+        "src"_id,
         "src/x86"_id;
 
     libffi.Private += "FFI_HIDDEN="_d;
@@ -141,37 +143,43 @@ void build(Solution &s)
             auto p = libffi.findProgramByExtension(".c");
             if (!p)
                 throw std::runtime_error("No c compiler found");
-            auto ch = std::static_pointer_cast<Compiler>(p->clone());
+            auto ch = std::static_pointer_cast<sw::NativeCompiler>(p->clone());
             libffi.Storage.push_back(ch);
-            auto c = ch->as<VisualStudioCompiler>();
-            c->IncludeDirectories.insert(libffi.BinaryDir);
-            c->IncludeDirectories.insert(libffi.SourceDir / "src" / "x86");
-            c->IncludeDirectories.insert(libffi.SourceDir / "src");
-            c->IncludeDirectories.insert(libffi.SourceDir / "include");
+            auto c = dynamic_cast<VisualStudioCompiler*>(ch.get());
             c->PreprocessToStdout = true; // supress #line directives
             c->PreprocessToFile = true;
             c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->getCommand(libffi);
+            auto cmd = c->createCommand(libffi.getSolution().swctx);
             cmd->working_directory = libffi.BinaryDir;
             cmd->addOutput(libffi.BinaryDir / (f + ".i"));
             libffi.registerCommand(*cmd);
+            libffi.add(sw::CallbackType::EndPrepare, [ch, &libffi]()
+            {
+                ch->merge(libffi);
+                ch->getCommand(libffi);
+            });
         }
 
         {
             auto p = libffi.findProgramByExtension(".asm");
             if (!p)
                 throw std::runtime_error("No asm compiler found");
-            auto ch = std::static_pointer_cast<Compiler>(p->clone());
+            auto ch = std::static_pointer_cast<sw::NativeCompiler>(p->clone());
             libffi.Storage.push_back(ch);
-            auto c = ch->as<VisualStudioASMCompiler>();
+            auto c = dynamic_cast<VisualStudioASMCompiler*>(ch.get());
             c->PreserveSymbolCase = true;
             c->SafeSEH = true;
             const auto o = libffi.BinaryDir / "pre.obj";
             c->Output = o;
             c->InputFile = libffi.BinaryDir / (f + ".i");
-            auto cmd = c->getCommand(libffi);
+            auto cmd = c->createCommand(libffi.getSolution().swctx);
             cmd->addOutput(o);
             libffi += o;
+            libffi.add(sw::CallbackType::EndPrepare, [ch, &libffi]()
+            {
+                ch->merge(libffi);
+                ch->getCommand(libffi);
+            });
         }
     }
 }
