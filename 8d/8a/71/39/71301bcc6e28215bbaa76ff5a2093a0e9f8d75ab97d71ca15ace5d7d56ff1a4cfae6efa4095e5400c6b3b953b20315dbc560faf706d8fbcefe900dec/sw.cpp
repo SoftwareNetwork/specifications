@@ -308,13 +308,12 @@ void * memrchr (const void *, int, size_t);
         }
     }
 
-    if (s.getSettings().TargetOS.Type != OSType::Windows)
+    auto &sed2 = sed.addTarget<SedExecutable>("sed");
+    if (sed2.getSettings().TargetOS.is(OSType::Windows))
     {
-        sed.addTarget<SedExecutable>("sed");
         return;
     }
 
-    auto &sed2 = sed.addTarget<SedExecutable>("sed");
     {
         auto &sed = sed2;
         sed +=
@@ -334,7 +333,7 @@ void * memrchr (const void *, int, size_t);
         if (sed.getSettings().TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
-        if (auto L = sed.Linker->as<VisualStudioLinker>(); L)
+        if (auto L = sed.Linker->as<VisualStudioLinker*>(); L)
             L->Force = vs::ForceType::Multiple;
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "configmake.h");

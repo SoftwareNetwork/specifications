@@ -34,7 +34,7 @@ void build(Solution &s)
             "lib/sigaction.c",
             "lib/sig-handler.c",
             "lib/sigprocmask.c"//,
-            //"lib/xalloc.c"
+                               //"lib/xalloc.c"
             ;
 
         gnulib += "lib/opendirat.[hc]"_rr;
@@ -330,7 +330,7 @@ void *mempcpy(void * __dest, void const * __src,
         grep.Private += "__USE_GNU"_d;
         grep.Public += gnulib;
 
-        if (auto L = grep.Linker->as<VisualStudioLinker>(); L)
+        if (auto L = grep.Linker->as<VisualStudioLinker*>(); L)
             L->Force = vs::ForceType::Multiple;
 
         grep.writeFileOnce(grep.BinaryPrivateDir / "unistd.h");
