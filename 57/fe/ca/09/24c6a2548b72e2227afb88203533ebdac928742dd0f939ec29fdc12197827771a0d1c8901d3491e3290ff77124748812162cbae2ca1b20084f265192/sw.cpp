@@ -309,7 +309,7 @@ void * memrchr (const void *, int, size_t);
     }
 
     auto &sed2 = sed.addTarget<SedExecutable>("sed");
-    if (sed2.getSettings().TargetOS.is(OSType::Windows))
+    if (!sed2.getSettings().TargetOS.is(OSType::Windows))
     {
         return;
     }
