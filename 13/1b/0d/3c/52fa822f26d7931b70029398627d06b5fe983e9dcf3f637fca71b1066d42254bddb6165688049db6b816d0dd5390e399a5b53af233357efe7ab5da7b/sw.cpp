@@ -14,6 +14,8 @@ void build(Solution &s)
         t.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
         t.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
         t.Public += "U_USING_ICU_NAMESPACE=1"_d;
+        if (t.getCompilerType() == CompilerType::MSVC)
+            t.CompileOptions.insert("-utf-8");
     };
 
     setup(s_data);
@@ -28,7 +30,6 @@ void build(Solution &s)
     s_common.setChecks("common");
 
     s_common +=
-        "common/.*\\.c"_rr,
         "common/.*\\.cpp"_rr,
         "common/.*\\.h"_rr;
     s_common.Public += "common"_id;
@@ -46,7 +47,6 @@ void build(Solution &s)
     setup(s_i18n);
 
     s_i18n +=
-        "i18n/.*\\.c"_rr,
         "i18n/.*\\.cpp"_rr,
         "i18n/.*\\.h"_rr;
     s_i18n.Public += "i18n"_id;
@@ -59,7 +59,6 @@ void build(Solution &s)
     setup(s_toolutil);
 
     s_toolutil +=
-        "tools/toolutil/.*\\.c"_rr,
         "tools/toolutil/.*\\.cpp"_rr,
         "tools/toolutil/.*\\.h"_rr;
 
@@ -80,7 +79,7 @@ void build(Solution &s)
     data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
     data.setRootDirectory("source");
     data += "data/in/.*\\.dat"_rr;
-    if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
+    if (auto L = data.getSelectedTool()->as<VisualStudioLinker*>())
         L->NoEntry = true;
 
     {
@@ -123,7 +122,6 @@ void build(Solution &s)
     common.setChecks("common");
 
     common +=
-        "common/.*\\.c"_rr,
         "common/.*\\.cpp"_rr,
         "common/.*\\.h"_rr;
     common.Public += "common"_id;
@@ -141,7 +139,6 @@ void build(Solution &s)
     setup(i18n);
 
     i18n +=
-        "i18n/.*\\.c"_rr,
         "i18n/.*\\.cpp"_rr,
         "i18n/.*\\.h"_rr;
     i18n.Public += "i18n"_id;
@@ -154,7 +151,6 @@ void build(Solution &s)
     setup(io);
 
     io +=
-        "io/.*\\.c"_rr,
         "io/.*\\.cpp"_rr,
         "io/.*\\.h"_rr;
     io.Public += "io"_id;
