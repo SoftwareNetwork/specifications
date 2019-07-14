@@ -101,7 +101,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_INT32_FORMAT"] = "%ld";
     }
     else
-        throw SW_RUNTIME_ERROR("no type");
+        throw SW_RUNTIME_ERROR("no type: " + tiff.Variables["SIZEOF_SIGNED_INT"].toString() + ", " + tiff.Variables["SIZEOF_SIGNED_LONG"].toString());
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == 4)
     {
