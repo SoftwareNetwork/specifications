@@ -8,8 +8,14 @@ void build(Solution &s)
     t -= "src/.*"_rr;
     t += "src/static.c";
 
-    t.Public += sw::Shared, "MI_SHARED_LIB"_def;
-    t += sw::Shared, "MI_SHARED_LIB_EXPORT"_def;
+    //if (t.getSettings().Native.LibrariesType == LibraryType::Shared)
+    {
+        t.Public += sw::Shared, "MI_SHARED_LIB"_def;
+        t += sw::Shared, "MI_SHARED_LIB_EXPORT"_def;
+        t += sw::Shared, "MI_MALLOC_OVERRIDE"_def;
+        t.LinkOptions.push_back("-ENTRY:DllEntry");
+        t += "src/alloc-override-win.c";
+    }
 
     if (t.getSettings().TargetOS.is(OSType::Windows))
         t += "Advapi32.lib"_slib;
