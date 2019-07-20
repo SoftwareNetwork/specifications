@@ -1,6 +1,7 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<Library>("microsoft.mimalloc", "1.0.5");
+    // shared only at the moment
+    auto &t = s.addTarget<SharedLibrary>("microsoft.mimalloc", "1.0.5");
     t += Git("https://github.com/microsoft/mimalloc", "v{v}");
 
     t += "include/.*"_rr;

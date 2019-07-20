@@ -16,7 +16,7 @@ void build(Solution &s)
     turf.Variables["TURF_WITH_EXCEPTIONS"] = "FALSE";
     if (turf.getCompilerType() == CompilerType::MSVC)
         turf.Variables["TURF_WITH_SECURE_COMPILER"] = "FALSE";
-    turf.Variables["TURF_REPLACE_OPERATOR_NEW"] = "FALSE";
+    //turf.Variables["TURF_REPLACE_OPERATOR_NEW"] = 0;
 
     turf.Variables["TURF_HAS_LONG_LONG"] = "1";
     turf.Variables["TURF_HAS_STDINT"] = "1";
