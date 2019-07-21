@@ -28,7 +28,7 @@ struct YasmCompiler : sw::NativeCompiler,
     ExecutableTarget &exe;
 
     YasmCompiler(ExecutableTarget &exe)
-        : NativeCompiler(exe.getSolution().swctx), version(exe.getPackage().getVersion())
+        : NativeCompiler(exe.getSolution().swctx)
         , exe(exe)
     {
     }
@@ -98,11 +98,6 @@ struct YasmCompiler : sw::NativeCompiler,
     {
         ObjectFile = output_file;
     }
-
-protected:
-    Version version;
-
-    Version gatherVersion() const override { return version; }
 };
 
 void build(Solution &s)
