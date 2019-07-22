@@ -24,12 +24,12 @@ void configure(Build &s)
         }
     });
 
-    if (s.isConfigSelected("cygwin2macos"))
+    /*if (s.isConfigSelected("cygwin2macos"))
         s.loadModule("utils/cc/cygwin2macos.cpp").call<void(Solution&)>("configure", s);
     else if (s.isConfigSelected("win2macos"))
         s.loadModule("utils/cc/win2macos.cpp").call<void(Solution&)>("configure", s);
     else if (s.isConfigSelected("win2android"))
-        s.loadModule("utils/cc/win2android.cpp").call<void(Solution&)>("configure", s);
+        s.loadModule("utils/cc/win2android.cpp").call<void(Solution&)>("configure", s);*/
 
     //s.getSettings().Native.ConfigurationType = ConfigurationType::ReleaseWithDebugInformation;
     //s.getSettings().Native.CompilerType = CompilerType::ClangCl;
@@ -221,6 +221,7 @@ void build(Solution &s)
         client += "src/sw/client/.*"_rr;
         client.CPPVersion = CPPLanguageStandard::CPP17;
         client += core, cpp_driver,
+            //"org.sw.demo.microsoft.mimalloc"_dep,
             "pub.egorpugin.primitives.sw.main-master"_dep,
             "org.sw.demo.giovannidicanio.winreg-master"_dep;
         embed("pub.egorpugin.primitives.tools.embedder-master"_dep, client, "src/sw/client/inserts/inserts.cpp.in");
