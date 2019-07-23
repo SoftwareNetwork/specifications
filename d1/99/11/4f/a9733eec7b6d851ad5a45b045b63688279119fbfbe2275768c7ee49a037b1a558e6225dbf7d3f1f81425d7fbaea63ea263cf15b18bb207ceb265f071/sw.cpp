@@ -17,7 +17,11 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
     auto oh = o;
     oh += ".grpc.pb.h";
 
+#if defined(SW_CPP_DRIVER_API_VERSION)
+    t.addDummyDependency(grpc_cpp_plugin);
+#else
     (t + grpc_cpp_plugin)->setDummy(true);
+#endif
 
     auto c = t.addCommand();
     c << cmd::prog(protoc)
