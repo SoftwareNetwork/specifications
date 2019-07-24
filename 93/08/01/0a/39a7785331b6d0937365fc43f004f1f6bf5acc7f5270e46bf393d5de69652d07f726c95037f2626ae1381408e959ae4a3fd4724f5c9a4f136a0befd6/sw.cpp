@@ -79,7 +79,11 @@ void build(Solution &s)
     data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
     data.setRootDirectory("source");
     data += "data/in/.*\\.dat"_rr;
+#ifdef SW_CPP_DRIVER_API_VERSION
     if (auto L = data.getSelectedTool()->as<VisualStudioLinker*>())
+#else
+    if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
+#endif
         L->NoEntry = true;
 
     {

@@ -333,7 +333,11 @@ void * memrchr (const void *, int, size_t);
         if (sed.getSettings().TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
+#ifdef SW_CPP_DRIVER_API_VERSION
         if (auto L = sed.Linker->as<VisualStudioLinker*>(); L)
+#else
+        if (auto L = sed.Linker->as<VisualStudioLinker>(); L)
+#endif
             L->Force = vs::ForceType::Multiple;
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "configmake.h");

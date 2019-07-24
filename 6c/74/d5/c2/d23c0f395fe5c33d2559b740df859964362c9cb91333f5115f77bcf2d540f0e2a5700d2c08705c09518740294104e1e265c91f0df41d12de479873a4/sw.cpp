@@ -330,7 +330,11 @@ void *mempcpy(void * __dest, void const * __src,
         grep.Private += "__USE_GNU"_d;
         grep.Public += gnulib;
 
+#ifdef SW_CPP_DRIVER_API_VERSION
         if (auto L = grep.Linker->as<VisualStudioLinker*>(); L)
+#else
+        if (auto L = grep.Linker->as<VisualStudioLinker>(); L)
+#endif
             L->Force = vs::ForceType::Multiple;
 
         grep.writeFileOnce(grep.BinaryPrivateDir / "unistd.h");
