@@ -38,7 +38,7 @@ static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_c
         return "--plugin=protoc-gen-grpc=" + p.u8string();
     }
     << "-I" << normalize_path(d) // must be normalized as f
-        << "-I" << [protoc = protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().swctx.getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
+        << "-I" << [protoc = protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().getContext().getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
         << cmd::end()
         << cmd::out(ocpp)
         << cmd::out(oh);
