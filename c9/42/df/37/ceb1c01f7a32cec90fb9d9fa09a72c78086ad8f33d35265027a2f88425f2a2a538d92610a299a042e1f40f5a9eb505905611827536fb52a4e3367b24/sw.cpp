@@ -118,14 +118,12 @@ void build(Solution &s)
     libcurl.Public += "org.sw.demo.nghttp2-1"_dep;
     libcurl.Public += "org.sw.demo.libssh2-1"_dep;
     libcurl.Public += "org.sw.demo.madler.zlib-1"_dep;
+    libcurl.Public -= "org.sw.demo.openldap.ldap_r"_dep;
 
     if (libcurl.getSettings().TargetOS.Type == OSType::Windows)
         libcurl.Public += "Wldap32.lib"_slib;
     else
-    {
-        libcurl.Public += "org.sw.demo.openldap.lber"_dep;
         libcurl.Public += "org.sw.demo.openldap.ldap_r"_dep;
-    }
 
     libcurl.Variables["OPERATING_SYSTEM"] = "${CMAKE_SYSTEM_NAME}";
     libcurl.Variables["OS"] = "\"${CMAKE_SYSTEM_NAME}\"";
