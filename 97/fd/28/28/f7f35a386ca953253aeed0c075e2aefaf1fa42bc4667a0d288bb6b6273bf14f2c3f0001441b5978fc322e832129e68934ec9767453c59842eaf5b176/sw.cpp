@@ -16,7 +16,7 @@ void build(Solution &s)
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
         t -= "libraries/liblber/stdio.c";
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
 
         t.ApiName = "LBER_API";
@@ -63,7 +63,7 @@ void build(Solution &s)
         t -= "libraries/libldap/.*test.*"_rr;
         t -= "libraries/libldap/t61.c";
         t += "libraries/libldap"_idir;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
 
         t.ApiName = "LDAP_API";
@@ -80,28 +80,45 @@ void build(Solution &s)
         auto &t = ldap_r;
         add_ldap(t);
 
+        t += "LDAP_R_COMPILE"_def;
+
         t += "libraries/libldap_r/.*"_rr;
-        t -= "libraries/libldap_r/.*test.*"_rr;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "HAVE_NT_THREADS"_def;
 
         t.Public += lber;
     }
 
-    auto &ldapcpp = p.addTarget<Library>("ldapcpp");
+    auto &ldapcpp = p.addTarget<StaticLibrary>("ldapcpp");
     {
         auto &t = ldapcpp;
         t.setRootDirectory("contrib/ldapc++");
         t.Public += ldap;
         t.writeFileOnce(t.BinaryPrivateDir / "config.h", R"(#ifdef _WIN32
 #include <winsock.h>
+#endif
+)");
+
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            t += "WIN32_LEAN_AND_MEAN"_def;
+            t += "NOMINMAX"_def;
+            t.writeFileOnce(t.BinaryPrivateDir / "unistd.h", R"(
+#include <sys/stat.h>
+
+#if defined (_S_IFDIR) && !defined (S_IFDIR)
+#define S_IFDIR _S_IFDIR
+#endif
 
 #if !defined S_ISDIR && defined S_IFDIR
 # define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
 #endif
-#endif
 )");
-        t.writeFileOnce(t.BinaryPrivateDir / "unistd.h");
+
+            t.patch("src/LDAPRequest.h", "static const int DELETE=10;", "#undef DELETE\nstatic const int DELETE=10;");
+            t.patch("src/LdifReader.cpp", "char outbuf[value.size()];", "std::string outbuf(value.size(), 0);");
+            t.patch("src/LdifReader.cpp", "outbuf, value.size()", "(char *)outbuf.data(), value.size()");
+        }
 
         t.Public += "org.sw.demo.cyrus.sasl"_dep;
     }
