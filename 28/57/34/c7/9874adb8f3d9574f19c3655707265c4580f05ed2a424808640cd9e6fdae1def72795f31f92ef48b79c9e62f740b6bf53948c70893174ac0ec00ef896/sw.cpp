@@ -19,31 +19,36 @@ void build(Solution &s)
         if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
 
+        t.Public += "include"_idir;
+        t.Protected += "libraries/liblber"_idir;
+
         t.ApiName = "LBER_API";
-        t += "LDAP_API=SW_IMPORT"_def;
+        t += "LDAP_API="_def;
         t.patch("include/ldap_cdefs.h", "LBER_F(type)		extern type", "LBER_F(type)		extern LBER_API type");
         t.patch("include/ldap_cdefs.h", "LBER_V(type)		extern type", "LBER_V(type)		extern LBER_API type");
-
-        t.Variables["LDAP_VENDOR_VERSION"] = t.Variables["PACKAGE_VERSION_NUM"];
-        t.Variables["LDAP_VENDOR_VERSION_MAJOR"] = t.Variables["PACKAGE_VERSION_MAJOR"];
-        t.Variables["LDAP_VENDOR_VERSION_MINOR"] = t.Variables["PACKAGE_VERSION_MINOR"];
-        t.Variables["LDAP_VENDOR_VERSION_PATCH"] = t.Variables["PACKAGE_VERSION_PATCH"];
 
         t.Variables["LBER_INT_T"] = "int";
         t.Variables["LBER_TAG_T"] = "int";
         t.Variables["LBER_SOCKET_T"] = "int";
         t.Variables["ber_socklen_t"] = "int";
         t.Variables["LBER_LEN_T"] = "int";
-
+        //
         t.Variables["uid_t"] = "int";
         t.Variables["gid_t"] = "int";
-
-        t.configureFile("include/portable.hin", "portable.h",
-            (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
+        //
         t.configureFile("include/lber_types.hin", "lber_types.h",
+            (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
+
+        t.Variables["LDAP_VENDOR_VERSION"] = t.Variables["PACKAGE_VERSION_NUM"];
+        t.Variables["LDAP_VENDOR_VERSION_MAJOR"] = t.Variables["PACKAGE_VERSION_MAJOR"];
+        t.Variables["LDAP_VENDOR_VERSION_MINOR"] = t.Variables["PACKAGE_VERSION_MINOR"];
+        t.Variables["LDAP_VENDOR_VERSION_PATCH"] = t.Variables["PACKAGE_VERSION_PATCH"];
+        //
+        t.configureFile("include/portable.hin", "portable.h",
             (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
         t.configureFile("include/ldap_config.hin", "ldap_config.h",
             (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
+
         t.configureFile("include/ldap_features.hin", "ldap_features.h",
             (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
 
@@ -52,9 +57,9 @@ void build(Solution &s)
 #define strncasecmp _strnicmp
 #endif
 )");
-    }
 
-    auto &ldap = p.addTarget<Library>("ldap");
+        t.patch("libraries/liblber/debug.c", "#include \"ldap_pvt.h\"", "//#include  \"ldap_pvt.h\"");
+    }
 
     auto add_ldap = [&lber, &s](auto &t)
     {
@@ -62,9 +67,10 @@ void build(Solution &s)
         t += "libraries/libldap/.*"_rr;
         t -= "libraries/libldap/.*test.*"_rr;
         t -= "libraries/libldap/t61.c";
-        t += "libraries/libldap"_idir;
         if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
+
+        t.Protected += "libraries/libldap"_idir;
 
         t.ApiName = "LDAP_API";
         t.patch("include/ldap_cdefs.h", "LDAP_F(type)		extern type", "LDAP_F(type)		extern LDAP_API type");
@@ -73,6 +79,7 @@ void build(Solution &s)
         t.Public += lber;
     };
 
+    auto &ldap = p.addTarget<Library>("ldap");
     add_ldap(ldap);
 
     auto &ldap_r = p.addTarget<Library>("ldap_r");
@@ -121,6 +128,24 @@ void build(Solution &s)
         }
 
         t.Public += "org.sw.demo.cyrus.sasl"_dep;
+    }
+
+    return;
+
+    auto &lunicode = p.addTarget<Library>("lunicode");
+    {
+        auto &t = lunicode;
+        t -= "libraries/liblunicode/.*"_rr;
+        t += "libraries/liblunicode/ucstr.c";
+        t += "libraries/liblunicode/ucdata/ucdata.c";
+
+        //t.Public += sw::Shared, "LDAP_LIBS_DYNAMIC"_def;
+        t += "LDAP_API="_def;
+
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
+            t.writeFileOnce(t.BinaryPrivateDir / "unistd.h", "");
+
+        t.Public += lber, ldap;
     }
 }
 
