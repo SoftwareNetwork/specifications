@@ -7,8 +7,6 @@ void build(Solution &s)
 
     auto &t = p.addTarget<Library>("sasl");
 
-    //t += "pub.egorpugin.primitives.sw.main-master"_dep;
-
     t += "include/.*"_rr;
     t += "lib/.*"_rr;
     t += "common/.*"_rr;
@@ -19,6 +17,7 @@ void build(Solution &s)
     t -= "lib/snprintf.c";
 
     t += "common"_idir;
+    t.Public += "include"_idir;
 
     t += "plugins/anonymous.c";
     t += "plugins/digestmd5.c";
@@ -29,7 +28,7 @@ void build(Solution &s)
 
     t += "GCC_FALLTHROUGH="_def;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (t.getSettings().TargetOS.Type == OSType::Windows)
     {
         t -= "lib/dlopen.c";
         t += "win32/include"_idir;
@@ -43,6 +42,9 @@ void build(Solution &s)
     }
 
     t.Public += "org.sw.demo.openssl.crypto-*.*.*.*"_dep;
+
+    if (t.DryRun)
+        return;
 
     auto dummy = t.BinaryDir / "private/sw_copy_headers.txt";
     if (!fs::exists(dummy))
