@@ -19,6 +19,8 @@ void build(Solution &s)
         t -= "libraries/liblber/stdio.c";
         if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
+        else
+            t -= "libraries/liblber/nt_err.c";
 
         t.Public += "include"_idir;
         t.Protected += "libraries/liblber"_idir;
@@ -62,7 +64,7 @@ void build(Solution &s)
         //t.patch("libraries/liblber/debug.c", "#include \"ldap_pvt.h\"", "//#include  \"ldap_pvt.h\"");
 
         t.patch("include/ldap_pvt_uc.h",
-        "#include \"../libraries/liblunicode/ucdata/ucdata.h\"",
+            "#include \"../libraries/liblunicode/ucdata/ucdata.h\"",
             "//#include  \"../libraries/liblunicode/ucdata/ucdata.h\"");
     }
 
@@ -99,6 +101,8 @@ void build(Solution &s)
         t += "libraries/libldap_r/.*"_rr;
         if (t.getSettings().TargetOS.Type == OSType::Windows)
             t += "HAVE_NT_THREADS"_def;
+        else
+            t += "HAVE_PTHREADS=10"_def;
 
         t.Public += lber;
     }
@@ -199,6 +203,7 @@ void check(Checker &c)
     s.checkFunctionExists("memrchr");
     s.checkFunctionExists("mkstemp");
     s.checkFunctionExists("mktemp");
+    s.checkFunctionExists("nanosleep");
     s.checkFunctionExists("openlog");
     s.checkFunctionExists("pipe");
     s.checkFunctionExists("poll");
@@ -318,6 +323,7 @@ void check(Checker &c)
     s.checkIncludeExists("sys/stat.h");
     s.checkIncludeExists("sys/syslog.h");
     s.checkIncludeExists("sys/time.h");
+    s.checkIncludeExists("sys/timeb.h");
     s.checkIncludeExists("sys/types.h");
     s.checkIncludeExists("sys/ucred.h");
     s.checkIncludeExists("sys/uio.h");

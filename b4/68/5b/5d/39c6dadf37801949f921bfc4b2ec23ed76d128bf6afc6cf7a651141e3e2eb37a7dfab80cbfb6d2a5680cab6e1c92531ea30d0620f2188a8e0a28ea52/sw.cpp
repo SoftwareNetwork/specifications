@@ -48,6 +48,12 @@ void build(Solution &s)
             crypto.Public += "Crypt32.lib"_slib;
             crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
         }
+        else
+        {
+            crypto.Private += "HAVE_DLFCN_H"_d;
+            crypto.Private += "DSO_DLFCN"_d;
+            //crypto.Private += "DSO_DL"_d;
+        }
 
         if (crypto.getSettings().TargetOS.Type == OSType::Windows)
         {
