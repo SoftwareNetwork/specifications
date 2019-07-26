@@ -21,14 +21,14 @@ void build(Solution &s)
         hdf5.Public +=
             "src"_id;
 
-        if (s.Settings.Native.CompilerType == CompilerType::MSVC)
+        if (hdf5.getCompilerType() == CompilerType::MSVC)
         {
             hdf5.Public += "H5_HAVE_VISUAL_STUDIO"_d;
         }
         hdf5.Private += sw::Shared, "hdf5_shared_EXPORTS"_d;
         hdf5.Public += sw::Shared, "H5_BUILT_AS_DYNAMIC_LIB"_d;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (hdf5.getSettings().TargetOS.Type == OSType::Windows)
         {
             hdf5.Variables["H5_DEFAULT_PLUGINDIR"] = "%ALLUSERSPROFILE%\\\\hdf5\\\\lib\\\\plugin";
             hdf5.Variables["H5_HAVE_WIN32_API"] = 1;
@@ -49,13 +49,13 @@ void build(Solution &s)
         auto &H5detect = tools.addExecutable("H5detect");
         H5detect += "src/H5detect.c";
         (H5detect + hdf5)->IncludeDirectoriesOnly = true;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (hdf5.getSettings().TargetOS.Type == OSType::Windows)
             H5detect += "ws2_32.lib"_lib;
 
         auto &H5make_libsettings = tools.addExecutable("H5make_libsettings");
         H5make_libsettings += "src/H5make_libsettings.c";
         (H5make_libsettings + hdf5)->IncludeDirectoriesOnly = true;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (hdf5.getSettings().TargetOS.Type == OSType::Windows)
             H5make_libsettings += "ws2_32.lib"_lib;
 
         {
