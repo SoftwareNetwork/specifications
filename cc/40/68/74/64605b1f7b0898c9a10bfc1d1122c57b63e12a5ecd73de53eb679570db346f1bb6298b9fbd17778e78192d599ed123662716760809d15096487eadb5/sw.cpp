@@ -175,6 +175,7 @@ void build(Solution &s)
 
         // conditional code only works for non-host solutions
         t.addDummyDependency("org.sw.demo.gnu.gawk.gawk"_dep); // set dependency early
+        t -= "tools/.*"_rr; // also take input files
         for (auto &[p, sf] : t[".*\\.s"_rr])
         {
             if (sf->skip)
