@@ -46,6 +46,7 @@ void build(Solution &s)
         {
             crypto.Private += "DSO_WIN32"_d;
             crypto.Public += "Crypt32.lib"_slib;
+            crypto.Public += "bCrypt.lib"_slib;
             crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
         }
         else

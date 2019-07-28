@@ -8,6 +8,7 @@ void configure(Build &s)
     //ss.Native.LibrariesType = LibraryType::Static;
     //s.addSettings(ss);
 
+#ifndef SW_CPP_DRIVER_API_VERSION
     s.registerCallback([](auto &t, auto cbt)
     {
         if (cbt != sw::CallbackType::CreateTarget)
@@ -24,12 +25,13 @@ void configure(Build &s)
         }
     });
 
-    /*if (s.isConfigSelected("cygwin2macos"))
+    if (s.isConfigSelected("cygwin2macos"))
         s.loadModule("utils/cc/cygwin2macos.cpp").call<void(Solution&)>("configure", s);
     else if (s.isConfigSelected("win2macos"))
         s.loadModule("utils/cc/win2macos.cpp").call<void(Solution&)>("configure", s);
     else if (s.isConfigSelected("win2android"))
-        s.loadModule("utils/cc/win2android.cpp").call<void(Solution&)>("configure", s);*/
+        s.loadModule("utils/cc/win2android.cpp").call<void(Solution&)>("configure", s);
+#endif
 
     //s.getSettings().Native.ConfigurationType = ConfigurationType::ReleaseWithDebugInformation;
     //s.getSettings().Native.CompilerType = CompilerType::ClangCl;
@@ -82,6 +84,7 @@ void build(Solution &s)
         manager.ExportIfStatic = true;
         manager.CPPVersion = CPPLanguageStandard::CPP17;
         manager.Public += "BOOST_DLL_USE_STD_FS"_def;
+
         manager.Public += support, protos,
             "pub.egorpugin.primitives.date_time-master"_dep,
             "pub.egorpugin.primitives.db.sqlite3-master"_dep,
@@ -90,13 +93,17 @@ void build(Solution &s)
             "pub.egorpugin.primitives.source-master"_dep,
             "pub.egorpugin.primitives.sw.settings-master"_dep,
             "pub.egorpugin.primitives.version-master"_dep,
-            "pub.egorpugin.primitives.win32helpers-master"_dep,
             "pub.egorpugin.primitives.yaml-master"_dep,
             "org.sw.demo.nlohmann.json-3"_dep,
             "org.sw.demo.boost.variant"_dep,
             "org.sw.demo.boost.dll"_dep,
             "org.sw.demo.rbock.sqlpp11_connector_sqlite3-develop"_dep
             ;
+
+        manager.Public -= "pub.egorpugin.primitives.win32helpers-master"_dep;
+        if (manager.getSettings().TargetOS.Type == OSType::Windows)
+            manager.Public += "pub.egorpugin.primitives.win32helpers-master"_dep;
+
         manager += "src/sw/manager/.*"_rr;
         manager.Public.Definitions["VERSION_MAJOR"] += std::to_string(manager.getPackage().version.getMajor());
         manager.Public.Definitions["VERSION_MINOR"] += std::to_string(manager.getPackage().version.getMinor());
@@ -203,6 +210,8 @@ void build(Solution &s)
                 << cmd::out("options_cl.generated.cpp", cmd::Skip)
                 ;
             c.c->ignore_deps_generated_commands = true;
+            // make sure this is exported header, so we depend on it
+            //cpp_driver.Public += "options_cl.generated.h";
         }
         //if (!s.Variables["SW_SELF_BUILD"])
         {
