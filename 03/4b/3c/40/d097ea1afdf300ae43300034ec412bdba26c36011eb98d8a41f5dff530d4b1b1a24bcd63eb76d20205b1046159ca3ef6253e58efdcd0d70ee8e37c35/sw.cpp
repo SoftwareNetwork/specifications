@@ -32,6 +32,7 @@ void build(Solution &s)
         {
             hdf5.Variables["H5_DEFAULT_PLUGINDIR"] = "%ALLUSERSPROFILE%\\\\hdf5\\\\lib\\\\plugin";
             hdf5.Variables["H5_HAVE_WIN32_API"] = 1;
+            hdf5 += "Advapi32.lib"_slib;
         }
         else
         {
@@ -49,14 +50,14 @@ void build(Solution &s)
         auto &H5detect = tools.addExecutable("H5detect");
         H5detect += "src/H5detect.c";
         (H5detect + hdf5)->IncludeDirectoriesOnly = true;
-        if (hdf5.getSettings().TargetOS.Type == OSType::Windows)
-            H5detect += "ws2_32.lib"_lib;
+        if (H5detect.getSettings().TargetOS.Type == OSType::Windows)
+            H5detect += "ws2_32.lib"_slib;
 
         auto &H5make_libsettings = tools.addExecutable("H5make_libsettings");
         H5make_libsettings += "src/H5make_libsettings.c";
         (H5make_libsettings + hdf5)->IncludeDirectoriesOnly = true;
         if (hdf5.getSettings().TargetOS.Type == OSType::Windows)
-            H5make_libsettings += "ws2_32.lib"_lib;
+            H5make_libsettings += "ws2_32.lib"_slib;
 
         {
             auto c = hdf5.addCommand();

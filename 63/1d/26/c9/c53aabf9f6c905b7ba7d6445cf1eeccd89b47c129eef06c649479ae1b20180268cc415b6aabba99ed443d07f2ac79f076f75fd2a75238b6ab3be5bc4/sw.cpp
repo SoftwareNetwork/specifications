@@ -62,6 +62,9 @@ void build(Solution &s)
         {
             libtesseract += "__SSE4_1__"_def;
             libtesseract.CompileOptions.push_back("-arch:AVX2");
+
+            libtesseract -=
+                "src/arch/dotproductfma.cpp";
         }
 
         libtesseract.Public += "HAVE_CONFIG_H"_d;
@@ -112,6 +115,7 @@ void build(Solution &s)
         "src/training/icuerrorcode.h",
         "src/training/lang_model_helpers.*"_rr,
         "src/training/lstmtester.*"_rr,
+        "src/training/lstmtrainer.*"_rr,
         "src/training/normstrngs.*"_rr,
         "src/training/unicharset_training_utils.*"_rr,
         "src/training/validat.*"_rr;

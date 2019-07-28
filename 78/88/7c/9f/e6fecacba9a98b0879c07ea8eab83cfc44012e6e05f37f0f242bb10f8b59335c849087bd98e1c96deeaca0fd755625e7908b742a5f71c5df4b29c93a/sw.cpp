@@ -149,7 +149,7 @@ void build(Solution &s)
             c->PreprocessToStdout = true; // supress #line directives
             c->PreprocessToFile = true;
             c->CSourceFile = libffi.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->createCommand(libffi.getSolution().swctx);
+            auto cmd = c->createCommand(libffi.getSolution().getContext());
             cmd->working_directory = libffi.BinaryDir;
             cmd->addOutput(libffi.BinaryDir / (f + ".i"));
             libffi.registerCommand(*cmd);
@@ -172,7 +172,7 @@ void build(Solution &s)
             const auto o = libffi.BinaryDir / "pre.obj";
             c->Output = o;
             c->InputFile = libffi.BinaryDir / (f + ".i");
-            auto cmd = c->createCommand(libffi.getSolution().swctx);
+            auto cmd = c->createCommand(libffi.getSolution().getContext());
             cmd->addOutput(o);
             libffi += o;
             libffi.add(sw::CallbackType::EndPrepare, [ch, &libffi]()
