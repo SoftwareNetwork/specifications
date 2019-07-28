@@ -42,16 +42,14 @@ void build(Solution &s)
         fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
     }
 
-    fontconfig.Public += "org.sw.demo.expat-2"_dep;
-    fontconfig.Public += "org.sw.demo.freetype-2"_dep;
+    fontconfig.Public += "org.sw.demo.expat"_dep;
+    fontconfig.Public += "org.sw.demo.freetype"_dep;
     fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     {
-        auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
-
         auto cc = std::static_pointer_cast<sw::NativeCompiler>(fontconfig.findProgramByExtension(".cpp")->clone());
         cc->IncludeDirectories.push_back(fontconfig.SourceDir);
-        auto c = cc->createCommand(fontconfig.getSolution().swctx);
+        auto c = cc->createCommand(fontconfig.getSolution().getContext());
         c->arguments.push_back("-E");
         c->arguments.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
@@ -62,18 +60,17 @@ void build(Solution &s)
             cc->getCommand(fontconfig);
         });
 
-        fontconfig.Public -= "org.sw.demo.gnu.sed.sed-*"_dep;
-        fontconfig.Public -= "org.sw.demo.gnu.gawk.gawk-*"_dep;
-
         {
+            auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
+
             auto c1 = fontconfig.addCommand();
             *c | *c1.c;
             c1
-                << cmd::prog("org.sw.demo.gnu.sed.sed-*"_dep)
+                << cmd::prog("org.sw.demo.gnu.sed.sed"_dep)
                 << "s/^ *//;s/ *, */,/"
                 |
-                fontconfig.addCommand()
-                << cmd::prog("org.sw.demo.gnu.gawk.gawk-*"_dep)
+            fontconfig.addCommand()
+                << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
                 << "\\\n\
 		            /CUT_OUT_BEGIN/ { no_write=1; next; }; \\\n\
 		            /CUT_OUT_END/ { no_write=0; next; }; \\\n\
@@ -83,7 +80,7 @@ void build(Solution &s)
                 << cmd::std_out(o3);
 
             fontconfig.addCommand()
-                << cmd::prog("org.sw.demo.gnu.gperf-*"_dep)
+                << cmd::prog("org.sw.demo.gnu.gperf"_dep)
                 << cmd::wdir(fontconfig.BinaryDir)
                 << "--pic"
                 << "-m100"
