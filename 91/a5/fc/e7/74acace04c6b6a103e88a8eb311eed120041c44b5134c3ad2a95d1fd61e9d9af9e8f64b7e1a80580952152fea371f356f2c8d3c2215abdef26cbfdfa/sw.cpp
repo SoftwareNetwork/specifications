@@ -10,16 +10,15 @@ void build(Solution &s)
             "c:/Program Files/PostgreSQL" :
             "c:/Program Files (x86)/PostgreSQL"
             ;
-        for (int v : {11, 10})
+        for (int v : {13, 12, 11, 10})
         {
             auto p = base / std::to_string(v);
             if (fs::exists(p))
             {
                 libpq.Public.IncludeDirectories.insert(p / "include");
-                libpq.Public.LinkDirectories.insert(p / "lib");
+                libpq.Public.LinkLibraries.insert(p / "lib" / "libpq.lib");
             }
         }
-        libpq.Public += "libpq.lib"_lib;
     }
     else if (libpq.getSettings().TargetOS.Type == OSType::Linux)
     {
