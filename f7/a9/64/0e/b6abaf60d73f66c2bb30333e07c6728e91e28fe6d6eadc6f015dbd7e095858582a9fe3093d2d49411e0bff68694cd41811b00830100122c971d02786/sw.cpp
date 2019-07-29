@@ -10,10 +10,6 @@ void build(Solution &s)
 
         t.setChecks("ldap");
         t += "include/.*"_rr;
-        //t += "include/ac/.*"_rr;
-        //t += "include/lber.*"_rr;
-        //t += "include/.*\\.hin"_rr;
-        //t += "include/ldap_cdefs.h";
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
         t -= "libraries/liblber/stdio.c";
@@ -29,6 +25,8 @@ void build(Solution &s)
         t += "LDAP_API="_def;
         t.patch("include/ldap_cdefs.h", "LBER_F(type)		extern type", "LBER_F(type)		extern LBER_API type");
         t.patch("include/ldap_cdefs.h", "LBER_V(type)		extern type", "LBER_V(type)		extern LBER_API type");
+        t.patch("include/ldap_cdefs.h", "LDAP_F(type)		extern type", "LDAP_F(type)		extern LDAP_API type");
+        t.patch("include/ldap_cdefs.h", "LDAP_V(type)		extern type", "LDAP_V(type)		extern LDAP_API type");
 
         t.Variables["LBER_INT_T"] = "int";
         t.Variables["LBER_TAG_T"] = "int";
@@ -70,7 +68,6 @@ void build(Solution &s)
 
     auto add_ldap = [&lber, &s](auto &t)
     {
-        t += "include/ldap_cdefs.h";
         t += "libraries/libldap/.*"_rr;
         t -= "libraries/libldap/.*test.*"_rr;
         t -= "libraries/libldap/t61.c";
@@ -80,8 +77,7 @@ void build(Solution &s)
         t.Protected += "libraries/libldap"_idir;
 
         t.ApiName = "LDAP_API";
-        t.patch("include/ldap_cdefs.h", "LDAP_F(type)		extern type", "LDAP_F(type)		extern LDAP_API type");
-        t.patch("include/ldap_cdefs.h", "LDAP_V(type)		extern type", "LDAP_V(type)		extern LDAP_API type");
+        t.patch("libraries/libldap/ldap-int.h", "#include \"../liblber/lber-int.h\"", "#include \"lber-int.h\"");
 
         t.Public += lber;
     };
