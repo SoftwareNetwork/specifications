@@ -10,8 +10,7 @@ void build(Solution &s)
         llvm_demangle.CPPVersion = CPPLanguageStandard::CPP14;
         llvm_demangle +=
             "include/llvm/Demangle/.*"_rr,
-            "lib/Demangle/.*\\.cpp"_rr,
-            "lib/Demangle/.*\\.h"_rr;
+            "lib/Demangle/.*"_rr;
         if (llvm_demangle.getCompilerType() == CompilerType::MSVC)
         {
             llvm_demangle.Public.CompileOptions.push_back("-wd4141");
@@ -78,6 +77,11 @@ void build(Solution &s)
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
         llvm_support_lite.writeFileOnce("llvm/Config/abi-breaking.h");
+
+        if (llvm_support_lite.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib;
+        }
     }
 }
 
