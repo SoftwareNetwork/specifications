@@ -16,7 +16,7 @@ void build(Solution &s)
             "pango/glyphstring.c",
             "pango/modules.c",
             "pango/pango-.*"_rr,
-            "pango/pango.h",
+            "pango/pango.*\\.h"_rr,
             "pango/reorder-items.c",
             "pango/pangofc-shape.c",
             "pango/shape.c";
@@ -95,25 +95,17 @@ void build(Solution &s)
         pangoft2.setChecks("pango");
 
         pangoft2 +=
-            "pango/pango-version-macros.h",
             "pango/pango-ot-buffer.c",
             "pango/pango-ot-info.c",
-            "pango/pango-ot-private.h",
             "pango/pango-ot-ruleset.c",
             "pango/pango-ot-tag.c",
-            "pango/pango-ot.h",
             "pango/pangofc-decoder.c",
-            "pango/pangofc-decoder.h",
             "pango/pangofc-font.c",
-            "pango/pangofc-font.h",
             "pango/pangofc-fontmap.c",
-            "pango/pangofc-fontmap.h",
-            "pango/pangofc-private.h",
             "pango/pangoft2-fontmap.c",
-            "pango/pangoft2-private.h",
             "pango/pangoft2-render.c",
-            "pango/pangoft2.c",
-            "pango/pangoft2.h";
+            "pango/pangoft2.c"
+            ;
 
         pangoft2.Public +=
             "."_id,
@@ -139,13 +131,11 @@ void build(Solution &s)
         pangocairo +=
             "pango/pango-version-macros.h",
             "pango/pangocairo-.*"_rr,
-            "pango/pangocairo.h",
             "pango/pangocoretext.*"_rr,
             "pango/pangowin32-fontcache.c",
             "pango/pangowin32-fontmap.c",
-            "pango/pangowin32-private.h",
-            "pango/pangowin32.c",
-            "pango/pangowin32.h";
+            "pango/pangowin32.c"
+            ;
 
         pangocairo.Public +=
             "."_id,
