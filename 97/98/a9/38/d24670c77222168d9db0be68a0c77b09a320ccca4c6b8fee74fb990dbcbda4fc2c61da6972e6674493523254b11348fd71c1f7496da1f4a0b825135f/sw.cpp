@@ -129,7 +129,6 @@ void build(Solution &s)
         pangocairo.setChecks("pango");
 
         pangocairo +=
-            "pango/pango-version-macros.h",
             "pango/pangocairo-.*"_rr,
             "pango/pangocoretext.*"_rr,
             "pango/pangowin32-fontcache.c",
