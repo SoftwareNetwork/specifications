@@ -155,6 +155,7 @@ void build(Solution &s)
         builder += "src/sw/builder/.*"_rr;
         builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep,
             "org.sw.demo.boost.graph"_dep,
+            "org.sw.demo.boost.serialization"_dep,
             "org.sw.demo.microsoft.gsl-*"_dep,
             "pub.egorpugin.primitives.emitter-master"_dep;
         //if (!s.Variables["SW_SELF_BUILD"])
@@ -173,6 +174,8 @@ void build(Solution &s)
         core.CPPVersion = CPPLanguageStandard::CPP17;
         core.Public += builder;
         core += "src/sw/core/.*"_rr;
+        if (core.getSettings().TargetOS.Type == OSType::Windows)
+            core += "OleAut32.lib"_slib;
     }
 
     auto &cpp_driver = p.addTarget<LibraryTarget>("driver.cpp");
@@ -211,7 +214,7 @@ void build(Solution &s)
                 ;
             c.c->ignore_deps_generated_commands = true;
             // make sure this is exported header, so we depend on it
-            //cpp_driver.Public += "options_cl.generated.h";
+            cpp_driver.Public += "options_cl.generated.h";
         }
         //if (!s.Variables["SW_SELF_BUILD"])
         {
