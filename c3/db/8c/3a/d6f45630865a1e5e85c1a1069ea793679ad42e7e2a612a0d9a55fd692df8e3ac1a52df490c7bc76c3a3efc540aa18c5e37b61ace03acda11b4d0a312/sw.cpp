@@ -5,5 +5,5 @@ void build(Solution &s)
     opengl.AutoDetectOptions = false;
     opengl.Empty = true;
     if (opengl.getSettings().TargetOS.Type == OSType::Windows)
-        opengl.Public += "opengl32.lib"_lib;
+        opengl.Public += "opengl32.lib"_slib;
 }

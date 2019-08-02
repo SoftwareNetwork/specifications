@@ -334,6 +334,9 @@ void build(Solution &s)
         tgt += "include/.*"_rr;
     }
 
+    if (boost_targets["asio"]->getSettings().TargetOS.Type == OSType::Windows)
+        boost_targets["asio"]->Public += "Mswsock.lib"_slib;
+
     // some settings
     /**boost_targets["function"] += "include/.*\\.hpp"_rr;
     *boost_targets["pool"] += "include/.*\\.[ih]pp"_rr;
