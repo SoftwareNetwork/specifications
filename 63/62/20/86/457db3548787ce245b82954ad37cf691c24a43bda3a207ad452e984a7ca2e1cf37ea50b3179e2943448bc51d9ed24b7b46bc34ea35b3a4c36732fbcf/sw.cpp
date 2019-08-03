@@ -17,8 +17,8 @@ void build(Solution &s)
 
     gss.Public += "org.sw.demo.gnu.gettext.intl"_dep;
 
-    gss.Definitions["PACKAGE"] = "\"" + gss.getPackage().ppath.toString() + "\"";
-    gss.Definitions["PACKAGE_VERSION"] = "\"1.0.3\"";
+    gss.Definitions["PACKAGE"] = "\"" + gss.getPackage().getPath().toString() + "\"";
+    gss.Definitions["PACKAGE_VERSION"] = "\"" + gss.getPackage().getVersion().toString() + "\"";
     gss.Public += "PO_SUFFIX=\".po\""_d;
 
     gss.writeFileOnce(gss.BinaryPrivateDir / "config.h");

@@ -66,8 +66,6 @@ void build(Solution &s)
         "trionan.c",
         "triostr.c";
 
-    libxml2 ^= "include/libxml/xmlversion.h";
-
     libxml2.Public +=
         "include"_id;
 
@@ -87,11 +85,11 @@ void build(Solution &s)
     if (libxml2.getSettings().TargetOS.Type == OSType::Windows)
         libxml2 += "ws2_32.lib"_slib;
 
-    libxml2.Variables["VERSION"] = libxml2.getPackage().version.toString();
+    libxml2.Variables["VERSION"] = libxml2.getPackage().getVersion().toString();
     libxml2.Variables["LIBXML_VERSION_NUMBER"] =
-        libxml2.getPackage().version.getMajor() * 10000 +
-        libxml2.getPackage().version.getMinor() * 100 +
-        libxml2.getPackage().version.getPatch() * 1
+        libxml2.getPackage().getVersion().getMajor() * 10000 +
+        libxml2.getPackage().getVersion().getMinor() * 100 +
+        libxml2.getPackage().getVersion().getPatch() * 1
         ;
     libxml2 +=
         "WITH_ZLIB=1"_v,
