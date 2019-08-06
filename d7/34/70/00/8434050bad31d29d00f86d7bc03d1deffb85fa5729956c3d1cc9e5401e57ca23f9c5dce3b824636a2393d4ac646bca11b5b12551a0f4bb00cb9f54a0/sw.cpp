@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &freetype = s.addTarget<LibraryTarget>("freetype", "2.10.0");
+    auto &freetype = s.addTarget<LibraryTarget>("freetype", "2.10.1");
     std::string patch;
     if (freetype.getPackage().getVersion().getPatch())
         patch = "-" + std::to_string(freetype.getPackage().getVersion().getPatch());
