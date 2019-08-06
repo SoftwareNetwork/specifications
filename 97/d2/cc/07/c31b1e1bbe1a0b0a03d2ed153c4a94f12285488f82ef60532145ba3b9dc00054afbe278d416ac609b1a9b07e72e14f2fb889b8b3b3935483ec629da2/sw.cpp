@@ -34,8 +34,11 @@ void build(Solution &s)
         t.Variables["ber_socklen_t"] = "int";
         t.Variables["LBER_LEN_T"] = "int";
         //
-        t.Variables["uid_t"] = "int";
-        t.Variables["gid_t"] = "int";
+        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        {
+            t.Variables["uid_t"] = "int";
+            t.Variables["gid_t"] = "int";
+        }
         //
         t.configureFile("include/lber_types.hin", "lber_types.h",
             (ConfigureFlags)((int)ConfigureFlags::EnableUndefReplacements | (int)ConfigureFlags::ReplaceUndefinedVariablesWithZeros));
