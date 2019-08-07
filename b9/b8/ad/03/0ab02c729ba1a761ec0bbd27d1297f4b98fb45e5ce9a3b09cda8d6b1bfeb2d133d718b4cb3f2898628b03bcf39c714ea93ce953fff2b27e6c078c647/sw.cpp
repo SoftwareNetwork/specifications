@@ -2,7 +2,7 @@ struct PythonExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getSettings().TargetOS.Type != OSType::Windows)
+        if (getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             c.setProgram("python3");
             return;
@@ -215,7 +215,7 @@ void build(Solution &s)
         lib -= "Modules/_blake2/impl/.*"_rr;
         lib -= "Python/dynload_.*"_rr;
 
-        if (lib.getSettings().TargetOS.Type == OSType::Windows)
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             lib +=
                 "PC/.*\\.h"_rr,
@@ -249,7 +249,7 @@ void build(Solution &s)
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
         lib += "_Py_HAVE_ZLIB"_d;
-        if (lib.getSettings().TargetOS.Type == OSType::Windows)
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             lib -= "Modules/pwdmodule.c";
             lib -= "Modules/getpath.c";
@@ -299,7 +299,7 @@ void build(Solution &s)
     }
 
     auto &exe = python.addTarget<PythonExecutable>("exe");
-    if (exe.getSettings().TargetOS.Type != OSType::Windows)
+    if (exe.getBuildSettings().TargetOS.Type != OSType::Windows)
         return;
 
     exe += "Lib/.*"_rr;

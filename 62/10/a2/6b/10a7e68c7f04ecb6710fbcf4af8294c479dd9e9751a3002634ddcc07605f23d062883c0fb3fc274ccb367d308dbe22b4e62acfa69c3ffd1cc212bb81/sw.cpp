@@ -19,14 +19,14 @@ void build(Solution &s)
 
     intl.Private += "IN_LIBINTL"_d;
     intl.Private += sw::Shared, "BUILDING_DLL"_d;
-    if (intl.getSettings().TargetOS.Type != OSType::Windows)
+    if (intl.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         intl.Public += "LOCALE_ALIAS_PATH=\"/etc/locale.alias\""_d;
     }
 
     //
     intl += "HAVE_STDINT_H_WITH_UINTMAX=1"_d;
-    if (intl.getSettings().TargetOS.Type == OSType::Windows)
+    if (intl.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         intl += "HAVE_POSIX_PRINTF=0"_v;
     }
@@ -48,7 +48,7 @@ void build(Solution &s)
     intl.Private += "HAVE_CONFIG_H"_d;
     intl.Private += "HAVE_GETCWD"_d;
 
-    if (intl.getSettings().TargetOS.Type == OSType::Windows)
+    if (intl.getBuildSettings().TargetOS.Type == OSType::Windows)
         intl.Public += "Advapi32.lib"_slib;
 
     if (intl.Variables["HAVE_LANGINFO_H"] == 1 && intl.Variables["HAVE_NL_LANGINFO"] == 1)

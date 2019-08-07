@@ -13,7 +13,7 @@ void build(Solution &s)
         "src/.*\\.in"_rr;
 
     libssh2.Public += "LIBSSH2_OPENSSL"_d;
-    if (libssh2.getSettings().TargetOS.Type == OSType::Windows)
+    if (libssh2.getBuildSettings().TargetOS.Type == OSType::Windows)
         libssh2.Public += sw::Shared, "LIBSSH2_WIN32"_d;
 
     if (

@@ -18,7 +18,7 @@ void build(Solution &s)
         "lib/deprecated"_idir
         ;
     lib.Public += "lib"_idir;
-    if (lib.getSettings().TargetOS.is(OSType::Windows))
+    if (lib.getBuildSettings().TargetOS.is(OSType::Windows))
     {
         lib += sw::Shared, "ZSTD_DLL_EXPORT"_def;
         lib.Interface += sw::Shared, "ZSTD_DLL_IMPORT"_def;
