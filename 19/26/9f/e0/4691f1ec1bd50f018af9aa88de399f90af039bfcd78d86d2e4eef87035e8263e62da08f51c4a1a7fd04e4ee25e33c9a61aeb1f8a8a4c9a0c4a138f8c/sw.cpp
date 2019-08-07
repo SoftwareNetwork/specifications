@@ -16,7 +16,7 @@ void build(Solution &s)
     windows -=
         ".*_unittest.cc"_rr;
 
-    if (windows.getSettings().TargetOS.Type == OSType::Windows)
+    if (windows.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         windows.Public += "UNICODE"_d;
     }
@@ -28,7 +28,7 @@ void build(Solution &s)
     client +=
         "src/client/windows/crash_generation/crash_generation_client.*"_rr;
 
-    if (client.getSettings().TargetOS.Type == OSType::Windows)
+    if (client.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         client.Public += "UNICODE"_d;
     }
@@ -49,7 +49,7 @@ void build(Solution &s)
     server.Public +=
         "src/client/windows/crash_generation"_id;
 
-    if (server.getSettings().TargetOS.Type == OSType::Windows)
+    if (server.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         server.Public += "UNICODE"_d;
     }
@@ -69,7 +69,7 @@ void build(Solution &s)
     handler.Public +=
         "src/client/windows/handler"_id;
 
-    if (handler.getSettings().TargetOS.Type == OSType::Windows)
+    if (handler.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         handler.Public += "UNICODE"_d;
     }

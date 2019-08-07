@@ -228,7 +228,7 @@ void build(Solution &s)
     flex -= "flex/src/libmain.c";
     flex -= "flex/src/libyywrap.c";
     flex += common;
-    if (flex.getSettings().TargetOS.Type == OSType::Windows)
+    if (flex.getBuildSettings().TargetOS.Type == OSType::Windows)
         flex += "ws2_32.lib"_slib;
 
     auto &bison = winflexbison.addTarget<ExecutableTarget>("bison");

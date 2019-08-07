@@ -43,13 +43,13 @@ void build(Solution &s)
         llvm_support_lite.Public +=
             "include"_id;
         llvm_support_lite += "LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING"_def;
-        if (llvm_support_lite.getSettings().TargetOS.Type != OSType::Windows)
+        if (llvm_support_lite.getBuildSettings().TargetOS.Type != OSType::Windows)
             llvm_support_lite.Private += "HAVE_PTHREAD_GETSPECIFIC"_d;
         llvm_support_lite.Public += llvm_demangle;
 
         llvm_support_lite += "LLVM_ENABLE_THREADS=1"_v;
         llvm_support_lite += "LLVM_HAS_ATOMICS=1"_v;
-        if (llvm_support_lite.getSettings().TargetOS.Type == OSType::Windows)
+        if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows)
             llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-windows"_v;
         else
         {
@@ -78,7 +78,7 @@ void build(Solution &s)
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
         llvm_support_lite.writeFileOnce("llvm/Config/abi-breaking.h");
 
-        if (llvm_support_lite.getSettings().TargetOS.Type == OSType::Windows)
+        if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib;
         }

@@ -33,7 +33,7 @@ void build(Solution &s)
         "src/liblzma/api"_id;
 
     lzma.Private += "HAVE_CONFIG_H"_d;
-    if (lzma.getSettings().TargetOS.Type == OSType::Windows)
+    if (lzma.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         lzma.Private += "MYTHREAD_WIN95"_d;
     }

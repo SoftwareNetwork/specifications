@@ -21,6 +21,6 @@ void build(Solution &s)
     ragel += "aapl"_idir;
 
     ragel.writeFileOnce(ragel.BinaryPrivateDir / "config.h");
-    if (ragel.getSettings().TargetOS.Type == OSType::Windows)
+    if (ragel.getBuildSettings().TargetOS.Type == OSType::Windows)
         ragel.writeFileOnce(ragel.BinaryPrivateDir / "unistd.h");
 }

@@ -74,7 +74,7 @@ void build(Solution &s)
 
     auto &gpr_codegen = p.addTarget<StaticLibraryTarget>("gpr_codegen");
     setup_grpc(gpr_codegen);
-    if (gpr_codegen.getSettings().TargetOS.Type == OSType::Windows)
+    if (gpr_codegen.getBuildSettings().TargetOS.Type == OSType::Windows)
         gpr_codegen.Public += "_WIN32_WINNT=0x0600"_d;
 
     auto &gpr_base = p.addTarget<StaticLibraryTarget>("gpr_base");

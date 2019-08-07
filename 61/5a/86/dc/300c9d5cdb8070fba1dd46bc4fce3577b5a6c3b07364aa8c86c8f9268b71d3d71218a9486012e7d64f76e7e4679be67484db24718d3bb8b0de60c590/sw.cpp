@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
-    auto &bzip2 = s.addTarget<LibraryTarget>("bzip2", "1.0.6");
-    bzip2 += RemoteFile("https://github.com/cppan-packages/126e737764020d88047fdbec142795dc490ad6738b6be43ddedd8510b8fff3b1/raw/master/cppan.tar.gz");
+    auto &bzip2 = s.addTarget<LibraryTarget>("bzip2", "1.0.7");
+    bzip2 += Git("git://sourceware.org/git/bzip2.git", "bzip2-{v}");
 
     bzip2 +=
         "blocksort.c",
