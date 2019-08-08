@@ -4,9 +4,9 @@ void build(Solution &s)
     libpq += EmptySource();
     libpq.AutoDetectOptions = false;
     libpq.Empty = true;
-    if (libpq.getSettings().TargetOS.Type == OSType::Windows)
+    if (libpq.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        path base = libpq.getSettings().TargetOS.Arch == ArchType::x86_64 ?
+        path base = libpq.getBuildSettings().TargetOS.Arch == ArchType::x86_64 ?
             "c:/Program Files/PostgreSQL" :
             "c:/Program Files (x86)/PostgreSQL"
             ;
@@ -20,7 +20,7 @@ void build(Solution &s)
             }
         }
     }
-    else if (libpq.getSettings().TargetOS.Type == OSType::Linux)
+    else if (libpq.getBuildSettings().TargetOS.Type == OSType::Linux)
     {
         libpq.Public.IncludeDirectories.insert("/usr/include/postgresql");
         libpq.Public += "pq"_slib;
