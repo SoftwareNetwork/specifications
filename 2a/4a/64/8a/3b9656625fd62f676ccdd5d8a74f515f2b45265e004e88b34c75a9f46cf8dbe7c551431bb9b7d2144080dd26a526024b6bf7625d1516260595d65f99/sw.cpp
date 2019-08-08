@@ -89,7 +89,7 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBi
     if (flex_bison::need_build(t.getSolution()))
         c << cmd::prog(bison);
     else
-        c << "bison";
+        c << cmd::prog("bison"s);
     c << cmd::out(d.out, cmd::Prefix{ "--output=" });
     c << cmd::out(d.outh, cmd::Prefix{ "--defines=" });
     for (auto &a : d.args)
@@ -125,7 +125,7 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
     if (flex_bison::need_build(t.getSolution()))
         c << cmd::prog(flex);
     else
-        c << "flex";
+        c << cmd::prog("flex"s);
     c << "-o" << cmd::out(d.out);
     for (auto &a : d.args)
         c << a;
