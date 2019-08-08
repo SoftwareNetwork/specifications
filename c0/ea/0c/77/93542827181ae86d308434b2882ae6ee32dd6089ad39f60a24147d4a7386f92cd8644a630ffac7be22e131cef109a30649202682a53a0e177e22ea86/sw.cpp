@@ -335,7 +335,7 @@ void build(Solution &s)
     }
 
     if (boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Windows)
-        boost_targets["asio"]->Public += "Mswsock.lib"_slib;
+        *boost_targets["asio"] += "Mswsock.lib"_slib;
 
     // some settings
     /**boost_targets["function"] += "include/.*\\.hpp"_rr;
@@ -477,11 +477,14 @@ void build(Solution &s)
         *((LibraryTarget*)boost_targets["thread"]) -= sw::Static, "src/win32/tss_dll.cpp";
     }
     else
-        *((LibraryTarget*)boost_targets["thread"]) -= "src/win32/.*"_rr;
+    {
+        *((LibraryTarget *)boost_targets["thread"]) -= "src/win32/.*"_rr;
+        *((LibraryTarget *)boost_targets["thread"]) += "pthread"_slib;
+    }
     //*boost_targets["thread"] += *boost_targets["date_time"];
 
     if (boost_targets["uuid"]->getBuildSettings().TargetOS.Type == OSType::Windows)
-        ((LibraryTarget*)boost_targets["uuid"])->Public += "Bcrypt.lib"_slib;
+        *((LibraryTarget*)boost_targets["uuid"]) += "Bcrypt.lib"_slib;
 
     // context, fiber
     *boost_targets["context"] += "include/.*"_rr;
