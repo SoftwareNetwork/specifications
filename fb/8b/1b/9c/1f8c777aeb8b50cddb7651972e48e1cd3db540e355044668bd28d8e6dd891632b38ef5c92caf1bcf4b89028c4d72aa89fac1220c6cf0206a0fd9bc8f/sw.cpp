@@ -42,11 +42,11 @@ void build(Solution &s)
             pango.Variables["PACKAGE_VERSION_PATCH_NUM"].toString();
         pango.Public += "PANGO_ENABLE_BACKEND=1"_d;
         pango.Public += "PANGO_ENABLE_ENGINE=1"_d;
-        if (pango.getSettings().TargetOS.Type != OSType::Windows)
+        if (pango.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             pango.Private += "SYSCONFDIR=\"/usr/local/etc\""_d;
         }
-        if (pango.getSettings().TargetOS.Type == OSType::Windows)
+        if (pango.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             pango.Private += "SYSCONFDIR=\"./pango\""_d;
             pango.Public += "HAVE_CAIRO_WIN32"_d;
@@ -143,7 +143,7 @@ void build(Solution &s)
         pangocairo.Public += "org.sw.demo.cairographics.cairo-1"_dep;
         pangocairo.Public += pangoft2;
 
-        if (pangocairo.getSettings().TargetOS.Type == OSType::Windows)
+        if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             pangocairo -=
                 "pango/pangocoretext.*"_rr,

@@ -29,7 +29,7 @@ void build(Solution &s)
     fontconfig.Public += "HAVE_FT_SELECT_SIZE=1"_d;
     fontconfig += "FC_GPERF_SIZE_T=size_t"_d;
     fontconfig += "FC_TEMPLATEDIR=\"fontconfig/conf.avail\""_d;
-    if (fontconfig.getSettings().TargetOS.Type == OSType::Windows)
+    if (fontconfig.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "FC_CACHEDIR=\"LOCAL_APPDATA_FONTCONFIG_CACHE\""_d;
         fontconfig.Public += "FC_DEFAULT_FONTS=\"WINDOWSFONTDIR\""_d;
@@ -96,7 +96,7 @@ void build(Solution &s)
 
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h", "#define FcPublic", "#define  FcPublic extern SW_FONTCONFIG_LIBRARY_API");
 
-    if (fontconfig.getSettings().TargetOS.Type == OSType::Windows)
+    if (fontconfig.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 

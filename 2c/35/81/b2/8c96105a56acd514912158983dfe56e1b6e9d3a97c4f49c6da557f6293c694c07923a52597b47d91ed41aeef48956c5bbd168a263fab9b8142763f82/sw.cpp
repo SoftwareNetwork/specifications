@@ -82,7 +82,7 @@ void build(Solution &s)
         cairo.Public += "CAIRO_HAS_XLIB_XRENDER_SURFACE=0"_d;
         cairo.Public += "CAIRO_HAS_XML_SURFACE=0"_d;
 
-        if (cairo.getSettings().TargetOS.Type == OSType::Windows)
+        if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             cairo.Public += "CAIRO_HAS_WIN32_FONT=1"_d;
             cairo.Public += "CAIRO_HAS_WIN32_SURFACE=1"_d;
@@ -103,7 +103,7 @@ void build(Solution &s)
         cairo.writeFileOnce("cairo-features.h");
         cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define vsnprintf _vsnprintf");
 
-        if (cairo.getSettings().TargetOS.Type == OSType::Windows)
+        if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             cairo += "src/win32/.*"_rr;
             cairo.Public += "Gdi32.lib"_l, "User32.lib"_l, "Msimg32.lib"_l;

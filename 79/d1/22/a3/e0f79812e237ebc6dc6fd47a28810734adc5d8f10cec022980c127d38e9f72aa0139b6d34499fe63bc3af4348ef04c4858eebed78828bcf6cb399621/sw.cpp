@@ -46,7 +46,7 @@ void build(Solution &s)
         gnulib.Public += "org.sw.demo.gnu.gawk.getopt"_dep;
         gnulib.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
-        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
+        if (gnulib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gnulib.Public += "org.sw.demo.tronkko.dirent-master"_dep;
         }
@@ -279,7 +279,7 @@ void *mempcpy(void * __dest, void const * __src,
         gnulib.Variables["GNULIB_SCANDIR"] = "0";
         gnulib.Variables["GNULIB_ALPHASORT"] = "0";
 
-        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
+        if (gnulib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             //gnulib += "__inline=inline"_def;
             gnulib.Variables["NEXT_DIRENT_H"] = "\"dirent-private.h\"";

@@ -2,7 +2,7 @@ struct SedExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getSettings().TargetOS.Type != OSType::Windows)
+        if (getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             c.setProgram("sed");
             return;
@@ -298,7 +298,7 @@ void * memrchr (const void *, int, size_t);
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "sys/time.h", "#include <time.h>\n#include <windows.h>");
 
-        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
+        if (gnulib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gnulib.writeFileOnce(gnulib.BinaryDir / "alloca.h");
             gnulib.writeFileOnce(gnulib.BinaryDir / "unistd.h");
@@ -309,7 +309,7 @@ void * memrchr (const void *, int, size_t);
     }
 
     auto &sed2 = sed.addTarget<SedExecutable>("sed");
-    if (!sed2.getSettings().TargetOS.is(OSType::Windows))
+    if (!sed2.getBuildSettings().TargetOS.is(OSType::Windows))
     {
         return;
     }
@@ -330,7 +330,7 @@ void * memrchr (const void *, int, size_t);
         sed.Public += "org.sw.demo.gnu.gettext.intl-0"_dep;
         sed.Public -= "org.sw.demo.kimgr.getopt_port-master"_dep;
 
-        if (sed.getSettings().TargetOS.Type == OSType::Windows)
+        if (sed.getBuildSettings().TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
 #ifdef SW_CPP_DRIVER_API_VERSION
