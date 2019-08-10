@@ -76,7 +76,7 @@ void build(Solution &s)
         libtesseract.Public += "org.sw.demo.danbloomberg.leptonica-master"_dep;
         libtesseract.Public += "org.sw.demo.libarchive.libarchive"_dep;
 
-        if (libtesseract.getSettings().TargetOS.Type == OSType::Windows)
+        if (libtesseract.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             libtesseract.Public += "ws2_32.lib"_l;
             libtesseract.Protected += "NOMINMAX"_def;
@@ -188,6 +188,7 @@ void build(Solution &s)
     //
     auto &unicharset_training = tess.addStaticLibrary("unicharset_training");
     unicharset_training +=
+        "src/training/fileio.*"_rr,
         "src/training/icuerrorcode.*"_rr,
         "src/training/icuerrorcode.h",
         "src/training/lang_model_helpers.*"_rr,
@@ -239,7 +240,7 @@ void build(Solution &s)
         "src/training/tlog.cpp",
         "src/training/tlog.h",
         "src/training/util.h";
-    text2image.Public += "org.sw.demo.gnome.pango.pangocairo-1"_dep;
+    text2image.Public += "org.sw.demo.gnome.pango.pangocairo"_dep;
 }
 
 void check(Checker &c)
