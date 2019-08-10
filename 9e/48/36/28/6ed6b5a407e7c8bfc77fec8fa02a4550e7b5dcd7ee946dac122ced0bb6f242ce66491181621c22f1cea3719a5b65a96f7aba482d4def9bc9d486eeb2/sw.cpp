@@ -57,7 +57,8 @@ void build(Solution &s)
         "libtiff/tiffio.h",
         "libtiff/tiffiop.h",
         "libtiff/tiffvers.h",
-        "libtiff/uvcode.h";
+        "libtiff/uvcode.h"
+        ;
 
     tiff.Public +=
         "libtiff"_id;
@@ -68,7 +69,7 @@ void build(Solution &s)
     tiff.Public += "org.sw.demo.madler.zlib-1"_dep;
     tiff.Public += "org.sw.demo.mgk25.jbig.jbig-2"_dep;
 
-    if (tiff.getSettings().TargetOS.Type == OSType::Windows)
+    if (tiff.getBuildSettings().TargetOS.Type == OSType::Windows)
         tiff -= "libtiff/tif_unix.c";
     else
         tiff -= "libtiff/tif_win32.c";
@@ -100,7 +101,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_INT32_T"] = "signed long";
         tiff.Variables["TIFF_INT32_FORMAT"] = "%ld";
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type: " + tiff.Variables["SIZEOF_SIGNED_INT"].toString() + ", " + tiff.Variables["SIZEOF_SIGNED_LONG"].toString());
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == 4)
@@ -113,7 +114,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_UINT32_T"] = "unsigned long";
         tiff.Variables["TIFF_UINT32_FORMAT"] = "%ld";
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_SIGNED_LONG"] == 8)
@@ -130,7 +131,7 @@ void build(Solution &s)
         set(TIFF_INT64_FORMAT "%I64d")
         else()*/
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_LONG"] == 8)
@@ -147,7 +148,7 @@ void build(Solution &s)
         set(TIFF_UINT64_FORMAT "%I64u")
         else()*/
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_UNSIGNED_INT"] == tiff.Variables["SIZEOF_SIZE_T"])
@@ -169,7 +170,7 @@ void build(Solution &s)
         set(TIFF_UINT64_FORMAT "%I64u")
         else()*/
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables["SIZEOF_SIGNED_INT"] == tiff.Variables["SIZEOF_UNSIGNED_CHAR_P"])
@@ -191,7 +192,7 @@ void build(Solution &s)
         set(TIFF_UINT64_FORMAT "%I64d")
         else()*/
     }
-    else
+    else if (!tiff.DryRun)
         throw SW_RUNTIME_ERROR("no type");
 
     if (tiff.Variables.find("SIZEOF_PTRDIFF_T") == tiff.Variables.end())
@@ -205,7 +206,7 @@ void build(Solution &s)
         tiff.Variables["TIFF_PTRDIFF_FORMAT"] = "%ld";
     }
 
-    if (tiff.getSettings().TargetOS.Type != OSType::Windows)
+    if (tiff.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         //tiff += "_FILE_OFFSET_BITS=64"_d;
         tiff.Variables["FILE_OFFSET_BITS"] = "64";
