@@ -348,6 +348,12 @@ void build(Solution &s)
         boost_targets["config"]->Public.Definitions["BOOST_USE_INTRIN_H"];
     }
 
+    if (boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+        *boost_targets["dll"] += "dl"_slib;
+
+    if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+        boost_targets["stacktrace"]->Public.Definitions["BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"];
+
     // compiled
     auto compiled_target_names = {
         "atomic",
