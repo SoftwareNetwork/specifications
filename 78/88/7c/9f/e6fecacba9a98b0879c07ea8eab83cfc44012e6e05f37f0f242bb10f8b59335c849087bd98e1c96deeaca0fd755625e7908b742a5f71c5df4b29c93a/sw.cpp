@@ -22,7 +22,7 @@ void build(Solution &s)
         "src/x86"_id;
 
     libffi.Private += "FFI_HIDDEN="_d;
-    if (libffi.getSettings().TargetOS.Type == OSType::Windows)
+    if (libffi.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         libffi.Private += "HAVE_FASTCALL=0"_d;
     }
@@ -50,8 +50,8 @@ void build(Solution &s)
     libffi += "src/.*\\.c"_r;
     libffi -= "src/dlmalloc.c";
 
-    auto have64bit = libffi.getSettings().TargetOS.Arch == ArchType::x86_64;
-    if (libffi.getSettings().TargetOS.Arch == ArchType::x86_64)
+    auto have64bit = libffi.getBuildSettings().TargetOS.Arch == ArchType::x86_64;
+    if (libffi.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
     {
         libffi.Variables["HAVE_64BIT"] = "1";
         libffi.Variables["HAVE_AS_X86_64_UNWIND_SECTION_TYPE"] = "1";
@@ -65,14 +65,14 @@ void build(Solution &s)
     //libffi.Variables["HAVE_LONG_DOUBLE_VARIANT"] = 1;
 
     Files Asm;
-    if (libffi.getSettings().TargetOS.Type == OSType::Windows)
+    if (libffi.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         libffi.pushFrontToFileOnce("src/closures.c", "#include <windows.h>");
         libffi.Variables["FFI_CLOSURES"] = "1";
         libffi.Variables["SYMBOL_UNDERSCORE"] = "1";
         libffi += "src/x86/ffi.c";
     }
-    else if (libffi.getSettings().TargetOS.Type == OSType::Cygwin)
+    else if (libffi.getBuildSettings().TargetOS.Type == OSType::Cygwin)
     {
         libffi.Variables["FFI_CLOSURES"] = "1";
         libffi.Variables["SYMBOL_UNDERSCORE"] = "1";
@@ -88,7 +88,7 @@ void build(Solution &s)
             Asm.insert("src/x86/win32.S");
         }
     }
-    else if (libffi.getSettings().TargetOS.Type == OSType::Macos)
+    else if (libffi.getBuildSettings().TargetOS.Type == OSType::Macos)
     {
         libffi.Variables["TARGET"] = "X86_DARWIN";
         libffi.Variables["FFI_CLOSURES"] = "1";

@@ -17,7 +17,7 @@ void build(Solution &s)
     gif += "quantize.c";
     gif += ".*\\.h"_rr;
 
-    if (gif.getSettings().TargetOS.is(OSType::Windows))
+    if (gif.getBuildSettings().TargetOS.is(OSType::Windows))
         gif += "strtok_r=strtok_s"_def;
     if (gif.getCompilerType() == CompilerType::MSVC)
         gif.writeFileOnce(gif.BinaryPrivateDir / "unistd.h");

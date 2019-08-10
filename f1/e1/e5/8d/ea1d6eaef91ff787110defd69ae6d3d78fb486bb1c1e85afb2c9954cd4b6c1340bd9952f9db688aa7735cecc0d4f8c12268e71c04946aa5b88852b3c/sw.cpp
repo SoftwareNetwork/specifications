@@ -56,7 +56,7 @@ void build(Solution &s)
         glib.Variables["GLIB_MINOR_VERSION"] = glib.Variables["PACKAGE_VERSION_MINOR"];
         glib.Variables["GLIB_MICRO_VERSION"] = glib.Variables["PACKAGE_VERSION_PATCH"];
 
-        if (glib.getSettings().Native.LibrariesType == LibraryType::Static)
+        if (glib.getBuildSettings().Native.LibrariesType == LibraryType::Static)
             glib.Variables["GLIB_WIN32_STATIC_COMPILATION_DEFINE"] = "#define GLIB_STATIC_COMPILATION 1";
 
         if (glib.Variables["WORDS_BIGENDIAN"])
@@ -139,7 +139,7 @@ void build(Solution &s)
 
         glib.Variables["gintbits"] = "32";
 
-        if (glib.getSettings().TargetOS.Type != OSType::Windows)
+        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             glib.Variables["glongbits"] = "64";
             glib.Variables["glib_size_type_define"] = "long";
@@ -166,7 +166,7 @@ void build(Solution &s)
         else
         {
             glib.Variables["glongbits"] = "32";
-            if (glib.getSettings().TargetOS.Arch == ArchType::x86_64)
+            if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
             {
                 glib.Variables["glib_size_type_define"] = "long long";
 
@@ -354,9 +354,9 @@ HMODULE glib_dll;
 
         gmodule.Public += glib;
 
-        if (gmodule.getSettings().TargetOS.Type == OSType::Windows)
+        if (gmodule.getBuildSettings().TargetOS.Type == OSType::Windows)
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_WIN32";
-        else if (gmodule.getSettings().TargetOS.Type == OSType::Macos)
+        else if (gmodule.getBuildSettings().TargetOS.Type == OSType::Macos)
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DYLD";
         else
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DL";
@@ -398,7 +398,7 @@ HMODULE glib_dll;
         gio -= "gio/gdbusauthmechanism.h";
         gio -= "gio/gwin32registrykey.h";
 
-        if (gio.getSettings().TargetOS.Type == OSType::Windows)
+        if (gio.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gio -= "gio/gdesktopappinfo.c";
 
@@ -520,7 +520,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
                 ;
         }
 
-        if (gio.getSettings().TargetOS.Type != OSType::Windows)
+        if (gio.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             auto c = gio.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)

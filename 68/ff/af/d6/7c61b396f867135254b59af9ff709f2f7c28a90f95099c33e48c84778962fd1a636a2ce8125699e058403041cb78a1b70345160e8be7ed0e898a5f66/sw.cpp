@@ -29,7 +29,7 @@ void build(Solution &s)
     if (pixman.Variables["USE_MIPS_DSPR2"] == 1)
         pixman += "pixman/pixman-mips-dspr2.c";
 
-    if (pixman.getSettings().TargetOS.Type != OSType::Windows)
+    if (pixman.getBuildSettings().TargetOS.Type != OSType::Windows)
         pixman.Public += "HAVE_PTHREADS"_d;
 
     if (pixman.getCompilerType() == CompilerType::Clang ||

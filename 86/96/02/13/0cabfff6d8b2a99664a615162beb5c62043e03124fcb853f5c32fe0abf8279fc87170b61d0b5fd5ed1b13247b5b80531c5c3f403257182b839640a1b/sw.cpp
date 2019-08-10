@@ -148,7 +148,7 @@ void build(Solution &s)
     // fix import vars
 
     String exp = "PCRE_EXP_DECL";
-    if (pcre8.getSettings().TargetOS.is(OSType::Windows))
+    if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
         exp = "extern __declspec(dllimport)";
     //else
         //PCRE_EXP_DECL = ""; // unix

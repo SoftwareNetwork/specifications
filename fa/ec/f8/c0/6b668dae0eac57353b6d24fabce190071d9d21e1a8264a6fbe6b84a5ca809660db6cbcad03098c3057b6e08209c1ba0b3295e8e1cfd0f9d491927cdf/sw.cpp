@@ -34,7 +34,7 @@ void build(Solution &s)
         "common/.*\\.h"_rr;
     s_common.Public += "common"_id;
 
-    if (s_common.getSettings().TargetOS.Type == OSType::Windows)
+    if (s_common.getBuildSettings().TargetOS.Type == OSType::Windows)
         s_common.Public += "Advapi32.lib"_l;
 
     setup(s_common);
@@ -95,12 +95,12 @@ void build(Solution &s)
     const auto namel = name + "l";
     auto obj = data.BinaryDir / (namel + "_dat.");
 
-    if (data.getSettings().TargetOS.Type == OSType::Windows)
+    if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
         obj += "obj";
     else
         obj += "c";
 
-    if (data.getSettings().TargetOS.Type == OSType::Windows)
+    if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         auto c = data.addCommand();
         c << data
@@ -130,7 +130,7 @@ void build(Solution &s)
         "common/.*\\.h"_rr;
     common.Public += "common"_id;
 
-    if (common.getSettings().TargetOS.Type == OSType::Windows)
+    if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
         common.Public += "Advapi32.lib"_l;
 
     setup(common);
