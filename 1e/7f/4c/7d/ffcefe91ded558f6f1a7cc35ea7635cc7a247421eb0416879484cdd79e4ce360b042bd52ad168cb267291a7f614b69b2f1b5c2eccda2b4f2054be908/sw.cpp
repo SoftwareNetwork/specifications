@@ -13,7 +13,7 @@ void build(Solution &s)
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
         t -= "libraries/liblber/stdio.c";
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
         else
             t -= "libraries/liblber/nt_err.c";
@@ -34,7 +34,7 @@ void build(Solution &s)
         t.Variables["ber_socklen_t"] = "int";
         t.Variables["LBER_LEN_T"] = "int";
         //
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             t.Variables["uid_t"] = "int";
             t.Variables["gid_t"] = "int";
@@ -74,7 +74,7 @@ void build(Solution &s)
         t += "libraries/libldap/.*"_rr;
         t -= "libraries/libldap/.*test.*"_rr;
         t -= "libraries/libldap/t61.c";
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t += "ws2_32.lib"_slib;
 
         t.Protected += "libraries/libldap"_idir;
@@ -98,7 +98,7 @@ void build(Solution &s)
         t += "LDAP_R_COMPILE"_def;
 
         t += "libraries/libldap_r/.*"_rr;
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t += "HAVE_NT_THREADS"_def;
         else
             t += "HAVE_PTHREADS=10"_def;
@@ -116,7 +116,7 @@ void build(Solution &s)
 #endif
 )");
 
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             t += "WIN32_LEAN_AND_MEAN"_def;
             t += "NOMINMAX"_def;
@@ -153,7 +153,7 @@ void build(Solution &s)
         //t.Public += sw::Shared, "LDAP_LIBS_DYNAMIC"_def;
         t += "LDAP_API="_def;
 
-        if (t.getSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t.writeFileOnce(t.BinaryPrivateDir / "unistd.h", "");
 
         t.Public += lber, ldap;
@@ -349,7 +349,12 @@ void check(Checker &c)
     }
     s.checkIncludeExists("windows.h");
     s.checkIncludeExists("wiredtiger.h");
-    s.checkTypeSize("caddr_t");
+    {
+        auto &c = s.checkDeclarationExists("sys_errlist");
+        c.Definitions.insert("HAVE_SYS_ERRLIST");
+        //c.Parameters.IncludeDirectories.push_back("stdio.h");
+        //c.Parameters.IncludeDirectories.push_back("errno.h");
+    }
     s.checkTypeSize("int");
     s.checkTypeSize("long");
     s.checkTypeSize("mode_t");

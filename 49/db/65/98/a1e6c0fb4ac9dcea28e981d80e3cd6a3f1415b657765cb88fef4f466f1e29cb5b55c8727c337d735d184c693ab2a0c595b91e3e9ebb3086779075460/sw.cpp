@@ -28,7 +28,7 @@ void build(Solution &s)
 
     t += "GCC_FALLTHROUGH="_def;
 
-    if (t.getSettings().TargetOS.Type == OSType::Windows)
+    if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         t -= "lib/dlopen.c";
         t += "win32/include"_idir;
