@@ -54,8 +54,6 @@ void build(Solution &s)
             support.Protected += "_CRT_SECURE_NO_WARNINGS"_d;
             support.Public += "UNICODE"_d;
         }
-        if (support.getBuildSettings().TargetOS.Type == OSType::Macos)
-            support.Public += "BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"_def;
         if (support.getCompilerType() != CompilerType::MSVC)
         {
             support.Protected.CompileOptions.push_back("-Wall");
@@ -157,7 +155,8 @@ void build(Solution &s)
         builder.ExportIfStatic = true;
         builder.CPPVersion = CPPLanguageStandard::CPP17;
         builder += "src/sw/builder/.*"_rr;
-        builder.Public += manager, "org.sw.demo.preshing.junction-master"_dep,
+        builder.Public += manager,
+            "org.sw.demo.preshing.junction-master"_dep,
             "org.sw.demo.boost.graph"_dep,
             "org.sw.demo.boost.serialization"_dep,
             "org.sw.demo.microsoft.gsl-*"_dep,
