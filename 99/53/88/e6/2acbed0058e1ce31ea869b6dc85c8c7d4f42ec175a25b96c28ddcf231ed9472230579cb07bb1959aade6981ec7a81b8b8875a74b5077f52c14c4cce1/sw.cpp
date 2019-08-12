@@ -514,7 +514,7 @@ void build(Solution &s)
 
         *boost_targets["context"] -= "src/posix/.*"_rr;
     }
-    else if (boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Macos)
+    else if (boost_targets["context"]->getBuildSettings().TargetOS.isApple())
     {
         a += "_sysv_macho_gas.S";
     }

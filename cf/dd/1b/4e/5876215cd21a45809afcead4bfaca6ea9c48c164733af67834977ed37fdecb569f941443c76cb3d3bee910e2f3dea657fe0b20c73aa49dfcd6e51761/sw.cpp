@@ -104,7 +104,7 @@ void build(Solution &s)
             else
                 crypto.Variables["OPENSSL_SYS"] = "WIN32";
         }
-        else if (crypto.getBuildSettings().TargetOS.Type == OSType::Macos)
+        else if (crypto.getBuildSettings().TargetOS.isApple())
             crypto.Variables["OPENSSL_SYS"] = "MACOSX";
 
         /*
@@ -128,11 +128,11 @@ void build(Solution &s)
         }
 
         if (crypto.getBuildSettings().TargetOS.Type == OSType::Windows)
-            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dll";
-        else if (crypto.getBuildSettings().TargetOS.Type == OSType::Macos)
-            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".dylib";
+            crypto.Variables["SW_SHARED_LIBRARY_SUFFIX"] = ".dll";
+        else if (crypto.getBuildSettings().TargetOS.isApple())
+            crypto.Variables["SW_SHARED_LIBRARY_SUFFIX"] = ".dylib";
         else
-            crypto.Variables["CPPAN_SHARED_LIBRARY_SUFFIX"] = ".so";
+            crypto.Variables["SW_SHARED_LIBRARY_SUFFIX"] = ".so";
 
         crypto.writeFileOnce(crypto.BinaryPrivateDir / "buildinf.h", R"xxx(
 #define DATE ""
@@ -364,7 +364,7 @@ void build(Solution &s)
     #ifndef HEADER_DSO_CONF_H
     # define HEADER_DSO_CONF_H
 
-    # define DSO_EXTENSION "${CPPAN_SHARED_LIBRARY_SUFFIX}"
+    # define DSO_EXTENSION "${SW_SHARED_LIBRARY_SUFFIX}"
     #endif
 )xxx");
 

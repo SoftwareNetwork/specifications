@@ -99,7 +99,7 @@ void build(Solution &s)
     libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
     libcurl.Public += "HAVE_GSSAPI"_d;
-    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Macos)
+    if (!libcurl.getBuildSettings().TargetOS.isApple())
         libcurl.Public += "HAVE_GSSGNU"_d;
     libcurl.Public += "HAVE_LIBSSH2_H"_d;
     libcurl.Public += "HAVE_LIBZ"_d;

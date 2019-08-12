@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &uv = s.addTarget<LibraryTarget>("libuv", "1.30.1");
-    uv += Git("https://github.com/libuv/libuv", "v{v}");
+    uv += Git("https://github.com/egorpugin/libuv", "v{v}-my");
 
     uv.Private += sw::Shared, "BUILDING_UV_SHARED"_d;
     uv.Interface += sw::Shared, "USING_UV_SHARED"_d;
@@ -9,7 +9,7 @@ void build(Solution &s)
     uv += "include/.*"_rr;
     uv -= "src/.*"_rr;
     uv += "src/.*"_r;
-    if (uv.getSettings().TargetOS.Type == OSType::Windows)
+    if (uv.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         uv += "src/win/.*"_rr;
         uv.Public +=
@@ -45,19 +45,11 @@ void build(Solution &s)
             "src/unix/tty.c",
             "src/unix/udp.c";
 
-        switch (uv.getSettings().TargetOS.Type)
+        switch (uv.getBuildSettings().TargetOS.Type)
         {
         case OSType::AIX:
             break;
         case OSType::Android:
-            break;
-        case OSType::Macos:
-            uv +=
-                "src/unix/darwin.c",
-                "src/unix/darwin-proctitle.c",
-                "src/unix/fsevents.c",
-                "src/unix/kqueue.c",
-                "src/unix/proctitle.c";
             break;
         case OSType::FreeBSD:
             break;
@@ -75,6 +67,16 @@ void build(Solution &s)
                 "src/unix/linux-syscalls.h",
                 "src/unix/proctitle.c";
             break;
+        }
+
+        if (uv.getBuildSettings().TargetOS.isApple())
+        {
+            uv +=
+                "src/unix/darwin.c",
+                "src/unix/darwin-proctitle.c",
+                "src/unix/fsevents.c",
+                "src/unix/kqueue.c",
+                "src/unix/proctitle.c";
         }
     }
 }
