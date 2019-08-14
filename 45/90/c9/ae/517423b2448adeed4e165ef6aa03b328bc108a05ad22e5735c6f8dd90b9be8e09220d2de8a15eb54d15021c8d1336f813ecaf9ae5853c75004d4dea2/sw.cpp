@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &uv = s.addTarget<LibraryTarget>("libuv", "1.31.0");
-    uv += Git("https://github.com/libuv/libuv", "v{v}");
+    uv += Git("https://github.com/egorpugin/libuv", "v{v}-my");
 
     uv.Private += sw::Shared, "BUILDING_UV_SHARED"_d;
     uv.Interface += sw::Shared, "USING_UV_SHARED"_d;
@@ -51,6 +51,14 @@ void build(Solution &s)
             break;
         case OSType::Android:
             break;
+        case OSType::Macos:
+            uv +=
+                "src/unix/darwin.c",
+                "src/unix/darwin-proctitle.c",
+                "src/unix/fsevents.c",
+                "src/unix/kqueue.c",
+                "src/unix/proctitle.c";
+            break;
         case OSType::FreeBSD:
             break;
         case OSType::NetBSD:
@@ -67,16 +75,6 @@ void build(Solution &s)
                 "src/unix/linux-syscalls.h",
                 "src/unix/proctitle.c";
             break;
-        }
-
-        if (uv.getBuildSettings().TargetOS.isApple())
-        {
-            uv +=
-                "src/unix/darwin.c",
-                "src/unix/darwin-proctitle.c",
-                "src/unix/fsevents.c",
-                "src/unix/kqueue.c",
-                "src/unix/proctitle.c";
         }
     }
 }
