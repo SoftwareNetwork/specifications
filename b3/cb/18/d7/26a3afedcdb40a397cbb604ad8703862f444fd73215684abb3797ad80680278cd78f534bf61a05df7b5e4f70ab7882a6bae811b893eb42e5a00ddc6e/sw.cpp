@@ -76,22 +76,22 @@ void build(Solution &s)
         wt.Private += sw::Shared, "wttest_EXPORTS"_d;
         wt.Public += sw::Static, "WT_STATIC"_d;
 
-        wt.Public += "org.sw.demo.boost.multi_index-1"_dep;
-        wt.Public += "org.sw.demo.boost.asio-1"_dep;
-        wt.Public += "org.sw.demo.boost.date_time-1"_dep;
-        wt.Public += "org.sw.demo.boost.filesystem-1"_dep;
-        wt.Public += "org.sw.demo.boost.interprocess-1"_dep;
-        wt.Public += "org.sw.demo.boost.ublas-1"_dep;
-        wt.Public += "org.sw.demo.boost.numeric-1"_dep;
-        wt.Public += "org.sw.demo.boost.thread-1"_dep;
-        wt.Public += "org.sw.demo.gnome.pango.pangoft2-1.43"_dep;
-        wt.Public += "org.sw.demo.glew-2"_dep;
-        wt.Public += "org.sw.demo.graphicsmagick.magick-1"_dep;
-        wt.Public += "org.sw.demo.libharu-2"_dep;
-        wt.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
-        wt.Public += "org.sw.demo.howardhinnant.date.date_full-2"_dep;
+        wt.Public += "org.sw.demo.boost.multi_index"_dep;
+        wt.Public += "org.sw.demo.boost.asio"_dep;
+        wt.Public += "org.sw.demo.boost.date_time"_dep;
+        wt.Public += "org.sw.demo.boost.filesystem"_dep;
+        wt.Public += "org.sw.demo.boost.interprocess"_dep;
+        wt.Public += "org.sw.demo.boost.ublas"_dep;
+        wt.Public += "org.sw.demo.boost.numeric"_dep;
+        wt.Public += "org.sw.demo.boost.thread"_dep;
+        wt.Public += "org.sw.demo.gnome.pango.pangoft2"_dep;
+        wt.Public += "org.sw.demo.glew"_dep;
+        wt.Public += "org.sw.demo.graphicsmagick.magick"_dep;
+        wt.Public += "org.sw.demo.libharu"_dep;
+        wt.Public += "org.sw.demo.openssl.ssl"_dep;
+        wt.Public += "org.sw.demo.howardhinnant.date.date_full"_dep;
 
-        if (wt.getSettings().TargetOS.Type == OSType::Windows)
+        if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
             wt.Public += "Ole32.lib"_lib, "Shell32.lib"_lib;
 
         auto file2string = [&wt](path i, const std::string &name)
@@ -111,7 +111,7 @@ void build(Solution &s)
         file2string("src/web/skeleton/Hybrid.html", "Hybrid_html");
         file2string("src/web/skeleton/Boot.html", "Boot_html");
 
-        if (wt.getSettings().Native.ConfigurationType == ConfigurationType::Debug)
+        if (wt.getBuildSettings().Native.ConfigurationType == ConfigurationType::Debug)
         {
             file2string("src/web/skeleton/Wt.js", "Wt_js");
             file2string("src/web/skeleton/Boot.js", "Boot_js");
@@ -149,7 +149,7 @@ void build(Solution &s)
         wt.Variables["VERSION_MINOR"] = wt.Variables["PACKAGE_VERSION_PATCH"];
 
         std::string cfg = ".";
-        if (wt.getSettings().TargetOS.Type != OSType::Windows)
+        if (wt.getBuildSettings().TargetOS.Type != OSType::Windows)
             cfg = "/etc/wt";
 
         wt.Variables["CONFIGURATION"] = cfg + "/wt_config.xml";
@@ -173,9 +173,9 @@ void build(Solution &s)
         http.Private += sw::Shared, "wthttp_EXPORTS"_d;
         http.Public += sw::Static, "WTHTTP_STATIC"_d;
 
-        http.Public += "org.sw.demo.boost.program_options-1"_dep;
-        http.Public += "org.sw.demo.boost.spirit-1"_dep;
-        http.Public += "org.sw.demo.madler.zlib-1"_dep;
+        http.Public += "org.sw.demo.boost.program_options"_dep;
+        http.Public += "org.sw.demo.boost.spirit"_dep;
+        http.Public += "org.sw.demo.madler.zlib"_dep;
         http.Public += wt;
     }
 
@@ -217,6 +217,6 @@ void build(Solution &s)
         sqlite3.Public += sw::Static, "WTDBOSQLITE3_STATIC"_d;
 
         sqlite3.Public += dbo;
-        sqlite3.Public += "org.sw.demo.sqlite3-3"_dep;
+        sqlite3.Public += "org.sw.demo.sqlite3"_dep;
     }
 }
