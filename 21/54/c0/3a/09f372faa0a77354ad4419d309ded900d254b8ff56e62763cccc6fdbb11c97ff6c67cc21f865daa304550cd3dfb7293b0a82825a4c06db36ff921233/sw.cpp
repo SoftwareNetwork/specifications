@@ -1,13 +1,12 @@
 void build(Solution &s)
 {
-    auto &t = s.addLibrary("amazon.awslabs.c_common", "0.4.0");
+    auto &t = s.addLibrary("amazon.awslabs.c_common", "0.4.3");
     t += Git("https://github.com/awslabs/aws-c-common", "v{v}");
 
     t +=
         "include/.*"_rr,
         "source/.*"_rr;
     t -=
-        "include/.*\\.c"_rr,
         "source/windows/.*"_rr,
         "source/posix/.*"_rr;
     t -= "source/arch/encoding_avx2.c";
