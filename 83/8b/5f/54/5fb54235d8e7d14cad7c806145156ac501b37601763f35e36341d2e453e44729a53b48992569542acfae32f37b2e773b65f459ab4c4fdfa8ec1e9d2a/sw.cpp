@@ -15,7 +15,7 @@ void build(Solution &s)
     libharu.Public +=
         "include"_id;
 
-    if (libharu.getSettings().TargetOS.Type == OSType::Windows)
+    if (libharu.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         libharu.Private += sw::Shared, "HPDF_DLL_MAKE_CDECL"_d;
         libharu.Interface += sw::Shared, "HPDF_DLL_CDECL"_d;
@@ -28,7 +28,7 @@ void build(Solution &s)
         libharu.replaceInFileOnce("include/hpdf.h", "extern A", "SW_LIBHARU_API A");
     }
 
-    libharu.Public += "org.sw.demo.glennrp.png-1"_dep;
+    libharu.Public += "org.sw.demo.glennrp.png"_dep;
     libharu.configureFile("include/hpdf_config.h.cmake", "hpdf_config.h");
 }
 

@@ -31,16 +31,16 @@ void build(Solution &s)
         {
             magick.Private += "restrict=__restrict"_d;
         }
-        if (magick.getSettings().TargetOS.Type != OSType::Windows)
+        if (magick.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             magick.Public += "HAVE_PREAD=1"_d;
             magick.Public += "HAVE_PTHREAD"_d;
             magick.Public += "HAVE_PWRITE=1"_d;
         }
-        if (magick.getSettings().TargetOS.Type == OSType::Windows)
+        if (magick.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             magick.Public += "WIN32"_d;
-            if (magick.getSettings().TargetOS.is(ArchType::x86_64))
+            if (magick.getBuildSettings().TargetOS.is(ArchType::x86_64))
                 magick.Public += "WIN64"_d;
             magick.Public += "HAVE_CRYPTGENRANDOM"_d;
             magick.Public += "HAVE_WINCRYPT_H"_d;

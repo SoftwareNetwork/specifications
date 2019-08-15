@@ -3,28 +3,14 @@ void build(Solution &s)
     auto &harfbuzz = s.addTarget<LibraryTarget>("behdad.harfbuzz", "2.6.0");
     harfbuzz += Git("https://github.com/behdad/harfbuzz");
 
-    harfbuzz +=
+    harfbuzz -=
         "src/[^/]*\\.cc"_rr,
         "src/[^/]*\\.h"_rr,
         "src/[^/]*\\.hh"_rr,
         "src/[^/]*\\.rl"_rr,
         "src/[^/]*\\.tmpl"_rr,
         "src/hb-version.h.in";
-
-    harfbuzz -=
-        "src/hb-coretext.cc",
-        "src/hb-directwrite.cc",
-        "src/hb-gobject-structs.cc",
-        "src/hb-graphite2.cc",
-        "src/hb-uniscribe.cc";
-
-    harfbuzz -=
-        "src/main.cc",
-        "src/dump.*"_rr,
-        "src/test.*"_rr;
-
-    harfbuzz.Public +=
-        "src"_id;
+    harfbuzz += "src/harfbuzz.cc";
 
     // fix msvc build issue
     harfbuzz.Private += "HAVE_ROUND"_d;
@@ -39,9 +25,9 @@ void build(Solution &s)
     harfbuzz.Interface += sw::Shared, "HD_EXTERN=SW_IMPORT"_d;
     harfbuzz.Private += sw::Shared, "HB_EXTERN=SW_EXPORT"_d;
 
-    harfbuzz.Public += "org.sw.demo.cairographics.cairo-1"_dep;
-    harfbuzz.Public += "org.sw.demo.freetype-2"_dep;
-    harfbuzz.Public += "org.sw.demo.gnome.glib.glib-2"_dep;
+    harfbuzz.Public += "org.sw.demo.cairographics.cairo"_dep;
+    harfbuzz.Public += "org.sw.demo.freetype"_dep;
+    harfbuzz.Public += "org.sw.demo.gnome.glib.glib"_dep;
     harfbuzz.Public += "org.sw.demo.unicode.icu.i18n"_dep;
     harfbuzz.Public += "org.sw.demo.grigorig.ucdn-master"_dep;
 
@@ -56,7 +42,7 @@ void build(Solution &s)
     {
         auto c = harfbuzz.addCommand();
         c
-            << cmd::prog("org.sw.demo.ragel-6"_dep)
+            << cmd::prog("org.sw.demo.ragel"_dep)
             << cmd::in(path("src") / (f + ".rl"))
             << "-o" << cmd::out(f + ".hh");
     };

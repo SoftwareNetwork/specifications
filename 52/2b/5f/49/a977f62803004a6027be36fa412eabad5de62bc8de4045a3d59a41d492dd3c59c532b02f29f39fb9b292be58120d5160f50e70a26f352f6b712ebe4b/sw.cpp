@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &p = s.addProject("graphicsmagick", "1.3.32");
+    auto &p = s.addProject("graphicsmagick", "1.3.33");
     p += RemoteFile("https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/{v}/GraphicsMagick-{v}-windows-source.7z");
 
     auto &magick = p.addTarget<LibraryTarget>("magick");
