@@ -67,7 +67,10 @@ void build(Solution &s)
     Files Asm;
     if (libffi.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        libffi.pushFrontToFileOnce("src/closures.c", "#include <windows.h>");
+        libffi.pushFrontToFileOnce("src/closures.c", R"(#ifdef _WIN32
+#include <windows.h>
+#endif
+)");
         libffi.Variables["FFI_CLOSURES"] = "1";
         libffi.Variables["SYMBOL_UNDERSCORE"] = "1";
         libffi += "src/x86/ffi.c";

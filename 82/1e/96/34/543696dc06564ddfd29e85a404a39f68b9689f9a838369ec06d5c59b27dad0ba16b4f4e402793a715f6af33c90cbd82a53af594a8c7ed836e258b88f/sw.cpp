@@ -147,11 +147,11 @@ void build(Solution &s)
 
     // fix import vars
 
-    String exp = "PCRE_EXP_DECL";
+    String exp = "SW_PCRE_EXP_VAR";
     if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
-        exp = "extern __declspec(dllimport)";
-    //else
-        //PCRE_EXP_DECL = ""; // unix
+        pcre8.Public += "SW_PCRE_EXP_VAR=extern __declspec(dllimport)"_def;
+    else
+        pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
 
     //
     pcre8.replaceInFileOnce("pcre_internal.h",
