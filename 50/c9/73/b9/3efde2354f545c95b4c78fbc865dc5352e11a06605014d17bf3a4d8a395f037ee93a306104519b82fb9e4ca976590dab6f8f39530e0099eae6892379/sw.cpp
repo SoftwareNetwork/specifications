@@ -14,6 +14,8 @@ void build(Solution &s)
         t -= ".*_nonprod.*cc"_rr;
         t -= ".*/test_.*cc"_rr;
         t -= "synchronization/internal/waiter.cc";
+        t -= "random/benchmarks.cc";
+        t -= "random/internal/named_generator.cc";
     }
 
     abseil.Public += "NOMINMAX"_d;
