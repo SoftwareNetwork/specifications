@@ -7,8 +7,11 @@ void build(Solution &s)
     {
         t += FileRegex(path("opencensus") / dir, ".*\\.h", false);
         t += FileRegex(path("opencensus") / dir / "internal", ".*", false);
+        t.AllowEmptyRegexes = true;
         t -= FileRegex(path("opencensus") / dir / "internal", ".*_test\\.cc", false);
         t -= FileRegex(path("opencensus") / dir / "internal", ".*_benchmark\\.cc", false);
+        t -= FileRegex(path("opencensus") / dir / "internal", ".*_fuzzer\\.cc", false);
+        t.AllowEmptyRegexes = false;
     };
 
     auto &cpp = p.addStaticLibrary("cpp");

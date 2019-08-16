@@ -54,7 +54,7 @@ void build(Solution &s)
 
         t.Public += "."_id;
 
-        t += core;
+        t.Public += core;
         t += "org.sw.demo.google.protobuf.protobuf"_dep;
     }
 
