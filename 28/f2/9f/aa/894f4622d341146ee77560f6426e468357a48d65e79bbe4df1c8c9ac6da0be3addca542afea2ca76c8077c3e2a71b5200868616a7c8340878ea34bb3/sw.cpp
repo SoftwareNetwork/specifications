@@ -1,7 +1,95 @@
 #pragma sw header on
 
-static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t,
-    path f, bool public_protobuf = false, const path &out_dir = {})
+struct ProtocData
+{
+    path input;
+    path outdir;
+    String generator;
+    Strings exts;
+    FilesOrdered idirs;
+    DependencyPtr plugin;
+
+    void addIncludeDirectory(const path &p) { idirs.push_back(p); }
+
+    auto generate(const DependencyPtr &protoc, NativeExecutedTarget &t)
+    {
+        if (idirs.empty())
+        {
+            addIncludeDirectory(t.SourceDir);
+            //throw SW_RUNTIME_ERROR("protoc: empty include dirs, provide atleast one");
+        }
+        if (input.is_absolute())
+        {
+            for (auto &i : idirs)
+            {
+                if (is_under_root(input, i))
+                {
+                    input = input.lexically_relative(i);
+                    break;
+                }
+            }
+        }
+        if (generator.empty())
+            throw SW_LOGIC_ERROR("protoc: empty generator");
+        if (exts.empty())
+            throw SW_LOGIC_ERROR("protoc: empty exts");
+        if (outdir.empty())
+            outdir = t.BinaryDir;
+
+        // append protoc idir
+        addIncludeDirectory(t.getFile(protoc, "src"));
+
+        auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." +
+            std::to_string(std::hash<String>()(input.u8string())) + ".d");
+        auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getSolution().getContext());
+        gc->deps_file = deps_file;
+
+        auto c = t.addCommand(gc);
+        c << cmd::prog(protoc);
+
+        // deps file
+        c << ("--dependency_out=" + normalize_path(deps_file));
+
+        // idirs first
+        for (auto &i : idirs)
+            c << "-I" << normalize_path(i);
+
+        // generator
+        c << ("--" + generator + "_out=" + normalize_path(outdir));
+
+        // plugin
+        if (plugin)
+        {
+            c << [c = c.c.get(), plugin = plugin, generator = generator]()
+            {
+                auto t = plugin->getTarget().as<NativeExecutedTarget*>();
+                if (!t)
+                    throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved");
+                auto p = t->getOutputFile();
+                c->addInput(p);
+                return "--plugin=protoc-gen-" + generator + "=" + p.u8string();
+            }
+            ;
+        }
+
+        // input
+        c << cmd::in(normalize_path(input)); // must be normalized
+        c << cmd::end();
+
+        auto o = outdir / input.parent_path() / input.stem();
+        for (auto &e : exts)
+            c << cmd::out(path(o) += e);
+        return c.c;
+    }
+};
+
+struct ProtobufData : ProtocData
+{
+    bool public_protobuf = false;
+};
+
+static auto gen_protobuf_cpp(const DependencyPtr &base, NativeExecutedTarget &t,
+    const path &f, const ProtobufData &data = {})
 {
     auto protoc = std::make_shared<Dependency>(base->package);
     protoc->package.ppath /= "protoc";
@@ -9,35 +97,14 @@ static auto gen_protobuf(const DependencyPtr &base, NativeExecutedTarget &t,
     auto protobuf = std::make_shared<Dependency>(base->package);
     protobuf->package.ppath /= "protobuf";
 
-    if (!f.is_absolute())
-        f = t.SourceDir / f;
-
-    auto n = f.filename().stem().u8string();
-    auto d = f.parent_path();
-
-    if (out_dir.is_absolute())
-        throw std::logic_error("Make out_dir relative");
-    auto bdir = t.BinaryDir / out_dir;
-
-    auto o = bdir / n;
-    auto ocpp = o;
-    ocpp += ".pb.cc";
-    auto oh = o;
-    oh += ".pb.h";
-
-    auto c = t.addCommand();
-    c << cmd::prog(protoc)
-        << cmd::wdir(bdir)
-        << "-I" << normalize_path(d) // must be normalized as f
-        << "-I" << [protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().getContext().getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
-        << ("--cpp_out=" + normalize_path(bdir))
-        << cmd::in(normalize_path(f)) // must be normalized as d
-        << cmd::end()
-        << cmd::out(ocpp)
-        << cmd::out(oh);
+    ProtocData d = data;
+    d.input = f;
+    d.generator = "cpp";
+    d.exts = {".pb.cc", ".pb.h"};
+    auto c = d.generate(protoc, t);
 
     t += protobuf;
-    if (public_protobuf)
+    if (data.public_protobuf)
         t.Public += protobuf;
 
     return std::tuple{ protoc, c };
