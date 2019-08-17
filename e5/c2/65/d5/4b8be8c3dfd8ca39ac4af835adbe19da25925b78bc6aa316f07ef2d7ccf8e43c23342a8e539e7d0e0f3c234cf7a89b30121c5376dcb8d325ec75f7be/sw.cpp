@@ -5,7 +5,8 @@ void build(Solution &s)
     {
         cairo.setChecks("cairo", true);
 
-        cairo.ApiNames.insert("cairo_public");
+        if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
+            cairo.ApiNames.insert("cairo_public");
         cairo.CPPVersion = CPPLanguageStandard::CPP11;
 
         cairo +=

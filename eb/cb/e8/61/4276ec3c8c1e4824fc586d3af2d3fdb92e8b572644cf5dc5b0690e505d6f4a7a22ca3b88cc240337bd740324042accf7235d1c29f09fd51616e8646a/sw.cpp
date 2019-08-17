@@ -31,6 +31,13 @@ void build(Solution &s)
             "glib/.*helper.*"_rr
             ;
 
+        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows)
+        {
+            glib -=
+                "glib/dirent/.*"_rr;
+            glib.Public +=
+                "glib/gnulib"_id;
+        }
         glib.Public +=
             "."_id,
             "glib"_id;
@@ -285,12 +292,22 @@ HMODULE glib_dll;
 
             glib.Variables["REPLACE_ISFINITE"] = 0;
             glib.Variables["REPLACE_ISINF"] = 0;
-            glib.Variables["REPLACE_ISNAN"] = 0;
+            if (glib.getBuildSettings().TargetOS.Type == OSType::Windows)
+                glib.Variables["REPLACE_ISNAN"] = 0;
+            else
+                glib.Variables["REPLACE_ISNAN"] = 1;
 
             glib.Variables["REPLACE_SIGNBIT_USING_GCC"] = 0;
             glib.Variables["REPLACE_SIGNBIT"] = 0;
 
             glib.configureFile("glib/gnulib/gnulib_math.h.in", "gnulib_math.h");
+
+            if (glib.getBuildSettings().TargetOS.Type != OSType::Windows)
+            {
+                glib -= "glib/gnulib/frexp.c";
+                glib -= "glib/gnulib/frexpl.c";
+                glib -= "glib/gnulib/isinf.c";
+            }
         }
     }
 

@@ -12,13 +12,7 @@ static void gen_grpc_cpp(const DependencyPtr &protobuf_base, const DependencyPtr
     d.generator = "grpc";
     d.exts = {".grpc.pb.cc", ".grpc.pb.h"};
     d.plugin = grpc_cpp_plugin;
-    auto c = d.generate(protoc, t);
-
-#if defined(SW_CPP_DRIVER_API_VERSION)
-    t.addDummyDependency(grpc_cpp_plugin);
-#else
-    (t + grpc_cpp_plugin)->setDummy(true);
-#endif
+    d.generate(protoc, t);
 }
 
 #pragma sw header off
@@ -116,12 +110,12 @@ void build(Solution &s)
 
     auto &core_tsi = p.addStaticLibrary("core.tsi");
     {
-      auto &t = core_tsi;
-      t += "src/core/tsi/.*"_rr;
-      t.Public += "."_id;
+        auto &t = core_tsi;
+        t += "src/core/tsi/.*"_rr;
+        t.Public += "."_id;
 
-      t.Public += proto;
-      (core + core_tsi)->IncludeDirectoriesOnly = true;
+        t.Public += proto;
+        (core + core_tsi)->IncludeDirectoriesOnly = true;
     }
 
     auto &cpp = p.addStaticLibrary("cpp");

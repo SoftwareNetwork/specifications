@@ -31,13 +31,14 @@ struct ProtocData
             addIncludeDirectory(t.SourceDir);
             //throw SW_RUNTIME_ERROR("protoc: empty include dirs, provide atleast one");
         }
+        path rel_input = input;
         if (input.is_absolute())
         {
             for (auto &i : idirs)
             {
                 if (is_under_root(input, i))
                 {
-                    input = input.lexically_relative(i);
+                    rel_input = input.lexically_relative(i);
                     break;
                 }
             }
@@ -52,24 +53,17 @@ struct ProtocData
         // append protoc idir
         addIncludeDirectory(t.getFile(protoc, "src"));
 
-#if defined(SW_CPP_DRIVER_API_VERSION)
         auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." + getHash() + ".d");
         auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getSolution().getContext());
         gc->deps_file = deps_file;
         gc->output_dirs.insert(gc->deps_file.parent_path());
-#endif
 
-        auto c = t.addCommand(
-#if defined(SW_CPP_DRIVER_API_VERSION)
-            gc
-#endif
-        );
+        auto c = t.addCommand(gc);
         c << cmd::prog(protoc);
+        c << cmd::wdir(outdir);
 
-#if defined(SW_CPP_DRIVER_API_VERSION)
         // deps file
         c << ("--dependency_out=" + normalize_path(deps_file));
-#endif
 
         // idirs first
         for (auto &i : idirs)
@@ -95,13 +89,19 @@ struct ProtocData
                 return "--plugin=protoc-gen-" + generator + "=" + p.u8string();
             }
             ;
+
+#if defined(SW_CPP_DRIVER_API_VERSION)
+            t.addDummyDependency(plugin);
+#else
+            (t + plugin)->setDummy(true);
+#endif
         }
 
         // input
         c << cmd::in(normalize_path(input)); // must be normalized
         c << cmd::end();
 
-        auto o = outdir / input.parent_path() / input.stem();
+        auto o = outdir / rel_input.parent_path() / rel_input.stem();
         for (auto &e : exts)
             c << cmd::out(path(o) += e);
         return c.c;
