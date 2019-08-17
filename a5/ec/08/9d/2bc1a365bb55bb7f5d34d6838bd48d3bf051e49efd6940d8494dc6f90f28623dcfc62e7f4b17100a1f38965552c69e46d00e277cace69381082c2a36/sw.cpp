@@ -11,6 +11,19 @@ struct ProtocData
 
     void addIncludeDirectory(const path &p) { idirs.push_back(p); }
 
+    String getHash() const
+    {
+        size_t h = 0;
+        hash_combine(h, input);
+        hash_combine(h, outdir);
+        hash_combine(h, generator);
+        hash_combine(h, exts);
+        hash_combine(h, idirs);
+        if (plugin)
+            hash_combine(h, plugin->getPackage().toString());
+        return std::to_string(h);
+    }
+
     auto generate(const DependencyPtr &protoc, NativeExecutedTarget &t)
     {
         if (idirs.empty())
@@ -39,16 +52,24 @@ struct ProtocData
         // append protoc idir
         addIncludeDirectory(t.getFile(protoc, "src"));
 
-        auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." +
-            std::to_string(std::hash<String>()(input.u8string())) + ".d");
+#if defined(SW_CPP_DRIVER_API_VERSION)
+        auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." + getHash() + ".d");
         auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getSolution().getContext());
         gc->deps_file = deps_file;
+        gc->output_dirs.insert(gc->deps_file.parent_path());
+#endif
 
-        auto c = t.addCommand(gc);
+        auto c = t.addCommand(
+#if defined(SW_CPP_DRIVER_API_VERSION)
+            gc
+#endif
+        );
         c << cmd::prog(protoc);
 
+#if defined(SW_CPP_DRIVER_API_VERSION)
         // deps file
         c << ("--dependency_out=" + normalize_path(deps_file));
+#endif
 
         // idirs first
         for (auto &i : idirs)
@@ -62,7 +83,11 @@ struct ProtocData
         {
             c << [c = c.c.get(), plugin = plugin, generator = generator]()
             {
+#if defined(SW_CPP_DRIVER_API_VERSION)
                 auto t = plugin->getTarget().as<NativeExecutedTarget*>();
+#else
+                auto t = (NativeExecutedTarget*)&plugin->getTarget();
+#endif
                 if (!t)
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved");
                 auto p = t->getOutputFile();
@@ -88,13 +113,13 @@ struct ProtobufData : ProtocData
     bool public_protobuf = false;
 };
 
-static auto gen_protobuf_cpp(const DependencyPtr &base, NativeExecutedTarget &t,
+static auto gen_protobuf_cpp(const DependencyPtr &protobuf_base, NativeExecutedTarget &t,
     const path &f, const ProtobufData &data = {})
 {
-    auto protoc = std::make_shared<Dependency>(base->package);
+    auto protoc = std::make_shared<Dependency>(protobuf_base->package);
     protoc->package.ppath /= "protoc";
 
-    auto protobuf = std::make_shared<Dependency>(base->package);
+    auto protobuf = std::make_shared<Dependency>(protobuf_base->package);
     protobuf->package.ppath /= "protobuf";
 
     ProtocData d = data;
