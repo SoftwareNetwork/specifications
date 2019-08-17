@@ -1,11 +1,11 @@
 #pragma sw header on
 
-#pragma sw require header org.sw.demo.google.protobuf.protoc-3
+#pragma sw require header org.sw.demo.google.protobuf.protoc
 
-static void gen_grpc_cpp(const DependencyPtr &protoc_in, const DependencyPtr &grpc_cpp_plugin,
+static void gen_grpc_cpp(const DependencyPtr &protobuf_base, const DependencyPtr &grpc_cpp_plugin,
     NativeExecutedTarget &t, const path &f, const ProtobufData &data = {})
 {
-    auto [protoc, _] = gen_protobuf_cpp(protoc_in, t, f, data);
+    auto [protoc, _] = gen_protobuf_cpp(protobuf_base, t, f, data);
 
     ProtocData d = data;
     d.input = f;
@@ -35,15 +35,14 @@ void build(Solution &s)
         t += "src/core/lib/.*"_rr;
 
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
-            t.Protected += "_WIN32_WINNT=0x0601"_def;
+            t.Public += "_WIN32_WINNT=0x0601"_def;
 
         t.Public += "include"_id;
         t.Public += "."_id;
 
         t.Public += "org.sw.demo.madler.zlib"_dep;
-        t.Public += "org.sw.demo.c_ares"_dep;
-        t.Public += "org.sw.demo.nanopb"_dep;
         t.Public += "org.sw.demo.openssl.ssl"_dep;
+        t.Public += "org.sw.demo.nanopb"_dep;
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -82,15 +81,57 @@ void build(Solution &s)
         }
     }
 
+    auto &grpc_address_sorting = p.addTarget<StaticLibraryTarget>("third_party.address_sorting");
+    grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
+    grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
+
+    auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
+    {
+        auto &t = core_plugin_registry;
+        t += "src/core/plugin_registry/.*"_rr;
+        t.Public += "."_id;
+
+        t.Public += core;
+    }
+
+    auto &core_ext = p.addStaticLibrary("core.ext");
+    {
+        auto &t = core_ext;
+        t += "src/core/ext/.*"_rr;
+        t += "third_party/objective_c/Cronet/.*\\.h"_rr;
+        t.Public += "."_id;
+        t -= "src/core/ext/upb-generated/.*"_rr;
+
+        t += "GRPC_ARES"_def;
+
+        t.Public += proto;
+        t.Public += grpc_address_sorting;
+        t.Public += core_plugin_registry;
+        t.Public += "org.sw.demo.c_ares"_dep;
+        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
+        t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
+        (core + core_ext)->IncludeDirectoriesOnly = true;
+    }
+
+    auto &core_tsi = p.addStaticLibrary("core.tsi");
+    {
+      auto &t = core_tsi;
+      t += "src/core/tsi/.*"_rr;
+      t.Public += "."_id;
+
+      t.Public += proto;
+      (core + core_tsi)->IncludeDirectoriesOnly = true;
+    }
+
     auto &cpp = p.addStaticLibrary("cpp");
     {
         auto &t = core;
         cpp += "src/cpp/.*"_rr;
 
-        cpp += "."_id;
+        cpp.Public += "."_id;
         cpp.Public += "src"_id;
 
-        cpp.Public += proto;
-        cpp.Public += "org.sw.demo.census.opencensus.cpp"_dep;
+        cpp.Public += core_ext, core_tsi;
+        (core_ext + cpp)->IncludeDirectoriesOnly = true;
     }
 }

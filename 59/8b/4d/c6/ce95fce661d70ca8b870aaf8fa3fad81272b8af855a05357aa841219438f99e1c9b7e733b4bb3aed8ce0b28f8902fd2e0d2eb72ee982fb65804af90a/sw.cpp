@@ -1,48 +1,25 @@
 #pragma sw header on
 
-#pragma sw require header org.sw.demo.google.protobuf.protoc-3
+#pragma sw require header org.sw.demo.google.protobuf.protoc
 
-static void gen_grpc(const DependencyPtr &protoc_in, const DependencyPtr &grpc_cpp_plugin,
-    NativeExecutedTarget &t, const path &f, bool public_protobuf = false)
+static void gen_grpc_cpp(const DependencyPtr &protobuf_base, const DependencyPtr &grpc_cpp_plugin,
+    NativeExecutedTarget &t, const path &f, const ProtobufData &data = {})
 {
-    auto [protoc, _] = gen_protobuf(protoc_in, t, f, public_protobuf);
+    auto [protoc, _] = gen_protobuf_cpp(protobuf_base, t, f, data);
 
-    auto n = f.filename().stem().u8string();
-    auto d = f.parent_path();
-    auto bdir = t.BinaryDir;
-
-    auto o = bdir / n;
-    auto ocpp = o;
-    ocpp += ".grpc.pb.cc";
-    auto oh = o;
-    oh += ".grpc.pb.h";
+    ProtocData d = data;
+    d.input = f;
+    d.generator = "grpc";
+    d.exts = {".grpc.pb.cc", ".grpc.pb.h"};
+    d.plugin = grpc_cpp_plugin;
+    auto c = d.generate(protoc, t);
 
 #if defined(SW_CPP_DRIVER_API_VERSION)
     t.addDummyDependency(grpc_cpp_plugin);
 #else
     (t + grpc_cpp_plugin)->setDummy(true);
 #endif
-
-    auto c = t.addCommand();
-    c << cmd::prog(protoc)
-        << cmd::wdir(bdir)
-        << cmd::in(normalize_path(f)) // must be normalized as d
-        << "--grpc_out=" + normalize_path(bdir)
-        << [c = c.c.get(), grpc_cpp_plugin]()
-    {
-        auto t = (NativeExecutedTarget*)&grpc_cpp_plugin->getTarget();
-        if (!t)
-            throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved");
-        auto p = t->getOutputFile();
-        c->addInput(p);
-        return "--plugin=protoc-gen-grpc=" + p.u8string();
-    }
-    << "-I" << normalize_path(d) // must be normalized as f
-        << "-I" << [protoc = protoc, &t]() { return normalize_path(sw::LocalPackage(t.getSolution().getContext().getLocalStorage(), protoc->getResolvedPackage()).getDirSrc2() / "src"); }
-        << cmd::end()
-        << cmd::out(ocpp)
-        << cmd::out(oh);
-};
+}
 
 #pragma sw header off
 
@@ -51,282 +28,110 @@ void build(Solution &s)
     auto &p = s.addProject("google.grpc", "1.23.0");
     p += Git("https://github.com/grpc/grpc", "v{v}");
 
-    auto setup_grpc = [](auto &t)
+    auto &core = p.addStaticLibrary("core.lib");
     {
-        t.ImportFromBazel = true;
-        t.BazelTargetFunction = "grpc_cc_library";
-        t.Public.IncludeDirectories.insert(t.SourceDir);
-        t.Public.IncludeDirectories.insert(t.SourceDir / "include");
-    };
+        auto &t = core;
+        t += "include/.*"_rr;
+        t += "src/core/lib/.*"_rr;
 
-    auto &grpcpp_config_proto = p.addTarget<StaticLibraryTarget>("grpcpp_config_proto");
-    grpcpp_config_proto.BazelTargetName = "grpc++_config_proto";
-    setup_grpc(grpcpp_config_proto);
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+            t.Public += "_WIN32_WINNT=0x0601"_def;
 
-    auto &grpc_plugin_support = p.addTarget<StaticLibraryTarget>("grpc_plugin_support");
-    setup_grpc(grpc_plugin_support);
-    grpc_plugin_support.Public += grpcpp_config_proto, "org.sw.demo.google.protobuf.protoc_lib-3"_dep;
+        t.Public += "include"_id;
+        t.Public += "."_id;
 
-    auto &grpc_cpp_plugin = p.addTarget<ExecutableTarget>("grpc_cpp_plugin");
-    setup_grpc(grpc_cpp_plugin);
-    grpc_cpp_plugin.BazelTargetFunction = "grpc_proto_plugin";
-    grpc_cpp_plugin.Public += grpc_plugin_support;
+        t.Public += "org.sw.demo.madler.zlib"_dep;
+        t.Public += "org.sw.demo.openssl.ssl"_dep;
+        t.Public += "org.sw.demo.nanopb"_dep;
+    }
 
-    auto &gpr_codegen = p.addTarget<StaticLibraryTarget>("gpr_codegen");
-    setup_grpc(gpr_codegen);
-    if (gpr_codegen.getBuildSettings().TargetOS.Type == OSType::Windows)
-        gpr_codegen.Public += "_WIN32_WINNT=0x0600"_d;
+    auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
+    {
+        auto &t = grpc_plugin_support;
+        t += "src/compiler/.*\\.h"_rr;
+        t += "src/compiler/.*_generator\\.cc"_rr;
 
-    auto &gpr_base = p.addTarget<StaticLibraryTarget>("gpr_base");
-    setup_grpc(gpr_base);
-    gpr_base.Public += gpr_codegen;
+        t.Public += "."_id;
 
-    auto &gpr = p.addTarget<StaticLibraryTarget>("gpr");
-    setup_grpc(gpr);
-    gpr.Public += gpr_base;
+        t.Public += core;
+        t += "org.sw.demo.google.protobuf.protobuf"_dep;
+    }
 
-    auto &grpc_nanopb = p.addTarget<StaticLibraryTarget>("third_party.nanopb");
-    grpc_nanopb += "third_party/nanopb/[^/]*\\.[hc]"_rr;
-    grpc_nanopb.Public += "third_party/nanopb"_idir;
-    grpc_nanopb.Public += "PB_FIELD_32BIT"_d;
+    auto &grpc_cpp_plugin = p.addExecutable("cpp.plugin");
+    {
+        auto &t = grpc_cpp_plugin;
+        t += "src/compiler/cpp_plugin.cc";
+        t += grpc_plugin_support;
+        t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
+    }
+
+    auto &proto = p.addStaticLibrary("proto");
+    {
+        auto &t = proto;
+        t += "src/proto/.*\\.proto"_rr;
+        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        t.Public += core;
+        ProtobufData d;
+        d.public_protobuf = true;
+        for (auto &[p, sf] : t["src/proto/.*\\.proto"_rr])
+        {
+            if (sf->skip)
+                continue;
+            gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
+        }
+    }
 
     auto &grpc_address_sorting = p.addTarget<StaticLibraryTarget>("third_party.address_sorting");
     grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
     grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
 
-    auto &atomic = p.addTarget<StaticLibraryTarget>("atomic");
-    setup_grpc(atomic);
-    atomic.Public += gpr;
+    auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
+    {
+        auto &t = core_plugin_registry;
+        t += "src/core/plugin_registry/.*"_rr;
+        t.Public += "."_id;
 
-    auto &grpc_codegen = p.addTarget<StaticLibraryTarget>("grpc_codegen");
-    setup_grpc(grpc_codegen);
-    grpc_codegen.Public += gpr_codegen;
+        t.Public += core;
+    }
 
-    auto &grpc_trace = p.addTarget<StaticLibraryTarget>("grpc_trace");
-    setup_grpc(grpc_trace);
-    grpc_trace.Public += gpr, grpc_codegen;
+    auto &core_ext = p.addStaticLibrary("core.ext");
+    {
+        auto &t = core_ext;
+        t += "src/core/ext/.*"_rr;
+        t += "third_party/objective_c/Cronet/.*\\.h"_rr;
+        t.Public += "."_id;
+        t -= "src/core/ext/upb-generated/.*"_rr;
 
-    auto &inlined_vector = p.addTarget<StaticLibraryTarget>("inlined_vector");
-    setup_grpc(inlined_vector);
-    inlined_vector.Public += gpr_base;
+        t += "GRPC_ARES"_def;
 
-    auto &debug_location = p.addTarget<StaticLibraryTarget>("debug_location");
-    setup_grpc(debug_location);
+        t.Public += proto;
+        t.Public += grpc_address_sorting;
+        t.Public += core_plugin_registry;
+        t.Public += "org.sw.demo.c_ares"_dep;
+        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
+        t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
+        (core + core_ext)->IncludeDirectoriesOnly = true;
+    }
 
-    auto &optional = p.addTarget<StaticLibraryTarget>("optional");
-    setup_grpc(optional);
-    optional.Public += gpr_base;
+    auto &core_tsi = p.addStaticLibrary("core.tsi");
+    {
+      auto &t = core_tsi;
+      t += "src/core/tsi/.*"_rr;
+      t.Public += "."_id;
 
-    auto &ref_counted_ptr = p.addTarget<StaticLibraryTarget>("ref_counted_ptr");
-    setup_grpc(ref_counted_ptr);
-    gpr_base.Public += gpr_base;
+      t.Public += proto;
+      (core + core_tsi)->IncludeDirectoriesOnly = true;
+    }
 
-    auto &ref_counted = p.addTarget<StaticLibraryTarget>("ref_counted");
-    setup_grpc(ref_counted);
-    ref_counted.Public += atomic, debug_location, gpr_base, grpc_trace, ref_counted_ptr;
+    auto &cpp = p.addStaticLibrary("cpp");
+    {
+        auto &t = core;
+        cpp += "src/cpp/.*"_rr;
 
-    auto &orphanable = p.addTarget<StaticLibraryTarget>("orphanable");
-    setup_grpc(orphanable);
-    orphanable.Public += debug_location, gpr_base, grpc_trace, ref_counted_ptr;
+        cpp.Public += "."_id;
+        cpp.Public += "src"_id;
 
-    auto &grpc_base_c = p.addTarget<StaticLibraryTarget>("grpc_base_c");
-    setup_grpc(grpc_base_c);
-    grpc_base_c.Public += gpr_base, grpc_trace, inlined_vector, optional, orphanable, ref_counted, "org.sw.demo.madler.zlib-1"_dep;
-
-    auto &grpc_base = p.addTarget<StaticLibraryTarget>("grpc_base");
-    setup_grpc(grpc_base);
-    grpc_base.Public += grpc_base_c;
-
-    auto &census = p.addTarget<StaticLibraryTarget>("census");
-    setup_grpc(census);
-    census.Public += grpc_base, grpc_nanopb;
-
-    auto &grpc_client_authority_filter = p.addTarget<StaticLibraryTarget>("grpc_client_authority_filter");
-    setup_grpc(grpc_client_authority_filter);
-    grpc_client_authority_filter.Public += grpc_base;
-
-    auto &grpc_deadline_filter = p.addTarget<StaticLibraryTarget>("grpc_deadline_filter");
-    setup_grpc(grpc_deadline_filter);
-    grpc_deadline_filter.Public += grpc_base;
-
-    auto &health_proto = p.addTarget<StaticLibraryTarget>("health_proto");
-    setup_grpc(health_proto);
-    health_proto.Public += grpc_nanopb;
-
-    auto &grpc_client_channel = p.addTarget<StaticLibraryTarget>("grpc_client_channel");
-    setup_grpc(grpc_client_channel);
-    grpc_client_channel.Public += gpr_base, grpc_base, grpc_client_authority_filter, grpc_deadline_filter, inlined_vector,
-        orphanable, ref_counted, ref_counted_ptr, health_proto;
-
-    auto &grpc_lb_subchannel_list = p.addTarget<StaticLibraryTarget>("grpc_lb_subchannel_list");
-    setup_grpc(grpc_lb_subchannel_list);
-    grpc_lb_subchannel_list.Public += grpc_base, grpc_client_channel;
-
-    auto &grpc_lb_policy_pick_first = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_pick_first");
-    setup_grpc(grpc_lb_policy_pick_first);
-    grpc_lb_policy_pick_first.Public += grpc_base, grpc_client_channel, grpc_lb_subchannel_list;
-
-    auto &grpc_lb_policy_round_robin = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_round_robin");
-    setup_grpc(grpc_lb_policy_round_robin);
-    grpc_lb_policy_round_robin.Public += grpc_lb_subchannel_list;
-
-    auto &grpc_max_age_filter = p.addTarget<StaticLibraryTarget>("grpc_max_age_filter");
-    setup_grpc(grpc_max_age_filter);
-    grpc_max_age_filter.Public += grpc_base;
-
-    auto &grpc_message_size_filter = p.addTarget<StaticLibraryTarget>("grpc_message_size_filter");
-    setup_grpc(grpc_message_size_filter);
-    grpc_message_size_filter.Public += grpc_base, grpc_client_channel;
-
-    auto &grpc_resolver_dns_selection = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_selection");
-    setup_grpc(grpc_resolver_dns_selection);
-    grpc_resolver_dns_selection.Public += grpc_base;
-
-    auto &grpc_resolver_dns_ares = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_ares");
-    setup_grpc(grpc_resolver_dns_ares);
-    grpc_resolver_dns_ares.Public += grpc_base, grpc_client_channel, grpc_address_sorting, grpc_resolver_dns_selection,
-        "org.sw.demo.c_ares-1"_dep;
-
-    auto &grpc_resolver_dns_native = p.addTarget<StaticLibraryTarget>("grpc_resolver_dns_native");
-    setup_grpc(grpc_resolver_dns_native);
-    grpc_resolver_dns_native.Public += grpc_base, grpc_client_channel, grpc_resolver_dns_selection;
-
-    auto &grpc_resolver_fake = p.addTarget<StaticLibraryTarget>("grpc_resolver_fake");
-    setup_grpc(grpc_resolver_fake);
-    grpc_resolver_fake.Public += grpc_base, grpc_client_channel;
-
-    auto &grpc_resolver_sockaddr = p.addTarget<StaticLibraryTarget>("grpc_resolver_sockaddr");
-    setup_grpc(grpc_resolver_sockaddr);
-    grpc_resolver_sockaddr.Public += grpc_base, grpc_client_channel;
-
-    auto &grpc_server_backward_compatibility = p.addTarget<StaticLibraryTarget>("grpc_server_backward_compatibility");
-    setup_grpc(grpc_server_backward_compatibility);
-    grpc_server_backward_compatibility.Public += grpc_base;
-
-    auto &grpc_http_filters = p.addTarget<StaticLibraryTarget>("grpc_http_filters");
-    setup_grpc(grpc_http_filters);
-    grpc_http_filters.Public += grpc_base;
-
-    auto &grpc_transport_chttp2_alpn = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_alpn");
-    setup_grpc(grpc_transport_chttp2_alpn);
-    grpc_transport_chttp2_alpn.Public += gpr;
-
-    auto &grpc_transport_chttp2 = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2");
-    setup_grpc(grpc_transport_chttp2);
-    grpc_transport_chttp2.Public += gpr_base, grpc_base, grpc_http_filters, grpc_transport_chttp2_alpn;
-
-    auto &grpc_transport_chttp2_client_connector = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_client_connector");
-    setup_grpc(grpc_transport_chttp2_client_connector);
-    grpc_transport_chttp2_client_connector.Public += grpc_base, grpc_client_channel, grpc_transport_chttp2;
-
-    auto &grpc_transport_chttp2_client_insecure = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_client_insecure");
-    setup_grpc(grpc_transport_chttp2_client_insecure);
-    grpc_transport_chttp2_client_insecure.Public += grpc_base, grpc_client_channel, grpc_transport_chttp2, grpc_transport_chttp2_client_connector;
-
-    auto &grpc_transport_chttp2_server = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_server");
-    setup_grpc(grpc_transport_chttp2_server);
-    grpc_transport_chttp2_server.Public += grpc_base, grpc_transport_chttp2;
-
-    auto &grpc_transport_chttp2_server_insecure = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_server_insecure");
-    setup_grpc(grpc_transport_chttp2_server_insecure);
-    grpc_transport_chttp2_server_insecure.Public += grpc_base, grpc_transport_chttp2, grpc_transport_chttp2_server;
-
-    auto &grpc_transport_inproc = p.addTarget<StaticLibraryTarget>("grpc_transport_inproc");
-    setup_grpc(grpc_transport_inproc);
-    grpc_transport_inproc.Public += grpc_base;
-
-    auto &grpc_workaround_cronet_compression_filter = p.addTarget<StaticLibraryTarget>("grpc_workaround_cronet_compression_filter");
-    setup_grpc(grpc_workaround_cronet_compression_filter);
-    grpc_workaround_cronet_compression_filter.Public += grpc_server_backward_compatibility;
-
-    auto &grpc_common = p.addTarget<StaticLibraryTarget>("grpc_common");
-    setup_grpc(grpc_common);
-    grpc_common.AutoDetectOptions = false;
-    grpc_common.Public += census, grpc_base, grpc_client_authority_filter, grpc_deadline_filter, grpc_lb_policy_pick_first,
-        grpc_lb_policy_round_robin, grpc_max_age_filter, grpc_message_size_filter, grpc_resolver_dns_ares, grpc_resolver_dns_native,
-        grpc_resolver_fake, grpc_resolver_sockaddr, grpc_server_backward_compatibility, grpc_transport_chttp2_client_insecure,
-        grpc_transport_chttp2_server_insecure, grpc_transport_inproc, grpc_workaround_cronet_compression_filter;
-
-    auto &alts_proto = p.addTarget<StaticLibraryTarget>("alts_proto");
-    setup_grpc(alts_proto);
-    alts_proto.Public += "org.sw.demo.nanopb-0"_dep;
-
-    auto &alts_util = p.addTarget<StaticLibraryTarget>("alts_util");
-    setup_grpc(alts_util);
-    alts_util.Public += alts_proto, gpr, grpc_base;
-
-    auto &tsi_interface = p.addTarget<StaticLibraryTarget>("tsi_interface");
-    setup_grpc(tsi_interface);
-    tsi_interface.Public += gpr, grpc_trace;
-
-    auto &grpc_shadow_boringssl = p.addTarget<StaticLibraryTarget>("grpc_shadow_boringssl");
-    setup_grpc(grpc_shadow_boringssl);
-
-    auto &alts_frame_protector = p.addTarget<StaticLibraryTarget>("alts_frame_protector");
-    setup_grpc(alts_frame_protector);
-    alts_frame_protector.Public += gpr, grpc_base, tsi_interface, grpc_shadow_boringssl, "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
-
-    auto &tsi = p.addTarget<StaticLibraryTarget>("tsi");
-    setup_grpc(tsi);
-    tsi.Public += alts_frame_protector, alts_util, gpr, grpc_base, grpc_transport_chttp2_client_insecure, tsi_interface;
-
-    auto &grpc_secure = p.addTarget<StaticLibraryTarget>("grpc_secure");
-    setup_grpc(grpc_secure);
-    grpc_secure.Public += alts_util, grpc_base, grpc_transport_chttp2_alpn, tsi;
-
-    auto &grpclb_proto = p.addTarget<StaticLibraryTarget>("grpclb_proto");
-    setup_grpc(grpclb_proto);
-    grpclb_proto.Public += grpc_nanopb;
-
-    auto &grpc_lb_policy_grpclb_secure = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_grpclb_secure");
-    setup_grpc(grpc_lb_policy_grpclb_secure);
-    grpc_lb_policy_grpclb_secure.Public += grpc_base, grpc_client_channel, grpc_resolver_fake, grpc_secure, grpclb_proto;
-
-    auto &grpc_transport_chttp2_client_secure = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_client_secure");
-    setup_grpc(grpc_transport_chttp2_client_secure);
-    grpc_transport_chttp2_client_secure.Public += grpc_base, grpc_client_channel, grpc_secure, grpc_transport_chttp2, grpc_transport_chttp2_client_connector;
-
-    auto &grpc_transport_chttp2_server_secure = p.addTarget<StaticLibraryTarget>("grpc_transport_chttp2_server_secure");
-    setup_grpc(grpc_transport_chttp2_server_secure);
-    grpc_transport_chttp2_server_secure.Public += grpc_base, grpc_secure, grpc_transport_chttp2, grpc_transport_chttp2_server;
-
-    auto &grpc_lb_policy_xds_secure = p.addTarget<StaticLibraryTarget>("grpc_lb_policy_xds_secure");
-    setup_grpc(grpc_lb_policy_xds_secure);
-    grpc_lb_policy_xds_secure.Public += grpc_base, grpc_secure, grpclb_proto, grpc_client_channel, grpc_resolver_fake;
-
-    auto &grpc = p.addTarget<StaticLibraryTarget>("grpc");
-    setup_grpc(grpc);
-    grpc.Public += grpc_common, grpc_lb_policy_grpclb_secure, grpc_secure, grpc_transport_chttp2_client_secure,
-        grpc_transport_chttp2_server_secure, grpc_lb_policy_xds_secure;
-
-    auto &grpcpp_internal_hdrs_only = p.addTarget<StaticLibraryTarget>("grpcpp_internal_hdrs_only");
-    grpcpp_internal_hdrs_only.BazelTargetName = "grpc++_internal_hdrs_only";
-    setup_grpc(grpcpp_internal_hdrs_only);
-    grpcpp_internal_hdrs_only.Public += gpr_codegen;
-
-    auto &grpcpp_codegen_base = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_base");
-    grpcpp_codegen_base.BazelTargetName = "grpc++_codegen_base";
-    setup_grpc(grpcpp_codegen_base);
-    grpcpp_codegen_base.Public += grpc_codegen, grpcpp_internal_hdrs_only;
-
-    auto &grpcpp_base = p.addTarget<StaticLibraryTarget>("grpcpp_base");
-    grpcpp_base.BazelTargetName = "grpc++_base";
-    setup_grpc(grpcpp_base);
-    grpcpp_base.Public += grpc, grpcpp_codegen_base;
-
-    auto &grpcpp_codegen_base_src = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_base_src");
-    grpcpp_codegen_base_src.BazelTargetName = "grpc++_codegen_base_src";
-    setup_grpc(grpcpp_codegen_base_src);
-    grpcpp_codegen_base_src.Public += grpcpp_codegen_base;
-
-    auto &grpcpp_codegen_proto = p.addTarget<StaticLibraryTarget>("grpcpp_codegen_proto");
-    grpcpp_codegen_proto.BazelTargetName = "grpc++_codegen_proto";
-    setup_grpc(grpcpp_codegen_proto);
-    grpcpp_codegen_proto.Public += grpcpp_codegen_base, grpcpp_config_proto;
-
-    auto &grpcpp = p.addTarget<StaticLibraryTarget>("grpcpp");
-    grpcpp.BazelTargetName = "grpc++";
-    setup_grpc(grpcpp);
-    grpcpp.Public += gpr, grpc, grpcpp_base,
-        grpcpp_codegen_base, grpcpp_codegen_base_src, grpcpp_codegen_proto;
+        cpp.Public += core_ext, core_tsi;
+        (core_ext + cpp)->IncludeDirectoriesOnly = true;
+    }
 }
