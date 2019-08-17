@@ -149,7 +149,10 @@ void build(Solution &s)
 
     String exp = "SW_PCRE_EXP_VAR";
     if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
-        pcre8.Public += "SW_PCRE_EXP_VAR=extern __declspec(dllimport)"_def;
+    {
+        exp = "extern " + exp;
+        pcre8.Public += "SW_PCRE_EXP_VAR=__declspec(dllimport)"_def;
+    }
     else
         pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
 

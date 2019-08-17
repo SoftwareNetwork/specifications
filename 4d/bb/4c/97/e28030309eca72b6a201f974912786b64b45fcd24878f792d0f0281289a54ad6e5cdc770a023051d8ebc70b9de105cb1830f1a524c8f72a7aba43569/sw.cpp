@@ -56,6 +56,7 @@ void build(Solution &s)
             "src/Wt/Chart/scripts/.*"_rr,
             "src/Wt/Dbo/.*"_rr,
             "src/Wt/Date/.*"_rr,
+            "src/Wt/Test/.*"_rr,
             "src/Wt/FontSupport.*"_rr,
             "src/Wt/WRasterImage-d2d1.C",
             "src/Wt/WRasterImage-skia.C";
