@@ -88,7 +88,7 @@ void build(Solution &s)
     auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
     {
         auto &t = core_plugin_registry;
-        t += "src/core/plugin_registry/.*"_rr;
+        t += "src/core/plugin_registry/grpc_plugin_registry.cc";
         t.Public += "."_id;
 
         t.Public += core;
@@ -101,6 +101,7 @@ void build(Solution &s)
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
         t.Public += "."_id;
         t -= "src/core/ext/upb-generated/.*"_rr;
+        t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
 
         t += "GRPC_ARES"_def;
 
