@@ -6,8 +6,8 @@ void build(Solution &s)
     auto add_dir = [](auto &t, const path &dir)
     {
         t += FileRegex(path("opencensus") / dir, ".*\\.h", false);
-        t += FileRegex(path("opencensus") / dir / "internal", ".*", false);
         t.AllowEmptyRegexes = true;
+        t += FileRegex(path("opencensus") / dir / "internal", ".*", false);
         t -= FileRegex(path("opencensus") / dir / "internal", ".*_test\\.cc", false);
         t -= FileRegex(path("opencensus") / dir / "internal", ".*_benchmark\\.cc", false);
         t -= FileRegex(path("opencensus") / dir / "internal", ".*_fuzzer\\.cc", false);
@@ -20,5 +20,7 @@ void build(Solution &s)
     add_dir(cpp, "stats");
     add_dir(cpp, "tags");
     add_dir(cpp, "trace");
+    add_dir(cpp, "trace/exporter");
+    add_dir(cpp, "trace/propagation");
     cpp.Public += "org.sw.demo.google.abseil"_dep;
 }
