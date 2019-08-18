@@ -25,7 +25,7 @@ void build(Solution &s)
         getopt.Public +=
             "support"_id;
 
-        getopt.Public += "org.sw.demo.gnu.gettext.intl-*"_dep;
+        getopt.Public += "org.sw.demo.gnu.gettext.intl"_dep;
     }
 
     if (gawk.getBuildSettings().TargetOS.Type != OSType::Windows)
@@ -133,7 +133,7 @@ inline int __CRTDECL mbsinit(
         {
             gawk.writeFileOnce(gawk.BinaryPrivateDir / "unistd.h");
             gawk.pushFrontToFileOnce("pc/getid.c", "#define __MINGW32__ 1");
-            gawk += "ws2_32.lib"_lib;
+            gawk += "ws2_32.lib"_slib;
         }
 
         gawk.writeFileOnce(gawk.BinaryPrivateDir / "cppan_misc.h",
