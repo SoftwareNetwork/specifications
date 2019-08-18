@@ -92,6 +92,7 @@ struct ProtocData
 
 #if defined(SW_CPP_DRIVER_API_VERSION)
             t.addDummyDependency(plugin);
+            c.c->addProgramDependency(plugin);
 #else
             (t + plugin)->setDummy(true);
 #endif
