@@ -177,6 +177,9 @@ inline int __CRTDECL mbsinit(
 #ifdef _WIN32
     #define _Noreturn __declspec(noreturn)
 
+    #define __attribute__(x)
+    #define __attribute_warn_unused_result__
+
     #ifdef _WIN64
     #define ssize_t long long
     #else
