@@ -56,7 +56,6 @@ struct ProtocData
         auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." + getHash() + ".d");
         auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getSolution().getContext());
         gc->deps_file = deps_file;
-        gc->output_dirs.insert(gc->deps_file.parent_path());
 
         auto c = t.addCommand(gc);
         c << cmd::prog(protoc);
@@ -101,6 +100,9 @@ struct ProtocData
         // input
         c << cmd::in(normalize_path(input)); // must be normalized
         c << cmd::end();
+
+        // mark deps file as output
+        c << cmd::out(deps_file);
 
         auto o = outdir / rel_input.parent_path() / rel_input.stem();
         for (auto &e : exts)
