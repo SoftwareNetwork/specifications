@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &uv = s.addTarget<LibraryTarget>("libuv", "1.31.0");
-    uv += Git("https://github.com/egorpugin/libuv", "v{v}-my");
+    uv += Git("https://github.com/libuv/libuv", "v{v}");
 
     uv.Private += sw::Shared, "BUILDING_UV_SHARED"_d;
     uv.Interface += sw::Shared, "USING_UV_SHARED"_d;
