@@ -75,19 +75,25 @@ void build(Solution &s)
     lib.Private += "HAVE_ZLIB"_d;
     lib.Private += "TCL_CFGVAL_ENCODING=\"\""_d;
     lib.Private += "TCL_TOMMATH"_d;
-    if (lib.getSettings().TargetOS.Type != OSType::Windows)
+    if (lib.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         lib.Public += "TCL_LIBRARY=\"\""_d;
         lib.Public += "TCL_PACKAGE_PATH=\"\""_d;
     }
-    if (lib.getSettings().TargetOS.Type == OSType::Windows)
+    if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         lib.Public += "UNICODE"_d;
         lib.Public += "_UNICODE"_d;
     }
-    if (lib.getSettings().TargetOS.Type == OSType::Windows)
+    if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        lib.Public += "Netapi32.lib"_lib, "user32.lib"_lib;
+        lib.Public +=
+            "Advapi32.lib"_slib,
+            "Netapi32.lib"_slib,
+            "user32.lib"_slib,
+            "Userenv.lib"_slib,
+            "ws2_32.lib"_slib
+            ;
     }
     lib.Private += sw::Shared, "TCL_SHARED_BUILD"_d;
     lib.Public += sw::Static, "STATIC_BUILD"_d;
@@ -97,7 +103,7 @@ void build(Solution &s)
     lib.Public += stub;
     lib.Public += "org.sw.demo.madler.zlib-1"_dep;
 
-    if (lib.getSettings().TargetOS.is(OSType::Windows))
+    if (lib.getBuildSettings().TargetOS.is(OSType::Windows))
     {
         auto m2 = lib.BinaryDir / "tclMain1.c";
         lib.configureFile("generic/tclMain.c", m2);
@@ -121,7 +127,7 @@ void build(Solution &s)
     sh.Public +=
         "unix"_id,
         "win"_id;
-    if (sh.getSettings().TargetOS.is(OSType::Windows))
+    if (sh.getBuildSettings().TargetOS.is(OSType::Windows))
         sh -= "unix/.*"_rr;
     else
         sh -= "win/.*"_rr;
