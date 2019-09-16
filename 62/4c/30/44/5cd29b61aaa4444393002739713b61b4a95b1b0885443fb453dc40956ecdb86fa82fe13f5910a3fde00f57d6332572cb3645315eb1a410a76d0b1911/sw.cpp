@@ -5,7 +5,7 @@ void build(Solution &s)
     t += "xxhash.[hc]"_rr;
     t += "xxh3.h";
 
-    if (t.getSettings().TargetOS.Type == OSType::Windows)
+    if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         t += "WIN32"_def;
         t.patch("xxh3.h", "__attribute__((noinline))", "");
