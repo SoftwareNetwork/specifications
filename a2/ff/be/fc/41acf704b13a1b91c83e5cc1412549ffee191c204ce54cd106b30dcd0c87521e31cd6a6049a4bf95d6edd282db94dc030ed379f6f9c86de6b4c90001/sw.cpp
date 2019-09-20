@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<StaticLibrary>("libxls", "1.5.0");
+    auto &t = s.addTarget<StaticLibrary>("libxls", "1.5.1");
     t += Git("https://github.com/libxls/libxls", "v{v}");
 
     t.PackageDefinitions = true;
