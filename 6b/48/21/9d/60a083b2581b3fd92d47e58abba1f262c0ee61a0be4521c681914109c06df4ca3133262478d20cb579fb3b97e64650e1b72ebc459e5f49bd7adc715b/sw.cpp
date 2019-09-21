@@ -44,6 +44,7 @@ void build(Solution &s)
     if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         common.Public += "NOMINMAX"_d;
+        common.Public += "com.Microsoft.Windows.SDK.winrt"_dep;
     }
     common.Public += base, pmurhash;
 
