@@ -217,7 +217,7 @@ void build(Solution &s)
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
         lib += "_Py_HAVE_ZLIB"_d;
-        if (lib.getSettings().TargetOS.Type == OSType::Windows)
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             lib -= "Modules/pwdmodule.c";
             lib -= "Modules/getpath.c";
@@ -233,7 +233,7 @@ void build(Solution &s)
             lib.Public += "MS_WINDOWS"_d;
             lib.Public += "NT_THREADS"_d;
             lib.Public += "WIN32"_d;
-            if (lib.getSettings().TargetOS.Arch == ArchType::x86_64)
+            if (lib.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
                 lib.Public += "MS_WINI64"_d;
 
             lib.Public += "advapi32.lib"_lib;

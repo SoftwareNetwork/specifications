@@ -27,7 +27,6 @@ void build(Solution &s)
         "include/.*"_rr,
         "src/common/[^/]*\\.cpp"_rr,
         "src/common/[^/]*\\.h"_rr,
-        "src/common/[^/]*\\.inl"_rr,
         "src/common/[^/]*\\.inc"_rr,
         "src/compiler/.*\\.h"_rr,
         "src/third_party/.*\\.h"_rr;
@@ -42,7 +41,7 @@ void build(Solution &s)
     common -= ".*android.*"_rr;
     common -= ".*posix.*"_rr;
 
-    if (common.getSettings().TargetOS.Type == OSType::Windows)
+    if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         common.Public += "NOMINMAX"_d;
     }
@@ -68,7 +67,7 @@ void build(Solution &s)
     translator.Public +=
         "src"_id;
     translator.Private += "LIBANGLE_IMPLEMENTATION"_d;
-    if (translator.getSettings().TargetOS.Type == OSType::Windows)
+    if (translator.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         translator.Public += "ANGLE_ENABLE_GLSL"_d;
         translator.Public += "ANGLE_ENABLE_HLSL"_d;
@@ -101,7 +100,7 @@ void build(Solution &s)
     angle.Public +=
         "src"_id;
     angle.Private += "LIBANGLE_IMPLEMENTATION"_d;
-    if (angle.getSettings().TargetOS.Type == OSType::Windows)
+    if (angle.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         angle += "src/libANGLE/renderer/d3d.*"_rr;
 
