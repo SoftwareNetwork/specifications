@@ -636,8 +636,12 @@ struct QtLibrary
     QtLibraryConfig config;
     Strings dependencies;
 
-    void print(NativeExecutedTarget &t) const
+    void print(NativeExecutedTarget &t)
     {
+        if (t.getBuildSettings().Native.LibrariesType == LibraryType::Static)
+            config.public_.features["static"].enabled = true;
+        config.public_.features["shared"].enabled = !config.public_.features["static"].enabled;
+
         auto name_lower = boost::to_lower_copy(name);
         auto actual_name = name;
 
@@ -1226,10 +1230,6 @@ void build(Solution &s)
     qt_desc.config.public_.definitions["QT_VERSION_MINOR"] = core.Variables["PACKAGE_VERSION_MINOR"].toString();
     qt_desc.config.public_.definitions["QT_VERSION_PATCH"] = core.Variables["PACKAGE_VERSION_PATCH"].toString();
     qt_desc.config.public_.definitions["QT_VERSION_STR"] = "\"" + core.getPackage().getVersion().toString() + "\"";
-
-    if (s.getBuildSettings().Native.LibrariesType == LibraryType::Static)
-        qt_desc.config.public_.features["static"].enabled = true;
-    qt_desc.config.public_.features["shared"].enabled = !qt_desc.config.public_.features["static"].enabled;
 
     // early decls
     auto &xml = base.addTarget<LibraryTarget>("xml");
