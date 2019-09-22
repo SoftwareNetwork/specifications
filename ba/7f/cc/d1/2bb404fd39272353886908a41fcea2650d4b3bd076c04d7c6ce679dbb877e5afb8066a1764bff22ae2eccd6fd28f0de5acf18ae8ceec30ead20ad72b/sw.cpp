@@ -44,7 +44,9 @@ void build(Solution &s)
     if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         common.Public += "NOMINMAX"_d;
+#ifdef SW_CPP_DRIVER_API_VERSION
         common.Public += "com.Microsoft.Windows.SDK.winrt"_dep;
+#endif
     }
     common.Public += base, pmurhash;
 
