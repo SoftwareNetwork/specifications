@@ -28,7 +28,7 @@ struct YasmCompiler : sw::NativeCompiler,
     ExecutableTarget &exe;
 
     YasmCompiler(ExecutableTarget &exe)
-        : NativeCompiler(exe.getSolution().swctx)
+        : NativeCompiler(exe.getSolution().getContext())
         , exe(exe)
     {
     }
@@ -61,16 +61,16 @@ struct YasmCompiler : sw::NativeCompiler,
 
         if (!ObjectFormat)
         {
-            if (t.getSettings().TargetOS.Type == OSType::Windows)
+            if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
-                if (t.getSettings().TargetOS.Arch == ArchType::x86_64)
+                if (t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
                     ObjectFormat = "win64";
                 else
                     ObjectFormat = "win32";
             }
         }
 
-        switch (t.getSettings().TargetOS.Arch)
+        switch (t.getBuildSettings().TargetOS.Arch)
         {
         case ArchType::x86_64:
             add("ARCH_X86_32=0"_def);
@@ -103,7 +103,7 @@ struct YasmCompiler : sw::NativeCompiler,
 void build(Solution &s)
 {
     auto &yasm = s.add<Executable>("yasm", "master");
-    yasm += Git("https://github.com/yasm/yasm", "", "{v}");
+    yasm += Git("https://github.com/yasm/yasm");
 
     auto &cfg = yasm.addLibrary("config");
     cfg += ".*\\.h"_rr;
