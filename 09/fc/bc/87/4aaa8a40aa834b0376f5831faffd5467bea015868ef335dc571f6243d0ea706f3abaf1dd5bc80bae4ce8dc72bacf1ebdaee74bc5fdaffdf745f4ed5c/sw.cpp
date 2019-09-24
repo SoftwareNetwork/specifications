@@ -14,7 +14,7 @@ void re2c(const DependencyPtr &d, NativeExecutedTarget &t, const path &f, const 
 
 void build(Solution &s)
 {
-    auto &p = s.addProject("re2c", "1.2.0");
+    auto &p = s.addProject("re2c", "1.2.1");
     p += Git("https://github.com/skvadrik/re2c", "{M}.{m}{po}");
 
     auto &libre2c = p.addStaticLibrary("libre2c");
@@ -37,6 +37,7 @@ void build(Solution &s)
     re2c += "src/.*"_rr;
     re2c -= "src/test/.*"_rr;
     re2c += "."_idir, "bootstrap"_idir;
+    re2c += "RE2C_STDLIB_DIR=\"\""_def;
     re2c.writeFileOnce(re2c.BinaryPrivateDir / "config.h");
 }
 

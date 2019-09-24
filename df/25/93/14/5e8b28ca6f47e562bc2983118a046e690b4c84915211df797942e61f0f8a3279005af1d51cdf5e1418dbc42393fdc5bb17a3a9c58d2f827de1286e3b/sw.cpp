@@ -20,11 +20,11 @@ void build(Solution &s)
     auto &libre2c = p.addStaticLibrary("libre2c");
     libre2c.SourceDir /= "libre2c_old";
     libre2c += "libre2c/.*"_rr;
-    if (libre2c.getSettings().TargetOS.Arch == ArchType::x86)
+    if (libre2c.getBuildSettings().TargetOS.Arch == ArchType::x86)
         libre2c += "ssize_t=int"_def;
     else
         libre2c += "ssize_t=long long"_def;
-    if (libre2c.getSettings().TargetOS.Type == OSType::Windows)
+    if (libre2c.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         libre2c -= "libre2c/readfd.c";
         libre2c -= "libre2c/readrand.c";
