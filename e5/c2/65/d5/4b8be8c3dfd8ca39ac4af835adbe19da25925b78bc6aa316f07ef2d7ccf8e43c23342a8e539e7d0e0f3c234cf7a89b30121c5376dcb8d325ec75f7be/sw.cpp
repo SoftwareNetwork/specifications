@@ -107,7 +107,11 @@ void build(Solution &s)
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             cairo += "src/win32/.*"_rr;
-            cairo.Public += "Gdi32.lib"_l, "User32.lib"_l, "Msimg32.lib"_l;
+            cairo.Public +=
+                "Gdi32.lib"_slib,
+                "User32.lib"_slib,
+                "Msimg32.lib"_slib
+                ;
         }
     }
 

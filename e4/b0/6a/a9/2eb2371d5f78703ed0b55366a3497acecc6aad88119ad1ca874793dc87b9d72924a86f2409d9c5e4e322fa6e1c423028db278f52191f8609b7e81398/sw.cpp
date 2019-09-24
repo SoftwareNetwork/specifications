@@ -205,7 +205,13 @@ void build(Solution &s)
                 "glib/gspawn.c",
                 "glib/gthread-posix.c",
                 "glib/glib-unix.c";
-            glib += "Ole32.lib"_l, "Shell32.lib"_l, "User32.lib"_l, "ws2_32.lib"_l;
+
+            glib +=
+                "Ole32.lib"_slib,
+                "Shell32.lib"_slib,
+                "User32.lib"_slib,
+                "ws2_32.lib"_slib
+                ;
         }
 
         glib.configureFile("glib/glibconfig.h.in", "glibconfig.h");

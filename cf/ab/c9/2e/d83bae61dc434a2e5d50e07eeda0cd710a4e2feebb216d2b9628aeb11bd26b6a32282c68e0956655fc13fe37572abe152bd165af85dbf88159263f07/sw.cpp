@@ -260,7 +260,8 @@ void build(Solution &s)
         "vpx_scale_rtcd.h",
         })
     {
-        download_file("https://raw.githubusercontent.com/chromium/chromium/master/third_party/libvpx/source/config/win/x64/"s + f, vpx.BinaryDir / f);
+        if (!fs::exists(vpx.BinaryDir / f))
+            download_file("https://raw.githubusercontent.com/chromium/chromium/master/third_party/libvpx/source/config/win/x64/"s + f, vpx.BinaryDir / f);
     }
 }
 

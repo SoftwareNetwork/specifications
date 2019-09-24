@@ -110,10 +110,10 @@ void build(Solution &s)
         angle.Public += "ANGLE_ENABLE_D3D11"_d;
         angle.Public += "ANGLE_ENABLE_D3D9"_d;
 
-        angle.Public += "d3d11.lib"_lib;
-        angle.Public += "d3d9.lib"_lib;
-        angle.Public += "dxguid.lib"_lib;
-        angle.Public += "User32.lib"_lib;
+        angle.Public += "d3d11.lib"_slib;
+        angle.Public += "d3d9.lib"_slib;
+        angle.Public += "dxguid.lib"_slib;
+        angle.Public += "User32.lib"_slib;
     }
     angle -=
         "src/libANGLE/renderer/d3d/d3d11/winrt/.*"_rr;
