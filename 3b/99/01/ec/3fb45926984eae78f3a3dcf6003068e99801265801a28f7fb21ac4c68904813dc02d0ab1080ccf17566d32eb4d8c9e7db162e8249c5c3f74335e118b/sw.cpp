@@ -69,14 +69,14 @@ void build(Solution &s)
         tbb.Private += "__TBB_BUILD"_d;
         tbb.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbb.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
-        if (tbb.getSettings().TargetOS.Type != OSType::Windows)
+        if (tbb.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             tbb.Public += "USE_PTHREAD"_d;
         }
-        if (tbb.getSettings().TargetOS.Type == OSType::Windows)
+        if (tbb.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             arch += "win";
-            if (tbb.getSettings().TargetOS.is(ArchType::x86_64))
+            if (tbb.getBuildSettings().TargetOS.is(ArchType::x86_64))
             {
                 tbb += "src/tbb/intel64-masm/.*"_rr;
                 arch += "64";
@@ -116,13 +116,13 @@ void build(Solution &s)
         tbbmalloc.Private += "__TBBMALLOC_BUILD"_d;
         tbbmalloc.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbbmalloc.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
-        if (tbbmalloc.getSettings().Native.LibrariesType == LibraryType::Static)
+        if (tbbmalloc.getBuildSettings().Native.LibrariesType == LibraryType::Static)
             tbbmalloc += "__TBB_SOURCE_DIRECTLY_INCLUDED"_def;
-        if (tbbmalloc.getSettings().TargetOS.Type != OSType::Windows)
+        if (tbbmalloc.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             tbbmalloc.Public += "USE_PTHREAD"_d;
         }
-        if (tbbmalloc.getSettings().TargetOS.Type == OSType::Windows)
+        if (tbbmalloc.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             tbbmalloc.Public += "USE_WINTHREAD"_d;
 
@@ -144,22 +144,22 @@ void build(Solution &s)
 
         tbbmalloc_proxy.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbbmalloc_proxy.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
-        if (tbbmalloc_proxy.getSettings().TargetOS.Type != OSType::Windows)
+        if (tbbmalloc_proxy.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             tbbmalloc_proxy.Public += "USE_PTHREAD"_d;
         }
-        if (tbbmalloc_proxy.getSettings().TargetOS.Type == OSType::Windows)
+        if (tbbmalloc_proxy.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             tbbmalloc_proxy.Public += "USE_WINTHREAD"_d;
         }
 
         tbbmalloc_proxy.Public += tbbmalloc;
 
-        if (tbbmalloc_proxy.getSettings().TargetOS.Type == OSType::Windows)
+        if (tbbmalloc_proxy.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            if (tbbmalloc_proxy.getSettings().TargetOS.is(ArchType::x86_64))
+            if (tbbmalloc_proxy.getBuildSettings().TargetOS.is(ArchType::x86_64))
                 tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:__TBB_malloc_proxy");
-            else if (tbbmalloc_proxy.getSettings().TargetOS.is(ArchType::x86))
+            else if (tbbmalloc_proxy.getBuildSettings().TargetOS.is(ArchType::x86))
                 tbbmalloc_proxy.Interface.LinkOptions.push_back("-INCLUDE:___TBB_malloc_proxy");
         }
     }
