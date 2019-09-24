@@ -7,7 +7,7 @@ void build(Solution &s)
     auto &vpx = s.addStaticLibrary("webmproject.vpx", "1.8.1");
     vpx += Git("https://github.com/webmproject/libvpx", "v{v}");
 
-    vpx.setExtensionProgram(".asm", "org.sw.demo.yasm-master"_dep);
+    vpx.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
 
     //vpx.ExportAllSymbols = true;
     vpx.setChecks("vpx");
@@ -35,7 +35,7 @@ void build(Solution &s)
 
     vpx.Variables["ARCH_X86"] = 0;
     vpx.Variables["ARCH_X86_64"] = 0;
-    if (vpx.getSettings().TargetOS.Arch != ArchType::x86_64)
+    if (vpx.getBuildSettings().TargetOS.Arch != ArchType::x86_64)
     {
         vpx.Variables["ARCH_X86"] = 1;
         vpx.Variables["asm"] = "win32";
@@ -232,9 +232,9 @@ void build(Solution &s)
     vpx.configureFile("vpx_config.asm.in", "vpx_config.asm");
     vpx -= "vpx_config.asm";
 
-    if (vpx.getSettings().TargetOS.Type == OSType::Windows)
+    if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        if (vpx.getSettings().TargetOS.Arch != ArchType::x86_64)
+        if (vpx.getBuildSettings().TargetOS.Arch != ArchType::x86_64)
             vpx -= ".*_x86_64.asm"_rr;
     }
 
