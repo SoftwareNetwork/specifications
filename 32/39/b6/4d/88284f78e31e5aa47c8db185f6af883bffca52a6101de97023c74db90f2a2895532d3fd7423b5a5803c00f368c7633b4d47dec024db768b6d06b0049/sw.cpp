@@ -2651,7 +2651,7 @@ void build(Solution &s)
         if (winextras.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             winextras.Private += "UNICODE"_d;
-            winextras += "dwmapi.lib"_lib;
+            winextras += "dwmapi.lib"_slib;
         }
         automoc(moc, winextras);
         qt_winextras_desc.print(winextras);
