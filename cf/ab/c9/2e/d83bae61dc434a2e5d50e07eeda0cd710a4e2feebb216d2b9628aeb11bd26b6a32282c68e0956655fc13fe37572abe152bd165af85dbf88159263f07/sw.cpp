@@ -29,7 +29,7 @@ void build(Solution &s)
         "vpx_ports/.*\\.asm"_rr;
 
     //vpx -= ".*_avx2.*"_rr;
-    vpx -= "vpx_dsp/x86/highbd_.*"_rr;
+    //vpx -= "vpx_dsp/x86/highbd_.*"_rr;
 
     vpx.Public += "WIN32"_def;
 
@@ -110,7 +110,7 @@ void build(Solution &s)
         #define CONFIG_POSTPROC 1
         #define CONFIG_VP9_POSTPROC 1
         #define CONFIG_MULTITHREAD 1
-        #define CONFIG_INTERNAL_STATS 1
+        #define CONFIG_INTERNAL_STATS 0
         #define CONFIG_VP8_ENCODER 1
         #define CONFIG_VP8_DECODER 1
         #define CONFIG_VP9_ENCODER 1
@@ -121,7 +121,7 @@ void build(Solution &s)
         #define CONFIG_DECODERS 1
         #define CONFIG_STATIC_MSVCRT 0
         #define CONFIG_SPATIAL_RESAMPLING 1
-        #define CONFIG_REALTIME_ONLY 0
+        #define CONFIG_REALTIME_ONLY 1
         #define CONFIG_ONTHEFLY_BITPACKING 0
         #define CONFIG_ERROR_CONCEALMENT 1
         #define CONFIG_SMALL 0
@@ -194,7 +194,7 @@ void build(Solution &s)
         CONFIG_POSTPROC equ 1
         CONFIG_VP9_POSTPROC equ 1
         CONFIG_MULTITHREAD equ 1
-        CONFIG_INTERNAL_STATS equ 1
+        CONFIG_INTERNAL_STATS equ 0
         CONFIG_VP8_ENCODER equ 1
         CONFIG_VP8_DECODER equ 1
         CONFIG_VP9_ENCODER equ 1
@@ -260,8 +260,11 @@ void build(Solution &s)
         "vpx_scale_rtcd.h",
         })
     {
-        if (!fs::exists(vpx.BinaryDir / f))
-            download_file("https://raw.githubusercontent.com/chromium/chromium/master/third_party/libvpx/source/config/win/x64/"s + f, vpx.BinaryDir / f);
+        if (fs::exists(vpx.BinaryDir / f))
+            continue;
+        download_file("https://raw.githubusercontent.com/chromium/chromium/master/third_party/libvpx/source/config/win/x64/"s + f, vpx.BinaryDir / f);
+        vpx.patch(vpx.BinaryDir / f, "vpx_sad32x32x8 =", "/*vpx_sad32x32x8 =");
+        vpx.patch(vpx.BinaryDir / f, "vpx_sad32x32x8_avx2;", "vpx_sad32x32x8_avx2;*/");
     }
 }
 
