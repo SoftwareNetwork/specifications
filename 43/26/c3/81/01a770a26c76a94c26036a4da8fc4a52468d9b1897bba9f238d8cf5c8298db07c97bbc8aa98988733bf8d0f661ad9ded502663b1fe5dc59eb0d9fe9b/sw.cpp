@@ -6,7 +6,7 @@ void build(Solution &s)
     libogg +=
         "include/.*\\.h"_rr,
         "include/.*\\.in"_rr,
-        "src/.*\\.c"_rr,
+        "src/.*\\.[hc]"_rr,
         "win32/ogg.def";
 
     libogg.Private +=
