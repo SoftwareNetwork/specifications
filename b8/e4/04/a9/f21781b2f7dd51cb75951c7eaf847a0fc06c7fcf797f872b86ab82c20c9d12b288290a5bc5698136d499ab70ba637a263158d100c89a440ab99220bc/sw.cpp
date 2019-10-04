@@ -53,6 +53,18 @@ void build(Solution &s)
                 ;
         }
         sdl -= "src/.*\\.def"_rr;
+
+        // install
+        if (!sdl.DryRun)
+        {
+            auto d = sdl.BinaryDir / "SDL2";
+            if (!fs::exists(d))
+            {
+                fs::create_directories(d);
+                for (auto &[p, sf] : sdl["include/.*"_rr])
+                    fs::copy_file(p, d / p.filename(), fs::copy_options::update_existing);
+            }
+        }
     }
 
     auto &main = sdl.addTarget<StaticLibraryTarget>("main");
