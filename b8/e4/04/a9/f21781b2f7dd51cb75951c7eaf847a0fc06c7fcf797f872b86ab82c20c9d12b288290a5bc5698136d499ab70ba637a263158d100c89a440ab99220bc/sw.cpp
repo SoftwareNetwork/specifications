@@ -30,7 +30,7 @@ void build(Solution &s)
 
         sdl -= "src/hidapi/.*"_rr;
 
-        if (sdl.getSettings().TargetOS.Type == OSType::Windows)
+        if (sdl.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             sdl += "src/core/windows/.*"_rr;
             sdl += "src/hidapi/windows/.*"_rr;
@@ -38,17 +38,18 @@ void build(Solution &s)
             sdl += "src/thread/generic/SDL_syscond.c"_rr;
             sdl += "src/video/windows/.*"_rr;
             sdl.Public +=
-                "user32.lib"_lib,
-                "gdi32.lib"_lib,
-                "kernel32.lib"_lib,
-                "Ole32.lib"_lib,
-                "Advapi32.lib"_lib,
-                "Imm32.lib"_lib,
-                "Mincore.lib"_lib,
-                "winmm.lib"_lib,
-                "version.lib"_lib,
-                "Shell32.lib"_lib,
-                "Setupapi.lib"_lib
+                "user32.lib"_slib,
+                "gdi32.lib"_slib,
+                "kernel32.lib"_slib,
+                "Ole32.lib"_slib,
+                "Advapi32.lib"_slib,
+                "Imm32.lib"_slib,
+                "Mincore.lib"_slib,
+                "winmm.lib"_slib,
+                "version.lib"_slib,
+                "Shell32.lib"_slib,
+                "Setupapi.lib"_slib,
+                "uuid.lib"_slib
                 ;
         }
         sdl -= "src/.*\\.def"_rr;
@@ -57,7 +58,7 @@ void build(Solution &s)
     auto &main = sdl.addTarget<StaticLibraryTarget>("main");
     {
         main -= "src/main/.*"_rr;
-        if (main.getSettings().TargetOS.Type == OSType::Windows)
+        if (main.getBuildSettings().TargetOS.Type == OSType::Windows)
             main += "src/main/windows/.*"_rr;
         main += sdl2;
     }
