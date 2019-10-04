@@ -22,13 +22,13 @@ void build(Solution &s)
     libflac.Private += "FLAC__HAS_OGG=1"_d;
     libflac.Private += "VERSION=PACKAGE_VERSION"_d;
     libflac.Private += sw::Shared, "FLAC_API_EXPORTS"_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libflac.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         libflac.Public += "FLAC__USE_VISIBILITY_ATTR"_d;
         libflac -= "src/share/win_utf8_io/win_utf8_io.c";
     }
     libflac.Public += sw::Static, "FLAC__NO_DLL"_d;
-    libflac.Public += "org.sw.demo.xiph.libogg-1"_dep;
+    libflac.Public += "org.sw.demo.xiph.libogg"_dep;
 
     auto &libflacpp = flac.addTarget<LibraryTarget>("libflacpp");
     libflacpp +=
@@ -45,7 +45,7 @@ void build(Solution &s)
 
     libflacpp.Private += "VERSION=PACKAGE_VERSION"_d;
     libflacpp.Private += sw::Shared, "FLACPP_API_EXPORTS"_d;
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (libflacpp.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         libflacpp.Public += "FLAC__USE_VISIBILITY_ATTR"_d;
     }
