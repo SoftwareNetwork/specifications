@@ -39,6 +39,8 @@ void build(Solution &s)
         t += "src/synth"_idir;
         t += "src/utils"_idir;
 
+        t += "AUFILE_SUPPORT"_def;
+
         if (t.getBuildSettings().Native.LibrariesType == LibraryType::Shared)
             t.Variables["BUILD_SHARED_LIBS"] = 1;
         t.configureFile("include/fluidsynth.cmake", "fluidsynth.h");
