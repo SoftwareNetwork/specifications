@@ -45,5 +45,17 @@ void build(Solution &s)
 
         t += "MUSIC_MID_FLUIDSYNTH"_def;
         t += "org.sw.demo.FluidSynth.fluidsynth"_dep;
+
+        // install
+        if (!t.DryRun)
+        {
+            auto d = t.BinaryDir / "SDL2";
+            if (!fs::exists(d))
+            {
+                fs::create_directories(d);
+                for (auto &[p, sf] : t["SDL_mixer.h"_r])
+                    fs::copy_file(p, d / p.filename(), fs::copy_options::update_existing);
+            }
+        }
     }
 }
