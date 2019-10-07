@@ -26,4 +26,6 @@ void build(Solution &s)
         typedef int64_t ogg_int64_t;
         )"
     );
+
+    libogg.patch("win32/ogg.def", "LIBRARY ogg", "LIBRARY ogg");
 }
