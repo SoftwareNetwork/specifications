@@ -27,5 +27,5 @@ void build(Solution &s)
         )"
     );
 
-    libogg.patch("win32/ogg.def", "LIBRARY ogg", "LIBRARY ogg");
+    libogg.patch("win32/ogg.def", "LIBRARY ogg", "LIBRARY");
 }
