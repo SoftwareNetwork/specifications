@@ -55,7 +55,8 @@ void build(Solution &s)
             "src/ccutil"_id,
             "src/lstm"_id,
             "src/classify"_id,
-            "src/arch"_id;
+            "src/arch"_id,
+            "src/training"_id;
 
         if (libtesseract.getCompilerType() == CompilerType::MSVC ||
             libtesseract.getCompilerType() == CompilerType::ClangCl)
@@ -73,12 +74,12 @@ void build(Solution &s)
         libtesseract.Interface += sw::Shared, "TESS_IMPORTS"_d;
         libtesseract.Private += sw::Shared, "TESS_EXPORTS"_d;
 
-        libtesseract.Public += "org.sw.demo.danbloomberg.leptonica-master"_dep;
+        libtesseract.Public += "org.sw.demo.danbloomberg.leptonica"_dep;
         libtesseract.Public += "org.sw.demo.libarchive.libarchive"_dep;
 
         if (libtesseract.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            libtesseract.Public += "ws2_32.lib"_l;
+            libtesseract.Public += "ws2_32.lib"_slib;
             libtesseract.Protected += "NOMINMAX"_def;
         }
 
@@ -116,7 +117,6 @@ void build(Solution &s)
                 "src/ccstruct/publictypes.h",
 
                 //from ccutil/makefile.am
-                "src/ccutil/basedir.h",
                 "src/ccutil/errcode.h",
                 "src/ccutil/fileerr.h",
                 "src/ccutil/genericvector.h",
@@ -133,14 +133,12 @@ void build(Solution &s)
 
                 //from lstm/makefile.am
                 "src/lstm/convolve.h",
-                "src/lstm/ctc.h",
                 "src/lstm/fullyconnected.h",
                 "src/lstm/functions.h",
                 "src/lstm/input.h",
                 "src/lstm/lstm.h",
                 "src/lstm/lstmrecognizer.h",
                 "src/lstm/maxpool.h",
-                "src/lstm/networkbuilder.h",
                 "src/lstm/network.h",
                 "src/lstm/networkio.h",
                 "src/lstm/networkscratch.h",
@@ -161,7 +159,7 @@ void build(Solution &s)
             for (auto f : files)
             {
                 libtesseract.check_absolute(f);
-                fs::copy_file(f, d / f.filename(), fs::copy_options::overwrite_existing);
+                fs::copy_file(f, d / f.filename(), fs::copy_options::update_existing);
             }
         }
     }
@@ -182,7 +180,23 @@ void build(Solution &s)
         "src/training/commandlineflags.cpp",
         "src/training/commandlineflags.h",
         "src/training/commontraining.cpp",
-        "src/training/commontraining.h";
+        "src/training/commontraining.h",
+        "src/training/ctc.cpp",
+        "src/training/ctc.h",
+        "src/training/errorcounter.cpp",
+        "src/training/errorcounter.h",
+        "src/training/intfeaturedist.cpp",
+        "src/training/intfeaturedist.h",
+        "src/training/intfeaturemap.cpp",
+        "src/training/intfeaturemap.h",
+        "src/training/mastertrainer.cpp",
+        "src/training/mastertrainer.h",
+        "src/training/networkbuilder.cpp",
+        "src/training/networkbuilder.h",
+        "src/training/sampleiterator.cpp",
+        "src/training/sampleiterator.h",
+        "src/training/trainingsampleset.cpp",
+        "src/training/trainingsampleset.h";
     common_training.Public += tessopt;
 
     //
