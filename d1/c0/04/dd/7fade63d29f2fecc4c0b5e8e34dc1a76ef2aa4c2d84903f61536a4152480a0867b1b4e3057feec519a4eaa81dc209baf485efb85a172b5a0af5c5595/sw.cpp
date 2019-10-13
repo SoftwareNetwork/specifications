@@ -89,6 +89,7 @@ void build(Solution &s)
     c_ares.Public += sw::Static, "CARES_STATICLIB"_d;
 
     c_ares.Private += "HAVE_CONFIG_H"_d;
+    c_ares.Public += "HAVE_GETENV"_d;
     c_ares.Public += "HAVE_RECV"_d;
     c_ares.Public += "HAVE_RECVFROM"_d;
     c_ares.Public += "HAVE_SEND"_d;
@@ -100,6 +101,10 @@ void build(Solution &s)
     {
         c_ares.Public += "HAVE_CLOSESOCKET"_d;
         c_ares.Public += "HAVE_IOCTLSOCKET_FIONBIO"_d;
+    }
+    else
+    {
+        //c_ares += "CARES_USE_LIBRESOLV"_def;
     }
 
     //
@@ -146,6 +151,7 @@ void check(Checker &c)
     s.checkFunctionExists("connect");
     s.checkFunctionExists("fcntl");
     s.checkFunctionExists("fork");
+    //s.checkFunctionExists("getenv");
     s.checkFunctionExists("geteuid");
     s.checkFunctionExists("gethostbyname");
     s.checkFunctionExists("getpass_r");
@@ -287,30 +293,30 @@ int main() {return 0;}
         auto add_headers = [](auto &c)
         {
             for (auto &h : { "stdbool.h",
-                            "sys/types.h",
-                            "sys/stat.h",
-                            "arpa/inet.h",
-                            "arpa/nameser.h",
-                            "netdb.h",
-                            "net/if.h",
-                            "netinet/in.h",
-                            "netinet/tcp.h",
-                            "signal.h",
-                            "stdio.h",
-                            "stdlib.h",
-                            "string.h",
-                            "strings.h",
-                            "sys/ioctl.h",
-                            "sys/select.h",
-                            "sys/socket.h",
-                            "sys/time.h",
-                            "sys/uio.h",
-                            "time.h",
-                            "fcntl.h",
-                            "unistd.h",
-                            "winsock2.h",
-                            "ws2tcpip.h",
-                            "windows.h" })
+                "sys/types.h",
+                "sys/stat.h",
+                "arpa/inet.h",
+                "arpa/nameser.h",
+                "netdb.h",
+                "net/if.h",
+                "netinet/in.h",
+                "netinet/tcp.h",
+                "signal.h",
+                "stdio.h",
+                "stdlib.h",
+                "string.h",
+                "strings.h",
+                "sys/ioctl.h",
+                "sys/select.h",
+                "sys/socket.h",
+                "sys/time.h",
+                "sys/uio.h",
+                "time.h",
+                "fcntl.h",
+                "unistd.h",
+                "winsock2.h",
+                "ws2tcpip.h",
+                "windows.h" })
                 c.Parameters.Includes.push_back(h);
         };
 
@@ -318,29 +324,29 @@ int main() {return 0;}
         add_headers(c);
 
         for (auto &t : {
-                "socklen_t",
-                "ssize_t",
-                "bool",
-                "sig_atomic_t",
-                "long long",
-                "struct addrinfo",
-                "struct in6_addr",
-                "struct sockaddr_in6",
-                "struct sockaddr_storage",
-                "struct timeval" })
+            "socklen_t",
+            "ssize_t",
+            "bool",
+            "sig_atomic_t",
+            "long long",
+            "struct addrinfo",
+            "struct in6_addr",
+            "struct sockaddr_in6",
+            "struct sockaddr_storage",
+            "struct timeval" })
         {
             auto &c = s.checkTypeSize(t);
             add_headers(c);
         }
 
         for (auto &se : {
-                    "AF_INET6",
-                    "O_NONBLOCK",
-                    "FIONBIO",
-                    "SIOCGIFADDR",
-                    "MSG_NOSIGNAL",
-                    "PF_INET6",
-                    "SO_NONBLOCK" })
+            "AF_INET6",
+            "O_NONBLOCK",
+            "FIONBIO",
+            "SIOCGIFADDR",
+            "MSG_NOSIGNAL",
+            "PF_INET6",
+            "SO_NONBLOCK" })
         {
             auto &c = s.checkSymbolExists(se);
             add_headers(c);
