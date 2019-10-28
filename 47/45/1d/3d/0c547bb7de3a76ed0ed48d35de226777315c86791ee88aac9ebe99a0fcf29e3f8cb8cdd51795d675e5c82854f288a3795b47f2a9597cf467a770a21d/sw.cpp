@@ -23,7 +23,7 @@ struct NasmCompiler : sw::NativeCompiler,
     sw::CommandLineOptions<NasmAssemblerOptions>
 {
     NasmCompiler(ExecutableTarget &nasm)
-        : NativeCompiler(nasm.getSolution().swctx), version(nasm.getPackage().getVersion())
+        : NativeCompiler(nasm.getSolution().getContext())
     {
     }
 
@@ -53,16 +53,16 @@ struct NasmCompiler : sw::NativeCompiler,
 
         if (!ObjectFormat)
         {
-            if (t.getSettings().TargetOS.Type == OSType::Windows)
+            if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
-                if (t.getSettings().TargetOS.Arch == ArchType::x86_64)
+                if (t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
                     ObjectFormat = "win64";
                 else
                     ObjectFormat = "win32";
             }
         }
 
-        switch (t.getSettings().TargetOS.Arch)
+        switch (t.getBuildSettings().TargetOS.Arch)
         {
         case ArchType::x86_64:
             add("ARCH_X86_32=0"_def);
@@ -90,11 +90,6 @@ struct NasmCompiler : sw::NativeCompiler,
     {
         ObjectFile = output_file;
     }
-
-private:
-    Version version;
-
-    Version gatherVersion() const override { return version; }
 };
 
 void build(Solution &s)

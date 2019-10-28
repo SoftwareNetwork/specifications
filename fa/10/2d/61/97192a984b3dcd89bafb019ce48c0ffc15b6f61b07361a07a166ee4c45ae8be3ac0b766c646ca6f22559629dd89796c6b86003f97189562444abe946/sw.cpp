@@ -1,7 +1,28 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<Library>("videolan.dav1d", "0.3.1");
+    auto &t = s.addTarget<Library>("videolan.dav1d", "0.5.0");
     t += Git("https://code.videolan.org/videolan/dav1d");
+
+    auto set_arch = [](auto &t)
+    {
+        switch (t.getBuildSettings().TargetOS.Arch)
+        {
+        case ArchType::aarch64:
+            t += "ARCH_AARCH64"_def;
+            t -= "src/x86/.*"_rr;
+            break;
+        case ArchType::arm:
+            t += "ARCH_ARM"_def;
+            t -= "src/x86/.*"_rr;
+            break;
+        default:
+            t += "ARCH_X86"_def;
+            t -= "src/arm/.*"_rr;
+            t -= "src/ppc/.*"_rr;
+            break;
+        }
+    };
+
     {
         t.setChecks("dav1d", true);
         t.setExtensionProgram(".asm", "org.sw.demo.nasm"_dep);
@@ -16,21 +37,7 @@ void build(Solution &s)
         t -= "src/ext/.*"_rr;
         t -= "src/win32/.*"_rr;
 
-        switch (t.getBuildSettings().TargetOS.Arch)
-        {
-        case ArchType::aarch64:
-            t += "ARCH_AARCH64"_def;
-            t -= "src/x86/.*"_rr;
-            break;
-        case ArchType::arm:
-            t += "ARCH_ARM"_def;
-            t -= "src/x86/.*"_rr;
-            break;
-        default:
-            t += "ARCH_X86"_def;
-            t -= "src/arm/.*"_rr;
-            break;
-        }
+        set_arch(t);
 
         t.Public += "include"_idir;
         t.Protected += "."_idir;
@@ -72,21 +79,7 @@ void build(Solution &s)
         d += "include/dav1d"_idir;
         d += IncludeDirectory(t.BinaryPrivateDir);
 
-        switch (d.getBuildSettings().TargetOS.Arch)
-        {
-        case ArchType::aarch64:
-            d += "ARCH_AARCH64"_def;
-            d -= "src/x86/.*"_rr;
-            break;
-        case ArchType::arm:
-            d += "ARCH_ARM"_def;
-            d -= "src/x86/.*"_rr;
-            break;
-        default:
-            d += "ARCH_X86"_def;
-            d -= "src/arm/.*"_rr;
-            break;
-        }
+        set_arch(d);
 
         (d + t)->IncludeDirectoriesOnly = true;
         t += d;

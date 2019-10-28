@@ -16,7 +16,7 @@ void build(Solution &s)
         t -= "src/ext/.*"_rr;
         t -= "src/win32/.*"_rr;
 
-        switch (t.getSettings().TargetOS.Arch)
+        switch (t.getBuildSettings().TargetOS.Arch)
         {
         case ArchType::aarch64:
             t += "ARCH_AARCH64"_def;
@@ -39,7 +39,7 @@ void build(Solution &s)
             t.Protected += "include/compat/msvc"_idir;
         else
             t.Protected += "include/compat/gcc"_idir;
-        if (t.getSettings().TargetOS.is(OSType::Windows))
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
             t += "src/win32/.*"_rr;
 
         t.writeFileOnce(t.BinaryPrivateDir / "config.asm");
@@ -72,7 +72,7 @@ void build(Solution &s)
         d += "include/dav1d"_idir;
         d += IncludeDirectory(t.BinaryPrivateDir);
 
-        switch (d.getSettings().TargetOS.Arch)
+        switch (d.getBuildSettings().TargetOS.Arch)
         {
         case ArchType::aarch64:
             d += "ARCH_AARCH64"_def;
