@@ -6,8 +6,12 @@ void build(Solution &s)
     DataManager += Git("https://github.com/aimrebirth/DataManager", "", "{v}");
 
     auto &memory = DataManager.addStaticLibrary("memory");
-    memory.CPPVersion = CPPLanguageStandard::CPP17;
-    memory += "include/Polygon4/Memory.h", "src/memory/Memory.cpp";
+    {
+        memory.CPPVersion = CPPLanguageStandard::CPP17;
+        memory += "include/Polygon4/Memory.h", "src/memory/Memory.cpp";
+        if (memory.getSettings()["alligned-allocator"] == "1")
+            memory += "DATA_MANAGER_ALIGNED_ALLOCATOR"_def;
+    }
 
     auto &schema = DataManager.addLibrary("schema");
     {
