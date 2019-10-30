@@ -9,7 +9,7 @@ void build(Solution &s)
     {
         memory.CPPVersion = CPPLanguageStandard::CPP17;
         memory += "include/Polygon4/Memory.h", "src/memory/Memory.cpp";
-        if (memory.getSettings()["alligned-allocator"] == "1")
+        if (memory.getOptions()["alligned-allocator"] == "1")
             memory += "DATA_MANAGER_ALIGNED_ALLOCATOR"_def;
     }
 
@@ -28,8 +28,8 @@ void build(Solution &s)
         schema.Public += "pub.egorpugin.primitives.filesystem-master"_dep;
         schema.Public += "pub.egorpugin.primitives.templates-master"_dep;
         schema.Public += "pub.egorpugin.primitives.emitter-master"_dep;
-        schema.Public += "org.sw.demo.boost.algorithm-1"_dep;
-        schema.Public += "org.sw.demo.boost.variant-1"_dep;
+        schema.Public += "org.sw.demo.boost.algorithm"_dep;
+        schema.Public += "org.sw.demo.boost.variant"_dep;
         schema.Public += memory;
         gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, schema, "LALR1_CPP_VARIANT_PARSER", "src/schema/schema");
     }
