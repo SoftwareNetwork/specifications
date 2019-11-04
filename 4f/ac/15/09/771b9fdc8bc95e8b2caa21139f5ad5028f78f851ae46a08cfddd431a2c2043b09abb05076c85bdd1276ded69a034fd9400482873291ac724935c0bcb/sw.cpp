@@ -90,7 +90,7 @@ void build(Solution &s)
         wt.Public += "org.sw.demo.howardhinnant.date.date_full"_dep;
 
         if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
-            wt.Public += "Ole32.lib"_lib, "Shell32.lib"_lib;
+            wt.Public += "Ole32.lib"_slib, "Shell32.lib"_slib;
 
         auto file2string = [&wt](path i, const std::string &name)
         {

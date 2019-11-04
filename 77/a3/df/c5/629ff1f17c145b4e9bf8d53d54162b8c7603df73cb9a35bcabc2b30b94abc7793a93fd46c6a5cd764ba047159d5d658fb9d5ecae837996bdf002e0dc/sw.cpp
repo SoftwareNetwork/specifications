@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &p = s.addProject("graphicsmagick", "1.3.33");
-    p += RemoteFile("https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/{v}/GraphicsMagick-{v}-windows-source.7z");
+    p += RemoteFile("https://sourceforge.net/projects/graphicsmagick/files/graphicsmagick/{v}/GraphicsMagick-{v}-windows-source.7z");
 
     auto &magick = p.addTarget<LibraryTarget>("magick");
     {
@@ -44,7 +44,7 @@ void build(Solution &s)
                 magick.Public += "WIN64"_d;
             magick.Public += "HAVE_CRYPTGENRANDOM"_d;
             magick.Public += "HAVE_WINCRYPT_H"_d;
-            magick.Public += "User32.lib"_lib, "Advapi32.lib"_lib, "Gdi32.lib"_lib;
+            magick.Public += "User32.lib"_slib, "Advapi32.lib"_slib, "Gdi32.lib"_slib;
         }
         magick.Public += "_MAGICKDLL_"_d;
 
