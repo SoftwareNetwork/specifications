@@ -40,14 +40,13 @@ void build(Solution &s)
     auto &p = s.addProject("emweb.wt", "4.1.2");
     p += Git("https://github.com/emweb/wt", "{v}");
 
-    auto &wt = p.addTarget<LibraryTarget>("wt");
+    auto &wt = p.addTarget<StaticLibraryTarget>("wt");
     {
         wt +=
             "WConfig.h.in",
             "src/3rdparty/rapidxml/.*\\.hpp"_rr,
             "src/Wt/.*"_rr,
             "src/Wt/Dbo/.*"_rr,
-            "src/filetostring.cmake",
             "src/js/.*"_rr,
             "src/web/.*"_rr,
             "src/xml/.*"_rr;
@@ -66,7 +65,6 @@ void build(Solution &s)
             "src/web"_id,
             "src"_id;
 
-        //wt.Public += "io_service=io_context"_d;
         wt.Public += "_WIN32_WINNT=0x0601"_d;
 
         wt += "src/Wt/FontSupportPango.C";
@@ -74,7 +72,6 @@ void build(Solution &s)
         wt.Private += "WT_BUILDING"_d;
         wt.Public += "WT_FONTSUPPORT_PANGO"_d;
         wt.Private += sw::Shared, "wt_EXPORTS"_d;
-        wt.Private += sw::Shared, "wttest_EXPORTS"_d;
         wt.Public += sw::Static, "WT_STATIC"_d;
 
         wt.Public += "org.sw.demo.boost.multi_index"_dep;
