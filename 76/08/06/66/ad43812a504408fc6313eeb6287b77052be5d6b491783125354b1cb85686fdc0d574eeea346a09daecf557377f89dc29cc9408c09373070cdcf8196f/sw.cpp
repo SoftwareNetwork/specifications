@@ -40,7 +40,7 @@ void build(Solution &s)
     auto &p = s.addProject("emweb.wt", "4.1.2");
     p += Git("https://github.com/emweb/wt", "{v}");
 
-    auto &wt = p.addTarget<StaticLibraryTarget>("wt");
+    auto &wt = p.addTarget<LibraryTarget>("wt");
     {
         wt +=
             "WConfig.h.in",
