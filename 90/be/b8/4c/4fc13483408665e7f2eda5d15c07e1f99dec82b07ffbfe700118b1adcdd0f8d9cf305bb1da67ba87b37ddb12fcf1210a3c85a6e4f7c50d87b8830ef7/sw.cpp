@@ -127,6 +127,12 @@ void build(Solution &s)
         t.Interface += libunwind;
         if (t.getBuildSettings().TargetOS.isApple())
             t.Interface -= libunwind;
+
+        if (isClangFamily(t.getCompilerType()))
+        {
+            t.Public.CompileOptions.push_back("-nostdinc++");
+            t.Public.LinkOptions.push_back("-nostdlib++");
+        }
     }
 
     // libcxxabi
