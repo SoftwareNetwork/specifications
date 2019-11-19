@@ -141,6 +141,7 @@ void build(Solution &s)
         t += RemoteFile("https://releases.llvm.org/{v}/libcxxabi-{v}.src.tar.xz");
         if (fs::exists(t.SourceDir / "libcxxabi"))
             t.setSourceDirectory("libcxxabi");
+        t -= "src/cxa_noexception.cpp";
         t += "_LIBCXXABI_BUILDING_LIBRARY"_def;
         t += libcxx;
         if (t.getBuildSettings().TargetOS.isApple())
