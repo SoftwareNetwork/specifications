@@ -79,13 +79,13 @@ void build(Solution &s)
 
         /*if (t.getBuildSettings().TargetOS.isApple())
         {
-            if (t.getCompilerType() == CompilerType::Clang)
-            {
-                t.CompileOptions.push_back("-fno-rtti");
-                t.CompileOptions.push_back("-fno-exceptions");
-                t.CompileOptions.push_back("-funwind-tables");
-            }
-            t.CompileOptions.push_back("-fvisibility=default");
+        if (t.getCompilerType() == CompilerType::Clang)
+        {
+        t.CompileOptions.push_back("-fno-rtti");
+        t.CompileOptions.push_back("-fno-exceptions");
+        t.CompileOptions.push_back("-funwind-tables");
+        }
+        t.CompileOptions.push_back("-fvisibility=default");
         }*/
 
         // less size?
@@ -103,6 +103,8 @@ void build(Solution &s)
         t += RemoteFile("https://releases.llvm.org/{v}/libcxx-{v}.src.tar.xz");
         if (fs::exists(t.SourceDir / "libcxx"))
             t.setSourceDirectory("libcxx");
+
+        t += cpp11;
         t -= "src/support/.*"_rr;
 
         t += "_LIBCPP_BUILDING_LIBRARY"_def;
