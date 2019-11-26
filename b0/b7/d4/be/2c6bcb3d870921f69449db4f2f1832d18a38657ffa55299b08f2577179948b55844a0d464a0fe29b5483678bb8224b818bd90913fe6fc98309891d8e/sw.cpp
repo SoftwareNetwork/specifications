@@ -325,8 +325,12 @@ void build(Solution &s)
             continue;
         download_file("https://raw.githubusercontent.com/chromium/chromium/master/third_party/libvpx/source/config/"
             + os + "/" + arch + "/" + f, vpx.BinaryDir / f);
-        vpx.patch(vpx.BinaryDir / f, "vpx_sad32x32x8 =", "/*vpx_sad32x32x8 =");
-        vpx.patch(vpx.BinaryDir / f, "vpx_sad32x32x8_avx2;", "vpx_sad32x32x8_avx2;*/");
+        vpx.patch(vpx.BinaryDir / f,
+            "vpx_sad32x32x8 = vpx_sad32x32x8_c;",
+            "//vpx_sad32x32x8 = vpx_sad32x32x8_c;");
+        vpx.patch(vpx.BinaryDir / f,
+            "vpx_sad32x32x8 = vpx_sad32x32x8_avx2;",
+            ";//vpx_sad32x32x8 = vpx_sad32x32x8_avx2;");
     }
 
     vpx -= "vpx_config.asm";
