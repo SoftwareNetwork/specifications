@@ -5,6 +5,7 @@ void build(Solution &s)
 
     {
         auto &t = abseil;
+        t += cpp11;
         SwapAndRestore sr(t.SourceDir, t.SourceDir / "absl");
         t += ".*\\.cc"_rr;
         t += ".*\\.h"_rr;
