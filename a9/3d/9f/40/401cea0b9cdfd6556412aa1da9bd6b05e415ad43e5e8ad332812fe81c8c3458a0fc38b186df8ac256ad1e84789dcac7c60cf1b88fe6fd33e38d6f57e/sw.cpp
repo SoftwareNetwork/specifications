@@ -145,6 +145,7 @@ void build(Solution &s)
             t.setSourceDirectory("libcxxabi");
         t -= "src/cxa_noexception.cpp";
         t += "_LIBCXXABI_BUILDING_LIBRARY"_def;
+        //t += "LIBCXXABI_USE_LLVM_UNWINDER"_def;
         t += libcxx;
         if (t.getBuildSettings().TargetOS.isApple())
         {
