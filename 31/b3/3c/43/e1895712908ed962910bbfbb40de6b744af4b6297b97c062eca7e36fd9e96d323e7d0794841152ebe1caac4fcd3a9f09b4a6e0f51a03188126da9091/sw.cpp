@@ -83,9 +83,10 @@ void build(Solution &s)
 
     auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
     {
-        grpc_address_sorting += cpp11;
-        grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
-        grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
+        auto &t = grpc_address_sorting;
+        t += cpp11;
+        t += "third_party/address_sorting/.*\\.[hc]"_rr;
+        t.Public += "third_party/address_sorting/include"_idir;
     }
 
     auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
@@ -93,6 +94,7 @@ void build(Solution &s)
         auto &t = core_plugin_registry;
         t += cpp11;
         t += "src/core/plugin_registry/grpc_plugin_registry.cc";
+
         t.Public += "."_id;
 
         t.Public += core;
@@ -103,12 +105,12 @@ void build(Solution &s)
         auto &t = core_ext;
         t += cpp11;
         t += "src/core/ext/.*"_rr;
-        t += "third_party/objective_c/Cronet/.*\\.h"_rr;
-        t.Public += "."_id;
         t -= "src/core/ext/upb-generated/.*"_rr;
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
+        t += "third_party/objective_c/Cronet/.*\\.h"_rr;
 
         t += "GRPC_ARES"_def;
+        t.Public += "."_id;
 
         t.Public += proto;
         t.Public += grpc_address_sorting;
@@ -124,6 +126,7 @@ void build(Solution &s)
         auto &t = core_tsi;
         t += cpp11;
         t += "src/core/tsi/.*"_rr;
+
         t.Public += "."_id;
 
         t.Public += proto;
@@ -136,6 +139,7 @@ void build(Solution &s)
         auto &t = cpp;
         t += cpp11;
         t += "src/cpp/.*"_rr;
+        t -= "src/cpp/common/insecure_create_auth_context.cc"_rr;
 
         t.Public += "."_id;
         t.Public += "src"_id;
