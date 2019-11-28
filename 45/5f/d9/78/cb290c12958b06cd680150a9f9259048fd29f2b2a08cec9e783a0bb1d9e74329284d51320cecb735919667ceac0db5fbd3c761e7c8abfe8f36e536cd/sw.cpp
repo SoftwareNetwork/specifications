@@ -25,6 +25,7 @@ void build(Solution &s)
     auto &core = p.addStaticLibrary("core.lib");
     {
         auto &t = core;
+        t += cpp11;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t += "src/core/ext/upb-generated/.*"_rr;
@@ -44,6 +45,7 @@ void build(Solution &s)
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
     {
         auto &t = grpc_plugin_support;
+        t += cpp11;
         t += "src/compiler/.*\\.h"_rr;
         t += "src/compiler/.*_generator\\.cc"_rr;
 
@@ -56,6 +58,7 @@ void build(Solution &s)
     auto &grpc_cpp_plugin = p.addExecutable("cpp.plugin");
     {
         auto &t = grpc_cpp_plugin;
+        t += cpp11;
         t += "src/compiler/cpp_plugin.cc";
         t += grpc_plugin_support;
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
@@ -64,6 +67,7 @@ void build(Solution &s)
     auto &proto = p.addStaticLibrary("proto");
     {
         auto &t = proto;
+        t += cpp11;
         t += "src/proto/.*\\.proto"_rr;
         t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t.Public += core;
@@ -77,13 +81,17 @@ void build(Solution &s)
         }
     }
 
-    auto &grpc_address_sorting = p.addTarget<StaticLibraryTarget>("third_party.address_sorting");
-    grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
-    grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
+    auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
+    {
+        grpc_address_sorting += cpp11;
+        grpc_address_sorting += "third_party/address_sorting/.*\\.[hc]"_rr;
+        grpc_address_sorting.Public += "third_party/address_sorting/include"_idir;
+    }
 
     auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
     {
         auto &t = core_plugin_registry;
+        t += cpp11;
         t += "src/core/plugin_registry/grpc_plugin_registry.cc";
         t.Public += "."_id;
 
@@ -93,6 +101,7 @@ void build(Solution &s)
     auto &core_ext = p.addStaticLibrary("core.ext");
     {
         auto &t = core_ext;
+        t += cpp11;
         t += "src/core/ext/.*"_rr;
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
         t.Public += "."_id;
@@ -113,6 +122,7 @@ void build(Solution &s)
     auto &core_tsi = p.addStaticLibrary("core.tsi");
     {
         auto &t = core_tsi;
+        t += cpp11;
         t += "src/core/tsi/.*"_rr;
         t.Public += "."_id;
 
@@ -123,13 +133,14 @@ void build(Solution &s)
 
     auto &cpp = p.addStaticLibrary("cpp");
     {
-        auto &t = core;
-        cpp += "src/cpp/.*"_rr;
+        auto &t = cpp;
+        t += cpp11;
+        t += "src/cpp/.*"_rr;
 
-        cpp.Public += "."_id;
-        cpp.Public += "src"_id;
+        t.Public += "."_id;
+        t.Public += "src"_id;
 
-        cpp.Public += core_ext, core_tsi;
-        (core_ext + cpp)->IncludeDirectoriesOnly = true;
+        t.Public += core_ext, core_tsi;
+        (core_ext + t)->IncludeDirectoriesOnly = true;
     }
 }

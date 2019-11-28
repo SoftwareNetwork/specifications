@@ -146,6 +146,7 @@ void build(Solution &s)
     p += Git("https://github.com/protocolbuffers/protobuf", "v{v}");
 
     auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
+    protobuf_lite += cpp11;
     protobuf_lite.ImportFromBazel = true;
     if (protobuf_lite.getBuildSettings().TargetOS.Type != OSType::Windows)
         protobuf_lite.ExportAllSymbols = true;
@@ -162,6 +163,7 @@ void build(Solution &s)
     }
 
     auto &protobuf = p.addTarget<LibraryTarget>("protobuf");
+    protobuf += cpp11;
     protobuf.ImportFromBazel = true;
     if (protobuf.getBuildSettings().TargetOS.Type != OSType::Windows)
         protobuf.ExportAllSymbols = true;
@@ -180,6 +182,7 @@ void build(Solution &s)
     }
 
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
+    protoc_lib += cpp11;
     protoc_lib.ImportFromBazel = true;
     if (protoc_lib.getBuildSettings().TargetOS.Type != OSType::Windows)
         protoc_lib.ExportAllSymbols = true;
@@ -188,6 +191,7 @@ void build(Solution &s)
     protoc_lib.Public += protobuf;
 
     auto &protoc = p.addTarget<ExecutableTarget>("protoc");
+    protoc += cpp11;
     protoc.ImportFromBazel = true;
     if (protoc.getBuildSettings().TargetOS.Type != OSType::Windows)
         protoc.ExportAllSymbols = true;
