@@ -29,6 +29,7 @@ void build(Solution &s)
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t += "src/core/ext/upb-generated/.*"_rr;
+        t -= "src/core/lib/surface/init_unsecure.cc";
 
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t.Public += "_WIN32_WINNT=0x0601"_def;
@@ -107,6 +108,8 @@ void build(Solution &s)
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
+        t -= "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc";
+        t -= "src/core/ext/filters/client_channel/xds/xds_channel.cc";
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
 
         t += "GRPC_ARES"_def;
