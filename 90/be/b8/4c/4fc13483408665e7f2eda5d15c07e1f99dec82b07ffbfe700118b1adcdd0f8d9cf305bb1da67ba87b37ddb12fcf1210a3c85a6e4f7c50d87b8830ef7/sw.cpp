@@ -128,7 +128,10 @@ void build(Solution &s)
         t.Public += libcxxabi;
         t.Interface += libunwind;
         if (t.getBuildSettings().TargetOS.isApple())
+        {
+            t.Interface -= libcxxabi;
             t.Interface -= libunwind;
+        }
 
         if (isClangFamily(t.getCompilerType()))
         {
@@ -143,6 +146,9 @@ void build(Solution &s)
         t += RemoteFile("https://releases.llvm.org/{v}/libcxxabi-{v}.src.tar.xz");
         if (fs::exists(t.SourceDir / "libcxxabi"))
             t.setSourceDirectory("libcxxabi");
+
+        t += cpp11;
+
         t -= "src/cxa_noexception.cpp";
         t += "_LIBCXXABI_BUILDING_LIBRARY"_def;
         //t += "LIBCXXABI_USE_LLVM_UNWINDER"_def;
