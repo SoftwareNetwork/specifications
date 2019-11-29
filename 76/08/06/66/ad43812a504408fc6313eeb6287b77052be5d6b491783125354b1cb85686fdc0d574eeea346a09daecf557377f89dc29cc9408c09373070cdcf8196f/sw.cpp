@@ -42,6 +42,8 @@ void build(Solution &s)
 
     auto &wt = p.addTarget<LibraryTarget>("wt");
     {
+        wt += cpp17;
+
         wt +=
             "WConfig.h.in",
             "src/3rdparty/rapidxml/.*\\.hpp"_rr,
@@ -158,6 +160,8 @@ void build(Solution &s)
 
     auto &http = p.addTarget<LibraryTarget>("http");
     {
+        http += cpp17;
+
         http +=
             "src/http/.*"_rr;
 
@@ -179,6 +183,8 @@ void build(Solution &s)
 
     auto &dbo = p.addTarget<LibraryTarget>("dbo");
     {
+        dbo += cpp17;
+
         dbo +=
             "src/Wt/Dbo/.*"_rr,
             "src/Wt/WStringStream.*"_rr,
@@ -201,6 +207,8 @@ void build(Solution &s)
 
     auto &sqlite3 = dbo.addTarget<LibraryTarget>("backend.sqlite3");
     {
+        sqlite3 += cpp17;
+
         sqlite3 +=
             "src/Wt/Dbo/backend/.*"_rr;
         sqlite3 -=
