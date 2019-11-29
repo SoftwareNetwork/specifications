@@ -7,5 +7,7 @@ void build(Solution &s)
     date += "include/date/date.h";
 
     auto &date_full = p.addTarget<StaticLibraryTarget>("date_full");
+    date_full += cpp11;
     date_full += "org.sw.demo.badger.curl.libcurl"_dep;
+    date_full -= "src/ios.mm";
 }

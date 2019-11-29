@@ -37,8 +37,16 @@ void build(Solution &s)
     t += FileRegex("src/" + arch_dir, ".*", false);
     t.Public += IncludeDirectory("src/" + arch_dir);
 
-    if (t.getCompilerType() == CompilerType::MSVC && t.getBuildSettings().TargetOS.Arch == ArchType::x86)
+    if (t.getBuildSettings().TargetOS.Type != OSType::Windows ||
+        (t.getCompilerType() == CompilerType::MSVC && t.getBuildSettings().TargetOS.Arch == ArchType::x86))
+    {
         t -= path("src/" + arch_dir + "/ffiw64.c");
+    }
+    if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+    {
+        t -= "src/x86/win64.S";
+        t -= "src/x86/win64_intel.S";
+    }
 
     t.Variables["TARGET"] = arch;
     t.Variables["FFI_EXEC_TRAMPOLINE_TABLE"] = "0";

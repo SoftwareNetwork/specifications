@@ -3,6 +3,8 @@ void build(Solution &s)
     auto &harfbuzz = s.addTarget<LibraryTarget>("behdad.harfbuzz", "2.6.4");
     harfbuzz += Git("https://github.com/behdad/harfbuzz");
 
+    harfbuzz += cpp11;
+
     harfbuzz -=
         "src/[^/]*\\.cc"_rr,
         "src/[^/]*\\.h"_rr,
