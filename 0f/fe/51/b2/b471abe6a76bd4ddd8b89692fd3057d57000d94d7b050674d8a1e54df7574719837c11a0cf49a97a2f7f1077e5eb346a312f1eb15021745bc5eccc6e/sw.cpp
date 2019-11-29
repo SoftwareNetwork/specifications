@@ -15,18 +15,18 @@ void build(Solution &s)
     t += "FFI_BUILDING"_def;
     t += sw::Shared, "FFI_BUILDING_DLL"_def;
 
-    t += "FFI_HIDDEN="_def;
-
     String arch, arch_dir;
     switch (t.getBuildSettings().TargetOS.Arch)
     {
     case ArchType::x86_64:
         arch_dir = "x86";
+        arch = "X86_64";
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             arch = "X86_WIN64";
         break;
     case ArchType::x86:
         arch_dir = "x86";
+        arch = "X86";
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             arch = "X86_WIN32";
         break;
@@ -46,13 +46,38 @@ void build(Solution &s)
     {
         t -= "src/x86/win64.S";
         t -= "src/x86/win64_intel.S";
+        t -= "src/x86/sysv_intel.S";
     }
 
     t.Variables["TARGET"] = arch;
     t.Variables["FFI_EXEC_TRAMPOLINE_TABLE"] = "0";
 
     t.configureFile("include/ffi.h.in", "ffi.h");
-    t.writeFileOnce("fficonfig.h"); // for asm
+    // for asm
+    t.writeFileOnce("fficonfig.h", R"(
+#ifdef HAVE_HIDDEN_VISIBILITY_ATTRIBUTE
+#ifdef LIBFFI_ASM
+#ifdef __APPLE__
+#define FFI_HIDDEN(name) .private_extern name
+#else
+#define FFI_HIDDEN(name) .hidden name
+#endif
+#else
+#define FFI_HIDDEN __attribute__ ((visibility ("hidden")))
+#endif
+#else
+#ifdef LIBFFI_ASM
+#define FFI_HIDDEN(name)
+#else
+#define FFI_HIDDEN
+#endif
+#endif
+
+// x86 only
+// see https://github.com/libffi/libffi/blob/master/configure.ac#L147
+// TODO: add check
+#define HAVE_AS_X86_PCREL 1
+)");
 
     if (s.DryRun)
         return;
