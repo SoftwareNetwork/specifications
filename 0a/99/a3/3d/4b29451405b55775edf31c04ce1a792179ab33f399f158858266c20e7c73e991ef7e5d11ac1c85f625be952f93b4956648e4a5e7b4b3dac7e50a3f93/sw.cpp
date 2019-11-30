@@ -2,17 +2,7 @@ struct GawkExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getBuildSettings().TargetOS.Type == OSType::Linux)
-        {
-            c.setProgram("gawk");
-            return;
-        }
-        else if (getBuildSettings().TargetOS.Type == OSType::Macos)
-        {
-            c.setProgram("awk");
-            return;
-        }
-        else if (getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             c.setProgram("gawk");
             return;
