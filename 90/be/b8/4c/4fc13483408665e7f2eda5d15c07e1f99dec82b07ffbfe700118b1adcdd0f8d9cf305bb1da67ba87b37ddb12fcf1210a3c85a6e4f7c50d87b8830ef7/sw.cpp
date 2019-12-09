@@ -4,6 +4,13 @@ void build(Solution &s)
     //auto &llvm_project = s.addProject("llvm_project", "master");
     //llvm_project += Git("https://github.com/llvm/llvm-project");
 
+    auto is_musl = [](auto &t)
+    {
+        return
+            t.getSettings()["native"]["stdlib"]["c"] &&
+            sw::UnresolvedPackage(t.getSettings()["native"]["stdlib"]["c"].getValue()).getPath() == "org.sw.demo.musl";
+    };
+
     auto &builtins = llvm_project.addLibrary("compiler_rt.builtins");
     {
         auto &b = builtins;
@@ -74,8 +81,11 @@ void build(Solution &s)
         if (fs::exists(t.SourceDir / "libunwind"))
             t.setSourceDirectory("libunwind");
 
-        t += "dl"_slib;
-        t += "pthread"_slib;
+        if (!is_musl(t))
+        {
+            t += "dl"_slib;
+            t += "pthread"_slib;
+        }
 
         /*if (t.getBuildSettings().TargetOS.isApple())
         {
@@ -116,7 +126,8 @@ void build(Solution &s)
             t.CompileOptions.push_back("-fvisibility=default");
         }
 
-        t += "pthread"_slib;
+        if (!is_musl(t))
+            t += "pthread"_slib;
 
         if (t.getSettings()["native"]["stdlib"]["c"] &&
             sw::UnresolvedPackage(t.getSettings()["native"]["stdlib"]["c"].getValue()).getPath() == "org.sw.demo.musl")
