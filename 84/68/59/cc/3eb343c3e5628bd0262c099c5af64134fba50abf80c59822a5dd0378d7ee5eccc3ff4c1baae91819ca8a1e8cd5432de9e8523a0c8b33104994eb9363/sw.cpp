@@ -74,6 +74,8 @@ void build(Solution &s)
                 "src/unix/linux-syscalls.c",
                 "src/unix/linux-syscalls.h",
                 "src/unix/proctitle.c";
+            uv += "_GNU_SOURCE"_def;
+            uv += "_POSIX_C_SOURCE=200112"_def;
             break;
         }
     }
