@@ -236,11 +236,11 @@ void build(Solution &s)
             if (lib.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
                 lib.Public += "MS_WINI64"_d;
 
-            lib.Public += "advapi32.lib"_lib;
-            lib.Public += "Mincore.lib"_lib;
-            lib.Public += "Shlwapi.lib"_lib;
-            lib.Public += "Shell32.lib"_lib;
-            lib.Public += "User32.lib"_lib;
+            lib.Public += "advapi32.lib"_slib;
+            lib.Public += "Mincore.lib"_slib;
+            lib.Public += "Shlwapi.lib"_slib;
+            lib.Public += "Shell32.lib"_slib;
+            lib.Public += "User32.lib"_slib;
 
             lib.replaceInFileOnce("Modules/timemodule.c", "timezone);", "_timezone );");
             lib.replaceInFileOnce("Modules/timemodule.c", "timezone-3600", "_timezone -3600");
