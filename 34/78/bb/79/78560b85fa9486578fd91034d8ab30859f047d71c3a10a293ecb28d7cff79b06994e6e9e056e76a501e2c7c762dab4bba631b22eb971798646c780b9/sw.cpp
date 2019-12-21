@@ -66,6 +66,8 @@ void build(Solution &s)
         tbb -= "src/tbb/.*\\.def"_rr;
         tbb -= "src/.*test.*"_rr;
 
+        tbb += "org.sw.demo.open_mpi.hwloc"_dep;
+
         tbb.Private += "__TBB_BUILD"_d;
         tbb.Public += "__TBB_NO_IMPLICIT_LINKAGE"_d;
         tbb.Public += "__TBBMALLOC_NO_IMPLICIT_LINKAGE"_d;
