@@ -23,6 +23,9 @@ void build(Solution &s)
 
     auto make_def = [&s](auto &t, const String &name, const String &arch)
     {
+        if (t.DryRun)
+            return;
+
         auto cc = std::static_pointer_cast<VisualStudioCompiler>(t.findProgramByExtension(".cpp")->clone());
         cc->CompileAsC = true;
         cc->PreprocessToStdout = true;
