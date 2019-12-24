@@ -9,8 +9,10 @@ void build(Solution &s)
     {
         memory.CPPVersion = CPPLanguageStandard::CPP17;
         memory += "include/Polygon4/Memory.h", "src/memory/Memory.cpp";
+#ifdef SW_CPP_DRIVER_API_VERSION
         if (memory.getOptions()["alligned-allocator"] == "1")
             memory += "DATA_MANAGER_ALIGNED_ALLOCATOR"_def;
+#endif
     }
 
     auto &schema = DataManager.addLibrary("schema");
