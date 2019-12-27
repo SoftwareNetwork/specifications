@@ -102,9 +102,11 @@ void build(Solution &s)
 
     if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
+        auto d = data.addDummyDependency(s_genccode);
+        d->getSettings() = data.getSettings(); // use the same settings for gencode
         auto c = data.addCommand();
         c << data
-            << cmd::prog(s_genccode)
+            << cmd::prog(d)
             << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
             << cmd::in(path("data") / "in" / (namel + ".dat"))
             << cmd::end() << cmd::out(obj)
