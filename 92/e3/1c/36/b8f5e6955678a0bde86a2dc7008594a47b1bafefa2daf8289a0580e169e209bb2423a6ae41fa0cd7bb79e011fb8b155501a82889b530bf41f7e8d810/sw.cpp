@@ -1,4 +1,4 @@
-#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison-master
+#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison
 
 void build(Solution &s)
 {
@@ -33,7 +33,7 @@ void build(Solution &s)
         schema.Public += "org.sw.demo.boost.algorithm"_dep;
         schema.Public += "org.sw.demo.boost.variant"_dep;
         schema.Public += memory;
-        gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison-master"_dep, schema, "LALR1_CPP_VARIANT_PARSER", "src/schema/schema");
+        gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison"_dep, schema, "LALR1_CPP_VARIANT_PARSER", "src/schema/schema");
     }
 
     auto &generator = DataManager.addExecutable("tools.generator");

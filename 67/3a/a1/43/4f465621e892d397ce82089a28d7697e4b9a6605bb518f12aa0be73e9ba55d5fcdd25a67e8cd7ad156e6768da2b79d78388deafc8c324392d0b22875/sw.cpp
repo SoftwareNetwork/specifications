@@ -1,4 +1,4 @@
-#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison-master
+#pragma sw require header org.sw.demo.lexxmark.winflexbison.bison
 
 struct SwigExecutable : ExecutableTarget
 {
@@ -24,7 +24,7 @@ void build(Solution &s)
     swig += "Source/Doxygen"_idir;
     swig += "Source/Modules"_idir;
     swig.writeFileOnce("swigconfig.h");
-    gen_bison("org.sw.demo.lexxmark.winflexbison-master"_dep, swig, "Source/CParse/parser.y", "parser.c");
+    gen_bison("org.sw.demo.lexxmark.winflexbison"_dep, swig, "Source/CParse/parser.y", "parser.c");
 
     swig += "SWIG_CXX=\"\""_def;
     swig += "SWIG_PLATFORM=\"\""_def;
