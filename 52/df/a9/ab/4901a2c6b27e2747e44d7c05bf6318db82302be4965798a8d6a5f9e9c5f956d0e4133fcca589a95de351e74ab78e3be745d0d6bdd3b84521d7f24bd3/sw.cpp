@@ -53,7 +53,7 @@ void build(Solution &s)
     libevent.configureFile("evconfig-private.h.cmake", "evconfig-private.h");
     libevent.configureFile("event-config.h.cmake", "event2/event-config.h");
 
-    if (libevent.getSettings().TargetOS.Type == OSType::Windows)
+    if (libevent.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         libevent -= "evthread_pthread.c";
         libevent -= "epoll_sub.c";

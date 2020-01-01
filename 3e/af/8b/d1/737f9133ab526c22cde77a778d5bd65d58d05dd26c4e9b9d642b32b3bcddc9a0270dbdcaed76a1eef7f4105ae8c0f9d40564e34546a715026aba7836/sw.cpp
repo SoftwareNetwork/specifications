@@ -14,7 +14,7 @@ void build(Solution &s)
 
     gflags += "src"_idir; // private!
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (gflags.getBuildSettings().TargetOS.Type == OSType::Windows)
         gflags += "OS_WINDOWS"_d;
     gflags.Public += sw::Shared, "GFLAGS_IS_A_DLL=1"_d;
     gflags.Public += sw::Static, "GFLAGS_DLL_DEFINE_FLAG="_d;

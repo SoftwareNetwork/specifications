@@ -13,11 +13,12 @@ void build(Solution &s)
     glog -= ".*test.*"_rr;
     glog.Public += "src"_id;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (glog.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         glog += "src/windows.*"_rr;
         glog.Public += "src/windows"_idir;
         //glog.Public -= IncludeDirectory(glog.BinaryDir);
+        glog += "Dbghelp.lib"_slib;
     }
 
     glog.Public += "HAVE_LIB_GFLAGS"_d;
@@ -29,7 +30,7 @@ void build(Solution &s)
 
     glog.writeFileOnce(glog.BinaryPrivateDir / "defines.h");
 
-    if (s.Settings.TargetOS.Type != OSType::Windows)
+    if (glog.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         glog.configureFile("src/config.h.cmake.in", glog.BinaryPrivateDir / "config.h");
 
