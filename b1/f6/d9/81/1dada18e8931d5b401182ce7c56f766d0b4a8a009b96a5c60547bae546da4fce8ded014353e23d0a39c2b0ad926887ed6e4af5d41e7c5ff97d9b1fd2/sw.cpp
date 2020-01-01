@@ -4,18 +4,18 @@
 
 #include <primitives/emitter.h>
 
-namespace flex_bison
+/*namespace flex_bison
 {
 
 static bool need_build(const Solution &s)
 {
-    return
-        // s.Settings.Native.CompilerType != CompilerType::GNU
-        s.getHostOs().Type == OSType::Windows // && !::sw::detail::isHostCygwin()
-        ;
+return
+// s.Settings.Native.CompilerType != CompilerType::GNU
+s.getHostOs().Type == OSType::Windows // && !::sw::detail::isHostCygwin()
+;
 }
 
-} // namespace flex_bison
+}*/ // namespace flex_bison
 
 struct FlexBisonData
 {
@@ -86,10 +86,14 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBi
 
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
-    if (flex_bison::need_build(t.getSolution()))
+    //if (flex_bison::need_build(t.getSolution()))
+    if (t.getContext().getHostOs().is(OSType::Windows))
         c << cmd::prog(bison);
     else
+    {
         c << cmd::prog("bison"s);
+        t.addDummyDependency(bison); // anyways
+    }
     c << cmd::out(d.out, cmd::Prefix{ "--output=" });
     c << cmd::out(d.outh, cmd::Prefix{ "--defines=" });
     for (auto &a : d.args)
@@ -122,10 +126,14 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
 
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
-    if (flex_bison::need_build(t.getSolution()))
+    //if (flex_bison::need_build(t.getSolution()))
+    if (t.getContext().getHostOs().is(OSType::Windows))
         c << cmd::prog(flex);
     else
+    {
         c << cmd::prog("flex"s);
+        t.addDummyDependency(flex); // anyways
+    }
     c << "-o" << cmd::out(d.out);
     for (auto &a : d.args)
         c << a;
@@ -206,9 +214,9 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
 void build(Solution &s)
 {
-    bool win_flex_bison = flex_bison::need_build(s);
+    /*bool win_flex_bison = flex_bison::need_build(s);
     if (!win_flex_bison && !s.DryRun)
-        return;
+    return;*/
 
     auto &winflexbison = s.addProject("lexxmark.winflexbison", "2.5.21");
     Git src("https://github.com/lexxmark/winflexbison", "v" + winflexbison.getPackage().getVersion().toString());

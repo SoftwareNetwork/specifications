@@ -54,7 +54,7 @@ struct ProtocData
         addIncludeDirectory(t.getFile(protoc, "src"));
 
         auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." + getHash() + ".d");
-        auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getSolution().getContext());
+        auto gc = std::make_shared<::sw::driver::GNUCommand>(t.getContext());
         gc->deps_file = deps_file;
 
         auto c = t.addCommand(gc);
