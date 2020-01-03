@@ -21,7 +21,7 @@ void build(Solution &s)
     };
 
     auto &leptonica = s.addTarget<LibraryTarget>("danbloomberg.leptonica", "1.79.0");
-    leptonica += Git("https://github.com/DanBloomberg/leptonica", "", "master");
+    leptonica += Git("https://github.com/DanBloomberg/leptonica");
 
     {
         leptonica.setChecks("leptonica");
@@ -111,6 +111,7 @@ void build(Solution &s)
             {"bytea_reg", {"bytea_reg.c"}},
             {"ccthin1_reg", {"ccthin1_reg.c"}},
             {"ccthin2_reg", {"ccthin2_reg.c"}},
+            {"checkerboard_reg", {"checkerboard_reg.c"}},
             {"cmapquant_reg", {"cmapquant_reg.c"}},
             {"colorcontent_reg", {"colorcontent_reg.c"}},
             {"coloring_reg", {"coloring_reg.c"}},
@@ -305,6 +306,7 @@ void build(Solution &s)
             {"livre_tophat", {"livre_tophat.c"}},
             {"maketile", {"maketile.c"}},
             {"maptest", {"maptest.c"}},
+            {"messagetest", {"messagetest.c"}},
             {"misctest1", {"misctest1.c"}},
             {"modifyhuesat", {"modifyhuesat.c"}},
             {"morphseq_reg", {"morphseq_reg.c"}},
@@ -361,6 +363,7 @@ void build(Solution &s)
             {"sudokutest", {"sudokutest.c"}},
             {"textorient", {"textorient.c"}},
             {"trctest", {"trctest.c"}},
+            {"underlinetest", {"underlinetest.c"}},
             {"warpertest", {"warpertest.c"}},
             {"wordsinorder", {"wordsinorder.c"}},
             {"writemtiff", {"writemtiff.c"}},

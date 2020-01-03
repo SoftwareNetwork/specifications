@@ -290,7 +290,7 @@ void build(Solution &s)
         }
     }
 
-    if (s.getExternalVariables()["with-gui"] != "true")
+    //if (s.getExternalVariables()["with-gui"] != "true")
         return;
 
 #ifndef SW_DRIVER_ADD_SELF
