@@ -1017,7 +1017,7 @@ static QtLibrary qt_widgets_desc{
 {"statusbar", true},
 {"statustip", true},
 {"style_android", false},
-{"style_fusion", false},
+{"style_fusion", true},
 {"style_mac", false},
 {"style_stylesheet", true},
 // WIN32 is for moc, it does not understand and use _WIN32
@@ -1971,12 +1971,6 @@ void build(Solution &s)
                 "widgets/.*"_rr;
 
             widgets.Private += "QT_BUILD_WIDGETS_LIB"_d;
-            if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
-            {
-                widgets.Private += "QT_NO_STYLE_ANDROID"_d;
-                widgets.Private += "QT_NO_STYLE_FUSION"_d;
-                widgets.Private += "QT_NO_STYLE_MAC"_d;
-            }
             if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 widgets.Public += "dwmapi.lib"_slib;
