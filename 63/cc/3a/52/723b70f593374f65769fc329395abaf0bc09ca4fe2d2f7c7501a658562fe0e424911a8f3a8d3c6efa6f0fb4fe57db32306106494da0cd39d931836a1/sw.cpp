@@ -65,7 +65,7 @@ void build(Solution &s)
     openal += "HAVE_STRUCT_TIMESPEC"_def;
     openal += "AL_ALEXT_PROTOTYPES"_def;
 
-    if (openal.getSettings().TargetOS.Type == OSType::Windows)
+    if (openal.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         openal +=
             "Alc/backends/winmm.c",
