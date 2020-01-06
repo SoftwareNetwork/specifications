@@ -5,8 +5,8 @@ void build(Solution &s)
 
     benchmark.CPPVersion = CPPLanguageStandard::CPP11;
 
-    // if (benchmark.getBuildSettings().TargetOS.Type == OSType::Windows)
-    // {
-    benchmark += "Shlwapi.lib"_slib;
-    // }
+    if (benchmark.getBuildSettings().TargetOS.Type == OSType::Windows)
+    {
+        benchmark += "Shlwapi.lib"_slib;
+    }
 }
