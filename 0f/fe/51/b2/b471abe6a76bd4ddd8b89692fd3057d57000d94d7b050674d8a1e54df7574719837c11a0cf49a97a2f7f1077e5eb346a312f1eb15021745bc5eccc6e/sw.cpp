@@ -12,8 +12,12 @@ void build(Solution &s)
 
     t.Public += "include"_idir;
 
-    t += "FFI_BUILDING"_def;
-    t += sw::Shared, "FFI_BUILDING_DLL"_def;
+    // ffi has incorrect dllexport/dllimport defs
+    // so we use ours
+    //t += "FFI_BUILDING"_def;
+    //t += sw::Shared, "FFI_BUILDING_DLL"_def;
+    t.ApiName = "SW_FFI_API";
+    t.patch("include/ffi.h.in", "define FFI_API", "define FFI_API SW_FFI_API//");
 
     String arch, arch_dir;
     switch (t.getBuildSettings().TargetOS.Arch)
