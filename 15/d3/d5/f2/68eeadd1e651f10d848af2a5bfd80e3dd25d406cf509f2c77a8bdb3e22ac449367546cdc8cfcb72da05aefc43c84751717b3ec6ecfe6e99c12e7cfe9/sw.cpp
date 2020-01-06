@@ -4,4 +4,9 @@ void build(Solution &s)
     benchmark += Git("https://github.com/google/benchmark", "v{v}");
 
     benchmark.CPPVersion = CPPLanguageStandard::CPP11;
+
+    // if (benchmark.getBuildSettings().TargetOS.Type == OSType::Windows)
+    // {
+    benchmark += "Shlwapi.lib"_slib;
+    // }
 }
