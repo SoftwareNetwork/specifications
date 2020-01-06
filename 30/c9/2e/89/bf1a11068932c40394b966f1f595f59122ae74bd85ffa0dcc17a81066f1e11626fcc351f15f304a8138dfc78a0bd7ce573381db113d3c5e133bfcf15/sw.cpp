@@ -24,7 +24,7 @@ void build(Solution &s)
         t.Public += "USE_WINDOWS_DLL_SEMANTICS"_d;
         t.Public += "WIN32"_d;
         t += "HAVE_MSVC_CPUIDEX"_d;
-        t.Public += "bcrypt.lib"_lib;
+        t.Public += "bcrypt.lib"_slib;
     }
     else
     {
