@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
-    auto &yaml_cpp = s.addTarget<LibraryTarget>("jbeder.yaml_cpp", "master");
-    yaml_cpp += Git("https://github.com/jbeder/yaml-cpp", "", "master");
+    auto &yaml_cpp = s.addTarget<LibraryTarget>("jbeder.yaml_cpp", "0.6.3");
+    yaml_cpp += Git("https://github.com/jbeder/yaml-cpp", "yaml-cpp-{v}");
 
     yaml_cpp.ApiName = "YAML_CPP_API";
     yaml_cpp.CPPVersion = CPPLanguageStandard::CPP11;
