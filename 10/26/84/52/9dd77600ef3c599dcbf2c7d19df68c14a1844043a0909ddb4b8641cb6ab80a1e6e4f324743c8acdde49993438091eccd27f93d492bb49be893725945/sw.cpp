@@ -87,13 +87,7 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBi
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
     //if (flex_bison::need_build(t.getSolution()))
-    if (t.getContext().getHostOs().is(OSType::Windows))
-        c << cmd::prog(bison);
-    else
-    {
-        c << cmd::prog("bison"s);
-        t.addDummyDependency(bison); // anyways
-    }
+    c << cmd::prog(bison);
     c << cmd::out(d.out, cmd::Prefix{ "--output=" });
     c << cmd::out(d.outh, cmd::Prefix{ "--defines=" });
     for (auto &a : d.args)
@@ -127,13 +121,7 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
     //if (flex_bison::need_build(t.getSolution()))
-    if (t.getContext().getHostOs().is(OSType::Windows))
-        c << cmd::prog(flex);
-    else
-    {
-        c << cmd::prog("flex"s);
-        t.addDummyDependency(flex); // anyways
-    }
+    c << cmd::prog(flex);
     c << "-o" << cmd::out(d.out);
     for (auto &a : d.args)
         c << a;
@@ -212,6 +200,33 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
 #pragma sw header off
 
+struct BisonExecutable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        if (getBuildSettings().TargetOS.Type != OSType::Windows)
+        {
+            c.setProgram("bison");
+            return;
+        }
+        ExecutableTarget::setupCommand(c);
+        c.environment["BISON_PKGDATADIR"] = normalize_path(SourceDir / "bison" / "data");
+    }
+};
+
+struct FlexExecutable : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const override
+    {
+        if (getBuildSettings().TargetOS.Type != OSType::Windows)
+        {
+            c.setProgram("flex");
+            return;
+        }
+        ExecutableTarget::setupCommand(c);
+    }
+};
+
 void build(Solution &s)
 {
     /*bool win_flex_bison = flex_bison::need_build(s);
@@ -223,45 +238,51 @@ void build(Solution &s)
     winflexbison += src;
 
     auto &common = winflexbison.addTarget<StaticLibraryTarget>("common");
-    if (!common.getBuildSettings().TargetOS.is(OSType::Windows))
-        common.HeaderOnly = true;
-    common += "common/.*"_rr;
-    common -= "common/m4/lib/regcomp.c";
-    common -= "common/m4/lib/regexec.c";
-    common -= ".*\\.def"_rr;
-    common.Public += "common/m4/lib"_idir;
-    common.Public += "common/misc"_idir;
-    // clang does not like static assert on win
-    common.replaceInFileOnce("common/misc/verify.h", "verify(R) static_assert", "verify(R) //static_assert");
+    {
+        if (!common.getBuildSettings().TargetOS.is(OSType::Windows))
+            common.HeaderOnly = true;
+        common += "common/.*"_rr;
+        common -= "common/m4/lib/regcomp.c";
+        common -= "common/m4/lib/regexec.c";
+        common -= ".*\\.def"_rr;
+        common.Public += "common/m4/lib"_idir;
+        common.Public += "common/misc"_idir;
+        // clang does not like static assert on win
+        common.replaceInFileOnce("common/misc/verify.h", "verify(R) static_assert", "verify(R) //static_assert");
+    }
 
-    auto &flex = winflexbison.addTarget<ExecutableTarget>("flex", "2.6.4");
-    if (!flex.getBuildSettings().TargetOS.is(OSType::Windows))
-        flex.HeaderOnly = true;
-    flex += src;
-    flex += "flex/.*"_rr;
-    flex -= "flex/src/libmain.c";
-    flex -= "flex/src/libyywrap.c";
-    flex += common;
-    if (flex.getBuildSettings().TargetOS.Type == OSType::Windows)
-        flex += "ws2_32.lib"_slib;
+    auto &flex = winflexbison.addTarget<FlexExecutable>("flex", "2.6.4");
+    {
+        if (!flex.getBuildSettings().TargetOS.is(OSType::Windows))
+            flex.HeaderOnly = true;
+        flex += src;
+        flex += "flex/.*"_rr;
+        flex -= "flex/src/libmain.c";
+        flex -= "flex/src/libyywrap.c";
+        flex += common;
+        if (flex.getBuildSettings().TargetOS.Type == OSType::Windows)
+            flex += "ws2_32.lib"_slib;
+    }
 
-    auto &bison = winflexbison.addTarget<ExecutableTarget>("bison", "3.5.0");
-    if (!bison.getBuildSettings().TargetOS.is(OSType::Windows))
-        bison.HeaderOnly = true;
-    bison += src;
-    bison -= "bison/data/.*"_rr;
-    bison += "bison/data/m4sugar/.*"_rr;
-    bison += "bison/src/.*"_rr;
-    bison -= "bison/src/scan-code.c";
-    bison -= "bison/src/scan-gram.c";
-    bison -= "bison/src/scan-skel.c";
-    bison += "bison"_idir;
-    bison.Public += "bison/src"_idir;
-    bison += common;
-    bison.replaceInFileOnce("bison/src/config.h", "\"data", "\"" + normalize_path(bison.SourceDir / "bison/data/"));
-    bison.replaceInFileOnce("bison/src/files.c",
-        "//      return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
-        "      return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");
-    bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
-    bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
+    auto &bison = winflexbison.addTarget<BisonExecutable>("bison", "3.5.0");
+    {
+        if (!bison.getBuildSettings().TargetOS.is(OSType::Windows))
+            bison.HeaderOnly = true;
+        bison += src;
+        bison -= "bison/data/.*"_rr;
+        bison += "bison/data/m4sugar/.*"_rr;
+        bison += "bison/src/.*"_rr;
+        bison -= "bison/src/scan-code.c";
+        bison -= "bison/src/scan-gram.c";
+        bison -= "bison/src/scan-skel.c";
+        bison += "bison"_idir;
+        bison.Public += "bison/src"_idir;
+        bison += common;
+        /*bison.replaceInFileOnce("bison/src/config.h", "\"data", "\"" + normalize_path(bison.SourceDir / "bison/data/"));
+        bison.replaceInFileOnce("bison/src/files.c",
+            "return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
+            "\nreturn  cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");*/
+        bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
+        bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
+    }
 }
