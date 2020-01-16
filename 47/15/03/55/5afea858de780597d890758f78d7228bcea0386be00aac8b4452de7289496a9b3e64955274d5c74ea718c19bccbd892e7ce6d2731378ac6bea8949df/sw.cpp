@@ -13,11 +13,13 @@ struct GawkExecutable : ExecutableTarget
 
 void build(Solution &s)
 {
-    auto &gawk = s.addProject("gnu.gawk", "5.0.0");
-    gawk += RemoteFile("https://ftp.gnu.org/gnu/gawk/gawk-{v}.tar.xz");
+    auto &p = s.addProject("gnu.gawk", "5.0.0");
+    p += RemoteFile("https://ftp.gnu.org/gnu/gawk/gawk-{v}.tar.xz");
 
-    auto &getopt = gawk.addTarget<StaticLibraryTarget>("getopt");
+    auto &getopt = p.addTarget<StaticLibraryTarget>("getopt");
     {
+        if (!getopt.getBuildSettings().TargetOS.is(OSType::Windows))
+            getopt.HeaderOnly = true;
         getopt +=
             "support/getopt\\.[hc]"_rr,
             "support/getopt_.*"_rr;
@@ -28,15 +30,10 @@ void build(Solution &s)
         getopt.Public += "org.sw.demo.gnu.gettext.intl"_dep;
     }
 
-    if (gawk.getBuildSettings().TargetOS.Type != OSType::Windows)
+    auto &gawk = p.addTarget<GawkExecutable>("gawk");
     {
-        gawk.addTarget<GawkExecutable>("gawk");
-        return;
-    }
-
-    auto &gawk2 = gawk.addTarget<GawkExecutable>("gawk");
-    {
-        auto &gawk = gawk2;
+        if (!gawk.getBuildSettings().TargetOS.is(OSType::Windows))
+            gawk.HeaderOnly = true;
         gawk.PackageDefinitions = true;
         gawk.setChecks("gawk", true);
 
@@ -143,13 +140,13 @@ inline int __CRTDECL mbsinit(
 #define FAKE_FD_VALUE 42
 
 #if ! defined(S_ISREG) && defined(S_IFREG)
-#define	S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define    S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #endif
 
 /* MinGW defines non-trivial macros on pc/socket.h.  */
 #ifndef FD_TO_SOCKET
-# define FD_TO_SOCKET(fd)	(fd)
-# define closemaybesocket(fd)	close(fd)
+# define FD_TO_SOCKET(fd)    (fd)
+# define closemaybesocket(fd)    close(fd)
 #endif
 
 #include <stdint.h>
@@ -192,9 +189,9 @@ inline int __CRTDECL mbsinit(
 
     #define off_t int
 
-    #  define SIGKILL	9
-    #  define SIGHUP	1
-    #  define SIGQUIT	3
+    #  define SIGKILL    9
+    #  define SIGHUP    1
+    #  define SIGQUIT    3
 
     #include <io.h>
     //#define _CRT_INTERNAL_NONSTDC_NAMES 1

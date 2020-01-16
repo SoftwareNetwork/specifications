@@ -223,6 +223,8 @@ void build(Solution &s)
     winflexbison += src;
 
     auto &common = winflexbison.addTarget<StaticLibraryTarget>("common");
+    if (!common.getBuildSettings().TargetOS.is(OSType::Windows))
+        common.HeaderOnly = true;
     common += "common/.*"_rr;
     common -= "common/m4/lib/regcomp.c";
     common -= "common/m4/lib/regexec.c";
@@ -233,6 +235,8 @@ void build(Solution &s)
     common.replaceInFileOnce("common/misc/verify.h", "verify(R) static_assert", "verify(R) //static_assert");
 
     auto &flex = winflexbison.addTarget<ExecutableTarget>("flex", "2.6.4");
+    if (!flex.getBuildSettings().TargetOS.is(OSType::Windows))
+        flex.HeaderOnly = true;
     flex += src;
     flex += "flex/.*"_rr;
     flex -= "flex/src/libmain.c";
@@ -242,6 +246,8 @@ void build(Solution &s)
         flex += "ws2_32.lib"_slib;
 
     auto &bison = winflexbison.addTarget<ExecutableTarget>("bison", "3.5.0");
+    if (!bison.getBuildSettings().TargetOS.is(OSType::Windows))
+        bison.HeaderOnly = true;
     bison += src;
     bison -= "bison/data/.*"_rr;
     bison += "bison/data/m4sugar/.*"_rr;
@@ -254,8 +260,8 @@ void build(Solution &s)
     bison += common;
     bison.replaceInFileOnce("bison/src/config.h", "\"data", "\"" + normalize_path(bison.SourceDir / "bison/data/"));
     bison.replaceInFileOnce("bison/src/files.c",
-        "//	  return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
-        "	  return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");
+        "//      return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
+        "      return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");
     bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
     bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
 }
