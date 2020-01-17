@@ -6,4 +6,10 @@ void build(Solution &s)
     t += "sqlite3ext.h";
     t.ApiName = "SQLITE_API";
     t += "SQLITE_ENABLE_COLUMN_METADATA"_def;
+
+    if (!t.getBuildSettings().TargetOS.is(OSType::Windows))
+    {
+        t += "dl"_slib;
+        t += "pthread"_slib;
+    }
 }
