@@ -32,6 +32,7 @@ void build(Solution &s)
 
         // xlibi18n
         t += "src/xlibi18n/.*"_r;
+        t -= "src/xlibi18n/lcUniConv/.*"_rr;
         t += "XLOCALELIBDIR=\".\""_def;
         t += "src/xlibi18n"_idir;
         //
@@ -61,7 +62,7 @@ void build(Solution &s)
             "Sunkeysym.h"s,
             "DECkeysym.h"s,
             "HPkeysym.h"s,
-        })
+            })
         {
             auto f2 = t.getFile("org.sw.demo.xorg.proto"_dep, "include/X11/" + f);
             if (fs::exists(f2))
