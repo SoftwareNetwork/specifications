@@ -11,7 +11,7 @@ void build(Solution &s)
         t.Variables["USE_FDS_BITS"] = "fds_bits";
     else if (t.Variables["HAVE_FD_SET___FDS_BITS"] == 1)
         t.Variables["USE_FDS_BITS"] = "__fds_bits";
-    else if (!t.DryRun)
+    else if (!t.DryRun && t.getBuildSettings().TargetOS.is(OSType::Linux))
         throw std::runtime_error("Your fd_set is too weird.");
     t.configureFile("include/X11/Xpoll.h.in", "X11/Xpoll.h");
 }
@@ -27,7 +27,7 @@ void check(Checker &c)
             "sys/select.h",
             "sys/types.h",
             "sys/time.h",
-        })
+            })
             c.Parameters.Includes.push_back(h);
     };
 
