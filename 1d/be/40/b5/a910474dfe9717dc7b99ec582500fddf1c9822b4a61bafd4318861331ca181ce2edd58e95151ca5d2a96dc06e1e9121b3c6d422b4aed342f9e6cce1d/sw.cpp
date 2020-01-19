@@ -5,6 +5,8 @@ void build(Solution &s)
 
     t.setChecks("x", true);
 
+    t.ExportAllSymbols = true;
+
     t += "include/.*"_rr;
     t += "src/.*"_rr;
 
