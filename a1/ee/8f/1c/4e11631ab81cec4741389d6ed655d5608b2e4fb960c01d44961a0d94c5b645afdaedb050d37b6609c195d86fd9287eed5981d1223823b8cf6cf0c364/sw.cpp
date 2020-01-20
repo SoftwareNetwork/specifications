@@ -13,9 +13,7 @@ void build(Solution &s)
         t.Protected += "include/drm"_idir; // public?
 
         t.Public += "HAVE_VISIBILITY"_def;
-
-        t += "MAJOR_IN_SYSMACROS"_def;
-
+        t.Protected += "MAJOR_IN_SYSMACROS"_def;
         t.Public += "HAVE_LIBDRM_ATOMIC_PRIMITIVES"_def;
 
         t.Protected.LinkOptions.push_back("--no-undefined");
@@ -25,23 +23,31 @@ void build(Solution &s)
     {
         auto &t = drm.addLibrary(name);
         t += FileRegex(name, ".*\\.[hc]", false);
-        t += IncludeDirectory(name);
+        t.Protected += IncludeDirectory(name); // make public?
         t.Public += drm;
         return t;
     };
 
-    auto &amdgpu = add_drm("amdgpu");
+#define ADD_DRM(x) auto &x = add_drm(#x)
+
+    ADD_DRM(amdgpu);
     amdgpu += Definition("AMDGPU_ASIC_ID_TABLE=\"" + normalize_path(amdgpu.SourceDir / "data/amdgpu.ids") + "\"");
 
-    add_drm("etnaviv");
-    add_drm("exynos");
+    ADD_DRM(etnaviv);
+    ADD_DRM(exynos);
 
-    auto &freedreno = add_drm("freedreno");
+    ADD_DRM(freedreno);
     freedreno += "freedreno/msm/.*"_rr;
 
-    add_drm("intel") += "org.sw.demo.xorg.pciaccess"_dep;
-    add_drm("nouveau");
-    add_drm("omap");
-    add_drm("radeon");
-    add_drm("tegra");
+    ADD_DRM(intel);
+    intel += "org.sw.demo.xorg.pciaccess"_dep;
+
+    ADD_DRM(nouveau);
+    ADD_DRM(omap);
+    ADD_DRM(radeon);
+    ADD_DRM(tegra);
+
+    auto &kms = drm.addLibrary("kms");
+    kms += "libkms/.*\\.[hc]"_rr;
+    kms += exynos, intel, radeon, nouveau;
 }
