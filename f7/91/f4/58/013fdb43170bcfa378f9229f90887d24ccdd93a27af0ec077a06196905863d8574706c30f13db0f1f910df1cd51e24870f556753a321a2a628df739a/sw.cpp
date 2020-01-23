@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &openjp2 = s.addTarget<LibraryTarget>("uclouvain.openjpeg.openjp2", "2.3.1");
     openjp2 += Git("https://github.com/uclouvain/openjpeg", "v{v}");
 
-    openjp2.setChecks("openjp2");
+    openjp2.setChecks("openjp2", true);
 
     openjp2 +=
         "src/lib/openjp2/.*\\.h"_rr,
