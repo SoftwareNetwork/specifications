@@ -11,5 +11,9 @@ void build(Solution &s)
 
     if (fmt.getCompilerType() == CompilerType::ClangCl ||
         fmt.getCompilerType() == CompilerType::Clang)
+    {
         fmt.Public += "FMT_USE_EXTERN_TEMPLATES=0"_d;
+        if (fmt.getCompilerType() == CompilerType::Clang)
+            fmt.ExportAllSymbols = true;
+    }
 }
