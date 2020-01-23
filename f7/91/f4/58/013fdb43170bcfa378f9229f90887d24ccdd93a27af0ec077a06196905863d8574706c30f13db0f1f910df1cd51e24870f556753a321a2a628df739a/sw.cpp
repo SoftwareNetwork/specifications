@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &openjp2 = s.addTarget<LibraryTarget>("uclouvain.openjpeg.openjp2", "2.3.1");
     openjp2 += Git("https://github.com/uclouvain/openjpeg", "v{v}");
 
-    openjp2.setChecks("openjp2", true);
+    openjp2.setChecks("openjp2");
 
     openjp2 +=
         "src/lib/openjp2/.*\\.h"_rr,
@@ -36,18 +36,18 @@ void build(Solution &s)
     openjp2.Public += sw::Static, "OPJ_STATIC"_d;
 
     openjp2.writeFileOnce("opj_config.h.in", R"(
-#ifdef HAVE_STDINT_H
+//#ifdef HAVE_STDINT_H
 #define OPJ_HAVE_STDINT_H 1
-#endif
+//#endif
 #define OPJ_VERSION_MAJOR @PACKAGE_VERSION_MAJOR@
 #define OPJ_VERSION_MINOR @PACKAGE_VERSION_MINOR@
 #define OPJ_VERSION_BUILD @PACKAGE_VERSION_PATCH@
 )");
 
     openjp2.writeFileOnce("opj_config_private.h.in", R"(
-#ifdef HAVE_INTTYPES_H
+//#ifdef HAVE_INTTYPES_H
 #define OPJ_HAVE_INTTYPES_H 1
-#endif
+//#endif
 #define OPJ_PACKAGE_VERSION "@PACKAGE_VERSION@"
 
 #cmakedefine _LARGEFILE_SOURCE
