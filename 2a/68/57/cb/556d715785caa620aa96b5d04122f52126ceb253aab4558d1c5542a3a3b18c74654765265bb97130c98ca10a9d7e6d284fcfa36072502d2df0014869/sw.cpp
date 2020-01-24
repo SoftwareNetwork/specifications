@@ -41,6 +41,7 @@ void build(Solution &s)
     {
         lzma.Private += "MYTHREAD_POSIX"_d;
         lzma.Public += "HAVE_VISIBILITY"_d;
+        lzma += "pthread"_slib;
     }
     lzma.Private += sw::Shared, "DLL_EXPORT"_d;
     lzma.Public += sw::Static, "LZMA_API_STATIC"_d;
