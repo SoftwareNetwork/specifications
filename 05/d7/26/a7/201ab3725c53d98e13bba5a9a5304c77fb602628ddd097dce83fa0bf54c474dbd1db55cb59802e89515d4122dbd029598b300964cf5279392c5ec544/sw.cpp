@@ -53,8 +53,8 @@ void build(Solution &s)
             pango.Public += "HAVE_WIN32=1"_d;
         }
 
-        pango.Public += "org.sw.demo.gnome.glib.gobject-2"_dep;
-        pango.Public += "org.sw.demo.gnu.fribidi.fribidi-1"_dep;
+        pango.Public += "org.sw.demo.gnome.glib.gobject"_dep;
+        pango.Public += "org.sw.demo.gnu.fribidi.fribidi"_dep;
         pango.Public += "org.sw.demo.behdad.harfbuzz"_dep;
 
         pango.writeFileOnce(pango.BinaryPrivateDir / "config.h");
@@ -74,7 +74,7 @@ void build(Solution &s)
             // glib.mkenums
             auto c = pango.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-                << pango.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in")
+                << pango.getFile("org.sw.demo.gnome.glib.gobject"_dep, "gobject/glib-mkenums.in")
                 << "--template"
                 << cmd::in("pango/pango-enum-types."s + ext + ".template")
                 << "--output"
@@ -112,8 +112,8 @@ void build(Solution &s)
             "pango"_id;
 
         pangoft2.Public += pango;
-        pangoft2.Public += "org.sw.demo.behdad.harfbuzz-*"_dep;
-        pangoft2.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig-2"_dep;
+        pangoft2.Public += "org.sw.demo.behdad.harfbuzz"_dep;
+        pangoft2.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig"_dep;
 
         pangoft2.writeFileOnce(pangoft2.BinaryPrivateDir / "config.h");
         pangoft2.replaceInFileOnce("pango/pango-version-macros.h",
@@ -140,7 +140,7 @@ void build(Solution &s)
             "."_id,
             "pango"_id;
 
-        pangocairo.Public += "org.sw.demo.cairographics.cairo-1"_dep;
+        pangocairo.Public += "org.sw.demo.cairographics.cairo"_dep;
         pangocairo.Public += pangoft2;
 
         if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -151,10 +151,21 @@ void build(Solution &s)
             pangocairo +=
                 "Usp10.lib"_slib;
         }
-        else
+        else if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
             pangocairo -=
-            "pango/pangocairo-win32.*"_rr,
-            "pango/pangowin32.*"_rr;
+                "pango/pangocoretext.*"_rr,
+                "pango/pangocairo-coretext.*"_rr;
+            pangocairo -=
+                "pango/pangocairo-win32.*"_rr,
+                "pango/pangowin32.*"_rr;
+        }
+        else
+        {
+            pangocairo -=
+                "pango/pangocairo-win32.*"_rr,
+                "pango/pangowin32.*"_rr;
+        }
 
         pangocairo.writeFileOnce(pangocairo.BinaryPrivateDir / "config.h");
         pangocairo.replaceInFileOnce("pango/pango-version-macros.h",
