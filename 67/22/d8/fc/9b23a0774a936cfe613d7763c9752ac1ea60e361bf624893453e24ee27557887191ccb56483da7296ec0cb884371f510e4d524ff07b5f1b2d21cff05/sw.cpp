@@ -151,7 +151,7 @@ void build(Solution &s)
             pangocairo +=
                 "Usp10.lib"_slib;
         }
-        else if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Windows)
+        else if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Linux)
         {
             pangocairo -=
                 "pango/pangocoretext.*"_rr,
