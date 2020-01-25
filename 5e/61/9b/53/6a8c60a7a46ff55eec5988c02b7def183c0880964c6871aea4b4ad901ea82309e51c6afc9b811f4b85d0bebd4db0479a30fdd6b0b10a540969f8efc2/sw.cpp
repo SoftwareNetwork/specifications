@@ -119,7 +119,7 @@ void build(Solution &s)
         auto c = data.addCommand();
         c << data
             << cmd::prog(s_genccode)
-            << "--name" << namel << "-e" << name << "-d" << obj.parent_path()
+            << "-d" << obj.parent_path()
             << cmd::in(path("data") / "in" / (namel + ".dat"))
             << cmd::end() << cmd::out(obj)
             ;
