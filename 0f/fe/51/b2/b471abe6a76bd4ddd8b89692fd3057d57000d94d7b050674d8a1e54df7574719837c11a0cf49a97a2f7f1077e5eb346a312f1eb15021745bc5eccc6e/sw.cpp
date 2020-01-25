@@ -41,14 +41,13 @@ void build(Solution &s)
     t += FileRegex("src/" + arch_dir, ".*", false);
     t.Public += IncludeDirectory("src/" + arch_dir);
 
-    if (t.getBuildSettings().TargetOS.Type != OSType::Windows ||
-        (t.getCompilerType() == CompilerType::MSVC && t.getBuildSettings().TargetOS.Arch == ArchType::x86))
+    if (t.getCompilerType() == CompilerType::MSVC && t.getBuildSettings().TargetOS.Arch == ArchType::x86)
     {
         t -= path("src/" + arch_dir + "/ffiw64.c");
     }
     if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
-        t -= "src/x86/win64.S";
+        t += "HAVE_HIDDEN_VISIBILITY_ATTRIBUTE"_def;
         t -= "src/x86/win64_intel.S";
         t -= "src/x86/sysv_intel.S";
     }
@@ -60,21 +59,21 @@ void build(Solution &s)
     // for asm
     t.writeFileOnce("fficonfig.h", R"(
 #ifdef HAVE_HIDDEN_VISIBILITY_ATTRIBUTE
-#ifdef LIBFFI_ASM
-#ifdef __APPLE__
-#define FFI_HIDDEN(name) .private_extern name
+    #ifdef LIBFFI_ASM
+        #ifdef __APPLE__
+            #define FFI_HIDDEN(name) .private_extern name
+        #else
+            #define FFI_HIDDEN(name) .hidden name
+        #endif
+    #else
+        #define FFI_HIDDEN __attribute__ ((visibility ("hidden")))
+    #endif
 #else
-#define FFI_HIDDEN(name) .hidden name
-#endif
-#else
-#define FFI_HIDDEN __attribute__ ((visibility ("hidden")))
-#endif
-#else
-#ifdef LIBFFI_ASM
-#define FFI_HIDDEN(name)
-#else
-#define FFI_HIDDEN
-#endif
+    #ifdef LIBFFI_ASM
+        #define FFI_HIDDEN(name)
+    #else
+        #define FFI_HIDDEN
+    #endif
 #endif
 
 // x86 only
