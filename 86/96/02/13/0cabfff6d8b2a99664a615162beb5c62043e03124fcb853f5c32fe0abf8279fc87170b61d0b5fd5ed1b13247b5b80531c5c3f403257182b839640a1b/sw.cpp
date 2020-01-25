@@ -79,6 +79,8 @@ void build(Solution &s)
         }
 
         pcre.Public += sw::Static, "PCRE_STATIC"_d;
+        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows))
+            pcre.ExportAllSymbols = true;
 
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;
@@ -137,13 +139,21 @@ void build(Solution &s)
     d32->IncludeDirectoriesOnly = true;
 
     auto &pcreposix = p.addTarget<LibraryTarget>("pcreposix");
-    pcreposix +=
-        "pcreposix.c",
-        "pcreposix.h";
-    pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
-    pcreposix.Public += sw::Static, "PCRE_STATIC"_d;
-    pcreposix.Public += pcre8;
-    pcreposix += IncludeDirectory(pcre8.BinaryPrivateDir);
+    {
+        pcreposix +=
+            "pcreposix.c",
+            "pcreposix.h";
+        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
+            pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
+        else
+        {
+            pcreposix.ApiNames.insert("PCREPOSIX_EXP_DECL");
+            pcreposix.ApiNames.insert("PCREPOSIX_EXP_DEFN");
+        }
+        pcreposix.Public += sw::Static, "PCRE_STATIC"_d;
+        pcreposix.Public += pcre8;
+        pcreposix += IncludeDirectory(pcre8.BinaryPrivateDir);
+    }
 
     // fix import vars
 
