@@ -113,10 +113,17 @@ void build(Solution &s)
                 "Msimg32.lib"_slib
                 ;
         }
+        else
+        {
+            cairo.ExportAllSymbols = true;
+            cairo += "pthread"_slib;
+        }
     }
 
     auto &cg = cairo.addTarget<LibraryTarget>("gobject");
     {
+        if (cg.getBuildSettings().TargetOS.Type != OSType::Windows)
+            cg.ExportAllSymbols = true;
         cg += "util/cairo-gobject/.*\\.[hc]"_rr;
         cg.Public += "CAIRO_HAS_GOBJECT_FUNCTIONS"_def;
         cg.Public += "util/cairo-gobject"_id;

@@ -23,7 +23,10 @@ void build(Solution &s)
     if (expat.getBuildSettings().TargetOS.Type == OSType::Windows)
         expat += "WIN32"_d;
     else
+    {
+        expat += "XML_ENABLE_VISIBILITY"_def;
         expat += "XML_DEV_URANDOM"_d;
+    }
 
     expat.Variables["XML_CONTEXT_BYTES"] = "1024";
     expat.Variables["XML_DTD"] = "1";

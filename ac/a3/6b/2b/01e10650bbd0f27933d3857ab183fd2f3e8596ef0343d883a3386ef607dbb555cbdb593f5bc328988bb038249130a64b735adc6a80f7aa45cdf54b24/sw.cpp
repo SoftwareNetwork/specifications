@@ -1,5 +1,3 @@
-#pragma optimize("", off)
-
 void build(Solution &s)
 {
     auto &fontconfig = s.addTarget<LibraryTarget>("freedesktop.fontconfig.fontconfig", "2.13.92");
