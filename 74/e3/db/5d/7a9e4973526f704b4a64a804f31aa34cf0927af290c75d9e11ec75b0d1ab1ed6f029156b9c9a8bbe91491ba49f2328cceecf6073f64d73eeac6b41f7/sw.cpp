@@ -2,9 +2,8 @@ void build(Solution &s)
 {
     auto &icu = s.addProject("unicode.icu", "65.1.0");
     icu += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.tgz");
-    auto &stub = icu.addDirectory("stub");
 
-    auto &s_data = stub.addTarget<LibraryTarget>("data");
+    auto &stub = icu.addDirectory("stub");
     auto &s_common = stub.addTarget<LibraryTarget>("common");
 
     auto setup = [](auto &t)
@@ -18,154 +17,181 @@ void build(Solution &s)
             t.CompileOptions.insert("-utf-8");
     };
 
-    setup(s_data);
-    s_data += "source/stubdata/stubdata.cpp", "source"_id;
+    auto &s_data = stub.addTarget<LibraryTarget>("data");
+    {
+        setup(s_data);
+        s_data += "source/stubdata/stubdata.cpp", "source"_id;
 
-    auto dc = s_data.Public + s_common;
-    dc->IncludeDirectoriesOnly = true;
+        auto dc = s_data.Public + s_common;
+        dc->IncludeDirectoriesOnly = true;
+    }
 
-    //
-    s_common.setRootDirectory("source");
-    s_common.CPPVersion = CPPLanguageStandard::CPP11;
-    s_common.setChecks("common");
+    // s_common
+    {
+        s_common.setRootDirectory("source");
+        s_common.CPPVersion = CPPLanguageStandard::CPP11;
+        s_common.setChecks("common");
 
-    s_common +=
-        "common/.*\\.cpp"_rr,
-        "common/.*\\.h"_rr;
-    s_common.Public += "common"_id;
+        s_common +=
+            "common/.*\\.cpp"_rr,
+            "common/.*\\.h"_rr;
+        s_common.Public += "common"_id;
 
-    if (s_common.getBuildSettings().TargetOS.Type == OSType::Windows)
-        s_common.Public += "Advapi32.lib"_slib;
-    else
-        s_common += "dl"_slib;
+        if (s_common.getBuildSettings().TargetOS.Type == OSType::Windows)
+            s_common.Public += "Advapi32.lib"_slib;
+        else
+            s_common += "dl"_slib;
 
-    setup(s_common);
-    s_common.Private += "U_COMMON_IMPLEMENTATION"_d;
-    s_common.Public += s_data;
+        setup(s_common);
+        s_common.Private += "U_COMMON_IMPLEMENTATION"_d;
+        s_common.Public += s_data;
+    }
 
     //
     auto &s_i18n = stub.addTarget<LibraryTarget>("i18n");
-    s_i18n.setRootDirectory("source");
-    setup(s_i18n);
+    {
+        s_i18n.setRootDirectory("source");
+        setup(s_i18n);
 
-    s_i18n +=
-        "i18n/.*\\.cpp"_rr,
-        "i18n/.*\\.h"_rr;
-    s_i18n.Public += "i18n"_id;
-    s_i18n.Private += "U_I18N_IMPLEMENTATION"_d;
-    s_i18n.Public += s_common;
+        s_i18n +=
+            "i18n/.*\\.cpp"_rr,
+            "i18n/.*\\.h"_rr;
+        s_i18n.Public += "i18n"_id;
+        s_i18n.Private += "U_I18N_IMPLEMENTATION"_d;
+        s_i18n.Public += s_common;
+    }
 
     //
     auto &s_toolutil = stub.addTarget<LibraryTarget>("toolutil");
-    s_toolutil.setRootDirectory("source");
-    setup(s_toolutil);
+    {
+        s_toolutil.setRootDirectory("source");
+        setup(s_toolutil);
 
-    s_toolutil +=
-        "tools/toolutil/.*\\.cpp"_rr,
-        "tools/toolutil/.*\\.h"_rr;
+        s_toolutil +=
+            "tools/toolutil/.*\\.cpp"_rr,
+            "tools/toolutil/.*\\.h"_rr;
 
-    s_toolutil.Public += "tools/toolutil"_id;
-    s_toolutil.Private += "U_TOOLUTIL_IMPLEMENTATION"_d;
-    s_toolutil.Public += s_i18n;
+        s_toolutil.Public += "tools/toolutil"_id;
+        s_toolutil.Private += "U_TOOLUTIL_IMPLEMENTATION"_d;
+        s_toolutil.Public += s_i18n;
+    }
 
     //
     auto &s_genccode = stub.addTarget<ExecutableTarget>("genccode");
-    s_genccode.setRootDirectory("source");
-    s_genccode += "tools/genccode/.*\\.c"_rr;
-    s_genccode.Public += s_toolutil;
+    {
+        s_genccode.setRootDirectory("source");
+        s_genccode += "tools/genccode/.*\\.c"_rr;
+        s_genccode.Public += s_toolutil;
+    }
 
     //
     auto &common = icu.addTarget<LibraryTarget>("common");
 
     auto &data = icu.addTarget<LibraryTarget>("data");
-    data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
-    data.setRootDirectory("source");
-    data += "data/in/.*\\.dat"_rr;
+    {
+        data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
+        data.setRootDirectory("source");
+        data += "data/in/.*\\.dat"_rr;
 #ifdef SW_CPP_DRIVER_API_VERSION
-    if (auto L = data.getSelectedTool()->as<VisualStudioLinker*>())
+        if (auto L = data.getSelectedTool()->as<VisualStudioLinker *>())
 #else
-    if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
+        if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
 #endif
-        L->NoEntry = true;
+            L->NoEntry = true;
 
-    {
-        auto dc = data.Public + common;
-        dc->IncludeDirectoriesOnly = true;
+        {
+            auto dc = data.Public + common;
+            dc->IncludeDirectoriesOnly = true;
+        }
+
+        const auto name = "icudt" + data.Variables["PACKAGE_VERSION_MAJOR"].toString();
+        const auto namel = name + "l";
+        auto obj = data.BinaryDir / (namel + "_dat.");
+
+        if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
+            obj += "obj";
+        else
+            obj += "c";
+
+        if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            auto d = data.addDummyDependency(s_genccode);
+            d->getSettings() = data.getSettings(); // use the same settings for gencode
+            auto c = data.addCommand();
+            c << data
+                << cmd::prog(d)
+                << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
+                << cmd::in(path("data") / "in" / (namel + ".dat"))
+                << cmd::end() << cmd::out(obj)
+                ;
+        }
+        else
+        {
+            data.ExportAllSymbols = true;
+            auto c1 = data.addCommand();
+            c1 << data
+                << cmd::prog("cp")
+                << cmd::in(path("data") / "in" / (namel + ".dat"))
+                << cmd::out(path("data") / "in" / (name + ".dat"))
+                ;
+            obj = data.BinaryDir / (name + "_dat.c");
+            auto c = data.addCommand();
+            c << data
+                << cmd::prog(s_genccode)
+                << "-d" << obj.parent_path()
+                << cmd::in(path("data") / "in" / (name + ".dat"))
+                << cmd::end() << cmd::out(obj)
+                ;
+        }
     }
 
-    const auto name = "icudt" + data.Variables["PACKAGE_VERSION_MAJOR"].toString();
-    const auto namel = name + "l";
-    auto obj = data.BinaryDir / (namel + "_dat.");
-
-    if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
-        obj += "obj";
-    else
-        obj += "c";
-
-    if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
+    // common
     {
-        auto d = data.addDummyDependency(s_genccode);
-        d->getSettings() = data.getSettings(); // use the same settings for gencode
-        auto c = data.addCommand();
-        c << data
-            << cmd::prog(d)
-            << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
-            << cmd::in(path("data") / "in" / (namel + ".dat"))
-            << cmd::end() << cmd::out(obj)
-            ;
+        common.setRootDirectory("source");
+        common.setChecks("common");
+
+        common +=
+            "common/.*\\.cpp"_rr,
+            "common/.*\\.h"_rr;
+        common.Public += "common"_id;
+
+        if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
+            common.Public += "Advapi32.lib"_slib;
+        else
+            common += "dl"_slib;
+
+        setup(common);
+        common.Private += "U_COMMON_IMPLEMENTATION"_d;
+        common.Public += data;
     }
-    else
-    {
-        auto c = data.addCommand();
-        c << data
-            << cmd::prog(s_genccode)
-            << "-d" << obj.parent_path()
-            << cmd::in(path("data") / "in" / (namel + ".dat"))
-            << cmd::end() << cmd::out(obj)
-            ;
-    }
-
-    //
-    common.setRootDirectory("source");
-    common.setChecks("common");
-
-    common +=
-        "common/.*\\.cpp"_rr,
-        "common/.*\\.h"_rr;
-    common.Public += "common"_id;
-
-    if (common.getBuildSettings().TargetOS.Type == OSType::Windows)
-        common.Public += "Advapi32.lib"_slib;
-    else
-        common += "dl"_slib;
-
-    setup(common);
-    common.Private += "U_COMMON_IMPLEMENTATION"_d;
-    common.Public += data;
 
     //
     auto &i18n = icu.addTarget<LibraryTarget>("i18n");
-    i18n.setRootDirectory("source");
-    setup(i18n);
+    {
+        i18n.setRootDirectory("source");
+        setup(i18n);
 
-    i18n +=
-        "i18n/.*\\.cpp"_rr,
-        "i18n/.*\\.h"_rr;
-    i18n.Public += "i18n"_id;
-    i18n.Private += "U_I18N_IMPLEMENTATION"_d;
-    i18n.Public += common;
+        i18n +=
+            "i18n/.*\\.cpp"_rr,
+            "i18n/.*\\.h"_rr;
+        i18n.Public += "i18n"_id;
+        i18n.Private += "U_I18N_IMPLEMENTATION"_d;
+        i18n.Public += common;
+    }
 
     //
     auto &io = icu.addTarget<LibraryTarget>("io");
-    io.setRootDirectory("source");
-    setup(io);
+    {
+        io.setRootDirectory("source");
+        setup(io);
 
-    io +=
-        "io/.*\\.cpp"_rr,
-        "io/.*\\.h"_rr;
-    io.Public += "io"_id;
-    io.Private += "U_IO_IMPLEMENTATION"_d;
-    io.Public += i18n;
+        io +=
+            "io/.*\\.cpp"_rr,
+            "io/.*\\.h"_rr;
+        io.Public += "io"_id;
+        io.Private += "U_IO_IMPLEMENTATION"_d;
+        io.Public += i18n;
+    }
 }
 
 void check(Checker &c)
