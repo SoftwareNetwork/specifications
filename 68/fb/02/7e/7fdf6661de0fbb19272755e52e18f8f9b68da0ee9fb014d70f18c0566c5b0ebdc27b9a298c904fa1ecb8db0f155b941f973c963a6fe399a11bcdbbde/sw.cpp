@@ -159,8 +159,10 @@ void build(Solution &s)
             glib.Variables["glib_os"] = "#define G_OS_UNIX";
             glib.Variables["g_threads_impl_def"] = "POSIX";
             glib.Public += "THREADS_POSIX"_d;
-            //glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
-            glib += "HAVE_PTHREAD_CONDATTR_SETCLOCK"_d;
+            if (glib.getBuildSettings().TargetOS.Type == OSType::Macos)
+                glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
+            else
+                glib += "HAVE_PTHREAD_CONDATTR_SETCLOCK"_d;
 
             glib.Variables["g_module_suffix"] = "so";
             glib.Variables["g_dir_separator"] = "/";
