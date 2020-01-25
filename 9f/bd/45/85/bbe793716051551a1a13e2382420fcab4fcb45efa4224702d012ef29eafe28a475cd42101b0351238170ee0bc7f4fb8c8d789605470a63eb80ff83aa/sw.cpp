@@ -24,7 +24,6 @@ void build(Solution &s)
         glib -=
             "glib/gtester.c",
             "glib/win_iconv.c",
-            "glib/gspawn.c",
             "glib/gnulib/isnan.c",
             "glib/gstdio-private.c",
             "glib/gwin32-private.c",
@@ -38,6 +37,8 @@ void build(Solution &s)
             glib.Public +=
                 "glib/gnulib"_id;
         }
+        else
+            glib -= "glib/gspawn.c";
         glib.Public +=
             "."_id,
             "glib"_id;
@@ -158,7 +159,8 @@ void build(Solution &s)
             glib.Variables["glib_os"] = "#define G_OS_UNIX";
             glib.Variables["g_threads_impl_def"] = "POSIX";
             glib.Public += "THREADS_POSIX"_d;
-            glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
+            //glib += "HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP"_d;
+            glib += "HAVE_PTHREAD_CONDATTR_SETCLOCK"_d;
 
             glib.Variables["g_module_suffix"] = "so";
             glib.Variables["g_dir_separator"] = "/";
@@ -169,6 +171,10 @@ void build(Solution &s)
             glib.Variables["GLIB_HAVE_ALLOCA_H"] = 1;
             glib += "USE_LIBICONV_GNU"_d;
             glib += "_INTL_REDIRECT_MACROS"_d;
+
+            glib +=
+                "pthread"_slib
+                ;
         }
         else
         {
@@ -486,6 +492,11 @@ HMODULE glib_dll;
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DL";
         // G_MODULE_IMPL_AR
 
+        if (gmodule.getBuildSettings().TargetOS.Type != OSType::Windows)
+        {
+            gmodule += "dl"_slib;
+        }
+
         gmodule.Variables["G_MODULE_HAVE_DLERROR"] = 1;
         gmodule.Variables["G_MODULE_NEED_USCORE"] = 0;
         gmodule.Variables["G_MODULE_BROKEN_RTLD_GLOBAL"] = 0;
@@ -508,8 +519,8 @@ HMODULE glib_dll;
             "gio"_id;
         gio += IncludeDirectory(gio.BinaryDir / "gio");
 
-        gio += "gio/.*\\.c"_r;
-        gio += "gio/.*\\.h"_r;
+        gio += "gio/.*\\.[hc]"_r;
+        gio -= "gio/inotify/.*\\.[hc]"_r;
         gio += "GIO_COMPILATION"_def;
 
         gio -= "gio/gio-launch-desktop.c";
@@ -589,13 +600,23 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio.patch("gio/xdgmime/xdgmimecache.c", "#warning", "//# warning");
         }
         else
+        {
+            gio += "gio/inotify/.*\\.[hc]"_r;
             gio -= "gio/.*win32.*"_rr;
+            gio -= "gio/gregistrysettingsbackend.c";
+            gio += "_GNU_SOURCE"_def;
+            gio += "USE_STATFS"_def;
+            gio += "GIO_MODULE_DIR=\".\""_def;
+            gio += "resolv"_slib;
+        }
 
         //gio.CompileOptions.push_back("/W0");
 
         gio.Public += gobject, gmodule;
         gio.Public += "org.sw.demo.madler.zlib"_dep;
-        gio.Public += "org.sw.demo.tronkko.dirent-master"_dep;
+        gio.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
+        if (gio.getBuildSettings().TargetOS.Type == OSType::Windows)
+            gio.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 
         gio.writeFileOnce(gio.BinaryPrivateDir / "config.h");
 
