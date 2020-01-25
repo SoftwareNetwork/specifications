@@ -7,7 +7,6 @@ void build(Solution &s)
     freetype +=
         RemoteFile("https://git.savannah.gnu.org/cgit/freetype/freetype2.git/snapshot/VER-{M}-{m}-{p}.tar.gz");
 
-    freetype.ApiName = "SW_FREETYPE_LIBRARY_API";
     freetype.setChecks("freetype");
 
     freetype -=
@@ -17,31 +16,9 @@ void build(Solution &s)
         "src/.*\\.[hc]"_rr;
 
     freetype.Private += "FT2_BUILD_LIBRARY"_d;
-    freetype.Private += sw::Shared, "freetype_EXPORTS"_d;
 
-    freetype.Public += "org.sw.demo.bzip2-1"_dep;
-    freetype.Public += "org.sw.demo.glennrp.png-1"_dep;
-
-    freetype.pushBackToFileOnce("include/freetype/config/ftconfig.h", R"(
-    #ifdef FT_BASE
-    #undef FT_BASE
-    #ifdef __cplusplus
-    #define FT_BASE(x) extern "C" SW_FREETYPE_LIBRARY_API x
-    #else
-    #define FT_BASE(x) extern SW_FREETYPE_LIBRARY_API x
-    #endif
-    #endif
-
-    #ifdef FT_EXPORT
-    #undef FT_EXPORT
-    #ifdef __cplusplus
-    #define FT_EXPORT(x) extern "C" SW_FREETYPE_LIBRARY_API x
-    #else
-    #define FT_EXPORT(x) extern SW_FREETYPE_LIBRARY_API x
-    #endif
-    #endif
-
-)");
+    freetype.Public += "org.sw.demo.bzip2"_dep;
+    freetype.Public += "org.sw.demo.glennrp.png"_dep;
 
     if (freetype.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
@@ -57,6 +34,9 @@ void build(Solution &s)
     }
     else
     {
+        freetype.Private += sw::Shared, "DLL_EXPORT"_d;
+        freetype.Interface += sw::Shared, "DLL_IMPORT"_d;
+
         freetype.configureFile(freetype.SourceDir / "include/freetype/config/ftconfig.h",
             "include/freetype/config/ftconfig.h");
     }
