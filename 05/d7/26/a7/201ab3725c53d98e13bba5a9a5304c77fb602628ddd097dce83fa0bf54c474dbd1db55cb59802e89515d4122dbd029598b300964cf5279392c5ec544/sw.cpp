@@ -165,6 +165,9 @@ void build(Solution &s)
             pangocairo -=
                 "pango/pangocairo-win32.*"_rr,
                 "pango/pangowin32.*"_rr;
+
+            pangocairo += "CoreFoundation"_framework;
+            pangocairo += "CoreText"_framework;
         }
 
         pangocairo.writeFileOnce(pangocairo.BinaryPrivateDir / "config.h");

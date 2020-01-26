@@ -64,9 +64,6 @@ void build(Solution &s)
         cairo.Public += "CAIRO_HAS_PNG_FUNCTIONS=1"_d;
         cairo.Public += "CAIRO_HAS_PS_SURFACE=1"_d;
         cairo.Public += "CAIRO_HAS_QT_SURFACE=0"_d;
-        cairo.Public += "CAIRO_HAS_QUARTZ_FONT=0"_d;
-        cairo.Public += "CAIRO_HAS_QUARTZ_IMAGE_SURFACE=0"_d;
-        cairo.Public += "CAIRO_HAS_QUARTZ_SURFACE=0"_d;
         cairo.Public += "CAIRO_HAS_SCRIPT_SURFACE=1"_d;
         cairo.Public += "CAIRO_HAS_SKIA_SURFACE=0"_d;
         cairo.Public += "CAIRO_HAS_SVG_SURFACE=1"_d;
@@ -91,6 +88,26 @@ void build(Solution &s)
         else
         {
             cairo.Public += "CAIRO_HAS_PTHREAD"_d;
+        }
+
+        if (cairo.getBuildSettings().TargetOS.Type == OSType::Macos)
+        {
+            cairo +=
+                "src/cairo-quartz-font.c",
+                "src/cairo-quartz-image-surface.c",
+                "src/cairo-quartz-surface.c";
+            cairo.Public += "CAIRO_HAS_QUARTZ_SURFACE"_def;
+            cairo.Public += "CAIRO_HAS_QUARTZ_IMAGE_SURFACE"_def;
+            cairo.Public += "CAIRO_HAS_QUARTZ_FONT"_def;
+
+            cairo += "CoreFoundation"_framework;
+            cairo += "CoreGraphics"_framework;
+        }
+        else
+        {
+            cairo.Public += "CAIRO_HAS_QUARTZ_FONT=0"_d;
+            cairo.Public += "CAIRO_HAS_QUARTZ_IMAGE_SURFACE=0"_d;
+            cairo.Public += "CAIRO_HAS_QUARTZ_SURFACE=0"_d;
         }
 
         //cairo.Public += "HAVE_CXX11_ATOMIC_PRIMITIVES=1"_d;
