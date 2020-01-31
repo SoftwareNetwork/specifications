@@ -96,12 +96,12 @@ void build(Solution &s)
             auto ch = std::static_pointer_cast<sw::NativeCompiler>(p->clone());
             t.Storage.push_back(ch);
             auto c = dynamic_cast<VisualStudioCompiler*>(ch.get());
-            c->PreprocessToStdout = true; // supress #line directives
+            c->PreprocessSupressLineDirectives = true;
             c->PreprocessToFile = true;
+            c->PreprocessFileName = t.BinaryDir / (f + ".i");
             c->CSourceFile = t.SourceDir / "src" / "x86" / (f + ".S");
             auto cmd = c->createCommand(t.getSolution().getContext());
             cmd->working_directory = t.BinaryDir;
-            cmd->addOutput(t.BinaryDir / (f + ".i"));
             t.registerCommand(*cmd);
             t.add(sw::CallbackType::EndPrepare, [ch, &t]()
             {
