@@ -76,25 +76,24 @@ struct ProtocData
         {
             c << [c = c.c.get(), plugin = plugin, generator = generator]()
             {
-#if defined(SW_CPP_DRIVER_API_VERSION)
-                auto t = plugin->getTarget().as<NativeExecutedTarget*>();
-#else
-                auto t = (NativeExecutedTarget*)&plugin->getTarget();
-#endif
-                if (!t)
-                    throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved");
-                auto p = t->getOutputFile();
+                path p;
+                if (auto t = plugin->getTarget().as<NativeExecutedTarget *>())
+                {
+                    p = t->getOutputFile();
+                }
+                else if (auto t = plugin->getTarget().as<PredefinedTarget *>())
+                {
+                    p = fs::u8path(t->getInterfaceSettings()["output_file"].getValue());
+                }
+                else
+                    throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
                 c->addInput(p);
                 return "--plugin=protoc-gen-" + generator + "=" + p.u8string();
             }
             ;
 
-#if defined(SW_CPP_DRIVER_API_VERSION)
             t.addDummyDependency(plugin);
             c.c->addProgramDependency(plugin);
-#else
-            (t + plugin)->setDummy(true);
-#endif
         }
 
         // input
