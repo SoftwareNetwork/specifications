@@ -82,13 +82,14 @@ void build(Solution &s)
 #define HAVE_AS_X86_PCREL 1
 )");
 
-    if (s.DryRun)
+    if (t.DryRun)
         return;
 
     if (t.getCompilerType() == CompilerType::MSVC)
     {
         String f = t.getBuildSettings().TargetOS.Arch == ArchType::x86_64 ? "win64" : "sysv";
         f += "_intel";
+        auto out = t.BinaryDir / (f + ".i");
         {
             auto p = t.findProgramByExtension(".c");
             if (!p)
@@ -98,7 +99,7 @@ void build(Solution &s)
             auto c = dynamic_cast<VisualStudioCompiler*>(ch.get());
             c->PreprocessSupressLineDirectives = true;
             c->PreprocessToFile = true;
-            c->PreprocessFileName = t.BinaryDir / (f + ".i");
+            c->PreprocessFileName = out;
             c->CSourceFile = t.SourceDir / "src" / "x86" / (f + ".S");
             auto cmd = c->createCommand(t.getSolution().getContext());
             cmd->working_directory = t.BinaryDir;
@@ -121,7 +122,7 @@ void build(Solution &s)
             c->SafeSEH = true;
             const auto o = t.BinaryDir / "pre.obj";
             c->Output = o;
-            c->InputFile = t.BinaryDir / (f + ".i");
+            c->InputFile = out;
             auto cmd = c->createCommand(t.getSolution().getContext());
             cmd->addOutput(o);
             t += o;
