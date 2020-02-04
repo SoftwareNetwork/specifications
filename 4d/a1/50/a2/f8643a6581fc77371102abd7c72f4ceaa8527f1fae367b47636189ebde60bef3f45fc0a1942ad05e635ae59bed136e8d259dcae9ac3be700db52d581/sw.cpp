@@ -43,13 +43,15 @@ void build(Solution &s)
             "support/regex_internal.c",
             "support/regexec.c";
 
+        if (gawk.getBuildSettings().TargetOS.Type != OSType::Windows)
+            gawk -= "pc/.*"_rr;
+
         gawk ^= "pc/config.h";
         gawk ^= "pc/socket.h";
 
         gawk.Private +=
             "."_id,
-            "support"_id,
-            "pc"_id;
+            "support"_id;
 
         gawk += "_GNU_SOURCE"_def;
         gawk += "HAVE_SETENV"_def;
@@ -66,6 +68,8 @@ void build(Solution &s)
         gawk.Private += Definition{ "VERSION=\"" + gawk.Variables["PACKAGE_VERSION"].toString() + "\"" };
         if (gawk.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
+            gawk.Private += "pc"_id;
+
             gawk.Private += "HAVE_POPEN_H=1"_d;
             gawk.Private += "P_WAIT=0"_d;
             gawk.Private += "SHLIBEXT=\"dll\""_d;
@@ -120,7 +124,6 @@ inline int __CRTDECL mbsinit(
         }
         else
         {
-            gawk -= "pc/.*"_rr;
             gawk += "GETGROUPS_T=gid_t"_def;
             gawk += "GETPGRP_VOID=1"_def;
             if (gawk.getBuildSettings().TargetOS.Type == OSType::Macos)
