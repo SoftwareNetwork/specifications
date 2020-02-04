@@ -2,11 +2,6 @@ struct GawkExecutable : ExecutableTarget
 {
     void setupCommand(builder::Command &c) const override
     {
-        if (getBuildSettings().TargetOS.Type != OSType::Windows)
-        {
-            c.setProgram("gawk");
-            return;
-        }
         ExecutableTarget::setupCommand(c);
     }
 };
@@ -18,8 +13,6 @@ void build(Solution &s)
 
     auto &getopt = p.addTarget<StaticLibraryTarget>("getopt");
     {
-        if (!getopt.getBuildSettings().TargetOS.is(OSType::Windows))
-            getopt.HeaderOnly = true;
         getopt +=
             "support/getopt\\.[hc]"_rr,
             "support/getopt_.*"_rr;
@@ -32,8 +25,6 @@ void build(Solution &s)
 
     auto &gawk = p.addTarget<GawkExecutable>("gawk");
     {
-        if (!gawk.getBuildSettings().TargetOS.is(OSType::Windows))
-            gawk.HeaderOnly = true;
         gawk.PackageDefinitions = true;
         gawk.setChecks("gawk", true);
 
@@ -60,7 +51,7 @@ void build(Solution &s)
             "support"_id,
             "pc"_id;
 
-        gawk += "__USE_GNU"_def;
+        gawk += "_GNU_SOURCE"_def;
         gawk += "HAVE_SETENV"_def;
         if (gawk.getBuildSettings().TargetOS.Type == OSType::Windows)
             gawk += "HAVE_USLEEP"_def;
@@ -84,19 +75,17 @@ void build(Solution &s)
             gawk.Private += "popen=_popen"_d;
             gawk.Private += "restrict="_d;
             gawk.Private += "S_IFIFO=_S_IFIFO"_d;
-        }
 
-        gawk.replaceInFileOnce("support/regex_internal.c", "__attribute ((pure))", "");
-        gawk.replaceInFileOnce("support/regexec.c", "__attribute ((always_inline))", "");
+            gawk.replaceInFileOnce("support/regex_internal.c", "__attribute ((pure))", "");
+            gawk.replaceInFileOnce("support/regexec.c", "__attribute ((always_inline))", "");
 
-        gawk.patch("support/regex.c", "# include <libc-config.h>", R"(
+            gawk.patch("support/regex.c", "# include <libc-config.h>", R"(
 # include <config.h>
 #define __glibc_likely(x) x
 #define __glibc_unlikely(x) x
 )");
 
-        gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
-
+            gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
 #if defined(_WIN32) && !defined(_WIN64) && !defined(SW_STATIC)
 #ifndef NDEBUG
 inline int __CRTDECL mbsinit(
@@ -109,28 +98,35 @@ inline int __CRTDECL mbsinit(
 #endif
 
 #ifdef __cplusplus
-
 )");
 
-        gawk.replaceInFileOnce("nonposix.h", "#define setlocale", "//#define setlocale");
-        gawk.replaceInFileOnce("gawkmisc.c", "#if defined(__EMX__)", "#include \"cppan_misc.h\"\n#if defined(__EMX__)");
+            gawk.replaceInFileOnce("nonposix.h", "#define setlocale", "//#define setlocale");
+            gawk.replaceInFileOnce("gawkmisc.c", "#if defined(__EMX__)", "#include \"cppan_misc.h\"\n#if defined(__EMX__)");
 
-        gawk.replaceInFileOnce("io.c", "#include \"awk.h\"", "#include \"awk.h\"\n#undef param\n#define __MINGW32__");
+            gawk.replaceInFileOnce("io.c", "#include \"awk.h\"", "#include \"awk.h\"\n#undef param\n#define __MINGW32__");
 
-        gawk.replaceInFileOnce("pc/gawkmisc.pc", "wctob", "wctobb");
-        gawk.replaceInFileOnce("pc/gawkmisc.pc", "int execvp", "intptr_t execvp");
+            gawk.replaceInFileOnce("pc/gawkmisc.pc", "wctob", "wctobb");
+            gawk.replaceInFileOnce("pc/gawkmisc.pc", "int execvp", "intptr_t execvp");
 
-        gawk.replaceInFileOnce("pc/popen.c", "#include \"popen.h\"", "#define __MINGW32__\n#include \"popen.h\"");
-        gawk.replaceInFileOnce("pc/popen.c", "#undef popen", "//#undef  popen");
-        gawk.replaceInFileOnce("pc/popen.c", "#undef pclose", "//#undef  pclose");
+            gawk.replaceInFileOnce("pc/popen.c", "#include \"popen.h\"", "#define __MINGW32__\n#include \"popen.h\"");
+            gawk.replaceInFileOnce("pc/popen.c", "#undef popen", "//#undef  popen");
+            gawk.replaceInFileOnce("pc/popen.c", "#undef pclose", "//#undef  pclose");
 
-        gawk.replaceInFileOnce("pc/popen.c", "#include <stdio.h>", "#define _CRT_DECLARE_NONSTDC_NAMES 1\n#include <stdio.h>");
+            gawk.replaceInFileOnce("pc/popen.c", "#include <stdio.h>", "#define _CRT_DECLARE_NONSTDC_NAMES 1\n#include <stdio.h>");
 
-        if (gawk.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
             gawk.writeFileOnce(gawk.BinaryPrivateDir / "unistd.h");
             gawk.pushFrontToFileOnce("pc/getid.c", "#define __MINGW32__ 1");
             gawk += "ws2_32.lib"_slib;
+        }
+        else
+        {
+            gawk -= "pc/.*"_rr;
+            gawk += "GETGROUPS_T=gid_t"_def;
+            gawk += "GETPGRP_VOID=1"_def;
+            if (gawk.getBuildSettings().TargetOS.Type == OSType::Macos)
+                gawk.Private += "SHLIBEXT=\"dylib\""_d;
+            else
+                gawk.Private += "SHLIBEXT=\"so\""_d;
         }
 
         gawk.writeFileOnce(gawk.BinaryPrivateDir / "cppan_misc.h",
@@ -338,5 +334,130 @@ void check(Checker &c)
         s.checkTypeSize("void *");
         s.checkSymbolExists("snprintf").Parameters.Includes.push_back("stdio.h");
         s.checkSymbolExists("vsnprintf").Parameters.Includes.push_back("stdio.h");
+
+        //
+        s.checkIncludeExists("arpa/inet.h");
+        s.checkIncludeExists("fcntl.h");
+        s.checkIncludeExists("locale.h");
+        s.checkIncludeExists("libintl.h");
+        s.checkIncludeExists("mcheck.h");
+        s.checkIncludeExists("netdb.h");
+        s.checkIncludeExists("netinet/in.h");
+        s.checkIncludeExists("stddef.h");
+        s.checkIncludeExists("string.h");
+        s.checkIncludeExists("sys/ioctl.h");
+        s.checkIncludeExists("sys/param.h");
+        s.checkIncludeExists("sys/select.h");
+        s.checkIncludeExists("sys/socket.h");
+        s.checkIncludeExists("sys/time.h");
+        s.checkIncludeExists("unistd.h");
+        s.checkIncludeExists("termios.h");
+        s.checkIncludeExists("stropts.h");
+        s.checkIncludeExists("wchar.h");
+        s.checkIncludeExists("wctype.h");
+        s.checkIncludeExists("stdlib.h");
+        s.checkSourceCompiles("STDC_HEADERS", R"sw_xxx(
+        #include <stdlib.h>
+        #include <stdarg.h>
+        #include <string.h>
+        #include <float.h>
+        int main() {return 0;}
+        )sw_xxx");
+        s.checkIncludeExists("stdbool.h");
+        s.checkIncludeExists("sys/wait.h");
+        s.checkIncludeExists("time.h");
+        s.checkSourceCompiles("HAVE_TIME_WITH_SYS_TIME", R"sw_xxx(
+        #include <time.h>
+        #include <sys/time.h>
+        int main() {return 0;}
+        )sw_xxx");
+        s.checkIncludeExists("memory.h");
+        s.checkIncludeExists("strings.h");
+        s.checkTypeSize("pid_t");
+        s.checkTypeSize("size_t");
+        s.checkTypeSize("getgroups");
+        s.checkTypeSize("long_long_int");
+        s.checkTypeSize("unsigned_long_long_int");
+        s.checkTypeSize("intmax_t");
+        s.checkTypeSize("uintmax_t");
+        s.checkTypeSize("ssize_t");
+        s.checkTypeSize("unsigned");
+        s.checkTypeSize("int");
+        s.checkTypeSize("unsigned");
+        s.checkTypeSize("long");
+        s.checkTypeSize("socklen_t");
+        s.checkFunctionExists("mktime");
+        s.checkFunctionExists("getaddrinfo");
+        s.checkLibraryFunctionExists("getaddrinfo", "getaddrinfo.socket");
+        s.checkFunctionExists("__etoa_l");
+        s.checkFunctionExists("atexit");
+        s.checkFunctionExists("btowc");
+        s.checkFunctionExists("fmod");
+        s.checkFunctionExists("gai_strerror");
+        s.checkFunctionExists("getgrent");
+        s.checkFunctionExists("getgroups");
+        s.checkFunctionExists("grantpt");
+        s.checkFunctionExists("fwrite_unlocked");
+        s.checkFunctionExists("isascii");
+        s.checkFunctionExists("iswctype");
+        s.checkFunctionExists("iswlower");
+        s.checkFunctionExists("iswupper");
+        s.checkFunctionExists("mbrlen");
+        s.checkFunctionExists("memcmp");
+        s.checkFunctionExists("memcpy");
+        s.checkFunctionExists("memcpy_ulong");
+        s.checkFunctionExists("memmove");
+        s.checkFunctionExists("memset");
+        s.checkFunctionExists("memset_ulong");
+        s.checkFunctionExists("mkstemp");
+        s.checkFunctionExists("posix_openpt");
+        s.checkFunctionExists("setenv");
+        s.checkFunctionExists("setlocale");
+        s.checkFunctionExists("setsid");
+        s.checkFunctionExists("sigprocmask");
+        {
+            auto &c = s.checkSymbolExists("snprintf");
+            c.Parameters.Includes.push_back("stdio.h");
+        }
+        s.checkFunctionExists("strchr");
+        s.checkFunctionExists("strerror");
+        s.checkFunctionExists("strftime");
+        s.checkFunctionExists("strcasecmp");
+        s.checkFunctionExists("strncasecmp");
+        s.checkFunctionExists("strcoll");
+        s.checkFunctionExists("strtod");
+        s.checkFunctionExists("strtoul");
+        s.checkFunctionExists("system");
+        s.checkFunctionExists("timegm");
+        s.checkFunctionExists("tmpfile");
+        s.checkFunctionExists("towlower");
+        s.checkFunctionExists("towupper");
+        s.checkFunctionExists("tzset");
+        s.checkFunctionExists("usleep");
+        s.checkFunctionExists("waitpid");
+        s.checkFunctionExists("wcrtomb");
+        s.checkFunctionExists("wcscoll");
+        s.checkFunctionExists("wctype");
+        s.checkFunctionExists("mbrtowc");
+        s.checkIncludeExists("dlfcn.h");
+        s.checkFunctionExists("getpgrp");
+        {
+            auto &c = s.checkStructMemberExists("st_blksize", "st_blksize.struct stat");
+            c.Parameters.Includes.push_back("sys/stat.h");
+        }
+        {
+            auto &c = s.checkStructMemberExists("pw_passwd", "pw_passwd.struct passwd");
+        }
+        {
+            auto &c = s.checkStructMemberExists("gr_passwd", "gr_passwd.struct group");
+        }
+        s.checkSourceCompiles("TM_IN_SYS_TIME", R"sw_xxx(
+        #include <time.h>
+        int main() { struct tm t; return 0; }
+        )sw_xxx");
+        {
+            auto &c = s.checkSymbolExists("tzname");
+            c.Parameters.Includes.push_back("time.h");
+        }
     }
 }
