@@ -82,6 +82,10 @@ void build(Solution &s)
         {
             llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib;
         }
+        else
+        {
+            llvm_support_lite += "pthread"_slib;
+        }
     }
 }
 
