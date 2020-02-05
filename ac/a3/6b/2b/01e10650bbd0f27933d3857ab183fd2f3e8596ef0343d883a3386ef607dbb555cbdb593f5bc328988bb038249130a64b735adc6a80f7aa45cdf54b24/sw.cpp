@@ -48,6 +48,7 @@ void build(Solution &s)
         auto cc = std::static_pointer_cast<sw::NativeCompiler>(fontconfig.findProgramByExtension(".cpp")->clone());
         cc->IncludeDirectories.push_back(fontconfig.SourceDir);
         auto c = cc->createCommand(fontconfig.getSolution().getContext());
+        c->working_directory = fontconfig.BinaryDir;
         c->arguments.push_back("-E");
         c->arguments.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());
         c->addInput(fontconfig.SourceDir / "src/fcobjshash.gperf.h");
@@ -67,7 +68,7 @@ void build(Solution &s)
                 << cmd::prog("org.sw.demo.gnu.sed.sed"_dep)
                 << "s/^ *//;s/ *, */,/"
                 |
-            fontconfig.addCommand()
+                fontconfig.addCommand()
                 << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
                 << "\\\n\
 		            /CUT_OUT_BEGIN/ { no_write=1; next; }; \\\n\

@@ -28,7 +28,8 @@ void build(Solution &s)
 
         auto cc = std::static_pointer_cast<VisualStudioCompiler>(t.findProgramByExtension(".cpp")->clone());
         cc->CompileAsC = true;
-        cc->PreprocessToStdout = true;
+        //cc->PreprocessToStdout = true;
+        cc->PreprocessSupressLineDirectives = true;
         cc->IncludeDirectories.insert(t.SourceDir / "include");
         cc->InputFile = t.SourceDir / ("src/" + name + "/" + arch + "-" + name + "-export.def");
 
@@ -58,6 +59,7 @@ void build(Solution &s)
             "src/tbb/.*\\.h"_rr,
             "src/tbb/.*\\.lst"_rr;
         tbb ^= "include/tbb/tbbmalloc_proxy.h";
+        tbb -= "src/tbb/tbb_bind.cpp";
 
         tbb.Private +=
             "src"_id,

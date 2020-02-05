@@ -88,7 +88,7 @@ struct YasmCompiler : sw::NativeCompiler,
         addEverything(*cmd);
     }
 
-    void setSourceFile(const path &input_file, path &output_file) override
+    void setSourceFile(const path &input_file, const path &output_file) override
     {
         InputFile = input_file.u8string();
         setOutputFile(output_file);
