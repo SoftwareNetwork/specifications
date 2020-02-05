@@ -101,7 +101,10 @@ void build(Solution &s)
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             t += "HAVE_NT_THREADS"_def;
         else
+        {
             t += "HAVE_PTHREADS=10"_def;
+            t += "pthread"_slib;
+        }
 
         t.Public += lber;
     }

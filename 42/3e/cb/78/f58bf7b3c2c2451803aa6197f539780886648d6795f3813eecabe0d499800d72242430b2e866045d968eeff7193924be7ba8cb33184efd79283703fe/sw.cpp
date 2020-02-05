@@ -58,7 +58,8 @@ void build(Solution &s)
             crypto.Private += "HAVE_DLFCN_H"_d;
             crypto.Private += "DSO_DLFCN"_d;
             //crypto.Private += "DSO_DL"_d;
-            crypto.Public += "dl"_slib;
+            crypto += "dl"_slib;
+            crypto += "pthread"_slib;
         }
 
         if (crypto.getBuildSettings().TargetOS.Type == OSType::Windows)

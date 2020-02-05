@@ -82,5 +82,7 @@ void build(Solution &s)
             uv += "_POSIX_C_SOURCE=200112"_def;
             break;
         }
+        uv += "dl"_slib;
+        uv += "pthread"_slib;
     }
 }
