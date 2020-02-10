@@ -408,6 +408,7 @@ void build(Solution &s)
     boost_targets["math"]->Public.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "include");
     boost_targets["math"]->Public += sw::Shared, "BOOST_MATH_TR1_DYN_LINK"_d;
 
+    *boost_targets["locale"] -= "org.sw.demo.unicode.icu.i18n"_dep;
     if (boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         *boost_targets["locale"] -= "src/icu/.*"_rr;
@@ -550,7 +551,7 @@ void build(Solution &s)
     *boost_targets["python"] += "org.sw.demo.python.lib"_dep;
     *boost_targets["python"] -= "src/numpy/.*"_rr;
     //if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
-        //*boost_targets["python"] -= "src/.*"_rr;
+    //*boost_targets["python"] -= "src/.*"_rr;
     //
 
     boost_deps(boost_targets);
