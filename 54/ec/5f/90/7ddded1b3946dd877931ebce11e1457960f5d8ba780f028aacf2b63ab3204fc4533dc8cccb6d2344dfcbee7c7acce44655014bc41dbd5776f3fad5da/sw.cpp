@@ -69,7 +69,7 @@ void build(Solution &s)
             "org.sw.demo.nlohmann.json-3"_dep,
             "org.sw.demo.boost.variant"_dep,
             "org.sw.demo.boost.dll"_dep,
-            "org.sw.demo.rbock.sqlpp11_connector_sqlite3-develop"_dep
+            "org.sw.demo.rbock.sqlpp11_connector_sqlite3-master"_dep
             ;
         srcdep->getSettings()["export-if-static"] = "true";
         srcdep->getSettings()["export-if-static"].setRequired();
@@ -128,6 +128,9 @@ void build(Solution &s)
         if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             core += "OleAut32.lib"_slib;
         core += "org.sw.demo.Neargye.magic_enum"_dep;
+        embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, core, "src/sw/core/inserts/input_db_schema.sql");
+        gen_sqlite2cpp("pub.egorpugin.primitives.tools.sqlpp11.sqlite2cpp-master"_dep,
+            core, core.SourceDir / "src/sw/core/inserts/input_db_schema.sql", "db_inputs.h", "db::inputs");
     }
 
     auto &cpp_driver = p.addTarget<LibraryTarget>("driver.cpp");
