@@ -10,6 +10,9 @@ void build(Solution &s)
         libtesseract.ExportAllSymbols = true;
         libtesseract.PackageDefinitions = true;
 
+        libtesseract += cpp14;
+
+        libtesseract += "src/.*"_rr;
         libtesseract -= "src/lstm/.*\\.cc"_rr;
         libtesseract -= "src/training/.*"_rr;
 
@@ -40,8 +43,33 @@ void build(Solution &s)
             libtesseract += "__SSE4_1__"_def;
             libtesseract.CompileOptions.push_back("-arch:AVX2");
 
-            libtesseract -=
-                "src/arch/dotproductfma.cpp";
+            // openmp
+            //if (libtesseract.getOptions()["openmp"] == "true")
+            if (0)
+            {
+                if (libtesseract.getCompilerType() == CompilerType::MSVC)
+                    libtesseract.CompileOptions.push_back("-openmp");
+                else
+                    libtesseract.CompileOptions.push_back("-fopenmp");
+                libtesseract += "_OPENMP=201107"_def;
+                if (libtesseract.getBuildSettings().Native.ConfigurationType == ConfigurationType::Debug)
+                    libtesseract += "vcompd.lib"_slib;
+                else
+                    libtesseract += "vcomp.lib"_slib;
+            }
+        }
+
+        // check fma flags
+        libtesseract -= "src/arch/dotproductfma.cpp";
+
+        if (libtesseract.getBuildSettings().TargetOS.Type != OSType::Windows)
+        {
+            libtesseract["src/arch/dotproductavx.cpp"].args.push_back("-mavx");
+            libtesseract["src/arch/dotproductsse.cpp"].args.push_back("-msse4.1");
+            libtesseract["src/arch/intsimdmatrixsse.cpp"].args.push_back("-msse4.1");
+            libtesseract["src/arch/intsimdmatrixavx2.cpp"].args.push_back("-mavx2");
+
+            libtesseract += "pthread"_slib;
         }
 
         libtesseract.Public += "HAVE_CONFIG_H"_d;
@@ -68,16 +96,19 @@ void build(Solution &s)
 
     //
     auto &tesseract = tess.addExecutable("tesseract");
+    tesseract += cpp14;
     tesseract += "src/api/tesseractmain.cpp";
     tesseract += libtesseract;
 
     //
     auto &tessopt = tess.addStaticLibrary("tessopt");
+    tessopt += cpp14;
     tessopt += "src/training/tessopt.*"_rr;
     tessopt.Public += libtesseract;
 
     //
     auto &common_training = tess.addStaticLibrary("common_training");
+    common_training += cpp14;
     common_training +=
         "src/training/commandlineflags.cpp",
         "src/training/commandlineflags.h",
@@ -103,6 +134,7 @@ void build(Solution &s)
 
     //
     auto &unicharset_training = tess.addStaticLibrary("unicharset_training");
+    unicharset_training += cpp14;
     unicharset_training +=
         "src/training/fileio.*"_rr,
         "src/training/icuerrorcode.*"_rr,
@@ -119,6 +151,7 @@ void build(Solution &s)
     //
 #define ADD_EXE(n, ...)               \
     auto &n = tess.addExecutable(#n); \
+    n += cpp14;                       \
     n += "src/training/" #n ".*"_rr;  \
     n.Public += __VA_ARGS__;          \
     n
@@ -138,6 +171,7 @@ void build(Solution &s)
     ADD_EXE(set_unicharset_properties, unicharset_training);
 
     ADD_EXE(text2image, unicharset_training);
+    text2image += cpp14;
     text2image +=
         "src/training/boxchar.cpp",
         "src/training/boxchar.h",
