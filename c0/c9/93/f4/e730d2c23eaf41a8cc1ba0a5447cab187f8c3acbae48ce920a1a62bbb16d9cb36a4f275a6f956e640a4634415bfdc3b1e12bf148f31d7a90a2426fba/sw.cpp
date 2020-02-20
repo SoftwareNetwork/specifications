@@ -5,7 +5,7 @@
 
 void build(Solution &s)
 {
-    auto &p = s.addProject("sw.client", "0.4.0");
+    auto &p = s.addProject("sw.client", "0.4.1");
     p += Git("https://github.com/SoftwareNetwork/sw", "", "master");
 
     auto &support = p.addTarget<StaticLibraryTarget>("support");
@@ -49,7 +49,7 @@ void build(Solution &s)
             gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, "org.sw.demo.google.grpc.cpp.plugin"_dep, protos, p, d);
     }
 
-    auto &manager = p.addTarget<LibraryTarget>("manager");
+    auto &manager = p.addTarget<StaticLibraryTarget>("manager");
     {
         manager.ApiName = "SW_MANAGER_API";
         manager.ExportIfStatic = true;
@@ -97,7 +97,7 @@ void build(Solution &s)
         }*/
     }
 
-    auto &builder = p.addTarget<LibraryTarget>("builder");
+    auto &builder = p.addTarget<StaticLibraryTarget>("builder");
     {
         builder.ApiName = "SW_BUILDER_API";
         builder.ExportIfStatic = true;
@@ -118,7 +118,7 @@ void build(Solution &s)
         }
     }
 
-    auto &core = p.addTarget<LibraryTarget>("core");
+    auto &core = p.addTarget<StaticLibraryTarget>("core");
     {
         core.ApiName = "SW_CORE_API";
         core.ExportIfStatic = true;
@@ -161,7 +161,7 @@ void build(Solution &s)
             self_builder.CPPVersion = CPPLanguageStandard::CPP17;
             self_builder += "src/sw/tools/self_builder.cpp";
             self_builder +=
-                manager,
+                core,
                 "pub.egorpugin.primitives.emitter-master"_dep,
                 "pub.egorpugin.primitives.sw.main-master"_dep;
 
