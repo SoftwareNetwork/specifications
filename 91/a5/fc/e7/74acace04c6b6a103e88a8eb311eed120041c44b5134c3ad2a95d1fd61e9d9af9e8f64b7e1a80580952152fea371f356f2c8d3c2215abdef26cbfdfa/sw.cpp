@@ -13,10 +13,11 @@ void build(Solution &s)
         for (int v : {13, 12, 11, 10})
         {
             auto p = base / std::to_string(v);
-            if (fs::exists(p))
+            auto lib = p / "lib" / "libpq.lib";
+            if (fs::exists(lib))
             {
                 libpq.Public.IncludeDirectories.insert(p / "include");
-                libpq.Public.LinkLibraries.insert(p / "lib" / "libpq.lib");
+                libpq.Public.LinkLibraries.insert(lib);
             }
         }
     }
