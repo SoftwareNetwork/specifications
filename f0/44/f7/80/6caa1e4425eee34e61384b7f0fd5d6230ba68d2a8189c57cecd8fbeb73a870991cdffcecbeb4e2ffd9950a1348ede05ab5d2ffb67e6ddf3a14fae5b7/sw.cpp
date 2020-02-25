@@ -128,18 +128,21 @@ void build(Solution &s)
         else
         {
             data.ExportAllSymbols = true;
-            auto c1 = data.addCommand();
-            c1 << data
-                << cmd::prog("cp")
-                << cmd::in(path("data") / "in" / (namel + ".dat"))
-                << cmd::out(path("data") / "in" / (name + ".dat"))
-                ;
+
+            auto in = data.SourceDir / "data" / "in" / (namel + ".dat");
+            auto out = data.BinaryDir / "data" / "in" / (name + ".dat");
+            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, data, "sw_copy_file", nullptr);
+            copy_cmd->arguments.push_back(in);
+            copy_cmd->arguments.push_back(out);
+            copy_cmd->addInput(in);
+            copy_cmd->addOutput(out);
+
             obj = data.BinaryDir / (name + "_dat.c");
             auto c = data.addCommand();
             c << data
                 << cmd::prog(s_genccode)
                 << "-d" << obj.parent_path()
-                << cmd::in(path("data") / "in" / (name + ".dat"))
+                << cmd::in(out)
                 << cmd::end() << cmd::out(obj)
                 ;
         }
