@@ -131,11 +131,23 @@ void build(Solution &s)
 
             auto in = data.SourceDir / "data" / "in" / (namel + ".dat");
             auto out = data.BinaryDir / "data" / "in" / (name + ".dat");
-            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, data, "sw_copy_file", nullptr);
-            copy_cmd->arguments.push_back(in);
-            copy_cmd->arguments.push_back(out);
-            copy_cmd->addInput(in);
-            copy_cmd->addOutput(out);
+            if (data.getContext().getHostOs().is(OSType::Windows))
+            {
+                SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, data, "sw_copy_file", nullptr);
+                copy_cmd->arguments.push_back(in);
+                copy_cmd->arguments.push_back(out);
+                copy_cmd->addInput(in);
+                copy_cmd->addOutput(out);
+            }
+            else
+            {
+                auto c1 = data.addCommand();
+                c1 << data
+                    << cmd::prog("cp")
+                    << cmd::in(in)
+                    << cmd::out(out)
+                    ;
+            }
 
             obj = data.BinaryDir / (name + "_dat.c");
             auto c = data.addCommand();
