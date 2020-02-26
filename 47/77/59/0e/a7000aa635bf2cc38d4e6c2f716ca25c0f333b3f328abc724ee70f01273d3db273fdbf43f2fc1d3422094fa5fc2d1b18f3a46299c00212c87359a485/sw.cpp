@@ -18,6 +18,7 @@ void build(Solution &s)
         t -= ".*/test_.*cc"_rr;
         t -= "hash/internal/print_hash_of.cc";
         t -= "random/benchmarks.cc";
+        t -= "random/mocking_bit_gen.cc";
         t -= "synchronization/internal/waiter.cc";
     }
 
