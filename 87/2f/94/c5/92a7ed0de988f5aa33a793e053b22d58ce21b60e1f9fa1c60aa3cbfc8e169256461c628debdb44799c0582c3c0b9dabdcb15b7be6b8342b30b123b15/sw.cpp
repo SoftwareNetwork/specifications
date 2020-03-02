@@ -11,12 +11,14 @@ void build(Solution &s)
         "contrib/minizip/miniunz.c";
 
     minizip.Public +=
-        "contrib"_id;
+        "contrib"_id,
+        "contrib/minizip"_id
+        ;
 
     minizip.Public += "HAVE_BZIP2"_d;
     minizip.Private += sw::Shared, "ZLIB_INTERNAL"_d;
     minizip.Public += sw::Shared, "ZLIB_DLL"_d;
 
-    minizip.Public += "org.sw.demo.bzip2-1"_dep;
-    minizip.Public += "org.sw.demo.madler.zlib-1"_dep;
+    minizip.Public += "org.sw.demo.bzip2"_dep;
+    minizip.Public += "org.sw.demo.madler.zlib"_dep;
 }
