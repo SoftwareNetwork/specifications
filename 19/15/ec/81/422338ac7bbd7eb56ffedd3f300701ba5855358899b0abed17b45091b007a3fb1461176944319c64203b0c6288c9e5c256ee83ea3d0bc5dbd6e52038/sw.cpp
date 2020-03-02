@@ -53,7 +53,7 @@ void build(Solution &s)
         gnulib.Public += "org.sw.demo.gnu.gawk.getopt"_dep;
         gnulib.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
-        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
+        if (gnulib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gnulib.Public += "org.sw.demo.tronkko.dirent-master"_dep;
             //gnulib.Public += "HAVE_FCNTL"_def;
@@ -73,10 +73,10 @@ void build(Solution &s)
         gnulib.Variables["GNULIB_SCANDIR"] = "0";
         gnulib.Variables["GNULIB_ALPHASORT"] = "0";
 
-        if (gnulib.getSettings().TargetOS.Type == OSType::Windows)
+        if (gnulib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             //gnulib += "__inline=inline"_def;
-            if (gnulib.getSettings().TargetOS.is(ArchType::x86_64))
+            if (gnulib.getBuildSettings().TargetOS.is(ArchType::x86_64))
             {
                 gnulib += "WINDOWS_64_BIT_ST_SIZE=1"_def;
                 gnulib += "WINDOWS_64_BIT_OFF_T=1"_def;
@@ -745,7 +745,7 @@ char * strsignal(int);
         m4.Private += "ENABLE_CHANGEWORD"_d;
         m4.Public += gnulib;
 
-        if (m4.getSettings().TargetOS.Type == OSType::Windows)
+        if (m4.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             m4 += "RENAME_OPEN_FILE_WORKS=0"_def;
             m4 += "SYSCMD_SHELL=\"cmd\""_def;
@@ -766,7 +766,7 @@ char * strsignal(int);
             m4 += "SYSCMD_SHELL=\"\""_def;
         }
 
-        if (auto L = m4.Linker->as<VisualStudioLinker>(); L)
+        if (auto L = m4.Linker->as<VisualStudioLinker*>(); L)
             L->Force = vs::ForceType::Multiple;
 
         m4.writeFileOnce(m4.BinaryPrivateDir / "unistd.h");
