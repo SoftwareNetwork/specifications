@@ -98,9 +98,16 @@ void build(Solution &s)
     libcurl.Public += "CURL_HIDDEN_SYMBOLS"_d;
     libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
-    libcurl.Public += "HAVE_GSSAPI"_d;
-    if (!libcurl.getBuildSettings().TargetOS.isApple())
-        libcurl.Public += "HAVE_GSSGNU"_d;
+    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
+    {
+        libcurl.Public += "HAVE_GSSAPI"_d;
+        if (!libcurl.getBuildSettings().TargetOS.isApple())
+            libcurl.Public += "HAVE_GSSGNU"_d;
+    }
+    else
+    {
+        libcurl += "USE_WINDOWS_SSPI"_def;
+    }
     libcurl.Public += "HAVE_LIBSSH2_H"_d;
     libcurl.Public += "HAVE_LIBZ"_d;
     libcurl.Public += "HAVE_SOCKET"_d;
@@ -114,11 +121,11 @@ void build(Solution &s)
         libcurl.Private += "HAVE_CONFIG_H"_d;
     }
 
-    //libcurl.Public += "org.sw.demo.c_ares-1"_dep;
-    libcurl.Public += "org.sw.demo.gnu.gss-1"_dep;
-    libcurl.Public += "org.sw.demo.nghttp2-1"_dep;
-    libcurl.Public += "org.sw.demo.libssh2-1"_dep;
-    libcurl.Public += "org.sw.demo.madler.zlib-1"_dep;
+    //libcurl.Public += "org.sw.demo.c_ares"_dep;
+    libcurl += "org.sw.demo.gnu.gss"_dep;
+    libcurl.Public += "org.sw.demo.nghttp2"_dep;
+    libcurl.Public += "org.sw.demo.libssh2"_dep;
+    libcurl.Public += "org.sw.demo.madler.zlib"_dep;
     libcurl.Public -= "org.sw.demo.openldap.ldap_r"_dep;
 
     if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows)

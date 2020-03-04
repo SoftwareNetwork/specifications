@@ -12,8 +12,12 @@ void build(Solution &s)
     gss -=
         "lib/gl/strverscmp.c";
 
-    gss.Public +=
-        "lib/headers"_id;
+    //gss += "USE_KERBEROS5"_def;
+    //gss += "lib/krb5/.*"_rr;
+    //gss += "lib/"_idir;
+    //gss += "org.sw.demo.gnu.shishi"_dep;
+
+    gss.Public += "lib/headers"_id;
 
     gss.Public += "org.sw.demo.gnu.gettext.intl"_dep;
 
