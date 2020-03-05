@@ -11,7 +11,7 @@ void build(Solution &s)
     if (pqxx.getBuildSettings().TargetOS.Type == OSType::Windows)
         pqxx.Public += "ws2_32.lib"_slib;
 
-    pqxx.Public += "org.sw.demo.find.libpq-master"_dep;
+    pqxx += "org.sw.demo.postgres.pq"_dep;
 
     pqxx.writeFileOnce("pqxx/config-public-compiler.h");
     pqxx.writeFileOnce("pqxx/config-internal-libpq.h");
