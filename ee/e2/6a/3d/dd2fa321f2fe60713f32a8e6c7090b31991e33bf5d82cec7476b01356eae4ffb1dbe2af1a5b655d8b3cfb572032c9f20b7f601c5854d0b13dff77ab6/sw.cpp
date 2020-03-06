@@ -70,6 +70,10 @@ void build(Solution &s)
             t.Variables["USE_WIN32_SEMAPHORES"] = 1;
             t.Variables["USE_WIN32_SHARED_MEMORY"] = 1;
         }
+        else
+        {
+            t.Variables["USE_OPENSSL_RANDOM"] = 1;
+        }
 
         t.Variables["FLEXIBLE_ARRAY_MEMBER"] = "/**/"; // win32
 
@@ -162,9 +166,22 @@ void build(Solution &s)
     auto &port = pg.addStaticLibrary("port");
     {
         port += "src/port/.*\\.[hc]"_r;
-        port -= "src/port/pg_crc32c_armv8.c";
+        port -= "src/port/.*armv8.*"_rr;
         if (!port.getBuildSettings().TargetOS.is(OSType::Windows))
-            port.HeaderOnly = true;
+        {
+            port -= "src/port/.*win32.*"_rr;
+            port -= "src/port/dirent.c";
+            port -= "src/port/unsetenv.c";
+            port -= "src/port/gettimeofday.c";
+            port -= "src/port/getrusage.c";
+            port -= "src/port/getopt.*"_rr;
+
+            port -= "src/port/pg_bitutils.c";
+            port -= "src/port/getpeereid.c";
+            port -= "src/port/pg_crc32c_sse42_choose.c";
+
+            port.CompileOptions.push_back("-msse4.2");
+        }
         port.Protected += "src/port"_idir;
 
         port.Protected += "FRONTEND"_def;
