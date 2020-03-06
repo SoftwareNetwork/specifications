@@ -20,7 +20,7 @@ static int pg_process_errocodes(path i, path o)
     write_file(o, s);
     return 0;
 }
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(pg_process_errocodes, pg_process_errocodes)
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(pg_process_errocodes)
 
 static int pg_create_def_file(path i, path o)
 {
@@ -38,7 +38,7 @@ static int pg_create_def_file(path i, path o)
     write_file(o, s);
     return 0;
 }
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(pg_create_def_file, pg_create_def_file)
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(pg_create_def_file)
 
 void build(Solution &s)
 {
@@ -52,16 +52,24 @@ void build(Solution &s)
     auto &includes = pg.addStaticLibrary("includes");
     {
         auto &t = includes;
+        t.setChecks("includes");
+
         t += "src/include/.*\\.h"_rr;
         t += "src/include/.*\\.in"_rr;
 
         t.Public += "src/include"_idir;
-        t.Protected += "src/include/port/win32"_idir;
-        t.Protected += "src/include/port/win32_msvc"_idir;
 
-        t.Protected += "WIN32"_def;
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+        {
+            t.Protected += "WIN32"_def;
 
-        t.setChecks("includes");
+            t.Protected += "src/include/port/win32"_idir;
+            t.Protected += "src/include/port/win32_msvc"_idir;
+
+            t.Variables["USE_WIN32_RANDOM"] = 1;
+            t.Variables["USE_WIN32_SEMAPHORES"] = 1;
+            t.Variables["USE_WIN32_SHARED_MEMORY"] = 1;
+        }
 
         t.Variables["FLEXIBLE_ARRAY_MEMBER"] = "/**/"; // win32
 
@@ -87,9 +95,6 @@ void build(Solution &s)
             t.Variables["pg_restrict"] = "__restrict";
         else
             t.Variables["pg_restrict"] = "restrict";
-        t.Variables["USE_WIN32_RANDOM"] = 1;
-        t.Variables["USE_WIN32_SEMAPHORES"] = 1;
-        t.Variables["USE_WIN32_SHARED_MEMORY"] = 1;
         t.Variables["MAXIMUM_ALIGNOF"] = 64;
         t.Variables["DEF_PGPORT"] = 5432;
         t.Variables["DEF_PGPORT_STR"] = "\"5432\"";
@@ -131,14 +136,10 @@ void build(Solution &s)
 )");
 
         {
-            auto i = t.SourceDir / "src/backend/utils/errcodes.txt";
-            const auto o = t.BinaryDir / "utils/errcodes.h";
-            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "pg_process_errocodes", (void *)&pg_process_errocodes);
-            c->push_back(i);
-            c->push_back(o);
-            c->addInput(i);
-            c->addOutput(o);
-            t += i, o;
+            auto c = t.addCommand(SW_VISIBLE_FUNCTION(pg_process_errocodes));
+            c
+                << cmd::in("src/backend/utils/errcodes.txt")
+                << cmd::out("utils/errcodes.h");
         }
     }
 
@@ -162,6 +163,8 @@ void build(Solution &s)
     {
         port += "src/port/.*\\.[hc]"_r;
         port -= "src/port/pg_crc32c_armv8.c";
+        if (!port.getBuildSettings().TargetOS.is(OSType::Windows))
+            port.HeaderOnly = true;
         port.Protected += "src/port"_idir;
 
         port.Protected += "FRONTEND"_def;
@@ -174,6 +177,7 @@ void build(Solution &s)
         pq += "src/interfaces/libpq/.*\\.[hc]"_r;
         //pq += "src/interfaces/libpq/.*\\.def"_r;
         pq -= "src/interfaces/libpq/.*gssapi.*"_r;
+        pq -= "src/interfaces/libpq/.*win32.c"_rr;
         if (pq.getPackage().getVersion() < Version(13))
         {
             pq += "src/backend/utils/mb/encnames.c";
@@ -194,20 +198,21 @@ void build(Solution &s)
         pq.Protected += port;
         pq += "org.sw.demo.openssl.ssl"_dep;
         //pq.patch("src/interfaces/libpq/libpqdll.def", "LIBRARY LIBPQ", "LIBRARY");
-        pq += "Secur32.lib"_slib;
-        pq += "Shell32.lib"_slib;
-        pq += "ws2_32.lib"_slib;
-        pq += "wldap32.lib"_slib;
+
+        if (pq.getBuildSettings().TargetOS.is(OSType::Windows))
+        {
+            pq += "src/interfaces/libpq/.*win32.c"_rr;
+            pq += "Secur32.lib"_slib;
+            pq += "Shell32.lib"_slib;
+            pq += "ws2_32.lib"_slib;
+            pq += "wldap32.lib"_slib;
+        }
 
         {
-            auto i = pq.SourceDir / "src/interfaces/libpq/exports.txt";
-            const auto o = pq.BinaryDir / "export.def";
-            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, pq, "pg_create_def_file", (void *)&pg_create_def_file);
-            c->push_back(i);
-            c->push_back(o);
-            c->addInput(i);
-            c->addOutput(o);
-            pq += i, o;
+            auto c = pq.addCommand(SW_VISIBLE_FUNCTION(pg_create_def_file));
+            c
+                << cmd::in("src/interfaces/libpq/exports.txt")
+                << cmd::out("export.def");
         }
     }
 
@@ -308,8 +313,9 @@ void check(Checker &c)
     s.checkFunctionExists("strtoull");
     s.checkFunctionExists("strtouq");
     s.checkFunctionExists("symlink");
-    s.checkFunctionExists("sync_file_range");
+    //s.checkFunctionExists("sync_file_range");
     s.checkFunctionExists("syslog");
+    s.checkFunctionExists("unsetenv");
     s.checkFunctionExists("uselocale");
     s.checkFunctionExists("utime");
     s.checkFunctionExists("utimes");

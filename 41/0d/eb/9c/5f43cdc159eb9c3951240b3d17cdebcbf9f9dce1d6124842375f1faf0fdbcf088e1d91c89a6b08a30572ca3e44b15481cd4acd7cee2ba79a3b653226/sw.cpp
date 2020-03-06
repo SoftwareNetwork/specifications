@@ -32,8 +32,7 @@ static int wt_preprocess_file(path i, path o, String name)
 
     return 0;
 }
-
-SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD(wt_preprocess_file, wt_preprocess_file)
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(wt_preprocess_file)
 
 void build(Solution &s)
 {
@@ -96,15 +95,10 @@ void build(Solution &s)
 
         auto file2string = [&wt](path i, const std::string &name)
         {
-            i = wt.SourceDir / i;
-            const auto o = wt.BinaryDir / (name + ".C");
-            SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, wt, "wt_preprocess_file", (void*)&wt_preprocess_file);
-            c->push_back(i);
-            c->push_back(o);
-            c->push_back(name);
-            c->addInput(i);
-            c->addOutput(o);
-            wt += o;
+            auto c = wt.addCommand(SW_VISIBLE_FUNCTION(wt_preprocess_file));
+            c << cmd::in(i);
+            c << cmd::out(name + ".C");
+            c << name;
         };
 
         file2string("src/web/skeleton/Plain.html", "Plain_html");
