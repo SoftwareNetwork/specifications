@@ -533,14 +533,8 @@ static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget 
 
     for (auto &q : qms)
     {
-        auto o = t.BinaryDir / q.filename();
-        SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, t, "sw_copy_file", nullptr);
-        copy_cmd->push_back(normalize_path(q));
-        copy_cmd->push_back(normalize_path(o));
-        copy_cmd->addInput(q);
-        copy_cmd->addOutput(o);
-        copy_cmd->name = "copy: " + normalize_path(o);
-        copy_cmd->maybe_unused = builder::Command::MU_ALWAYS;
+        auto c = t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file));
+        c << cmd::in(q) << cmd::out(q.filename());
     }
 
     t.configureFile(in,
@@ -1547,17 +1541,8 @@ void build(Solution &s)
                     ;
             }
 
-            auto copy = [](auto &t, const path &in, const path &out)
-            {
-                SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(c, t, "sw_copy_file", nullptr);
-                c->push_back(in.u8string());
-                c->push_back(out.u8string());
-                c->addInput(in);
-                c->addOutput(out);
-                return c;
-            };
-
-            copy(bootstrap, bootstrap.SourceDir / "src/xml/sax/qxml_p.h", bootstrap.BinaryDir / "private/qxml_p.h");
+            auto c = bootstrap.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file));
+            c << cmd::in("src/xml/sax/qxml_p.h") << cmd::out("private/qxml_p.h");
             syncqt("pub.egorpugin.primitives.tools.syncqt-master"_dep, bootstrap, { "QtCore", "QtXml" });
 
             if (bootstrap.getCompilerType() == CompilerType::MSVC)
