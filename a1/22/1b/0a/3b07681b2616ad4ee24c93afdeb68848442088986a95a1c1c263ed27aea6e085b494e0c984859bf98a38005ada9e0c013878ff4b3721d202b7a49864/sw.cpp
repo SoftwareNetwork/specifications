@@ -93,7 +93,7 @@ struct ProtocData
             ;
 
             t.addDummyDependency(plugin);
-            c.c->addProgramDependency(plugin);
+            std::dynamic_pointer_cast<::sw::driver::Command>(c.c)->addProgramDependency(plugin);
         }
 
         // input
