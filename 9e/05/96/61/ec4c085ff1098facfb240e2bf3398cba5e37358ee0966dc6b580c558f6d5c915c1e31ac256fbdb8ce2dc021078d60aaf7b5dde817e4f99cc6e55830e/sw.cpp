@@ -49,6 +49,8 @@ void build(Solution &s)
     {
         auto &t = current_project->addTarget<LibraryTarget>(name);
 
+        t += cpp11;
+
         t.AllowEmptyRegexes = true;
 
         t +=
