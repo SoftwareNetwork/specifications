@@ -382,7 +382,7 @@ void build(Solution &s)
         "random",
         "regex",
         "serialization",
-        //"test",
+        "test",
         "thread",
         "timer",
         "type_erasure",
