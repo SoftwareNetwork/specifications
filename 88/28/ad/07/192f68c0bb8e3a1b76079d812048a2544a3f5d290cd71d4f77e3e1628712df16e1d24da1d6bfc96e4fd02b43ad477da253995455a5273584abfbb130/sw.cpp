@@ -478,6 +478,8 @@ void build(Solution &s)
 
     //*boost_targets["python"] += "pvt.cppan.demo.python.libcompat";
 
+    *boost_targets["test"] -= "src/test_main.cpp";
+
     if (boost_targets["regex"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["regex"] += "User32.lib"_slib;
 
