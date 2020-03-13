@@ -340,6 +340,8 @@ void build(Solution &s)
 
     if (boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["asio"] += "Mswsock.lib"_slib;
+    else
+        *boost_targets["asio"] += "pthread"_slib;
 
     // some settings
     /**boost_targets["function"] += "include/.*\\.hpp"_rr;
