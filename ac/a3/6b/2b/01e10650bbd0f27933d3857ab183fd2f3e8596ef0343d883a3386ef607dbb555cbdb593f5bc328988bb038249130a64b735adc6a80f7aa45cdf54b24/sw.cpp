@@ -47,7 +47,7 @@ void build(Solution &s)
     {
         auto cc = std::static_pointer_cast<sw::NativeCompiler>(fontconfig.findProgramByExtension(".cpp")->clone());
         cc->IncludeDirectories.push_back(fontconfig.SourceDir);
-        auto c = cc->createCommand(fontconfig.getSolution().getContext());
+        auto c = cc->createCommand(fontconfig.getMainBuild());
         c->working_directory = fontconfig.BinaryDir;
         c->arguments.push_back("-E");
         c->arguments.push_back((fontconfig.SourceDir / "src/fcobjshash.gperf.h").u8string());

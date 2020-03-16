@@ -33,8 +33,8 @@ struct MocCommand : Command
 {
     NativeExecutedTarget &t;
 
-    MocCommand(const sw::SwBuilderContext &swctx, NativeExecutedTarget &t)
-        : Command(swctx), t(t)
+    MocCommand(const sw::SwContext &swctx, NativeExecutedTarget &t)
+        : Command(), t(t)
     {
         use_response_files = true;
         protect_args_with_quotes = false;
