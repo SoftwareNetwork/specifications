@@ -7,6 +7,7 @@ void build(Solution &s)
     {
         gdk -= "gdk/.*"_rr;
         gdk.Public += "gdk"_id;
+        gdk.Public += "."_id;
         gdk.Public += IncludeDirectory(gdk.BinaryDir / "gdk");
 
         gdk += "gdk/.*\\.[hc]"_r;
@@ -16,7 +17,7 @@ void build(Solution &s)
         gdk.Public += "HAVE_DECL_ISNAN"_def;
         gdk.Public += "HAVE_DECL_ISINF"_def;
 
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gdk.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gdk.Variables["GDK_WINDOWING_WIN32"] = 1;
         }
@@ -33,7 +34,6 @@ void build(Solution &s)
         //gdk.Public += "org.sw.demo.khronos.vulkan"_dep;
 
         gdk.configureFile("gdk/gdkconfig.h.meson", "gdk/gdkconfig.h");
-        gdk.writeFileOnce(gdk.BinaryPrivateDir / "gdkresources.h");
 
         gdk.writeFileOnce(gdk.BinaryPrivateDir / "config.h");
 
@@ -61,47 +61,47 @@ void build(Solution &s)
                 << cmd::out("gdk/gdkenumtypes."s + ext)
                 ;
             for (auto f : {
-                     "gdk-autocleanup.h",
-                     "gdk.h",
-                     "gdkapplaunchcontext.h",
-                     "gdkcairo.h",
-                     "gdkcairocontext.h",
-                     "gdkclipboard.h",
-                     "gdkcontentdeserializer.h",
-                     "gdkcontentformats.h",
-                     "gdkcontentprovider.h",
-                     "gdkcontentproviderimpl.h",
-                     "gdkcontentserializer.h",
-                     "gdkcursor.h",
-                     "gdkdevice.h",
-                     "gdkdevicepad.h",
-                     "gdkdevicetool.h",
-                     "gdkdisplay.h",
-                     "gdkdisplaymanager.h",
-                     "gdkdnd.h",
-                     "gdkdrawcontext.h",
-                     "gdkdrop.h",
-                     "gdkevents.h",
-                     "gdkframeclock.h",
-                     "gdkframetimings.h",
-                     "gdkglcontext.h",
-                     "gdkgltexture.h",
-                     "gdkkeys.h",
-                     "gdkkeysyms.h",
-                     "gdkmemorytexture.h",
-                     "gdkmonitor.h",
-                     "gdkpaintable.h",
-                     "gdkpango.h",
-                     "gdkpixbuf.h",
-                     "gdkproperty.h",
-                     "gdkrectangle.h",
-                     "gdkrgba.h",
-                     "gdkseat.h",
-                     "gdksnapshot.h",
-                     "gdktexture.h",
-                     "gdktypes.h",
-                     "gdkvulkancontext.h",
-                     "gdksurface.h",
+                "gdk-autocleanup.h",
+                "gdk.h",
+                "gdkapplaunchcontext.h",
+                "gdkcairo.h",
+                "gdkcairocontext.h",
+                "gdkclipboard.h",
+                "gdkcontentdeserializer.h",
+                "gdkcontentformats.h",
+                "gdkcontentprovider.h",
+                "gdkcontentproviderimpl.h",
+                "gdkcontentserializer.h",
+                "gdkcursor.h",
+                "gdkdevice.h",
+                "gdkdevicepad.h",
+                "gdkdevicetool.h",
+                "gdkdisplay.h",
+                "gdkdisplaymanager.h",
+                "gdkdnd.h",
+                "gdkdrawcontext.h",
+                "gdkdrop.h",
+                "gdkevents.h",
+                "gdkframeclock.h",
+                "gdkframetimings.h",
+                "gdkglcontext.h",
+                "gdkgltexture.h",
+                "gdkkeys.h",
+                "gdkkeysyms.h",
+                "gdkmemorytexture.h",
+                "gdkmonitor.h",
+                "gdkpaintable.h",
+                "gdkpango.h",
+                "gdkpixbuf.h",
+                "gdkproperty.h",
+                "gdkrectangle.h",
+                "gdkrgba.h",
+                "gdkseat.h",
+                "gdksnapshot.h",
+                "gdktexture.h",
+                "gdktypes.h",
+                "gdkvulkancontext.h",
+                "gdksurface.h",
                 })
             {
                 c << cmd::in("gdk/"s + f);
@@ -118,6 +118,31 @@ void build(Solution &s)
                 << "--output" << cmd::out("gdkmarshalers." + ext)
                 << (ext == "h" ? "--header" : "--body")
                 << cmd::in("gdk/gdkmarshalers.list")
+                ;
+        }
+
+        {
+            // resources
+            auto c = gdk.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gdk/gen-gdk-gresources-xml.py")
+                << gdk.SourceDir / "gdk"
+                << cmd::out("gdk.gresources.xml")
+                ;
+        }
+
+        for (auto ext : { "h"s, "c"s })
+        {
+            auto c = gdk.addCommand();
+            c << cmd::prog("org.sw.demo.gnome.glib.compile_resources"_dep)
+                << cmd::wdir(gdk.SourceDir / "gdk")
+                << cmd::in("gdk.gresources.xml")
+                << "--c-name" << "_gdk"
+                << "--manual-register"
+                << "--generate"
+                << "--internal"
+                << "--target"
+                << cmd::out("gdkresources." + ext)
                 ;
         }
     }
@@ -146,7 +171,6 @@ void build(Solution &s)
         gsk += "GSK_COMPILATION"_def;
 
         gsk.writeFileOnce(gsk.BinaryPrivateDir / "config.h");
-        gsk.writeFileOnce(gsk.BinaryPrivateDir / "gskresources.h");
 
         gsk.Public += gdk;
 
@@ -155,16 +179,44 @@ void build(Solution &s)
             // glib.mkenums
             auto c = gsk.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-              << gsk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
-              << cmd::in("gsk/gskenumtypes."s + ext + ".template") << "--output"
-              << cmd::out("gsk/gskenumtypes."s + ext);
+                << gsk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
+                << cmd::in("gsk/gskenumtypes."s + ext + ".template") << "--output"
+                << cmd::out("gsk/gskenumtypes."s + ext);
             for (auto f : {
-                     "gskenums.h", "gskrenderer.h", "gskrendernode.h", "gskroundedrect.h", "gsktypes.h",
-                     "gsk-autocleanup.h"
+                "gskenums.h", "gskrenderer.h", "gskrendernode.h", "gskroundedrect.h", "gsktypes.h",
+                "gsk-autocleanup.h"
                 })
             {
                 c << cmd::in("gsk/"s + f);
             }
+        }
+
+        {
+            // resources
+            auto c = gsk.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gsk/gen-gsk-gresources-xml.py")
+                << cmd::out("gsk.gresources.xml")
+                ;
+            // not working
+            //for (auto &[p, sf] : gsk["gsk/resources/.*\\.(glsl|spv|frag|vert)"_rr])
+                //c << cmd::in(p);
+            c.c->use_response_files = false;
+        }
+
+        for (auto ext : { "h"s, "c"s })
+        {
+            auto c = gsk.addCommand();
+            c << cmd::prog("org.sw.demo.gnome.glib.compile_resources"_dep)
+                << cmd::wdir(gsk.SourceDir / "gsk")
+                << cmd::in("gsk.gresources.xml")
+                << "--c-name" << "_gsk"
+                << "--manual-register"
+                << "--generate"
+                << "--internal"
+                << "--target"
+                << cmd::out("gskresources." + ext)
+                ;
         }
     }
 
@@ -230,9 +282,12 @@ void build(Solution &s)
 #define O_CLOEXEC 0
 #endif
 
+#define fchmod(x,y)
+
 #endif
 )");
-        gtk.writeFileOnce(gtk.BinaryPrivateDir / "gtkresources.h");
+        if (gtk.getBuildSettings().TargetOS.Type == OSType::Windows)
+            gtk += "fchmod="_def;
 
         gtk.Public += gsk;
         gtk.Public += "org.sw.demo.gnome.atk"_dep;
@@ -272,9 +327,9 @@ void build(Solution &s)
             // glib.mkenums
             auto c = gtk.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-              << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
-              << cmd::in("gtk/gtktypebuiltins."s + ext + ".template") << "--output"
-              << cmd::out("gtk/gtktypebuiltins."s + ext);
+                << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
+                << cmd::in("gtk/gtktypebuiltins."s + ext + ".template") << "--output"
+                << cmd::out("gtk/gtktypebuiltins."s + ext);
             for (auto &[p, f] : gtk[".*\\.h"_rr])
             {
                 if (!f->skip)
@@ -288,9 +343,9 @@ void build(Solution &s)
             // glib.mkenums
             auto c = gtk.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-              << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
-              << cmd::in("gtk/gtkprivatetypebuiltins."s + ext + ".template") << "--output"
-              << cmd::out("gtk/gtkprivatetypebuiltins."s + ext);
+                << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-mkenums.in") << "--template"
+                << cmd::in("gtk/gtkprivatetypebuiltins."s + ext + ".template") << "--output"
+                << cmd::out("gtk/gtkprivatetypebuiltins."s + ext);
             for (auto &f : {"gtkcsstypesprivate.h", "gtktexthandleprivate.h", "gtkeventcontrollerlegacyprivate.h"})
             {
                 c << cmd::in("gtk/"s + f);
@@ -302,25 +357,25 @@ void build(Solution &s)
             // glib.genmarshal
             auto c = gtk.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-              << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-genmarshal.in")
-              << "--prefix" << "_gtk_marshal"
-              << "--valist-marshallers"
-              << "--output" << cmd::out("gtkmarshalers." + ext) << (ext == "h" ? "--header" : "--body")
-              << cmd::in("gtk/gtkmarshalers.list");
+                << gtk.getFile("org.sw.demo.gnome.glib.gobject-2"_dep, "gobject/glib-genmarshal.in")
+                << "--prefix" << "_gtk_marshal"
+                << "--valist-marshallers"
+                << "--output" << cmd::out("gtkmarshalers." + ext) << (ext == "h" ? "--header" : "--body")
+                << cmd::in("gtk/gtkmarshalers.list");
         }
 
         {
             auto c = gtk.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
-              << gtk.getFile("org.sw.demo.gnome.glib.gio"_dep, "gio/gdbus-2.0/codegen/gdbus-codegen.in")
-              << "--interface-prefix" << "org.Gtk."
-              << "--output-directory" << gtk.BinaryDir
-              << "--generate-c-code" << "gtkdbusgenerated"
-              << "--c-namespace" << "_Gtk"
-              << cmd::in("gtk/gtkdbusinterfaces.xml")
-              << cmd::end()
-              << cmd::out("gtkdbusgenerated.h")
-              << cmd::out("gtkdbusgenerated.c");
+                << gtk.getFile("org.sw.demo.gnome.glib.gio"_dep, "gio/gdbus-2.0/codegen/gdbus-codegen.in")
+                << "--interface-prefix" << "org.Gtk."
+                << "--output-directory" << gtk.BinaryDir
+                << "--generate-c-code" << "gtkdbusgenerated"
+                << "--c-namespace" << "_Gtk"
+                << cmd::in("gtk/gtkdbusinterfaces.xml")
+                << cmd::end()
+                << cmd::out("gtkdbusgenerated.h")
+                << cmd::out("gtkdbusgenerated.c");
         }
 
         gtk -= "gtk/gtkapplicationprivate.h";
@@ -338,8 +393,8 @@ if in_files[0][0] == '@':
                 << cmd::out("gtktypefuncs.inc");
             /*for (auto &[p, f] : gdk[".*\\.h"_rr])
             {
-                if (!f->skip)
-                    c << cmd::in(p);
+            if (!f->skip)
+            c << cmd::in(p);
             }*/
             for (auto &[p, f] : gtk[".*\\.h"_rr])
             {
@@ -350,7 +405,7 @@ if in_files[0][0] == '@':
         }
 
         gtk -= w32;
-        if (s.Settings.TargetOS.Type == OSType::Windows)
+        if (gtk.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gtk += w32;
 
@@ -361,6 +416,7 @@ if in_files[0][0] == '@':
             gtk += "Comctl32.lib"_slib;
             gtk += "Dwmapi.lib"_slib;
             gtk += "Setupapi.lib"_slib;
+            gtk += "uuid.lib"_slib;
         }
 
         gtk += "gtk/a11y/.*\\.[hc]"_r;
@@ -386,6 +442,31 @@ if in_files[0][0] == '@':
                 << "--generate"
                 << "--target"
                 << cmd::out("gtkresources.c")
+                ;
+        }
+
+        {
+            // resources
+            auto c = gtk.addCommand();
+            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                << cmd::in("gtk/gen-gtk-gresources-xml.py")
+                << gtk.SourceDir / "gtk"
+                << cmd::out("gtk.gresources.xml")
+                ;
+        }
+
+        for (auto ext : { "h"s, "c"s })
+        {
+            auto c = gtk.addCommand();
+            c << cmd::prog("org.sw.demo.gnome.glib.compile_resources"_dep)
+                << cmd::wdir(gtk.SourceDir / "gtk")
+                << cmd::in("gtk.gresources.xml")
+                << "--c-name" << "_gtk"
+                << "--manual-register"
+                << "--generate"
+                << "--internal"
+                << "--target"
+                << cmd::out("gtkresources." + ext)
                 ;
         }
     }
