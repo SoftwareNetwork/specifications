@@ -101,7 +101,7 @@ void build(Solution &s)
             c->PreprocessToFile = true;
             c->PreprocessFileName = out;
             c->CSourceFile = t.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->createCommand(t.getSolution().getContext());
+            auto cmd = c->createCommand(t.getMainBuild());
             cmd->working_directory = t.BinaryDir;
             t.registerCommand(*cmd);
             t.add(sw::CallbackType::EndPrepare, [ch, &t]()
@@ -123,7 +123,7 @@ void build(Solution &s)
             const auto o = t.BinaryDir / "pre.obj";
             c->Output = o;
             c->InputFile = out;
-            auto cmd = c->createCommand(t.getSolution().getContext());
+            auto cmd = c->createCommand(t.getMainBuild());
             cmd->addOutput(o);
             t += o;
             t.add(sw::CallbackType::EndPrepare, [ch, &t]()
