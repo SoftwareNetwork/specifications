@@ -1,6 +1,17 @@
+struct ValaBinary : ExecutableTarget
+{
+    void setupCommand(builder::Command &c) const
+    {
+        c.push_back("--vapidir");
+        c.push_back(SourceDir / "vapi");
+        ExecutableTarget::setupCommand(c);
+    }
+};
+
 void build(Solution &s)
 {
     // release version does not work on win for some reason yet
+    // (gobject ctors)
     // debug works
 
     auto &p = s.addProject("gnome.vala.bootstrap", "0.16.1");
@@ -39,10 +50,11 @@ void build(Solution &s)
         codegen.Public += lib, ccode;
     }
 
-    auto &cl = p.addExecutable("compiler");
+    auto &cl = p.add<ValaBinary>("compiler");
     {
         cl.PackageDefinitions = true;
         cl += "compiler/.*\\.c"_r;
+        cl -= "vapi/.*"_rr;
         cl += codegen;
         if (cl.getBuildSettings().TargetOS.Type == OSType::Windows)
             cl.writeFileOnce("unistd.h");

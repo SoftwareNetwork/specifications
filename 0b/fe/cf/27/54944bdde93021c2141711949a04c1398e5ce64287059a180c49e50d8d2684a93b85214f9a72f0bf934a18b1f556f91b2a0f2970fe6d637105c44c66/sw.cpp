@@ -9,6 +9,7 @@ void build(Solution &s)
 
     gdk -= "gdk-pixbuf/.*"_rr;
     gdk.Public += "gdk-pixbuf"_id;
+    gdk.Public += "."_id;
     gdk += IncludeDirectory(gdk.BinaryDir / "gdk-pixbuf");
 
     gdk += "gdk-pixbuf/.*\\.[hc]"_r;
@@ -25,22 +26,22 @@ void build(Solution &s)
     gdk += "USE_GMODULE"_def;
 
     for (auto m : {
-             "png",
-             "bmp",
-             "gif",
-             "ico",
-             "ani",
-             "jpeg",
-             "pnm",
-             "tiff",
-             "xpm",
-             "xbm",
-             "tga",
-             "icns",
-             "jasper",
-             "qtif",
-             "gdiplus",
-             "gdip_png",
+        "png",
+        "bmp",
+        "gif",
+        "ico",
+        "ani",
+        "jpeg",
+        "pnm",
+        "tiff",
+        "xpm",
+        "xbm",
+        "tga",
+        "icns",
+        "jasper",
+        "qtif",
+        "gdiplus",
+        "gdip_png",
         })
     {
         gdk += Definition("INCLUDE_"s + m);
@@ -55,7 +56,7 @@ void build(Solution &s)
     gdk.Public += "org.sw.demo.glennrp.png"_dep;
     gdk.Public += "org.sw.demo.tiff"_dep;
 
-    if (s.Settings.TargetOS.Type == OSType::Windows)
+    if (gdk.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         gdk += "Gdiplus.lib"_slib;
         gdk += "Ole32.lib"_slib;

@@ -8,6 +8,7 @@ void build(Solution &s)
 
     atk += "atk/.*"_rr;
     atk.Public += "atk"_idir;
+    atk.Public += "."_idir;
     atk += IncludeDirectory(atk.BinaryDir / "atk");
 
     atk += "ATK_LOCALEDIR=\"\""_def;
