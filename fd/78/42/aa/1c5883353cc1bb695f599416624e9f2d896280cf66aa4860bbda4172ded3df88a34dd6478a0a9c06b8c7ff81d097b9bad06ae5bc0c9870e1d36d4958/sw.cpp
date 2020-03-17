@@ -46,7 +46,8 @@ void build(Solution &s)
         socketxx += "HAVE_WORKING_FORK=1"_v;
         socketxx += "HAVE_WORKING_VFORK=1"_v;
 
-        if (socketxx.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (socketxx.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            socketxx.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             socketxx.Public += "WIN32"_d;
             socketxx.Public += "ws2_32.lib"_slib;
@@ -116,7 +117,8 @@ void build(Solution &s)
         gdcm.Public += "GDCM_USE_SYSTEM_EXPAT"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_JSON"_d;
         gdcm.Public += "GDCM_USE_SYSTEM_OPENSSL"_d;
-        if (gdcm.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (gdcm.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            gdcm.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             gdcm.Public += "Ws2_32.lib"_slib;
             gdcm.Public += "Rpcrt4.lib"_slib;
@@ -128,11 +130,11 @@ void build(Solution &s)
         gdcm += socketxx;
         for (auto t : t_bits)
             gdcm += *t;
-        gdcm.Public += "org.sw.demo.openssl.crypto-1.*.*.*"_dep;
-        gdcm.Public += "org.sw.demo.madler.zlib-1"_dep;
-        gdcm.Public += "org.sw.demo.uclouvain.openjpeg.openjp2-2"_dep;
+        gdcm.Public += "org.sw.demo.openssl.crypto"_dep;
+        gdcm.Public += "org.sw.demo.madler.zlib"_dep;
+        gdcm.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
         gdcm.Public += "org.sw.demo.json_c-master"_dep;
-        gdcm.Public += "org.sw.demo.expat-2"_dep;
+        gdcm.Public += "org.sw.demo.expat"_dep;
         gdcm.Public += charls;
 
         gdcm.Variables["GDCM_MAJOR_VERSION"] = gdcm.Variables["PACKAGE_VERSION_MAJOR"];
@@ -159,6 +161,7 @@ void build(Solution &s)
 
         gdcm.configureFile("Source/Common/gdcmConfigure.h.in", "gdcmConfigure.h");
         gdcm.replaceInFileOnce("Source/Common/zipstreamimpl.h", "gdcm_zlib.h", "zlib.h");
+        gdcm.replaceInFileOnce("Source/Common/zipstreamimpl.hpp", "assert", "//assert");
         gdcm.replaceInFileOnce("Source/InformationObjectDefinition/gdcmTableReader.cxx", "gdcm_expat.h", "expat.h");
         gdcm.replaceInFileOnce("Source/MediaStorageAndFileFormat/gdcmJPEG2000Codec.cxx", "gdcm_openjpeg.h", "openjpeg.h");
         gdcm.replaceInFileOnce("Source/MediaStorageAndFileFormat/gdcmJPEG2000Codec.cxx", "gdcm_openjpeg2.h", "openjpeg.h");
@@ -224,6 +227,10 @@ void check(Checker &c)
 
     {
         auto &s = c.addSet("gdcm");
+        {
+            auto &c = s.checkFunctionExists("gettimeofday");
+            c.Parameters.Includes.push_back("sys/time.h");
+        }
         s.checkFunctionExists("strcasecmp");
         s.checkFunctionExists("strncasecmp");
         s.checkFunctionExists("strptime");
@@ -241,5 +248,8 @@ void check(Checker &c)
             auto &c = s.checkSymbolExists("snprintf");
             c.Parameters.Includes.push_back("stdio.h");
         }
+
+        for (auto &check : s.all)
+            check->Prefixes.insert("GDCM_");
     }
 }
