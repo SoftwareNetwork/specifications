@@ -47,7 +47,12 @@ void build(Solution &s)
     libarchive.Public += "HAVE_ZLIB_H"_d;
     libarchive.Public += "HAVE_ZSTD_H"_d;
 
-    if (libarchive.getBuildSettings().TargetOS.Type == OSType::Windows)
+    auto win_or_mingw =
+        libarchive.getBuildSettings().TargetOS.Type == OSType::Windows ||
+        libarchive.getBuildSettings().TargetOS.Type == OSType::Mingw
+        ;
+
+    if (win_or_mingw)
         libarchive.Public += "Advapi32.lib"_slib, "User32.lib"_slib;
 
     libarchive.Public += "org.sw.demo.bzip2-1"_dep;
@@ -151,12 +156,13 @@ void build(Solution &s)
         libarchive.Variables["HAVE_WCHAR_T"] = 1;
     }
 
-    if (libarchive.getBuildSettings().TargetOS.Type == OSType::Windows)
+    // TODO: detect it properly with check
+    if (win_or_mingw)
         libarchive.Variables["HAVE_WINCRYPT_H"] = 1;
 
     // TODO: add 'or cygwin'
     // IF(NOT WIN32 OR CYGWIN)
-    if (libarchive.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw)
     {
         libarchive -=
             "libarchive/archive_entry_copy_bhfi.c",
@@ -168,7 +174,7 @@ void build(Solution &s)
     }
 
     // if (UNIX)
-    if (libarchive.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw)
     {
         // TODO:
         /*
@@ -415,7 +421,12 @@ void check(Checker &c)
     s.checkIncludeExists("utime.h");
     s.checkIncludeExists("wchar.h");
     s.checkIncludeExists("wctype.h");
-    s.checkIncludeExists("wincrypt.h");
+    {
+        // still does not work
+        // investigate more
+        auto &c = s.checkIncludeExists("wincrypt.h");
+        c.Parameters.Includes.push_back("windows.h");
+    }
     s.checkIncludeExists("windows.h");
     s.checkIncludeExists("winioctl.h");
     s.checkTypeSize("acl_permset_t");

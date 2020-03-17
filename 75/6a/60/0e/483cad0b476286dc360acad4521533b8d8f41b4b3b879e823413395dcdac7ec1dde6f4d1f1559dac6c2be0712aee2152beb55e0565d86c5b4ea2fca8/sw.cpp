@@ -55,18 +55,17 @@ void build(Solution &s)
                 f->BuildAs = NativeSourceFile::CPP;
         }
 
-        if (leptonica.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (leptonica.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            leptonica.getBuildSettings().TargetOS.Type == OSType::Mingw)
             leptonica += "User32.lib"_slib, "Gdi32.lib"_slib;
     }
 
     auto &progs = leptonica.addDirectory("progs");
-    if (s.DryRun)
-        progs.Scope = TargetScope::Test;
-
     {
         auto add_prog = [&s, &progs, &leptonica, &add_deps](const String &name, const Files &files) -> decltype(auto)
         {
             auto &t = progs.addExecutable(name);
+            t.Scope = TargetScope::Test;
             t.setRootDirectory("prog");
             t += files;
             t += leptonica;
@@ -112,6 +111,7 @@ void build(Solution &s)
             {"checkerboard_reg", {"checkerboard_reg.c"}},
             {"cmapquant_reg", {"cmapquant_reg.c"}},
             {"colorcontent_reg", {"colorcontent_reg.c"}},
+            {"colorinfo_reg", {"colorinfo_reg.c"}},
             {"coloring_reg", {"coloring_reg.c"}},
             {"colorize_reg", {"colorize_reg.c"}},
             {"colormask_reg", {"colormask_reg.c"}},
@@ -124,6 +124,7 @@ void build(Solution &s)
             {"conncomp_reg", {"conncomp_reg.c"}},
             {"conversion_reg", {"conversion_reg.c"}},
             {"convolve_reg", {"convolve_reg.c"}},
+            {"crop_reg", {"crop_reg.c"}},
             {"dewarp_reg", {"dewarp_reg.c"}},
             {"distance_reg", {"distance_reg.c"}},
             {"dither_reg", {"dither_reg.c"}},
@@ -151,6 +152,7 @@ void build(Solution &s)
             {"graymorph2_reg", {"graymorph2_reg.c"}},
             {"grayquant_reg", {"grayquant_reg.c"}},
             {"hardlight_reg", {"hardlight_reg.c"}},
+            {"hash_reg", {"hash_reg.c"}},
             {"heap_reg", {"heap_reg.c"}},
             {"insert_reg", {"insert_reg.c"}},
             {"ioformats_reg", {"ioformats_reg.c"}},
@@ -257,7 +259,6 @@ void build(Solution &s)
             {"converttops", {"converttops.c"}},
             {"cornertest", {"cornertest.c"}},
             {"corrupttest", {"corrupttest.c"}},
-            {"croptest", {"croptest.c"}},
             {"croptext", {"croptext.c"}},
             {"deskew_it", {"deskew_it.c"}},
             {"dewarprules", {"dewarprules.c"}},
@@ -286,7 +287,6 @@ void build(Solution &s)
             {"gammatest", {"gammatest.c"}},
             {"graphicstest", {"graphicstest.c"}},
             {"graymorphtest", {"graymorphtest.c"}},
-            {"hashtest", {"hashtest.c"}},
             {"histotest", {"histotest.c"}},
             {"histoduptest", {"histoduptest.c"}},
             {"htmlviewer", {"htmlviewer.c"}},

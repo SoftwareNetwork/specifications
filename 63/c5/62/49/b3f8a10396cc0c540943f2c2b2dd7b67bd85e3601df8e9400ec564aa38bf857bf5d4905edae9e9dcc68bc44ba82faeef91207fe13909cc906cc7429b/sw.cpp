@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &libxml2 = s.addTarget<LibraryTarget>("xmlsoft.libxml2", "2.9.9");
+    auto &libxml2 = s.addTarget<LibraryTarget>("xmlsoft.libxml2", "2.9.10");
     libxml2 += RemoteFile("https://gitlab.gnome.org/GNOME/libxml2/-/archive/v{v}/libxml2-v{v}.tar.bz2");
 
     libxml2.setChecks("libxml2", true);

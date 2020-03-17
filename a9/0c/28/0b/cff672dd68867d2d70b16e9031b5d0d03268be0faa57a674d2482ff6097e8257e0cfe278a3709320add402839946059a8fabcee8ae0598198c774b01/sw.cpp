@@ -1,7 +1,11 @@
 void build(Solution &s)
 {
     auto &jpeg = s.addTarget<LibraryTarget>("jpeg", "9.4.0");
-    jpeg += RemoteFile("https://www.ijg.org/files/jpegsr9d.zip");
+    auto url = "https://www.ijg.org/files/jpegsr9"s;
+    url += 'a' + jpeg.getPackage().getVersion().getMinor() - 1;
+    url += ".zip";
+    jpeg += RemoteFile(url);
+
     jpeg.ApiName = "JPEG_API";
 
     jpeg +=
@@ -56,12 +60,21 @@ void build(Solution &s)
         "jutils.c",
         "transupp.c";
 
-    if (jpeg.getCompilerType() == CompilerType::MSVC)
-        jpeg.configureFile("jconfig.vc", "jconfig.h");
-    else
-        jpeg.configureFile("jconfig.cfg", "jconfig.h");
+    jpeg.setChecks("jpeg");
+    jpeg.Variables["HAVE_PROTOTYPES"] = 1;
+    jpeg.configureFile("jconfig.cfg", "jconfig.h", ConfigureFlags::EnableUndefReplacements);
 
     jpeg.replaceInFileOnce("jmorecfg.h",
         "extern type",
         "extern JPEG_API type");
+}
+
+void check(Checker &c)
+{
+    auto &s = c.addSet("jpeg");
+    s.checkIncludeExists("stdint.h");
+    s.checkIncludeExists("stdlib.h");
+    s.checkIncludeExists("stddef.h");
+    s.checkTypeSize("unsigned char");
+    s.checkTypeSize("unsigned short");
 }
