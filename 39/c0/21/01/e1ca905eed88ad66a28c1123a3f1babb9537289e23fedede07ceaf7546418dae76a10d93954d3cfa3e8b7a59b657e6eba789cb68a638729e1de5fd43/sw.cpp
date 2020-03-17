@@ -210,7 +210,9 @@ void build(Solution &s)
             "modules/highgui/src/window_winrt.cpp",
             "modules/highgui/src/window_winrt_bridge.cpp"
             ;
-        if (highgui.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (highgui.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            highgui.getBuildSettings().TargetOS.Type == OSType::Mingw
+            )
         {
             highgui.Public += "HAVE_WIN32UI"_def;
             highgui.Public +=

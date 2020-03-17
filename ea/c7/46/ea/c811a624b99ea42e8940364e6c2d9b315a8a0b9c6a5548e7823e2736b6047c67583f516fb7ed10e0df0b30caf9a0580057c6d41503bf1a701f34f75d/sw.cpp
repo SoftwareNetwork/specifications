@@ -144,10 +144,18 @@ void build(Solution &s)
     auto &p = s.addProject("google.protobuf", "3.11.4");
     p += Git("https://github.com/protocolbuffers/protobuf", "v{v}");
 
+    auto win_or_mingw = [](auto &t)
+    {
+        return
+            t.getBuildSettings().TargetOS.Type == OSType::Windows/* ||
+            t.getBuildSettings().TargetOS.Type == OSType::Mingw*/
+            ;
+    };
+
     auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
     protobuf_lite += cpp11;
     protobuf_lite.ImportFromBazel = true;
-    if (protobuf_lite.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protobuf_lite))
         protobuf_lite.ExportAllSymbols = true;
     protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
     protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
@@ -155,7 +163,7 @@ void build(Solution &s)
     protobuf_lite += "src/google/protobuf/parse_context.cc";
     protobuf_lite += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf_lite.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
-    if (protobuf_lite.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protobuf_lite))
     {
         protobuf_lite.Public += "HAVE_PTHREAD"_d;
         protobuf_lite += "pthread"_slib;
@@ -164,7 +172,7 @@ void build(Solution &s)
     auto &protobuf = p.addTarget<LibraryTarget>("protobuf");
     protobuf += cpp11;
     protobuf.ImportFromBazel = true;
-    if (protobuf.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protobuf))
         protobuf.ExportAllSymbols = true;
     protobuf.BazelNames.insert("protobuf_lite");
     protobuf += "src/.*\\.h"_rr;
@@ -174,7 +182,7 @@ void build(Solution &s)
     protobuf.Private += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
     protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
     protobuf.Public += "org.sw.demo.madler.zlib"_dep;
-    if (protobuf.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protobuf))
     {
         protobuf.Public += "HAVE_PTHREAD"_d;
         protobuf += "pthread"_slib;
@@ -183,7 +191,7 @@ void build(Solution &s)
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
     protoc_lib += cpp11;
     protoc_lib.ImportFromBazel = true;
-    if (protoc_lib.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protoc_lib))
         protoc_lib.ExportAllSymbols = true;
     protoc_lib.Private += sw::Shared, "LIBPROTOC_EXPORTS"_d;
     protoc_lib.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
@@ -192,7 +200,7 @@ void build(Solution &s)
     auto &protoc = p.addTarget<ExecutableTarget>("protoc");
     protoc += cpp11;
     protoc.ImportFromBazel = true;
-    if (protoc.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (!win_or_mingw(protoc))
         protoc.ExportAllSymbols = true;
     protoc +=
         "src/google/protobuf/any.proto",
