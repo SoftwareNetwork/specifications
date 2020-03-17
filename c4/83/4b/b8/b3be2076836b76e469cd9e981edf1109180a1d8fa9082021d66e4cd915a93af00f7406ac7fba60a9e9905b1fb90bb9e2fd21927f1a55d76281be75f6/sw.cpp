@@ -66,7 +66,9 @@ void build(Solution &s)
         t -=
             FileRegex("modules/" + name + "/src/.*avx.cpp", true),
             FileRegex("modules/" + name + "/src/.*avx2.cpp", true),
-            FileRegex("modules/" + name + "/src/.*sse4_1.cpp", true);
+            FileRegex("modules/" + name + "/src/.*sse4_1.cpp", true),
+            FileRegex("modules/" + name + "/src/.*avx512.*", true)
+            ;
 
         t.AllowEmptyRegexes = false;
 
@@ -88,7 +90,7 @@ void build(Solution &s)
             "#define CV_CPU_DISPATCH_MODE SSE2\n"
             "#include \"opencv2/core/private/cv_cpu_include_simd_declarations.hpp\"\n"
             "#define CV_CPU_DISPATCH_MODES_ALL SSE2, BASELINE\n"
-        );
+            );
     };
 
     auto &core = add_target("core");
@@ -139,7 +141,7 @@ void build(Solution &s)
             "#define OPENCV_BUILD_DIR \"\"\n"
             "#define OPENCV_DATA_BUILD_DIR_SEARCH_PATHS \"\"\n"
             "#define OPENCV_INSTALL_DATA_DIR_RELATIVE \"\"\n"
-        );
+            );
         core.writeFileOnce("opencv2/opencv_modules.hpp");
         core.writeFileOnce("version_string.inc", "\"OpenCV - ${PACKAGE_NAME} - ${PACKAGE_VERSION}\\n\"\n\"Powered by Software Network\"");
         core.configureFile("cmake/templates/cvconfig.h.in", "cvconfig.h");
