@@ -79,8 +79,15 @@ void build(Solution &s)
         }
 
         pcre.Public += sw::Static, "PCRE_STATIC"_d;
-        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows) &&
+            !pcre.getBuildSettings().TargetOS.is(OSType::Mingw))
+        {
             pcre.ExportAllSymbols = true;
+        }
+        // also works?
+        /*pcre.ApiNames.insert("PCRE_EXP_DECL");
+        pcre.ApiNames.insert("PCRE_EXP_DEFN");
+        pcre.ApiNames.insert("PCRE_EXP_DATA_DEFN");*/
 
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;
@@ -143,8 +150,11 @@ void build(Solution &s)
         pcreposix +=
             "pcreposix.c",
             "pcreposix.h";
-        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows) ||
+            pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
+        {
             pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
+        }
         else
         {
             pcreposix.ApiNames.insert("PCREPOSIX_EXP_DECL");
@@ -163,6 +173,11 @@ void build(Solution &s)
         exp = "extern " + exp;
         pcre8.Public += "SW_PCRE_EXP_VAR=__declspec(dllimport)"_def;
     }
+    else if (pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
+    {
+        exp = "extern " + exp;
+        pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
+    }
     else
         pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
 
@@ -170,19 +185,19 @@ void build(Solution &s)
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const ucd_record  PRIV(ucd_records)[];",
         "" + exp + " const ucd_record  PRIV(ucd_records)[];"
-    );
+        );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint8  PRIV(ucd_stage1)[];",
         "" + exp + " const pcre_uint8  PRIV(ucd_stage1)[];"
-    );
+        );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint16 PRIV(ucd_stage2)[];",
         "" + exp + " const pcre_uint16 PRIV(ucd_stage2)[];"
-    );
+        );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint32 PRIV(ucp_gentype)[];",
         "" + exp + " const pcre_uint32 PRIV(ucp_gentype)[];"
-    );
+        );
 
     // remove first underscore
     auto fix_ucd = [&pcre8](const path &p)
