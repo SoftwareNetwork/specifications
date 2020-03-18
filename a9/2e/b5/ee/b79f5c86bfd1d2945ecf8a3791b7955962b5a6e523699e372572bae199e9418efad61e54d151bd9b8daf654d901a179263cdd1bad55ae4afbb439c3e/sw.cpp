@@ -53,7 +53,6 @@ void build(Solution &s)
         if (win_or_mingw)
         {
             crypto += "DSO_WIN32"_def;
-            crypto += "WIN32_LEAN_AND_MEAN"_def;
             crypto.Public += "Crypt32.lib"_slib;
             crypto.Public += "Bcrypt.lib"_slib;
         }
@@ -321,6 +320,10 @@ void build(Solution &s)
     #endif
 
     #define RC4_INT unsigned int
+
+    #ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #endif
 
     #ifdef  __cplusplus
     }
