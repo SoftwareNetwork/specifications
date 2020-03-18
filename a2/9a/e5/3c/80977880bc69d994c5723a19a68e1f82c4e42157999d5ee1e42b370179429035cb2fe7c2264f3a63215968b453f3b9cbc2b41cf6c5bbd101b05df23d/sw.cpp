@@ -182,6 +182,7 @@ void build(Solution &s)
                 ;
         }
 
+        sqlcipher.pushFrontToFileOnce("ext/rtree/rtree.c", "#include <stdlib.h>");
         sqlcipher.pushFrontToFileOnce("src/crypto.c", "#include <sqlite3.h>");
         sqlcipher.pushFrontToFileOnce("src/crypto_impl.c", "#include <sqlite3.h>");
         sqlcipher.pushFrontToFileOnce("src/crypto_openssl.c", "#include <sqlite3.h>\n#include \"sqlcipher.h\"");

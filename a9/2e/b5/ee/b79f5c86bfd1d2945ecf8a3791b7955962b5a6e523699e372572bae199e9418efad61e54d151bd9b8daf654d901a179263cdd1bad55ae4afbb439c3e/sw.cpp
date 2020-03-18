@@ -52,10 +52,10 @@ void build(Solution &s)
         crypto.Public += "OPENSSL_NO_ASM"_d;
         if (win_or_mingw)
         {
-            crypto.Private += "DSO_WIN32"_d;
+            crypto += "DSO_WIN32"_def;
+            crypto += "WIN32_LEAN_AND_MEAN"_def;
             crypto.Public += "Crypt32.lib"_slib;
             crypto.Public += "Bcrypt.lib"_slib;
-            crypto.Public += "WIN32_LEAN_AND_MEAN"_d;
         }
         else
         {

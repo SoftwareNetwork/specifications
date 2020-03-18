@@ -28,10 +28,6 @@ void build(Solution &s)
         utils.configureFile("tdutils/td/utils/config.h.in", "td/utils/config.h");
         utils.writeFileOnce("auto/git_info.h", "#define GIT_COMMIT \"\"\n#define GIT_DIRTY false");
 
-        utils.patch("tdutils/td/utils/port/FileFd.cpp",
-            "#include \"td/utils/port/wstring_convert.h\"", R"(#include  "td/utils/port/wstring_convert.h"
-#include <winioctl.h>)");
-
         {
             auto c = utils.addCommand();
             c << cmd::prog(generate_mime_types_gperf)
@@ -136,6 +132,7 @@ void build(Solution &s)
             "td/telegram/td_emscripten\\..*"_rr,
             "td/telegram/td_json_client\\..*"_rr,
             "td/telegram/td_log\\..*"_rr;
+        core.Public += "."_idir;
         core.Public.IncludeDirectories.insert(core.BinaryDir / "auto");
         if (core.getCompilerType() == CompilerType::MSVC)
             core.CompileOptions.push_back("-bigobj");
@@ -143,7 +140,7 @@ void build(Solution &s)
             core.CompileOptions.push_back("-Wa,-mbig-obj");
         if (core.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
-            core.Public += "atomic"_lib;
+            core.Public += "atomic"_slib;
         }
 
         core.Public += memprof;
