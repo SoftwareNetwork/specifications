@@ -28,8 +28,7 @@ struct YasmCompiler : sw::NativeCompiler,
     ExecutableTarget &exe;
 
     YasmCompiler(ExecutableTarget &exe)
-        : NativeCompiler(exe.getSolution().getContext())
-        , exe(exe)
+        : exe(exe)
     {
     }
 
