@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &p = s.addProject("pcre", "8.43.0");
+    auto &p = s.addProject("pcre", "8.44.0");
     p += RemoteFile("https://ftp.pcre.org/pub/pcre/pcre-{M}.{m}.tar.bz2");
 
     auto &pcre8 = p.addTarget<LibraryTarget>("pcre8");
@@ -78,9 +78,18 @@ void build(Solution &s)
                 path("pcre" + sbits + "_xclass.c");
         }
 
-        pcre.Public += sw::Static, "PCRE_STATIC"_d;
-        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows))
-            pcre.ExportAllSymbols = true;
+        //pcre.Public += sw::Static, "PCRE_STATIC"_d;
+        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows) &&
+            !pcre.getBuildSettings().TargetOS.is(OSType::Mingw))
+        {
+            //pcre.ExportAllSymbols = true;
+        }
+        // also works?
+        // but in this case we do not get extern "C" in C++ mode
+        // also we do not get extern in C mode
+        pcre.ApiNames.insert("PCRE_EXP_DECL");
+        pcre.ApiNames.insert("PCRE_EXP_DEFN");
+        pcre.ApiNames.insert("PCRE_EXP_DATA_DEFN");
 
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;
@@ -143,8 +152,11 @@ void build(Solution &s)
         pcreposix +=
             "pcreposix.c",
             "pcreposix.h";
-        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows) ||
+            pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
+        {
             pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
+        }
         else
         {
             pcreposix.ApiNames.insert("PCREPOSIX_EXP_DECL");
@@ -159,10 +171,9 @@ void build(Solution &s)
 
     String exp = "SW_PCRE_EXP_VAR";
     if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
-    {
-        exp = "extern " + exp;
-        pcre8.Public += "SW_PCRE_EXP_VAR=__declspec(dllimport)"_def;
-    }
+        pcre8.Public += "SW_PCRE_EXP_VAR=extern __declspec(dllimport)"_def;
+    else if (pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
+        pcre8.Public += "SW_PCRE_EXP_VAR=extern PCRE_EXP_DECL"_def;
     else
         pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
 

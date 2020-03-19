@@ -79,15 +79,8 @@ void build(Solution &s)
         }
 
         pcre.Public += sw::Static, "PCRE_STATIC"_d;
-        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows) &&
-            !pcre.getBuildSettings().TargetOS.is(OSType::Mingw))
-        {
+        if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows))
             pcre.ExportAllSymbols = true;
-        }
-        // also works?
-        /*pcre.ApiNames.insert("PCRE_EXP_DECL");
-        pcre.ApiNames.insert("PCRE_EXP_DEFN");
-        pcre.ApiNames.insert("PCRE_EXP_DATA_DEFN");*/
 
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;
@@ -150,11 +143,8 @@ void build(Solution &s)
         pcreposix +=
             "pcreposix.c",
             "pcreposix.h";
-        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows) ||
-            pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
-        {
+        if (pcre8.getBuildSettings().TargetOS.is(OSType::Windows))
             pcreposix.Public += sw::Shared, "PCREPOSIX_EXP_DECL"_d;
-        }
         else
         {
             pcreposix.ApiNames.insert("PCREPOSIX_EXP_DECL");
@@ -172,11 +162,6 @@ void build(Solution &s)
     {
         exp = "extern " + exp;
         pcre8.Public += "SW_PCRE_EXP_VAR=__declspec(dllimport)"_def;
-    }
-    else if (pcre8.getBuildSettings().TargetOS.is(OSType::Mingw))
-    {
-        exp = "extern " + exp;
-        pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;
     }
     else
         pcre8.Public += "SW_PCRE_EXP_VAR=PCRE_EXP_DECL"_def;

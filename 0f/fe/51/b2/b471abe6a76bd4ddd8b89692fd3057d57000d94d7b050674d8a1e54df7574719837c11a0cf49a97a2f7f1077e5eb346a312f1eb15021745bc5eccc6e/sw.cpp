@@ -47,7 +47,8 @@ void build(Solution &s)
     }
     if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
-        t += "HAVE_HIDDEN_VISIBILITY_ATTRIBUTE"_def;
+        if (t.getBuildSettings().TargetOS.Type != OSType::Mingw)
+            t += "HAVE_HIDDEN_VISIBILITY_ATTRIBUTE"_def;
         t -= "src/x86/win64_intel.S";
         t -= "src/x86/sysv_intel.S";
     }

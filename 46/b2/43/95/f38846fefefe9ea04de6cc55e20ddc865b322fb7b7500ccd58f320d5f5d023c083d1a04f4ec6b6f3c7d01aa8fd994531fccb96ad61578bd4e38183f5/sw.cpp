@@ -30,7 +30,8 @@ void build(Solution &s)
             "glib/.*helper.*"_rr
             ;
 
-        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            glib.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             glib -=
                 "glib/dirent/.*"_rr;
@@ -39,6 +40,10 @@ void build(Solution &s)
         }
         else
             glib -= "glib/gspawn.c";
+        if (glib.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            glib += "glib/gnulib"_id;
+        }
         glib.Public +=
             "."_id,
             "glib"_id;
@@ -147,7 +152,8 @@ void build(Solution &s)
 
         glib.Variables["gintbits"] = "32";
 
-        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            glib.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             glib.Variables["glongbits"] = "64";
             glib.Variables["glib_size_type_define"] = "long";
