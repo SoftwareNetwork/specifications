@@ -10,9 +10,11 @@ void build(Solution &s)
         "lib/lz4frame.h",
         "lib/lz4frame_static.h",
         "lib/lz4hc.c",
-        "lib/lz4hc.h"/*,
+        "lib/lz4hc.h"
+        ;
+    lz4 ^=
         "lib/xxhash.c",
-        "lib/xxhash.h"*/
+        "lib/xxhash.h"
         ;
 
     lz4.Public +=
