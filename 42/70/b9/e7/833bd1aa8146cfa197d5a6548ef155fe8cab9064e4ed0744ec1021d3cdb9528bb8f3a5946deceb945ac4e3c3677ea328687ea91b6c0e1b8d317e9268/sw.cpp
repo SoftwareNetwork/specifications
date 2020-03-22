@@ -10,12 +10,14 @@ void build(Solution &s)
         "lib/lz4frame.h",
         "lib/lz4frame_static.h",
         "lib/lz4hc.c",
-        "lib/lz4hc.h",
+        "lib/lz4hc.h"/*,
         "lib/xxhash.c",
-        "lib/xxhash.h";
+        "lib/xxhash.h"*/
+        ;
 
     lz4.Public +=
         "lib"_id;
+    lz4 += "org.sw.demo.Cyan4973.xxHash"_dep;
 
     if (lz4.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
