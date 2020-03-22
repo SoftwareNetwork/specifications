@@ -58,7 +58,8 @@ void build(Solution &s)
                 "src/unix/darwin-proctitle.c",
                 "src/unix/fsevents.c",
                 "src/unix/kqueue.c",
-                "src/unix/proctitle.c";
+                "src/unix/proctitle.c",
+                "src/unix/random-getentropy.c";
             break;
         case OSType::FreeBSD:
             break;
