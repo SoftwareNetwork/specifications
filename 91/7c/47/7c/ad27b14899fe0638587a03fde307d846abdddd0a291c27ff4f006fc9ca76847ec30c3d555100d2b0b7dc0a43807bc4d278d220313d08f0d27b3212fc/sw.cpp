@@ -63,89 +63,74 @@ void build(Solution &s)
     }
 
     auto &actor = td.addTarget<StaticLibraryTarget>("actor");
-    actor += "tdactor/td/actor/.*"_rr;
-    actor.Public += "tdactor"_idir;
-    actor.Public += utils;
-    actor.pushFrontToFileOnce("tdactor/td/actor/impl/ConcurrentScheduler.cpp", "#include \"td/actor/actor.h\"");
+    {
+        actor += "tdactor/td/actor/.*"_rr;
+        actor.Public += "tdactor"_idir;
+        actor.Public += utils;
+        actor.pushFrontToFileOnce("tdactor/td/actor/impl/ConcurrentScheduler.cpp", "#include \"td/actor/actor.h\"");
+    }
 
     auto &db = td.addTarget<StaticLibraryTarget>("db");
-    db += "tddb/td/db/.*"_rr;
-    db.Public += "tddb"_idir;
-    db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
-    db.Public += actor;
+    {
+        db += "tddb/td/db/.*"_rr;
+        db.Public += "tddb"_idir;
+        db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
+        db.Public += actor;
 
-    for (auto &f : { "tddb/td/db/detail/RawSqliteDb.cpp", "tddb/td/db/SqliteDb.cpp", "tddb/td/db/SqliteStatement.cpp" })
-        db.patch(f, "sqlite/sqlite3.h", "sqlite3.h");
+        for (auto &f : { "tddb/td/db/detail/RawSqliteDb.cpp", "tddb/td/db/SqliteDb.cpp", "tddb/td/db/SqliteStatement.cpp" })
+            db.patch(f, "sqlite/sqlite3.h", "sqlite3.h");
+    }
 
     auto &tl = td.addTarget<StaticLibraryTarget>("tl");
     tl += "tdtl/td/tl/.*"_rr;
     tl.Public += "tdtl"_idir;
 
-    auto &clib = td.addTarget<ExecutableTarget>("generate.clib");
-    clib +=
-        "td/generate/generate_c.cpp",
-        "td/generate/tl_writer_c.h";
-    clib.Public += tl;
-
-    auto &net = td.addTarget<StaticLibraryTarget>("net");
-    net += "tdnet/td/net/.*"_rr;
-    net.Public += "tdnet"_idir;
-    net.Public += "org.sw.demo.openssl.ssl"_dep;
-    net.Public += actor;
-
-    auto &memprof = td.addTarget<StaticLibraryTarget>("memprof");
-    memprof += "memprof/.*"_rr;
-    memprof.Public += utils;
-
-    auto &json = td.addTarget<ExecutableTarget>("generate.json");
-    json +=
-        "td/generate/generate_json.cpp",
-        "td/generate/tl_json_converter.cpp",
-        "td/generate/tl_json_converter.h",
-        "td/generate/tl_writer_c.h";
-    json.Public += tl;
-    json.Public += utils;
-
-    auto &common = td.addTarget<ExecutableTarget>("generate.common");
-    common +=
-        "td/generate/generate_common.cpp",
-        "td/generate/tl_.*"_rr;
-    common.Public += tl;
-    common.Public += utils;
-
-    //
-    auto &core = td.addTarget<StaticLibraryTarget>("core");
+    auto &generate_clib = td.addTarget<ExecutableTarget>("generate.clib");
     {
-        core +=
-            "td/generate/scheme/.*\\.tlo"_rr,
-            "td/mtproto/.*"_rr,
-            "td/telegram/.*"_rr,
-            "td/tl/.*\\.h"_rr;
-        core -=
-            "td/telegram/ClientDotNet\\..*"_rr,
-            "td/telegram/ClientJson\\..*"_rr,
-            "td/telegram/Client\\..*"_rr,
-            "td/telegram/LogDotNet\\..*"_rr,
-            "td/telegram/Log\\..*"_rr,
-            "td/telegram/cli\\..*"_rr,
-            "td/telegram/td_c_client\\..*"_rr,
-            "td/telegram/td_emscripten\\..*"_rr,
-            "td/telegram/td_json_client\\..*"_rr,
-            "td/telegram/td_log\\..*"_rr;
-        core.Public += "."_idir;
-        core.Public.IncludeDirectories.insert(core.BinaryDir / "auto");
-        if (core.getCompilerType() == CompilerType::MSVC)
-            core.CompileOptions.push_back("-bigobj");
-        else
-            core.CompileOptions.push_back("-Wa,-mbig-obj");
-        if (core.getBuildSettings().TargetOS.Type != OSType::Windows)
-        {
-            core.Public += "atomic"_slib;
-        }
+        generate_clib +=
+            "td/generate/generate_c.cpp",
+            "td/generate/tl_writer_c.h";
+        generate_clib.Public += tl;
+    }
 
-        core.Public += memprof;
-        core.Public += net;
-        core.Public += db;
+    auto &generate_json = td.addTarget<ExecutableTarget>("generate.json");
+    {
+        generate_json +=
+            "td/generate/generate_json.cpp",
+            "td/generate/tl_json_converter.cpp",
+            "td/generate/tl_json_converter.h",
+            "td/generate/tl_writer_c.h";
+        generate_json.Public += tl;
+        generate_json.Public += utils;
+    }
+
+    auto &generate_common = td.addTarget<ExecutableTarget>("generate.common");
+    {
+        generate_common +=
+            "td/generate/generate_common.cpp",
+            "td/generate/tl_.*"_rr;
+        generate_common.Public += tl;
+        generate_common.Public += utils;
+    }
+
+    auto setup_bigobj = [](auto &t)
+    {
+        if (t.getCompilerType() == CompilerType::MSVC)
+            t.CompileOptions.push_back("-bigobj");
+        else
+            t.CompileOptions.push_back("-Wa,-mbig-obj");
+    };
+
+    auto &scheme = td.addTarget<StaticLibraryTarget>("scheme");
+    {
+        auto &t = scheme;
+        t +=
+            "td/generate/scheme/.*\\.tlo"_rr,
+            "td/tl/.*\\.h"_rr;
+        t.Public += utils;
+        t.Public += "."_idir;
+        t.Public += IncludeDirectory(t.BinaryDir / "auto");
+        setup_bigobj(t);
 
         auto copy = [](auto &t, const path &in, const path &out)
         {
@@ -170,19 +155,19 @@ void build(Solution &s)
                 "auto/td/telegram/secret_api.hpp",
             };
 
-            copy(core, "td/generate/scheme/td_api.tlo", "scheme/td_api.tlo");
-            copy(core, "td/generate/scheme/mtproto_api.tlo", "scheme/mtproto_api.tlo");
-            copy(core, "td/generate/scheme/telegram_api.tlo", "scheme/telegram_api.tlo");
-            copy(core, "td/generate/scheme/secret_api.tlo", "scheme/secret_api.tlo");
+            copy(t, "td/generate/scheme/td_api.tlo", "scheme/td_api.tlo");
+            copy(t, "td/generate/scheme/mtproto_api.tlo", "scheme/mtproto_api.tlo");
+            copy(t, "td/generate/scheme/telegram_api.tlo", "scheme/telegram_api.tlo");
+            copy(t, "td/generate/scheme/secret_api.tlo", "scheme/secret_api.tlo");
 
-            auto c = core.addCommand();
-            c << cmd::prog(common)
-                << cmd::wdir(core.BinaryDir)
+            auto c = t.addCommand();
+            c << cmd::prog(generate_common)
+                << cmd::wdir(t.BinaryDir)
                 << cmd::end()
-                << cmd::in(core.BinaryDir / "scheme/td_api.tlo")
-                << cmd::in(core.BinaryDir / "scheme/mtproto_api.tlo")
-                << cmd::in(core.BinaryDir / "scheme/telegram_api.tlo")
-                << cmd::in(core.BinaryDir / "scheme/secret_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/td_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/mtproto_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/telegram_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/secret_api.tlo")
                 << cmd::out(tl_td_auto)
                 ;
         }
@@ -193,11 +178,11 @@ void build(Solution &s)
                 "auto/td/telegram/td_api_json.h",
             };
 
-            auto c = core.addCommand();
-            c << cmd::prog(json)
-                << cmd::wdir(core.BinaryDir)
+            auto c = t.addCommand();
+            c << cmd::prog(generate_json)
+                << cmd::wdir(t.BinaryDir)
                 << cmd::end()
-                << cmd::in(core.BinaryDir / "scheme/td_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/td_api.tlo")
                 << cmd::out(tl_td_auto)
                 ;
         }
@@ -209,14 +194,52 @@ void build(Solution &s)
                 "auto/td/telegram/td_tdc_api_inner.h",
             };
 
-            auto c = core.addCommand();
-            c << cmd::prog(clib)
-                << cmd::wdir(core.BinaryDir)
+            auto c = t.addCommand();
+            c << cmd::prog(generate_clib)
+                << cmd::wdir(t.BinaryDir)
                 << cmd::end()
-                << cmd::in(core.BinaryDir / "scheme/td_api.tlo")
+                << cmd::in(t.BinaryDir / "scheme/td_api.tlo")
                 << cmd::out(tl_td_auto)
                 ;
         }
+    }
+
+    auto &net = td.addTarget<StaticLibraryTarget>("net");
+    net += "tdnet/td/net/.*"_rr;
+    net.Public += "tdnet"_idir;
+    net.Public += "org.sw.demo.openssl.ssl"_dep;
+    net.Public += actor;
+
+    auto &memprof = td.addTarget<StaticLibraryTarget>("memprof");
+    memprof += "memprof/.*"_rr;
+    memprof.Public += utils;
+
+    //
+    auto &core = td.addTarget<StaticLibraryTarget>("core");
+    {
+        core +=
+            "td/mtproto/.*"_rr,
+            "td/telegram/.*"_rr;
+        core -=
+            "td/telegram/ClientDotNet\\..*"_rr,
+            "td/telegram/ClientJson\\..*"_rr,
+            "td/telegram/Client\\..*"_rr,
+            "td/telegram/LogDotNet\\..*"_rr,
+            "td/telegram/Log\\..*"_rr,
+            "td/telegram/cli\\..*"_rr,
+            "td/telegram/td_c_client\\..*"_rr,
+            "td/telegram/td_emscripten\\..*"_rr,
+            "td/telegram/td_json_client\\..*"_rr,
+            "td/telegram/td_log\\..*"_rr;
+        core.Public += "."_idir;
+        setup_bigobj(core);
+        if (core.getBuildSettings().TargetOS.Type != OSType::Windows)
+            core.Public += "atomic"_slib;
+
+        core.Public += scheme;
+        core.Public += memprof;
+        core.Public += net;
+        core.Public += db;
     }
 
     auto &client = td.addTarget<StaticLibraryTarget>("client");

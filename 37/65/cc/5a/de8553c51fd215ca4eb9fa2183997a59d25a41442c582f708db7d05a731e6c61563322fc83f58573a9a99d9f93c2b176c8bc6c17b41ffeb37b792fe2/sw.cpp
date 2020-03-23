@@ -1,14 +1,29 @@
 void build(Solution &s)
 {
-    auto &tgbot = s.addTarget<StaticLibraryTarget>("reo7sp.tgbot", "master");
-    tgbot += Git("https://github.com/reo7sp/tgbot-cpp", "", "master");
+    auto &tgbot = s.addLibrary("reo7sp.tgbot", "master");
+    tgbot += Git("https://github.com/reo7sp/tgbot-cpp");
+    {
+        tgbot += cpp11;
 
-    tgbot.Public += "HAVE_CURL"_d;
+        tgbot.ApiName = "TGBOT_API";
+        tgbot.Public += "org.sw.demo.boost.property_tree"_dep;
+        tgbot.Public += "org.sw.demo.openssl.ssl"_dep;
+        tgbot.Public += "org.sw.demo.boost.system"_dep;
+        tgbot.Public += "org.sw.demo.boost.date_time"_dep;
+        tgbot.Public += "org.sw.demo.badger.curl.libcurl"_dep, "HAVE_CURL"_def;
+        tgbot.Public += "org.sw.demo.boost.asio"_dep;
+    }
 
-    tgbot.Public += "org.sw.demo.boost.property_tree-1"_dep;
-    tgbot.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
-    tgbot.Public += "org.sw.demo.boost.system-1"_dep;
-    tgbot.Public += "org.sw.demo.boost.date_time-1"_dep;
-    tgbot.Public += "org.sw.demo.badger.curl.libcurl-7"_dep;
-    tgbot.Public += "org.sw.demo.boost.asio-1"_dep;
+    auto &t = tgbot.addExecutable("test");
+    {
+        t.Scope = TargetScope::Test;
+        t += cpp11;
+        t += "test/.*"_rr;
+        t += "test"_idir;
+        t += "SW_BUILD"_def;
+        t += tgbot;
+        t += "org.sw.demo.boost.test"_dep;
+    }
+
+    tgbot.addTest(t);
 }
