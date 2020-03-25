@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &t = s.addTarget<Library>("Cyan4973.xxHash", "0.7.3");
+    auto &t = s.addTarget<StaticLibrary>("Cyan4973.xxHash", "0.7.3");
     t += Git("https://github.com/Cyan4973/xxHash", "v{v}");
     t += "xxhash.[hc]"_rr;
     t += "xxh3.h";
@@ -14,4 +14,6 @@ void build(Solution &s)
 
     t += sw::Shared, "XXH_EXPORT"_def;
     t.Interface += sw::Shared, "XXH_IMPORT"_def;
+
+    t.patch("xxhash.h", "#  if defined(__GNUC__)", "#  if defined(__GNUC__) || defined(__APPLE__)");
 }
