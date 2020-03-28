@@ -188,7 +188,7 @@ void build(Solution &s)
                     cl->InputFile = "-";
                     cl->InputFile.input_dependency = false;
                     cl->Language = "assembler";
-                    auto &cmd2 = *cl->createCommand(t.getSolution().getContext());
+                    auto &cmd2 = *cl->createCommand(t.getMainBuild());
                     auto c = t.addCommand();
                     c
                         << cmd::prog("org.sw.demo.gnu.gawk.gawk"_dep)
