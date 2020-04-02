@@ -359,6 +359,11 @@ void build(Solution &s)
 
     if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows)
         boost_targets["stacktrace"]->Public.Definitions["BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"];
+    else
+    {
+        *boost_targets["stacktrace"] += "dbgeng.lib"_slib;
+        *boost_targets["stacktrace"] += "Ole32.lib"_slib;
+    }
 
     // compiled
     auto compiled_target_names = {

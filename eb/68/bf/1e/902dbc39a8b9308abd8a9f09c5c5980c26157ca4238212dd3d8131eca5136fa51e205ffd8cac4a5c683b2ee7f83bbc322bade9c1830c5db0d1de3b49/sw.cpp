@@ -88,7 +88,7 @@ struct ProtocData
                 else
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
                 c->addInput(p);
-                return "--plugin=protoc-gen-" + generator + "=" + p.u8string();
+                return "--plugin=protoc-gen-" + generator + "=" + normalize_path(p);
             }
             ;
 
@@ -148,7 +148,7 @@ void build(Solution &s)
     {
         return
             t.getBuildSettings().TargetOS.Type == OSType::Windows/* ||
-            t.getBuildSettings().TargetOS.Type == OSType::Mingw*/
+                                                                 t.getBuildSettings().TargetOS.Type == OSType::Mingw*/
             ;
     };
 
