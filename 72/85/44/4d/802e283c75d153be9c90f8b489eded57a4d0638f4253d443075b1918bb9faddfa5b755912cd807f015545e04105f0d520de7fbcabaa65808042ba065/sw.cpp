@@ -60,6 +60,7 @@ void build(Solution &s)
         base.setChecks("wx", true);
         base += "build/cmake/setup.h.in";
 
+        base -= "src/common/.*"_rr;
         base -= "src/regex/.*"_rr;
         base += "src/regex/regexec.c";
         base += "src/regex/regcomp.c";
@@ -442,6 +443,7 @@ void build(Solution &s)
 
     auto &core = add_target("core");
     {
+        core -= "art/.*"_rr;
         add_sources(core, "GUI_CMN");
         add_sources(core, "BASE_AND_GUI_CMN");
 
@@ -563,6 +565,7 @@ void build(Solution &s)
 
     auto &richtext = add_core_target("richtext");
     {
+        richtext -= "src/richtext/.*"_rr;
         add_sources(richtext, "RICHTEXT");
         richtext += html, xml;
     }
@@ -583,6 +586,7 @@ void build(Solution &s)
 
     auto &stc = add_core_target("stc");
     {
+        stc -= "src/stc/.*"_rr;
         stc += "src/stc/scintilla/.*"_rr;
         stc += "src/stc/scintilla/include"_id;
         stc += "src/stc/scintilla/lexlib"_id;
