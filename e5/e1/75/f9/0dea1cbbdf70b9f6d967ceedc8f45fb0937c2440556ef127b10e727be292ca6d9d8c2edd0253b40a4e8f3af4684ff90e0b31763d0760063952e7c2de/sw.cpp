@@ -5,5 +5,6 @@ void build(Solution &s)
 
     t += "src/qtvstools/qt5.natvis.xml";
     t.configureFile("src/qtvstools/qt5.natvis.xml", "qt5.natvis");
+    t.patch("qt5.natvis", "##NAMESPACE##", "");
     t.Public += "qt5.natvis";
 }
