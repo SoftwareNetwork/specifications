@@ -164,10 +164,15 @@ void build(Solution &s)
 
         http.Private += "HTTP_WITH_SSL"_d;
         http.Private += "WT_BUILDING"_d;
-        http.Private += "_WIN32_WINNT=0x0601"_d;
         http.Public += "WTHTTP_WITH_ZLIB"_d;
         http.Private += sw::Shared, "wthttp_EXPORTS"_d;
         http.Public += sw::Static, "WTHTTP_STATIC"_d;
+
+        if (http.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            http.Private += "_WIN32_WINNT=0x0601"_d;
+            http.Private += "WIN32_LEAN_AND_MEAN"_d;
+        }
 
         http.Public += "org.sw.demo.boost.program_options"_dep;
         http.Public += "org.sw.demo.boost.spirit"_dep;
