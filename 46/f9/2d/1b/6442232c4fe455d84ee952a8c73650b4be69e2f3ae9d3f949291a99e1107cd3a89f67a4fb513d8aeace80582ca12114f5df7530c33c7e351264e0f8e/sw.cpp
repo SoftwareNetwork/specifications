@@ -116,10 +116,17 @@ void build(Solution &s)
     libcurl.Public += "USE_LIBSSH2"_d;
     libcurl.Public += "USE_NGHTTP2"_d;
     libcurl.Public += "USE_OPENSSL"_d;
+    libcurl += "CURL_WITH_MULTI_SSL"_d; // allow multiple ssl backends
     if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
         libcurl.Private += "HAVE_CONFIG_H"_d;
     }
+    else
+    {
+        libcurl += "USE_SCHANNEL"_d; // native windows
+    }
+    if (libcurl.getBuildSettings().TargetOS.isApple())
+        libcurl += "USE_SECTRANSP"_d;
 
     //libcurl.Public += "org.sw.demo.c_ares"_dep;
     libcurl += "org.sw.demo.gnu.gss"_dep;
