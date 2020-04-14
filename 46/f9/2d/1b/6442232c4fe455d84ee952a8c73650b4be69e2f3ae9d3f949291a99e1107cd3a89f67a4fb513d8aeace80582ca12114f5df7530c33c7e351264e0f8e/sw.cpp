@@ -126,7 +126,10 @@ void build(Solution &s)
         libcurl += "USE_SCHANNEL"_d; // native windows
     }
     if (libcurl.getBuildSettings().TargetOS.isApple())
+    {
         libcurl += "USE_SECTRANSP"_d;
+        libcurl += "Security"_framework;
+    }
 
     //libcurl.Public += "org.sw.demo.c_ares"_dep;
     libcurl += "org.sw.demo.gnu.gss"_dep;
