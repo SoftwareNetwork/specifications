@@ -144,17 +144,20 @@ void build(Solution &s)
         cpp_driver.Public += core,
             "pub.egorpugin.primitives.patch-master"_dep,
             "org.sw.demo.ToruNiina.toml11"_dep,
-            "org.sw.demo.giovannidicanio.winreg"_dep,
             "org.sw.demo.boost.assign"_dep,
             "org.sw.demo.boost.bimap"_dep,
             "org.sw.demo.boost.uuid"_dep;
+        cpp_driver.Public -= "org.sw.demo.giovannidicanio.winreg"_dep;
         cpp_driver += "src/sw/driver/.*"_rr;
         cpp_driver -= "src/sw/driver/misc/delay_load_helper.cpp";
         gen_flex_bison("org.sw.demo.lexxmark.winflexbison"_dep, cpp_driver, "src/sw/driver/bazel/lexer.ll", "src/sw/driver/bazel/grammar.yy");
         if (cpp_driver.getCompilerType() == CompilerType::MSVC || cpp_driver.getCompilerType() == CompilerType::ClangCl)
             cpp_driver.CompileOptions.push_back("-bigobj");
         if (cpp_driver.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            cpp_driver.Public += "org.sw.demo.giovannidicanio.winreg"_dep;
             cpp_driver += "dbghelp.lib"_slib;
+        }
         //else if (s.getBuildSettings().Native.CompilerType == CompilerType::GNU)
             //cpp_driver.CompileOptions.push_back("-Wa,-mbig-obj");
         {
@@ -251,7 +254,6 @@ void build(Solution &s)
         client_common += "src/sw/client/common/.*"_rr;
         client_common.CPPVersion = CPPLanguageStandard::CPP17;
         client_common.Public += core, cpp_driver;
-        client_common.Public += "org.sw.demo.giovannidicanio.winreg"_dep;
 
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, client_common, "src/sw/client/common/inserts/SWConfig.cmake");
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, client_common, "src/sw/client/common/inserts/project_templates.yml");
