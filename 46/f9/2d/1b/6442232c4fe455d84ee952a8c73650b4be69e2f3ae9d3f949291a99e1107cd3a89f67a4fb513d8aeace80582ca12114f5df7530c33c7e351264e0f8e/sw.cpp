@@ -128,6 +128,7 @@ void build(Solution &s)
     if (libcurl.getBuildSettings().TargetOS.isApple())
     {
         libcurl += "USE_SECTRANSP"_d;
+        libcurl += "CoreFoundation"_framework;
         libcurl += "Security"_framework;
     }
 
