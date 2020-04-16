@@ -1,6 +1,5 @@
 #pragma sw require pub.egorpugin.primitives.emitter-master
-#pragma sw require pub.egorpugin.primitives.http-master
-#pragma sw require header org.sw.demo.google.protobuf.protoc-3
+#pragma sw require header org.sw.demo.google.protobuf.protoc
 
 #include <primitives/emitter.h>
 #include <primitives/http.h>
@@ -281,7 +280,7 @@ void build(Solution &s)
         {
             ProtobufData d;
             d.addIncludeDirectory(f.parent_path());
-            gen_protobuf_cpp("org.sw.demo.google.protobuf-3"_dep, dnn, f, d);
+            gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, dnn, f, d);
         }
     }
 
@@ -358,7 +357,7 @@ void build(Solution &s)
             for (auto f : { "vgg_generated_48.i","vgg_generated_64.i","vgg_generated_80.i","vgg_generated_120.i" })
             {
                 if (!fs::exists(xfeatures2d.BinaryDir / f))
-                    download_file(url + f, xfeatures2d.BinaryDir / f);
+                    downloadFile(url + f, xfeatures2d.BinaryDir / f);
             }
             url = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/34e4206aef44d50e6bbcd0ab06354b52e7466d26/";
             for (auto f : {
@@ -372,7 +371,7 @@ void build(Solution &s)
                 })
             {
                 if (!fs::exists(xfeatures2d.BinaryDir / f))
-                    download_file(url + f, xfeatures2d.BinaryDir / f);
+                    downloadFile(url + f, xfeatures2d.BinaryDir / f);
             }
         }
     }
