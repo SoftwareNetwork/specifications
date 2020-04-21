@@ -191,6 +191,9 @@ void build(Solution &s)
 
     auto &pq = pg.addLibrary("pq");
     {
+        if (!pq.getBuildSettings().TargetOS.is(OSType::Windows))
+            pq.ExportAllSymbols = true;
+
         pq += "src/interfaces/libpq/.*\\.[hc]"_r;
         //pq += "src/interfaces/libpq/.*\\.def"_r;
         pq -= "src/interfaces/libpq/.*gssapi.*"_r;
@@ -265,20 +268,20 @@ void build(Solution &s)
 
     // pg
     /*{
-        pg += "src/backend/.*\\.[hc]"_rr;
-        pg += "src/common/.*\\.[hc]"_rr;
-        pg += "src/port/.*\\.[hc]"_rr;
-        pg += "src/include/.*\\.h"_rr;
-        pg += "src/include/.*\\.in"_rr;
+    pg += "src/backend/.*\\.[hc]"_rr;
+    pg += "src/common/.*\\.[hc]"_rr;
+    pg += "src/port/.*\\.[hc]"_rr;
+    pg += "src/include/.*\\.h"_rr;
+    pg += "src/include/.*\\.in"_rr;
 
-        pg.Protected += "src/include"_idir;
-        pg.Protected += "src/include/port/win32"_idir;
-        pg.Protected += "src/include/port/win32_msvc"_idir;
+    pg.Protected += "src/include"_idir;
+    pg.Protected += "src/include/port/win32"_idir;
+    pg.Protected += "src/include/port/win32_msvc"_idir;
 
-        pg.Protected += "src/include/port/win32"_idir;
-        pg.Protected += "src/include/port/win32_msvc"_idir;
+    pg.Protected += "src/include/port/win32"_idir;
+    pg.Protected += "src/include/port/win32_msvc"_idir;
 
-        pg.Protected += "org.sw.demo.openssl.crypto"_dep;
+    pg.Protected += "org.sw.demo.openssl.crypto"_dep;
     }*/
 }
 
