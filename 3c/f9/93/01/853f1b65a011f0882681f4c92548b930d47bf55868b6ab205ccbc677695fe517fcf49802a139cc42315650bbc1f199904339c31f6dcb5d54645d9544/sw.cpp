@@ -7,7 +7,7 @@ void build(Solution &s)
     auto is_musl = [](auto &t)
     {
         return
-            t.getSettings()["native"]["stdlib"]["c"] &&
+            t.getSettings()["native"]["stdlib"]["c"].isValue() &&
             sw::UnresolvedPackage(t.getSettings()["native"]["stdlib"]["c"].getValue()).getPath() == "org.sw.demo.musl";
     };
 
@@ -47,6 +47,11 @@ void build(Solution &s)
             case ArchType::x86:
                 arch = "i386";
                 break;
+            case ArchType::arm:
+                arch = "arm";
+            case ArchType::aarch64:
+                arch = "aarch64";
+                break;
             default:
                 throw SW_RUNTIME_ERROR("arch is not implemented");
             }
@@ -80,6 +85,14 @@ void build(Solution &s)
         t += RemoteFile("https://github.com/llvm/llvm-project/releases/download/llvmorg-{v}/libunwind-{v}.src.tar.xz");
         if (fs::exists(t.SourceDir / "libunwind"))
             t.setSourceDirectory("libunwind");
+
+        t += "include/.*"_rr;
+        t += "src/.*"_rr;
+
+        if (!t.getBuildSettings().TargetOS.isApple())
+        {
+            t -= "src/Unwind_AppleExtras.cpp";
+        }
 
         if (!is_musl(t))
         {
@@ -130,8 +143,7 @@ void build(Solution &s)
         if (!is_musl(t))
             t += "pthread"_slib;
 
-        if (t.getSettings()["native"]["stdlib"]["c"] &&
-            sw::UnresolvedPackage(t.getSettings()["native"]["stdlib"]["c"].getValue()).getPath() == "org.sw.demo.musl")
+        if (is_musl(t))
         {
             t.Public += "_LIBCPP_HAS_MUSL_LIBC"_def;
             //t.Public += "_LIBCPP_HAS_THREAD_API_PTHREAD"_def;
