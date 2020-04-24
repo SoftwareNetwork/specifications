@@ -92,13 +92,8 @@ void build(Solution &s)
         data += RemoteFile("https://github.com/unicode-org/icu/releases/download/release-{M}-{m}/icu4c-{M}_{m}-src.zip");
         data.setRootDirectory("source");
         data += "data/in/.*\\.dat"_rr;
-#ifdef SW_CPP_DRIVER_API_VERSION
         if (auto L = data.getSelectedTool()->as<VisualStudioLinker *>())
-#else
-        if (auto L = data.getSelectedTool()->as<VisualStudioLinker>())
-#endif
             L->NoEntry = true;
-
         {
             auto dc = data.Public + common;
             dc->IncludeDirectoriesOnly = true;
@@ -118,9 +113,11 @@ void build(Solution &s)
             auto d = data.addDummyDependency(s_genccode);
             d->getSettings() = data.getSettings(); // use the same settings for gencode
             auto c = data.addCommand();
-            c << data
-                << cmd::prog(d)
-                << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path()
+            c << cmd::prog(d)
+                << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path();
+            if (data.getBuildSettings().Native.LibrariesType == LibraryType::Static)
+                c << "--skip-dll-export";
+            c
                 << cmd::in(path("data") / "in" / (namel + ".dat"))
                 << cmd::end() << cmd::out(obj)
                 ;
@@ -139,8 +136,7 @@ void build(Solution &s)
             else
             {
                 auto c1 = data.addCommand();
-                c1 << data
-                    << cmd::prog("cp")
+                c1 << cmd::prog("cp")
                     << cmd::in(in)
                     << cmd::out(out)
                     ;
@@ -148,8 +144,7 @@ void build(Solution &s)
 
             obj = data.BinaryDir / (name + "_dat.c");
             auto c = data.addCommand();
-            c << data
-                << cmd::prog(s_genccode)
+            c << cmd::prog(s_genccode)
                 << "-d" << obj.parent_path()
                 << cmd::in(out)
                 << cmd::end() << cmd::out(obj)
