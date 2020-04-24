@@ -9,6 +9,8 @@ struct PythonExecutable : ExecutableTarget
         }
         ExecutableTarget::setupCommand(c);
         c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
+        // used in sw package loading
+        c.environment["SW_EXECUTABLE"] = sw::getProgramLocation().u8string();
     }
 
     void setupCommandForRun(builder::Command &c) const override
@@ -301,7 +303,7 @@ void build(Solution &s)
             #endif
 )xxx");
         lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 2 -- */", R"xxx(
-            {"expat", PyInit_pyexpat},
+            {"pyexpat", PyInit_pyexpat},
             {"_bz2", PyInit__bz2},
             {"_lzma", PyInit__lzma},
             #ifndef _WIN32
@@ -313,13 +315,56 @@ void build(Solution &s)
     }
 
     auto &exe = python.addTarget<PythonExecutable>("exe");
-    if (exe.getBuildSettings().TargetOS.Type != OSType::Windows)
-        return;
+    {
+        if (exe.getBuildSettings().TargetOS.Type != OSType::Windows)
+            return;
 
-    exe += "Lib/.*"_rr;
-    exe -= ".*.def"_rr;
-    exe += "Programs/python.c";
-    exe.Public += lib;
+        exe += "Lib/.*"_rr;
+        exe -= ".*.def"_rr;
+        exe += "Programs/python.c";
+        exe.Public += lib;
+
+        exe.pushFrontToFileOnce("Lib/site.py", R"xxx(
+# sw importer
+import os
+import subprocess
+import sys
+from importlib.util import spec_from_file_location
+
+class SwImporter(object):
+    def __init__(self):
+        self.sw = os.environ['SW_EXECUTABLE']
+
+    def run_subprocess(self, args):
+        return subprocess.run(args, capture_output=True, text=True)
+
+    def get_module_path(self, m):
+        # first, try to get direct module if we have now absolute module paths
+        #dir = subp([self.sw, 'path', module_name]).stdout
+        p = self.run_subprocess([self.sw, 'path', 'org.sw.demo.python.pypi.' + m])
+        if p.returncode != 0:
+            return ''
+        return p.stderr.strip()
+
+    def find_spec(self, module_name, package_path, target=None):
+        dir = self.get_module_path(module_name)
+        if len(dir) == 0:
+            return None
+        fn = dir + '/' + module_name + '/__init__.py'
+        if not os.path.exists(fn):
+            return None
+        return spec_from_file_location(module_name, fn)
+
+# isn't python loads file only once and we do not need this check?
+sw_importer_present = False
+for obj in sys.meta_path:
+    if type(obj) is SwImporter:
+        sw_importer_present = True
+        break
+if not sw_importer_present:
+    sys.meta_path.append(SwImporter())
+)xxx");
+    }
 }
 
 void check(Checker &c)
