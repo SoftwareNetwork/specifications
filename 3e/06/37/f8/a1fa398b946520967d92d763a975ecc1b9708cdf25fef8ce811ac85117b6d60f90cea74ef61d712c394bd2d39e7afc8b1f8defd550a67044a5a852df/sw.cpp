@@ -34,6 +34,7 @@ void build(Solution &s)
     t += "NEED_XPARSEGEOMETRY_IMPL"_def;
 
     t += "org.sw.demo.find.opengl-master"_dep;
+    //t.Public += "org.sw.demo.mesa.gallium.targets.gl.gdi"_dep;
 }
 
 void check(Checker &c)
