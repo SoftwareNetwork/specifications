@@ -74,7 +74,7 @@ struct ProtocData
         // plugin
         if (plugin)
         {
-            c << [c = c.c.get(), plugin = plugin, generator = generator]()
+            c << [c = c.getCommand().get(), plugin = plugin, generator = generator]()
             {
                 path p;
                 if (auto t = plugin->getTarget().as<NativeExecutedTarget *>())
@@ -93,7 +93,7 @@ struct ProtocData
             ;
 
             t.addDummyDependency(plugin);
-            std::dynamic_pointer_cast<::sw::driver::Command>(c.c)->addProgramDependency(plugin);
+            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(plugin);
         }
 
         // input
@@ -101,12 +101,12 @@ struct ProtocData
         c << cmd::end();
 
         // mark deps file as output
-        c << cmd::out(deps_file);
+        //c << cmd::out(deps_file);
 
         auto o = outdir / rel_input.parent_path() / rel_input.stem();
         for (auto &e : exts)
             c << cmd::out(path(o) += e);
-        return c.c;
+        return c.getCommand();
     }
 };
 

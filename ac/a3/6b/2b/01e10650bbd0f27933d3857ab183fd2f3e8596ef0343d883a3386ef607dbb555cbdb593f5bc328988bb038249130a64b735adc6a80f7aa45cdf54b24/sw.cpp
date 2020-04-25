@@ -63,7 +63,7 @@ void build(Solution &s)
             auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
 
             auto c1 = fontconfig.addCommand();
-            *c | *c1.c;
+            *c | *c1.getCommand();
             c1
                 << cmd::prog("org.sw.demo.gnu.sed.sed"_dep)
                 << "s/^ *//;s/ *, */,/"

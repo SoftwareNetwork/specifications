@@ -94,7 +94,7 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBi
         c << a;
     c << cmd::in(d.in);
 
-    return c.c;
+    return c.getCommand();
 }
 
 static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
@@ -127,7 +127,7 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
         c << a;
     c << cmd::in(d.in);
 
-    return c.c;
+    return c.getCommand();
 }
 
 static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, const path &in, FlexBisonData d)
@@ -280,8 +280,8 @@ void build(Solution &s)
         bison += common;
         /*bison.replaceInFileOnce("bison/src/config.h", "\"data", "\"" + normalize_path(bison.SourceDir / "bison/data/"));
         bison.replaceInFileOnce("bison/src/files.c",
-            "return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
-            "\nreturn  cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");*/
+        "return cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);",
+        "\nreturn  cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");*/
         bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
         bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
     }

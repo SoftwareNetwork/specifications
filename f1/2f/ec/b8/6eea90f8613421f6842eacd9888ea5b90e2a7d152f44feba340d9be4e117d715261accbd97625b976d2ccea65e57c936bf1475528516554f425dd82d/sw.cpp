@@ -646,7 +646,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
                 if (!f->skip)
                     c << cmd::in(p);
             }
-            c.c->first_response_file_argument = 1;
+            c->first_response_file_argument = 1;
         }
 
         gio.Variables["VERSION"] = gio.Variables["PACKAGE_VERSION"];
