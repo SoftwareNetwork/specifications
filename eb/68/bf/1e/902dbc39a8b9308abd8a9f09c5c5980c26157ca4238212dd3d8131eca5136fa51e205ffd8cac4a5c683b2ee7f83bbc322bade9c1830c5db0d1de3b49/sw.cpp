@@ -100,8 +100,8 @@ struct ProtocData
         c << cmd::in(normalize_path(input)); // must be normalized
         c << cmd::end();
 
-        // mark deps file as output
-        //c << cmd::out(deps_file);
+        // create deps output dir!
+        c->output_dirs.insert(deps_file.parent_path());
 
         auto o = outdir / rel_input.parent_path() / rel_input.stem();
         for (auto &e : exts)
