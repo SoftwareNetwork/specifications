@@ -358,6 +358,18 @@ void build(Solution &s)
     if (boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Windows)
         *boost_targets["dll"] += "dl"_slib;
 
+    // dll
+    for (auto f : {
+        "include/boost/dll/import_class.hpp",
+        "include/boost/dll/import_mangled.hpp",
+        "include/boost/dll/smart_library.hpp",
+        })
+    {
+        boost_targets["dll"]->patch(f,
+            "#if (__cplusplus < 201103L)",
+            "#if !defined(_MSC_VER) && (__cplusplus < 201103L)");
+    }
+
     // mpl
     for (auto f : {
         "include/boost/mpl/and.hpp",
