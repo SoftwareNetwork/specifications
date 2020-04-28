@@ -23,7 +23,7 @@ void build(Solution &s)
         t += "random/internal/distribution_test_util.cc";
 
         if (abseil.getBuildSettings().TargetOS.is(OSType::Windows))
-            abseil.Public += "NOMINMAX"_d;
+            abseil.Public += "NOMINMAX"_def;
         abseil += "CoreFoundation"_framework;
     }
 }
