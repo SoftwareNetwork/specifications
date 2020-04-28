@@ -35,7 +35,8 @@ auto &addBoostTarget(Solution &s, const String &name)
         { "date_time", "e26fd2ed98c96a192de4dbd6358ebd6764eb2836" },
         { "detail", "8dbbfe372b83f7ff32d545bad1c779348bfe3eea" },
         { "disjoint_sets", "4980fe2a87ead3b2e8260aed6e9c8835266cd5d7" },
-        { "dll", "8f39a38a3188a510054d86ee15bc523494676cdc" },
+        //{ "dll", "8f39a38a3188a510054d86ee15bc523494676cdc" },
+        { "dll", "ab379539806956b4113050ebb978615a4f6a09f0" }, // with clang fixes
         { "dynamic_bitset", "db5da12bcd7f321d735b77654290ff7e7329ec17" },
         { "endian", "3de20eb340d27792b736d0d2d356e4ac3b52b8c4" },
         { "exception", "c44bdae6acf7a4bf06421e44e2938a0f130e2031" },
@@ -356,6 +357,19 @@ void build(Solution &s)
 
     if (boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Windows)
         *boost_targets["dll"] += "dl"_slib;
+
+    // mpl
+    for (auto f : {
+        "include/boost/mpl/and.hpp",
+        "include/boost/mpl/or.hpp",
+        "include/boost/mpl/bitand.hpp",
+        "include/boost/mpl/bitor.hpp",
+        })
+    {
+        boost_targets["mpl"]->patch(f,
+            "#if defined(_MSC_VER) && !defined(__clang__)",
+            "#if defined(_MSC_VER)// && !defined(__clang__)");
+    }
 
     if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows)
         boost_targets["stacktrace"]->Public.Definitions["BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"];
