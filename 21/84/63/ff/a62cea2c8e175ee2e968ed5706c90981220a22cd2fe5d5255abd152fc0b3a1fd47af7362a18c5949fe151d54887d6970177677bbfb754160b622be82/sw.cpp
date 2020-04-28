@@ -10,11 +10,14 @@ void build(Solution &s)
 
     auto &support = p.addTarget<StaticLibraryTarget>("support");
     {
-        support.CPPVersion = CPPLanguageStandard::CPP17;
+        support.ApiName = "SW_SUPPORT_API";
+        support.ExportIfStatic = true;
+        support += cpp17;
         support += "src/sw/support/.*"_rr;
         auto cmddep = "pub.egorpugin.primitives.command-master"_dep;
+        auto verdep = "pub.egorpugin.primitives.version-master"_dep;
         support.Public +=
-            cmddep,
+            cmddep, verdep,
             "pub.egorpugin.primitives.http-master"_dep,
             "pub.egorpugin.primitives.hash-master"_dep,
             "pub.egorpugin.primitives.log-master"_dep,
@@ -24,7 +27,8 @@ void build(Solution &s)
             "org.sw.demo.boost.stacktrace"_dep;
         //cmddep->getSettings()["export-if-static"] = "true";
         //cmddep->getSettings()["export-if-static"].setRequired();
-        support.ApiName = "SW_SUPPORT_API";
+        verdep->getSettings()["export-if-static"] = "true";
+        verdep->getSettings()["export-if-static"].setRequired();
         if (support.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             support.Protected += "_CRT_SECURE_NO_WARNINGS"_d;
@@ -39,7 +43,7 @@ void build(Solution &s)
 
     auto &protos = p.addTarget<StaticLibraryTarget>("protos");
     {
-        protos.CPPVersion = CPPLanguageStandard::CPP17;
+        protos += cpp17;
         protos += "src/sw/protocol/.*"_rr;
         protos.Public += "pub.egorpugin.primitives.grpc_helpers-master"_dep;
         ProtobufData d;
@@ -53,28 +57,25 @@ void build(Solution &s)
     {
         manager.ApiName = "SW_MANAGER_API";
         manager.ExportIfStatic = true;
-        manager.CPPVersion = CPPLanguageStandard::CPP17;
+        manager += cpp17;
         manager.Public += "BOOST_DLL_USE_STD_FS"_def;
 
         auto srcdep = "pub.egorpugin.primitives.source-master"_dep;
-        auto verdep = "pub.egorpugin.primitives.version-master"_dep;
         manager.Public += support, protos,
-            srcdep, verdep,
+            srcdep,
             "pub.egorpugin.primitives.date_time-master"_dep,
             "pub.egorpugin.primitives.db.sqlite3-master"_dep,
             "pub.egorpugin.primitives.lock-master"_dep,
             "pub.egorpugin.primitives.pack-master"_dep,
             "pub.egorpugin.primitives.sw.settings-master"_dep,
             "pub.egorpugin.primitives.yaml-master"_dep,
-            "org.sw.demo.nlohmann.json-3"_dep,
+            "org.sw.demo.nlohmann.json"_dep,
             "org.sw.demo.boost.variant"_dep,
             "org.sw.demo.boost.dll"_dep,
             "org.sw.demo.rbock.sqlpp11_connector_sqlite3-master"_dep
             ;
         srcdep->getSettings()["export-if-static"] = "true";
         srcdep->getSettings()["export-if-static"].setRequired();
-        verdep->getSettings()["export-if-static"] = "true";
-        verdep->getSettings()["export-if-static"].setRequired();
 
         manager.Public -= "pub.egorpugin.primitives.win32helpers-master"_dep;
         if (manager.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -102,7 +103,7 @@ void build(Solution &s)
     {
         builder.ApiName = "SW_BUILDER_API";
         builder.ExportIfStatic = true;
-        builder.CPPVersion = CPPLanguageStandard::CPP17;
+        builder += cpp17;
         builder += "src/sw/builder/.*"_rr;
         builder.Public += manager,
             "org.sw.demo.preshing.junction-master"_dep,
@@ -123,7 +124,7 @@ void build(Solution &s)
     {
         core.ApiName = "SW_CORE_API";
         core.ExportIfStatic = true;
-        core.CPPVersion = CPPLanguageStandard::CPP17;
+        core += cpp17;
         core.Public += builder;
         core += "src/sw/core/.*"_rr;
         if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -140,7 +141,7 @@ void build(Solution &s)
         cpp_driver.ExportIfStatic = true;
         cpp_driver.PackageDefinitions = true;
         cpp_driver.WholeArchive = true;
-        cpp_driver.CPPVersion = CPPLanguageStandard::CPP17;
+        cpp_driver += cpp17;
         cpp_driver.Public += core,
             "pub.egorpugin.primitives.patch-master"_dep,
             "org.sw.demo.ToruNiina.toml11"_dep,
@@ -163,7 +164,7 @@ void build(Solution &s)
         {
             auto &self_builder = cpp_driver.addTarget<ExecutableTarget>("self_builder");
             self_builder.PackageDefinitions = true;
-            self_builder.CPPVersion = CPPLanguageStandard::CPP17;
+            self_builder += cpp17;
             self_builder += "src/sw/tools/self_builder.cpp";
             self_builder +=
                 core,
@@ -179,7 +180,7 @@ void build(Solution &s)
         {
             auto &cl_generator = cpp_driver.addTarget<ExecutableTarget>("cl_generator");
             cl_generator.PackageDefinitions = true;
-            cl_generator.CPPVersion = CPPLanguageStandard::CPP17;
+            cl_generator += cpp17;
             cl_generator += "src/sw/tools/cl_generator.*"_rr;
             cl_generator +=
                 "pub.egorpugin.primitives.emitter-master"_dep,
@@ -252,7 +253,7 @@ void build(Solution &s)
         client_common.SwDefinitions = true;
         client_common.StartupProject = true;
         client_common += "src/sw/client/common/.*"_rr;
-        client_common.CPPVersion = CPPLanguageStandard::CPP17;
+        client_common += cpp17;
         client_common.Public += core, cpp_driver;
 
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, client_common, "src/sw/client/common/inserts/SWConfig.cmake");
@@ -268,7 +269,7 @@ void build(Solution &s)
         client.SwDefinitions = true;
         client.StartupProject = true;
         client += "src/sw/client/cli/.*"_rr;
-        client.CPPVersion = CPPLanguageStandard::CPP17;
+        client += cpp17;
         client += client_common,
             //"org.sw.demo.microsoft.mimalloc"_dep,
             "pub.egorpugin.primitives.sw.main-master"_dep
@@ -340,7 +341,7 @@ void build(Solution &s)
         gui.PackageDefinitions = true;
         gui.SwDefinitions = true;
         gui += "src/sw/client/gui/.*"_rr;
-        gui.CPPVersion = CPPLanguageStandard::CPP17;
+        gui += cpp17;
         gui += client_common;
 
         gui += "org.sw.demo.qtproject.qt.base.widgets"_dep;

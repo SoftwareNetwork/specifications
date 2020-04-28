@@ -1,5 +1,7 @@
 struct SedExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         if (getBuildSettings().TargetOS.Type != OSType::Windows)
