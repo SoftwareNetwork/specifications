@@ -202,6 +202,8 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
 struct BisonExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         if (getBuildSettings().TargetOS.Type != OSType::Windows)
@@ -216,6 +218,8 @@ struct BisonExecutable : ExecutableTarget
 
 struct FlexExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         if (getBuildSettings().TargetOS.Type != OSType::Windows)
