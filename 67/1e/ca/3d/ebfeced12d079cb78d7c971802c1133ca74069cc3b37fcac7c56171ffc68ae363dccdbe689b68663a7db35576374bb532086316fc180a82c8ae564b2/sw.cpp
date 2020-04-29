@@ -37,13 +37,9 @@ void build(Solution &s)
     pcre8 -= "sljit/.*"_rr;
     pcre8.Protected += "HAVE_CONFIG_H"_d;
 
-    if (fs::exists(pcre8.SourceDir / "pcre_chartables.c.dist") &&
-        !fs::exists(pcre8.BinaryDir / "pcre_chartables.c"))
-    {
-        fs::copy_file(pcre8.SourceDir / "pcre_chartables.c.dist",
-            pcre8.BinaryDir / "pcre_chartables.c", fs::copy_options::overwrite_existing);
-    }
-    pcre8 += pcre8.BinaryDir / "pcre_chartables.c";
+    pcre8.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file))
+        << cmd::in("pcre_chartables.c.dist")
+        << cmd::out("pcre_chartables.c");
 
     auto setup = [](auto &pcre, int bits)
     {
@@ -181,19 +177,19 @@ void build(Solution &s)
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const ucd_record  PRIV(ucd_records)[];",
         "" + exp + " const ucd_record  PRIV(ucd_records)[];"
-        );
+    );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint8  PRIV(ucd_stage1)[];",
         "" + exp + " const pcre_uint8  PRIV(ucd_stage1)[];"
-        );
+    );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint16 PRIV(ucd_stage2)[];",
         "" + exp + " const pcre_uint16 PRIV(ucd_stage2)[];"
-        );
+    );
     pcre8.replaceInFileOnce("pcre_internal.h",
         "extern const pcre_uint32 PRIV(ucp_gentype)[];",
         "" + exp + " const pcre_uint32 PRIV(ucp_gentype)[];"
-        );
+    );
 
     // remove first underscore
     auto fix_ucd = [&pcre8](const path &p)
