@@ -158,5 +158,5 @@ void check(Checker &c)
     #include <float.h>
     int main() {return 0;}
     )sw_xxx");
-    s.checkSourceCompiles("HAVE_AS_X86_64_UNWIND_SECTION_TYPE", R"sw_xxx(.section .eh_frame,"a",@unwind)sw_xxx", "conftest.s"s);
+    s.checkSourceCompiles("HAVE_AS_X86_64_UNWIND_SECTION_TYPE", R"sw_xxx(.section .eh_frame,"a",@unwind)sw_xxx").setFileName("conftest.s");
 }
