@@ -83,7 +83,7 @@ struct ProtocData
                 }
                 else if (auto t = plugin->getTarget().as<PredefinedTarget *>())
                 {
-                    p = fs::u8path(t->getInterfaceSettings()["output_file"].getValue());
+                    p = t->getInterfaceSettings()["output_file"].getPathValue(t->getPackage().getStorage());
                 }
                 else
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
