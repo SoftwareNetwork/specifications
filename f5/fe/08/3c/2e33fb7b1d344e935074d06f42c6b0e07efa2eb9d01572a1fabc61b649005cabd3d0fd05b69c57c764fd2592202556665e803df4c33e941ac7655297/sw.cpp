@@ -6,11 +6,11 @@ void build(Solution &s)
     tiff.setChecks("tiff");
 
     tiff += gnu89;
-    if (tiff.getBuildSettings().TargetOS.Type != OSType::Windows)
-        tiff.ExportAllSymbols = true;
+    //if (tiff.getBuildSettings().TargetOS.Type != OSType::Windows)
+    tiff.ExportAllSymbols = true;
 
     tiff +=
-        "libtiff/libtiff.def",
+        //"libtiff/libtiff.def",
         "libtiff/t4.h",
         "libtiff/tif_aux.c",
         "libtiff/tif_close.c",
