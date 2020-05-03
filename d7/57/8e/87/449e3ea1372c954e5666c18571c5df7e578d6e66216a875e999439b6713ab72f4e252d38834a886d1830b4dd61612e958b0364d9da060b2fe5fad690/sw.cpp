@@ -5,4 +5,7 @@ void build(Solution &s)
 
     t += "include/.*"_rr;
     t += "src/LercLib/.*"_rr;
+
+    t.Public += "include"_idir;
+    t.Public += "src/LercLib"_idir;
 }
