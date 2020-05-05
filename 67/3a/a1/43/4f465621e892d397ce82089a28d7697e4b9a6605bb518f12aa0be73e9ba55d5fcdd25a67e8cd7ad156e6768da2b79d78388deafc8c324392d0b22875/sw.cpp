@@ -2,6 +2,8 @@
 
 struct SwigExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         c.environment["SWIG_LIB"] = (SourceDir / "Lib").u8string();
