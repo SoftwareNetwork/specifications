@@ -72,7 +72,7 @@ void build(Solution &s)
                 << cmd::out("proj.db")
                 << ".quit";
         }
-        t += Definition("PROJ_LIB=\"" + normalize_path(t.BinaryDir / "proj.db\""));
+        t += Definition("PROJ_LIB=\"" + normalize_path(t.BinaryDir) + "\"");
     }
 }
 
