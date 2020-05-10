@@ -10,6 +10,7 @@ void build(Solution &s)
         t += "port/.*"_rr;
         t -= "port/cpl_vsil_simple.cpp";
         t -= "port/xmlreformat.cpp";
+        t -= "port/cpl_odbc.cpp";
         t.Public += "port"_idir;
 
         t += "gcore/.*"_r;
@@ -24,7 +25,7 @@ void build(Solution &s)
         t += "alg/.*"_r;
         t += "alg/marching_squares/.*"_r;
         t += "alg/marching_squares"_idir;
-        t += "alg"_idir;
+        t.Public += "alg"_idir;
 
         t += "apps/.*\\.h"_r;
         t += "apps/commonutils.*"_r;
@@ -39,6 +40,9 @@ void build(Solution &s)
         auto add_dir = [&t](const path &dir)
         {
             t += FileRegex(dir, ".*", false);
+            t.AllowEmptyRegexes = true;
+            t -= FileRegex(dir, ".*test.*", false);
+            t.AllowEmptyRegexes = false;
             t += IncludeDirectory(dir);
         };
 
