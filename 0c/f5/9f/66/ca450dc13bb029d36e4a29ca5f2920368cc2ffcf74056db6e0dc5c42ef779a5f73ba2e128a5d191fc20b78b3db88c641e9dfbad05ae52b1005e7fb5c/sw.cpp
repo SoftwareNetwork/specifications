@@ -50,6 +50,7 @@ void build(Solution &s)
 
         {
             Half += "IlmBase/Half/half.*"_rr;
+            Half += "IlmBase/Half/eLut.h", "IlmBase/Half/toFloat.h";
             Half -= "IlmBase/Half/eLut.cpp", "IlmBase/Half/toFloat.cpp";
             Half += sw::Shared, "HALF_EXPORTS"_def;
             Half.Public += sw::Shared, "OPENEXR_DLL"_def;
@@ -127,6 +128,7 @@ void build(Solution &s)
     auto &IlmImf = openexr.addLibrary("IlmImf");
     {
         IlmImf += "OpenEXR/IlmImf/Imf.*"_rr;
+        IlmImf += "OpenEXR/IlmImf/b44ExpLogTable.h", "OpenEXR/IlmImf/dwaLookups.h";
         IlmImf -= "OpenEXR/IlmImf/b44ExpLogTable.cpp", "OpenEXR/IlmImf/dwaLookups.cpp";
         IlmImf += sw::Shared, "ILMIMF_EXPORTS"_def;
         IlmImf.Public += sw::Shared, "OPENEXR_DLL"_def;
