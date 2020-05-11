@@ -78,14 +78,17 @@ void build(Solution &s)
         if (!pcre.getBuildSettings().TargetOS.is(OSType::Windows) &&
             !pcre.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
-            //pcre.ExportAllSymbols = true;
+            pcre.ExportAllSymbols = true;
         }
-        // also works?
-        // but in this case we do not get extern "C" in C++ mode
-        // also we do not get extern in C mode
-        pcre.ApiNames.insert("PCRE_EXP_DECL");
-        pcre.ApiNames.insert("PCRE_EXP_DEFN");
-        pcre.ApiNames.insert("PCRE_EXP_DATA_DEFN");
+        else
+        {
+            // also works?
+            // but in this case we do not get extern "C" in C++ mode
+            // also we do not get extern in C mode
+            pcre.ApiNames.insert("PCRE_EXP_DECL");
+            pcre.ApiNames.insert("PCRE_EXP_DEFN");
+            pcre.ApiNames.insert("PCRE_EXP_DATA_DEFN");
+        }
 
         pcre.Public += "SUPPORT_UCP"_def;
         pcre.Public += "SUPPORT_UTF"_def;

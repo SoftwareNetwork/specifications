@@ -76,6 +76,7 @@ void build(Solution &s)
 
         t.Private += "__OPENCV_BUILD"_d;
         t.Private += sw::Shared, "CVAPI_EXPORTS"_d;
+        t.Public += Definition("HAVE_OPENCV_" + boost::to_upper_copy(name));
 
         add_opencl_kernels(t);
 
@@ -96,7 +97,7 @@ void build(Solution &s)
     {
         core +=
             "cmake/.*\\.in"_rr;
-        core.Public += "org.sw.demo.madler.zlib-1"_dep;
+        core.Public += "org.sw.demo.madler.zlib"_dep;
 
         core.Variables["OPENCV_CPU_BASELINE_DEFINITIONS_CONFIGMAKE"] = R"(
             #define CV_CPU_COMPILE_SSE 1
@@ -146,6 +147,14 @@ void build(Solution &s)
         core.configureFile("cmake/templates/cvconfig.h.in", "cvconfig.h");
         core.configureFile("cmake/templates/cv_cpu_config.h.in", "cv_cpu_config.h");
         core.configureFile("cmake/templates/custom_hal.hpp.in", "custom_hal.hpp");
+
+        if (core.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            core.getBuildSettings().TargetOS.Type != OSType::Mingw
+            )
+        {
+            core += "dl"_slib;
+            core += "pthread"_slib;
+        }
     }
 
     auto add_target_with_core = [&add_target, &core](const String &name) -> decltype(auto)
@@ -179,28 +188,29 @@ void build(Solution &s)
     {
         imgcodecs.Public += imgproc;
 
-        imgcodecs.Public += "HAVE_OPENCV_IMGCODECS"_def;
-
         imgcodecs += "HAVE_PNG"_def;
-        imgcodecs += "org.sw.demo.glennrp.png-1"_dep;
+        imgcodecs += "org.sw.demo.glennrp.png"_dep;
 
         imgcodecs += "HAVE_JPEG"_def;
-        imgcodecs += "org.sw.demo.jpeg-*"_dep;
+        imgcodecs += "org.sw.demo.jpeg"_dep;
 
         imgcodecs += "HAVE_WEBP"_def;
-        imgcodecs += "org.sw.demo.webmproject.webp-1"_dep;
+        imgcodecs += "org.sw.demo.webmproject.webp"_dep;
 
         imgcodecs += "HAVE_TIFF"_def;
-        imgcodecs += "org.sw.demo.tiff-4"_dep;
+        imgcodecs += "org.sw.demo.tiff"_dep;
 
         imgcodecs += "HAVE_JASPER"_def;
-        imgcodecs += "org.sw.demo.mdadams.jasper-2"_dep;
+        imgcodecs += "org.sw.demo.mdadams.jasper"_dep;
 
         imgcodecs += "HAVE_OPENEXR"_def;
-        imgcodecs += "org.sw.demo.openexr.ilmimf-2"_dep;
+        imgcodecs += "org.sw.demo.openexr.ilmimf"_dep;
 
         imgcodecs += "HAVE_GDCM"_def;
         imgcodecs += "org.sw.demo.malaterre.gdcm.gdcm"_dep;
+
+        imgcodecs += "HAVE_GDAL"_def;
+        imgcodecs += "org.sw.demo.OSGeo.gdal"_dep;
     }
 
     auto &highgui = add_target("highgui");
@@ -220,6 +230,10 @@ void build(Solution &s)
                 "Gdi32.lib"_slib,
                 "user32.lib"_slib,
                 "advapi32.lib"_slib;
+        }
+        else
+        {
+            highgui -= "modules/highgui/src/window_w32.cpp";
         }
     }
 
@@ -252,6 +266,13 @@ void build(Solution &s)
             "modules/videoio/src/cap_gstreamer.cpp",
             "modules/videoio/src/cap_ximea.cpp",
             "modules/videoio/src/cap_xine.cpp";
+
+        if (videoio.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            videoio.getBuildSettings().TargetOS.Type != OSType::Mingw
+            )
+        {
+            videoio += "dl"_slib;
+        }
     }
 
     auto &calib3d = add_target("calib3d");
@@ -260,6 +281,12 @@ void build(Solution &s)
 
     auto &objdetect = add_target("objdetect");
     objdetect.Public += ml, videoio, calib3d;
+    if (objdetect.getBuildSettings().TargetOS.Type != OSType::Windows &&
+        objdetect.getBuildSettings().TargetOS.Type != OSType::Mingw
+        )
+    {
+        objdetect += "pthread"_slib;
+    }
 
     auto &photo = add_target("photo");
     photo.Public += imgproc;
@@ -315,7 +342,7 @@ void build(Solution &s)
     face.Public += imgproc, objdetect;
 
     auto &freetype = add_target("freetype");
-    freetype.Public += imgproc, "org.sw.demo.behdad.harfbuzz-*"_dep;
+    freetype.Public += imgproc, "org.sw.demo.behdad.harfbuzz"_dep;
 
     auto &fuzzy = add_target("fuzzy");
     fuzzy.Public += imgproc;
