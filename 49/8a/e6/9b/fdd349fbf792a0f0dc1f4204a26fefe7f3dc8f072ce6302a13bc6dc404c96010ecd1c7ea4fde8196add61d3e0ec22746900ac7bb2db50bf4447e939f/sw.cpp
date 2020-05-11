@@ -4,19 +4,27 @@ void build(Solution &s)
     gdcm += Git("https://github.com/malaterre/GDCM", "v{v}");
 
     auto &rle = gdcm.addStaticLibrary("rle");
-    rle += "Utilities/gdcmrle/.*\\.cxx"_rr;
-    rle += "Utilities/gdcmrle/.*\\.h"_rr;
-    rle -= "Utilities/gdcmrle/main.cxx";
-    rle.Public += "Utilities"_id;
+    {
+        rle += "Utilities/gdcmrle/.*\\.cxx"_rr;
+        rle += "Utilities/gdcmrle/.*\\.h"_rr;
+        rle -= "Utilities/gdcmrle/main.cxx";
+        rle.Public += "Utilities"_id;
+    }
 
     auto &charls = gdcm.addLibrary("util.charls");
-    charls += "Utilities/gdcmcharls/.*"_rr;
-    charls += "Utilities/gdcm_charls.h";
-    charls.Public += "Utilities"_id;
-    charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
-    charls.Public += "WIN32"_def; // stupid necessary defs
-    charls.Public += sw::Shared, "CHARLS_DLL"_def; // stupid necessary defs
-    charls.Public += sw::Static, "CHARLS_STATIC"_def;
+    {
+        charls += "Utilities/gdcmcharls/.*"_rr;
+        charls += "Utilities/gdcm_charls.h";
+        charls.Public += "Utilities"_id;
+        charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
+        if (charls.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            charls.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            charls.Public += "WIN32"_def; // stupid necessary defs
+        }
+        charls.Public += sw::Shared, "CHARLS_DLL"_def; // stupid necessary defs
+        charls.Public += sw::Static, "CHARLS_STATIC"_def;
+    }
 
     auto &socketxx = gdcm.addTarget<LibraryTarget>("socketxx");
     {
@@ -87,6 +95,7 @@ void build(Solution &s)
     auto &gdcm2 = gdcm.addTarget<LibraryTarget>("gdcm");
     {
         auto &gdcm = gdcm2;
+        gdcm.setChecks("socketxx");
         gdcm.setChecks("gdcm");
 
         gdcm +=
@@ -223,6 +232,9 @@ void check(Checker &c)
         s.checkIncludeExists("vfork.h");
         s.checkTypeSize("size_t");
         s.checkTypeSize("void *");
+
+        for (auto &check : s.all)
+            check->Prefixes.insert("GDCM_");
     }
 
     {

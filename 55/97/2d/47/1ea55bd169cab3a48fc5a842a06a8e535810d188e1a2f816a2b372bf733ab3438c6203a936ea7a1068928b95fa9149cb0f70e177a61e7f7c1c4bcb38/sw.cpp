@@ -18,6 +18,7 @@ void build(Solution &s)
         t.Public += "gcore"_idir;
 
         t += "ogr/.*"_r;
+        t += "ogr/ogrsf_frmts/.*"_r;
         t -= "ogr/generate_encoding_table.c";
         t -= "ogr/.*test.*"_r;
         t.Public += "ogr"_idir;
