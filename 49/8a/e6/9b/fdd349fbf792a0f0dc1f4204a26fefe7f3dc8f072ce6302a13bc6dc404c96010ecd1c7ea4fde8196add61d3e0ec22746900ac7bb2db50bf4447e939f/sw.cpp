@@ -11,17 +11,33 @@ void build(Solution &s)
         rle.Public += "Utilities"_id;
     }
 
+    auto &uuid = gdcm.addStaticLibrary("uuid");
+    {
+        uuid.setChecks("socketxx", true);
+        uuid.setChecks("gdcm", true);
+        uuid += "Utilities/gdcm_uuid.h";
+        uuid += "Utilities/gdcmuuid/.*\\.c"_rr;
+        uuid += "Utilities/gdcmuuid/.*\\.h"_rr;
+        uuid -= "Utilities/gdcmuuid/uuid_time.c";
+        uuid.Public += "Utilities"_id;
+        //uuid += "MANGLE_PREFIX="_v;
+        uuid.configureFile("Utilities/gdcmuuid/uuid_mangle.h.in", "uuid_mangle.h");
+    }
+
     auto &charls = gdcm.addLibrary("util.charls");
     {
+        if (charls.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            charls.getBuildSettings().TargetOS.Type != OSType::Mingw)
+            charls.ExportAllSymbols = true;
         charls += "Utilities/gdcmcharls/.*"_rr;
         charls += "Utilities/gdcm_charls.h";
         charls.Public += "Utilities"_id;
-        charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
         if (charls.getBuildSettings().TargetOS.Type == OSType::Windows ||
             charls.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             charls.Public += "WIN32"_def; // stupid necessary defs
         }
+        charls += sw::Shared, "CHARLS_DLL_BUILD"_def;
         charls.Public += sw::Shared, "CHARLS_DLL"_def; // stupid necessary defs
         charls.Public += sw::Static, "CHARLS_STATIC"_def;
     }
@@ -34,6 +50,8 @@ void build(Solution &s)
             "Utilities/socketxx/.*\\.cpp"_rr,
             "Utilities/socketxx/.*\\.h"_rr,
             "Utilities/socketxx/socket++/config.h.in";
+        socketxx -= "Utilities/socketxx/socket++/sig.cpp";
+        socketxx -= "Utilities/socketxx/socket++/sockunix.cpp";
 
         socketxx.Public +=
             "Utilities/socketxx/socket++"_id;
@@ -53,12 +71,18 @@ void build(Solution &s)
         socketxx += "HAVE_SSTREAM=1"_v;
         socketxx += "HAVE_WORKING_FORK=1"_v;
         socketxx += "HAVE_WORKING_VFORK=1"_v;
+        socketxx += "RETSIGTYPE=void"_v;
+        socketxx += "SYS_SIGLIST=sys_siglist"_v;
+        socketxx += "SYS_ERRLIST=sys_errlist"_v;
+        socketxx += "SIGHND_ARGTYPE=int"_v;
+        socketxx += "SYS_ERRLIST_DECLARED=1"_v;
+        socketxx += "_S_LIBGXX=0"_v;
 
         if (socketxx.getBuildSettings().TargetOS.Type == OSType::Windows ||
             socketxx.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             socketxx.Public += "WIN32"_d;
-            socketxx.Public += "ws2_32.lib"_slib;
+            socketxx += "ws2_32.lib"_slib;
             socketxx -= "Utilities/socketxx/socket++/sockunix.cpp";
         }
         socketxx.Protected += IncludeDirectory(socketxx.BinaryPrivateDir);
@@ -114,6 +138,15 @@ void build(Solution &s)
             "Source/InformationObjectDefinition/gdcmXMLPrivateDictReader.cxx",
             "Source/MediaStorageAndFileFormat/gdcmDeltaEncodingCodec.cxx";
 
+        if (gdcm.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            gdcm.getBuildSettings().TargetOS.Type != OSType::Mingw)
+        {
+            gdcm -=
+                "Source/Common/gdcmCAPICryptographicMessageSyntax.cxx",
+                "Source/Common/gdcmCAPICryptoFactory.cxx"
+                ;
+        }
+
         gdcm.Public +=
             "Source/DataStructureAndEncodingDefinition"_id,
             "Source/DataDictionary"_id,
@@ -129,14 +162,24 @@ void build(Solution &s)
         if (gdcm.getBuildSettings().TargetOS.Type == OSType::Windows ||
             gdcm.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
-            gdcm.Public += "Ws2_32.lib"_slib;
-            gdcm.Public += "Rpcrt4.lib"_slib;
+            gdcm += "Ws2_32.lib"_slib;
+            gdcm += "Rpcrt4.lib"_slib;
+        }
+        else
+        {
+            gdcm += "dl"_slib;
         }
         gdcm.Private += sw::Shared, "gdcmCommon_EXPORTS"_d;
         gdcm.Public += sw::Shared, "GDCM_BUILD_SHARED_LIBS"_d;
 
         gdcm += rle;
         gdcm += socketxx;
+        gdcm -= uuid;
+        if (gdcm.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            gdcm.getBuildSettings().TargetOS.Type != OSType::Mingw)
+        {
+            gdcm += uuid;
+        }
         for (auto t : t_bits)
             gdcm += *t;
         gdcm.Public += "org.sw.demo.openssl.crypto"_dep;
@@ -234,7 +277,10 @@ void check(Checker &c)
         s.checkTypeSize("void *");
 
         for (auto &check : s.all)
+        {
             check->Prefixes.insert("GDCM_");
+            check->Prefixes.insert("SOCKETXX_");
+        }
     }
 
     {

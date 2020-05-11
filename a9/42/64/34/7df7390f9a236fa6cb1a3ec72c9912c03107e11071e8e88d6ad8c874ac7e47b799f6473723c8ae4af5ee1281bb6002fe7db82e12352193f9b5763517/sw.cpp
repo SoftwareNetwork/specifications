@@ -53,32 +53,65 @@ void build(Solution &s)
             Half += "IlmBase/Half/eLut.h", "IlmBase/Half/toFloat.h";
             Half -= "IlmBase/Half/eLut.cpp", "IlmBase/Half/toFloat.cpp";
             Half += sw::Shared, "HALF_EXPORTS"_def;
-            Half.Public += sw::Shared, "OPENEXR_DLL"_def;
+            if (Half.getBuildSettings().TargetOS.Type == OSType::Windows ||
+                Half.getBuildSettings().TargetOS.Type == OSType::Mingw)
+            {
+                Half.Public += sw::Shared, "OPENEXR_DLL"_def;
+            }
+            else
+                Half.ExportAllSymbols = true;
             Half.Public += config;
             Half.Public += "IlmBase/Half"_idir;
         }
 
         Iex += "IlmBase/Iex/Iex.*"_rr;
         Iex += sw::Shared, "IEX_EXPORTS"_def;
-        Iex.Public += sw::Shared, "OPENEXR_DLL"_def;
+        if (Iex.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            Iex.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            Iex.Public += sw::Shared, "OPENEXR_DLL"_def;
+        }
+        else
+            Iex.ExportAllSymbols = true;
         Iex.Public += Half;
         Iex.Public += "IlmBase/Iex"_idir;
 
         IexMath += "IlmBase/IexMath/IexMath.*"_rr;
         IexMath += sw::Shared, "IEXMATH_EXPORTS"_def;
-        IexMath.Public += sw::Shared, "OPENEXR_DLL"_def;
+        if (IexMath.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            IexMath.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            IexMath.Public += sw::Shared, "OPENEXR_DLL"_def;
+        }
+        else
+            IexMath.ExportAllSymbols = true;
         IexMath.Public += Iex;
         IexMath.Public += "IlmBase/IexMath"_idir;
 
         Imath += "IlmBase/Imath/Imath.*"_rr;
         Imath += sw::Shared, "IMATH_EXPORTS"_def;
-        Imath.Public += sw::Shared, "OPENEXR_DLL"_def;
+        if (Imath.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            Imath.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            Imath.Public += sw::Shared, "OPENEXR_DLL"_def;
+        }
+        else
+            Imath.ExportAllSymbols = true;
         Imath.Public += Iex;
         Imath.Public += "IlmBase/Imath"_idir;
 
         IlmThread += "IlmBase/IlmThread/IlmThread.*"_rr;
         IlmThread += sw::Shared, "ILMTHREAD_EXPORTS"_def;
-        IlmThread.Public += sw::Shared, "OPENEXR_DLL"_def;
+        if (IlmThread.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            IlmThread.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            IlmThread.Public += sw::Shared, "OPENEXR_DLL"_def;
+        }
+        else
+        {
+            IlmThread.ExportAllSymbols = true;
+            IlmThread += "pthread"_slib;
+        }
         IlmThread.Public += Iex;
         IlmThread.Public += "IlmBase/IlmThread"_idir;
     }
@@ -131,7 +164,13 @@ void build(Solution &s)
         IlmImf += "OpenEXR/IlmImf/b44ExpLogTable.h", "OpenEXR/IlmImf/dwaLookups.h";
         IlmImf -= "OpenEXR/IlmImf/b44ExpLogTable.cpp", "OpenEXR/IlmImf/dwaLookups.cpp";
         IlmImf += sw::Shared, "ILMIMF_EXPORTS"_def;
-        IlmImf.Public += sw::Shared, "OPENEXR_DLL"_def;
+        if (IlmImf.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            IlmImf.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            IlmImf.Public += sw::Shared, "OPENEXR_DLL"_def;
+        }
+        else
+            IlmImf.ExportAllSymbols = true;
         IlmImf.Public += config, IexMath, IlmThread, Imath,
             "org.sw.demo.madler.zlib"_dep;
         IlmImf.Public += "OpenEXR/IlmImf"_idir;

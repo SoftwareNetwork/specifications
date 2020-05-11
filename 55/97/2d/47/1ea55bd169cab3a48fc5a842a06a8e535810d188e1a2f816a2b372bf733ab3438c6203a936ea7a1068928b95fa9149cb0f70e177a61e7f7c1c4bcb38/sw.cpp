@@ -76,48 +76,48 @@ void build(Solution &s)
             add_frmt("frmts/vrt");
 
             /*{
-                t += "frmts/.*"_r;
-                t += "frmts"_idir;
-                StringSet fmts;
-                for (auto &d : fs::directory_iterator(t.SourceDir / "frmts"))
-                {
-                    if (d.is_directory())
-                        fmts.insert(d.path().filename().string());
-                }
-                // skip
-                for (auto &s : {
-                    "postgisraster", "tiledb",  "netcdf", "rdb",      "sdts",     "wcs",       "pcidsk",      "ecw",
-                    "jp2lura",       "hdf4",    "jp2kak", "epsilon",  "pcraster", "georaster", "mrsid_lidar", "aigrid",
-                    "msg",           "kea",     "bpg",    "rasdaman", "mrsid",    "rasdaman",  "msgn",        "sde",
-                    "gta",           "jpipkak", "dods",   "mbtiles",  "grass",
-                    "fits",
-                    "mrf",
-                    "dds",
-                    "jpegls",
+            t += "frmts/.*"_r;
+            t += "frmts"_idir;
+            StringSet fmts;
+            for (auto &d : fs::directory_iterator(t.SourceDir / "frmts"))
+            {
+            if (d.is_directory())
+            fmts.insert(d.path().filename().string());
+            }
+            // skip
+            for (auto &s : {
+            "postgisraster", "tiledb",  "netcdf", "rdb",      "sdts",     "wcs",       "pcidsk",      "ecw",
+            "jp2lura",       "hdf4",    "jp2kak", "epsilon",  "pcraster", "georaster", "mrsid_lidar", "aigrid",
+            "msg",           "kea",     "bpg",    "rasdaman", "mrsid",    "rasdaman",  "msgn",        "sde",
+            "gta",           "jpipkak", "dods",   "mbtiles",  "grass",
+            "fits",
+            "mrf",
+            "dds",
+            "jpegls",
 
-                    // cl ok, but not link
-                    "exr",
-                    "iso8211",
-                    "adrg",
-                    "bsb",
-                    "nitf",
-                    "hfa",
-                    })
-                {
-                    fmts.erase(s);
-                }
-                for (auto &f : fmts)
-                    add_frmt("frmts/" + f);
-                add_frmt("frmts/gtiff/libgeotiff");
-                t += "org.sw.demo.tiff"_dep;
-                t += "org.sw.demo.glennrp.png"_dep;
-                t += "org.sw.demo.gif"_dep;
-                t += "org.sw.demo.hdfgroup.hdf5.hdf5"_dep;
-                //t += "org.sw.demo.openexr.IlmImf"_dep;
-                t += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
-                t += "org.sw.demo.Esri.lerc"_dep; // ?
-                t += "org.sw.demo.mdadams.jasper"_dep;
-                t += "org.sw.demo.vbaderks.charls"_dep;
+            // cl ok, but not link
+            "exr",
+            "iso8211",
+            "adrg",
+            "bsb",
+            "nitf",
+            "hfa",
+            })
+            {
+            fmts.erase(s);
+            }
+            for (auto &f : fmts)
+            add_frmt("frmts/" + f);
+            add_frmt("frmts/gtiff/libgeotiff");
+            t += "org.sw.demo.tiff"_dep;
+            t += "org.sw.demo.glennrp.png"_dep;
+            t += "org.sw.demo.gif"_dep;
+            t += "org.sw.demo.hdfgroup.hdf5.hdf5"_dep;
+            //t += "org.sw.demo.openexr.IlmImf"_dep;
+            t += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
+            t += "org.sw.demo.Esri.lerc"_dep; // ?
+            t += "org.sw.demo.mdadams.jasper"_dep;
+            t += "org.sw.demo.vbaderks.charls"_dep;
             }*/
         }
 
@@ -157,6 +157,10 @@ void build(Solution &s)
             t += "odbccp32.lib"_slib;
             t += "user32.lib"_slib;
             t += "ws2_32.lib"_slib;
+        }
+        else
+        {
+            t += "dl"_slib;
         }
     }
 }
