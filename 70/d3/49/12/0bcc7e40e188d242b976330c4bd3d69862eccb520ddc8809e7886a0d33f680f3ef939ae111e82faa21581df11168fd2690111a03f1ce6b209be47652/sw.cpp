@@ -34,6 +34,8 @@ void build(Solution &s)
             "Utilities/socketxx/.*\\.cpp"_rr,
             "Utilities/socketxx/.*\\.h"_rr,
             "Utilities/socketxx/socket++/config.h.in";
+        socketxx -= "Utilities/socketxx/socket++/sig.cpp";
+        socketxx -= "Utilities/socketxx/socket++/sockunix.cpp";
 
         socketxx.Public +=
             "Utilities/socketxx/socket++"_id;
@@ -53,6 +55,12 @@ void build(Solution &s)
         socketxx += "HAVE_SSTREAM=1"_v;
         socketxx += "HAVE_WORKING_FORK=1"_v;
         socketxx += "HAVE_WORKING_VFORK=1"_v;
+        socketxx += "RETSIGTYPE=void"_v;
+        socketxx += "SYS_SIGLIST=sys_siglist"_v;
+        socketxx += "SYS_ERRLIST=sys_errlist"_v;
+        socketxx += "SIGHND_ARGTYPE=int"_v;
+        socketxx += "SYS_ERRLIST_DECLARED=1"_v;
+        socketxx += "_S_LIBGXX=0"_v;
 
         if (socketxx.getBuildSettings().TargetOS.Type == OSType::Windows ||
             socketxx.getBuildSettings().TargetOS.Type == OSType::Mingw)
@@ -66,6 +74,8 @@ void build(Solution &s)
         socketxx.replaceInFileOnce("Utilities/socketxx/socket++/sockstream.h", "#  include <windows.h>", "//#  include <windows.h>\n#include <WinSock2.h>");
         socketxx.replaceInFileOnce("Utilities/socketxx/socket++/local.h", "#	include <windows.h>", "");
     }
+
+    return;
 
     std::vector<LibraryTarget*> t_bits;
     for (auto &bits : { "8"s, "12"s, "16"s })
@@ -234,7 +244,10 @@ void check(Checker &c)
         s.checkTypeSize("void *");
 
         for (auto &check : s.all)
+        {
             check->Prefixes.insert("GDCM_");
+            check->Prefixes.insert("SOCKETXX_");
+        }
     }
 
     {
