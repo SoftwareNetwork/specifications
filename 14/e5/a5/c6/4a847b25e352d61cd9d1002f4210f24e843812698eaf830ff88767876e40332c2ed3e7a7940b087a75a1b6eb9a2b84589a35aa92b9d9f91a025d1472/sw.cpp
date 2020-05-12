@@ -20,7 +20,10 @@ void build(Solution &s)
         t.Public += "WIN32"_d;
     }
     else
+    {
+        t.ExportAllSymbols = true;
         t -= "source/visualc/.*"_rr;
+    }
 
     t.replaceInFileOnce("source/intel/crc32c_sse42_asm.c", "+c", "+g");
     t.replaceInFileOnce("source/intel/crc32c_sse42_asm.c", "+d", "+g");
