@@ -13,9 +13,9 @@ void build(Solution &s)
     mpfr.Private += "MPFR_TUNE_CASE=\"\""_d;
     mpfr.Public += "org.sw.demo.gnu.gmp.lib"_dep;
 
-    if (s.Settings.TargetOS.is(ArchType::x86))
+    if (mpfr.getBuildSettings().TargetOS.is(ArchType::x86))
         mpfr += "x86"_idir;
-    else if (s.Settings.TargetOS.is(ArchType::x86_64))
+    else if (mpfr.getBuildSettings().TargetOS.is(ArchType::x86_64))
         mpfr += "x86_64/core2"_idir;
 
     if (mpfr.Variables["WORDS_BIGENDIAN"] == 1)
