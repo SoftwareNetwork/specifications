@@ -8,7 +8,7 @@ void build(Solution &s)
     auto &p = s.addProject("sw.client", "0.4.2");
     p += Git("https://github.com/SoftwareNetwork/sw", "", "master");
 
-    auto &support = p.addTarget<StaticLibraryTarget>("support");
+    auto &support = p.addTarget<LibraryTarget>("support");
     {
         support.ApiName = "SW_SUPPORT_API";
         support.ExportIfStatic = true;
@@ -65,13 +65,15 @@ void build(Solution &s)
             gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, "org.sw.demo.google.grpc.cpp.plugin"_dep, protos, p, d);
     }
 
-    auto &manager = p.addTarget<StaticLibraryTarget>("manager");
+    auto &manager = p.addTarget<LibraryTarget>("manager");
     {
         manager.ApiName = "SW_MANAGER_API";
         manager.ExportIfStatic = true;
         manager += cpp17;
         manager.Public += "BOOST_DLL_USE_STD_FS"_def;
 
+        manager +=
+            "pub.egorpugin.primitives.csv-master"_dep;
         manager.Public += support, protos,
             "pub.egorpugin.primitives.db.sqlite3-master"_dep,
             "pub.egorpugin.primitives.lock-master"_dep,
@@ -106,7 +108,7 @@ void build(Solution &s)
         }*/
     }
 
-    auto &builder = p.addTarget<StaticLibraryTarget>("builder");
+    auto &builder = p.addTarget<LibraryTarget>("builder");
     {
         builder.ApiName = "SW_BUILDER_API";
         builder.ExportIfStatic = true;
@@ -127,15 +129,13 @@ void build(Solution &s)
         }
     }
 
-    auto &core = p.addTarget<StaticLibraryTarget>("core");
+    auto &core = p.addTarget<LibraryTarget>("core");
     {
         core.ApiName = "SW_CORE_API";
         core.ExportIfStatic = true;
         core += cpp17;
         core.Public += builder;
         core += "src/sw/core/.*"_rr;
-        if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
-            core += "OleAut32.lib"_slib;
         core += "org.sw.demo.Neargye.magic_enum"_dep;
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, core, "src/sw/core/inserts/input_db_schema.sql");
         gen_sqlite2cpp("pub.egorpugin.primitives.tools.sqlpp11.sqlite2cpp-master"_dep,
@@ -165,9 +165,14 @@ void build(Solution &s)
         {
             cpp_driver.Public += "org.sw.demo.giovannidicanio.winreg"_dep;
             cpp_driver += "dbghelp.lib"_slib;
+            cpp_driver += "OleAut32.lib"_slib;
         }
         //else if (s.getBuildSettings().Native.CompilerType == CompilerType::GNU)
             //cpp_driver.CompileOptions.push_back("-Wa,-mbig-obj");
+
+        if (cpp_driver.getBuildSettings().Native.LibrariesType == LibraryType::Shared)
+            cpp_driver += "SW_DRIVER_SHARED_BUILD"_def;
+
         {
             auto &self_builder = cpp_driver.addTarget<ExecutableTarget>("self_builder");
             self_builder.PackageDefinitions = true;
@@ -254,8 +259,9 @@ void build(Solution &s)
     }
 
     auto &client = p.addTarget<ExecutableTarget>("sw", "1.0.0");
-    auto &client_common = client.addTarget<StaticLibrary>("common");
+    auto &client_common = client.addTarget<LibraryTarget>("common");
     {
+        client_common.ApiName = "SW_CLIENT_COMMON_API";
         client_common.PackageDefinitions = true;
         client_common.SwDefinitions = true;
         client_common.StartupProject = true;
