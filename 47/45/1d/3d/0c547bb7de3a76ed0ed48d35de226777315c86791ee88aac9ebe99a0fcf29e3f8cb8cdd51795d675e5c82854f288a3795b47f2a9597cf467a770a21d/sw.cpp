@@ -22,10 +22,7 @@ DEFINE_OPTION_SPECIALIZATION_DUMMY(NasmAssemblerOptions);
 struct NasmCompiler : sw::NativeCompiler,
     sw::CommandLineOptions<NasmAssemblerOptions>
 {
-    NasmCompiler(ExecutableTarget &nasm)
-        : NativeCompiler(nasm.getSolution().getContext())
-    {
-    }
+    using sw::NativeCompiler::NativeCompiler;
 
     virtual ~NasmCompiler() = default;
 
@@ -120,7 +117,7 @@ void build(Solution &s)
     nasm.Public +=
         "include"_id;
 
-    auto C = std::make_shared<NasmCompiler>(nasm);
+    auto C = std::make_shared<NasmCompiler>();
     C->file = nasm.getOutputFile();
     nasm.setProgram(C);
 }
