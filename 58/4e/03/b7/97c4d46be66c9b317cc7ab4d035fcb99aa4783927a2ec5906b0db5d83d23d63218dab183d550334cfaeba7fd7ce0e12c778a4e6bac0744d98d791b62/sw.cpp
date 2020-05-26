@@ -161,7 +161,10 @@ void build(Solution &s)
         t -= "Utilities/cmlibarchive/libarchive/archive_getdate.c";
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+        {
             t += "WIN32_LEAN_AND_MEAN"_def;
+            t.Variables["HAVE_ENVIRON_NOT_REQUIRE_PROTOTYPE"] = 1;
+        }
         else
         {
             t -= "Source/cmVSSetupHelper.cxx";
