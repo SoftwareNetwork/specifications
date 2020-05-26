@@ -58,6 +58,8 @@ void build(Solution &s)
         t += "kwsys/.*\\.in"_r;
         t -= "kwsys/test.*"_r;
         t -= "kwsys/.*Tests.*"_r;
+        t -= "kwsys/ProcessWin32.c";
+        t -= "kwsys/ProcessUNIX.c";
 
         const String kwsys = "cmsys";
         t += sw::Shared, Definition(kwsys + "_EXPORTS");
@@ -66,12 +68,13 @@ void build(Solution &s)
         t += "KWSYS_USE_LONG_LONG"_def;
         t += "KWSYS_IOS_HAS_ISTREAM_LONG_LONG"_def;
         t += "KWSYS_IOS_HAS_OSTREAM_LONG_LONG"_def;
-        t += "KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H"_def;
+        if (!t.getBuildSettings().TargetOS.isApple())
+            t += "KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H"_def;
         t += "KWSYS_STRING_C"_def;
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
         {
+            t += "kwsys/ProcessWin32.c";
             t.Protected += "KWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"_def;
-            t -= "kwsys/ProcessUNIX.c";
             t += "advapi32.lib"_slib;
             if (t.getBuildSettings().Native.ConfigurationType == ConfigurationType::Debug)
                 t += "comsuppwd.lib"_slib;
@@ -83,6 +86,10 @@ void build(Solution &s)
             t += "Shell32.lib"_slib;
             t += "uuid.lib"_slib;
             t += "ws2_32.lib"_slib;
+        }
+        else
+        {
+            t += "kwsys/ProcessUNIX.c";
         }
 
         t.Variables["KWSYS_NAMESPACE"] = kwsys;
@@ -119,7 +126,9 @@ void build(Solution &s)
         for (auto &[p, f] : t["kwsys/.*\\.in"_r])
             t.configureFile(p, path(kwsys) / p.stem());
 
-        t += "org.sw.demo.tronkko.dirent-master"_dep;
+        t -= "org.sw.demo.tronkko.dirent-master"_dep;
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+            t += "org.sw.demo.tronkko.dirent-master"_dep;
     }
 
     auto &lib = p.addStaticLibrary("lib");
@@ -150,6 +159,20 @@ void build(Solution &s)
 
         // needed
         t -= "Utilities/cmlibarchive/libarchive/archive_getdate.c";
+
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+            t += "WIN32_LEAN_AND_MEAN"_def;
+        else
+        {
+            t -= "Source/cmVSSetupHelper.cxx";
+            t -= "Source/.*VisualStudio.*"_r;
+        }
+
+        if (t.getBuildSettings().TargetOS.isApple())
+        {
+            t += "Source/cmXCodeObject.cxx";
+            t += "CoreServices"_framework;
+        }
 
         //
         t.Public += "Source"_idir;
