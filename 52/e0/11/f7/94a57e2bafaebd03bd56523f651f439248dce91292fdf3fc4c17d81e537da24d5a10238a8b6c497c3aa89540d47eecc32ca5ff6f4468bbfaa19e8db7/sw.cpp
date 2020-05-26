@@ -1,5 +1,7 @@
 struct PythonExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         ExecutableTarget::setupCommand(c);
