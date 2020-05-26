@@ -118,10 +118,18 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
 
     d.setupFiles(t, ".l");
 
+    // any case
+    t -= flex;
+    t -= "org.sw.demo.westes.flex"_dep;
+
+    //
     auto c = t.addCommand();
     c << cmd::wdir(d.wdir);
     //if (flex_bison::need_build(t.getSolution()))
-    c << cmd::prog(flex);
+    if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+        c << cmd::prog("org.sw.demo.westes.flex"_dep);
+    else
+        c << cmd::prog(flex);
     c << "-o" << cmd::out(d.out);
     for (auto &a : d.args)
         c << a;

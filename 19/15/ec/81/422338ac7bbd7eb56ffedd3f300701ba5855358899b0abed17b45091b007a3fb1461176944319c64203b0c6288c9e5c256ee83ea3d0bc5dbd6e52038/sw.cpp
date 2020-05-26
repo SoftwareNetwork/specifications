@@ -1,5 +1,7 @@
 struct M4Executable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         c.environment["M4PATH"] = (SourceDir / "m4").u8string();
