@@ -94,7 +94,7 @@ void build(Solution &s)
         t.Variables["INT64_MODIFIER"] = "\"ll\"";
         t.Variables["PG_MAJORVERSION"] = "\"" + t.getPackage().getVersion().toString(1) + "\"";
         t.Variables["PG_VERSION"] = "\"" + t.getPackage().getVersion().toString(1) + "\"";
-        t.Variables["PG_VERSION_NUM"] = 12;
+        t.Variables["PG_VERSION_NUM"] = t.getPackage().getVersion().getMajor() * 10000 + t.getPackage().getVersion().getMinor() * 100;
         if (t.getCompilerType() == CompilerType::MSVC)
             t.Variables["pg_restrict"] = "__restrict";
         else
