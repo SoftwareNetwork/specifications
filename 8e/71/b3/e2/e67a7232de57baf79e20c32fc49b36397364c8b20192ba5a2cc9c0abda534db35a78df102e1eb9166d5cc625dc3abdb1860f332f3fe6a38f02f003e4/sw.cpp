@@ -129,6 +129,14 @@ void build(Solution &s)
         }
     }
 
+    auto &builder_distributed = builder.addTarget<LibraryTarget>("distributed");
+    {
+        builder_distributed.ApiName = "SW_BUILDER_DISTRIBUTED_API";
+        builder_distributed += cpp17;
+        builder_distributed += "src/sw/builder_distributed/.*"_rr;
+        builder_distributed.Public += builder;
+    }
+
     auto &core = p.addTarget<LibraryTarget>("core");
     {
         core.ApiName = "SW_CORE_API";
@@ -149,6 +157,7 @@ void build(Solution &s)
         cpp_driver.PackageDefinitions = true;
         cpp_driver.WholeArchive = true;
         cpp_driver += cpp17;
+        cpp_driver += "org.sw.demo.Kitware.CMake.lib-master"_dep; // cmake fe
         cpp_driver += "org.sw.demo.ReneNyffenegger.cpp_base64-master"_dep;
         cpp_driver.Public += core,
             "pub.egorpugin.primitives.patch-master"_dep,
@@ -268,7 +277,7 @@ void build(Solution &s)
         client_common.StartupProject = true;
         client_common += "src/sw/client/common/.*"_rr;
         client_common += cpp17;
-        client_common.Public += core, cpp_driver;
+        client_common.Public += builder_distributed, core, cpp_driver;
 
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, client_common, "src/sw/client/common/inserts/SWConfig.cmake");
         embed2("pub.egorpugin.primitives.tools.embedder2-master"_dep, client_common, "src/sw/client/common/inserts/project_templates.yml");
