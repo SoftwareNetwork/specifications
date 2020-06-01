@@ -20,5 +20,7 @@ void build(Solution &s)
     }
 
     t += "org.sw.demo.libusb"_dep;
-    t += "org.sw.demo.tronkko.dirent-master"_dep;
+    t -= "org.sw.demo.tronkko.dirent-master"_dep;
+    if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+        t += "org.sw.demo.tronkko.dirent-master"_dep;
 }
