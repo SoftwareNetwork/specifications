@@ -18,6 +18,9 @@ void build(Solution &s)
         t += "BUILDING_SHARED_LIBRARY"_def;
         t += "_USE_MATH_DEFINES"_def;
 
+        t.Public += "include"_idir;
+        t += "src"_idir;
+
         t += "org.sw.demo.g_truc.glm"_dep;
         t += "org.sw.demo.signal11.hidapi-master"_dep;
 
@@ -30,6 +33,19 @@ void build(Solution &s)
             t += "Bthprops.lib"_slib;
             t += "uuid.lib"_slib;
             t += "ws2_32.lib"_slib;
+        }
+        else if (t.getBuildSettings().TargetOS.isApple())
+            t += "src/platform/psmove_port_osx.mm";
+        else
+        {
+            t.ExportAllSymbols = true;
+            t += "src/platform/psmove_port_linux.cpp";
+            t += "src/daemon/moved_monitor_linux.c";
+            t += "/usr/include/dbus-1.0"_idir;
+            t += "/usr/lib64/dbus-1.0/include"_idir;
+            t += "dbus-1"_slib;
+            t += "udev"_slib;
+            t += "bluetooth"_slib;
         }
 
         t.Variables["PSMOVE_BUILD_TRACKER"] = 1;
@@ -48,8 +64,11 @@ void build(Solution &s)
         cli += "src/utils/psmovecli.cpp";
         cli += api;
         cli += "org.sw.demo.libusb-0"_dep;
-        cli += "org.sw.demo.tronkko.dirent-master"_dep;
+        cli -= "org.sw.demo.tronkko.dirent-master"_dep;
         if (cli.getBuildSettings().TargetOS.is(OSType::Windows))
+        {
             cli += "ws2_32.lib"_slib;
+            cli += "org.sw.demo.tronkko.dirent-master"_dep;
+        }
     }
 }
