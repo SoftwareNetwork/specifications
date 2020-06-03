@@ -331,6 +331,19 @@ void build(Solution &s)
     }
 
     vpx -= "vpx_config.asm";
+
+    /*{
+        vpx.writeFileOnce("config.txt", "");
+
+        auto c = vpx.addCommand();
+        c << cmd::prog("org.sw.demo.perl.perl"_dep)
+            << cmd::in("build/make/rtcd.pl")
+            << "--arch=X64_86"
+            << "--sym" << "vp8_rtcd"
+            << "--config" << cmd::in("config.txt")
+            << cmd::in("vp8/common/rtcd_defs.pl")
+            << cmd::std_out("vp8_rtcd1.h");
+    }*/
 }
 
 void check(Checker &c)

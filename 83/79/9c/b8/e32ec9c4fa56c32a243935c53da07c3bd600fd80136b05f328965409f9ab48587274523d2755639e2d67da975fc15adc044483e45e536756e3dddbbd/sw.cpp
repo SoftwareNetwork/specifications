@@ -20,7 +20,8 @@ void build(Solution &s)
     auto &p = s.addProject("perl", "5.31.11");
     p += Git("https://github.com/Perl/perl5", "v{v}");
 
-    Files base = {
+    Files base =
+    {
         "av.c",
         "caretx.c",
         "deb.c",
@@ -144,27 +145,35 @@ void build(Solution &s)
         mp += "PERL_EXTERNAL_GLOB"_def;
         mp += "PERL_IS_MINIPERL"_def;
 
-        mp += "win32"_idir;
-        mp += "win32/include"_idir;
+        if (mp.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            mp += "win32"_idir;
+            mp += "win32/include"_idir;
 
-        mp.pushBackToFileOnce("win32/config_H.vc", cfg_add);
-        mp.configureFile("win32/config_H.vc", "config.h");
+            mp.pushBackToFileOnce("win32/config_H.vc", cfg_add);
+            mp.configureFile("win32/config_H.vc", "config.h");
 
-        mp += "WIN32"_def;
-        mp += "WIN64"_def;
+            mp += "WIN32"_def;
+            mp += "WIN64"_def;
 
-        mp += "ws2_32.lib"_slib;
-        mp += "user32.lib"_slib;
-        mp += "Advapi32.lib"_slib;
-        mp += "Comctl32.lib"_slib;
+            mp += "ws2_32.lib"_slib;
+            mp += "user32.lib"_slib;
+            mp += "Advapi32.lib"_slib;
+            mp += "Comctl32.lib"_slib;
 
-        /*mp += "_CRT_SECURE_NO_DEPRECATE"_def;
-        mp += "_CRT_NONSTDC_NO_DEPRECATE"_def;
-        mp += "_WINSOCK_DEPRECATED_NO_WARNINGS"_def;
+            /*mp += "_CRT_SECURE_NO_DEPRECATE"_def;
+            mp += "_CRT_NONSTDC_NO_DEPRECATE"_def;
+            mp += "_WINSOCK_DEPRECATED_NO_WARNINGS"_def;
 
-        mp += "_CONSOLE"_def;
-        mp += "NO_STRICT"_def;
-        mp += "CONSERVATIVE"_def;*/
+            mp += "_CONSOLE"_def;
+            mp += "NO_STRICT"_def;
+            mp += "CONSERVATIVE"_def;*/
+        }
+        else
+        {
+            mp.pushBackToFileOnce("win32/config_H.gc", cfg_add);
+            mp.configureFile("win32/config_H.gc", "config.h");
+        }
 
         auto &gu = p.addTarget<Executable>("generate_uudmap");
         gu += "generate_uudmap.c";
