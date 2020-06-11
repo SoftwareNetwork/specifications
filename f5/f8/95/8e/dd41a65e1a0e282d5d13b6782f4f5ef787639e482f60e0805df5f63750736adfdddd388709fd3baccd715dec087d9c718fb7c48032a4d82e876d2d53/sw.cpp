@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &jsoncpp = s.addTarget<LibraryTarget>("open_source_parsers.jsoncpp", "1.9.3");
     jsoncpp += Git("https://github.com/open-source-parsers/jsoncpp", "{v}");
 
+    jsoncpp += cpp11;
     jsoncpp +=
         "include/.*\\.h"_rr,
         "src/lib_json/.*\\.cpp"_rr,
