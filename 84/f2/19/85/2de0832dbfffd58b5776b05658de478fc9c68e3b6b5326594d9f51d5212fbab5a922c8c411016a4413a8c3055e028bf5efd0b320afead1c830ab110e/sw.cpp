@@ -586,7 +586,7 @@ void build(Solution &s)
     //
 
     //
-    *boost_targets["python"] += "org.sw.demo.python.lib"_dep;
+    boost_targets["python"]->Public += "org.sw.demo.python.lib"_dep;
     *boost_targets["python"] -= "src/numpy/.*"_rr;
     //if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
     //*boost_targets["python"] -= "src/.*"_rr;
