@@ -488,9 +488,9 @@ int main() {return 0;}
         s.checkIncludeExists("errno.h");
         s.checkIncludeExists("err.h");
         s.checkIncludeExists("fcntl.h");
-        s.checkIncludeExists("gssapi/gssapi_generic.h");
-        s.checkIncludeExists("gssapi/gssapi.h");
-        s.checkIncludeExists("gssapi/gssapi_krb5.h");
+        //s.checkIncludeExists("gssapi/gssapi_generic.h"); // does not work on gentoo
+        //s.checkIncludeExists("gssapi/gssapi.h");
+        //s.checkIncludeExists("gssapi/gssapi_krb5.h");
         s.checkIncludeExists("idn2.h");
         s.checkIncludeExists("inttypes.h");
         s.checkIncludeExists("io.h");
