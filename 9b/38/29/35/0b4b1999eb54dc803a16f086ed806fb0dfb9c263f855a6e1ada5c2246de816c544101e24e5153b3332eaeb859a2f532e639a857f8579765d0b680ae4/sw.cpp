@@ -7,11 +7,8 @@ void build(Solution &s)
     fribidi.setChecks("fribidi");
     //fribidi.PackageDefinitions = false;
 
-    if (fribidi.getBuildSettings().TargetOS.is(OSType::Windows) ||
-        fribidi.getBuildSettings().TargetOS.is(OSType::Mingw))
-        fribidi.ApiName = "FRIBIDI_ENTRY";
-    else
-        fribidi.ExportAllSymbols = true;
+    fribidi += sw::Shared, "FRIBIDI_BUILD"_def;
+    fribidi.Public += sw::Static, "FRIBIDI_LIB_STATIC"_def;
 
     fribidi +=
         "gen.tab/.*\\.[hc]"_rr,
