@@ -10,4 +10,6 @@ void build(Solution &s)
 
     rhash -= "librhash/test.*"_rr;
     rhash.Public += "librhash"_id;
+
+    rhash += Definition("RHASH_XVERSION=" + rhash.Variables["PACKAGE_VERSION_NUM"].toString());
 }
