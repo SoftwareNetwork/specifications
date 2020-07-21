@@ -241,6 +241,7 @@ void build(Solution &s)
         lib.Private += "Py_BUILD_CORE_BUILTIN"_d;
         lib.Private += "VERSION=\"${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}\""_d;
         lib.Private += "VPATH=\"\""_d;
+        lib.Private += Definition("PY3_DLLNAME=\"" + normalize_path(lib.getOutputFile().filename()) + "\"");
         lib.Public += "ABIFLAGS=\"\""_d;
         lib.Public += "ENABLE_IPV6"_d;
         lib.Public += "HAVE_DYNAMIC_LOADING"_d;
