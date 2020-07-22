@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &p = s.addExecutable("Kitware.CMake", "3.18.0");
-    p += Git("https://github.com/Kitware/CMake", ""/* "v{v}" */, "master");
+    p += Git("https://github.com/Kitware/CMake", "v{v}");
 
     auto &iml = p.addLibrary("iml");
     iml.setRootDirectory("Utilities/KWIML");
