@@ -142,7 +142,7 @@ static auto gen_protobuf_cpp(const DependencyPtr &protobuf_base, NativeExecutedT
 
 void build(Solution &s)
 {
-    auto &p = s.addProject("google.protobuf", "3.12.2");
+    auto &p = s.addProject("google.protobuf", "3.12.4");
     p += Git("https://github.com/protocolbuffers/protobuf", "v{v}");
 
     auto win_or_mingw = [](auto &t)
@@ -189,6 +189,7 @@ void build(Solution &s)
         protobuf.Public += "HAVE_PTHREAD"_d;
         protobuf += "pthread"_slib;
     }
+    protobuf.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
 
     auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
     protoc_lib += cpp11;

@@ -28,7 +28,8 @@ void build(Solution &s)
         t += cpp11;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
-        t += "src/core/ext/upb-generated/.*"_rr;
+        t -= "src/core/ext/upb-generated/.*"_rr;
+        t += "src/core/ext/upb-generated/src/.*"_rr;
         t -= "src/core/lib/surface/init_unsecure.cc";
 
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -120,6 +121,7 @@ void build(Solution &s)
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
+        t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
     }

@@ -142,7 +142,7 @@ static auto gen_protobuf_cpp(const DependencyPtr &protobuf_base, NativeExecutedT
 
 void build(Solution &s)
 {
-    auto &p = s.addProject("google.protobuf", "3.12.2");
+    auto &p = s.addProject("google.protobuf", "3.12.3");
     p += Git("https://github.com/protocolbuffers/protobuf", "v{v}");
 
     auto win_or_mingw = [](auto &t)

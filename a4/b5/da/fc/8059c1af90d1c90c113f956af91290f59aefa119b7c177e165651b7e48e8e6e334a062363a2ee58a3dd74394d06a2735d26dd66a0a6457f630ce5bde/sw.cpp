@@ -169,6 +169,7 @@ void build(Solution &s)
         protobuf_lite.Public += "HAVE_PTHREAD"_d;
         protobuf_lite += "pthread"_slib;
     }
+    protobuf_lite.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
 
     auto &protobuf = p.addTarget<LibraryTarget>("protobuf");
     protobuf += cpp11;
