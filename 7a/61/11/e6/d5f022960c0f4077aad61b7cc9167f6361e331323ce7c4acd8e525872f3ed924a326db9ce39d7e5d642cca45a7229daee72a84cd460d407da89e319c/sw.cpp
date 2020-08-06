@@ -28,8 +28,9 @@ void build(Solution &s)
         t += cpp11;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
-        t -= "src/core/ext/upb-generated/.*"_rr;
-        t += "src/core/ext/upb-generated/src/.*"_rr;
+        t += "src/core/ext/upb-generated/.*"_rr;
+        t -= "src/core/ext/upb-generated/envoy/config/rbac/v2.*"_rr;
+        t -= "src/core/ext/upb-generated/google/api/expr/v1alpha1.*"_rr;
         t -= "src/core/lib/surface/init_unsecure.cc";
 
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -42,6 +43,8 @@ void build(Solution &s)
         t.Public += "org.sw.demo.madler.zlib"_dep;
         t.Public += "org.sw.demo.openssl.ssl"_dep;
         t.Public += "org.sw.demo.nanopb"_dep;
+        t.Public += "org.sw.demo.google.abseil"_dep;
+        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -120,7 +123,6 @@ void build(Solution &s)
         t.Public += grpc_address_sorting;
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.c_ares"_dep;
-        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
@@ -136,7 +138,6 @@ void build(Solution &s)
 
         t.Public += proto;
         t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
-        t.Public += "org.sw.demo.google.abseil"_dep;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
     }
 
