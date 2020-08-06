@@ -11,7 +11,7 @@ void build(Solution &s)
 
     t -= "org.sw.demo.libusb"_dep;
 
-    if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+    if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
     {
         t += "windows/hid.c";
         t += "Setupapi.lib"_slib;

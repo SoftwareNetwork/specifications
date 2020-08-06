@@ -16,6 +16,25 @@ void build(Solution &s)
             t += "Advapi32.lib"_slib;
             t.patch("libusb/libusb-1.0.def", "LIBRARY \"libusb-1.0.dll\"", "LIBRARY");
         }
+        else if (t.getBuildSettings().TargetOS.is(OSType::Mingw))
+        {
+            t.ApiName = "USB_API";
+            t += "libusb/os/.*windows.*"_rr;
+            t += "OS_WINDOWS"_def;
+            t.writeFileOnce(t.BinaryPrivateDir / "config.h", R"(
+/* Define to 1 to enable message logging. */
+#define ENABLE_LOGGING 1
+
+/* Define to 1 if using the Windows poll() implementation. */
+#define POLL_WINDOWS 1
+
+/* Define to 1 if using Windows threads. */
+#define THREADS_WINDOWS 1
+
+#define DEFAULT_VISIBILITY USB_API
+#define POLL_NFDS_TYPE int
+)");
+        }
         else if (t.getBuildSettings().TargetOS.isApple())
         {
             t += "libusb/os/.*darwin.*"_rr;
@@ -32,9 +51,13 @@ void build(Solution &s)
             t += "THREADS_POSIX"_def;
             t += "pthread"_slib;
             t.writeFileOnce(t.BinaryPrivateDir / "config.h", R"(
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
-    #include <sys/un.h>
-    #include <unistd.h>
+#endif
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
+#include <unistd.h>
 
 #define DEFAULT_VISIBILITY USB_API
 #define POLL_NFDS_TYPE nfds_t
@@ -59,6 +82,7 @@ void check(Checker &c)
     s.checkIncludeExists("sys/time.h");
     s.checkIncludeExists("sys/ucred.h");
     s.checkIncludeExists("sys/socket.h");
+    s.checkIncludeExists("sys/un.h");
     s.checkIncludeExists("unistd.h");
 
     s.checkLibraryFunctionExists("udev_new", "udev_new.udev");

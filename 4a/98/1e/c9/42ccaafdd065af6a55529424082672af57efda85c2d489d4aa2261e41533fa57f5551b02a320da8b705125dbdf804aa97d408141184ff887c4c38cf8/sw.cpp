@@ -22,9 +22,9 @@ void build(Solution &s)
         t += "src"_idir;
 
         t += "org.sw.demo.g_truc.glm"_dep;
-        t += "org.sw.demo.signal11.hidapi-master"_dep;
+        t += "org.sw.demo.libusb.hidapi-master"_dep;
 
-        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             t += "src/platform/psmove_port_windows.c";
             t.Protected += "WIN32_LEAN_AND_MEAN"_def;
@@ -65,7 +65,7 @@ void build(Solution &s)
         cli += api;
         cli += "org.sw.demo.libusb-0"_dep;
         cli -= "org.sw.demo.tronkko.dirent-master"_dep;
-        if (cli.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (cli.getBuildSettings().TargetOS.is(OSType::Windows) || cli.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             cli += "ws2_32.lib"_slib;
             cli += "org.sw.demo.tronkko.dirent-master"_dep;
