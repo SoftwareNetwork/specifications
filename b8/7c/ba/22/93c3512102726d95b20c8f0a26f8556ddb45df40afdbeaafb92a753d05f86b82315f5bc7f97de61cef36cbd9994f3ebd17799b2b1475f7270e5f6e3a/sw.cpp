@@ -3,8 +3,10 @@ void build(Solution &s)
     auto &libyuv = s.addTarget<LibraryTarget>("chromium.libyuv", "master");
     libyuv += Git("https://chromium.googlesource.com/libyuv/libyuv", "", "{v}");
 
-    libyuv.Private += sw::Shared, "LIBYUV_BUILDING_SHARED_LIBRARY"_d;
-    libyuv.Public += sw::Shared, "LIBYUV_USING_SHARED_LIBRARY"_d;
+    libyuv.ApiName = "LIBYUV_API";
 
-    libyuv.replaceInFileOnce("include/libyuv/convert_from.h", "#define H420ToH010 I420ToI010", "#define H420ToH010 I420ToI010\nLIBYUV_API");
+    //if (base.getBuildSettings().TargetOS.Arch == Arch::x86_64)
+    //libyuv += "LIBYUV_DISABLE_X86"_def;
+    //libyuv += "VISUALC_HAS_SSSE3"_def;
+    //libyuv += "VISUALC_HAS_AVX2"_def;
 }
