@@ -4,143 +4,144 @@ auto &addBoostTarget(Solution &s, const String &name)
     static const std::map<String, String> commits
     {
         { "accumulators", "b12a189fefd17ff3a6a68fc24b4135f0e0c498f6" },
-        { "algorithm", "e59958cc4d7559e70047f7ff3e467bdc9a670e63" },
-        { "align", "b8e81e10bee1af5556cc47abef042219f35ec010" },
-        { "any", "84ca91e5049332d4866e68badc011217eadb10fb" },
-        { "array", "32b074c9ae44ba0a34d6ea8ada65971191e675ee" },
-        { "asio", "e235f9b7fef05b644a24b6985cd60076372944c7" },
+        { "algorithm", "7f527f3c4dc3b88b11f1584d7decf0537450b441" },
+        { "align", "05bfdf34c047418b7525502d76f95918190f8dc2" },
+        { "any", "1483752ab69e064e4816e7a726fcfaff62712785" },
+        { "array", "d026fbcee301275a101c5c67e1f4161766028108" },
+        { "asio", "f550ad31912783269bfca3405b9344abc8394849" },
         { "assert", "35c31e7778cd5e02cdcdea7bedce4c7f8d767803" },
         { "assign", "d30e5c2d3796740445e992230eb7e4d7712d219b" },
-        { "atomic", "dd4cb7e5400b6f69f4fa5dd909146ad170a2a7d5" },
-        { "beast", "f5064e0c460664fa34fdad44e2379a2309d39685" },
-        { "bimap", "05b7049b4dace6e6a2c26862403a0c1fa55bccbd" },
-        { "bind", "e3cf787dff2684e7bc45bb84dfa390514656b110" },
-        { "callable_traits", "454b8ade9c8356f27fb0b3c6cbbb9bd8b9477af3" },
+        { "atomic", "51c84b6d0376f969ab5e70e83457446521bbbd38" },
+        { "beast", "201105e66ab738bd8e027cff8c11ddd7cd5c7587" },
+        { "bimap", "a4317e5c82589d5635a27c2fea02003eeabd072c" },
+        { "bind", "cd32792f0ef444347b1a522de945ee298e1112a8" },
+        { "callable_traits", "d0d48799a0add36b3f1a3611d80499c80d59f539" },
         { "chrono", "aa51cbd5121ed29093484f53e5f96e13a9a915b4" },
-        { "circular_buffer", "7808ab19dcc2c801747eec52689c179681f3d125" },
+        { "circular_buffer", "eed21df804f25e3d65af65722c384577a305b1e0" },
         { "compatibility", "445fbc1633cbaf49b0c3310db95a642e9c3fe89b" },
         { "compute", "36c89134d4013b2e5e45bc55656a18bd6141995a" },
-        { "concept_check", "db1f9c73a43fc527a43a66bd77d8981b845c8712" },
-        { "config", "0b32bb4f6b8b38c149f9b446b7949c1a8ea9027f" },
-        { "container", "e3f6dc44ad751e4c49a8776fd20d76aa3809bac1" },
+        { "concept_check", "a8cf003d4a5d0328b1c58610b2f5a7a84994b357" },
+        { "config", "83fd6b3e9d3709d3efdc609a5aceb9d5851212b0" },
+        { "container", "06417de498fbfd6f6684efe85a99c6adcc0721a5" },
         { "container_hash", "8a7fc581ed987fde8cae4e7145378d23b9b6b351" },
-        { "context", "7c481a8fb6db3a3b6c981e7b27f02064d1efb499" },
+        { "context", "ca52f2da4908fbee36c5e0b00f800793f6b52b50" },
         { "contract", "3c77288d52fd19ef8c317bbecc7b08362251ff3e" },
-        { "conversion", "58c33270a2761d51d40a8b94912afa96c6b8617e" },
+        { "conversion", "9540be42b4fa1ea66ae850f233e3ddff45e9efeb" },
         { "convert", "2e3386ff0f5ee4728696fb0d9853feb844cae993" },
-        { "core", "690514e87cde26f656cdd75b96aba03c8abcb398" },
-        { "coroutine", "9c73b2f7c1759a9508ba8780b38dc15f07f1a447" },
-        { "coroutine2", "18bcccf34dcd80f4be1cd1c897778a2c9536c11f" },
+        { "core", "dcc04c55089b8a74c5a37e3d25694fca697ffb9f" },
+        { "coroutine", "69ba7f82fd1fad814e2c66a01290bf3f9c575176" },
+        { "coroutine2", "32999f282aa05638c59bbe2ba0db888e32d3ffab" },
         { "crc", "7002d9850d78c279c28724b2e58227d9b8bf7422" },
-        { "date_time", "b03272650eca66a1d7da05640f95effd81b1a590" },
-        { "detail", "8dbbfe372b83f7ff32d545bad1c779348bfe3eea" },
-        { "dll", "3176e5c5b957258798c0056e88c1ded9397abe9b" },
-        { "dynamic_bitset", "3e0107909bb48fa5eb1d7ab09223ad00c9fac9f3" },
-        { "endian", "e1b7981a538a230ad19ed900f3e3716c5a319b59" },
-        { "exception", "ff0bcc1d858d731c7bf1c36be5d39ee153fab865" },
-        { "fiber", "621dd5fe753224233a54aa9a8b9fec1ced916fe4" },
-        { "filesystem", "8b138a9955956b2f18e34fc46c2587b8722459bc" },
-        { "flyweight", "df2edb82bbf0d91a66c9928e0566c07b307beb01" },
+        { "date_time", "fa46e55ca8089d51fbf61e4c9da475a037a7be19" },
+        { "detail", "5d285a2d5a561308ad6703e1ff284d106eb01032" },
+        { "dll", "6fed722419caec8ff1049ea0e78afcd75daa6494" },
+        { "dynamic_bitset", "b59fc97a670a1cd1866ea4a46612525a17752978" },
+        { "endian", "dffcf99ca6a3d772dfdd880dd8ddff3c10941ee7" },
+        { "exception", "63b57749a2e1fc1505ec8a382c82cf32103ab68c" },
+        { "fiber", "680c0ac7b9cf1f223e2c1ed307d828db3d52c53a" },
+        { "filesystem", "4748f6e39da4948468391705fdd140433a7df21c" },
+        { "flyweight", "6dd4814faf0e62754040a2d3cc6498258be3318c" },
         { "foreach", "88c8eae6759f1984dd7e22629660f0e39c5907ee" },
-        { "format", "894f465d843d999b5c024a49f90a5a1013edd368" },
+        { "format", "5884c3d8140cdcd2d1bef374fcc216244d5faaa5" },
         { "function", "4841cbf4754043a8bcf02fc081106c6f26259324" },
         { "function_types", "0f29b0147885e525acc87e86169f538e55bdb3e9" },
         { "functional", "28b1b25b9464abb3fd5783e10f49df40d6aac2ff" },
-        { "fusion", "edddad2b4ef6781c11b6032059bb10f6b2acfaaf" },
-        { "geometry", "34768a0eb8bb80a1161004eeb7686b9cfd4d1d3d" },
-        { "gil", "2497779b0865c21b13921fc37689085f558c0e62" },
+        { "fusion", "c46e492d4556b97da12f35e8d9a4e0eef1ad7bde" },
+        { "geometry", "c6fc80093b8cb815191876cd479993686b4978f3" },
+        { "gil", "10d91ee5ab9f09a848509c924289c40f7b727ff3" },
         { "graph", "554da2950e99636b9bc068785c611ca6e05d3a4d" },
         { "graph_parallel", "22385ccb6c35fcb07971f295807519bd031ed57d" },
         { "hana", "07b42492765f7384e053c4761f4d0eda32b75834" },
-        { "heap", "48d96def311bf170b8e3ab410ea0f170ba1d460c" },
-        { "histogram", "ba93953730971337dc7da0f33862ecf5d084d0c0" },
+        { "heap", "c0a8773051cd8bc0691ea3c067d59b4d4c5e96dc" },
+        { "histogram", "f6563de91172c805b6a030dea2cd149d32159c82" },
         { "hof", "a5fcba3ae4410d217a7a80a782238bb18fa7925a" },
         { "icl", "c8135f85bff06d0e4dfbec0c1a26c2e0034da881" },
-        { "integer", "bee5818e18cf33f06f776556fdacec694c0259d1" },
-        { "interprocess", "d2cb6e6f0f6cfd1362a5f5750756f94f76fc13d3" },
-        { "intrusive", "3b5001f22f342e62a6f732b0bc58817a608a752f" },
-        { "io", "60714a762dce348446d722aaba9b8cf0c171afa4" },
-        { "iostreams", "601244b26aba14a2524ab1307243d0c5ea566206" },
-        { "iterator", "80ec58bb3b4a46fb8283eaaf7807f1503a0e83c6" },
+        { "integer", "54dcfa677d8883d0bc7179f32cb806d89d4f8e40" },
+        { "interprocess", "056663fcc1db321c0af1f56a7c7bd1becf20791f" },
+        { "intrusive", "d8761780b0386c53ab144173a5fdc536ee2e1da8" },
+        { "io", "40b87939b2ce6a0d607e37877f2e36bbaf1f23f7" },
+        { "iostreams", "bc868902b0e42a0ff7440d52c584a14a04d0fad3" },
+        { "iterator", "72f0ebe8d06991968c6f792c0a846519a795cac1" },
         { "lambda", "8824e81d52489be9c8cb21d8f8477b03e675ce66" },
-        { "lexical_cast", "012f87e21bf8c41aeb2d0ef66ed9697cc5c075b0" },
-        { "local_function", "9ea3674299e3185ccdacf9dad5060d070ae9d77e" },
+        { "lexical_cast", "9fdbf5ce67d9a9302cf16de4760d99090da97f44" },
+        { "local_function", "0a6ceaaec6cc849b38c3475340fce74fc3960e51" },
         { "locale", "ccb8fbb9a1a0dbdffb1054ffa34e4aba1e425642" },
-        { "lockfree", "fbea9be049f101e35ad12e169ce84d79a8664ba2" },
-        { "log", "49af1c8fa0137047ec6e6e783581eb10e504c9db" },
-        { "logic", "832731f5ab57a9b9cb03847fcd31b001fa9314bc" },
+        { "lockfree", "dcd878cd67b3dc710a0f37bbbb2be0ea4a7526e3" },
+        { "log", "e7d4fd2d13f753cee86ac2ffd82259ab460e1237" },
+        { "logic", "1a0a89c5bdd096777c59a7e43dc4cdfb8f6b1cc7" },
         { "math", "692077bf1647c87117929ec111788e67a8bbf68a" },
         { "metaparse", "e0350c0bfe92a257bf0be2083f2a003f237b5dd8" },
-        { "move", "0304ee7581dda870dbb66c6bd0556a58a1002ca4" },
-        { "mp11", "7debd787dddd9d88cf0fd01be06f2998d0ddaed0" },
-        { "mpi", "1c09f39948218d094a4fde9c09309580f33c5db5" },
-        { "mpl", "e01a10925db285b31d0d73929178edd9279142df" },
+        { "move", "fa3aa147b4b0a8e02edb0ac516acc21b4b139b78" },
+        { "mp11", "29764aad4881fde809af6a025c12012e47a55515" },
+        { "mpi", "ace80263884ee2af3cef2ab3644ff4b41d154e49" },
+        { "mpl", "9c0f98f088bbed5943382ebfcfd1b0159aaa7462" },
         { "msm", "2286d12deb237e8325c00fcb28c666190daca2ac" },
         { "multi_array", "3b405720559ff9acc968e1a40102ca6245a64e6c" },
-        { "multi_index", "7b4467f60a7a8da9a09f9593d69f01d7333501f9" },
+        { "multi_index", "1dcb5fe1370d7f76d4f3fe844533fc6fee30452a" },
         { "multiprecision", "953d6e5b8b3eb91b9fde24606d7d328e16ab2fe7" },
-        { "nowide", "ac0da0f762adb791dcc5082df968eb4d06d64356" },
+        { "nowide", "5d4444622fae8b10f4840d97bc83bd95d879c531" },
         { "numeric", "de922921408bc7116a3c7c67b2fcfbe3e3214f3b" },
-        { "interval", "6db1ad0d2027d812bcbb26802196c5444c59e585" },
+        { "interval", "ed01cdab6d89579e56ed5b831ed339fe98deba98" },
         { "odeint", "db8f91a51da630957d6bfa1ff87be760b0be97a6" },
         { "ublas", "53361d7f42e7d88661c147a2490e10ee32324e48" },
         { "optional", "c486bb724c087b18a1f9a6397408213219a4f3e2" },
-        { "outcome", "51dda556783f57410a4da648e95354304483a050" },
+        { "outcome", "6946e340c798fc312c48e28762737c77378e99da" },
         { "parameter", "c31433af1f41d228bbf4c6161c1b2e028cbfd2ad" },
         { "parameter_python", "787d8d38d9fd49c34a757b20361f8042dd5ac820" },
-        { "phoenix", "7e6e0e433016fa4b4b9c64a323f2adf09dbbe582" },
-        { "poly_collection", "0f41301229b0b12e8625e979c43642a5595a6910" },
+        { "phoenix", "ba414c01c82bed1d4ff22a0c155098d94691f8e2" },
+        { "poly_collection", "c00e7bcf9deece68e5c69a0ba31fb77145b775bb" },
         { "polygon", "335650e36062db5638f143a958ee6995ada1de3e" },
         { "pool", "8edafbec99cefa00b84b1c95e5b3cbbf9a6a5498" },
         { "predef", "133ae86ef5a7811321b2dae92455ba609418885e" },
         { "preprocessor", "e4fb5f4866f69a917b7eeb522a3257d4625e52c1" },
-        { "process", "0341e08297512cfc3136d1324364f406518b0f11" },
+        { "process", "b2a96a3e139ae42ea2bcb80cc58f108494a995c5" },
         { "program_options", "bc0c90a70f0435ee4ce65b97a68d864a7d627e35" },
-        { "property_map", "ab086d43e09a221f65f9a701bb8fb02f105ebfce" },
+        { "property_map", "a1510e7e0fb6914c49109ceee1b2c5a83dc84428" },
         { "property_tree", "bdfe275d172ac30bc5e89a6375a5a64dea20b3c0" },
-        { "proto", "c45e6c41322e222802afa035e89b71cead939388" },
+        { "proto", "333db1d6e21ad6a4d543c0a6e837a2ef3e155f39" },
         { "ptr_container", "c7b6a7ee5b41d378c4c95d6f6edb25c98dfffed7" },
         { "python", "102acf1d34ff91e67fe9aae401edc6edd68be89e" },
-        { "qvm", "e59006aa278c57043d6b4427af5693045af5d94a" },
+        { "qvm", "4e5548998c9d2d8159b90ae3a4244e58c59bc285" },
         { "random", "5d9ba8578ac1d78525488077dafb99b536a399d3" },
-        { "range", "77a4dd51242f1ef446acb1a476ae1c760c206b1d" },
+        { "range", "f3ff60c3bc41e42ffebef1452deb285047a5639f" },
         { "ratio", "96888514780dbe8d1729a8248fbafdeda79bcdc4" },
         { "rational", "47c1b26964b06a99200769474d58a309267c50f1" },
-        { "regex", "c21b52d87cd368505f77d6b69bb97ad581e4e7eb" },
+        { "regex", "e9645776f90c1ad64fc92de32ece96a5727e7b99" },
         { "safe_numerics", "94cbf677737563c8e7ab55d95ba63052e7b6cc88" },
         { "scope_exit", "3a2c1d7da44af2bb4bf47a4dc051998a80d3194f" },
-        { "serialization", "88094d44b6b95598d8ec7d23c0a618a9196df974" },
+        { "serialization", "ed44fcd268e0691e8afe09d879a107fbff194d75" },
         { "signals2", "dd4c67ff88c1663f5209729ff11134c950c4b1cb" },
-        { "smart_ptr", "54b549820866ecfb269e43117595a9aafcb56814" },
-        { "sort", "9dfadc849696999db43ba71337d67fd38763f072" },
-        { "spirit", "cda6e33e091877e19e39bdaa412b2233df4695c6" },
-        { "stacktrace", "f931528c87f19757e060f5fee1a4f8ccdbacf7a0" },
+        { "smart_ptr", "620620df3d232365bb75216250eafb37421ba7eb" },
+        { "sort", "9ff0221684eba9f1a63d2e0c37269c9f4fa5aa70" },
+        { "spirit", "a1ace8d8eb614785c6f619a46af13c1f032b8cd0" },
+        { "stacktrace", "e75d2ff93bbe63ed3f1f578823cae6b8039da821" },
         { "statechart", "798d77087ecc144f36f8f5873dd1e9a4f4926344" },
         { "static_assert", "ba846a309164183757683b64df4b88f2d72cb0ff" },
         { "static_string", "6809e0a673a1d93e2d7239bec63f16bd5368aebc" },
-        { "system", "6942dc454bca66787de3fb5c54aeec5c245c47a8" },
-        { "test", "406c330bc82cfff0ade0249c16151808ac3b9c6b" },
-        { "thread", "49ece352b388f6aebc79d5e423a8284978e86dc3" },
-        { "throw_exception", "548084bd4c868325dbf3d1c0bd8947083fd08a02" },
-        { "timer", "1fc97cb802d4e2686401130f0a3a221f4194c283" },
-        { "tokenizer", "667a8229bd87f1986a49d844582c396dec408d14" },
+        { "stl_interfaces", "6ab42d5111e6f3e6dc281c0a21d0683184850ccd" },
+        { "system", "8220aa5700d0e23ffe88b3145f9269cc15b71ccc" },
+        { "test", "65892881d7393ab3df2ba63813f8fc48b7983d2d" },
+        { "thread", "96cd717b331e62095aa58d6768dab3baa03fcdce" },
+        { "throw_exception", "da6f5420fe7e96f673ee185c2ff37cbaa3f95b84" },
+        { "timer", "f345749e649d5c3b2719b46129b504934002d1fa" },
+        { "tokenizer", "1c8a8bfd3a8fc2071458884da23ef5ac3a778a0c" },
         { "tti", "0fafbefdf9867f04a8dce3564a2271939fd48443" },
-        { "tuple", "19f7cfdcdb2a83a1fdb290f57c34bf555db7cd8b" },
+        { "tuple", "a4dff52f676679d07a7ed74621fd4c0a371c0e21" },
         { "type_erasure", "46a8945bfbc1b691112500b4e07865e9090b1274" },
-        { "type_index", "f2e395a7f3fc3527b82487e7f728d6cb33328f8a" },
-        { "type_traits", "7ee9910b2f13611ffb9b7fe95410e7ad763e9a62" },
+        { "type_index", "9862011b6b5e900eee31d32684766c15d3506adf" },
+        { "type_traits", "5588bb1ab7ba1809aaa492c4f6c6620dc2aaa927" },
         { "typeof", "27890f7ec1a1f25432474cb73abfc5bc4bafc0c7" },
         { "units", "57389b7374a6f7a4caf87cc44092bb8d0db65ec6" },
         { "unordered", "9abce00f240f4d7b38c335c1f86262e7ea16018d" },
-        { "utility", "957aeba2e9dfea63ec97f43d79387354769d27c6" },
+        { "utility", "a4feaf4f243b9865dc8c65102232394d0c20473d" },
         { "uuid", "ca0185f9f2f1c8d58af8c54ce24579e1c6ebf348" },
-        { "variant", "5cbe9b7e19f7cbf25e64406d7889ab9a538dc29d" },
-        { "variant2", "f3b3b533aaf4701f23e24aaa0b7bd86f3393aecf" },
+        { "variant", "5e989572aea2c2d39c1268acb29558431deb8902" },
+        { "variant2", "1ebc29aa0277cbb284a70327b5af14519f2702bc" },
         { "vmd", "d7ad0c5efe4715a89f296bae2f037fa3f68a7215" },
-        { "wave", "6d3cf0f993837aaf7f1212f48161a15a2d943586" },
-        { "winapi", "c3a925950c85bfcfe73b37198c61e96759618cf5" },
-        { "xpressive", "4d4bc69f8b05e63c744e6f477df6a364affbc603" },
-        { "yap", "5ddb52a7d7a2cb971483cdfec771dbc8ea920ab4" },
+        { "wave", "a84bebde0b4b6f04d84d7d5696ece1c9177f598f" },
+        { "winapi", "37607cc3d3ea5145381f65b6fe51eac8bb8f361f" },
+        { "xpressive", "a79ffb49e84dc5083e31e2070c5effd3b7f5301a" },
+        { "yap", "262624ac36652d1354e6b2ee38a79f2bc9a66cae" },
     };
 
     PackagePath p = "boost";
@@ -313,6 +314,7 @@ void build(Solution &s)
         "statechart",
         "static_assert",
         "static_string",
+        "stl_interfaces",
         "system",
         "throw_exception",
         "tokenizer",
@@ -665,11 +667,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("accumulators", "interval", true);
         add_public_dependency("accumulators", "intrusive", true);
         add_public_dependency("accumulators", "io", true);
-        add_public_dependency("accumulators", "iostreams", true);
         add_public_dependency("accumulators", "iterator", true);
         add_public_dependency("accumulators", "lambda", true);
         add_public_dependency("accumulators", "lexical_cast", true);
-        add_public_dependency("accumulators", "locale", true);
         add_public_dependency("accumulators", "logic", true);
         add_public_dependency("accumulators", "math", true);
         add_public_dependency("accumulators", "move", true);
@@ -783,42 +783,30 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("asio", "coroutine", true);
         add_public_dependency("asio", "date_time", true);
         add_public_dependency("asio", "detail", true);
-        add_public_dependency("asio", "dynamic_bitset", true);
-        add_public_dependency("asio", "endian", true);
         add_public_dependency("asio", "exception", true);
-        add_public_dependency("asio", "filesystem", true);
-        add_public_dependency("asio", "foreach", true);
         add_public_dependency("asio", "function", true);
         add_public_dependency("asio", "function_types", true);
         add_public_dependency("asio", "fusion", true);
         add_public_dependency("asio", "integer", true);
         add_public_dependency("asio", "intrusive", true);
         add_public_dependency("asio", "io", true);
-        add_public_dependency("asio", "iostreams", true);
         add_public_dependency("asio", "iterator", true);
         add_public_dependency("asio", "lambda", true);
         add_public_dependency("asio", "lexical_cast", true);
-        add_public_dependency("asio", "locale", true);
         add_public_dependency("asio", "math", true);
         add_public_dependency("asio", "move", true);
         add_public_dependency("asio", "mp11", true);
         add_public_dependency("asio", "mpl", true);
-        add_public_dependency("asio", "multiprecision", true);
         add_public_dependency("asio", "numeric", true);
         add_public_dependency("asio", "optional", true);
-        add_public_dependency("asio", "phoenix", true);
         add_public_dependency("asio", "pool", true);
         add_public_dependency("asio", "predef", true);
         add_public_dependency("asio", "preprocessor", true);
-        add_public_dependency("asio", "proto", true);
-        add_public_dependency("asio", "random", true);
         add_public_dependency("asio", "range", true);
         add_public_dependency("asio", "ratio", true);
         add_public_dependency("asio", "rational", true);
         add_public_dependency("asio", "regex", true);
-        add_public_dependency("asio", "serialization", true);
         add_public_dependency("asio", "smart_ptr", true);
-        add_public_dependency("asio", "spirit", true);
         add_public_dependency("asio", "static_assert", true);
         add_public_dependency("asio", "system", true);
         add_public_dependency("asio", "thread", true);
@@ -830,7 +818,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("asio", "typeof", true);
         add_public_dependency("asio", "unordered", true);
         add_public_dependency("asio", "utility", true);
-        add_public_dependency("asio", "variant", true);
         add_public_dependency("asio", "winapi", true);
         add_public_dependency("assert", "config", true);
         add_public_dependency("assign", "algorithm", true);
@@ -848,10 +835,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("assign", "core", true);
         add_public_dependency("assign", "date_time", true);
         add_public_dependency("assign", "detail", true);
-        add_public_dependency("assign", "dynamic_bitset", true);
         add_public_dependency("assign", "endian", true);
         add_public_dependency("assign", "exception", true);
-        add_public_dependency("assign", "filesystem", true);
         add_public_dependency("assign", "foreach", true);
         add_public_dependency("assign", "function", true);
         add_public_dependency("assign", "function_types", true);
@@ -859,16 +844,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("assign", "integer", true);
         add_public_dependency("assign", "intrusive", true);
         add_public_dependency("assign", "io", true);
-        add_public_dependency("assign", "iostreams", true);
         add_public_dependency("assign", "iterator", true);
         add_public_dependency("assign", "lambda", true);
         add_public_dependency("assign", "lexical_cast", true);
-        add_public_dependency("assign", "locale", true);
         add_public_dependency("assign", "math", true);
         add_public_dependency("assign", "move", true);
         add_public_dependency("assign", "mp11", true);
         add_public_dependency("assign", "mpl", true);
-        add_public_dependency("assign", "multiprecision", true);
         add_public_dependency("assign", "numeric", true);
         add_public_dependency("assign", "optional", true);
         add_public_dependency("assign", "phoenix", true);
@@ -877,7 +859,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("assign", "preprocessor", true);
         add_public_dependency("assign", "proto", true);
         add_public_dependency("assign", "ptr_container", true);
-        add_public_dependency("assign", "random", true);
         add_public_dependency("assign", "range", true);
         add_public_dependency("assign", "ratio", true);
         add_public_dependency("assign", "rational", true);
@@ -900,9 +881,11 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("assign", "winapi", true);
         add_public_dependency("atomic", "assert", true);
         add_public_dependency("atomic", "config", true);
+        add_public_dependency("atomic", "predef", true);
         add_public_dependency("atomic", "preprocessor", true);
         add_public_dependency("atomic", "static_assert", true);
         add_public_dependency("atomic", "type_traits", true);
+        add_public_dependency("atomic", "winapi", true);
         add_public_dependency("beast", "algorithm", true);
         add_public_dependency("beast", "array", true);
         add_public_dependency("beast", "asio", true);
@@ -920,43 +903,32 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("beast", "coroutine", true);
         add_public_dependency("beast", "date_time", true);
         add_public_dependency("beast", "detail", true);
-        add_public_dependency("beast", "dynamic_bitset", true);
         add_public_dependency("beast", "endian", true);
         add_public_dependency("beast", "exception", true);
-        add_public_dependency("beast", "filesystem", true);
-        add_public_dependency("beast", "foreach", true);
         add_public_dependency("beast", "function", true);
         add_public_dependency("beast", "function_types", true);
         add_public_dependency("beast", "fusion", true);
         add_public_dependency("beast", "integer", true);
         add_public_dependency("beast", "intrusive", true);
         add_public_dependency("beast", "io", true);
-        add_public_dependency("beast", "iostreams", true);
         add_public_dependency("beast", "iterator", true);
         add_public_dependency("beast", "lambda", true);
         add_public_dependency("beast", "lexical_cast", true);
-        add_public_dependency("beast", "locale", true);
         add_public_dependency("beast", "logic", true);
         add_public_dependency("beast", "math", true);
         add_public_dependency("beast", "move", true);
         add_public_dependency("beast", "mp11", true);
         add_public_dependency("beast", "mpl", true);
-        add_public_dependency("beast", "multiprecision", true);
         add_public_dependency("beast", "numeric", true);
         add_public_dependency("beast", "optional", true);
-        add_public_dependency("beast", "phoenix", true);
         add_public_dependency("beast", "pool", true);
         add_public_dependency("beast", "predef", true);
         add_public_dependency("beast", "preprocessor", true);
-        add_public_dependency("beast", "proto", true);
-        add_public_dependency("beast", "random", true);
         add_public_dependency("beast", "range", true);
         add_public_dependency("beast", "ratio", true);
         add_public_dependency("beast", "rational", true);
         add_public_dependency("beast", "regex", true);
-        add_public_dependency("beast", "serialization", true);
         add_public_dependency("beast", "smart_ptr", true);
-        add_public_dependency("beast", "spirit", true);
         add_public_dependency("beast", "static_assert", true);
         add_public_dependency("beast", "system", true);
         add_public_dependency("beast", "thread", true);
@@ -968,7 +940,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("beast", "typeof", true);
         add_public_dependency("beast", "unordered", true);
         add_public_dependency("beast", "utility", true);
-        add_public_dependency("beast", "variant", true);
         add_public_dependency("beast", "winapi", true);
         add_public_dependency("bimap", "algorithm", true);
         add_public_dependency("bimap", "any", true);
@@ -988,7 +959,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("bimap", "dynamic_bitset", true);
         add_public_dependency("bimap", "endian", true);
         add_public_dependency("bimap", "exception", true);
-        add_public_dependency("bimap", "filesystem", true);
         add_public_dependency("bimap", "foreach", true);
         add_public_dependency("bimap", "format", true);
         add_public_dependency("bimap", "function", true);
@@ -998,11 +968,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("bimap", "integer", true);
         add_public_dependency("bimap", "intrusive", true);
         add_public_dependency("bimap", "io", true);
-        add_public_dependency("bimap", "iostreams", true);
         add_public_dependency("bimap", "iterator", true);
         add_public_dependency("bimap", "lambda", true);
         add_public_dependency("bimap", "lexical_cast", true);
-        add_public_dependency("bimap", "locale", true);
         add_public_dependency("bimap", "math", true);
         add_public_dependency("bimap", "move", true);
         add_public_dependency("bimap", "mp11", true);
@@ -1104,11 +1072,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("compute", "integer", true);
         add_public_dependency("compute", "intrusive", true);
         add_public_dependency("compute", "io", true);
-        add_public_dependency("compute", "iostreams", true);
         add_public_dependency("compute", "iterator", true);
         add_public_dependency("compute", "lambda", true);
         add_public_dependency("compute", "lexical_cast", true);
-        add_public_dependency("compute", "locale", true);
         add_public_dependency("compute", "math", true);
         add_public_dependency("compute", "move", true);
         add_public_dependency("compute", "mp11", true);
@@ -1186,42 +1152,30 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("context", "core", true);
         add_public_dependency("context", "date_time", true);
         add_public_dependency("context", "detail", true);
-        add_public_dependency("context", "dynamic_bitset", true);
-        add_public_dependency("context", "endian", true);
         add_public_dependency("context", "exception", true);
-        add_public_dependency("context", "filesystem", true);
-        add_public_dependency("context", "foreach", true);
         add_public_dependency("context", "function", true);
         add_public_dependency("context", "function_types", true);
         add_public_dependency("context", "fusion", true);
         add_public_dependency("context", "integer", true);
         add_public_dependency("context", "intrusive", true);
         add_public_dependency("context", "io", true);
-        add_public_dependency("context", "iostreams", true);
         add_public_dependency("context", "iterator", true);
         add_public_dependency("context", "lambda", true);
         add_public_dependency("context", "lexical_cast", true);
-        add_public_dependency("context", "locale", true);
         add_public_dependency("context", "math", true);
         add_public_dependency("context", "move", true);
         add_public_dependency("context", "mp11", true);
         add_public_dependency("context", "mpl", true);
-        add_public_dependency("context", "multiprecision", true);
         add_public_dependency("context", "numeric", true);
         add_public_dependency("context", "optional", true);
-        add_public_dependency("context", "phoenix", true);
         add_public_dependency("context", "pool", true);
         add_public_dependency("context", "predef", true);
         add_public_dependency("context", "preprocessor", true);
-        add_public_dependency("context", "proto", true);
-        add_public_dependency("context", "random", true);
         add_public_dependency("context", "range", true);
         add_public_dependency("context", "ratio", true);
         add_public_dependency("context", "rational", true);
         add_public_dependency("context", "regex", true);
-        add_public_dependency("context", "serialization", true);
         add_public_dependency("context", "smart_ptr", true);
-        add_public_dependency("context", "spirit", true);
         add_public_dependency("context", "static_assert", true);
         add_public_dependency("context", "system", true);
         add_public_dependency("context", "throw_exception", true);
@@ -1232,7 +1186,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("context", "typeof", true);
         add_public_dependency("context", "unordered", true);
         add_public_dependency("context", "utility", true);
-        add_public_dependency("context", "variant", true);
         add_public_dependency("context", "winapi", true);
         add_public_dependency("contract", "algorithm", true);
         add_public_dependency("contract", "any", true);
@@ -1249,42 +1202,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("contract", "core", true);
         add_public_dependency("contract", "date_time", true);
         add_public_dependency("contract", "detail", true);
-        add_public_dependency("contract", "dynamic_bitset", true);
-        add_public_dependency("contract", "endian", true);
         add_public_dependency("contract", "exception", true);
-        add_public_dependency("contract", "filesystem", true);
-        add_public_dependency("contract", "foreach", true);
         add_public_dependency("contract", "function", true);
         add_public_dependency("contract", "function_types", true);
         add_public_dependency("contract", "fusion", true);
         add_public_dependency("contract", "integer", true);
         add_public_dependency("contract", "intrusive", true);
         add_public_dependency("contract", "io", true);
-        add_public_dependency("contract", "iostreams", true);
         add_public_dependency("contract", "iterator", true);
         add_public_dependency("contract", "lambda", true);
         add_public_dependency("contract", "lexical_cast", true);
-        add_public_dependency("contract", "locale", true);
         add_public_dependency("contract", "math", true);
         add_public_dependency("contract", "move", true);
         add_public_dependency("contract", "mp11", true);
         add_public_dependency("contract", "mpl", true);
-        add_public_dependency("contract", "multiprecision", true);
         add_public_dependency("contract", "numeric", true);
         add_public_dependency("contract", "optional", true);
-        add_public_dependency("contract", "phoenix", true);
-        add_public_dependency("contract", "pool", true);
         add_public_dependency("contract", "predef", true);
         add_public_dependency("contract", "preprocessor", true);
-        add_public_dependency("contract", "proto", true);
-        add_public_dependency("contract", "random", true);
         add_public_dependency("contract", "range", true);
         add_public_dependency("contract", "ratio", true);
         add_public_dependency("contract", "rational", true);
         add_public_dependency("contract", "regex", true);
-        add_public_dependency("contract", "serialization", true);
         add_public_dependency("contract", "smart_ptr", true);
-        add_public_dependency("contract", "spirit", true);
         add_public_dependency("contract", "static_assert", true);
         add_public_dependency("contract", "system", true);
         add_public_dependency("contract", "thread", true);
@@ -1296,7 +1236,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("contract", "typeof", true);
         add_public_dependency("contract", "unordered", true);
         add_public_dependency("contract", "utility", true);
-        add_public_dependency("contract", "variant", true);
         add_public_dependency("contract", "winapi", true);
         add_public_dependency("conversion", "assert", true);
         add_public_dependency("conversion", "config", true);
@@ -1322,10 +1261,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("convert", "core", true);
         add_public_dependency("convert", "date_time", true);
         add_public_dependency("convert", "detail", true);
-        add_public_dependency("convert", "dynamic_bitset", true);
         add_public_dependency("convert", "endian", true);
         add_public_dependency("convert", "exception", true);
-        add_public_dependency("convert", "filesystem", true);
         add_public_dependency("convert", "foreach", true);
         add_public_dependency("convert", "function", true);
         add_public_dependency("convert", "function_types", true);
@@ -1333,16 +1270,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("convert", "integer", true);
         add_public_dependency("convert", "intrusive", true);
         add_public_dependency("convert", "io", true);
-        add_public_dependency("convert", "iostreams", true);
         add_public_dependency("convert", "iterator", true);
         add_public_dependency("convert", "lambda", true);
         add_public_dependency("convert", "lexical_cast", true);
-        add_public_dependency("convert", "locale", true);
         add_public_dependency("convert", "math", true);
         add_public_dependency("convert", "move", true);
         add_public_dependency("convert", "mp11", true);
         add_public_dependency("convert", "mpl", true);
-        add_public_dependency("convert", "multiprecision", true);
         add_public_dependency("convert", "numeric", true);
         add_public_dependency("convert", "optional", true);
         add_public_dependency("convert", "parameter", true);
@@ -1351,12 +1285,10 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("convert", "predef", true);
         add_public_dependency("convert", "preprocessor", true);
         add_public_dependency("convert", "proto", true);
-        add_public_dependency("convert", "random", true);
         add_public_dependency("convert", "range", true);
         add_public_dependency("convert", "ratio", true);
         add_public_dependency("convert", "rational", true);
         add_public_dependency("convert", "regex", true);
-        add_public_dependency("convert", "serialization", true);
         add_public_dependency("convert", "smart_ptr", true);
         add_public_dependency("convert", "spirit", true);
         add_public_dependency("convert", "static_assert", true);
@@ -1390,42 +1322,30 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("coroutine", "core", true);
         add_public_dependency("coroutine", "date_time", true);
         add_public_dependency("coroutine", "detail", true);
-        add_public_dependency("coroutine", "dynamic_bitset", true);
-        add_public_dependency("coroutine", "endian", true);
         add_public_dependency("coroutine", "exception", true);
-        add_public_dependency("coroutine", "filesystem", true);
-        add_public_dependency("coroutine", "foreach", true);
         add_public_dependency("coroutine", "function", true);
         add_public_dependency("coroutine", "function_types", true);
         add_public_dependency("coroutine", "fusion", true);
         add_public_dependency("coroutine", "integer", true);
         add_public_dependency("coroutine", "intrusive", true);
         add_public_dependency("coroutine", "io", true);
-        add_public_dependency("coroutine", "iostreams", true);
         add_public_dependency("coroutine", "iterator", true);
         add_public_dependency("coroutine", "lambda", true);
         add_public_dependency("coroutine", "lexical_cast", true);
-        add_public_dependency("coroutine", "locale", true);
         add_public_dependency("coroutine", "math", true);
         add_public_dependency("coroutine", "move", true);
         add_public_dependency("coroutine", "mp11", true);
         add_public_dependency("coroutine", "mpl", true);
-        add_public_dependency("coroutine", "multiprecision", true);
         add_public_dependency("coroutine", "numeric", true);
         add_public_dependency("coroutine", "optional", true);
-        add_public_dependency("coroutine", "phoenix", true);
         add_public_dependency("coroutine", "pool", true);
         add_public_dependency("coroutine", "predef", true);
         add_public_dependency("coroutine", "preprocessor", true);
-        add_public_dependency("coroutine", "proto", true);
-        add_public_dependency("coroutine", "random", true);
         add_public_dependency("coroutine", "range", true);
         add_public_dependency("coroutine", "ratio", true);
         add_public_dependency("coroutine", "rational", true);
         add_public_dependency("coroutine", "regex", true);
-        add_public_dependency("coroutine", "serialization", true);
         add_public_dependency("coroutine", "smart_ptr", true);
-        add_public_dependency("coroutine", "spirit", true);
         add_public_dependency("coroutine", "static_assert", true);
         add_public_dependency("coroutine", "system", true);
         add_public_dependency("coroutine", "throw_exception", true);
@@ -1436,7 +1356,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("coroutine", "typeof", true);
         add_public_dependency("coroutine", "unordered", true);
         add_public_dependency("coroutine", "utility", true);
-        add_public_dependency("coroutine", "variant", true);
         add_public_dependency("coroutine", "winapi", true);
         add_public_dependency("coroutine2", "algorithm", true);
         add_public_dependency("coroutine2", "array", true);
@@ -1453,42 +1372,30 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("coroutine2", "core", true);
         add_public_dependency("coroutine2", "date_time", true);
         add_public_dependency("coroutine2", "detail", true);
-        add_public_dependency("coroutine2", "dynamic_bitset", true);
-        add_public_dependency("coroutine2", "endian", true);
         add_public_dependency("coroutine2", "exception", true);
-        add_public_dependency("coroutine2", "filesystem", true);
-        add_public_dependency("coroutine2", "foreach", true);
         add_public_dependency("coroutine2", "function", true);
         add_public_dependency("coroutine2", "function_types", true);
         add_public_dependency("coroutine2", "fusion", true);
         add_public_dependency("coroutine2", "integer", true);
         add_public_dependency("coroutine2", "intrusive", true);
         add_public_dependency("coroutine2", "io", true);
-        add_public_dependency("coroutine2", "iostreams", true);
         add_public_dependency("coroutine2", "iterator", true);
         add_public_dependency("coroutine2", "lambda", true);
         add_public_dependency("coroutine2", "lexical_cast", true);
-        add_public_dependency("coroutine2", "locale", true);
         add_public_dependency("coroutine2", "math", true);
         add_public_dependency("coroutine2", "move", true);
         add_public_dependency("coroutine2", "mp11", true);
         add_public_dependency("coroutine2", "mpl", true);
-        add_public_dependency("coroutine2", "multiprecision", true);
         add_public_dependency("coroutine2", "numeric", true);
         add_public_dependency("coroutine2", "optional", true);
-        add_public_dependency("coroutine2", "phoenix", true);
         add_public_dependency("coroutine2", "pool", true);
         add_public_dependency("coroutine2", "predef", true);
         add_public_dependency("coroutine2", "preprocessor", true);
-        add_public_dependency("coroutine2", "proto", true);
-        add_public_dependency("coroutine2", "random", true);
         add_public_dependency("coroutine2", "range", true);
         add_public_dependency("coroutine2", "ratio", true);
         add_public_dependency("coroutine2", "rational", true);
         add_public_dependency("coroutine2", "regex", true);
-        add_public_dependency("coroutine2", "serialization", true);
         add_public_dependency("coroutine2", "smart_ptr", true);
-        add_public_dependency("coroutine2", "spirit", true);
         add_public_dependency("coroutine2", "static_assert", true);
         add_public_dependency("coroutine2", "system", true);
         add_public_dependency("coroutine2", "thread", true);
@@ -1500,7 +1407,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("coroutine2", "typeof", true);
         add_public_dependency("coroutine2", "unordered", true);
         add_public_dependency("coroutine2", "utility", true);
-        add_public_dependency("coroutine2", "variant", true);
         add_public_dependency("coroutine2", "winapi", true);
         add_public_dependency("crc", "array", true);
         add_public_dependency("crc", "assert", true);
@@ -1516,7 +1422,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("date_time", "assert", true);
         add_public_dependency("date_time", "atomic", true);
         add_public_dependency("date_time", "bind", true);
-        add_public_dependency("date_time", "chrono", true);
         add_public_dependency("date_time", "concept_check", true);
         add_public_dependency("date_time", "config", true);
         add_public_dependency("date_time", "container", true);
@@ -1524,45 +1429,28 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("date_time", "conversion", true);
         add_public_dependency("date_time", "core", true);
         add_public_dependency("date_time", "detail", true);
-        add_public_dependency("date_time", "dynamic_bitset", true);
-        add_public_dependency("date_time", "endian", true);
         add_public_dependency("date_time", "exception", true);
-        add_public_dependency("date_time", "filesystem", true);
-        add_public_dependency("date_time", "foreach", true);
         add_public_dependency("date_time", "function", true);
         add_public_dependency("date_time", "function_types", true);
         add_public_dependency("date_time", "fusion", true);
         add_public_dependency("date_time", "integer", true);
         add_public_dependency("date_time", "intrusive", true);
         add_public_dependency("date_time", "io", true);
-        add_public_dependency("date_time", "iostreams", true);
         add_public_dependency("date_time", "iterator", true);
         add_public_dependency("date_time", "lambda", true);
         add_public_dependency("date_time", "lexical_cast", true);
-        add_public_dependency("date_time", "locale", true);
         add_public_dependency("date_time", "math", true);
         add_public_dependency("date_time", "move", true);
         add_public_dependency("date_time", "mp11", true);
         add_public_dependency("date_time", "mpl", true);
-        add_public_dependency("date_time", "multiprecision", true);
         add_public_dependency("date_time", "numeric", true);
         add_public_dependency("date_time", "optional", true);
-        add_public_dependency("date_time", "phoenix", true);
-        add_public_dependency("date_time", "pool", true);
         add_public_dependency("date_time", "predef", true);
         add_public_dependency("date_time", "preprocessor", true);
-        add_public_dependency("date_time", "proto", true);
-        add_public_dependency("date_time", "random", true);
         add_public_dependency("date_time", "range", true);
-        add_public_dependency("date_time", "ratio", true);
-        add_public_dependency("date_time", "rational", true);
         add_public_dependency("date_time", "regex", true);
-        add_public_dependency("date_time", "serialization", true);
         add_public_dependency("date_time", "smart_ptr", true);
-        add_public_dependency("date_time", "spirit", true);
         add_public_dependency("date_time", "static_assert", true);
-        add_public_dependency("date_time", "system", true);
-        add_public_dependency("date_time", "thread", true);
         add_public_dependency("date_time", "throw_exception", true);
         add_public_dependency("date_time", "tokenizer", true);
         add_public_dependency("date_time", "tuple", true);
@@ -1571,7 +1459,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("date_time", "typeof", true);
         add_public_dependency("date_time", "unordered", true);
         add_public_dependency("date_time", "utility", true);
-        add_public_dependency("date_time", "variant", true);
         add_public_dependency("date_time", "winapi", true);
         add_public_dependency("detail", "assert", true);
         add_public_dependency("detail", "config", true);
@@ -1593,7 +1480,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("dll", "core", true);
         add_public_dependency("dll", "date_time", true);
         add_public_dependency("dll", "detail", true);
-        add_public_dependency("dll", "dynamic_bitset", true);
         add_public_dependency("dll", "endian", true);
         add_public_dependency("dll", "exception", true);
         add_public_dependency("dll", "filesystem", true);
@@ -1604,16 +1490,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("dll", "integer", true);
         add_public_dependency("dll", "intrusive", true);
         add_public_dependency("dll", "io", true);
-        add_public_dependency("dll", "iostreams", true);
         add_public_dependency("dll", "iterator", true);
         add_public_dependency("dll", "lambda", true);
         add_public_dependency("dll", "lexical_cast", true);
-        add_public_dependency("dll", "locale", true);
         add_public_dependency("dll", "math", true);
         add_public_dependency("dll", "move", true);
         add_public_dependency("dll", "mp11", true);
         add_public_dependency("dll", "mpl", true);
-        add_public_dependency("dll", "multiprecision", true);
         add_public_dependency("dll", "numeric", true);
         add_public_dependency("dll", "optional", true);
         add_public_dependency("dll", "phoenix", true);
@@ -1621,12 +1504,10 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("dll", "predef", true);
         add_public_dependency("dll", "preprocessor", true);
         add_public_dependency("dll", "proto", true);
-        add_public_dependency("dll", "random", true);
         add_public_dependency("dll", "range", true);
         add_public_dependency("dll", "ratio", true);
         add_public_dependency("dll", "rational", true);
         add_public_dependency("dll", "regex", true);
-        add_public_dependency("dll", "serialization", true);
         add_public_dependency("dll", "smart_ptr", true);
         add_public_dependency("dll", "spirit", true);
         add_public_dependency("dll", "static_assert", true);
@@ -1685,10 +1566,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("fiber", "core", true);
         add_public_dependency("fiber", "date_time", true);
         add_public_dependency("fiber", "detail", true);
-        add_public_dependency("fiber", "dynamic_bitset", true);
-        add_public_dependency("fiber", "endian", true);
         add_public_dependency("fiber", "exception", true);
-        add_public_dependency("fiber", "foreach", true);
         add_public_dependency("fiber", "format", true);
         add_public_dependency("fiber", "function", true);
         add_public_dependency("fiber", "function_types", true);
@@ -1696,31 +1574,23 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("fiber", "integer", true);
         add_public_dependency("fiber", "intrusive", true);
         add_public_dependency("fiber", "io", true);
-        add_public_dependency("fiber", "iostreams", true);
         add_public_dependency("fiber", "iterator", true);
         add_public_dependency("fiber", "lambda", true);
         add_public_dependency("fiber", "lexical_cast", true);
-        add_public_dependency("fiber", "locale", true);
         add_public_dependency("fiber", "math", true);
         add_public_dependency("fiber", "move", true);
         add_public_dependency("fiber", "mp11", true);
         add_public_dependency("fiber", "mpl", true);
-        add_public_dependency("fiber", "multiprecision", true);
         add_public_dependency("fiber", "numeric", true);
         add_public_dependency("fiber", "optional", true);
-        add_public_dependency("fiber", "phoenix", true);
         add_public_dependency("fiber", "pool", true);
         add_public_dependency("fiber", "predef", true);
         add_public_dependency("fiber", "preprocessor", true);
-        add_public_dependency("fiber", "proto", true);
-        add_public_dependency("fiber", "random", true);
         add_public_dependency("fiber", "range", true);
         add_public_dependency("fiber", "ratio", true);
         add_public_dependency("fiber", "rational", true);
         add_public_dependency("fiber", "regex", true);
-        add_public_dependency("fiber", "serialization", true);
         add_public_dependency("fiber", "smart_ptr", true);
-        add_public_dependency("fiber", "spirit", true);
         add_public_dependency("fiber", "static_assert", true);
         add_public_dependency("fiber", "system", true);
         add_public_dependency("fiber", "thread", true);
@@ -1732,7 +1602,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("fiber", "typeof", true);
         add_public_dependency("fiber", "unordered", true);
         add_public_dependency("fiber", "utility", true);
-        add_public_dependency("fiber", "variant", true);
         add_public_dependency("fiber", "winapi", true);
         add_public_dependency("filesystem", "assert", true);
         add_public_dependency("filesystem", "concept_check", true);
@@ -1774,10 +1643,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("flyweight", "core", true);
         add_public_dependency("flyweight", "date_time", true);
         add_public_dependency("flyweight", "detail", true);
-        add_public_dependency("flyweight", "dynamic_bitset", true);
         add_public_dependency("flyweight", "endian", true);
         add_public_dependency("flyweight", "exception", true);
-        add_public_dependency("flyweight", "filesystem", true);
         add_public_dependency("flyweight", "foreach", true);
         add_public_dependency("flyweight", "function", true);
         add_public_dependency("flyweight", "function_types", true);
@@ -1786,17 +1653,14 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("flyweight", "interprocess", true);
         add_public_dependency("flyweight", "intrusive", true);
         add_public_dependency("flyweight", "io", true);
-        add_public_dependency("flyweight", "iostreams", true);
         add_public_dependency("flyweight", "iterator", true);
         add_public_dependency("flyweight", "lambda", true);
         add_public_dependency("flyweight", "lexical_cast", true);
-        add_public_dependency("flyweight", "locale", true);
         add_public_dependency("flyweight", "math", true);
         add_public_dependency("flyweight", "move", true);
         add_public_dependency("flyweight", "mp11", true);
         add_public_dependency("flyweight", "mpl", true);
         add_public_dependency("flyweight", "multi_index", true);
-        add_public_dependency("flyweight", "multiprecision", true);
         add_public_dependency("flyweight", "numeric", true);
         add_public_dependency("flyweight", "optional", true);
         add_public_dependency("flyweight", "parameter", true);
@@ -1805,7 +1669,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("flyweight", "predef", true);
         add_public_dependency("flyweight", "preprocessor", true);
         add_public_dependency("flyweight", "proto", true);
-        add_public_dependency("flyweight", "random", true);
         add_public_dependency("flyweight", "range", true);
         add_public_dependency("flyweight", "ratio", true);
         add_public_dependency("flyweight", "rational", true);
@@ -1954,7 +1817,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("geometry", "dynamic_bitset", true);
         add_public_dependency("geometry", "endian", true);
         add_public_dependency("geometry", "exception", true);
-        add_public_dependency("geometry", "filesystem", true);
         add_public_dependency("geometry", "foreach", true);
         add_public_dependency("geometry", "function", true);
         add_public_dependency("geometry", "function_types", true);
@@ -1962,11 +1824,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("geometry", "integer", true);
         add_public_dependency("geometry", "intrusive", true);
         add_public_dependency("geometry", "io", true);
-        add_public_dependency("geometry", "iostreams", true);
         add_public_dependency("geometry", "iterator", true);
         add_public_dependency("geometry", "lambda", true);
         add_public_dependency("geometry", "lexical_cast", true);
-        add_public_dependency("geometry", "locale", true);
         add_public_dependency("geometry", "math", true);
         add_public_dependency("geometry", "move", true);
         add_public_dependency("geometry", "mp11", true);
@@ -2003,7 +1863,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("geometry", "variant", true);
         add_public_dependency("geometry", "winapi", true);
         add_public_dependency("gil", "assert", true);
-        add_public_dependency("gil", "bind", true);
         add_public_dependency("gil", "concept_check", true);
         add_public_dependency("gil", "config", true);
         add_public_dependency("gil", "container_hash", true);
@@ -2028,11 +1887,10 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("gil", "system", true);
         add_public_dependency("gil", "throw_exception", true);
         add_public_dependency("gil", "tuple", true);
-        add_public_dependency("gil", "type_index", true);
         add_public_dependency("gil", "type_traits", true);
         add_public_dependency("gil", "typeof", true);
         add_public_dependency("gil", "utility", true);
-        add_public_dependency("gil", "variant", true);
+        add_public_dependency("gil", "variant2", true);
         add_public_dependency("gil", "winapi", true);
         add_public_dependency("graph", "regex", false);
         add_public_dependency("graph", "algorithm", true);
@@ -2054,7 +1912,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("graph", "dynamic_bitset", true);
         add_public_dependency("graph", "endian", true);
         add_public_dependency("graph", "exception", true);
-        add_public_dependency("graph", "filesystem", true);
         add_public_dependency("graph", "foreach", true);
         add_public_dependency("graph", "format", true);
         add_public_dependency("graph", "function", true);
@@ -2063,11 +1920,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("graph", "integer", true);
         add_public_dependency("graph", "intrusive", true);
         add_public_dependency("graph", "io", true);
-        add_public_dependency("graph", "iostreams", true);
         add_public_dependency("graph", "iterator", true);
         add_public_dependency("graph", "lambda", true);
         add_public_dependency("graph", "lexical_cast", true);
-        add_public_dependency("graph", "locale", true);
         add_public_dependency("graph", "math", true);
         add_public_dependency("graph", "move", true);
         add_public_dependency("graph", "mp11", true);
@@ -2139,11 +1994,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("graph_parallel", "integer", true);
         add_public_dependency("graph_parallel", "intrusive", true);
         add_public_dependency("graph_parallel", "io", true);
-        add_public_dependency("graph_parallel", "iostreams", true);
         add_public_dependency("graph_parallel", "iterator", true);
         add_public_dependency("graph_parallel", "lambda", true);
         add_public_dependency("graph_parallel", "lexical_cast", true);
-        add_public_dependency("graph_parallel", "locale", true);
         add_public_dependency("graph_parallel", "math", true);
         add_public_dependency("graph_parallel", "move", true);
         add_public_dependency("graph_parallel", "mp11", true);
@@ -2248,10 +2101,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("histogram", "core", true);
         add_public_dependency("histogram", "date_time", true);
         add_public_dependency("histogram", "detail", true);
-        add_public_dependency("histogram", "dynamic_bitset", true);
         add_public_dependency("histogram", "endian", true);
         add_public_dependency("histogram", "exception", true);
-        add_public_dependency("histogram", "filesystem", true);
         add_public_dependency("histogram", "foreach", true);
         add_public_dependency("histogram", "function", true);
         add_public_dependency("histogram", "function_types", true);
@@ -2259,16 +2110,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("histogram", "integer", true);
         add_public_dependency("histogram", "intrusive", true);
         add_public_dependency("histogram", "io", true);
-        add_public_dependency("histogram", "iostreams", true);
         add_public_dependency("histogram", "iterator", true);
         add_public_dependency("histogram", "lambda", true);
         add_public_dependency("histogram", "lexical_cast", true);
-        add_public_dependency("histogram", "locale", true);
         add_public_dependency("histogram", "math", true);
         add_public_dependency("histogram", "move", true);
         add_public_dependency("histogram", "mp11", true);
         add_public_dependency("histogram", "mpl", true);
-        add_public_dependency("histogram", "multiprecision", true);
         add_public_dependency("histogram", "numeric", true);
         add_public_dependency("histogram", "optional", true);
         add_public_dependency("histogram", "phoenix", true);
@@ -2276,7 +2124,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("histogram", "predef", true);
         add_public_dependency("histogram", "preprocessor", true);
         add_public_dependency("histogram", "proto", true);
-        add_public_dependency("histogram", "random", true);
         add_public_dependency("histogram", "range", true);
         add_public_dependency("histogram", "ratio", true);
         add_public_dependency("histogram", "rational", true);
@@ -2303,7 +2150,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("icl", "assert", true);
         add_public_dependency("icl", "atomic", true);
         add_public_dependency("icl", "bind", true);
-        add_public_dependency("icl", "chrono", true);
         add_public_dependency("icl", "concept_check", true);
         add_public_dependency("icl", "config", true);
         add_public_dependency("icl", "container", true);
@@ -2312,45 +2158,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("icl", "core", true);
         add_public_dependency("icl", "date_time", true);
         add_public_dependency("icl", "detail", true);
-        add_public_dependency("icl", "dynamic_bitset", true);
-        add_public_dependency("icl", "endian", true);
         add_public_dependency("icl", "exception", true);
-        add_public_dependency("icl", "filesystem", true);
-        add_public_dependency("icl", "foreach", true);
         add_public_dependency("icl", "function", true);
         add_public_dependency("icl", "function_types", true);
         add_public_dependency("icl", "fusion", true);
         add_public_dependency("icl", "integer", true);
         add_public_dependency("icl", "intrusive", true);
         add_public_dependency("icl", "io", true);
-        add_public_dependency("icl", "iostreams", true);
         add_public_dependency("icl", "iterator", true);
         add_public_dependency("icl", "lambda", true);
         add_public_dependency("icl", "lexical_cast", true);
-        add_public_dependency("icl", "locale", true);
         add_public_dependency("icl", "math", true);
         add_public_dependency("icl", "move", true);
         add_public_dependency("icl", "mp11", true);
         add_public_dependency("icl", "mpl", true);
-        add_public_dependency("icl", "multiprecision", true);
         add_public_dependency("icl", "numeric", true);
         add_public_dependency("icl", "optional", true);
-        add_public_dependency("icl", "phoenix", true);
-        add_public_dependency("icl", "pool", true);
         add_public_dependency("icl", "predef", true);
         add_public_dependency("icl", "preprocessor", true);
-        add_public_dependency("icl", "proto", true);
-        add_public_dependency("icl", "random", true);
         add_public_dependency("icl", "range", true);
-        add_public_dependency("icl", "ratio", true);
         add_public_dependency("icl", "rational", true);
         add_public_dependency("icl", "regex", true);
-        add_public_dependency("icl", "serialization", true);
         add_public_dependency("icl", "smart_ptr", true);
-        add_public_dependency("icl", "spirit", true);
         add_public_dependency("icl", "static_assert", true);
-        add_public_dependency("icl", "system", true);
-        add_public_dependency("icl", "thread", true);
         add_public_dependency("icl", "throw_exception", true);
         add_public_dependency("icl", "tokenizer", true);
         add_public_dependency("icl", "tuple", true);
@@ -2359,7 +2189,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("icl", "typeof", true);
         add_public_dependency("icl", "unordered", true);
         add_public_dependency("icl", "utility", true);
-        add_public_dependency("icl", "variant", true);
         add_public_dependency("icl", "winapi", true);
         add_public_dependency("integer", "assert", true);
         add_public_dependency("integer", "config", true);
@@ -2371,7 +2200,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("interprocess", "assert", true);
         add_public_dependency("interprocess", "atomic", true);
         add_public_dependency("interprocess", "bind", true);
-        add_public_dependency("interprocess", "chrono", true);
         add_public_dependency("interprocess", "concept_check", true);
         add_public_dependency("interprocess", "config", true);
         add_public_dependency("interprocess", "container", true);
@@ -2380,45 +2208,28 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("interprocess", "core", true);
         add_public_dependency("interprocess", "date_time", true);
         add_public_dependency("interprocess", "detail", true);
-        add_public_dependency("interprocess", "dynamic_bitset", true);
-        add_public_dependency("interprocess", "endian", true);
         add_public_dependency("interprocess", "exception", true);
-        add_public_dependency("interprocess", "filesystem", true);
-        add_public_dependency("interprocess", "foreach", true);
         add_public_dependency("interprocess", "function", true);
         add_public_dependency("interprocess", "function_types", true);
         add_public_dependency("interprocess", "fusion", true);
         add_public_dependency("interprocess", "integer", true);
         add_public_dependency("interprocess", "intrusive", true);
         add_public_dependency("interprocess", "io", true);
-        add_public_dependency("interprocess", "iostreams", true);
         add_public_dependency("interprocess", "iterator", true);
         add_public_dependency("interprocess", "lambda", true);
         add_public_dependency("interprocess", "lexical_cast", true);
-        add_public_dependency("interprocess", "locale", true);
         add_public_dependency("interprocess", "math", true);
         add_public_dependency("interprocess", "move", true);
         add_public_dependency("interprocess", "mp11", true);
         add_public_dependency("interprocess", "mpl", true);
-        add_public_dependency("interprocess", "multiprecision", true);
         add_public_dependency("interprocess", "numeric", true);
         add_public_dependency("interprocess", "optional", true);
-        add_public_dependency("interprocess", "phoenix", true);
-        add_public_dependency("interprocess", "pool", true);
         add_public_dependency("interprocess", "predef", true);
         add_public_dependency("interprocess", "preprocessor", true);
-        add_public_dependency("interprocess", "proto", true);
-        add_public_dependency("interprocess", "random", true);
         add_public_dependency("interprocess", "range", true);
-        add_public_dependency("interprocess", "ratio", true);
-        add_public_dependency("interprocess", "rational", true);
         add_public_dependency("interprocess", "regex", true);
-        add_public_dependency("interprocess", "serialization", true);
         add_public_dependency("interprocess", "smart_ptr", true);
-        add_public_dependency("interprocess", "spirit", true);
         add_public_dependency("interprocess", "static_assert", true);
-        add_public_dependency("interprocess", "system", true);
-        add_public_dependency("interprocess", "thread", true);
         add_public_dependency("interprocess", "throw_exception", true);
         add_public_dependency("interprocess", "tokenizer", true);
         add_public_dependency("interprocess", "tuple", true);
@@ -2427,7 +2238,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("interprocess", "typeof", true);
         add_public_dependency("interprocess", "unordered", true);
         add_public_dependency("interprocess", "utility", true);
-        add_public_dependency("interprocess", "variant", true);
         add_public_dependency("interprocess", "winapi", true);
         add_public_dependency("intrusive", "assert", true);
         add_public_dependency("intrusive", "config", true);
@@ -2568,6 +2378,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("lexical_cast", "type_traits", true);
         add_public_dependency("lexical_cast", "typeof", true);
         add_public_dependency("lexical_cast", "utility", true);
+        add_public_dependency("lexical_cast", "winapi", true);
         add_public_dependency("local_function", "assert", true);
         add_public_dependency("local_function", "bind", true);
         add_public_dependency("local_function", "config", true);
@@ -2605,18 +2416,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("locale", "core", true);
         add_public_dependency("locale", "date_time", true);
         add_public_dependency("locale", "detail", true);
-        add_public_dependency("locale", "dynamic_bitset", true);
-        add_public_dependency("locale", "endian", true);
         add_public_dependency("locale", "exception", true);
-        add_public_dependency("locale", "filesystem", true);
-        add_public_dependency("locale", "foreach", true);
         add_public_dependency("locale", "function", true);
         add_public_dependency("locale", "function_types", true);
         add_public_dependency("locale", "fusion", true);
         add_public_dependency("locale", "integer", true);
         add_public_dependency("locale", "intrusive", true);
         add_public_dependency("locale", "io", true);
-        add_public_dependency("locale", "iostreams", true);
         add_public_dependency("locale", "iterator", true);
         add_public_dependency("locale", "lambda", true);
         add_public_dependency("locale", "lexical_cast", true);
@@ -2624,22 +2430,15 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("locale", "move", true);
         add_public_dependency("locale", "mp11", true);
         add_public_dependency("locale", "mpl", true);
-        add_public_dependency("locale", "multiprecision", true);
         add_public_dependency("locale", "numeric", true);
         add_public_dependency("locale", "optional", true);
-        add_public_dependency("locale", "phoenix", true);
-        add_public_dependency("locale", "pool", true);
         add_public_dependency("locale", "predef", true);
         add_public_dependency("locale", "preprocessor", true);
-        add_public_dependency("locale", "proto", true);
-        add_public_dependency("locale", "random", true);
         add_public_dependency("locale", "range", true);
         add_public_dependency("locale", "ratio", true);
         add_public_dependency("locale", "rational", true);
         add_public_dependency("locale", "regex", true);
-        add_public_dependency("locale", "serialization", true);
         add_public_dependency("locale", "smart_ptr", true);
-        add_public_dependency("locale", "spirit", true);
         add_public_dependency("locale", "static_assert", true);
         add_public_dependency("locale", "throw_exception", true);
         add_public_dependency("locale", "tokenizer", true);
@@ -2649,7 +2448,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("locale", "typeof", true);
         add_public_dependency("locale", "unordered", true);
         add_public_dependency("locale", "utility", true);
-        add_public_dependency("locale", "variant", true);
         add_public_dependency("locale", "winapi", true);
         add_public_dependency("lockfree", "align", true);
         add_public_dependency("lockfree", "array", true);
@@ -2683,8 +2481,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("lockfree", "type_traits", true);
         add_public_dependency("lockfree", "typeof", true);
         add_public_dependency("lockfree", "utility", true);
+        add_public_dependency("lockfree", "winapi", true);
         add_public_dependency("log", "atomic", false);
-        add_public_dependency("log", "date_time", false);
         add_public_dependency("log", "filesystem", false);
         add_public_dependency("log", "regex", false);
         add_public_dependency("log", "thread", false);
@@ -2704,6 +2502,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("log", "conversion", true);
         add_public_dependency("log", "core", true);
         add_public_dependency("log", "coroutine", true);
+        add_public_dependency("log", "date_time", true);
         add_public_dependency("log", "detail", true);
         add_public_dependency("log", "dynamic_bitset", true);
         add_public_dependency("log", "endian", true);
@@ -2717,7 +2516,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("log", "interprocess", true);
         add_public_dependency("log", "intrusive", true);
         add_public_dependency("log", "io", true);
-        add_public_dependency("log", "iostreams", true);
         add_public_dependency("log", "iterator", true);
         add_public_dependency("log", "lambda", true);
         add_public_dependency("log", "lexical_cast", true);
@@ -2795,6 +2593,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("math", "type_traits", true);
         add_public_dependency("math", "typeof", true);
         add_public_dependency("math", "utility", true);
+        add_public_dependency("math", "winapi", true);
         add_public_dependency("metaparse", "assert", true);
         add_public_dependency("metaparse", "config", true);
         add_public_dependency("metaparse", "container_hash", true);
@@ -2833,7 +2632,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("mpi", "dynamic_bitset", true);
         add_public_dependency("mpi", "endian", true);
         add_public_dependency("mpi", "exception", true);
-        add_public_dependency("mpi", "filesystem", true);
         add_public_dependency("mpi", "foreach", true);
         add_public_dependency("mpi", "format", true);
         add_public_dependency("mpi", "function", true);
@@ -2843,11 +2641,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("mpi", "integer", true);
         add_public_dependency("mpi", "intrusive", true);
         add_public_dependency("mpi", "io", true);
-        add_public_dependency("mpi", "iostreams", true);
         add_public_dependency("mpi", "iterator", true);
         add_public_dependency("mpi", "lambda", true);
         add_public_dependency("mpi", "lexical_cast", true);
-        add_public_dependency("mpi", "locale", true);
         add_public_dependency("mpi", "math", true);
         add_public_dependency("mpi", "move", true);
         add_public_dependency("mpi", "mp11", true);
@@ -2917,10 +2713,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("msm", "core", true);
         add_public_dependency("msm", "date_time", true);
         add_public_dependency("msm", "detail", true);
-        add_public_dependency("msm", "dynamic_bitset", true);
         add_public_dependency("msm", "endian", true);
         add_public_dependency("msm", "exception", true);
-        add_public_dependency("msm", "filesystem", true);
         add_public_dependency("msm", "foreach", true);
         add_public_dependency("msm", "function", true);
         add_public_dependency("msm", "function_types", true);
@@ -2928,16 +2722,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("msm", "integer", true);
         add_public_dependency("msm", "intrusive", true);
         add_public_dependency("msm", "io", true);
-        add_public_dependency("msm", "iostreams", true);
         add_public_dependency("msm", "iterator", true);
         add_public_dependency("msm", "lambda", true);
         add_public_dependency("msm", "lexical_cast", true);
-        add_public_dependency("msm", "locale", true);
         add_public_dependency("msm", "math", true);
         add_public_dependency("msm", "move", true);
         add_public_dependency("msm", "mp11", true);
         add_public_dependency("msm", "mpl", true);
-        add_public_dependency("msm", "multiprecision", true);
         add_public_dependency("msm", "numeric", true);
         add_public_dependency("msm", "optional", true);
         add_public_dependency("msm", "parameter", true);
@@ -2946,7 +2737,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("msm", "predef", true);
         add_public_dependency("msm", "preprocessor", true);
         add_public_dependency("msm", "proto", true);
-        add_public_dependency("msm", "random", true);
         add_public_dependency("msm", "range", true);
         add_public_dependency("msm", "ratio", true);
         add_public_dependency("msm", "rational", true);
@@ -3010,10 +2800,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("multi_index", "core", true);
         add_public_dependency("multi_index", "date_time", true);
         add_public_dependency("multi_index", "detail", true);
-        add_public_dependency("multi_index", "dynamic_bitset", true);
         add_public_dependency("multi_index", "endian", true);
         add_public_dependency("multi_index", "exception", true);
-        add_public_dependency("multi_index", "filesystem", true);
         add_public_dependency("multi_index", "foreach", true);
         add_public_dependency("multi_index", "function", true);
         add_public_dependency("multi_index", "function_types", true);
@@ -3021,16 +2809,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("multi_index", "integer", true);
         add_public_dependency("multi_index", "intrusive", true);
         add_public_dependency("multi_index", "io", true);
-        add_public_dependency("multi_index", "iostreams", true);
         add_public_dependency("multi_index", "iterator", true);
         add_public_dependency("multi_index", "lambda", true);
         add_public_dependency("multi_index", "lexical_cast", true);
-        add_public_dependency("multi_index", "locale", true);
         add_public_dependency("multi_index", "math", true);
         add_public_dependency("multi_index", "move", true);
         add_public_dependency("multi_index", "mp11", true);
         add_public_dependency("multi_index", "mpl", true);
-        add_public_dependency("multi_index", "multiprecision", true);
         add_public_dependency("multi_index", "numeric", true);
         add_public_dependency("multi_index", "optional", true);
         add_public_dependency("multi_index", "phoenix", true);
@@ -3038,7 +2823,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("multi_index", "predef", true);
         add_public_dependency("multi_index", "preprocessor", true);
         add_public_dependency("multi_index", "proto", true);
-        add_public_dependency("multi_index", "random", true);
         add_public_dependency("multi_index", "range", true);
         add_public_dependency("multi_index", "ratio", true);
         add_public_dependency("multi_index", "rational", true);
@@ -3185,11 +2969,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("odeint", "interval", true);
         add_public_dependency("odeint", "intrusive", true);
         add_public_dependency("odeint", "io", true);
-        add_public_dependency("odeint", "iostreams", true);
         add_public_dependency("odeint", "iterator", true);
         add_public_dependency("odeint", "lambda", true);
         add_public_dependency("odeint", "lexical_cast", true);
-        add_public_dependency("odeint", "locale", true);
         add_public_dependency("odeint", "logic", true);
         add_public_dependency("odeint", "math", true);
         add_public_dependency("odeint", "move", true);
@@ -3266,11 +3048,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("ublas", "interval", true);
         add_public_dependency("ublas", "intrusive", true);
         add_public_dependency("ublas", "io", true);
-        add_public_dependency("ublas", "iostreams", true);
         add_public_dependency("ublas", "iterator", true);
         add_public_dependency("ublas", "lambda", true);
         add_public_dependency("ublas", "lexical_cast", true);
-        add_public_dependency("ublas", "locale", true);
         add_public_dependency("ublas", "logic", true);
         add_public_dependency("ublas", "math", true);
         add_public_dependency("ublas", "move", true);
@@ -3381,7 +3161,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("parameter_python", "dynamic_bitset", true);
         add_public_dependency("parameter_python", "endian", true);
         add_public_dependency("parameter_python", "exception", true);
-        add_public_dependency("parameter_python", "filesystem", true);
         add_public_dependency("parameter_python", "foreach", true);
         add_public_dependency("parameter_python", "format", true);
         add_public_dependency("parameter_python", "function", true);
@@ -3391,11 +3170,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("parameter_python", "integer", true);
         add_public_dependency("parameter_python", "intrusive", true);
         add_public_dependency("parameter_python", "io", true);
-        add_public_dependency("parameter_python", "iostreams", true);
         add_public_dependency("parameter_python", "iterator", true);
         add_public_dependency("parameter_python", "lambda", true);
         add_public_dependency("parameter_python", "lexical_cast", true);
-        add_public_dependency("parameter_python", "locale", true);
         add_public_dependency("parameter_python", "math", true);
         add_public_dependency("parameter_python", "move", true);
         add_public_dependency("parameter_python", "mp11", true);
@@ -3484,42 +3261,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("poly_collection", "core", true);
         add_public_dependency("poly_collection", "date_time", true);
         add_public_dependency("poly_collection", "detail", true);
-        add_public_dependency("poly_collection", "dynamic_bitset", true);
-        add_public_dependency("poly_collection", "endian", true);
         add_public_dependency("poly_collection", "exception", true);
-        add_public_dependency("poly_collection", "filesystem", true);
-        add_public_dependency("poly_collection", "foreach", true);
         add_public_dependency("poly_collection", "function", true);
         add_public_dependency("poly_collection", "function_types", true);
         add_public_dependency("poly_collection", "fusion", true);
         add_public_dependency("poly_collection", "integer", true);
         add_public_dependency("poly_collection", "intrusive", true);
         add_public_dependency("poly_collection", "io", true);
-        add_public_dependency("poly_collection", "iostreams", true);
         add_public_dependency("poly_collection", "iterator", true);
         add_public_dependency("poly_collection", "lambda", true);
         add_public_dependency("poly_collection", "lexical_cast", true);
-        add_public_dependency("poly_collection", "locale", true);
         add_public_dependency("poly_collection", "math", true);
         add_public_dependency("poly_collection", "move", true);
         add_public_dependency("poly_collection", "mp11", true);
         add_public_dependency("poly_collection", "mpl", true);
-        add_public_dependency("poly_collection", "multiprecision", true);
         add_public_dependency("poly_collection", "numeric", true);
         add_public_dependency("poly_collection", "optional", true);
-        add_public_dependency("poly_collection", "phoenix", true);
-        add_public_dependency("poly_collection", "pool", true);
         add_public_dependency("poly_collection", "predef", true);
         add_public_dependency("poly_collection", "preprocessor", true);
-        add_public_dependency("poly_collection", "proto", true);
-        add_public_dependency("poly_collection", "random", true);
         add_public_dependency("poly_collection", "range", true);
         add_public_dependency("poly_collection", "ratio", true);
         add_public_dependency("poly_collection", "rational", true);
         add_public_dependency("poly_collection", "regex", true);
-        add_public_dependency("poly_collection", "serialization", true);
         add_public_dependency("poly_collection", "smart_ptr", true);
-        add_public_dependency("poly_collection", "spirit", true);
         add_public_dependency("poly_collection", "static_assert", true);
         add_public_dependency("poly_collection", "system", true);
         add_public_dependency("poly_collection", "thread", true);
@@ -3532,7 +3296,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("poly_collection", "typeof", true);
         add_public_dependency("poly_collection", "unordered", true);
         add_public_dependency("poly_collection", "utility", true);
-        add_public_dependency("poly_collection", "variant", true);
         add_public_dependency("poly_collection", "vmd", true);
         add_public_dependency("poly_collection", "winapi", true);
         add_public_dependency("polygon", "config", true);
@@ -3563,42 +3326,31 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("process", "coroutine", true);
         add_public_dependency("process", "date_time", true);
         add_public_dependency("process", "detail", true);
-        add_public_dependency("process", "dynamic_bitset", true);
-        add_public_dependency("process", "endian", true);
         add_public_dependency("process", "exception", true);
         add_public_dependency("process", "filesystem", true);
-        add_public_dependency("process", "foreach", true);
         add_public_dependency("process", "function", true);
         add_public_dependency("process", "function_types", true);
         add_public_dependency("process", "fusion", true);
         add_public_dependency("process", "integer", true);
         add_public_dependency("process", "intrusive", true);
         add_public_dependency("process", "io", true);
-        add_public_dependency("process", "iostreams", true);
         add_public_dependency("process", "iterator", true);
         add_public_dependency("process", "lambda", true);
         add_public_dependency("process", "lexical_cast", true);
-        add_public_dependency("process", "locale", true);
         add_public_dependency("process", "math", true);
         add_public_dependency("process", "move", true);
         add_public_dependency("process", "mp11", true);
         add_public_dependency("process", "mpl", true);
-        add_public_dependency("process", "multiprecision", true);
         add_public_dependency("process", "numeric", true);
         add_public_dependency("process", "optional", true);
-        add_public_dependency("process", "phoenix", true);
         add_public_dependency("process", "pool", true);
         add_public_dependency("process", "predef", true);
         add_public_dependency("process", "preprocessor", true);
-        add_public_dependency("process", "proto", true);
-        add_public_dependency("process", "random", true);
         add_public_dependency("process", "range", true);
         add_public_dependency("process", "ratio", true);
         add_public_dependency("process", "rational", true);
         add_public_dependency("process", "regex", true);
-        add_public_dependency("process", "serialization", true);
         add_public_dependency("process", "smart_ptr", true);
-        add_public_dependency("process", "spirit", true);
         add_public_dependency("process", "static_assert", true);
         add_public_dependency("process", "system", true);
         add_public_dependency("process", "thread", true);
@@ -3610,7 +3362,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("process", "typeof", true);
         add_public_dependency("process", "unordered", true);
         add_public_dependency("process", "utility", true);
-        add_public_dependency("process", "variant", true);
         add_public_dependency("process", "winapi", true);
         add_public_dependency("program_options", "any", true);
         add_public_dependency("program_options", "array", true);
@@ -3652,6 +3403,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("program_options", "type_traits", true);
         add_public_dependency("program_options", "typeof", true);
         add_public_dependency("program_options", "utility", true);
+        add_public_dependency("program_options", "winapi", true);
         add_public_dependency("property_map", "algorithm", true);
         add_public_dependency("property_map", "any", true);
         add_public_dependency("property_map", "array", true);
@@ -3671,7 +3423,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("property_map", "dynamic_bitset", true);
         add_public_dependency("property_map", "endian", true);
         add_public_dependency("property_map", "exception", true);
-        add_public_dependency("property_map", "filesystem", true);
         add_public_dependency("property_map", "foreach", true);
         add_public_dependency("property_map", "format", true);
         add_public_dependency("property_map", "function", true);
@@ -3681,11 +3432,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("property_map", "integer", true);
         add_public_dependency("property_map", "intrusive", true);
         add_public_dependency("property_map", "io", true);
-        add_public_dependency("property_map", "iostreams", true);
         add_public_dependency("property_map", "iterator", true);
         add_public_dependency("property_map", "lambda", true);
         add_public_dependency("property_map", "lexical_cast", true);
-        add_public_dependency("property_map", "locale", true);
         add_public_dependency("property_map", "math", true);
         add_public_dependency("property_map", "move", true);
         add_public_dependency("property_map", "mp11", true);
@@ -3742,10 +3491,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("property_tree", "core", true);
         add_public_dependency("property_tree", "date_time", true);
         add_public_dependency("property_tree", "detail", true);
-        add_public_dependency("property_tree", "dynamic_bitset", true);
         add_public_dependency("property_tree", "endian", true);
         add_public_dependency("property_tree", "exception", true);
-        add_public_dependency("property_tree", "filesystem", true);
         add_public_dependency("property_tree", "foreach", true);
         add_public_dependency("property_tree", "format", true);
         add_public_dependency("property_tree", "function", true);
@@ -3754,17 +3501,14 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("property_tree", "integer", true);
         add_public_dependency("property_tree", "intrusive", true);
         add_public_dependency("property_tree", "io", true);
-        add_public_dependency("property_tree", "iostreams", true);
         add_public_dependency("property_tree", "iterator", true);
         add_public_dependency("property_tree", "lambda", true);
         add_public_dependency("property_tree", "lexical_cast", true);
-        add_public_dependency("property_tree", "locale", true);
         add_public_dependency("property_tree", "math", true);
         add_public_dependency("property_tree", "move", true);
         add_public_dependency("property_tree", "mp11", true);
         add_public_dependency("property_tree", "mpl", true);
         add_public_dependency("property_tree", "multi_index", true);
-        add_public_dependency("property_tree", "multiprecision", true);
         add_public_dependency("property_tree", "numeric", true);
         add_public_dependency("property_tree", "optional", true);
         add_public_dependency("property_tree", "phoenix", true);
@@ -3772,7 +3516,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("property_tree", "predef", true);
         add_public_dependency("property_tree", "preprocessor", true);
         add_public_dependency("property_tree", "proto", true);
-        add_public_dependency("property_tree", "random", true);
         add_public_dependency("property_tree", "range", true);
         add_public_dependency("property_tree", "ratio", true);
         add_public_dependency("property_tree", "rational", true);
@@ -3836,10 +3579,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("ptr_container", "core", true);
         add_public_dependency("ptr_container", "date_time", true);
         add_public_dependency("ptr_container", "detail", true);
-        add_public_dependency("ptr_container", "dynamic_bitset", true);
         add_public_dependency("ptr_container", "endian", true);
         add_public_dependency("ptr_container", "exception", true);
-        add_public_dependency("ptr_container", "filesystem", true);
         add_public_dependency("ptr_container", "foreach", true);
         add_public_dependency("ptr_container", "function", true);
         add_public_dependency("ptr_container", "function_types", true);
@@ -3847,16 +3588,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("ptr_container", "integer", true);
         add_public_dependency("ptr_container", "intrusive", true);
         add_public_dependency("ptr_container", "io", true);
-        add_public_dependency("ptr_container", "iostreams", true);
         add_public_dependency("ptr_container", "iterator", true);
         add_public_dependency("ptr_container", "lambda", true);
         add_public_dependency("ptr_container", "lexical_cast", true);
-        add_public_dependency("ptr_container", "locale", true);
         add_public_dependency("ptr_container", "math", true);
         add_public_dependency("ptr_container", "move", true);
         add_public_dependency("ptr_container", "mp11", true);
         add_public_dependency("ptr_container", "mpl", true);
-        add_public_dependency("ptr_container", "multiprecision", true);
         add_public_dependency("ptr_container", "numeric", true);
         add_public_dependency("ptr_container", "optional", true);
         add_public_dependency("ptr_container", "phoenix", true);
@@ -3864,7 +3602,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("ptr_container", "predef", true);
         add_public_dependency("ptr_container", "preprocessor", true);
         add_public_dependency("ptr_container", "proto", true);
-        add_public_dependency("ptr_container", "random", true);
         add_public_dependency("ptr_container", "range", true);
         add_public_dependency("ptr_container", "ratio", true);
         add_public_dependency("ptr_container", "rational", true);
@@ -3904,7 +3641,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("python", "dynamic_bitset", true);
         add_public_dependency("python", "endian", true);
         add_public_dependency("python", "exception", true);
-        add_public_dependency("python", "filesystem", true);
         add_public_dependency("python", "foreach", true);
         add_public_dependency("python", "format", true);
         add_public_dependency("python", "function", true);
@@ -3914,11 +3650,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("python", "integer", true);
         add_public_dependency("python", "intrusive", true);
         add_public_dependency("python", "io", true);
-        add_public_dependency("python", "iostreams", true);
         add_public_dependency("python", "iterator", true);
         add_public_dependency("python", "lambda", true);
         add_public_dependency("python", "lexical_cast", true);
-        add_public_dependency("python", "locale", true);
         add_public_dependency("python", "math", true);
         add_public_dependency("python", "move", true);
         add_public_dependency("python", "mp11", true);
@@ -4131,10 +3865,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("serialization", "core", true);
         add_public_dependency("serialization", "date_time", true);
         add_public_dependency("serialization", "detail", true);
-        add_public_dependency("serialization", "dynamic_bitset", true);
         add_public_dependency("serialization", "endian", true);
         add_public_dependency("serialization", "exception", true);
-        add_public_dependency("serialization", "filesystem", true);
         add_public_dependency("serialization", "foreach", true);
         add_public_dependency("serialization", "function", true);
         add_public_dependency("serialization", "function_types", true);
@@ -4142,16 +3874,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("serialization", "integer", true);
         add_public_dependency("serialization", "intrusive", true);
         add_public_dependency("serialization", "io", true);
-        add_public_dependency("serialization", "iostreams", true);
         add_public_dependency("serialization", "iterator", true);
         add_public_dependency("serialization", "lambda", true);
         add_public_dependency("serialization", "lexical_cast", true);
-        add_public_dependency("serialization", "locale", true);
         add_public_dependency("serialization", "math", true);
         add_public_dependency("serialization", "move", true);
         add_public_dependency("serialization", "mp11", true);
         add_public_dependency("serialization", "mpl", true);
-        add_public_dependency("serialization", "multiprecision", true);
         add_public_dependency("serialization", "numeric", true);
         add_public_dependency("serialization", "optional", true);
         add_public_dependency("serialization", "phoenix", true);
@@ -4159,7 +3888,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("serialization", "predef", true);
         add_public_dependency("serialization", "preprocessor", true);
         add_public_dependency("serialization", "proto", true);
-        add_public_dependency("serialization", "random", true);
         add_public_dependency("serialization", "range", true);
         add_public_dependency("serialization", "ratio", true);
         add_public_dependency("serialization", "rational", true);
@@ -4217,69 +3945,34 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("smart_ptr", "static_assert", true);
         add_public_dependency("smart_ptr", "throw_exception", true);
         add_public_dependency("smart_ptr", "type_traits", true);
-        add_public_dependency("sort", "algorithm", true);
         add_public_dependency("sort", "array", true);
         add_public_dependency("sort", "assert", true);
-        add_public_dependency("sort", "atomic", true);
-        add_public_dependency("sort", "bind", true);
-        add_public_dependency("sort", "chrono", true);
         add_public_dependency("sort", "concept_check", true);
         add_public_dependency("sort", "config", true);
-        add_public_dependency("sort", "container", true);
         add_public_dependency("sort", "container_hash", true);
         add_public_dependency("sort", "conversion", true);
         add_public_dependency("sort", "core", true);
-        add_public_dependency("sort", "date_time", true);
         add_public_dependency("sort", "detail", true);
-        add_public_dependency("sort", "dynamic_bitset", true);
-        add_public_dependency("sort", "endian", true);
-        add_public_dependency("sort", "exception", true);
-        add_public_dependency("sort", "filesystem", true);
-        add_public_dependency("sort", "foreach", true);
-        add_public_dependency("sort", "function", true);
         add_public_dependency("sort", "function_types", true);
         add_public_dependency("sort", "fusion", true);
         add_public_dependency("sort", "integer", true);
-        add_public_dependency("sort", "intrusive", true);
         add_public_dependency("sort", "io", true);
-        add_public_dependency("sort", "iostreams", true);
         add_public_dependency("sort", "iterator", true);
-        add_public_dependency("sort", "lambda", true);
-        add_public_dependency("sort", "lexical_cast", true);
-        add_public_dependency("sort", "locale", true);
-        add_public_dependency("sort", "math", true);
         add_public_dependency("sort", "move", true);
-        add_public_dependency("sort", "mp11", true);
         add_public_dependency("sort", "mpl", true);
-        add_public_dependency("sort", "multiprecision", true);
         add_public_dependency("sort", "numeric", true);
         add_public_dependency("sort", "optional", true);
-        add_public_dependency("sort", "phoenix", true);
-        add_public_dependency("sort", "pool", true);
         add_public_dependency("sort", "predef", true);
         add_public_dependency("sort", "preprocessor", true);
-        add_public_dependency("sort", "proto", true);
-        add_public_dependency("sort", "random", true);
         add_public_dependency("sort", "range", true);
-        add_public_dependency("sort", "ratio", true);
-        add_public_dependency("sort", "rational", true);
         add_public_dependency("sort", "regex", true);
-        add_public_dependency("sort", "serialization", true);
         add_public_dependency("sort", "smart_ptr", true);
-        add_public_dependency("sort", "spirit", true);
         add_public_dependency("sort", "static_assert", true);
-        add_public_dependency("sort", "system", true);
-        add_public_dependency("sort", "thread", true);
         add_public_dependency("sort", "throw_exception", true);
-        add_public_dependency("sort", "tokenizer", true);
         add_public_dependency("sort", "tuple", true);
-        add_public_dependency("sort", "type_index", true);
         add_public_dependency("sort", "type_traits", true);
         add_public_dependency("sort", "typeof", true);
-        add_public_dependency("sort", "unordered", true);
         add_public_dependency("sort", "utility", true);
-        add_public_dependency("sort", "variant", true);
-        add_public_dependency("sort", "winapi", true);
         add_public_dependency("spirit", "algorithm", true);
         add_public_dependency("spirit", "array", true);
         add_public_dependency("spirit", "assert", true);
@@ -4294,10 +3987,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("spirit", "core", true);
         add_public_dependency("spirit", "date_time", true);
         add_public_dependency("spirit", "detail", true);
-        add_public_dependency("spirit", "dynamic_bitset", true);
         add_public_dependency("spirit", "endian", true);
         add_public_dependency("spirit", "exception", true);
-        add_public_dependency("spirit", "filesystem", true);
         add_public_dependency("spirit", "foreach", true);
         add_public_dependency("spirit", "function", true);
         add_public_dependency("spirit", "function_types", true);
@@ -4305,16 +3996,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("spirit", "integer", true);
         add_public_dependency("spirit", "intrusive", true);
         add_public_dependency("spirit", "io", true);
-        add_public_dependency("spirit", "iostreams", true);
         add_public_dependency("spirit", "iterator", true);
         add_public_dependency("spirit", "lambda", true);
         add_public_dependency("spirit", "lexical_cast", true);
-        add_public_dependency("spirit", "locale", true);
         add_public_dependency("spirit", "math", true);
         add_public_dependency("spirit", "move", true);
         add_public_dependency("spirit", "mp11", true);
         add_public_dependency("spirit", "mpl", true);
-        add_public_dependency("spirit", "multiprecision", true);
         add_public_dependency("spirit", "numeric", true);
         add_public_dependency("spirit", "optional", true);
         add_public_dependency("spirit", "phoenix", true);
@@ -4322,12 +4010,10 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("spirit", "predef", true);
         add_public_dependency("spirit", "preprocessor", true);
         add_public_dependency("spirit", "proto", true);
-        add_public_dependency("spirit", "random", true);
         add_public_dependency("spirit", "range", true);
         add_public_dependency("spirit", "ratio", true);
         add_public_dependency("spirit", "rational", true);
         add_public_dependency("spirit", "regex", true);
-        add_public_dependency("spirit", "serialization", true);
         add_public_dependency("spirit", "smart_ptr", true);
         add_public_dependency("spirit", "static_assert", true);
         add_public_dependency("spirit", "system", true);
@@ -4369,42 +4055,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("statechart", "core", true);
         add_public_dependency("statechart", "date_time", true);
         add_public_dependency("statechart", "detail", true);
-        add_public_dependency("statechart", "dynamic_bitset", true);
-        add_public_dependency("statechart", "endian", true);
         add_public_dependency("statechart", "exception", true);
-        add_public_dependency("statechart", "filesystem", true);
-        add_public_dependency("statechart", "foreach", true);
         add_public_dependency("statechart", "function", true);
         add_public_dependency("statechart", "function_types", true);
         add_public_dependency("statechart", "fusion", true);
         add_public_dependency("statechart", "integer", true);
         add_public_dependency("statechart", "intrusive", true);
         add_public_dependency("statechart", "io", true);
-        add_public_dependency("statechart", "iostreams", true);
         add_public_dependency("statechart", "iterator", true);
         add_public_dependency("statechart", "lambda", true);
         add_public_dependency("statechart", "lexical_cast", true);
-        add_public_dependency("statechart", "locale", true);
         add_public_dependency("statechart", "math", true);
         add_public_dependency("statechart", "move", true);
         add_public_dependency("statechart", "mp11", true);
         add_public_dependency("statechart", "mpl", true);
-        add_public_dependency("statechart", "multiprecision", true);
         add_public_dependency("statechart", "numeric", true);
         add_public_dependency("statechart", "optional", true);
-        add_public_dependency("statechart", "phoenix", true);
-        add_public_dependency("statechart", "pool", true);
         add_public_dependency("statechart", "predef", true);
         add_public_dependency("statechart", "preprocessor", true);
-        add_public_dependency("statechart", "proto", true);
-        add_public_dependency("statechart", "random", true);
         add_public_dependency("statechart", "range", true);
         add_public_dependency("statechart", "ratio", true);
         add_public_dependency("statechart", "rational", true);
         add_public_dependency("statechart", "regex", true);
-        add_public_dependency("statechart", "serialization", true);
         add_public_dependency("statechart", "smart_ptr", true);
-        add_public_dependency("statechart", "spirit", true);
         add_public_dependency("statechart", "static_assert", true);
         add_public_dependency("statechart", "system", true);
         add_public_dependency("statechart", "thread", true);
@@ -4416,7 +4089,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("statechart", "typeof", true);
         add_public_dependency("statechart", "unordered", true);
         add_public_dependency("statechart", "utility", true);
-        add_public_dependency("statechart", "variant", true);
         add_public_dependency("statechart", "winapi", true);
         add_public_dependency("static_assert", "config", true);
         add_public_dependency("static_string", "assert", true);
@@ -4431,6 +4103,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("static_string", "throw_exception", true);
         add_public_dependency("static_string", "type_traits", true);
         add_public_dependency("static_string", "utility", true);
+        add_public_dependency("stl_interfaces", "assert", true);
+        add_public_dependency("stl_interfaces", "config", true);
         add_public_dependency("system", "config", true);
         add_public_dependency("system", "predef", true);
         add_public_dependency("system", "winapi", true);
@@ -4484,42 +4158,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("thread", "conversion", true);
         add_public_dependency("thread", "core", true);
         add_public_dependency("thread", "detail", true);
-        add_public_dependency("thread", "dynamic_bitset", true);
-        add_public_dependency("thread", "endian", true);
         add_public_dependency("thread", "exception", true);
-        add_public_dependency("thread", "filesystem", true);
-        add_public_dependency("thread", "foreach", true);
         add_public_dependency("thread", "function", true);
         add_public_dependency("thread", "function_types", true);
         add_public_dependency("thread", "fusion", true);
         add_public_dependency("thread", "integer", true);
         add_public_dependency("thread", "intrusive", true);
         add_public_dependency("thread", "io", true);
-        add_public_dependency("thread", "iostreams", true);
         add_public_dependency("thread", "iterator", true);
         add_public_dependency("thread", "lambda", true);
         add_public_dependency("thread", "lexical_cast", true);
-        add_public_dependency("thread", "locale", true);
         add_public_dependency("thread", "math", true);
         add_public_dependency("thread", "move", true);
         add_public_dependency("thread", "mp11", true);
         add_public_dependency("thread", "mpl", true);
-        add_public_dependency("thread", "multiprecision", true);
         add_public_dependency("thread", "numeric", true);
         add_public_dependency("thread", "optional", true);
-        add_public_dependency("thread", "phoenix", true);
-        add_public_dependency("thread", "pool", true);
         add_public_dependency("thread", "predef", true);
         add_public_dependency("thread", "preprocessor", true);
-        add_public_dependency("thread", "proto", true);
-        add_public_dependency("thread", "random", true);
         add_public_dependency("thread", "range", true);
         add_public_dependency("thread", "ratio", true);
         add_public_dependency("thread", "rational", true);
         add_public_dependency("thread", "regex", true);
-        add_public_dependency("thread", "serialization", true);
         add_public_dependency("thread", "smart_ptr", true);
-        add_public_dependency("thread", "spirit", true);
         add_public_dependency("thread", "static_assert", true);
         add_public_dependency("thread", "system", true);
         add_public_dependency("thread", "throw_exception", true);
@@ -4530,7 +4191,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("thread", "typeof", true);
         add_public_dependency("thread", "unordered", true);
         add_public_dependency("thread", "utility", true);
-        add_public_dependency("thread", "variant", true);
         add_public_dependency("thread", "winapi", true);
         add_public_dependency("throw_exception", "assert", true);
         add_public_dependency("throw_exception", "config", true);
@@ -4616,42 +4276,29 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("type_erasure", "core", true);
         add_public_dependency("type_erasure", "date_time", true);
         add_public_dependency("type_erasure", "detail", true);
-        add_public_dependency("type_erasure", "dynamic_bitset", true);
-        add_public_dependency("type_erasure", "endian", true);
         add_public_dependency("type_erasure", "exception", true);
-        add_public_dependency("type_erasure", "filesystem", true);
-        add_public_dependency("type_erasure", "foreach", true);
         add_public_dependency("type_erasure", "function", true);
         add_public_dependency("type_erasure", "function_types", true);
         add_public_dependency("type_erasure", "fusion", true);
         add_public_dependency("type_erasure", "integer", true);
         add_public_dependency("type_erasure", "intrusive", true);
         add_public_dependency("type_erasure", "io", true);
-        add_public_dependency("type_erasure", "iostreams", true);
         add_public_dependency("type_erasure", "iterator", true);
         add_public_dependency("type_erasure", "lambda", true);
         add_public_dependency("type_erasure", "lexical_cast", true);
-        add_public_dependency("type_erasure", "locale", true);
         add_public_dependency("type_erasure", "math", true);
         add_public_dependency("type_erasure", "move", true);
         add_public_dependency("type_erasure", "mp11", true);
         add_public_dependency("type_erasure", "mpl", true);
-        add_public_dependency("type_erasure", "multiprecision", true);
         add_public_dependency("type_erasure", "numeric", true);
         add_public_dependency("type_erasure", "optional", true);
-        add_public_dependency("type_erasure", "phoenix", true);
-        add_public_dependency("type_erasure", "pool", true);
         add_public_dependency("type_erasure", "predef", true);
         add_public_dependency("type_erasure", "preprocessor", true);
-        add_public_dependency("type_erasure", "proto", true);
-        add_public_dependency("type_erasure", "random", true);
         add_public_dependency("type_erasure", "range", true);
         add_public_dependency("type_erasure", "ratio", true);
         add_public_dependency("type_erasure", "rational", true);
         add_public_dependency("type_erasure", "regex", true);
-        add_public_dependency("type_erasure", "serialization", true);
         add_public_dependency("type_erasure", "smart_ptr", true);
-        add_public_dependency("type_erasure", "spirit", true);
         add_public_dependency("type_erasure", "static_assert", true);
         add_public_dependency("type_erasure", "throw_exception", true);
         add_public_dependency("type_erasure", "tokenizer", true);
@@ -4661,7 +4308,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("type_erasure", "typeof", true);
         add_public_dependency("type_erasure", "unordered", true);
         add_public_dependency("type_erasure", "utility", true);
-        add_public_dependency("type_erasure", "variant", true);
         add_public_dependency("type_erasure", "vmd", true);
         add_public_dependency("type_erasure", "winapi", true);
         add_public_dependency("type_index", "assert", true);
@@ -4697,10 +4343,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("units", "core", true);
         add_public_dependency("units", "date_time", true);
         add_public_dependency("units", "detail", true);
-        add_public_dependency("units", "dynamic_bitset", true);
         add_public_dependency("units", "endian", true);
         add_public_dependency("units", "exception", true);
-        add_public_dependency("units", "filesystem", true);
         add_public_dependency("units", "foreach", true);
         add_public_dependency("units", "function", true);
         add_public_dependency("units", "function_types", true);
@@ -4708,16 +4352,13 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("units", "integer", true);
         add_public_dependency("units", "intrusive", true);
         add_public_dependency("units", "io", true);
-        add_public_dependency("units", "iostreams", true);
         add_public_dependency("units", "iterator", true);
         add_public_dependency("units", "lambda", true);
         add_public_dependency("units", "lexical_cast", true);
-        add_public_dependency("units", "locale", true);
         add_public_dependency("units", "math", true);
         add_public_dependency("units", "move", true);
         add_public_dependency("units", "mp11", true);
         add_public_dependency("units", "mpl", true);
-        add_public_dependency("units", "multiprecision", true);
         add_public_dependency("units", "numeric", true);
         add_public_dependency("units", "optional", true);
         add_public_dependency("units", "phoenix", true);
@@ -4725,7 +4366,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("units", "predef", true);
         add_public_dependency("units", "preprocessor", true);
         add_public_dependency("units", "proto", true);
-        add_public_dependency("units", "random", true);
         add_public_dependency("units", "range", true);
         add_public_dependency("units", "ratio", true);
         add_public_dependency("units", "rational", true);
@@ -4790,7 +4430,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("uuid", "dynamic_bitset", true);
         add_public_dependency("uuid", "endian", true);
         add_public_dependency("uuid", "exception", true);
-        add_public_dependency("uuid", "filesystem", true);
         add_public_dependency("uuid", "foreach", true);
         add_public_dependency("uuid", "function", true);
         add_public_dependency("uuid", "function_types", true);
@@ -4798,11 +4437,9 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("uuid", "integer", true);
         add_public_dependency("uuid", "intrusive", true);
         add_public_dependency("uuid", "io", true);
-        add_public_dependency("uuid", "iostreams", true);
         add_public_dependency("uuid", "iterator", true);
         add_public_dependency("uuid", "lambda", true);
         add_public_dependency("uuid", "lexical_cast", true);
-        add_public_dependency("uuid", "locale", true);
         add_public_dependency("uuid", "math", true);
         add_public_dependency("uuid", "move", true);
         add_public_dependency("uuid", "mp11", true);
@@ -4858,7 +4495,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("variant2", "config", true);
         add_public_dependency("variant2", "mp11", true);
         add_public_dependency("vmd", "preprocessor", true);
-        add_public_dependency("wave", "date_time", false);
         add_public_dependency("wave", "filesystem", false);
         add_public_dependency("wave", "thread", false);
         add_public_dependency("wave", "algorithm", true);
@@ -4873,8 +4509,8 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("wave", "container_hash", true);
         add_public_dependency("wave", "conversion", true);
         add_public_dependency("wave", "core", true);
+        add_public_dependency("wave", "date_time", true);
         add_public_dependency("wave", "detail", true);
-        add_public_dependency("wave", "dynamic_bitset", true);
         add_public_dependency("wave", "endian", true);
         add_public_dependency("wave", "exception", true);
         add_public_dependency("wave", "foreach", true);
@@ -4884,17 +4520,14 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("wave", "integer", true);
         add_public_dependency("wave", "intrusive", true);
         add_public_dependency("wave", "io", true);
-        add_public_dependency("wave", "iostreams", true);
         add_public_dependency("wave", "iterator", true);
         add_public_dependency("wave", "lambda", true);
         add_public_dependency("wave", "lexical_cast", true);
-        add_public_dependency("wave", "locale", true);
         add_public_dependency("wave", "math", true);
         add_public_dependency("wave", "move", true);
         add_public_dependency("wave", "mp11", true);
         add_public_dependency("wave", "mpl", true);
         add_public_dependency("wave", "multi_index", true);
-        add_public_dependency("wave", "multiprecision", true);
         add_public_dependency("wave", "numeric", true);
         add_public_dependency("wave", "optional", true);
         add_public_dependency("wave", "phoenix", true);
@@ -4902,7 +4535,6 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("wave", "predef", true);
         add_public_dependency("wave", "preprocessor", true);
         add_public_dependency("wave", "proto", true);
-        add_public_dependency("wave", "random", true);
         add_public_dependency("wave", "range", true);
         add_public_dependency("wave", "ratio", true);
         add_public_dependency("wave", "rational", true);
@@ -4962,6 +4594,7 @@ void boost_deps(std::unordered_map<String, NativeExecutedTarget*> &boost_targets
         add_public_dependency("xpressive", "type_traits", true);
         add_public_dependency("xpressive", "typeof", true);
         add_public_dependency("xpressive", "utility", true);
+        add_public_dependency("xpressive", "winapi", true);
         add_public_dependency("yap", "assert", true);
         add_public_dependency("yap", "config", true);
         add_public_dependency("yap", "container_hash", true);
