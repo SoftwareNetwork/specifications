@@ -429,6 +429,8 @@ void build(Solution &s)
     boost_targets["exception"] = &addStaticOnlyCompiledBoostTarget(s, "exception");
 
     // some settings
+    if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+        *boost_targets["atomic"] -= "src/.*windows.*"_rr;
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
     if (boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["filesystem"] += "advapi32.lib"_slib;
