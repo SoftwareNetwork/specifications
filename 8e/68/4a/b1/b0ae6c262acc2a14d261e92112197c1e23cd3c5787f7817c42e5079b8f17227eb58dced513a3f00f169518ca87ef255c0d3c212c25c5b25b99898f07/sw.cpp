@@ -220,7 +220,7 @@ struct BisonExecutable : ExecutableTarget
             return;
         }
         ExecutableTarget::setupCommand(c);
-        c.environment["BISON_PKGDATADIR"] = normalize_path(SourceDir / "bison" / "data");
+        c.environment["BISON_PKGDATADIR"] = to_string(normalize_path(SourceDir / "bison" / "data"));
     }
 };
 

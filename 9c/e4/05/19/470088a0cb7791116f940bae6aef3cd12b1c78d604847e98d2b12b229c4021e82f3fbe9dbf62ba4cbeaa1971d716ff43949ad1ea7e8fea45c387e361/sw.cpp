@@ -10,9 +10,9 @@ struct PythonExecutable : ExecutableTarget
             return;
         }
         ExecutableTarget::setupCommand(c);
-        c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
+        c.environment["PYTHONPATH"] = to_string((SourceDir / "Lib").u8string());
         // used in sw package loading
-        c.environment["SW_EXECUTABLE"] = sw::getProgramLocation().u8string();
+        c.environment["SW_EXECUTABLE"] = to_string(sw::getProgramLocation().u8string());
     }
 
     void setupCommandForRun(builder::Command &c) const override
@@ -241,7 +241,7 @@ void build(Solution &s)
         lib.Private += "Py_BUILD_CORE_BUILTIN"_d;
         lib.Private += "VERSION=\"${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}\""_d;
         lib.Private += "VPATH=\"\""_d;
-        lib.Private += Definition("PY3_DLLNAME=\"" + normalize_path(lib.getOutputFile().filename()) + "\"");
+        lib.Private += Definition("PY3_DLLNAME=\"" + to_string(normalize_path(lib.getOutputFile().filename())) + "\"");
         lib.Public += "ABIFLAGS=\"\""_d;
         lib.Public += "ENABLE_IPV6"_d;
         lib.Public += "HAVE_DYNAMIC_LOADING"_d;

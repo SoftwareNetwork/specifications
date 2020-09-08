@@ -53,7 +53,7 @@ struct ProtocData
         // append protoc idir
         addIncludeDirectory(t.getFile(protoc, "src"));
 
-        auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename().u8string() + "." + getHash() + ".d");
+        auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename() += "." + getHash() + ".d");
         auto gc = std::make_shared<::sw::driver::Command>(t.getMainBuild());
         gc->deps_processor = Command::DepsProcessor::Gnu;
         gc->deps_file = deps_file;
@@ -63,14 +63,14 @@ struct ProtocData
         c << cmd::wdir(outdir);
 
         // deps file
-        c << ("--dependency_out=" + normalize_path(deps_file));
+        c << ("--dependency_out=" + to_string(normalize_path(deps_file)));
 
         // idirs first
         for (auto &i : idirs)
             c << "-I" << normalize_path(i);
 
         // generator
-        c << ("--" + generator + "_out=" + normalize_path(outdir));
+        c << ("--" + generator + "_out=" + to_string(normalize_path(outdir)));
 
         // plugin
         if (plugin)
@@ -89,7 +89,7 @@ struct ProtocData
                 else
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
                 c->addInput(p);
-                return "--plugin=protoc-gen-" + generator + "=" + normalize_path(p);
+                return "--plugin=protoc-gen-" + generator + "=" + to_string(normalize_path(p));
             }
             ;
 
