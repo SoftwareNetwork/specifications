@@ -111,8 +111,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     {
         if (f->skip)
             continue;
-        auto ext = p.extension().u8string();
-        if (ext == ".cpp")
+        if (p.extension() == ".cpp")
         {
             static std::regex r("(^|\n)[ \t]*#[ \t]*include[ \t]+"
                 "[\"<](([^ \">]+/)?moc_[^ \">/]+\\.cpp|[^ \">]+\\.moc)[\">]");
@@ -145,7 +144,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     {
         if (f->skip)
             continue;
-        auto ext = p.extension().u8string();
+        auto ext = to_string(p.extension().u8string());
         if (ext == ".cpp" ||
             (ext.size() > 1 && HeaderFileExtensionsSet.find(ext.substr(1)) != HeaderFileExtensionsSet.end()))
         {
@@ -171,7 +170,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         f.p = normalize_path_windows(f.p);
 #endif
 
-        auto dir = sha256(f.p.parent_path().u8string()).substr(0, 8);
+        auto dir = sha256(to_string(f.p.parent_path().u8string())).substr(0, 8);
         String fn;
 
         if (f.from_cpp)
@@ -230,7 +229,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
 
     for (auto &f : files)
     {
-        auto dir = sha256(f.p.parent_path().u8string()).substr(0, 8);
+        auto dir = sha256(to_string(f.p.parent_path().u8string())).substr(0, 8);
         t.IncludeDirectories.insert(moc_dir / dir);
     }
 
@@ -280,9 +279,9 @@ static auto rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const path &f
     auto files = rcc_read_files(t, fn);
 
     auto outfilename = fn.filename().stem();
-    auto outfile = t.BinaryDir / ("qrc_" + outfilename.u8string() + ".cpp");
+    auto outfile = t.BinaryDir / ("qrc_" + to_string(outfilename.u8string()) + ".cpp");
     c << cmd::prog(rcc)
-        << "--name" << outfilename.u8string()
+        << "--name" << outfilename
         << "--output" << cmd::out(outfile)
         << cmd::in(fn)
         << cmd::end()
@@ -319,7 +318,7 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
             s += fn.filename().string();
         else
             s += alias;
-        s += "\">" + normalize_path(fn) + "</file>";
+        s += "\">" + to_string(normalize_path(fn)) + "</file>";
     }
     s += "</qresource>";
     s += "</RCC>";
@@ -349,7 +348,7 @@ static void qt_rcc(const DependencyPtr &rcc, NativeExecutedTarget &t)
 static void uic(const DependencyPtr &uic, NativeExecutedTarget &t, const path &fn)
 {
     auto outfilename = fn.filename().stem();
-    auto outfile = t.BinaryDir / ("ui_" + outfilename.u8string() + ".h");
+    auto outfile = t.BinaryDir / ("ui_" + to_string(outfilename.u8string()) + ".h");
     auto c = t.addCommand();
     c << cmd::prog(uic)
         << "-o" << cmd::out(outfile)
@@ -435,7 +434,7 @@ static Files qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTar
     for (auto &ts : ts_files)
     {
         auto c = t.addCommand();
-        auto o = t.BinaryDir / (ts.filename().stem().u8string() + ".qm");
+        auto o = t.BinaryDir / (ts.filename().stem() += ".qm");
         c << cmd::prog(lrelease)
             << cmd::in(ts)
             << "-qm"
@@ -461,19 +460,18 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     {
         if (f->skip)
             continue;
-        auto ext = p.extension().u8string();
-        if (ext == ".ts")
+        if (p.extension() == ".ts")
             ts_files.insert(p);
         else
         {
             sources.insert(p);
-            ts_lst_file += normalize_path(p) + "\n";
+            ts_lst_file += to_string(normalize_path(p)) + "\n";
         }
     }
 
     auto idirs = find_idirs(t);
     for (auto &d : idirs)
-        ts_lst_file += "-I" + normalize_path(d) + "\n";
+        ts_lst_file += "-I" + to_string(normalize_path(d)) + "\n";
 
     //
     t.writeFileOnce(ts_lst_fn, ts_lst_file);

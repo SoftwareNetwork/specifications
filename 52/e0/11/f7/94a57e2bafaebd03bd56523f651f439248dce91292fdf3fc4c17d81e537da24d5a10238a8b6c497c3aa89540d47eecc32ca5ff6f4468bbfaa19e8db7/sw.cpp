@@ -5,7 +5,7 @@ struct PythonExecutable : ExecutableTarget
     void setupCommand(builder::Command &c) const override
     {
         ExecutableTarget::setupCommand(c);
-        c.environment["PYTHONPATH"] = (SourceDir / "Lib").u8string();
+        c.environment["PYTHONPATH"] = to_string((SourceDir / "Lib").u8string());
     }
 
     void setupCommandForRun(builder::Command &c) const override
