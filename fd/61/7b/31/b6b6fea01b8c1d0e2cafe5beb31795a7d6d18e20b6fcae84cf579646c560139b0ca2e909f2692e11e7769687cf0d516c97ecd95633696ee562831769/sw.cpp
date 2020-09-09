@@ -23,7 +23,10 @@ void build(Solution &s)
         t += "random/internal/distribution_test_util.cc";
 
         if (abseil.getBuildSettings().TargetOS.is(OSType::Windows))
+        {
             abseil.Public += "NOMINMAX"_def;
+            abseil += "Dbghelp.lib"_slib;
+        }
         abseil += "CoreFoundation"_framework;
     }
 }
