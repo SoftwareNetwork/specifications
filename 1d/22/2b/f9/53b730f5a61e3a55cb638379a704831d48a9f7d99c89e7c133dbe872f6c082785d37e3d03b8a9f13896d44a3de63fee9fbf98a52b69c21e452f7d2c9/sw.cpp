@@ -2291,6 +2291,22 @@ void build(Solution &s)
         auto &platforms = plugins.addDirectory("platforms");
         auto &styles = plugins.addDirectory("styles");
 
+        auto make_qt_plugin = [](auto &t, const String &name)
+        {
+            path p = name + ".cpp";
+            t.writeFileOnce(p, R"(#ifndef SW_QT_PLUGIN_)" + name + R"(
+#define SW_QT_PLUGIN_)" + name + R"(
+
+#if defined(QT_STATIC)
+#include <QtPlugin>
+Q_IMPORT_PLUGIN()" + name + R"();
+#endif
+
+#endif
+)");
+            t.Interface += p;
+        };
+
         auto &windows = platforms.addTarget<LibraryTarget>("windows");
         {
             windows.setOutputDir("plugins/platforms");
@@ -2328,6 +2344,8 @@ void build(Solution &s)
             windows.Public += "org.sw.demo.google.angle.egl"_dep;
             windows.Public += wintab;
             windows.Public += iaccessible2;
+
+            make_qt_plugin(windows, "QWindowsIntegrationPlugin");
         }
 
         auto &windowsvista = styles.addTarget<LibraryTarget>("windowsvista");
@@ -2348,6 +2366,7 @@ void build(Solution &s)
             windowsvista.Public += widgets;
 
             automoc(moc, windowsvista);
+            make_qt_plugin(windowsvista, "QWindowsVistaStylePlugin");
         }
 
         auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
@@ -2407,6 +2426,7 @@ void build(Solution &s)
             plugins_printsupport_windows.Private += sw::Static, "QT_STATICPLUGIN"_d;
             plugins_printsupport_windows.Public += printsupport;
             automoc(moc, plugins_printsupport_windows);
+            make_qt_plugin(windowsvista, "QWindowsPrinterSupportPlugin");
         }
 
         //
@@ -2883,6 +2903,8 @@ void build(Solution &s)
                 t.Private += "UNICODE"_d;
             t.Private += sw::Static, "QT_STATICPLUGIN"_d;
             automoc(moc, t);
+            // pass plugin class name here
+            //make_qt_plugin(t, "Q" + plugin class name + "Plugin");
             t.Public += gui;
         };
 

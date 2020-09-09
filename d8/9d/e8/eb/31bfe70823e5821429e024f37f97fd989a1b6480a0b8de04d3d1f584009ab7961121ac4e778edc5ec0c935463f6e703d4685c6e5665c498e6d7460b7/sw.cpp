@@ -52,8 +52,8 @@ struct YasmCompiler : sw::NativeCompiler,
 
         if (InputFile)
         {
-            cmd->name = normalize_path(InputFile());
-            cmd->name_short = InputFile().filename().u8string();
+            cmd->name = to_printable_string(normalize_path(InputFile()));
+            cmd->name_short = to_printable_string(InputFile().filename());
         }
         if (ObjectFile)
             cmd->working_directory = ObjectFile().parent_path();
