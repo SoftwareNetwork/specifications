@@ -9,8 +9,16 @@ void build(Solution &s)
     fmt.Public += sw::Shared, "FMT_SHARED"_d;
 
     if (fmt.getCompilerType() == CompilerType::GNU ||
-        fmt.getCompilerType() == CompilerType::Clang)
+        fmt.getCompilerType() == CompilerType::Clang ||
+        fmt.getCompilerType() == CompilerType::AppleClang)
     {
         fmt.ExportAllSymbols = true;
+    }
+    
+    if (fmt.getCompilerType() == CompilerType::ClangCl ||
+        fmt.getCompilerType() == CompilerType::Clang ||
+        fmt.getCompilerType() == CompilerType::AppleClang)
+    {
+        fmt.Public += "FMT_USE_EXTERN_TEMPLATES=0"_d;
     }
 }
