@@ -6,7 +6,7 @@ struct SwigExecutable : ExecutableTarget
 
     void setupCommand(builder::Command &c) const override
     {
-        c.environment["SWIG_LIB"] = (SourceDir / "Lib").u8string();
+        c.environment["SWIG_LIB"] = to_string(to_path_string(SourceDir / "Lib"));
     }
 };
 
@@ -31,7 +31,7 @@ void build(Solution &s)
     swig += "SWIG_CXX=\"\""_def;
     swig += "SWIG_PLATFORM=\"\""_def;
     swig += "SWIG_LIB_WIN_UNIX=\"\""_def;
-    swig += Definition("SWIG_LIB=\"" + normalize_path(swig.SourceDir / "Lib") + "\"");
+    swig += Definition("SWIG_LIB=\"" + to_printable_string(normalize_path(swig.SourceDir / "Lib")) + "\"");
 
     {
         auto c = swig.addCommand();
