@@ -2426,7 +2426,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             plugins_printsupport_windows.Private += sw::Static, "QT_STATICPLUGIN"_d;
             plugins_printsupport_windows.Public += printsupport;
             automoc(moc, plugins_printsupport_windows);
-            make_qt_plugin(windowsvista, "QWindowsPrinterSupportPlugin");
+            make_qt_plugin(plugins_printsupport_windows, "QWindowsPrinterSupportPlugin");
         }
 
         //
