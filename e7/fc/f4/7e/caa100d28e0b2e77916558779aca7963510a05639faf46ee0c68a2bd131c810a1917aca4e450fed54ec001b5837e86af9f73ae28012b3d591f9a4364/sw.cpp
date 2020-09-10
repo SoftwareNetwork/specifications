@@ -7,7 +7,7 @@ void build(Solution &s)
 
     auto &memory = DataManager.addStaticLibrary("memory");
     {
-        memory.CPPVersion = CPPLanguageStandard::CPP17;
+        memory += cpp20;
         memory += "include/Polygon4/Memory.h", "src/memory/Memory.cpp";
         if (memory.getOptions()["alligned-allocator"] == "1")
         {
@@ -18,7 +18,7 @@ void build(Solution &s)
 
     auto &schema = DataManager.addLibrary("schema");
     {
-        schema.CPPVersion = CPPLanguageStandard::CPP17;
+        schema += cpp20;
         schema.ApiName = "SCHEMA_API";
         schema += "include/.*"_rr;
         schema += "src/schema/.*\\.h"_rr;
@@ -38,14 +38,14 @@ void build(Solution &s)
     }
 
     auto &generator = DataManager.addExecutable("tools.generator");
-    generator.CPPVersion = CPPLanguageStandard::CPP17;
+    generator += cpp20;
     generator += "src/generator/main.cpp";
     generator += schema;
     generator += "pub.egorpugin.primitives.sw.main-master"_dep;
 
     // DataManager
     {
-        DataManager.CPPVersion = CPPLanguageStandard::CPP17;
+        DataManager += cpp20;
         DataManager.ApiName = "DATA_MANAGER_API";
         DataManager += "include/.*"_rr;
         DataManager += "src/manager/.*\\.cpp"_rr;
