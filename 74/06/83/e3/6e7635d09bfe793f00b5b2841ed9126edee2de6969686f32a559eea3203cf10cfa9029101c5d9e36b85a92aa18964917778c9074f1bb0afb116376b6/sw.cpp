@@ -31,14 +31,13 @@ struct YasmCompiler : sw::NativeCompiler,
         : exe(exe)
     {
     }
-
     virtual ~YasmCompiler() = default;
 
     using NativeCompilerOptions::operator=;
 
-    std::shared_ptr<Program> clone() const override
+    std::unique_ptr<Program> clone() const override
     {
-        return std::make_shared<YasmCompiler>(*this);
+        return std::make_unique<YasmCompiler>(*this);
     }
 
     path getOutputFile() const override

@@ -45,7 +45,8 @@ void build(Solution &s)
     fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     {
-        auto cc = std::static_pointer_cast<sw::NativeCompiler>(fontconfig.findProgramByExtension(".cpp")->clone());
+        std::shared_ptr<sw::Program> cc1(fontconfig.findProgramByExtension(".cpp")->clone());
+        auto cc = std::static_pointer_cast<sw::NativeCompiler>(cc1);
         cc->IncludeDirectories.push_back(fontconfig.SourceDir);
         auto c = cc->createCommand(fontconfig.getMainBuild());
         c->working_directory = fontconfig.BinaryDir;
