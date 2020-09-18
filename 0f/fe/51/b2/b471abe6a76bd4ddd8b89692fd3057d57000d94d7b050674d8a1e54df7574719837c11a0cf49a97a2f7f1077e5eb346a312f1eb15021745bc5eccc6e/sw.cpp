@@ -95,7 +95,8 @@ void build(Solution &s)
             auto p = t.findProgramByExtension(".c");
             if (!p)
                 throw std::runtime_error("No c compiler found");
-            auto ch = std::static_pointer_cast<sw::NativeCompiler>(p->clone());
+            std::shared_ptr<sw::Program> ch1(p->clone());
+            auto ch = std::static_pointer_cast<sw::NativeCompiler>(ch1);
             t.Storage.push_back(ch);
             auto c = dynamic_cast<VisualStudioCompiler*>(ch.get());
             c->PreprocessSupressLineDirectives = true;
@@ -116,7 +117,8 @@ void build(Solution &s)
             auto p = t.findProgramByExtension(".asm");
             if (!p)
                 throw std::runtime_error("No asm compiler found");
-            auto ch = std::static_pointer_cast<sw::NativeCompiler>(p->clone());
+            std::shared_ptr<sw::Program> ch1(p->clone());
+            auto ch = std::static_pointer_cast<sw::NativeCompiler>(ch1);
             t.Storage.push_back(ch);
             auto c = dynamic_cast<VisualStudioASMCompiler*>(ch.get());
             c->PreserveSymbolCase = true;
