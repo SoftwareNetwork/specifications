@@ -24,7 +24,7 @@ void build(Solution &s)
     {
         freetype += "src/base/ftdebug.c";
 
-        const auto cfg = freetype.SourceDir / "builds/unix/ftconfig.in";
+        const auto cfg = freetype.SourceDir / "builds/unix/ftconfig.h.in";
         if (freetype.Variables["HAVE_UNISTD_H"] == 1)
             freetype.replaceInFileOnce(cfg, "#undef +(HAVE_UNISTD_H)", "#define \\1");
         if (freetype.Variables["HAVE_FCNTL_H"] == 1)
