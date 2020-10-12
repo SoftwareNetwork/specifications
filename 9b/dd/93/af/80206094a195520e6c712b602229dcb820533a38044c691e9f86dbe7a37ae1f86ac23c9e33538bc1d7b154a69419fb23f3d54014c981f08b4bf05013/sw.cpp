@@ -534,6 +534,7 @@ HMODULE glib_dll;
         gio -= "gio/gio-querymodules.c";
         gio -= "gio/glib-compile-resources.c";
         gio -= "gio/glib-compile-.*.c"_rr;
+        gio -= "gio/glocalfileinfo.*\\.h"_rr;
         gio -= "gio/.*tool.*"_rr;
         gio -= "gio/.*-win32.*"_rr;
 
@@ -609,7 +610,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         }
         else
         {
-            gio += "gio/inotify/.*\\.[hc]"_r;
+            if (glib.getBuildSettings().TargetOS.Type != OSType::Macos)
+                gio += "gio/inotify/.*\\.[hc]"_r;
             gio -= "gio/.*win32.*"_rr;
             gio -= "gio/gregistrysettingsbackend.c";
             gio += "_GNU_SOURCE"_def;
@@ -803,6 +805,7 @@ void check(Checker &c)
     s.checkFunctionExists("splice");
     s.checkFunctionExists("statfs");
     s.checkFunctionExists("statvfs");
+    s.checkFunctionExists("statx");
     s.checkFunctionExists("stpcpy");
     s.checkFunctionExists("strcasecmp");
     s.checkFunctionExists("strerror_r");
