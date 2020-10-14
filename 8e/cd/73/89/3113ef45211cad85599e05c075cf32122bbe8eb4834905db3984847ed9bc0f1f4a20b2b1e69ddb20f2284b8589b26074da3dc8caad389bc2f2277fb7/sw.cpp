@@ -343,7 +343,11 @@ void *mempcpy(void * __dest, void const * __src,
         grep += "org.sw.demo.pcre.pcre8-8"_dep;
 
 #ifdef SW_CPP_DRIVER_API_VERSION
+#if SW_CPP_DRIVER_API_VERSION == 2
+        if (auto L = grep.getLinker().as<VisualStudioLinker*>(); L)
+#else
         if (auto L = grep.Linker->as<VisualStudioLinker*>(); L)
+#endif
 #else
         if (auto L = grep.Linker->as<VisualStudioLinker>(); L)
 #endif

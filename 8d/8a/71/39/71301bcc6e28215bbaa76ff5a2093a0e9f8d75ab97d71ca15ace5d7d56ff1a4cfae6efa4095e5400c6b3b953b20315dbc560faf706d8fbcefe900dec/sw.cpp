@@ -336,7 +336,11 @@ void * memrchr (const void *, int, size_t);
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
 #ifdef SW_CPP_DRIVER_API_VERSION
+#if SW_CPP_DRIVER_API_VERSION == 2
+        if (auto L = sed.getLinker().as<VisualStudioLinker*>(); L)
+#else
         if (auto L = sed.Linker->as<VisualStudioLinker*>(); L)
+#endif
 #else
         if (auto L = sed.Linker->as<VisualStudioLinker>(); L)
 #endif
