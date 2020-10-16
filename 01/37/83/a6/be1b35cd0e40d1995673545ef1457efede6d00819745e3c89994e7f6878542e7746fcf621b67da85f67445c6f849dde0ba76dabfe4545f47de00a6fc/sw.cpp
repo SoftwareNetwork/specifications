@@ -49,11 +49,10 @@ struct YasmCompiler : sw::NativeCompiler,
     {
         exe.setupCommand(*cmd);
 
-        if (InputFile)
+        /*if (InputFile)
         {
             cmd->name = to_printable_string(normalize_path(InputFile()));
-            cmd->name_short = to_printable_string(InputFile().filename());
-        }
+        }*/
         if (ObjectFile)
             cmd->working_directory = ObjectFile().parent_path();
 
@@ -312,9 +311,15 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
+#if SW_CPP_DRIVER_API_VERSION == 1
     auto C = std::make_shared<YasmCompiler>(yasm);
     C->file = yasm.getOutputFile();
     yasm.setProgram(C);
+#else
+    auto C = std::make_unique<YasmCompiler>(yasm);
+    C->file = yasm.getOutputFile();
+    yasm.setProgram(std::move(C));
+#endif
 }
 
 void check(Checker &c)
