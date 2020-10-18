@@ -1,6 +1,7 @@
-#pragma sw require header org.sw.demo.re2c.re2c-1
+#pragma sw require header org.sw.demo.re2c.re2c
 #pragma sw require pub.egorpugin.primitives.filesystem-master
 
+#if SW_CPP_DRIVER_API_VERSION == 1
 struct YasmAssemblerOptions
 {
     COMMAND_LINE_OPTION(ObjectFile, path)
@@ -22,8 +23,8 @@ struct YasmAssemblerOptions
 };
 DEFINE_OPTION_SPECIALIZATION_DUMMY(YasmAssemblerOptions);
 
-struct YasmCompiler : sw::NativeCompiler,
-    sw::CommandLineOptions<YasmAssemblerOptions>
+struct YasmCompiler : sw::NativeCompiler
+    , sw::CommandLineOptions<YasmAssemblerOptions>
 {
     ExecutableTarget &exe;
 
@@ -96,6 +97,7 @@ struct YasmCompiler : sw::NativeCompiler,
         ObjectFile = output_file;
     }
 };
+#endif
 
 void build(Solution &s)
 {
@@ -149,7 +151,7 @@ void build(Solution &s)
     auto &genversion = tools.addExecutable("genversion");
     genversion += "modules/preprocs/nasm/genversion.c";
     genversion.writeFileOnce(genversion.BinaryPrivateDir / "config.h",
-        "#define PACKAGE_VERSION \"1.13.0\"");
+        "#define PACKAGE_VERSION \"" + yasm.getPackage().getVersion().toString() + "\"");
 
     auto &preprocs = modules.addDirectory("preprocs");
     auto add_preproc = [&add_modules_child](const String &n) -> decltype(auto)
@@ -179,10 +181,10 @@ void build(Solution &s)
     auto &parsers = modules.addDirectory("parsers");
 
     auto &pa_gas = add_modules_child("parsers", "gas");
-    re2c("org.sw.demo.re2c.re2c-1"_dep, pa_gas, "modules/parsers/gas/gas-token.re");
+    re2c("org.sw.demo.re2c.re2c"_dep, pa_gas, "modules/parsers/gas/gas-token.re");
 
     auto &pa_nasm = add_modules_child("parsers", "nasm");
-    re2c("org.sw.demo.re2c.re2c-1"_dep, pa_nasm, "modules/parsers/nasm/nasm-token.re");
+    re2c("org.sw.demo.re2c.re2c"_dep, pa_nasm, "modules/parsers/nasm/nasm-token.re");
     gen_macro(pa_nasm, "modules/parsers/nasm/nasm-std.mac", "nasm-macros.c", "nasm_standard_mac");
 
     auto &objfmts = modules.addDirectory("objfmts");
@@ -209,7 +211,7 @@ void build(Solution &s)
     auto &dbg_stabs = add_modules_child("dbgfmts", "stabs");
 
     auto &a_lc3b = add_modules_child("arch", "lc3b");
-    re2c("org.sw.demo.re2c.re2c-1"_dep, a_lc3b, "modules/arch/lc3b/lc3bid.re");
+    re2c("org.sw.demo.re2c.re2c"_dep, a_lc3b, "modules/arch/lc3b/lc3bid.re");
 
     auto &a_x86 = add_modules_child("arch", "x86");
     {
@@ -316,9 +318,9 @@ void build(Solution &s)
     C->file = yasm.getOutputFile();
     yasm.setProgram(C);
 #else
-    auto C = std::make_unique<YasmCompiler>(yasm);
+    /*auto C = std::make_unique<YasmCompiler>(yasm);
     C->file = yasm.getOutputFile();
-    yasm.setProgram(std::move(C));
+    yasm.setProgram(std::move(C));*/
 #endif
 }
 
