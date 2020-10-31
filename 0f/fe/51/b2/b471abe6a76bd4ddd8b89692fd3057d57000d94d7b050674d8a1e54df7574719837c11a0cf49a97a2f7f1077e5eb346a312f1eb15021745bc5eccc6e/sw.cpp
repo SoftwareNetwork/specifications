@@ -91,6 +91,34 @@ void build(Solution &s)
         String f = t.getBuildSettings().TargetOS.Arch == ArchType::x86_64 ? "win64" : "sysv";
         f += "_intel";
         auto out = t.BinaryDir / (f + ".i");
+#if SW_CPP_DRIVER_API_VERSION >= 2
+        {
+            auto d = t.getRuleDependency("c");
+            auto c = t.addCommand();
+            c << cmd::prog(d)
+                << cmd::wdir(t.BinaryDir)
+                << "-EP"
+                << "-P"
+                << cmd::out(out, cmd::Prefix{ "-Fi" })
+                << cmd::in("src/x86/" + f + ".S")
+                ;
+            for (auto &i : t.Public.IncludeDirectories)
+                c << "-I" << i;
+            c << "-I" << t.BinaryDir;
+        }
+        {
+            auto d = t.getRuleDependency("asm");
+            auto c = t.addCommand();
+            c << cmd::prog(d)
+                << "-c"
+                << "-Cx" // PreserveSymbolCase
+                << cmd::out(t.BinaryDir / "pre.obj", cmd::Prefix{ "-Fo" })
+                << cmd::in(out)
+                ;
+            if (t.getBuildSettings().TargetOS.Arch != ArchType::x86_64)
+                c << "-safeseh";
+        }
+#elif SW_CPP_DRIVER_API_VERSION == 1
         {
             auto p = t.findProgramByExtension(".c");
             if (!p)
@@ -112,7 +140,6 @@ void build(Solution &s)
                 ch->getCommand(t);
             });
         }
-
         {
             auto p = t.findProgramByExtension(".asm");
             if (!p)
@@ -135,6 +162,9 @@ void build(Solution &s)
                 ch->getCommand(t);
             });
         }
+#else
+#error "too old sw"
+#endif
     }
 }
 
