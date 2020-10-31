@@ -335,16 +335,19 @@ void * memrchr (const void *, int, size_t);
         if (sed.getBuildSettings().TargetOS.Type == OSType::Windows)
             sed.Public += "org.sw.demo.kimgr.getopt_port-master"_dep;
 
-#ifdef SW_CPP_DRIVER_API_VERSION
 #if SW_CPP_DRIVER_API_VERSION == 2
-        if (auto L = sed.getLinker().as<VisualStudioLinker*>(); L)
-#else
+        if (sed.getLinkerType() == LinkerType::MSVC)
+        {
+            auto &r = sed.getRule("link");
+            r.getArguments().push_back("/FORCE:MULTIPLE");
+        }
+#elif SW_CPP_DRIVER_API_VERSION == 1
         if (auto L = sed.Linker->as<VisualStudioLinker*>(); L)
-#endif
+            L->Force = vs::ForceType::Multiple;
 #else
         if (auto L = sed.Linker->as<VisualStudioLinker>(); L)
-#endif
             L->Force = vs::ForceType::Multiple;
+#endif
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "configmake.h");
         sed.writeFileOnce(sed.BinaryPrivateDir / "config.h",

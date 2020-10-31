@@ -353,16 +353,19 @@ void *mempcpy(void * __dest, void const * __src,
         grep.Public += gnulib;
         grep += "org.sw.demo.pcre.pcre8-8"_dep;
 
-#ifdef SW_CPP_DRIVER_API_VERSION
 #if SW_CPP_DRIVER_API_VERSION == 2
-        if (auto L = grep.getLinker().as<VisualStudioLinker*>(); L)
-#else
+        if (grep.getLinkerType() == LinkerType::MSVC)
+        {
+            auto &r = grep.getRule("link");
+            r.getArguments().push_back("/FORCE:MULTIPLE");
+        }
+#elif SW_CPP_DRIVER_API_VERSION == 1
         if (auto L = grep.Linker->as<VisualStudioLinker*>(); L)
-#endif
+            L->Force = vs::ForceType::Multiple;
 #else
         if (auto L = grep.Linker->as<VisualStudioLinker>(); L)
-#endif
             L->Force = vs::ForceType::Multiple;
+#endif
 
         grep.writeFileOnce(grep.BinaryPrivateDir / "unistd.h");
         grep.writeFileOnce(grep.BinaryPrivateDir / "configmake.h");
