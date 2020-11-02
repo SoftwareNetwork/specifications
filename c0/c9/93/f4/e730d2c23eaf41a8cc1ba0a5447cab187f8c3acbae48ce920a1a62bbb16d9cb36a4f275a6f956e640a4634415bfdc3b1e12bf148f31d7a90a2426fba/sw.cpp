@@ -5,7 +5,7 @@
 
 void build(Solution &s)
 {
-    auto &sw = s.addProject("sw", "0.4.2");
+    auto &sw = s.addProject("sw", "0.4.3");
     sw += Git("https://github.com/SoftwareNetwork/sw", "", "master");
 
     auto &p = sw.addProject("client");
@@ -223,9 +223,6 @@ void build(Solution &s)
                 << cmd::out("options_cl.generated.h")
                 << cmd::out("options_cl.generated.cpp", cmd::Skip)
                 ;
-            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->ignore_deps_generated_commands = true;
-            // make sure this is exported header, so we depend on it
-            cpp_driver.Public += "options_cl.generated.h";
         }
         //if (!s.Variables["SW_SELF_BUILD"])
         {
@@ -395,8 +392,9 @@ void build(Solution &s)
         if (client.getBuildSettings().TargetOS.Type == OSType::Windows)
             gui += "org.sw.demo.qtproject.qt.winextras"_dep;
 
-        if (auto L = gui.getSelectedTool()->as<VisualStudioLinker*>(); L)
-            L->Subsystem = vs::Subsystem::Windows;
+        SW_UNIMPLEMENTED;
+        //if (auto L = gui.getSelectedTool()->as<VisualStudioLinker*>(); L)
+            //L->Subsystem = vs::Subsystem::Windows;
 
         qt_moc_rcc_uic("org.sw.demo.qtproject.qt"_dep, gui);
         qt_tr("org.sw.demo.qtproject.qt"_dep, gui);
