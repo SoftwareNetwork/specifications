@@ -58,15 +58,15 @@ void build(Solution &s)
     d->IncludeDirectoriesOnly = true;
 
     auto uv = fribidi.BinaryDir / "fribidi-unicode-version.h";
+    auto c = fribidi.addCommand();
     {
-        auto c = fribidi.addCommand();
         c << cmd::prog(gen_unicode_version)
             << cmd::in("gen.tab/unidata/ReadMe.txt")
             << cmd::in("gen.tab/unidata/BidiMirroring.txt")
             << cmd::std_out(uv);
     }
 
-    auto add_tab = [&gen, &fribidi, &uv, &set_defs](const String &n, const path &p1, const path &p2 = {})
+    auto add_tab = [&gen, &fribidi, &uv, &set_defs, &c](const String &n, const path &p1, const path &p2 = {})
     {
         auto COMPRESSION = 2;
 
@@ -78,6 +78,9 @@ void build(Solution &s)
         gen_tab += "gen.tab/packtab.*"_rr;
         gen_tab += uv;
         set_defs(gen_tab);
+#if SW_CPP_DRIVER_API_VERSION >= 2
+        gen_tab.addGeneratedCommand(c.getCommand());
+#endif
 
         auto c = fribidi.addCommand();
         c << cmd::prog(gen_tab) << COMPRESSION << cmd::in(p1);
