@@ -3,7 +3,11 @@ void build(Solution &s)
     auto &vpx = s.addLibrary("webmproject.vpx", "1.9.0");
     vpx += Git("https://github.com/webmproject/libvpx", "v{M}.{m}.{p}");
 
+#if SW_CPP_DRIVER_API_VERSION >= 2
+    vpx.addRuleDependency("asm", "org.sw.demo.yasm"_dep);
+#else
     vpx.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
+#endif
 
     vpx.ExportAllSymbols = true;
     vpx.setChecks("vpx");

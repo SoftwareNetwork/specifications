@@ -1,7 +1,102 @@
 #pragma sw require header org.sw.demo.re2c.re2c
 #pragma sw require pub.egorpugin.primitives.filesystem-master
 
-#if SW_CPP_DRIVER_API_VERSION == 1
+#if SW_CPP_DRIVER_API_VERSION >= 2
+struct YasmRule : sw::NativeRule
+{
+    ExecutableTarget &exe;
+
+    YasmRule(RuleProgram p, ExecutableTarget &exe)
+        : NativeRule(std::move(p)), exe(exe)
+    {
+    }
+
+    sw::IRulePtr clone() const override { return std::make_unique<YasmRule>(*this); }
+    void setup(const Target &t) override
+    {
+        getProgram().getCommand()->setProgram(getProgram().file);
+        exe.setupCommand(*getProgram().getCommand());
+    }
+    Files addInputs(const Target &t, const sw::RuleFiles &rfs) override
+    {
+        auto nt = t.as<NativeCompiledTarget *>();
+        if (!nt)
+            return {};
+        Files outputs;
+        for (auto &rf : rfs)
+        {
+            if (used_files.contains(rf))
+                continue;
+            if (rf.getFile().extension() != ".asm")
+                continue;
+
+            auto o = getOutputFile(t, rf.getFile());
+            outputs.insert(o);
+            auto p = getProgram().clone();
+            auto c = p->getCommand();
+            c->setContext(t.getMainBuild());
+            c->working_directory = o.parent_path();
+            if (nt->getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
+                if (nt->getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                {
+                    c->push_back("-f");
+                    c->push_back("win64");
+                }
+                else
+                {
+                    c->push_back("-f");
+                    c->push_back("win32");
+                }
+            }
+            auto add_def = [&c](auto &d)
+            {
+                c->push_back("-D");
+                c->push_back(d);
+            };
+            switch (t.getBuildSettings().TargetOS.Arch)
+            {
+            case ArchType::x86_64:
+                add_def("ARCH_X86_32=0");
+                add_def("ARCH_X86_64=1");
+                break;
+            case ArchType::x86:
+                add_def("ARCH_X86_32=1");
+                add_def("ARCH_X86_64=0");
+                break;
+            default:
+                SW_UNIMPLEMENTED;
+            }
+            c->push_back("-o");
+            c->push_back(o);
+            c->addOutput(o);
+            for (auto &i : nt->getMergeObject().gatherIncludeDirectories())
+            {
+                c->push_back("-I");
+                c->push_back(i);
+            }
+            c->push_back(rf.getFile()); // goes last
+            commands.emplace(p->getCommand());
+            used_files.insert(rf);
+        }
+        return outputs;
+    }
+
+    sw::Commands getCommands() const override { return commands; }
+
+protected:
+    sw::Commands commands;
+};
+
+struct YasmCompiler : sw::CompilerBaseProgram
+{
+    std::unique_ptr<Program> clone() const override
+    {
+        return std::make_unique<YasmCompiler>(*this);
+    }
+    void prepareCommand1(const Target &t) {}
+};
+#else
 struct YasmAssemblerOptions
 {
     COMMAND_LINE_OPTION(ObjectFile, path)
@@ -52,7 +147,7 @@ struct YasmCompiler : sw::NativeCompiler
 
         /*if (InputFile)
         {
-            cmd->name = to_printable_string(normalize_path(InputFile()));
+        cmd->name = to_printable_string(normalize_path(InputFile()));
         }*/
         if (ObjectFile)
             cmd->working_directory = ObjectFile().parent_path();
@@ -313,7 +408,12 @@ void build(Solution &s)
     yasm += libyasm;
     yasm.writeFileOnce("license.c", "const char *license_msg[] = { \"\" };");
 
-#if SW_CPP_DRIVER_API_VERSION == 1
+#if SW_CPP_DRIVER_API_VERSION >= 2
+    auto p = std::make_unique<YasmCompiler>();
+    p->file = yasm.getOutputFile();
+    auto r = std::make_unique<YasmRule>(std::move(p), yasm);
+    yasm.setRule("asm", std::move(r));
+#elif SW_CPP_DRIVER_API_VERSION == 1
     auto C = std::make_shared<YasmCompiler>(yasm);
     C->file = yasm.getOutputFile();
     yasm.setProgram(C);
