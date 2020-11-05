@@ -45,6 +45,37 @@ void build(Solution &s)
     fontconfig.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
 
     {
+#if SW_CPP_DRIVER_API_VERSION >= 2
+        struct MyRule : sw::IRule
+        {
+            LibraryTarget *t;
+            mutable std::shared_ptr<sw::builder::Command> c;
+
+            sw::IRulePtr clone() const override { return std::make_unique<MyRule>(*this); }
+            sw::Commands getCommands() const override
+            {
+                for (auto &i : t->getMergeObject().gatherIncludeDirectories())
+                {
+                    c->push_back("-I");
+                    c->push_back(i);
+                }
+                return {};
+            }
+        };
+
+        auto &t = fontconfig;
+        auto cb = t.addCommand();
+        cb << cmd::prog(t.getRuleDependency("cpp"))
+            << cmd::wdir(t.BinaryDir)
+            << "-E"
+            << cmd::in("src/fcobjshash.gperf.h")
+            ;
+        auto c = cb.getCommand();
+        auto r = std::make_unique<MyRule>();
+        r->t = &fontconfig;
+        r->c = c;
+        fontconfig.addRule("fcobjshash", std::move(r));
+#elif SW_CPP_DRIVER_API_VERSION == 1
         std::shared_ptr<sw::Program> cc1(fontconfig.findProgramByExtension(".cpp")->clone());
         auto cc = std::static_pointer_cast<sw::NativeCompiler>(cc1);
         cc->IncludeDirectories.push_back(fontconfig.SourceDir);
@@ -59,6 +90,9 @@ void build(Solution &s)
             cc->merge(fontconfig);
             cc->getCommand(fontconfig);
         });
+#else
+#error "too old sw"
+#endif
 
         {
             auto o3 = fontconfig.BinaryDir / "fcobjshash.gperf";
