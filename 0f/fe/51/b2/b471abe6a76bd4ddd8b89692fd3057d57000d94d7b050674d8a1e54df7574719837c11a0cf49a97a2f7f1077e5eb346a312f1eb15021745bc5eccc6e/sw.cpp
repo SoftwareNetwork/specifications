@@ -93,9 +93,8 @@ void build(Solution &s)
         auto out = t.BinaryDir / (f + ".i");
 #if SW_CPP_DRIVER_API_VERSION >= 2
         {
-            auto d = t.getRuleDependency("c");
             auto c = t.addCommand();
-            c << cmd::prog(d)
+            c << cmd::prog(t.getRule("c"))
                 << cmd::wdir(t.BinaryDir)
                 << "-EP"
                 << "-P"
@@ -107,9 +106,8 @@ void build(Solution &s)
             c << "-I" << t.BinaryDir;
         }
         {
-            auto d = t.getRuleDependency("asm");
             auto c = t.addCommand();
-            c << cmd::prog(d)
+            c << cmd::prog(t.getRule("asm"))
                 << "-c"
                 << "-Cx" // PreserveSymbolCase
                 << cmd::out(t.BinaryDir / "pre.obj", cmd::Prefix{ "-Fo" })

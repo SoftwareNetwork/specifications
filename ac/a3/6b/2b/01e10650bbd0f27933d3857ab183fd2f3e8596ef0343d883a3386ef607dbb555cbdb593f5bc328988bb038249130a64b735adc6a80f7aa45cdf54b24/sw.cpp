@@ -48,31 +48,29 @@ void build(Solution &s)
 #if SW_CPP_DRIVER_API_VERSION >= 2
         struct MyRule : sw::IRule
         {
-            LibraryTarget *t;
             mutable std::shared_ptr<sw::builder::Command> c;
 
             sw::IRulePtr clone() const override { return std::make_unique<MyRule>(*this); }
-            sw::Commands getCommands() const override
+            void setup(const Target &t) override
             {
-                for (auto &i : t->getMergeObject().gatherIncludeDirectories())
+                auto nt = t.as<NativeCompiledTarget *>();
+                for (auto &i : nt->getMergeObject().gatherIncludeDirectories())
                 {
                     c->push_back("-I");
                     c->push_back(i);
                 }
-                return {};
             }
         };
 
         auto &t = fontconfig;
         auto cb = t.addCommand();
-        cb << cmd::prog(t.getRuleDependency("cpp"))
+        cb << cmd::prog(t.getRule("cpp"))
             << cmd::wdir(t.BinaryDir)
             << "-E"
             << cmd::in("src/fcobjshash.gperf.h")
             ;
         auto c = cb.getCommand();
         auto r = std::make_unique<MyRule>();
-        r->t = &fontconfig;
         r->c = c;
         fontconfig.addRule("fcobjshash", std::move(r));
 #elif SW_CPP_DRIVER_API_VERSION == 1
