@@ -1,5 +1,3 @@
-#pragma sw require pub.egorpugin.primitives.filesystem-master
-
 static int wt_preprocess_file(path i, path o, String name)
 {
     auto preprocess_file = [](const String &s)
