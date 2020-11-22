@@ -1,9 +1,5 @@
 #pragma sw header on
 
-#pragma sw require pub.egorpugin.primitives.emitter-master
-
-#include <primitives/emitter.h>
-
 /*namespace flex_bison
 {
 
@@ -127,9 +123,9 @@ static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBis
     c << cmd::wdir(d.wdir);
     //if (flex_bison::need_build(t.getSolution()))
     //if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
-        //c << cmd::prog("org.sw.demo.westes.flex"_dep);
+    //c << cmd::prog("org.sw.demo.westes.flex"_dep);
     //else
-        c << cmd::prog(flex);
+    c << cmd::prog(flex);
     c << "-o" << cmd::out(d.out);
     for (auto &a : d.args)
         c << a;
@@ -176,29 +172,29 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
 
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"];
 
-    primitives::Emitter ctx;
-    ctx.addLine("#pragma once");
-    ctx.addLine();
-    ctx.addLine("#undef  THIS_PARSER_NAME");
-    ctx.addLine("#undef  THIS_PARSER_NAME_UP");
-    ctx.addLine("#undef  THIS_LEXER_NAME");
-    ctx.addLine("#undef  THIS_LEXER_NAME_UP");
-    ctx.addLine();
-    ctx.addLine("#define THIS_PARSER_NAME       " + name);
-    ctx.addLine("#define THIS_PARSER_NAME_UP    " + name_upper);
-    ctx.addLine("#define THIS_LEXER_NAME        THIS_PARSER_NAME");
-    ctx.addLine("#define THIS_LEXER_NAME_UP     THIS_PARSER_NAME_UP");
-    ctx.addLine();
-    ctx.addLine("#undef  MY_PARSER");
-    ctx.addLine("#define MY_PARSER              " + my_parser);
-    ctx.addLine();
-    ctx.addLine("#define " + type);
-    ctx.addLine("#include <primitives/helper/bison.h>");
-    ctx.addLine("#undef  " + type);
-    ctx.addLine();
-    ctx.addLine("#include <" + name + ".yy.hpp>");
+    String s;
+    s += "#pragma once";
+    s += "";
+    s += "#undef  THIS_PARSER_NAME";
+    s += "#undef  THIS_PARSER_NAME_UP";
+    s += "#undef  THIS_LEXER_NAME";
+    s += "#undef  THIS_LEXER_NAME_UP";
+    s += "";
+    s += "#define THIS_PARSER_NAME       " + name;
+    s += "#define THIS_PARSER_NAME_UP    " + name_upper;
+    s += "#define THIS_LEXER_NAME        THIS_PARSER_NAME";
+    s += "#define THIS_LEXER_NAME_UP     THIS_PARSER_NAME_UP";
+    s += "";
+    s += "#undef  MY_PARSER";
+    s += "#define MY_PARSER              " + my_parser;
+    s += "";
+    s += "#define " + type;
+    s += "#include <primitives/helper/bison.h>";
+    s += "#undef  " + type;
+    s += "";
+    s += "#include <" + name + ".yy.hpp>";
 
-    t.writeFileOnce(t.BinaryPrivateDir / (name + "_parser.h"), ctx.getText());
+    t.writeFileOnce(t.BinaryPrivateDir / (name + "_parser.h"), s);
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"] = 1;
 
     auto f = p;
