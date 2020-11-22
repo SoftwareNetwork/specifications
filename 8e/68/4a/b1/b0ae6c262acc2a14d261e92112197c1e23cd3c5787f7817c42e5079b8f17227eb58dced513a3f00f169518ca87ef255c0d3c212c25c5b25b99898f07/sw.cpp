@@ -173,26 +173,30 @@ static auto gen_flex_bison_pair(const DependencyPtr &base, NativeExecutedTarget 
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"];
 
     String s;
-    s += "#pragma once";
-    s += "";
-    s += "#undef  THIS_PARSER_NAME";
-    s += "#undef  THIS_PARSER_NAME_UP";
-    s += "#undef  THIS_LEXER_NAME";
-    s += "#undef  THIS_LEXER_NAME_UP";
-    s += "";
-    s += "#define THIS_PARSER_NAME       " + name;
-    s += "#define THIS_PARSER_NAME_UP    " + name_upper;
-    s += "#define THIS_LEXER_NAME        THIS_PARSER_NAME";
-    s += "#define THIS_LEXER_NAME_UP     THIS_PARSER_NAME_UP";
-    s += "";
-    s += "#undef  MY_PARSER";
-    s += "#define MY_PARSER              " + my_parser;
-    s += "";
-    s += "#define " + type;
-    s += "#include <primitives/helper/bison.h>";
-    s += "#undef  " + type;
-    s += "";
-    s += "#include <" + name + ".yy.hpp>";
+    auto add_line = [&s](const String &l)
+    {
+        s += l + "\n";
+    };
+    add_line("#pragma once");
+    add_line("");
+    add_line("#undef  THIS_PARSER_NAME");
+    add_line("#undef  THIS_PARSER_NAME_UP");
+    add_line("#undef  THIS_LEXER_NAME");
+    add_line("#undef  THIS_LEXER_NAME_UP");
+    add_line("");
+    add_line("#define THIS_PARSER_NAME       " + name);
+    add_line("#define THIS_PARSER_NAME_UP    " + name_upper);
+    add_line("#define THIS_LEXER_NAME        THIS_PARSER_NAME");
+    add_line("#define THIS_LEXER_NAME_UP     THIS_PARSER_NAME_UP");
+    add_line("");
+    add_line("#undef  MY_PARSER");
+    add_line("#define MY_PARSER              " + my_parser);
+    add_line("");
+    add_line("#define " + type);
+    add_line("#include <primitives/helper/bison.h>");
+    add_line("#undef  " + type);
+    add_line("");
+    add_line("#include <" + name + ".yy.hpp>");
 
     t.writeFileOnce(t.BinaryPrivateDir / (name + "_parser.h"), s);
     t.Definitions["HAVE_BISON_" + name_upper + "_PARSER"] = 1;
