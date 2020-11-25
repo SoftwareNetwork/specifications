@@ -75,7 +75,7 @@ struct ProtocData
         // plugin
         if (plugin)
         {
-            c << [c = c.getCommand().get(), plugin = plugin, generator = generator]()
+            c << [c = c.getCommand().get(), plugin = plugin, generator = generator, &ctx = t.getContext()]()
             {
                 path p;
                 if (auto t = plugin->getTarget().as<NativeExecutedTarget *>())
@@ -84,7 +84,7 @@ struct ProtocData
                 }
                 else if (auto t = plugin->getTarget().as<PredefinedTarget *>())
                 {
-                    p = t->getInterfaceSettings()["output_file"].getPathValue(t->getPackage().getStorage());
+                    p = t->getInterfaceSettings()["output_file"].getPathValue(ctx.getLocalStorage());
                 }
                 else
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
