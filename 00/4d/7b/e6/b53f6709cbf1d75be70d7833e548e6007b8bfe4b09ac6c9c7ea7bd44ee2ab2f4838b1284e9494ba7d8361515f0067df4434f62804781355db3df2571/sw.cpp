@@ -32,6 +32,7 @@ void build(Solution &s)
             "fat-arm.c",
             "fat-x86_64.c",
             "gcmdata.c",
+            "getopt.c",
             "sha-example.c",
             "shadata.c",
             "twofishdata.c";

@@ -337,7 +337,8 @@ void build(Solution &s)
 #endif
 )");
 
-        glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
+        if (glib.getBuildSettings().TargetOS.Type != OSType::Macos)
+            glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
 
         // win+static
         glib.replaceInFileOnce("glib/glib-init.c", "#if defined (G_OS_WIN32)",
