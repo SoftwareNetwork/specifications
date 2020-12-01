@@ -45,11 +45,12 @@ void build(Solution &s)
         }
 
         nettle += "NETTLE_USE_MINI_GMP=1"_v;
-        nettle += "MAJOR_VERSION=3"_v;
-        nettle += "MINOR_VERSION=3"_v;
+        nettle += sw::Variable("MAJOR_VERSION=" + std::to_string(nettle.getPackage().getVersion().getMajor()));
+        nettle += sw::Variable("MINOR_VERSION=" + std::to_string(nettle.getPackage().getVersion().getMinor()));
         const auto GMP_NUMB_BITS = nettle.Variables["SIZEOF_UNSIGNED_LONG"] * 8;
         nettle.Variables["GMP_NUMB_BITS"] = std::to_string(GMP_NUMB_BITS);
         nettle.configureFile("version.h.in", "version.h");
+        nettle.configureFile("version.h.in", "nettle/version.h");
         nettle.writeFileOnce(nettle.BinaryPrivateDir / "config.h", "");
         nettle.writeFileOnce("nettle-stdint.h", "#include <stdint.h>");
         nettle.replaceInFileOnce(nettle.SourceDir / "pss-mgf1.h",
