@@ -3,8 +3,10 @@ void build(Build &b)
     auto &p = b.addProject("google.protocolbuffers.upb", "master");
     p += Git("https://github.com/protocolbuffers/upb");
 
+    auto &wyhash = p.addStaticLibrary("third_party.wyhash");
+    wyhash += "third_party/wyhash/wyhash.h";
+
     auto &port = p.addStaticLibrary("port");
-    port += "upb/port.c";
     port += "upb/port_def.inc";
     port += "upb/port_undef.inc";
 
@@ -15,5 +17,14 @@ void build(Build &b)
     upb += "upb/table.c";
     upb += "upb/table.int.h";
     upb += "upb/upb.*"_rr;
+    upb += wyhash;
     upb.Public += port;
+
+    auto &reflection = p.addStaticLibrary("reflection");
+    reflection += "upb/def.*"_rr;
+    reflection += "upb/reflection.*"_rr;
+    reflection += "cmake/google/.*"_rr;
+    reflection.Public += "."_idir;
+    reflection.Public += "cmake"_idir;
+    reflection.Public += upb;
 }
