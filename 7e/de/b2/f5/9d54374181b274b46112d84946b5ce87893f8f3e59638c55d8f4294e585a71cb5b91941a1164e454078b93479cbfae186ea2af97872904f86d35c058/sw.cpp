@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &p = s.addProject("gnu.nettle", "3.5.1");
+    auto &p = s.addProject("gnu.nettle", "3.6.0");
     p += RemoteFile("https://ftp.gnu.org/gnu/nettle/nettle-{M}.{m}{po}.tar.gz");
 
     auto &eccdata = p.addTarget<ExecutableTarget>("eccdata");
@@ -57,23 +57,27 @@ void build(Solution &s)
             "#include \"sha2.h\"",
             "#include \"sha2.h\"\n#include \"sha3.h\"");
 
-        const std::map<int, std::vector<int>> args =
+        const std::map<String, std::vector<int>> args =
         {
-            { 192,{192,7,6,GMP_NUMB_BITS} },
-            { 224,{224,12,6,GMP_NUMB_BITS} },
-            { 256,{256,14,6,GMP_NUMB_BITS} },
-            { 384,{384,41,6,GMP_NUMB_BITS} },
-            { 521,{521,56,6,GMP_NUMB_BITS} },
-            { 25519,{255,14,6,GMP_NUMB_BITS} },
+            { "secp192r1",{8,6,GMP_NUMB_BITS} },
+            { "secp224r1",{16,7,GMP_NUMB_BITS} },
+            { "secp256r1",{11,6,GMP_NUMB_BITS} },
+            { "secp384r1",{32,6,GMP_NUMB_BITS} },
+            { "secp521r1",{44,6,GMP_NUMB_BITS} },
+            { "curve25519",{11,6,GMP_NUMB_BITS} },
+            { "curve448",{38,6,GMP_NUMB_BITS} },
+            { "gost_gc256b",{11,6,GMP_NUMB_BITS} },
+            { "gost_gc512a",{43,6,GMP_NUMB_BITS} },
         };
 
-        for (auto &[k, a] : args)
+        for (auto &&[k, a] : args)
         {
             auto c = nettle.addCommand();
             c << cmd::prog(eccdata);
+            c << k;
             for (auto &a2 : a)
                 c << std::to_string(a2);
-            c << cmd::std_out("ecc-" + std::to_string(k) + ".h");
+            c << cmd::std_out("ecc-" + boost::replace_all_copy(k, "_", "-") + ".h");
         }
 
         // install
