@@ -27,4 +27,8 @@ void build(Build &b)
     reflection.Public += "."_idir;
     reflection.Public += "cmake"_idir;
     reflection.Public += upb;
+
+    auto &textformat = p.addStaticLibrary("textformat");
+    textformat += "upb/text_encode.*"_rr;
+    textformat.Public += reflection;
 }

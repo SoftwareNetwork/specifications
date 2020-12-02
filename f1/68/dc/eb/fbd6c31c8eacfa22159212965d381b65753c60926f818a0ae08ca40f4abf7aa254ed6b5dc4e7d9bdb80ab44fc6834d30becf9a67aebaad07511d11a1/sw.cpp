@@ -111,13 +111,14 @@ void build(Solution &s)
         t += cpp11;
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
-        t -= "src/core/ext/upbdefs-generated/.*"_rr;
+        //t -= "src/core/ext/upbdefs-generated/.*"_rr;
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
         t -= "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc";
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
 
         t += "GRPC_ARES"_def;
         t.Public += "."_id;
+        t += "src/core/ext/upbdefs-generated"_id;
 
         t.Public += proto;
         t.Public += grpc_address_sorting;
@@ -125,6 +126,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
+        t.Public += "org.sw.demo.google.protocolbuffers.upb.textformat-master"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
     }
 
