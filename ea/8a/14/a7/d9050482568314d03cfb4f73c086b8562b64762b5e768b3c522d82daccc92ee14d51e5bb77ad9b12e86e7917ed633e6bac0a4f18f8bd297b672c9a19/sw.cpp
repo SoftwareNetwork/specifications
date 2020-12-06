@@ -153,10 +153,20 @@ void build(Solution &s)
             t += "VSI_STAT64=_stat64"_def;
             t += "VSI_STAT64_T=__stat64"_def;
 
+            if (t.getBuildSettings().Native.ConfigurationType != ConfigurationType::Debug)
+                t += "comsuppw.lib"_slib;
+            else
+                t += "comsuppwd.lib"_slib;
+
             t += "odbc32.lib"_slib;
             t += "odbccp32.lib"_slib;
+            t += "ole32.lib"_slib;
+            t += "OleAut32.lib"_slib;
             t += "user32.lib"_slib;
             t += "ws2_32.lib"_slib;
+            t += "wbemuuid.lib"_slib;
+
+            t += "com.Microsoft.VisualStudio.VC.ATLMFC"_dep;
         }
         else
         {
