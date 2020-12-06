@@ -15,6 +15,8 @@ void build(Solution &s)
             "lib/hard-locale.c",
 
             //
+            "lib/propername.c",
+
             "lib/at-func.c",
             "lib/closedir.c",
             "lib/colorize-posix.c",
@@ -49,6 +51,9 @@ void build(Solution &s)
         gnulib.Public += "lib"_id;
 
         gnulib.Private += "__USE_GNU"_d;
+        gnulib.Public += "GNULIB_XALLOC"_d;
+        gnulib.Public += "GNULIB_XALLOC_DIE"_d;
+        gnulib.Private += "max_align_t=long double"_d;
 
         gnulib.Public += "org.sw.demo.gnu.gawk.getopt"_dep;
         gnulib.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
@@ -136,6 +141,7 @@ struct DIR* fdopendir(int fd);
 char *getcwd(char *buf, size_t size);
 void *mempcpy(void * __dest, void const * __src,
     size_t __n);
+void * rawmemchr(void const *__s, int __c_in);
 
 #define FLEXIBLE_ARRAY_MEMBER
 
@@ -147,6 +153,7 @@ void *mempcpy(void * __dest, void const * __src,
 #endif
 
 #define _GL_ATTRIBUTE_MALLOC
+#define _GL_ATTRIBUTE_DEPRECATED
 
 #define HAVE_WORKING_O_NOFOLLOW 1
 
@@ -160,7 +167,6 @@ void *mempcpy(void * __dest, void const * __src,
 
 #define GNULIB_MSVC_NOTHROW 1
 #define HAVE_DECL_STRERROR_R 1
-
 
 #define _GL_ATTRIBUTE_FORMAT_PRINTF(x,y)
 #define _GL_ARG_NONNULL(x)
@@ -441,6 +447,7 @@ struct DIR *fdopendir(int fd);
 char *getcwd(char *buf, size_t size);
 void *mempcpy(void * __dest, void const * __src,
     size_t __n);
+void * rawmemchr(void const *__s, int __c_in);
 
 #define FLEXIBLE_ARRAY_MEMBER
 
@@ -452,6 +459,7 @@ void *mempcpy(void * __dest, void const * __src,
 #endif
 
 #define _GL_ATTRIBUTE_MALLOC
+#define _GL_ATTRIBUTE_DEPRECATED
 
 #define HAVE_WORKING_O_NOFOLLOW 1
 
