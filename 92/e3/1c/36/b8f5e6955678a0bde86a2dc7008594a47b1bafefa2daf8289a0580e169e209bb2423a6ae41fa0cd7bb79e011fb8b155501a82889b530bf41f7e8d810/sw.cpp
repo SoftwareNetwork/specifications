@@ -64,17 +64,22 @@ void build(Solution &s)
                 << DataManager.BinaryDir
                 << cmd::end()
                 ;
-            for (auto o : {
+            for (path o : {
                 "include/detail/ForwardDeclarations.h",
                 "include/detail/Types.h",
-                "src/detail/Types.cpp",
                 "include/detail/Storage.h",
-                "src/detail/Storage.cpp",
                 "include/detail/StorageImpl.h",
-                "src/detail/StorageImpl.cpp",
-                "src/detail/schema/Tokens.cpp",
                 "include/detail/ObjectInterfaces.h",
                 "include/detail/Enums.h",
+                })
+            {
+                c << cmd::out(o);
+            }
+            for (path o : {
+                "src/detail/Types.cpp",
+                "src/detail/Storage.cpp",
+                "src/detail/StorageImpl.cpp",
+                "src/detail/schema/Tokens.cpp",
                 "src/detail/Enums.cpp",
                 })
             {
