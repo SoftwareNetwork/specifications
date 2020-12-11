@@ -119,11 +119,8 @@ struct ProtobufData : ProtocData
 static auto gen_protobuf_cpp(const DependencyPtr &protobuf_base, NativeExecutedTarget &t,
     const path &f, const ProtobufData &data = {})
 {
-    auto protoc = std::make_shared<Dependency>(protobuf_base->package);
-    protoc->package.ppath /= "protoc";
-
-    auto protobuf = std::make_shared<Dependency>(protobuf_base->package);
-    protobuf->package.ppath /= "protobuf";
+    auto protoc = std::make_shared<Dependency>(sw::UnresolvedPackage{protobuf_base->package.getPath() / "protoc", protobuf_base->package.getRange()});
+    auto protobuf = std::make_shared<Dependency>(sw::UnresolvedPackage{protobuf_base->package.getPath() / "protobuf", protobuf_base->package.getRange()});
 
     ProtocData d = data;
     d.input = f;

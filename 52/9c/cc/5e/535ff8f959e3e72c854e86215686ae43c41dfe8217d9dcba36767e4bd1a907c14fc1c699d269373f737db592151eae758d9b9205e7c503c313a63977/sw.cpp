@@ -75,8 +75,7 @@ struct FlexBisonData
 
 static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
-    auto bison = std::make_shared<Dependency>(base->package);
-    bison->package.ppath /= "bison";
+    auto bison = std::make_shared<Dependency>(sw::UnresolvedPackage{base->package.getPath() / "bison", base->package.getRange()});
 
     d.setupFiles(t, ".y");
 
@@ -109,8 +108,7 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const 
 
 static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
-    auto flex = std::make_shared<Dependency>(base->package);
-    flex->package.ppath /= "flex";
+    auto flex = std::make_shared<Dependency>(sw::UnresolvedPackage{base->package.getPath() / "flex", base->package.getRange()});
 
     d.setupFiles(t, ".l");
 
