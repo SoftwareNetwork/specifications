@@ -21,6 +21,6 @@ void build(Solution &s)
     }
 
     t.Public +=
-        "org.sw.demo.amazon.awslabs.c_common"_dep,
+        "org.sw.demo.amazon.awslabs.c_io"_dep,
         "org.sw.demo.amazon.awslabs.checksums"_dep;
 }
