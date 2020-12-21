@@ -1,10 +1,12 @@
 struct TclExecutable : ExecutableTarget
 {
+    using ExecutableTarget::ExecutableTarget;
+
     void setupCommand(builder::Command &c) const override
     {
         ExecutableTarget::setupCommand(c);
 
-        c.environment["TCL_LIBRARY"] = (SourceDir / "library").u8string();
+        c.environment["TCL_LIBRARY"] = to_printable_string(SourceDir / "library");
     }
 };
 
