@@ -1,3 +1,12 @@
+static int merge_files(path i1, path i2, path o)
+{
+    auto s1 = read_file(i1);
+    auto s2 = read_file(i2);
+    write_file(o, s1 + "\n" + s2);
+    return 0;
+}
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(merge_files)
+
 void build(Solution &s)
 {
     auto &sql = s.addProject("sqlcipher", "4.3.0");
@@ -104,7 +113,7 @@ void build(Solution &s)
             auto c = sqlcipher.addCommand();
             c << cmd::prog(lemon)
                 << "-s" << "-DSQLITE_ENABLE_FOO=1" << "-DSQLITE_OMIT_FOO=1"
-                << ("-T" + lempar.u8string())
+                << ("-T" + to_printable_string(lempar))
                 << cmd::in(parse2y)
                 << cmd::end()
                 << cmd::out(parse2)
@@ -112,25 +121,11 @@ void build(Solution &s)
             copy(sqlcipher, parse2h, parseh);
         }
 
-        if (sqlcipher.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            auto c = sqlcipher.addCommand();
-            c << "cmd"
-                << "/c"
-                << ("type " + normalize_path_windows(parseh) + " " + normalize_path_windows(sqlcipher.SourceDir / "src/vdbe.c"))
-                << cmd::std_out(tmp1)
-                << cmd::end()
-                << cmd::in(parseh)
-                //<< cmd::in("src/vdbe.c")
-                ;
-        }
-        else
-        {
-            auto c = sqlcipher.addCommand();
-            c << "cat"
-                << cmd::in(parseh)
-                << cmd::in("src/vdbe.c")
-                << cmd::std_out(tmp1);
+            auto c = sqlcipher.addCommand(SW_VISIBLE_FUNCTION(merge_files));
+            c << cmd::in(parseh);
+            c << cmd::in("src/vdbe.c");
+            c << cmd::out(tmp1);
         }
 
         {
@@ -143,7 +138,7 @@ void build(Solution &s)
             auto c = sqlcipher.addCommand();
             c << cmd::prog(lemon)
                 << "-s" << "-DSQLITE_ENABLE_FOO=1" << "-DSQLITE_OMIT_FOO=1"
-                << ("-T" + lempar.u8string())
+                << ("-T" + to_printable_string(lempar))
                 << cmd::in(fts5parse2y)
                 << cmd::end()
                 << cmd::out(fts5parse2)
@@ -169,7 +164,7 @@ void build(Solution &s)
         }
 
         {
-            sqlcipher.patch("tool/mksqlite3h.tcl", "$PWD/mksourceid", normalize_path(mksourceid.getOutputFile()));
+            sqlcipher.patch("tool/mksqlite3h.tcl", "$PWD/mksourceid", to_printable_string(normalize_path(mksourceid.getOutputFile())));
 
             auto c = sqlcipher.addCommand();
             c << cmd::prog("org.sw.demo.tcl.sh"_dep)

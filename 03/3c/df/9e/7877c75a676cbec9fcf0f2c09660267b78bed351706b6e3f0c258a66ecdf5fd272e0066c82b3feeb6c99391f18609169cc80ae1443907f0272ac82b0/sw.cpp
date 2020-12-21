@@ -9,7 +9,7 @@ SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(merge_files)
 
 void build(Solution &s)
 {
-    auto &sql = s.addProject("sqlcipher", "4.3.0");
+    auto &sql = s.addProject("sqlcipher", "4.4.1");
     sql += Git("https://github.com/sqlcipher/sqlcipher", "v{v}");
 
     auto &lemon = sql.addTarget<ExecutableTarget>("lemon");
@@ -178,8 +178,8 @@ void build(Solution &s)
         }
 
         sqlcipher.pushFrontToFileOnce("ext/rtree/rtree.c", "#include <stdlib.h>");
-        sqlcipher.pushFrontToFileOnce("src/crypto.c", "#include <sqlite3.h>");
-        sqlcipher.pushFrontToFileOnce("src/crypto_impl.c", "#include <sqlite3.h>");
-        sqlcipher.pushFrontToFileOnce("src/crypto_openssl.c", "#include <sqlite3.h>\n#include \"sqlcipher.h\"");
+        sqlcipher.pushFrontToFileOnce("src/crypto.c", "#include <sqliteInt.h>");
+        sqlcipher.pushFrontToFileOnce("src/crypto_impl.c", "#include <sqliteInt.h>");
+        sqlcipher.pushFrontToFileOnce("src/crypto_openssl.c", "#include <sqliteInt.h>\n#include \"sqlcipher.h\"");
     }
 }
