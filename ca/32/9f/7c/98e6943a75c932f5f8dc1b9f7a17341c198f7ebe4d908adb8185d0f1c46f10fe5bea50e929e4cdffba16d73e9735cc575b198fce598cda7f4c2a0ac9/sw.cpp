@@ -183,8 +183,13 @@ void build(Solution &s)
 
         lib.configureFile("mpn/generic/popham.c", "popham.c", ConfigureFlags::CopyOnly);
         lib += "popham.c";
-        lib["mpn/generic/popham.c"].args["c"].push_back("-DOPERATION_popcount");
-        lib["popham.c"].args["c"].push_back("-DOPERATION_hamdist");
+#if SW_CPP_DRIVER_API_VERSION > 1
+        lib["mpn/generic/popham.c"].getAdditionalArguments()["c"].push_back("-DOPERATION_popcount");
+        lib["popham.c"].getAdditionalArguments()["c"].push_back("-DOPERATION_hamdist");
+#else
+        lib["mpn/generic/popham.c"].args.push_back("-DOPERATION_popcount");
+        lib["popham.c"].args.push_back("-DOPERATION_hamdist");
+#endif
 
         if (lib.getBuildSettings().TargetOS.Arch == ArchType::x86)
         {
