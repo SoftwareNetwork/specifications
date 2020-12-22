@@ -13,7 +13,9 @@ void build(Solution &s)
             "src/.*\\.h"_rr,
             "src/.*\\.m"_rr;
 
+        sdl -= "src/locale/.*"_rr;
         sdl -= "src/main/.*"_rr;
+        sdl -= "src/misc/.*"_rr;
         sdl -= "src/test/.*"_rr;
 
         sdl -= "src/core/.*"_rr;
@@ -28,11 +30,16 @@ void build(Solution &s)
         sdl += "src/video/yuv2rgb/.*"_rr;
         sdl += "src/video/dummy/.*"_rr;
 
+        sdl += "src/locale/[^/]*"_rr;
+        sdl += "src/misc/[^/]*"_rr;
+
         sdl -= "src/hidapi/.*"_rr;
 
         if (sdl.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             sdl += "src/core/windows/.*"_rr;
+            sdl += "src/locale/windows/.*"_rr;
+            sdl += "src/misc/windows/.*"_rr;
             sdl += "src/hidapi/windows/.*"_rr;
             sdl += "src/thread/windows/.*"_rr;
             sdl += "src/thread/generic/SDL_syscond.c"_rr;
@@ -51,6 +58,7 @@ void build(Solution &s)
                 "Setupapi.lib"_slib,
                 "uuid.lib"_slib
                 ;
+            sdl += "com.Microsoft.Windows.SDK.winrt"_dep;
         }
         sdl -= "src/.*\\.def"_rr;
 
