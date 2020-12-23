@@ -60,6 +60,7 @@ void build(Solution &s)
         glib.Private += sw::Shared, "DLL_EXPORT"_d;
         glib.Public += sw::Static, "GLIB_STATIC_COMPILATION"_d;
 
+        glib.Public += "ENABLE_NLS"_def;
         glib.Public += "org.sw.demo.gnu.gettext.intl"_dep;
         glib.Public += "org.sw.demo.pcre.pcre8-8"_dep;
 
@@ -614,6 +615,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         {
             if (glib.getBuildSettings().TargetOS.Type != OSType::Macos)
                 gio += "gio/inotify/.*\\.[hc]"_r;
+            else
+                gio -= "gio/gnetworkmonitornetlink.c";
             gio -= "gio/.*win32.*"_rr;
             gio -= "gio/gregistrysettingsbackend.c";
             gio += "_GNU_SOURCE"_def;
