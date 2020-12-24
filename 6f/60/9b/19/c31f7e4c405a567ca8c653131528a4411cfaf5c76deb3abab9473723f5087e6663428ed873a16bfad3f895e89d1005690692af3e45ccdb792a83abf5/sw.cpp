@@ -14,7 +14,6 @@ void build(Solution &s)
         "gettext-runtime/intl/localcharset.c",
         "gettext-runtime/intl/os2compat.c",
         "gettext-runtime/intl/relocatable.c",
-        "gettext-runtime/intl/setlocale_null.c",
         "gettext-runtime/intl/vasnprintf.c";
 
     intl.Public += "org.sw.demo.gnu.iconv.libiconv-1"_dep;
@@ -37,6 +36,7 @@ void build(Solution &s)
     {
         intl += "HAVE_VISIBILITY=1"_d;
         intl += "HAVE_POSIX_PRINTF=1"_v;
+        intl += "HAVE_PTHREAD_API"_def;
         intl.Public += "HAVE_POSIX_PRINTF=1"_d;
     }
     if (intl.Variables.find("HAVE_NEWLOCALE") == intl.Variables.end())
@@ -79,6 +79,11 @@ void build(Solution &s)
 
 #ifndef WIN32
 #define HAVE_PTHREAD_RWLOCK 1
+#endif
+
+#ifdef _WIN32
+#define LC_MESSAGES -1
+//#define LC_MESSAGES_COMPAT (-1)
 #endif
 
 #ifdef _MSC_VER
