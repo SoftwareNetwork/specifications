@@ -22,10 +22,14 @@ void build(Solution &s)
     auto &p = s.addProject("google.grpc", "1.34.0");
     p += Git("https://github.com/grpc/grpc", "v{v}");
 
+    //auto cppstd = cpp11;
+    // changed for abseil
+    auto cppstd = cpp17;
+
     auto &core = p.addStaticLibrary("core.lib");
     {
         auto &t = core;
-        t += cpp11;
+        t += cppstd;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t += "src/core/ext/upb-generated/.*"_rr;
@@ -50,7 +54,7 @@ void build(Solution &s)
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
     {
         auto &t = grpc_plugin_support;
-        t += cpp11;
+        t += cppstd;
         t += "src/compiler/.*\\.h"_rr;
         t += "src/compiler/.*_generator\\.cc"_rr;
 
@@ -63,7 +67,7 @@ void build(Solution &s)
     auto &grpc_cpp_plugin = p.addExecutable("cpp.plugin");
     {
         auto &t = grpc_cpp_plugin;
-        t += cpp11;
+        t += cppstd;
         t += "src/compiler/cpp_plugin.cc";
         t += grpc_plugin_support;
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
@@ -72,7 +76,7 @@ void build(Solution &s)
     auto &proto = p.addStaticLibrary("proto");
     {
         auto &t = proto;
-        t += cpp11;
+        t += cppstd;
         t += "src/proto/.*\\.proto"_rr;
         t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t.Public += core;
@@ -89,7 +93,7 @@ void build(Solution &s)
     auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
     {
         auto &t = grpc_address_sorting;
-        t += cpp11;
+        t += cppstd;
         t += "third_party/address_sorting/.*\\.[hc]"_rr;
         t.Public += "third_party/address_sorting/include"_idir;
     }
@@ -97,7 +101,7 @@ void build(Solution &s)
     auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
     {
         auto &t = core_plugin_registry;
-        t += cpp11;
+        t += cppstd;
         t += "src/core/plugin_registry/grpc_plugin_registry.cc";
 
         t.Public += "."_id;
@@ -108,7 +112,7 @@ void build(Solution &s)
     auto &core_ext = p.addStaticLibrary("core.ext");
     {
         auto &t = core_ext;
-        t += cpp11;
+        t += cppstd;
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
@@ -133,7 +137,7 @@ void build(Solution &s)
     auto &core_tsi = p.addStaticLibrary("core.tsi");
     {
         auto &t = core_tsi;
-        t += cpp11;
+        t += cppstd;
         t += "src/core/tsi/.*"_rr;
 
         t.Public += "."_id;
@@ -146,7 +150,7 @@ void build(Solution &s)
     auto &cpp = p.addStaticLibrary("cpp");
     {
         auto &t = cpp;
-        t += cpp11;
+        t += cppstd;
         t += "src/cpp/.*"_rr;
         t -= "src/cpp/common/insecure_create_auth_context.cc"_rr;
 
