@@ -13,6 +13,9 @@ void build(Solution &s)
             "src/.*\\.h"_rr,
             "src/.*\\.m"_rr;
 
+        sdl.Public += "include"_idir;
+        sdl.Protected += "src"_idir;
+
         sdl -= "src/locale/.*"_rr;
         sdl -= "src/main/.*"_rr;
         sdl -= "src/misc/.*"_rr;
@@ -79,7 +82,10 @@ void build(Solution &s)
     {
         main -= "src/main/.*"_rr;
         if (main.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
             main += "src/main/windows/.*"_rr;
+            main.patch("src/main/windows/SDL_windows_main.c", "../../core", "core");
+        }
         main += sdl2;
     }
 }

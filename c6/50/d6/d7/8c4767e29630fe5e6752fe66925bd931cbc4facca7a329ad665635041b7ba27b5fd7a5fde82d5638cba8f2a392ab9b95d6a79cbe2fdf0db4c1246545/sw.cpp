@@ -445,6 +445,7 @@ HMODULE glib_dll;
             "gobject/[^/]*\\.in"_rr, // for glib-mkenums.in
             "gobject/[^/]*\\.c"_rr,
             "gobject/[^/]*\\.h"_rr;
+        gobject -= "gobject/gobject-query.c";
 
         gobject.Public +=
             "."_id,

@@ -12,6 +12,7 @@ void build(Solution &s)
         "src/.*"_rr;
 
     opus -=
+        "src/opus_compare.c",
         ".*demo.*"_rr,
         ".*train.*"_rr,
         "celt/arm/.*"_rr,

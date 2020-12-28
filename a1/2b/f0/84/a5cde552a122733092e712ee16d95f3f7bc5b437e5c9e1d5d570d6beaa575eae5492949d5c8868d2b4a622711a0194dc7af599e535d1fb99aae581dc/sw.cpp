@@ -1,48 +1,77 @@
 void build(Solution &s)
 {
-    auto &t = s.addStaticLibrary("erikd.libsndfile", "1.0.30");
-    t += Git("https://github.com/erikd/libsndfile", "v{v}");
+    auto &p = s.addProject("FluidSynth", "2.1.2");
+    p += Git("https://github.com/FluidSynth/fluidsynth", "v{v}");
 
-    //t.ExportAllSymbols = true;
-    t.setChecks("snd");
-
-    t += "include/.*"_rr;
-    t += "src/.*"_rr;
-    t -= "src/test.*"_rr;
-    t -= "src/G72x/g72x_test.c";
-
-    if (t.Variables["WORDS_BIGENDIAN"] == 1)
-        t.Variables["CPU_IS_BIG_ENDIAN"] = 1;
-    else
-        t.Variables["CPU_IS_LITTLE_ENDIAN"] = 1;
-
-    t.Variables["HAVE_EXTERNAL_XIPH_LIBS"] = 1;
-    t.Variables["SIZEOF_SF_COUNT_T_CODE"] = "#define SIZEOF_SF_COUNT_T 8";
-    t.Variables["SF_COUNT_MAX"] = "LLONG_MAX";
-    t.Variables["TYPEOF_SF_COUNT_T"] = "long long";
-    if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+    auto &gentables = p.addExecutable("gentables");
     {
-        t.Variables["USE_WINDOWS_API"] = 1;
-        if (t.getBuildSettings().Native.LibrariesType == LibraryType::Shared)
-            t.Variables["WIN32_TARGET_DLL"] = 1;
+        gentables += "src/gentables/.*"_rr;
+        gentables += "src/rvoice/fluid_rvoice_dsp_tables.h";
+        gentables += "src/utils/fluid_conv_tables.h";
+        if (gentables.getBuildSettings().TargetOS.Type == OSType::Windows)
+            gentables += "_USE_MATH_DEFINES"_def;
     }
 
-    t.configureFile("src/config.h.cmake", t.BinaryPrivateDir / "config.h");
-    t.configureFile("include/sndfile.h.in", "sndfile.h");
+    auto &t = p.addLibrary("fluidsynth");
+    {
+        t += Git("https://github.com/FluidSynth/fluidsynth", "v{v}");
 
-    t += "org.sw.demo.xiph.flac.libflac"_dep;
-    t += "org.sw.demo.xiph.opus"_dep;
-    t += "org.sw.demo.xiph.vorbis.libvorbis"_dep;
+        t.setChecks("fs");
+
+        t += "include/.*"_rr;
+        t += "src/.*"_rr;
+        t -= "src/.*"_r;
+        t -= "src/gentables/.*"_rr;
+
+        t.Public += sw::Static, "FLUIDSYNTH_NOT_A_DLL"_def;
+        t += sw::Shared, "FLUIDSYNTH_DLL_EXPORTS"_def;
+
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+            t += "WIN32"_def;
+
+        t.Public += "include"_idir;
+        t += "src"_idir;
+        t += "src/bindings"_idir;
+        t += "src/drivers"_idir;
+        t += "src/midi"_idir;
+        t += "src/rvoice"_idir;
+        t += "src/sfloader"_idir;
+        t += "src/synth"_idir;
+        t += "src/utils"_idir;
+
+        t += "AUFILE_SUPPORT"_def;
+
+        if (t.getBuildSettings().Native.LibrariesType == LibraryType::Shared)
+            t.Variables["BUILD_SHARED_LIBS"] = 1;
+        t.configureFile("include/fluidsynth.cmake", "fluidsynth.h");
+        t.configureFile("src/config.cmake", "config.h");
+
+        t.Variables["FLUIDSYNTH_VERSION"] = "\"" + t.Variables["PACKAGE_VERSION"].toString() + "\"";
+        t.Variables["FLUIDSYNTH_VERSION_MAJOR"] = t.Variables["PACKAGE_VERSION_MAJOR"];
+        t.Variables["FLUIDSYNTH_VERSION_MINOR"] = t.Variables["PACKAGE_VERSION_MINOR"];
+        t.Variables["FLUIDSYNTH_VERSION_MICRO"] = t.Variables["PACKAGE_VERSION_PATCH"];
+        t.configureFile("include/fluidsynth/version.h.in", "fluidsynth/version.h");
+
+        t += "org.sw.demo.gnome.glib.gobject"_dep;
+        t += "org.sw.demo.swami.libinstpatch"_dep;
+
+        t.addCommand()
+            << cmd::prog(gentables)
+            << to_printable_string(t.BinaryDir.u8string()) + "\\"
+            << cmd::end()
+            << cmd::out("fluid_conv_tables.c", cmd::Skip)
+            << cmd::out("fluid_rvoice_dsp_tables.c", cmd::Skip)
+            ;
+    }
 }
 
 void check(Checker &c)
 {
-    auto &s = c.addSet("snd");
+    auto &s = c.addSet("fs");
     s.checkFunctionExists("atoll");
     s.checkFunctionExists("dlclose");
     s.checkFunctionExists("dlopen");
     s.checkFunctionExists("dlsym");
-    s.checkFunctionExists("ftruncate");
     s.checkFunctionExists("getaddrinfo");
     s.checkFunctionExists("getuid");
     s.checkFunctionExists("mkfifo");
@@ -118,25 +147,17 @@ void check(Checker &c)
     s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("windows.h");
     s.checkIncludeExists("ws2tcpip.h");
-    s.checkTypeSize("long long");
-    s.checkTypeSize("double");
-    s.checkTypeSize("float");
-    s.checkTypeSize("short");
-    s.checkTypeSize("int");
-    s.checkTypeSize("wchar_t");
     s.checkTypeSize("int16_t");
     s.checkTypeSize("int32_t");
     s.checkTypeSize("int64_t");
     s.checkTypeSize("long");
     s.checkTypeSize("off_t");
-    s.checkTypeSize("loff_t");
-    s.checkTypeSize("off64_t");
     s.checkTypeSize("size_t");
     s.checkTypeSize("ssize_t");
     s.checkTypeSize("uint16_t");
     s.checkTypeSize("uint32_t");
     s.checkTypeSize("uintptr_t");
-    s.checkTypeSize("void*");
+    //s.checkLibraryFunctionExists("avrt", "");
     s.checkLibraryFunctionExists("audio", "AuOpenServer");
     s.checkLibraryFunctionExists("portaudio", "Pa_GetVersion");
     s.checkLibraryFunctionExists("portaudio", "Pa_Initialize");
