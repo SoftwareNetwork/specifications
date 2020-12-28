@@ -4,8 +4,9 @@ void build(Solution &s)
     googletest += Git("https://github.com/google/googletest", "release-{v}");
 
     const auto api = "GTEST_API_"s;
+    const auto api2 = "GTEST_MAIN_API_"s;
 
-    auto add = [&googletest, &api](const String &name) -> decltype(auto)
+    auto add = [&googletest, &api, &api2](const String &name) -> decltype(auto)
     {
         const auto dirname = "google" + name;
         const auto tname = "g" + name;
@@ -25,12 +26,14 @@ void build(Solution &s)
                 t += "pthread"_slib;
         }
 
-        auto &m = t.addStaticLibrary("main");
+        auto &m = t.addLibrary("main");
         {
             m += cpp11;
-            m.ApiName = api;
-            m += path(dirname) / "src" / (tname + "_main.cc");
+            m.ApiName = api2;
+            auto f = path(dirname) / "src" / (tname + "_main.cc");
+            m += f;
             m.Public += t;
+            m.patch(f, api, api2);
         }
 
         return t;
