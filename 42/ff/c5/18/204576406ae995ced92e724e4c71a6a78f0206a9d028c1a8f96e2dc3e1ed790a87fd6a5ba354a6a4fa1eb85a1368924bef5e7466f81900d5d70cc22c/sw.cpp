@@ -10,7 +10,10 @@ void build(Solution &s)
         t += ".*\\.cc"_rr;
         t += ".*\\.h"_rr;
         t += ".*\\.inc"_rr;
-        t -= ".*_benchmark.*cc"_rr;
+        //t -= ".*_benchmark.*cc"_rr;
+        // this includes removal of nanobenchmark
+        // nanobenchmark.c does not build in x86
+        t -= ".*benchmark.*cc"_rr;
         t -= ".*_test.*cc"_rr;
         t -= ".*_generator.*cc"_rr;
         t -= ".*_gentables.*cc"_rr;
