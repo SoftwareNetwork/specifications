@@ -11,6 +11,7 @@ void build(Solution &s)
         const auto tname = "g" + name;
 
         auto &t = googletest.addLibrary(tname);
+        t += cpp11;
         t.ApiName = api;
         t -= FileRegex(dirname, "include/.*", true);
         t -= FileRegex(dirname, "src/.*", true);
