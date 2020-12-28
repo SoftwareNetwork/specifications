@@ -27,7 +27,7 @@ void build(Solution &s)
 
         auto &m = t.addStaticLibrary("main");
         {
-            t += cpp11;
+            m += cpp11;
             m.ApiName = api;
             m += path(dirname) / "src" / (tname + "_main.cc");
             m.Public += t;
