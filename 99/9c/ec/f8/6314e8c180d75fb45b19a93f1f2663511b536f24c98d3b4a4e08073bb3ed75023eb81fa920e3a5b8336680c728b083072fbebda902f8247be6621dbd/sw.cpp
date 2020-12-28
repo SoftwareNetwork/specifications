@@ -11,19 +11,27 @@ void build(Solution &s)
         const auto tname = "g" + name;
 
         auto &t = googletest.addLibrary(tname);
-        t += cpp11;
-        t.ApiName = api;
-        t -= FileRegex(dirname, "include/.*", true);
-        t -= FileRegex(dirname, "src/.*", true);
-        t += path(dirname) / "src" / (tname + "-all.cc");
+        {
+            t += cpp11;
+            t.ApiName = api;
+            t -= FileRegex(dirname, "include/.*", true);
+            t -= FileRegex(dirname, "src/.*", true);
+            t += path(dirname) / "src" / (tname + "-all.cc");
 
-        t += IncludeDirectory(dirname);
-        t.Public += IncludeDirectory(dirname + "/include");
+            t += IncludeDirectory(dirname);
+            t.Public += IncludeDirectory(dirname + "/include");
+
+            if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+                t += "pthread"_slib;
+        }
 
         auto &m = t.addStaticLibrary("main");
-        m.ApiName = api;
-        m += path(dirname) / "src" / (tname + "_main.cc");
-        m.Public += t;
+        {
+            t += cpp11;
+            m.ApiName = api;
+            m += path(dirname) / "src" / (tname + "_main.cc");
+            m.Public += t;
+        }
 
         return t;
     };
