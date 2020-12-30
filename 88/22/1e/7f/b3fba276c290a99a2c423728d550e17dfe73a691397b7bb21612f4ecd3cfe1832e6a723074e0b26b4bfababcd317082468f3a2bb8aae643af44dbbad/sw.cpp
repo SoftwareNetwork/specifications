@@ -47,7 +47,13 @@ void build(Solution &s)
     // see https://github.com/google/googletest/issues/3196
     t.patch("googletest/src/gtest-death-test.cc",
         "if (fields.size() != 6",
-        "for (auto &c : fields[3]) if (c < 0) c = ' ';\n"
-        "fields[3].erase(std::remove_if(fields[3].begin(), fields[3].end(), isspace), fields[3].end());\n"
-        "if (fields.size() != 6");
+        R"(
+for (auto i : {3,4,5}) {
+    for (auto &c : fields[i]) if (c < 0) c = ' ';
+    fields[i].erase(std::remove_if(fields[i].begin(), fields[i].end(), isspace), fields[i].end());
+}
+
+if (fields.size() != 6
+)");
+
 }
