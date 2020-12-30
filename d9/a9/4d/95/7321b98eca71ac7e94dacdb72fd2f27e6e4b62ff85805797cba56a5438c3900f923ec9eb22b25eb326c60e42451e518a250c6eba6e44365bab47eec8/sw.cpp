@@ -45,7 +45,7 @@ void build(Solution &s)
 
     t.patch("googletest/include/gtest/internal/gtest-port.h", "bool ParseInt32", api + "\nbool  ParseInt32");
     // see https://github.com/google/googletest/issues/3196
-    t.patch("googletest/src/gtest-death-test.cc",
+    /*t.patch("googletest/src/gtest-death-test.cc",
         "if (fields.size() != 6",
         R"(
 for (auto i : {3,4,5}) {
@@ -54,6 +54,6 @@ for (auto i : {3,4,5}) {
 }
 
 if (fields.size() != 6
-)");
+)");*/
 
 }
