@@ -44,4 +44,10 @@ void build(Solution &s)
     m.Public += t;
 
     t.patch("googletest/include/gtest/internal/gtest-port.h", "bool ParseInt32", api + "\nbool  ParseInt32");
+    // see https://github.com/google/googletest/issues/3196
+    t.patch("googletest/src/gtest-death-test.cc",
+        "if (fields.size() != 6",
+        "for (auto &c : fields[3]) if (c < 0) c = ' ';\n"
+        "fields[3].erase(std::remove_if(fields[3].begin(), fields[3].end(), isspace), fields[3].end());\n"
+        "if (fields.size() != 6");
 }
