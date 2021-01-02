@@ -200,6 +200,10 @@ void addSharedDefinitions(NativeExecutedTarget &t, const String &N)
 auto &addCompiledBoostTarget(Solution &s, String name)
 {
     auto &t = addBoostTarget<LibraryTarget>(s, name);
+
+    t += "include/.*"_rr;
+    t += "src/.*"_rr;
+
     if (name == "fiber")
         name += "s";
     auto N = boost::to_upper_copy(name);
@@ -400,7 +404,8 @@ void build(Solution &s)
     }
 
     // compiled
-    auto compiled_target_names = {
+    auto compiled_target_names =
+    {
         "atomic",
         "chrono",
         "container",
@@ -436,7 +441,11 @@ void build(Solution &s)
 
     // some settings
     if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+    {
         *boost_targets["atomic"] -= "src/.*windows.*"_rr;
+        *boost_targets["atomic"] -= "src/find_address_sse41.cpp";
+        //(*boost_targets["atomic"])["src/find_address_sse41.cpp"].args.push_back("-msse4.1");
+    }
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
     if (boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["filesystem"] += "advapi32.lib"_slib;
@@ -447,78 +456,90 @@ void build(Solution &s)
     if (boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["random"] += "Advapi32.lib"_slib;
 
-    boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src/tr1");
-    boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src");
-    boost_targets["math"]->Public.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "include");
-    boost_targets["math"]->Public += sw::Shared, "BOOST_MATH_TR1_DYN_LINK"_d;
-
-    *boost_targets["locale"] -= "org.sw.demo.unicode.icu.i18n"_dep;
-    if (boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    // math
     {
-        *boost_targets["locale"] -= "src/icu/.*"_rr;
-        *boost_targets["locale"] -= "src/posix/.*"_rr;
-        boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_NO_POSIX_BACKEND"];
-        boost_targets["locale"]->Definitions["NOMINMAX"];
-    }
-    else
-    {
-        *boost_targets["locale"] -= "src/win32/.*"_rr;
-        boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_NO_WINAPI_BACKEND"];
-        boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_WITH_ICONV"];
-        *boost_targets["locale"] += "org.sw.demo.unicode.icu.i18n"_dep;
+        boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src/tr1");
+        boost_targets["math"]->Private.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "src");
+        boost_targets["math"]->Public.IncludeDirectories.insert(boost_targets["math"]->SourceDir / "include");
+        boost_targets["math"]->Public += sw::Shared, "BOOST_MATH_TR1_DYN_LINK"_d;
     }
 
-    *boost_targets["log"] +=
-        "include/.*"_rr,
-        "src/.*\\.mc"_rr,
-        "src/.*\\.hpp"_rr,
-        "src/attribute_name.cpp",
-        "src/attribute_set.cpp",
-        "src/attribute_value_set.cpp",
-        "src/code_conversion.cpp",
-        "src/core.cpp",
-        "src/date_time_format_parser.cpp",
-        "src/default_attribute_names.cpp",
-        "src/default_sink.cpp",
-        "src/dump.cpp",
-        "src/event.cpp",
-        "src/exceptions.cpp",
-        "src/format_parser.cpp",
-        "src/global_logger_storage.cpp",
-        "src/named_scope.cpp",
-        "src/named_scope_format_parser.cpp",
-        "src/once_block.cpp",
-        "src/process_id.cpp",
-        "src/process_name.cpp",
-        "src/record_ostream.cpp",
-        "src/severity_level.cpp",
-        "src/spirit_encoding.cpp",
-        "src/syslog_backend.cpp",
-        "src/text_file_backend.cpp",
-        "src/text_multifile_backend.cpp",
-        "src/text_ostream_backend.cpp",
-        "src/thread_id.cpp",
-        "src/threadsafe_queue.cpp",
-        "src/thread_specific.cpp",
-        "src/timer.cpp",
-        "src/timestamp.cpp",
-        "src/trivial.cpp"
-        ;
-    boost_targets["log"]->Public.Definitions["BOOST_LOG_WITHOUT_EVENT_LOG"];
-    boost_targets["log"]->Private += sw::Shared, "BOOST_LOG_DLL"_d;
-    if (boost_targets["log"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    // locale
     {
-        boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
-        boost_targets["log"]->Public.Definitions["NOMINMAX"];
-        *boost_targets["log"] += "ws2_32.lib"_slib;
-    }
-    else
-    {
-        *boost_targets["log"] += "pthread"_slib;
+        *boost_targets["locale"] -= "org.sw.demo.unicode.icu.i18n"_dep;
+        if (boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            *boost_targets["locale"] -= "src/icu/.*"_rr;
+            *boost_targets["locale"] -= "src/posix/.*"_rr;
+            boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_NO_POSIX_BACKEND"];
+            boost_targets["locale"]->Definitions["NOMINMAX"];
+        }
+        else
+        {
+            *boost_targets["locale"] -= "src/win32/.*"_rr;
+            boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_NO_WINAPI_BACKEND"];
+            boost_targets["locale"]->Public.Definitions["BOOST_LOCALE_WITH_ICONV"];
+            *boost_targets["locale"] += "org.sw.demo.unicode.icu.i18n"_dep;
+        }
+        if (boost_targets["locale"]->getBuildSettings().TargetOS.isApple())
+            *boost_targets["locale"] += "org.sw.demo.gnu.iconv.libiconv"_dep;
     }
 
-    //boost_targets["fiber"])->Shared.Private.Definitions["BOOST_FIBERS_SOURCE"];
-    //boost_targets["fiber"]->Private.Definitions["BOOST_FIBERS_DYN_LINK"];
+    // log
+    {
+        *boost_targets["log"] -=
+            "include/.*"_rr,
+            "src/.*"_rr
+            ;
+        *boost_targets["log"] +=
+            "include/.*"_rr,
+            "src/.*\\.mc"_rr,
+            "src/.*\\.hpp"_rr,
+            "src/attribute_name.cpp",
+            "src/attribute_set.cpp",
+            "src/attribute_value_set.cpp",
+            "src/code_conversion.cpp",
+            "src/core.cpp",
+            "src/date_time_format_parser.cpp",
+            "src/default_attribute_names.cpp",
+            "src/default_sink.cpp",
+            "src/dump.cpp",
+            "src/event.cpp",
+            "src/exceptions.cpp",
+            "src/format_parser.cpp",
+            "src/global_logger_storage.cpp",
+            "src/named_scope.cpp",
+            "src/named_scope_format_parser.cpp",
+            "src/once_block.cpp",
+            "src/process_id.cpp",
+            "src/process_name.cpp",
+            "src/record_ostream.cpp",
+            "src/severity_level.cpp",
+            "src/spirit_encoding.cpp",
+            "src/syslog_backend.cpp",
+            "src/text_file_backend.cpp",
+            "src/text_multifile_backend.cpp",
+            "src/text_ostream_backend.cpp",
+            "src/thread_id.cpp",
+            "src/threadsafe_queue.cpp",
+            "src/thread_specific.cpp",
+            "src/timer.cpp",
+            "src/timestamp.cpp",
+            "src/trivial.cpp"
+            ;
+        boost_targets["log"]->Public.Definitions["BOOST_LOG_WITHOUT_EVENT_LOG"];
+        boost_targets["log"]->Private += sw::Shared, "BOOST_LOG_DLL"_d;
+        if (boost_targets["log"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
+            boost_targets["log"]->Public.Definitions["NOMINMAX"];
+            *boost_targets["log"] += "ws2_32.lib"_slib;
+        }
+        else
+        {
+            *boost_targets["log"] += "pthread"_slib;
+        }
+    }
 
     //*boost_targets["python"] += "pvt.cppan.demo.python.libcompat";
 
@@ -546,54 +567,60 @@ void build(Solution &s)
     if (boost_targets["uuid"]->getBuildSettings().TargetOS.Type == OSType::Windows)
         *boost_targets["uuid"] += "Bcrypt.lib"_slib;
 
-    // context, fiber
-    *boost_targets["context"] += "include/.*"_rr;
-    *boost_targets["context"] += "src/.*"_rr;
-    *boost_targets["context"] -= "src/asm/.*"_rr;
-    //*boost_targets["context"] -= "src/dummy.cpp";
-    *boost_targets["context"] -= "src/untested.cpp";
-
-    String a = ".*";
-    if (boost_targets["context"]->getBuildSettings().TargetOS.is(ArchType::x86_64))
-        a += "x86_64";
-    else
-        a += "i386";
-    if (boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    // context
     {
-        a += "_ms_pe_masm.asm";
+        *boost_targets["context"] += "include/.*"_rr;
+        *boost_targets["context"] += "src/.*"_rr;
+        *boost_targets["context"] -= "src/asm/.*"_rr;
+        //*boost_targets["context"] -= "src/dummy.cpp";
+        *boost_targets["context"] -= "src/untested.cpp";
 
-        *boost_targets["context"] += sw::Shared, "BOOST_CONTEXT_EXPORT=EXPORT"_def;
-        *boost_targets["context"] += sw::Static, "BOOST_CONTEXT_EXPORT="_def;
-        boost_targets["context"]->Public += "BOOST_USE_WINFIB"_def;
+        String a = ".*";
+        if (boost_targets["context"]->getBuildSettings().TargetOS.is(ArchType::x86_64))
+            a += "x86_64";
+        else
+            a += "i386";
+        if (boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            a += "_ms_pe_masm.asm";
 
-        *boost_targets["context"] -= "src/posix/.*"_rr;
+            *boost_targets["context"] += sw::Shared, "BOOST_CONTEXT_EXPORT=EXPORT"_def;
+            *boost_targets["context"] += sw::Static, "BOOST_CONTEXT_EXPORT="_def;
+            boost_targets["context"]->Public += "BOOST_USE_WINFIB"_def;
+
+            *boost_targets["context"] -= "src/posix/.*"_rr;
+        }
+        else if (boost_targets["context"]->getBuildSettings().TargetOS.isApple())
+        {
+            a = ".*_combined_sysv_macho_gas.S";
+            boost_targets["context"]->Public += "BOOST_USE_UCONTEXT"_def;
+        }
+        else
+        {
+            a += "_sysv_elf_gas.S";
+            boost_targets["context"]->Public += "BOOST_USE_UCONTEXT"_def;
+        }
+        if (boost_targets["context"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+            *boost_targets["context"] -= "src/windows/.*"_rr;
+        *boost_targets["context"] += FileRegex("src/asm/", a, false);
     }
-    else if (boost_targets["context"]->getBuildSettings().TargetOS.isApple())
+
+    // fiber
     {
-        a += "_sysv_macho_gas.S";
+        *boost_targets["fiber"] += "include/.*"_rr;
+        *boost_targets["fiber"] -= "src/.*"_rr;
+        *boost_targets["fiber"] += "src/.*"_r;
+        *boost_targets["fiber"] += "src/algo/.*"_rr;
+        *boost_targets["fiber"] += "src/numa/algo/.*"_r;
+        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+            *boost_targets["fiber"] += "src/numa/windows/.*"_rr;
+        else if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Linux)
+            *boost_targets["fiber"] += "src/numa/linux/.*"_rr;
+        else
+            *boost_targets["fiber"] += "src/numa/.*"_r;
+        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+            *boost_targets["fiber"] += "pthread"_slib;
     }
-    else
-    {
-        a += "_sysv_elf_gas.S";
-
-        *boost_targets["context"] -= "src/windows/.*"_rr;
-        boost_targets["context"]->Public += "BOOST_USE_UCONTEXT"_def;
-    }
-    *boost_targets["context"] += FileRegex("src/asm/", a, false);
-
-    *boost_targets["fiber"] += "include/.*"_rr;
-    *boost_targets["fiber"] += "src/.*"_r;
-    *boost_targets["fiber"] += "src/algo/.*"_rr;
-    *boost_targets["fiber"] += "src/numa/algo/.*"_r;
-    if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Windows)
-        *boost_targets["fiber"] += "src/numa/windows/.*"_rr;
-    else if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Linux)
-        *boost_targets["fiber"] += "src/numa/linux/.*"_rr;
-    else
-        *boost_targets["fiber"] += "src/numa/.*"_r;
-    if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
-        *boost_targets["fiber"] += "pthread"_slib;
-    //
 
     //
     boost_targets["python"]->Public += "org.sw.demo.python.lib"_dep;
