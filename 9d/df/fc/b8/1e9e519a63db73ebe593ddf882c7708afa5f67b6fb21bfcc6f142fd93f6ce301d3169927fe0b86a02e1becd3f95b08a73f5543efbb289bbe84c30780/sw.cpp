@@ -6,8 +6,8 @@ struct PythonExecutable : ExecutableTarget
     {
         /*if (getBuildSettings().TargetOS.Type != OSType::Windows)
         {
-            c.setProgram("python3");
-            return;
+        c.setProgram("python3");
+        return;
         }*/
         ExecutableTarget::setupCommand(c);
         c.environment["PYTHONPATH"] = to_printable_string(to_path_string(SourceDir / "Lib"));
@@ -30,6 +30,7 @@ void build(Solution &s)
     {
         lib.setChecks("lib");
         lib +=
+            "pyconfig.h.in",
             "Include/.*"_rr,
             "Modules/.*\\.h"_rr,
             "Modules/_abc.c",
