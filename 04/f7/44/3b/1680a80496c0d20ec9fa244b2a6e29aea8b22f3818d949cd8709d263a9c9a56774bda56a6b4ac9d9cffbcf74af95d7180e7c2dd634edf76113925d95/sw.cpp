@@ -10,6 +10,7 @@ struct PythonExecutable : ExecutableTarget
         return;
         }*/
         ExecutableTarget::setupCommand(c);
+        //c.environment["PYTHONHOME"] = to_printable_string(to_path_string(SourceDir / "Lib"));
         c.environment["PYTHONPATH"] = to_printable_string(to_path_string(SourceDir / "Lib"));
         // used in sw package loading
         c.environment["SW_EXECUTABLE"] = to_printable_string(to_path_string(sw::getProgramLocation()));
@@ -29,6 +30,12 @@ void build(Solution &s)
     auto &lib = python.addLibrary("lib");
     {
         lib.setChecks("lib");
+
+        lib -=
+            "PC/.*"_rr,
+            "Modules/.*"_rr
+            ;
+
         lib +=
             "pyconfig.h.in",
             "Include/.*"_rr,
@@ -241,7 +248,10 @@ void build(Solution &s)
         else
         {
             lib +=
-                "PC/config.c";
+                "PC/config.c",
+                "Modules/_posixsubprocess.c",
+                "Modules/selectmodule.c"
+                ;
 
             lib.configureFile("pyconfig.h.in", "pyconfig.h", ConfigureFlags::EnableUndefReplacements);
         }
@@ -324,8 +334,15 @@ void build(Solution &s)
             extern PyObject* PyInit_pyexpat(void);
             extern PyObject* PyInit__bz2(void);
             extern PyObject* PyInit__lzma(void);
+
+	    extern PyObject* PyInit__locale(void);
+
             #ifndef _WIN32
                 extern PyObject* PyInit_pwd(void);
+
+		extern PyObject* PyInit_posix(void);
+		extern PyObject* PyInit__posixsubprocess(void);
+		extern PyObject* PyInit_select(void);
             #endif
 )xxx");
         lib.replaceInFileOnce("PC/config.c", "/* -- ADDMODULE MARKER 2 -- */", R"xxx(
@@ -340,6 +357,11 @@ void build(Solution &s)
         lib.replaceInFileOnce("PC/config.c", "{\"nt\", PyInit_nt},", R"xxx(
             #ifdef _WIN32
                 { "nt", PyInit_nt},
+            #else
+                { "posix", PyInit_posix},
+                { "_posixsubprocess", PyInit__posixsubprocess},
+                { "select", PyInit_select},
+                {"_locale", PyInit__locale},
             #endif
 )xxx");
 
@@ -690,6 +712,7 @@ void check(Checker &c)
     s.checkIncludeExists("sys/ndir.h");
     s.checkIncludeExists("sys/param.h");
     s.checkIncludeExists("sys/poll.h");
+    s.checkIncludeExists("sys/random.h");
     s.checkIncludeExists("sys/resource.h");
     s.checkIncludeExists("sys/select.h");
     s.checkIncludeExists("sys/sendfile.h");
