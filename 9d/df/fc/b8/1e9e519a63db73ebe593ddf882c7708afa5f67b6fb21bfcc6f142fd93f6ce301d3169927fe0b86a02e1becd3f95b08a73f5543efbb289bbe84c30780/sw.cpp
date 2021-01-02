@@ -712,7 +712,8 @@ void check(Checker &c)
     s.checkIncludeExists("sys/ndir.h");
     s.checkIncludeExists("sys/param.h");
     s.checkIncludeExists("sys/poll.h");
-    s.checkIncludeExists("sys/random.h");
+    // https://www.mail-archive.com/bug-gnulib@gnu.org/msg38583.html
+    s.checkIncludeExists("sys/random.h").Parameters.Includes.push_back("unistd.h");
     s.checkIncludeExists("sys/resource.h");
     s.checkIncludeExists("sys/select.h");
     s.checkIncludeExists("sys/sendfile.h");
