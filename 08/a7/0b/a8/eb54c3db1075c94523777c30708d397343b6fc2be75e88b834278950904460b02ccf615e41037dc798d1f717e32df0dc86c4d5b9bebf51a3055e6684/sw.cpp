@@ -546,7 +546,7 @@ static void qt_translations_rcc(const DependencyPtr &base, NativeExecutedTarget 
 static void qt_translations_rcc(const DependencyPtr &base, TargetBase &tr_base, NativeExecutedTarget &t, path in)
 {
     auto[qt_trs, qms] = qt_translations_create_qm_files(base, tr_base, t);
-    qt_translations_rcc("org.sw.demo.qtproject.qt"_dep, t, in, qms);
+    qt_translations_rcc(base, t, in, qms);
     t.addDummyDependency(qt_trs);
 }
 
