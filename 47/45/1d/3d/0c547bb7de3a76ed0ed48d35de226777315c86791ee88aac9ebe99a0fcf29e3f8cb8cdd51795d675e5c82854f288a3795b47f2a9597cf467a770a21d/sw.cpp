@@ -28,9 +28,9 @@ struct NasmCompiler : sw::NativeCompiler,
 
     using NativeCompilerOptions::operator=;
 
-    std::shared_ptr<Program> clone() const override
+    std::unique_ptr<Program> clone() const override
     {
-        return std::make_shared<NasmCompiler>(*this);
+        return std::make_unique<NasmCompiler>(*this);
     }
 
     path getOutputFile() const override
@@ -42,8 +42,8 @@ struct NasmCompiler : sw::NativeCompiler,
     {
         if (InputFile)
         {
-            cmd->name = normalize_path(InputFile());
-            cmd->name_short = InputFile().filename().u8string();
+            //cmd->name = normalize_path(InputFile());
+            //cmd->name_short = InputFile().filename().u8string();
         }
         if (ObjectFile)
             cmd->working_directory = ObjectFile().parent_path();
