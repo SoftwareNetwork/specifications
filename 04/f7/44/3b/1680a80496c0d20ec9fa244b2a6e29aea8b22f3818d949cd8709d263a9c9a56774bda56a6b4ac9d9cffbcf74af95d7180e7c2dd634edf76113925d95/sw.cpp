@@ -327,6 +327,9 @@ void build(Solution &s)
         lib.Public += "org.sw.demo.bzip2"_dep;
         lib.Public += "org.sw.demo.expat"_dep;
         lib.Public += "org.sw.demo.xz_utils.lzma"_dep;
+        lib.Public -= "org.sw.demo.gnu.gettext.intl"_dep;
+        if (lib.getBuildSettings().TargetOS.isApple())
+            lib += "org.sw.demo.gnu.gettext.intl"_dep;
 
         lib -= ".*.def"_rr;
 
