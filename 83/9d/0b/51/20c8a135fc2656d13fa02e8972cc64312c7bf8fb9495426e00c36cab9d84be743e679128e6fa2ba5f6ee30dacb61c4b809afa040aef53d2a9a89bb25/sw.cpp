@@ -243,8 +243,8 @@ void build(Solution &s)
     if (!win_flex_bison && !s.DryRun)
     return;*/
 
-    auto &winflexbison = s.addProject("lexxmark.winflexbison", "master");
-    Git src("https://github.com/lexxmark/winflexbison", "", "master");
+    auto &winflexbison = s.addProject("lexxmark.winflexbison", "2.5.23");
+    Git src("https://github.com/lexxmark/winflexbison", "v" + winflexbison.getPackage().getVersion().toString());
     winflexbison += src;
 
     auto &common = winflexbison.addTarget<StaticLibraryTarget>("common");
@@ -275,7 +275,7 @@ void build(Solution &s)
             flex += "ws2_32.lib"_slib;
     }
 
-    auto &bison = winflexbison.addTarget<BisonExecutable>("bison", "3.7.4");
+    auto &bison = winflexbison.addTarget<BisonExecutable>("bison", "3.7.1");
     {
         if (!bison.getBuildSettings().TargetOS.is(OSType::Windows))
             bison.HeaderOnly = true;
