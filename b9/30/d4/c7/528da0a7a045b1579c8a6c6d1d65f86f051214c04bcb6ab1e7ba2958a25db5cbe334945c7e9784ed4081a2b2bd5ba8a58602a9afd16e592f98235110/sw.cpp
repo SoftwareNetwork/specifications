@@ -8,6 +8,8 @@ void build(Solution &s)
         ".*\\.cc"_rr,
         ".*\\.cpp"_rr
         ;
+    if (fs::exists(t.SourceDir / "sw.cpp"))
+        t -= "sw.cpp";
 
     // install
     if (!t.DryRun)
