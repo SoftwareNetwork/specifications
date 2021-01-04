@@ -132,6 +132,28 @@ void build(Solution &s)
             cairo.ExportAllSymbols = true;
             cairo += "pthread"_slib;
         }
+
+        // special library to init gobject/glib on windows with static linking
+        auto &wi = cairo.addStaticLibrary("wininit");
+        {
+            wi.AutoDetectOptions = false;
+            wi.WholeArchive = true;
+            wi.writeFileOnce("cairo_init.cpp", R"(
+extern "C" void _cairo_mutex_initialize (void);
+extern "C" void _cairo_mutex_finalize (void);
+struct SW_CAIRO_INITIALIZER { SW_CAIRO_INITIALIZER() { _cairo_mutex_initialize(); } ~SW_CAIRO_INITIALIZER() { _cairo_mutex_finalize(); } };
+static SW_CAIRO_INITIALIZER ___________SW_CAIRO_INITIALIZER;
+)");
+            wi += "cairo_init.cpp";
+        }
+        cairo -= wi;
+        if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows
+            && cairo.getBuildSettings().Native.LibrariesType == LibraryType::Static
+            && cairo.getCompilerType() == CompilerType::MSVC
+            )
+        {
+            cairo += wi;
+        }
     }
 
     auto &cg = cairo.addTarget<LibraryTarget>("gobject");
