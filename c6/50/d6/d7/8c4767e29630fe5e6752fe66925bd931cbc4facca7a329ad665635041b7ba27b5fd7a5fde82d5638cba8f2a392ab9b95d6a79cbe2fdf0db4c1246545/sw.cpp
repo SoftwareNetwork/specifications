@@ -480,6 +480,28 @@ HMODULE glib_dll;
                     c << cmd::in(p);
             }
         }
+
+        // special library to init gobject/glib on windows with static linking
+        auto &wi = gobject.addStaticLibrary("wininit");
+        {
+            wi.AutoDetectOptions = false;
+            wi.WholeArchive = true;
+            wi.writeFileOnce("gobject_init.cpp", R"(
+extern "C" void gobject_init(void);
+struct SW_GOBJECT_INITIALIZER { SW_GOBJECT_INITIALIZER() { gobject_init(); } };
+static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
+)");
+            wi += "gobject_init.cpp";
+        }
+        gobject -= wi;
+        gobject.patch("gobject/gtype.c", "static void\ngobject_init", "void\ngobject_init");
+        if (gobject.getBuildSettings().TargetOS.Type == OSType::Windows
+            && gobject.getBuildSettings().Native.LibrariesType == LibraryType::Static
+            && gobject.getCompilerType() == CompilerType::MSVC
+            )
+        {
+            gobject += wi;
+        }
     }
 
     auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
