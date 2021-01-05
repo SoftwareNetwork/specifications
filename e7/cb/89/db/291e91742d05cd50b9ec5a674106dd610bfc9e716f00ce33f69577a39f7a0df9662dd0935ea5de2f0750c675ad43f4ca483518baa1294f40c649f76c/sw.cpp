@@ -25,6 +25,7 @@ void build(Solution &s)
     fontconfig.Public += "HAVE_FT_GET_PS_FONT_INFO=1"_d;
     fontconfig.Public += "HAVE_FT_HAS_PS_GLYPH_NAMES=1"_d;
     fontconfig.Public += "HAVE_FT_SELECT_SIZE=1"_d;
+    fontconfig += "HAVE_FT_GET_X11_FONT_FORMAT"_d;
     fontconfig += "FC_GPERF_SIZE_T=size_t"_d;
     fontconfig += "FC_TEMPLATEDIR=\"fontconfig/conf.avail\""_d;
     fontconfig += "CONFIGDIR=\".\""_d;
