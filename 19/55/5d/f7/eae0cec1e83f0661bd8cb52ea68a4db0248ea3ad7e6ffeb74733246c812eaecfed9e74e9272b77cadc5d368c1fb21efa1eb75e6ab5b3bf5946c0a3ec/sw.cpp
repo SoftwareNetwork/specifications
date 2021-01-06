@@ -606,6 +606,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
             AInfo += FileRegex("lib/Target/" + dir, std::regex(".*\\.h"), true);
             AInfo.AllowEmptyRegexes = true;
             AInfo -= FileRegex("lib/Target/" + dir, std::regex(".*\\.def"), true);
+            AInfo -= FileRegex("lib/Target/" + dir, std::regex(".*\\.inc"), true); // Hexagon
             AInfo.AllowEmptyRegexes = false;
             AInfo.Public += IncludeDirectory{ "lib/Target/" + dir };
             AInfo.Public += Support, ATablegen, Core;
