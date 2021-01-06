@@ -105,7 +105,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
 
     */
 
-    auto &llvm = llvm_project.addProject("llvm");
+    auto &llvm = llvm_project.addDirectory("llvm");
     llvm += get_source("llvm");
     llvm.setSourceDirectory("llvm");
 
@@ -138,6 +138,11 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         demangle += "lib/Demangle/.*"_rr;
         demangle.Public +=
             "include"_id;
+
+        if (demangle.getCompilerType() == CompilerType::MSVC)
+            demangle.Protected.CompileOptions.push_back("-bigobj");
+        //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
+            //t.CompileOptions.push_back("-Wa,-mbig-obj");
 
         demangle.Variables["LLVM_ENABLE_ZLIB"] = "1";
         demangle.Variables["LLVM_LIBXML2_ENABLED"] = "1";
@@ -701,7 +706,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
 
 void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
 {
-    auto &clang = llvm_project.addProject("clang");
+    auto &clang = llvm_project.addDirectory("clang");
     clang += get_source("clang");
     clang.setSourceDirectory("clang");
 
