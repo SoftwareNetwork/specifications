@@ -3,35 +3,45 @@ auto get_source(const String &component)
     return RemoteFile("https://github.com/llvm/llvm-project/releases/download/llvmorg-{v}/" + component + "-{v}.src.tar.xz");
 }
 
-using Targets = std::map<std::string, std::vector<StaticLibraryTarget*>>;
-
-auto tablegen(const DependencyPtr &UTablegen, NativeExecutedTarget &t, const std::string &in,
-    const std::string &out, const Strings &args,
-    bool add_target_idir = true, const Files &idirs = {})
-{
-    auto c = t.addCommand();
-    c << cmd::prog(UTablegen);
-    c << "--write-if-changed";
-    if (t.getCompilerType() == CompilerType::MSVC)
-        c << "--long-string-literals=0";
-    for (auto &a : args)
-        c << a;
-    c
-        << "-I" << t.SourceDir
-        << "-I" << t.SourceDir / "include";
-    if (add_target_idir)
-        c << "-I" << (t.SourceDir / in).parent_path();
-    for (auto &i : idirs)
-        c << "-I" << i;
-    c << cmd::in(in)
-        << "-o" << cmd::out(out);
-    return c;
-};
-
 struct LlvmTargets
 {
+    using Targets = std::map<std::string, std::vector<StaticLibraryTarget*>>;
+
+    StaticLibraryTarget *demangle;
     StaticLibraryTarget *support;
     Targets arch_targets;
+
+    auto tablegen(const DependencyPtr &UTablegen, NativeExecutedTarget &t, const std::string &in,
+        const std::string &out, const Strings &args,
+        bool add_target_idir = true, const Files &idirs = {})
+    {
+        auto c = t.addCommand();
+        c << cmd::prog(UTablegen);
+        c << "--write-if-changed";
+        if (t.getCompilerType() == CompilerType::MSVC)
+            c << "--long-string-literals=0";
+        // args
+        for (auto &a : args)
+            c << a;
+        // add this target includes
+        c
+            << "-I" << t.SourceDir
+            << "-I" << t.SourceDir / "include";
+        // passed target dir
+        if (add_target_idir)
+            c << "-I" << (t.SourceDir / in).parent_path();
+        // passed idirs
+        for (auto &i : idirs)
+            c << "-I" << i;
+        // add base llvm includes
+        c
+            << "-I" << demangle->SourceDir
+            << "-I" << demangle->SourceDir / "include";
+        //
+        c << cmd::in(in)
+            << "-o" << cmd::out(out);
+        return c;
+    };
 };
 
 void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
@@ -121,6 +131,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
     const auto selected_targets = all_targets;
 
     auto &demangle = llvm.addTarget<StaticLibraryTarget>("Demangle");
+    targets.demangle = &demangle;
     {
         demangle.setChecks("support");
         demangle += "include/.*"_rr;
@@ -213,6 +224,8 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
             Support += "ole32.lib"_slib;
             Support += "shell32.lib"_slib;
         }
+
+        Support.patch("lib/Support/AArch64TargetParser.cpp", "../../include/", "");
     }
 
     //
@@ -226,11 +239,11 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
     //UTablegen += "lib/Target/X86/Disassembler/X86DisassemblerDecoderCommon.h";
     UTablegen.Public += Tablegen;
 
-    auto tablegen = [&UTablegen](auto &t, const std::string &in,
+    auto tablegen = [&targets, &UTablegen](auto &t, const std::string &in,
         const std::string &out, const Strings &args,
         bool add_target_idir = true, const Files &idirs = {})
     {
-        ::tablegen(std::make_shared<Dependency>(UTablegen), t, in, out, args, add_target_idir, idirs);
+        targets.tablegen(std::make_shared<Dependency>(UTablegen), t, in, out, args, add_target_idir, idirs);
     };
 
     //
@@ -579,7 +592,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
                         args2.push_back(boost::trim_copy(a));
                     }
 
-                    tablegen(ATablegen, "lib/Target/" + dir + "/" + f, out, args2, true);
+                    tablegen(ATablegen, "lib/Target/" + dir + "/" + f, out, args2, true, { demangle.SourceDir / "include" });
 
                     p++; // prevents inf loops
                 }
@@ -681,12 +694,9 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
     clang += get_source("clang");
     clang.setSourceDirectory("clang");
 
-    auto Tablegen = clang.constructThisPackageDependency("llvm_project.llvm.Tablegen");
-    auto UTablegen = clang.constructThisPackageDependency("llvm_project.llvm.Utils.Tablegen");
-
     auto &CUTablegen = clang.addTarget<ExecutableTarget>("TableGen");
     CUTablegen += "utils/TableGen/.*"_rr;
-    CUTablegen.Public += Tablegen;
+    CUTablegen.Public += CUTablegen.constructThisPackageDependency("llvm_project.llvm.Tablegen");
 
     auto clang_tablegen = [&CUTablegen](auto &t, const std::string &in,
         const std::string &out, const Strings &args,
@@ -871,7 +881,8 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
 
         // Driver
 
-        tablegen(UTablegen, Basic, "include/clang/Driver/Options.td",
+        auto UTablegen = Basic.constructThisPackageDependency("llvm_project.llvm.Utils.Tablegen");
+        targets.tablegen(UTablegen, Basic, "include/clang/Driver/Options.td",
             "clang/Driver/Options.inc", { "-gen-opt-parser-defs" }, true,
             { Basic.getFile(*targets.support, "include") }
         );
@@ -911,7 +922,7 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
 
     auto &AST = clang.addTarget<StaticLibraryTarget>("AST");
     AST += "lib/AST/.*"_rr;
-    AST.Public += Lex, clang.constructThisPackageDependency("llvm_project.llvm.BinaryFormat");
+    AST.Public += Lex, AST.constructThisPackageDependency("llvm_project.llvm.BinaryFormat");
     clang_tablegen(AST, "lib/AST/Interp/Opcodes.td", "Opcodes.inc", { "-gen-clang-opcodes" }, true);
 
     auto &ASTMatchers = clang.addTarget<StaticLibraryTarget>("AST.Matchers");
@@ -942,9 +953,9 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
     auto &Frontend = clang.addTarget<StaticLibraryTarget>("Frontend");
     Frontend += "lib/Frontend/[^/]*"_rr;
     Frontend.Public += Serialization, Parse, Driver,
-        clang.constructThisPackageDependency("llvm_project.llvm.BitReader"),
-        clang.constructThisPackageDependency("llvm_project.llvm.Option"),
-        clang.constructThisPackageDependency("llvm_project.llvm.ProfileData")
+        Frontend.constructThisPackageDependency("llvm_project.llvm.BitReader"),
+        Frontend.constructThisPackageDependency("llvm_project.llvm.Option"),
+        Frontend.constructThisPackageDependency("llvm_project.llvm.ProfileData")
         ;
 
     auto &RewriteFrontend = clang.addTarget<StaticLibraryTarget>("RewriteFrontend");
@@ -983,7 +994,7 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
         "Linker", "MC", "ObjCARCOpts", "Object", "Passes", "ProfileData", "ScalarOpts",
         "Support", "Target", "TransformUtils" })
     {
-        Clang_CodeGen.Public += clang.constructThisPackageDependency("llvm_project.llvm."s + d);
+        Clang_CodeGen.Public += Clang_CodeGen.constructThisPackageDependency("llvm_project.llvm."s + d);
     }
 
     auto &libclang = clang.addTarget<LibraryTarget>("tools.libclang");
