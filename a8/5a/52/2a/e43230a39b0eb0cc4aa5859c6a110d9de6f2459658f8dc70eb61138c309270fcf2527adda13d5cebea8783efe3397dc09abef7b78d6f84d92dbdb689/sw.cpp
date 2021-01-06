@@ -618,6 +618,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         {
             auto &Utils = d.addTarget<StaticLibraryTarget>("Utils");
             Utils += FileRegex("lib/Target/" + dir + "/Utils", std::regex(".*"), true);
+            Utils.Public += IncludeDirectory{ "lib/Target/" + dir };
             Utils.Public += AInfo;
             AUtils = &Utils;
             targets.arch_targets[dir].push_back(&Utils);
@@ -629,6 +630,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         {
             auto &AsmPrinter = d.addTarget<StaticLibraryTarget>("AsmPrinter");
             AsmPrinter += FileRegex("lib/Target/" + dir + "/InstPrinter", std::regex(".*"), true);
+            AsmPrinter.Public += IncludeDirectory{ "lib/Target/" + dir };
             AsmPrinter.Public += AInfo, MC;
             if (AUtils)
                 AsmPrinter.Public += *AUtils;
@@ -642,6 +644,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         {
             auto &Disassembler = d.addTarget<StaticLibraryTarget>("Disassembler");
             Disassembler += FileRegex("lib/Target/" + dir + "/Disassembler", std::regex(".*"), true);
+            Disassembler.Public += IncludeDirectory{ "lib/Target/" + dir };
             Disassembler.Public += AInfo, MCDisassembler;
             ADisassembler = &Disassembler;
             targets.arch_targets[dir].push_back(&Disassembler);
@@ -652,6 +655,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         {
             auto &AAsmParser = d.addTarget<StaticLibraryTarget>("AsmParser");
             AAsmParser += FileRegex("lib/Target/" + dir + "/AsmParser", std::regex(".*"), true);
+            AAsmParser.Public += IncludeDirectory{ "lib/Target/" + dir };
             AAsmParser.Public += AInfo, MCParser;
             targets.arch_targets[dir].push_back(&AAsmParser);
         }
@@ -660,10 +664,15 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         auto &ADesc = d.addTarget<StaticLibraryTarget>("Desc");
         {
             ADesc += FileRegex("lib/Target/" + dir + "/MCTargetDesc", std::regex(".*"), true);
+            ADesc.Public += IncludeDirectory{ "lib/Target/" + dir };
             ADesc.Public += MCDisassembler, Object, AInfo;
+            if (AUtils)
+                ADesc.Public += *AUtils;
             if (AAsmPrinter)
                 ADesc.Public += *AAsmPrinter;
             targets.arch_targets[dir].push_back(&ADesc);
+            if (dir == "AArch64")
+                ADesc.patch("lib/Target/AArch64/MCTargetDesc/AArch64InstPrinter.h", "../", "");
         }
 
         //
@@ -675,6 +684,7 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
             ACodeGen.AllowEmptyRegexes = true;
             ACodeGen -= FileRegex("lib/Target/" + dir, std::regex(".*\\.def"), false);
             ACodeGen.AllowEmptyRegexes = true;
+            ACodeGen.Public += IncludeDirectory{ "lib/Target/" + dir };
             ACodeGen.Public += Analysis, AsmPrinter, CodeGen, Core, GlobalISel,
                 SelectionDAG, Target, ADesc;
             ACodeGen += CFGuard, MIRParser;
