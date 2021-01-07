@@ -139,6 +139,8 @@ void build_llvm(ProjectTarget &llvm_project, LlvmTargets &targets)
         demangle.Public +=
             "include"_id;
 
+        demangle.Public += "utils/LLVMVisualizers/llvm.natvis";
+
         if (demangle.getCompilerType() == CompilerType::MSVC)
             demangle.Protected.CompileOptions.push_back("-bigobj");
         //else if (s.Settings.Native.CompilerType == CompilerType::GNU)
@@ -743,11 +745,13 @@ void build_clang(ProjectTarget &llvm_project, LlvmTargets &targets)
         Basic.Public += "include"_idir;
         Basic += "lib/Basic"_idir;
         Basic -= "include/.*\\.def"_rr;
+        Basic.Public += "utils/ClangVisualizers/clang.natvis";
         Basic.Public +=
             Basic.constructThisPackageDependency("llvm_project.llvm.Core"),
             Basic.constructThisPackageDependency("llvm_project.llvm.Frontend.OpenMP"),
             Basic.constructThisPackageDependency("llvm_project.llvm.MC");
         Basic.Protected += "_CINDEX_LIB_"_def;
+        Basic.Public += sw::Static, "CINDEX_NO_EXPORTS"_def;
 
         Basic.Variables["BACKEND_PACKAGE_STRING"] = Basic.getPackage().getVersion().toString();
         Basic.Variables["CLANG_VERSION"] = Basic.getPackage().getVersion().toString();
