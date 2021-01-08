@@ -54,11 +54,11 @@ void check(Checker &c)
     s.checkIncludeExists("windows.h");
     {
         auto &c = s.checkIncludeExists("winsock2.h");
-        c.Parameters.Includes.push_back("windows.h");
+        //c.Parameters.Includes.push_back("windows.h");
     }
     {
         auto &c = s.checkIncludeExists("ws2tcpip.h");
-        c.Parameters.Includes.push_back("windows.h");
+        //c.Parameters.Includes.push_back("windows.h");
     }
     s.checkTypeSize("long");
     s.checkTypeSize("size_t");
