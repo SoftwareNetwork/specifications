@@ -18,10 +18,10 @@ void build(Solution &s)
 
         t += "include/.*"_rr;
         t += "src/.*"_r;
-        t += "src/conversions/.*"_r;
-        t += "src/iso19111/.*"_r;
-        t += "src/projections/.*"_r;
-        t += "src/transformations/.*"_r;
+        t += "src/conversions/.*"_rr;
+        t += "src/iso19111/.*"_rr;
+        t += "src/projections/.*"_rr;
+        t += "src/transformations/.*"_rr;
 
         // data files
         t += "data/sql/.*"_r;
