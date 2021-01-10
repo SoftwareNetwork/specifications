@@ -75,7 +75,13 @@ struct FlexBisonData
 
 static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
+#if SW_CPP_DRIVER_API_VERSION > 1
+    auto bison = std::make_shared<Dependency>(sw::UnresolvedPackageName{
+        base->getUnresolvedPackageId().getName().getPath() / "bison",
+        base->getUnresolvedPackageId().getName().getRange()});
+#else
     auto bison = std::make_shared<Dependency>(sw::UnresolvedPackage{base->package.getPath() / "bison", base->package.getRange()});
+#endif
 
     d.setupFiles(t, ".y");
 
@@ -108,7 +114,13 @@ static auto gen_bison(const DependencyPtr &base, NativeExecutedTarget &t, const 
 
 static auto gen_flex(const DependencyPtr &base, NativeExecutedTarget &t, FlexBisonData d)
 {
+#if SW_CPP_DRIVER_API_VERSION > 1
+    auto flex = std::make_shared<Dependency>(sw::UnresolvedPackageName{
+        base->getUnresolvedPackageId().getName().getPath() / "flex",
+        base->getUnresolvedPackageId().getName().getRange()});
+#else
     auto flex = std::make_shared<Dependency>(sw::UnresolvedPackage{base->package.getPath() / "flex", base->package.getRange()});
+#endif
 
     d.setupFiles(t, ".l");
 

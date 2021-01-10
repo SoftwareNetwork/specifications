@@ -20,7 +20,11 @@ struct ProtocData
         hash_combine(h, exts);
         hash_combine(h, idirs);
         if (plugin)
+#if SW_CPP_DRIVER_API_VERSION > 1
+            hash_combine(h, plugin->getUnresolvedPackageId().getName().toString());
+#else
             hash_combine(h, plugin->getPackage().toString());
+#endif
         return std::to_string(h);
     }
 
@@ -119,8 +123,17 @@ struct ProtobufData : ProtocData
 static auto gen_protobuf_cpp(const DependencyPtr &protobuf_base, NativeExecutedTarget &t,
     const path &f, const ProtobufData &data = {})
 {
+#if SW_CPP_DRIVER_API_VERSION > 1
+    auto protoc = std::make_shared<Dependency>(sw::UnresolvedPackageName{
+        protobuf_base->getUnresolvedPackageId().getName().getPath() / "protoc",
+        protobuf_base->getUnresolvedPackageId().getName().getRange()});
+    auto protobuf = std::make_shared<Dependency>(sw::UnresolvedPackageName{
+        protobuf_base->getUnresolvedPackageId().getName().getPath() / "protobuf",
+        protobuf_base->getUnresolvedPackageId().getName().getRange()});
+#else
     auto protoc = std::make_shared<Dependency>(sw::UnresolvedPackage{protobuf_base->package.getPath() / "protoc", protobuf_base->package.getRange()});
     auto protobuf = std::make_shared<Dependency>(sw::UnresolvedPackage{protobuf_base->package.getPath() / "protobuf", protobuf_base->package.getRange()});
+#endif
 
     ProtocData d = data;
     d.input = f;
