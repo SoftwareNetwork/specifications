@@ -29,7 +29,11 @@ void build(Solution &s)
     else
     {
         t += "source/posix/.*"_rr;
+        t += "source/arch/intel/asm/.*"_r;
+        t -= "source/arch/intel/encoding_avx2.c";
+        t += "dl"_slib;
         t += "pthread"_slib;
+        t += "CoreFoundation"_framework;
     }
     t.writeFileOnce("aws/common/config.h");
 }

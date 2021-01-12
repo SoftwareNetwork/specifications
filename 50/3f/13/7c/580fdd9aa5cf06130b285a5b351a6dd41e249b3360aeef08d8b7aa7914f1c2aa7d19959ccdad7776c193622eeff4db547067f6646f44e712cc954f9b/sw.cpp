@@ -29,8 +29,10 @@ void build(Solution &s)
     }
     else
     {
-        t += "source/posix/.*"_rr;
+        t += "source/unix/.*"_rr;
+        t += "dl"_slib;
     }
 
+    t += "org.sw.demo.openssl.crypto"_dep;
     t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;
 }

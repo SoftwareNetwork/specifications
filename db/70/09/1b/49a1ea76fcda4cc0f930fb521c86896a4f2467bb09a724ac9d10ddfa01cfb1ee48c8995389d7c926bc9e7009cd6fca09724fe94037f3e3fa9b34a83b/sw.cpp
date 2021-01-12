@@ -67,6 +67,7 @@ void build(Solution &s)
         wt.Public += "_WIN32_WINNT=0x0601"_d;
 
         wt += "src/Wt/FontSupportPango.C";
+        wt -= "src/Wt/WServerGLWidget.C";
 
         wt.Private += "WT_BUILDING"_d;
         wt.Public += "WT_FONTSUPPORT_PANGO"_d;

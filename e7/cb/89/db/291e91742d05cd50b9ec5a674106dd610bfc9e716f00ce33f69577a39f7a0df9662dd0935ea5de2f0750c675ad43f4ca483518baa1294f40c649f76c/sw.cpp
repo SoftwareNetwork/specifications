@@ -134,7 +134,6 @@ void build(Solution &s)
     {
         fontconfig.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 
-        fontconfig.replaceInFileOnce("src/fccache.c", "#include <sys/time.h>", "//#include <sys/time.h>");
         fontconfig.replaceInFileOnce("src/fcfreetype.c", "advances[3] = {};", "advances[3] = {0};");
 
         fontconfig.writeFileOnce("unistd.h", R"(
