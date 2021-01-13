@@ -19,6 +19,10 @@ void build(Solution &s)
     {
         t += "source/intel/visualc/.*"_rr;
     }
+    else
+    {
+        t += "source/intel/asm/.*"_rr;
+    }
 
     t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;
 }

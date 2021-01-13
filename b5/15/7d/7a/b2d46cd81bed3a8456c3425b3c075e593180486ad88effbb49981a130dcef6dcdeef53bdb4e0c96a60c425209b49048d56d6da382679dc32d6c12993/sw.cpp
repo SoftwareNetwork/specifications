@@ -16,6 +16,8 @@ void build(Solution &s)
     t.Private += sw::Shared, "AWS_IO_EXPORTS"_d;
     t.Public += sw::Shared, "AWS_IO_USE_IMPORT_EXPORT"_d;
 
+    t -= "org.sw.demo.amazon.awslabs.s2n-0.10.24"_dep;
+
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         t += "source/windows/.*"_rr;
@@ -28,7 +30,11 @@ void build(Solution &s)
     }
     else
     {
+        t += "source/linux/.*"_rr;
         t += "source/posix/.*"_rr;
+        t += "dl"_slib;
+        t += "source/s2n/.*"_r;
+        t += "org.sw.demo.amazon.awslabs.s2n-0.10.24"_dep;
     }
 
     t.Public += "org.sw.demo.amazon.awslabs.c_cal"_dep;
