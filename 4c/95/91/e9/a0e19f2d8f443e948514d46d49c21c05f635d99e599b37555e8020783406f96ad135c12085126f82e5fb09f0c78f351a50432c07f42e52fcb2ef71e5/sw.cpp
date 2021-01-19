@@ -58,7 +58,11 @@ struct ProtocData
         addIncludeDirectory(t.getFile(protoc, "src"));
 
         auto deps_file = t.BinaryDir.parent_path() / "obj" / (input.filename() += "." + getHash() + ".d");
+#if SW_CPP_DRIVER_API_VERSION > 1
+        auto gc = std::make_shared<::sw::driver::Command>();
+#else
         auto gc = std::make_shared<::sw::driver::Command>(t.getMainBuild());
+#endif
         gc->deps_processor = Command::DepsProcessor::Gnu;
         gc->deps_file = deps_file;
 
