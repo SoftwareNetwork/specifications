@@ -7,4 +7,5 @@ void build(Solution &s)
     re2.ImportFromBazel = true;
     re2.BazelTargetName = "re2";
     re2.Public += "."_idir;
+    re2 += "NOMINMAX"_def;
 }
