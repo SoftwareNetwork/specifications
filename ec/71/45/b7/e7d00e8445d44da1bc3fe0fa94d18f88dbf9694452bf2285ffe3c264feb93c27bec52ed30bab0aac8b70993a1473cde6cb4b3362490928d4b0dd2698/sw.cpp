@@ -86,6 +86,9 @@ struct ProtocData
             c << [c = c.getCommand().get(), plugin = plugin, generator = generator, &ctx = t.getContext()]()
             {
                 path p;
+#if SW_CPP_DRIVER_API_VERSION > 1
+                p = plugin->transform->get_properties()["output_file"].getPathValue(ctx.getLocalStorage());
+#else
                 if (auto t = plugin->getTarget().as<NativeExecutedTarget *>())
                 {
                     p = t->getOutputFile();
@@ -96,6 +99,7 @@ struct ProtocData
                 }
                 else
                     throw SW_RUNTIME_ERROR("no grpc_cpp_plugin resolved (missing target code)");
+#endif
                 c->addInput(p);
                 return "--plugin=protoc-gen-" + generator + "=" + to_string(normalize_path(p));
             }
