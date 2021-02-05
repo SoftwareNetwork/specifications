@@ -1,7 +1,7 @@
 #pragma sw require header pub.egorpugin.primitives.tools.embedder
 #pragma sw require header org.sw.demo.google.grpc.cpp.plugin
 #pragma sw require header org.sw.demo.lexxmark.winflexbison.bison
-//#pragma sw require header org.sw.demo.qtproject.qt.base.tools.moc
+//#pragma sw1 require1 header org.sw.demo.qtproject.qt.base.tools.moc
 
 void build(Solution &s)
 {
@@ -31,14 +31,18 @@ void build(Solution &s)
             "org.sw.demo.boost.property_tree"_dep,
             "org.sw.demo.boost.serialization"_dep,
             "org.sw.demo.boost.stacktrace"_dep;
-        //cmddep->getSettings()["export-if-static"] = "true";
+        //cmddep->getSettings()["export-if-static"] = true;
         //cmddep->getSettings()["export-if-static"].setRequired();
+#if SW_CPP_DRIVER_API_VERSION > 1
+        verdep->getSettings()["export-if-static"] = true;
+#else
         verdep->getSettings()["export-if-static"] = "true";
-#if SW_CPP_DRIVER_API_VERSION == 1
         verdep->getSettings()["export-if-static"].setRequired();
 #endif
+#if SW_CPP_DRIVER_API_VERSION > 1
+        srcdep->getSettings()["export-if-static"] = true;
+#else
         srcdep->getSettings()["export-if-static"] = "true";
-#if SW_CPP_DRIVER_API_VERSION == 1
         srcdep->getSettings()["export-if-static"].setRequired();
 #endif
         if (support.getBuildSettings().TargetOS.Type == OSType::Windows)
