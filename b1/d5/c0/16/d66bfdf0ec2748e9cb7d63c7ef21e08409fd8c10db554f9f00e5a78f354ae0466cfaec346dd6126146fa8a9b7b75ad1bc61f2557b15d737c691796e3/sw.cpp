@@ -133,7 +133,11 @@ void build(Solution &s)
 
             auto in = data.SourceDir / "data" / "in" / (namel + ".dat");
             auto out = data.BinaryDir / "data" / "in" / (name + ".dat");
+#if SW_CPP_DRIVER_API_VERSION > 1
+            if (data.getSolution().getContext().getHostOs().is(OSType::Windows))
+#else
             if (data.getContext().getHostOs().is(OSType::Windows))
+#endif
             {
                 auto c = data.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file));
                 c << cmd::in(in) << cmd::out(out);

@@ -83,7 +83,11 @@ struct ProtocData
         // plugin
         if (plugin)
         {
+#if SW_CPP_DRIVER_API_VERSION > 1
+            c << [c = c.getCommand().get(), plugin = plugin, generator = generator, &ctx = t.getSolution().getContext()]()
+#else
             c << [c = c.getCommand().get(), plugin = plugin, generator = generator, &ctx = t.getContext()]()
+#endif
             {
                 path p;
 #if SW_CPP_DRIVER_API_VERSION > 1
