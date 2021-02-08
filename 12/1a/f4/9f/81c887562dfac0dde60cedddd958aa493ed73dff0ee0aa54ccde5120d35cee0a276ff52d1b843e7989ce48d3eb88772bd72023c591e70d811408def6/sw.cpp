@@ -569,6 +569,7 @@ void build(Solution &s)
 
     // context
     {
+        *boost_targets["context"] += cpp11;
         *boost_targets["context"] += "include/.*"_rr;
         *boost_targets["context"] += "src/.*"_rr;
         *boost_targets["context"] -= "src/asm/.*"_rr;
@@ -607,6 +608,7 @@ void build(Solution &s)
 
     // fiber
     {
+        *boost_targets["fiber"] += cpp11;
         *boost_targets["fiber"] += "include/.*"_rr;
         *boost_targets["fiber"] -= "src/.*"_rr;
         *boost_targets["fiber"] += "src/.*"_r;
