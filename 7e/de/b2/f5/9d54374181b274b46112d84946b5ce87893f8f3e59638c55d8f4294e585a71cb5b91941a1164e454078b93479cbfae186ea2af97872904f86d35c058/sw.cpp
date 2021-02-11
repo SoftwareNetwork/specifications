@@ -87,7 +87,11 @@ void build(Solution &s)
             fs::create_directories(d);
             for (auto &[p, sf] : nettle[".*\\.h"_rr])
             {
+#if SW_CPP_DRIVER_API_VERSION > 1
+                if (nettle.is_source_file(p))
+#else
                 if (File(p, nettle.getFs()).isGenerated())
+#endif
                     continue;
 
                 auto f = p;
