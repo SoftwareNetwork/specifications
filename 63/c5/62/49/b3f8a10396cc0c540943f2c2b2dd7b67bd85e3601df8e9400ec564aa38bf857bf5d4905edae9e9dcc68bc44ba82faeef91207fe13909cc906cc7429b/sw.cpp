@@ -71,7 +71,7 @@ void build(Solution &s)
 
     libxml2.Private += "HAVE_ZLIB_H"_d;
     libxml2.Private += "IN_LIBXML"_d;
-    libxml2.Private += "LIBXML_THREAD_ENABLED"_d;
+    //libxml2.Private += "LIBXML_THREAD_ENABLED"_d;
     if (libxml2.getBuildSettings().TargetOS.Type == OSType::Windows ||
         libxml2.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
@@ -130,7 +130,8 @@ void build(Solution &s)
         "WITH_ISO8859X=1"_v,
         "WITH_ISO8859X=1"_v,
         "WITH_THREADS=1"_v,
-        "WITH_THREAD_ALLOC=1"_v;
+        "WITH_THREAD_ALLOC=1"_v
+        ;
     libxml2.configureFile(
         libxml2.SourceDir / "include/libxml/xmlversion.h.in",
         libxml2.BinaryDir / "libxml/xmlversion.h");
