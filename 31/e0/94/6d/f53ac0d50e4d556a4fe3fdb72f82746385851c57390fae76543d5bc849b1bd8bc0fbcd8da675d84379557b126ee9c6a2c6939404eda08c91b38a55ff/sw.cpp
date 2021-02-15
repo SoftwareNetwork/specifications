@@ -3,6 +3,9 @@ void build(Solution &s)
     auto &lua = s.addTarget<LibraryTarget>("lua", "5.4.2");
     lua += RemoteFile("https://www.lua.org/ftp/lua-{v}.tar.gz");
 
+    if (lua.getBuildSettings().TargetOS.Type != OSType::Windows)
+        lua.ExportAllSymbols = true;
+
     lua +=
         "src/.*\\.h.*"_rr,
         "src/lapi.c",
