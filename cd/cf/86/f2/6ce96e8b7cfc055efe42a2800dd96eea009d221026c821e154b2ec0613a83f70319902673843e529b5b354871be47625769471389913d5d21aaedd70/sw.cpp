@@ -99,6 +99,7 @@ void build(Solution &s)
         base.Interface += sw::Shared, "WXUSINGDLL"_def;
         base += "wxUSE_BASE=1"_def;
         base += "wxUSE_GUI=0"_def;
+        base.Protected += "WXBUILDING"_def;
 
         if (base.getBuildSettings().TargetOS.Type == OSType::Windows)
             base.Public += "UNICODE"_def;
@@ -265,6 +266,7 @@ void build(Solution &s)
             base.Variables["wxUSE_MDI_ARCHITECTURE"] = 1;
             base.Variables["wxUSE_MEDIACTRL"] = 1;
             base.Variables["wxUSE_MEMORY_TRACING"] = 1;
+            base.Variables["wxUSE_MENUBAR"] = 1;
             base.Variables["wxUSE_MENUS"] = 1;
             base.Variables["wxUSE_MIMETYPE"] = 1;
             base.Variables["wxUSE_MINIFRAME"] = 1;
@@ -475,12 +477,13 @@ void build(Solution &s)
             add_sources(core, "UNIX");
 
         core.Protected += "wxUSE_BASE=0"_def;
-        core.Protected += "wxUSE_GUI=1"_def;
+        core.Public += "wxUSE_GUI=1"_def;
 
         core.Public += base;
 
         core -= "org.sw.demo.cairographics.cairo"_dep;
-        if (core.getBuildSettings().TargetOS.Type == OSType::Windows || core.getBuildSettings().TargetOS.Type == OSType::Macos)
+        if (core.getBuildSettings().TargetOS.Type == OSType::Windows ||
+            core.getBuildSettings().TargetOS.Type == OSType::Macos)
             core += "org.sw.demo.cairographics.cairo"_dep;
         core += "org.sw.demo.tiff"_dep;
         core += "org.sw.demo.glennrp.png"_dep;
@@ -604,6 +607,7 @@ void build(Solution &s)
             stc += "ole32.lib"_slib;
             stc += "gdi32.lib"_slib;
             stc += "User32.lib"_slib;
+            stc += "Imm32.lib"_slib;
         }
     }
 }
@@ -722,6 +726,7 @@ void check(Checker &c)
     s.checkIncludeExists("termios.h");
     s.checkIncludeExists("values.h");
     s.checkIncludeExists("xlocale.h");
+    s.checkIncludeExists("type_traits").setCpp();
     s.checkTypeSize("char");
     s.checkTypeSize("int");
     s.checkTypeSize("intmax_t");
