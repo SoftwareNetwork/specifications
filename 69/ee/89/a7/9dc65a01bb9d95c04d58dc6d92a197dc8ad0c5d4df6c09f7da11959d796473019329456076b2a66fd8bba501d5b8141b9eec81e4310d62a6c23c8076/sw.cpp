@@ -563,10 +563,12 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
         gio -= "gio/glocalfileinfo.*\\.h"_rr;
         gio -= "gio/.*tool.*"_rr;
         gio -= "gio/.*-win32.*"_rr;
+        gio -= "gio/.*win32.*"_rr;
 
         gio -= "gio/gdbusauthmechanism.h";
         gio -= "gio/gwin32registrykey.h";
 
+        //gio -= "com.Microsoft.Windows.SDK.winrt"_dep;
         if (gio.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gio -= "gio/gdesktopappinfo.c";
@@ -579,6 +581,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
             gio -= "gio/.*networkmonitornm.*\\.c"_rr;
 
             gio += "gio/win32/.*"_rr;
+            gio += "gio/gwin32.*\\.c"_rr;
 
             gio.Variables["WSPIAPI_INCLUDE"] = "#include <wspiapi.h>";
 
@@ -588,6 +591,10 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
             gio += "Dnsapi.lib"_slib;
             gio += "User32.lib"_slib;
             gio += "Shlwapi.lib"_slib;
+            gio += "ole32.lib"_slib;
+            gio += "uuid.lib"_slib;
+
+            gio += "com.Microsoft.Windows.SDK.winrt"_dep;
 
             gio.writeFileOnce(gio.BinaryPrivateDir / "unistd.h");
             gio.writeFileOnce(gio.BinaryPrivateDir / "fnmatch.h", R"(#include <shlwapi.h>
@@ -776,14 +783,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
 void check(Checker &c)
 {
     auto &s = c.addSet("glib");
-
-    // new
     s.checkDeclarationExists("frexpl");
     s.checkDeclarationExists("ldexpl");
-    s.checkFunctionExists("isnanf");
-    s.checkFunctionExists("isnand");
-    s.checkFunctionExists("isnanl");
-
     s.checkFunctionExists("alloca");
     s.checkFunctionExists("clock_gettime");
     s.checkFunctionExists("dlerror");
@@ -810,6 +811,9 @@ void check(Checker &c)
     s.checkFunctionExists("if_indextoname");
     s.checkFunctionExists("if_nametoindex");
     s.checkFunctionExists("inotify_init1");
+    s.checkFunctionExists("isnanf");
+    s.checkFunctionExists("isnand");
+    s.checkFunctionExists("isnanl");
     s.checkFunctionExists("issetugid");
     s.checkFunctionExists("kevent");
     s.checkFunctionExists("kqueue");
