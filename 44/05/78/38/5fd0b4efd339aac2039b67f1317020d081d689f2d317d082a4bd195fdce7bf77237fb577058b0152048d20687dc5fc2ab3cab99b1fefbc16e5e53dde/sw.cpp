@@ -54,6 +54,7 @@ void build(Solution &s)
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;
         glib.Public += "GLIB_LOCALE_DIR=\"\""_d;
         glib.Public += "USE_SYSTEM_PCRE"_d;
+        glib.Protected += "_GNU_SOURCE"_def;
         glib.Public.Definitions["ALIGNOF_GUINT32"] += glib.Variables["ALIGNOF_UINT32_T"];
         glib.Public.Definitions["ALIGNOF_GUINT64"] += glib.Variables["ALIGNOF_UINT64_T"];
 
@@ -654,7 +655,6 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             }
             gio -= "gio/.*win32.*"_rr;
             gio -= "gio/gregistrysettingsbackend.c";
-            gio += "_GNU_SOURCE"_def;
             gio += "USE_STATFS"_def;
             gio += "GIO_MODULE_DIR=\".\""_def;
             gio += "resolv"_slib;
