@@ -19,12 +19,6 @@ void build(Solution &s)
         ;
     lib.Public += "lib"_idir;
 
-    lib ^=
-        "lib/common/xxhash.c",
-        "lib/common/xxhash.h"
-        ;
-    lib += "org.sw.demo.Cyan4973.xxHash"_dep;
-
     if (lib.getBuildSettings().TargetOS.is(OSType::Windows))
     {
         lib += sw::Shared, "ZSTD_DLL_EXPORT"_def;
