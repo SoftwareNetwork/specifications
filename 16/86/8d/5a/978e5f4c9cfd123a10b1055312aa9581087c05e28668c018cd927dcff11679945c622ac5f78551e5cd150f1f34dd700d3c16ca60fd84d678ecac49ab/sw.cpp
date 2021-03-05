@@ -44,7 +44,7 @@ void build(Solution &s)
             libtesseract.getCompilerType() == CompilerType::ClangCl)
         {
             libtesseract += "__SSE4_1__"_def;
-            libtesseract.CompileOptions.push_back("-arch:AVX2");
+            //libtesseract.CompileOptions.push_back("-arch:AVX2");
 
             // openmp
             //if (libtesseract.getOptions()["openmp"] == "true")
