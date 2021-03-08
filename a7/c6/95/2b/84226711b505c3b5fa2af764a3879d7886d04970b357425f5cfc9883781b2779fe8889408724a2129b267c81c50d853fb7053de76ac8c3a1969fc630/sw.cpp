@@ -58,6 +58,7 @@ void build(Solution &s)
         libevent -= "evthread_pthread.c";
         libevent -= "epoll_sub.c";
         libevent += "Shell32.lib"_slib;
+        libevent += "Iphlpapi.lib"_slib;
     }
     else
     {
