@@ -26,7 +26,9 @@ void build(Solution &s)
     harfbuzz.Private += "HAVE_OT"_d;
     harfbuzz.Interface += sw::Shared, "HD_EXTERN=SW_IMPORT"_d;
     harfbuzz.Private += sw::Shared, "HB_EXTERN=SW_EXPORT"_d;
-    
+
+    if (!harfbuzz.getBuildSettings().TargetOS.is(OSType::Windows))
+        harfbuzz += "HAVE_PTHREAD"_def;
     if (harfbuzz.getBuildSettings().TargetOS.is(OSType::Macos))
     {
         harfbuzz += "HAVE_CORETEXT"_def;
