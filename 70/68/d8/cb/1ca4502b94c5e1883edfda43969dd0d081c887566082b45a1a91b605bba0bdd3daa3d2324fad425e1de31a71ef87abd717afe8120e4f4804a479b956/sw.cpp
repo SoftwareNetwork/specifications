@@ -79,6 +79,7 @@ void build(Solution &s)
         t += cppstd;
         t += "src/proto/.*\\.proto"_rr;
         t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        t -= "src/proto/grpc/status/.*\\.proto"_rr;
         t.Public += core;
         ProtobufData d;
         d.public_protobuf = true;
@@ -142,6 +143,7 @@ void build(Solution &s)
 
         t.Public += "."_id;
 
+        t.Public += core;
         t.Public += proto;
         t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
