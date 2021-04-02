@@ -16,8 +16,9 @@ void build(Solution &s)
         utils.Public += "tdutils"_idir;
         if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            utils.Public += "Mswsock.lib"_slib;
-            utils.Public += "Normaliz.lib"_slib;
+            utils += "Mswsock.lib"_slib;
+            utils += "Normaliz.lib"_slib;
+            utils += "psapi.lib"_slib;
         }
 
         utils.Public += "org.sw.demo.madler.zlib"_dep;

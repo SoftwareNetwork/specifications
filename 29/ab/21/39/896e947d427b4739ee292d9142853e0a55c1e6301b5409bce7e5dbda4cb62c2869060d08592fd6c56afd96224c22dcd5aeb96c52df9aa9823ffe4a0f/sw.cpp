@@ -101,6 +101,14 @@ void build(Solution &s)
         {
             lib.Public += "UNICODE"_d;
             lib.Public += "_UNICODE"_d;
+
+            for (auto p : {
+                "if ((err != MP_OKAY) && MP_HAS(S_READ_ARC4RANDOM))",
+                "if ((err != MP_OKAY) && MP_HAS(S_READ_GETRANDOM))",
+                "if ((err != MP_OKAY) && MP_HAS(S_READ_URANDOM))",
+                "if ((err != MP_OKAY) && MP_HAS(S_READ_LTM_RNG))",
+            })
+                lib.patch("libtommath/bn_s_mp_rand_platform.c", p, "//"s + p);
         }
         if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
