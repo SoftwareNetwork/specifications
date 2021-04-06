@@ -444,6 +444,8 @@ static Files qt_add_translation(const DependencyPtr &lrelease, NativeExecutedTar
     return out;
 }
 
+#include <iostream>
+
 static Files qt_create_translation(const DependencyPtr &lupdate, const DependencyPtr &lrelease, NativeExecutedTarget &t)
 {
     // before dry run
@@ -458,12 +460,18 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     Files ts_files, sources;
     for (auto &[p, f] : t)
     {
-        if (f->skip)
+        if (sw::isCppHeaderFileExtension(to_printable_string(p)) || sw::isCppSourceFileExtensions(to_printable_string(p)))
+            ;
+        else if (f->skip)
             continue;
         if (p.extension() == ".ts")
             ts_files.insert(p);
         else
         {
+            if (sw::isCppHeaderFileExtension(to_printable_string(p)) || sw::isCppSourceFileExtensions(to_printable_string(p)))
+                ;
+            else if (!f->isActive())
+                continue;
             sources.insert(p);
             ts_lst_file += to_string(normalize_path(p)) + "\n";
         }
@@ -476,18 +484,16 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     //
     t.writeFileOnce(ts_lst_fn, ts_lst_file);
 
-    // add update commands
+    // add create (update) commands
+    auto c = t.addCommand();
+    c << cmd::prog(lupdate)
+        << cmd::in(ts_lst_fn, cmd::Prefix{ "@" })
+        << "-ts";
     for (auto &ts : ts_files)
-    {
-        auto c = t.addCommand();
-        c << cmd::prog(lupdate)
-            << cmd::in(ts_lst_fn, cmd::Prefix{ "@" })
-            << "-ts"
-            << cmd::in(ts)
-            << cmd::end();
-        for (auto &f : sources)
-            c << cmd::in(sources);
-    }
+        c << cmd::out(ts);
+    c << cmd::end();
+    for (auto &f : sources)
+        c << cmd::in(sources);
 
     return qt_add_translation(lrelease, t, ts_files);
 }
@@ -505,7 +511,18 @@ static auto qt_create_translation(const DependencyPtr &base, NativeExecutedTarge
 
 static auto qt_tr(const DependencyPtr &base, NativeExecutedTarget &t)
 {
-    return qt_create_translation(base, t);
+    auto qm = qt_create_translation(base, t);
+
+    RccData d;
+    d.prefix = "/ts";
+    d.name = "qm";
+    for (auto &p : qm)
+        d.files[p];
+    auto rccbin = std::make_shared<Dependency>(base->package);
+    rccbin->package.ppath /= "base.tools.rcc";
+    rcc(rccbin, t, d);
+
+    return qm;
 }
 
 // qt translations
@@ -1537,6 +1554,8 @@ void build(Solution &s)
 
             bootstrap.Public += tinycbor;
             bootstrap.Public += "org.sw.demo.madler.zlib"_dep;
+            // natvis
+            bootstrap.Public += "org.sw.demo.qtproject.qt.labs.vstools.natvis-dev"_dep;
 
             qt_desc.print(bootstrap);
 
@@ -1842,6 +1861,8 @@ void build(Solution &s)
             core.Public += "org.sw.demo.facebook.zstd.zstd"_dep;
             core.Public += "org.sw.demo.pcre.pcre16-10"_dep;
             core += harfbuzz;
+            // natvis
+            core.Public += "org.sw.demo.qtproject.qt.labs.vstools.natvis-dev"_dep;
 
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
