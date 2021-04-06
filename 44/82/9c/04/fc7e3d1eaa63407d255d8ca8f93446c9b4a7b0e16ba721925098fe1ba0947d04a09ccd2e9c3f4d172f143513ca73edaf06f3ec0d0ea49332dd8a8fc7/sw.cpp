@@ -25,6 +25,8 @@ void build(Solution &s)
         //t += "dxguid.lib"_slib;
         t.Variables["ALLEGRO_MSVC"] = 1;
         t.Variables["ALLEGRO_CFG_D3D"] = 1;
+        //t.Variables["ALLEGRO_CFG_D3DX9"] = 1;
+        // c:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include\
         t.Variables["ALLEGRO_CFG_XINPUT"] = 1;
     }
     else
