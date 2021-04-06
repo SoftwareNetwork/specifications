@@ -14,8 +14,6 @@ void build(Solution &s)
         }
 
         imgui.Public += "org.sw.demo.stb.all-master"_dep;
-        //imgui.Public += "org.sw.demo.glfw"_dep;
-        //imgui.Public += "org.sw.demo.gl3w-master"_dep;
     }
 
     for (String b : {
@@ -26,17 +24,14 @@ void build(Solution &s)
         "win32",
         "sdl",
         "osx",
-
-        /*
-            //"glfw.*"_rr,
-            //"opengl3.*"_rr,
-
-            wgpu.cpp",
-            glut.cpp",
-            marmalade.cpp",
-            allegro5.cpp",
-            android.cpp"
-            ;*/
+        "glfw",
+        "opengl2",
+        "opengl3",
+        "allegro5",
+        "wgpu",
+        "glut",
+        "marmalade",
+        "android",
         })
     {
         auto &t = imgui.addLibrary("backend." + b);
@@ -55,9 +50,22 @@ void build(Solution &s)
             t += "gdi32.lib"_slib;
             t += "Dwmapi.lib"_slib;
         }
+        else if (b == "opengl2" || b == "opengl3")
+        {
+            t.Public += "org.sw.demo.find.opengl-master"_dep;
+            t.Public += "org.sw.demo.glew"_dep;
+        }
+        else if (b == "glfw")
+        {
+            t.Public += "org.sw.demo.glfw"_dep;
+        }
         else if (b == "sdl")
         {
-            t += "org.sw.demo.valve.sdl"_dep;
+            t.Public += "org.sw.demo.valve.sdl"_dep;
+        }
+        else if (b == "glut")
+        {
+            t.Public += "org.sw.demo.freeglut"_dep;
         }
     }
 }
