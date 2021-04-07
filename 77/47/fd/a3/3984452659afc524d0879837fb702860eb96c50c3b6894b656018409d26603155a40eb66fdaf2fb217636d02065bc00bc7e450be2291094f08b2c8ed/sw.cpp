@@ -78,7 +78,7 @@ void build(Solution &s)
         auto &t = proto;
         t += cppstd;
         t += "src/proto/.*\\.proto"_rr;
-        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        //t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t -= "src/proto/grpc/status/.*\\.proto"_rr;
         t.Public += core;
         ProtobufData d;
@@ -128,6 +128,7 @@ void build(Solution &s)
         t.Public += proto;
         t.Public += grpc_address_sorting;
         t.Public += core_plugin_registry;
+        t.Public += "org.sw.demo.Cyan4973.xxHash"_dep;
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
