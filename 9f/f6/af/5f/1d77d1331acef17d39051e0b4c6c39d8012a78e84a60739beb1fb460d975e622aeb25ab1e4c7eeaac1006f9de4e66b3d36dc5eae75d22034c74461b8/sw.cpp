@@ -67,5 +67,9 @@ void build(Solution &s)
         {
             t.Public += "org.sw.demo.freeglut"_dep;
         }
+        else if (b == "allegro5")
+        {
+            t.Public += "org.sw.demo.liballeg.allegro5"_dep;
+        }
     }
 }
