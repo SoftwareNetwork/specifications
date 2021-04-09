@@ -28,6 +28,9 @@ void build(Solution &s)
         //t.Public += "org.sw.demo.valve.sdl"_dep;
         //t.Variables["ALLEGRO_SDL"] = 1;
 
+        t.Public += "org.sw.demo.find.opengl-master"_dep;
+        t.Variables["ALLEGRO_CFG_OPENGL"] = 1;
+
         //t -= "org.sw.demo.tronkko.dirent-master"_dep;
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
@@ -39,7 +42,7 @@ void build(Solution &s)
             t -= "src/win/d3d_d3dx9.cpp";
             //t -= "src/win/wjoydxnu.cpp";
             t.Variables["ALLEGRO_MSVC"] = 1;
-            //t.Variables["ALLEGRO_CFG_D3D"] = 1;
+            t.Variables["ALLEGRO_CFG_D3D"] = 1;
             //t.Variables["ALLEGRO_CFG_D3DX9"] = 1;
             //t.Variables["ALLEGRO_CFG_XINPUT"] = 1;
 

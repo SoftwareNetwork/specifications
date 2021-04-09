@@ -37,6 +37,7 @@ void build(Solution &s)
         auto &t = imgui.addLibrary("backend." + b);
         t += "IMGUI_API"_api;
         t += FileRegex("backends", "imgui_impl_" + b + ".*", false);
+        t.Public += IncludeDirectory("backends"s);
         t.Public += imgui;
 
         if (b == "dx10" || b == "dx11" || b == "dx12")
