@@ -5,7 +5,7 @@ void build(Solution &s)
     {
         imgui += "IMGUI_API"_api;
         imgui += "im.*"_r;
-        imgui -= "imgui_demo.cpp";
+        //imgui -= "imgui_demo.cpp";
 
         if (imgui.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
@@ -34,7 +34,7 @@ void build(Solution &s)
         "android",
         })
     {
-        auto &t = imgui.addLibrary("backend." + b);
+        auto &t = imgui.addStaticLibrary("backend." + b);
         t += "IMGUI_API"_api;
         t += FileRegex("backends", "imgui_impl_" + b + ".*", false);
         t.Public += IncludeDirectory("backends"s);
@@ -71,6 +71,8 @@ void build(Solution &s)
         else if (b == "allegro5")
         {
             t.Public += "org.sw.demo.liballeg.allegro5.addons.primitives"_dep;
+            // needed for macos, ignored elsewhere
+            t.Public += "org.sw.demo.liballeg.allegro5.addons.main"_dep;
         }
     }
 }

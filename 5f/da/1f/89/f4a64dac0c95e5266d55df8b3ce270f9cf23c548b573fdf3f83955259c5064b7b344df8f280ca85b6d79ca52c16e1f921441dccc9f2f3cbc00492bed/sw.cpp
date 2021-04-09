@@ -144,6 +144,16 @@ void build(Solution &s)
         t += "ALLEGRO_PRIMITIVES_SRC"_def;
         t.Public += allegro5;
     }
+
+    auto &main = addons.addLibrary("main");
+    {
+        auto &t = main;
+        if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+            t.ExportAllSymbols = true;
+        t.setRootDirectory("addons/main");
+        t += ".*"_rr;
+        t.Public += allegro5;
+    }
 }
 
 void check(Checker &c)
