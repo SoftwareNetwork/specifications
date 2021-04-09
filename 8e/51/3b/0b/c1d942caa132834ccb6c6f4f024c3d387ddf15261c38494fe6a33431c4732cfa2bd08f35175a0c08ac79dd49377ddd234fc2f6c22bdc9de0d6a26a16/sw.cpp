@@ -69,7 +69,7 @@ void build(Solution &s)
         }
         else if (b == "allegro5")
         {
-            t.Public += "org.sw.demo.liballeg.allegro5"_dep;
+            t.Public += "org.sw.demo.liballeg.allegro5.addons.primitives"_dep;
         }
     }
 }
