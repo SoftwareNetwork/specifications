@@ -134,6 +134,9 @@ void build(Solution &s)
 
         pcre.configureFile("config-cmake.h.in", pcre.BinaryPrivateDir / "config.h");
         pcre.configureFile("pcre.h.in", "pcre.h");
+
+        if (pcre.getBuildSettings().Native.LibrariesType == LibraryType::Static && pcre.getCompilerType() == CompilerType::MSVC)
+            pcre.Interface.LinkOptions.push_back("/IGNORE:4286,4217");
     };
 
     setup(pcre8, 8);
