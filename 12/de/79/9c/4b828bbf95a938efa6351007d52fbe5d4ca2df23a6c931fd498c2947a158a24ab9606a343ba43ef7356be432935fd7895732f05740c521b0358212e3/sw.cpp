@@ -67,8 +67,13 @@ void build(Solution &s)
         wt.Public += "_WIN32_WINNT=0x0601"_d;
 
         wt += "src/Wt/FontSupportPango.C";
-        //wt -= "src/Wt/WGLWidget.C";
-        //wt -= "src/Wt/WServerGLWidget.C";
+        /*wt -= "src/Wt/WGLWidget.C";
+        wt -= "src/Wt/WServerGLWidget.C";
+        if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            wt += "src/Wt/WGLWidget.C";
+            wt += "src/Wt/WServerGLWidget.C";
+        }*/
 
         wt.Private += "WT_BUILDING"_d;
         wt.Public += "WT_FONTSUPPORT_PANGO"_d;
@@ -84,7 +89,9 @@ void build(Solution &s)
         wt.Public += "org.sw.demo.boost.numeric"_dep;
         wt.Public += "org.sw.demo.boost.thread"_dep;
         wt.Public += "org.sw.demo.gnome.pango.pangoft2"_dep;
-        wt.Public += "org.sw.demo.glew"_dep;
+        //wt.Public -= "org.sw.demo.glew"_dep;
+        //if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
+            wt.Public += "org.sw.demo.glew"_dep;
         wt.Public += "org.sw.demo.graphicsmagick.magick"_dep;
         wt.Public += "org.sw.demo.libharu"_dep;
         wt.Public += "org.sw.demo.openssl.ssl"_dep;
@@ -130,7 +137,8 @@ void build(Solution &s)
         wt.Variables["WT_HAS_WPDFIMAGE"] = "1";
         wt.Variables["WT_WITH_SSL"] = "1";
 
-        wt.Variables["WT_USE_OPENGL"] = "1";
+        //if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
+            wt.Variables["WT_USE_OPENGL"] = "1";
         wt.Variables["WT_DEBUG_ENABLED"] = "0";
         wt.Variables["WT_THREADED"] = "1";
 
