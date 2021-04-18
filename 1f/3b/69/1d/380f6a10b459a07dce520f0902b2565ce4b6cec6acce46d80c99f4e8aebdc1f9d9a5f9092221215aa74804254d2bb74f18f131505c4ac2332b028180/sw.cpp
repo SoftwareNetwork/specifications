@@ -112,13 +112,18 @@ void build(Solution &s)
         }
         if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            lib.Public +=
+            lib +=
                 "Advapi32.lib"_slib,
                 "Netapi32.lib"_slib,
                 "user32.lib"_slib,
                 "Userenv.lib"_slib,
                 "ws2_32.lib"_slib
                 ;
+        }
+        else
+        {
+            lib += "HAVE_UNISTD_H"_def;
+            lib += "dl"_slib;
         }
         lib.Private += sw::Shared, "TCL_SHARED_BUILD"_d;
         lib.Public += sw::Static, "STATIC_BUILD"_d;
