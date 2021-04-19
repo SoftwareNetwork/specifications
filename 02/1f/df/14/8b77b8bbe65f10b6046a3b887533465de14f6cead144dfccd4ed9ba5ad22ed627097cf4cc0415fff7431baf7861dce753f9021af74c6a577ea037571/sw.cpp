@@ -69,7 +69,8 @@ void build(Solution &s)
         sqlcipher.Private += "SQLITE_USER_AUTHENTICATION"_d;
         if (sqlcipher.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
-            sqlcipher.Public += "dl"_slib;
+            sqlcipher += "pthread"_slib;
+            sqlcipher += "dl"_slib;
         }
 
         if (sqlcipher.getBuildSettings().Native.ConfigurationType == ConfigurationType::Debug)
@@ -77,7 +78,6 @@ void build(Solution &s)
 
         sqlcipher.Public += "org.sw.demo.openssl.crypto"_dep;
         sqlcipher.Public += "org.sw.demo.tcl.lib"_dep;
-        sqlcipher.addDummyDependency(mksourceid);
 
         sqlcipher.patch("ext/fts5/fts5_unicode2.c", "u8", "unsigned char");
         sqlcipher.patch("ext/fts5/fts5_unicode2.c", "u16", "unsigned short");
@@ -164,7 +164,9 @@ void build(Solution &s)
         }
 
         {
-            sqlcipher.patch("tool/mksqlite3h.tcl", "$PWD/mksourceid", to_printable_string(normalize_path(mksourceid.getOutputFile())));
+            auto mksourceid_hostdep = sqlcipher.addDummyDependency(mksourceid);
+            const String envname = "MKSOURCEID_EXE";
+            sqlcipher.patch("tool/mksqlite3h.tcl", "$PWD/mksourceid", "$::env(" + envname + ")");
 
             auto c = sqlcipher.addCommand();
             c << cmd::prog("org.sw.demo.tcl.sh"_dep)
@@ -173,8 +175,17 @@ void build(Solution &s)
                 << cmd::std_out(sqlite3h)
                 << cmd::end()
                 << cmd::in("src/sqlite.h.in")
-                << cmd::in(mksourceid.getOutputFile())
                 ;
+            auto x = c.getCommand();
+            std::static_pointer_cast<::sw::driver::Command>(x)->addProgramDependency(mksourceid_hostdep);
+            std::static_pointer_cast<::sw::driver::Command>(x)->addCallback([mksourceid_hostdep, c = x, envname]()
+            {
+                if (auto nt = mksourceid_hostdep->getTarget().as<NativeTarget *>())
+                {
+                    c->addInput(nt->getOutputFile());
+                    c->environment[envname] = to_printable_string(normalize_path(nt->getOutputFile()));
+                }
+            });
         }
 
         sqlcipher.pushFrontToFileOnce("ext/rtree/rtree.c", "#include <stdlib.h>");
@@ -182,6 +193,8 @@ void build(Solution &s)
         sqlcipher.pushFrontToFileOnce("src/crypto_impl.c", "#include <sqliteInt.h>");
         sqlcipher.pushFrontToFileOnce("src/crypto_openssl.c", "#include <sqliteInt.h>\n#include \"sqlcipher.h\"");
     }
+
+    return;
 
     auto &shell = sql.addTarget<ExecutableTarget>("shell");
     {

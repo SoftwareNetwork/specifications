@@ -39,8 +39,8 @@ void build(Solution &s)
                 ;
         }
 
-        if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
+        //if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
+        //{
             auto gperf_cmd = [&utils](const String &s)
             {
                 auto c = utils.addCommand();
@@ -55,12 +55,12 @@ void build(Solution &s)
             };
             gperf_cmd("mime_type_to_extension");
             gperf_cmd("extension_to_mime_type");
-        }
+        /*}
         else
         {
             //set(MIME_TYPE_TO_EXTENSION_CMD ${gperf} -m100 auto/mime_type_to_extension.gperf | grep -v __gnu_inline__ > auto/mime_type_to_extension.cpp)
             //set(EXTENSION_TO_MIME_TYPE_CMD ${gperf} -m100 auto/extension_to_mime_type.gperf | grep -v __gnu_inline__ > auto/extension_to_mime_type.cpp)
-        }
+        }*/
     }
 
     auto &actor = td.addTarget<StaticLibraryTarget>("actor");
@@ -118,8 +118,9 @@ void build(Solution &s)
     {
         if (t.getCompilerType() == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        else
-            t.CompileOptions.push_back("-Wa,-mbig-obj");
+        //else
+            //t.CompileOptions.push_back("-Wa,-mbig-obj");
+            //t.CompileOptions.push_back("-Wa,-big-obj");
     };
 
     auto &scheme = td.addTarget<StaticLibraryTarget>("scheme");
