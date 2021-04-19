@@ -235,8 +235,8 @@ void build(Solution &s)
             "td/telegram/td_log\\..*"_rr;
         core.Public += "."_idir;
         setup_bigobj(core);
-        if (core.getBuildSettings().TargetOS.Type != OSType::Windows)
-            core.Public += "atomic"_slib;
+        //if (core.getBuildSettings().TargetOS.Type != OSType::Windows)
+            //core += "atomic"_slib;
 
         core.Public += scheme;
         core.Public += memprof;
