@@ -64,7 +64,9 @@ void build(Solution &s)
         sqlcipher.Private += "SQLITE_ENABLE_RTREE"_d;
         sqlcipher.Private += "SQLITE_ENABLE_GEOPOLY"_d;
         sqlcipher.Private += "SQLITE_ENABLE_SESSION"_d;
-        sqlcipher.Private += "SQLITE_HAS_CODEC"_d;
+        // https://www.zetetic.net/sqlcipher/introduction/
+        sqlcipher.Public += "SQLITE_HAS_CODEC"_d;
+        sqlcipher.Public += "SQLITE_TEMP_STORE=2"_d;
         sqlcipher.Private += "SQLITE_THREADSAFE"_d;
         sqlcipher.Private += "SQLITE_USER_AUTHENTICATION"_d;
         if (sqlcipher.getBuildSettings().TargetOS.Type != OSType::Windows)

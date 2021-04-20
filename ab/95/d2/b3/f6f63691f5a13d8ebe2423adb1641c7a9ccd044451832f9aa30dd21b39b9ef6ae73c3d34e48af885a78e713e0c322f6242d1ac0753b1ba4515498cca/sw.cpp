@@ -7,7 +7,9 @@ void build(Solution &s)
         t += "sqlite3.[hc]"_r;
         t += "sqlite3ext.h";
         t.ApiName = "SQLITE_API";
+
         t += "SQLITE_ENABLE_COLUMN_METADATA"_def;
+        t += "SQLITE_ENABLE_FTS5"_def;
 
         if (!t.getBuildSettings().TargetOS.is(OSType::Windows))
         {

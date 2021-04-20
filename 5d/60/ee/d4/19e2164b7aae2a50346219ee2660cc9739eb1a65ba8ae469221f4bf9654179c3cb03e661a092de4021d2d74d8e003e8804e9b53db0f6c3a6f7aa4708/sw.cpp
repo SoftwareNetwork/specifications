@@ -76,6 +76,7 @@ void build(Solution &s)
         db += "tddb/td/db/.*"_rr;
         db.Public += "tddb"_idir;
         db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
+        //db.Public += "org.sw.demo.sqlite3"_dep;
         db.Public += actor;
 
         for (auto &f : { "tddb/td/db/detail/RawSqliteDb.cpp", "tddb/td/db/SqliteDb.cpp", "tddb/td/db/SqliteStatement.cpp" })
@@ -242,6 +243,17 @@ void build(Solution &s)
         core.Public += memprof;
         core.Public += net;
         core.Public += db;
+
+        core.patch("td/telegram/logevent/LogEventHelper.cpp",
+            "#include \"tddb/td/db/binlog/BinlogHelper.h\"",
+            "#include \"td/db/binlog/BinlogHelper.h\""
+        );
+
+        // disable sqlcipher
+        /*core.patch("td/telegram/Td.cpp",
+            "DbKey::raw_key(\"cucumber\")",
+            "td::DbKey::empty()"
+        );*/
     }
 
     auto &client = td.addTarget<StaticLibraryTarget>("client");
