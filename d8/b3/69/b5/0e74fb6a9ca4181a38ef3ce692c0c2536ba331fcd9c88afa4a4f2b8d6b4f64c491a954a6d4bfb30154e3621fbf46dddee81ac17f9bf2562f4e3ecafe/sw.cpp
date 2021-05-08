@@ -119,6 +119,8 @@ void build(Solution &s)
             t += "org.sw.demo.mdadams.jasper"_dep;
             t += "org.sw.demo.vbaderks.charls"_dep;
             }*/
+
+            t -= "frmts/gtiff/generate_quant_table_md5sum.cpp";
         }
 
         t.configureFile("port/cpl_config.h.in", "cpl_config.h", ConfigureFlags::EnableUndefReplacements);
