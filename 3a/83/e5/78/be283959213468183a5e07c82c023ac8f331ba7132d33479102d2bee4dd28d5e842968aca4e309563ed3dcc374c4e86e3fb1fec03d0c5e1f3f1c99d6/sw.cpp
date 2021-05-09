@@ -657,6 +657,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio -= "gio/gregistrysettingsbackend.c";
             gio += "USE_STATFS"_def;
             gio += "GIO_MODULE_DIR=\".\""_def;
+            gio += "LOCALSTATEDIR=\"/var\""_def;
             gio += "resolv"_slib;
         }
 
