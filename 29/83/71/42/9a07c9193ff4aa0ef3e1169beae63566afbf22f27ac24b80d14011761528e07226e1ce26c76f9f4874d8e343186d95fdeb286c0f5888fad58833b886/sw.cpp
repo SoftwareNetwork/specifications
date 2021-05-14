@@ -9,7 +9,7 @@ void build(Solution &s)
         "lib/compress/.*"_rr,
         "lib/decompress/.*"_rr,
         "lib/deprecated/.*"_rr,
-        "lib/zstd.h"
+        "lib/.*\\.h"_r
         ;
     lib +=
         "lib/common"_idir,
