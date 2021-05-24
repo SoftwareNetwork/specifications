@@ -8,4 +8,5 @@ void build(Solution &s)
     t += sw::Shared, "CMS_DLL_BUILD"_def;
     t += "include/.*\\.h"_rr;
     t += "src/.*\\.[hc]"_rr;
+    t.Public += "HAVE_LCMS2MT"_def;
 }
