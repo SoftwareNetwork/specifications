@@ -44,7 +44,7 @@ void build(Solution &s)
 		t.Public += "org.sw.demo.mgk25.jbig.jbig"_dep;
 		t.Public += "org.sw.demo.behdad.harfbuzz"_dep;
 		t.Public += "org.sw.demo.jpeg"_dep;
-		t.Public += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2"_dep;
+		t.Public += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2-mt"_dep;
 		t.Public += "org.sw.demo.ghostscript.mujs-master"_dep;
 		t.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
 		t.Public += "org.sw.demo.google.gumbo_parser"_dep;
