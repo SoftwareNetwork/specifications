@@ -27,6 +27,7 @@ void build(Solution &s)
         t += "Secur32.lib"_slib;
         t += "Shlwapi.lib"_slib;
         t += "ws2_32.lib"_slib;
+        t += "Ncrypt.lib"_slib;
     }
     else
     {
