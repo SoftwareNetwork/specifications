@@ -1846,7 +1846,9 @@ void build(Solution &s)
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
-                core.Public += "Mincore.lib"_slib;
+                core.Public += "Userenv.lib"_slib;
+                core.Public += "ws2_32.lib"_slib;
+                core.Public += "version.lib"_slib;
                 core.Public += "Mpr.lib"_slib;
                 core.Public += "winmm.lib"_slib;
                 core.Public += "User32.lib"_slib;
