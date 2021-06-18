@@ -50,6 +50,10 @@ void check(Checker &c)
     s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("xlocale.h");
     s.checkIncludeExists("inttypes.h");
+    s.checkDeclarationExists("isnan").Parameters.Includes.push_back("math.h");
+    s.checkDeclarationExists("isinf").Parameters.Includes.push_back("math.h");
+    s.checkDeclarationExists("infinity").Parameters.Includes.push_back("math.h");
+    s.checkDeclarationExists("nan").Parameters.Includes.push_back("math.h");
     s.checkTypeSize("int");
     s.checkTypeSize("int64_t");
     s.checkTypeSize("long");
