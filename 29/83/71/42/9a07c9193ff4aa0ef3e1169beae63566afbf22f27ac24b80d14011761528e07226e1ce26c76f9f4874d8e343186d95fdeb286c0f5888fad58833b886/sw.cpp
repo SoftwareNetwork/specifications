@@ -7,6 +7,7 @@ void build(Solution &s)
     lib +=
         "lib/common/.*"_rr,
         "lib/compress/.*"_rr,
+        "lib/dictBuilder/.*"_rr,
         "lib/decompress/.*"_rr,
         "lib/deprecated/.*"_rr,
         "lib/.*\\.h"_r
@@ -14,6 +15,7 @@ void build(Solution &s)
     lib +=
         "lib/common"_idir,
         "lib/compress"_idir,
+        "lib/dictBuilder"_idir,
         "lib/decompress"_idir,
         "lib/deprecated"_idir
         ;
