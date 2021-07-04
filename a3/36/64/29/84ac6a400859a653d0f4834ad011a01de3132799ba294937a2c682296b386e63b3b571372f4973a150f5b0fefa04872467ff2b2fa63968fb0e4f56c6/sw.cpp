@@ -5,6 +5,8 @@ void build(Solution &s)
 
     fmt += cpp14;
 
+    fmt -= "src/fmt.cc";
+
     fmt.Private += sw::Shared, "FMT_EXPORT"_d;
     fmt.Public += sw::Shared, "FMT_SHARED"_d;
 
@@ -14,7 +16,7 @@ void build(Solution &s)
     {
         fmt.ExportAllSymbols = true;
     }
-    
+
     if (fmt.getCompilerType() == CompilerType::ClangCl ||
         fmt.getCompilerType() == CompilerType::Clang ||
         fmt.getCompilerType() == CompilerType::AppleClang)
