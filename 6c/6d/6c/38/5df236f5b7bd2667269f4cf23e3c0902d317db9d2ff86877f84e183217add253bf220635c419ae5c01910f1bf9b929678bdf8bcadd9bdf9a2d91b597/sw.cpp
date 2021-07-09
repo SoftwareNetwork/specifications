@@ -81,6 +81,8 @@ void build(Solution &s)
         // for msvc
         t += "_USE_MATH_DEFINES"_def;
 
+        t.writeFileOnce("opencv_" + name + "_config.hpp");
+
         add_opencl_kernels(t);
 
         return t;
@@ -228,6 +230,7 @@ void build(Solution &s)
             highgui.getBuildSettings().TargetOS.Type == OSType::Mingw
             )
         {
+            highgui.Public += "OPENCV_HIGHGUI_BUILTIN_BACKEND_STR=\"WIN32\""_def;
             highgui.Public += "HAVE_WIN32UI"_def;
             highgui.Public +=
                 "Comdlg32.lib"_slib,
@@ -237,6 +240,7 @@ void build(Solution &s)
         }
         else
         {
+            highgui.Public += "OPENCV_HIGHGUI_BUILTIN_BACKEND_STR=\"GTK\""_def;
             highgui -= "modules/highgui/src/window_w32.cpp";
         }
     }
@@ -268,6 +272,7 @@ void build(Solution &s)
             "modules/videoio/src/cap_mfx.*"_rr,
             "modules/videoio/src/cap_ffmpeg.*"_rr,
             "modules/videoio/src/cap_gstreamer.cpp",
+            "modules/videoio/src/cap_ueye.cpp",
             "modules/videoio/src/cap_ximea.cpp",
             "modules/videoio/src/cap_xine.cpp";
 
