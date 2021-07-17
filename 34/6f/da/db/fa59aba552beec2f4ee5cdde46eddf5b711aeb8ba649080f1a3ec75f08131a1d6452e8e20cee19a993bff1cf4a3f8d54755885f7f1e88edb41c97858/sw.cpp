@@ -72,6 +72,7 @@ void build(Solution &s)
     libxml2.Private += "HAVE_ZLIB_H"_d;
     libxml2.Private += "IN_LIBXML"_d;
     //libxml2.Private += "LIBXML_THREAD_ENABLED"_d;
+    libxml2.Private += "HAVE_VA_COPY"_d;
     if (libxml2.getBuildSettings().TargetOS.Type == OSType::Windows ||
         libxml2.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
@@ -189,12 +190,12 @@ void check(Checker &c)
     s.checkFunctionExists("strftime");
     s.checkFunctionExists("strndup");
     s.checkFunctionExists("time");
-    s.checkFunctionExists("va_copy");
+    //s.checkFunctionExists("va_copy");
     s.checkFunctionExists("vfprintf");
     s.checkFunctionExists("vsnprintf");
     s.checkFunctionExists("vsprintf");
     s.checkFunctionExists("_stat");
-    s.checkFunctionExists("__va_copy");
+    //s.checkFunctionExists("__va_copy");
     s.checkIncludeExists("ansidecl.h");
     s.checkIncludeExists("arpa/inet.h");
     s.checkIncludeExists("arpa/nameser.h");
