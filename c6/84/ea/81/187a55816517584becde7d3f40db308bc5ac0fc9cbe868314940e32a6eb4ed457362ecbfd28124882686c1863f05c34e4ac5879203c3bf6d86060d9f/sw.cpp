@@ -28,4 +28,21 @@ void build(Solution &s)
 
     turf.configureFile("cmake/turf_config.h.in", "turf_config.h");
     turf.writeFileOnce("turf_userconfig.h");
+
+    turf.patch("turf/c/platform_detect.h",
+        "defined(__arm64__)",
+        "defined(__arm64__ ) || defined(__aarch64__)");
+    turf.patch("turf/c/platform_detect.h",
+        "defined(__ARM64_ARCH_8__)",
+        "defined(__ARM64_ARCH_8__ ) || defined(__aarch64__)");
+
+    for (auto &&from : {
+        "Relaxed"s,
+        "Consume"s,
+        "Acquire"s,
+        "Release"s,
+        "ConsumeRelease"s,
+        "AcquireRelease"s,
+    })
+        turf.patch("turf/impl/Atomic_CPP11.h", from + " = ", from + "  = (int)");
 }

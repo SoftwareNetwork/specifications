@@ -26,6 +26,8 @@ void build(Solution &s)
             "crypto/md2/.*"_rr,
             "crypto/rc5/.*"_rr,
             "engines/e_afalg.*"_rr;
+        if (crypto.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
+            crypto -= "crypto/poly1305/poly1305_ieee754.c";
 
         crypto.Private +=
             "."_id,
