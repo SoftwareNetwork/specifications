@@ -1,26 +1,6 @@
 void build(Solution &s)
 {
-    auto &AcademySoftwareFoundation = s.addProject("AcademySoftwareFoundation", "3.1.0");
-
-    auto &Imath = AcademySoftwareFoundation.addLibrary("Imath");
-    Imath += Git("https://github.com/AcademySoftwareFoundation/Imath", "v{v}");
-    {
-        Imath.Variables["IMATH_VERSION_STRING"] = "\"" + Imath.Variables["PACKAGE_VERSION"].toString() + "\"";
-        Imath.Variables["IMATH_PACKAGE_STRING"] = "\"IlmBase " + Imath.Variables["PACKAGE_VERSION"].toString() + "\"";
-        Imath.Variables["IMATH_VERSION_MAJOR"] = Imath.Variables["PACKAGE_VERSION_MAJOR"];
-        Imath.Variables["IMATH_VERSION_MINOR"] = Imath.Variables["PACKAGE_VERSION_MINOR"];
-        Imath.Variables["IMATH_VERSION_PATCH"] = Imath.Variables["PACKAGE_VERSION_PATCH"];
-        Imath.Variables["IMATH_INTERNAL_NAMESPACE"] = "Imath";
-        Imath.Variables["IMATH_NAMESPACE"] = "Imath";
-        Imath.configureFile("config/ImathConfig.h.in", "ImathConfig.h");
-
-        Imath.setRootDirectory("src/Imath");
-        Imath -= "toFloat.cpp";
-        Imath.Public += sw::Shared, "IMATH_DLL"_def;
-        Imath += sw::Shared, "IMATH_EXPORTS"_def;
-    }
-
-    auto &openexr = AcademySoftwareFoundation.addDirectory("openexr");
+    auto &openexr = s.addProject("AcademySoftwareFoundation.openexr", "3.1.0");
     openexr += Git("https://github.com/AcademySoftwareFoundation/openexr", "v{v}");
 
     auto &Config = openexr.addLibrary("Config");
@@ -74,7 +54,7 @@ void build(Solution &s)
         OpenEXR -= "b44ExpLogTable.cpp", "dwaLookups.cpp";
         OpenEXR.Public += sw::Shared, "OPENEXR_DLL"_def;
         OpenEXR += sw::Shared, "OPENEXR_EXPORTS"_def;
-        OpenEXR.Public += IlmThread, Imath;
+        OpenEXR.Public += IlmThread, "org.sw.demo.AcademySoftwareFoundation.Imath"_dep;
         OpenEXR += "org.sw.demo.madler.zlib"_dep;
     }
 }
