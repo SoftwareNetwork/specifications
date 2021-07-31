@@ -2344,6 +2344,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             if (windows.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
+                windows.Public += "OleAut32.lib"_slib;
                 windows.Public += "Dwmapi.lib"_slib;
                 windows.Public += "Imm32.lib"_slib;
                 windows.Public += "UxTheme.lib"_slib;
