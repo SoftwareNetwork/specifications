@@ -16,6 +16,10 @@ void build(Solution &s)
     pqxx.writeFileOnce("pqxx/config-public-compiler.h");
     pqxx.writeFileOnce("pqxx/config-internal-libpq.h");
     pqxx.writeFileOnce("pqxx/config-internal-compiler.h");
+
+    pqxx += "PQXX_HAVE_SLEEP_FOR"_def;
+    pqxx += "PQXX_HAVE_CHARCONV_INT"_def;
+    pqxx += "PQXX_HAVE_CHARCONV_FLOAT"_def;
 }
 
 void check(Checker &c)
