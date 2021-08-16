@@ -152,7 +152,7 @@ void build(Solution &s)
             n = n.slice(1);
         }
         t.ApiName = "PRIMITIVES_" + boost::to_upper_copy(n2.toString("_")) + "_API";
-        t += cpp20;
+        t += cpp23;
         t.PackageDefinitions = true;
         // not all code works with this yet (e.g. hh.date)
         //t.Public.CompileOptions.push_back("-Zc:__cplusplus");
@@ -172,20 +172,26 @@ void build(Solution &s)
         return p;
     };
 
-    auto setup_primitives = [&setup_primitives_no_all_sources](auto &t)
+    auto setup_primitives_header_only = [&setup_primitives_no_all_sources](auto &t)
     {
         auto p = setup_primitives_no_all_sources(t);
         t.setRootDirectory(p);
         // explicit!
         t += "include/.*"_rr;
+    };
+    auto setup_primitives = [&setup_primitives_header_only](auto &t)
+    {
+        setup_primitives_header_only(t);
         t += "src/.*"_rr;
     };
 
 #define ADD_LIBRARY_WITH_NAME(var, name)           \
     auto &var = p.addTarget<LibraryTarget>(name);  \
     setup_primitives(var)
-
 #define ADD_LIBRARY(x) ADD_LIBRARY_WITH_NAME(x, #x)
+#define ADD_LIBRARY_HEADER_ONLY(x)                 \
+    auto &x = p.addTarget<LibraryTarget>(#x);      \
+    setup_primitives_header_only(x)
 
     ADD_LIBRARY(error_handling);
 
@@ -265,6 +271,10 @@ void build(Solution &s)
     hash.Public += filesystem,
         "org.sw.demo.aleksey14.rhash"_dep,
         "org.sw.demo.openssl.crypto"_dep;
+    hash.Public += "src/hash.natvis";
+
+    ADD_LIBRARY(password);
+    password.Public += hash;
 
     ADD_LIBRARY(csv);
     csv += templates;
@@ -385,6 +395,11 @@ void build(Solution &s)
         "org.sw.demo.boost.hana"_dep
         ;
 
+    ADD_LIBRARY_HEADER_ONLY(data);
+    data.Public +=
+        "org.sw.demo.boost.hana"_dep
+        ;
+
     // tools
 
     auto &tools_embedder = p.addTarget<ExecutableTarget>("tools.embedder");
@@ -438,7 +453,7 @@ void build(Solution &s)
     {
         auto &t = test.addTarget<ExecutableTarget>(name);
         t.PackageDefinitions = true;
-        t += cpp20;
+        t += cpp23;
         t += path("src/" + name + ".cpp");
         t += "org.sw.demo.catchorg.catch2"_dep;
         if (t.getCompilerType() == CompilerType::MSVC)
