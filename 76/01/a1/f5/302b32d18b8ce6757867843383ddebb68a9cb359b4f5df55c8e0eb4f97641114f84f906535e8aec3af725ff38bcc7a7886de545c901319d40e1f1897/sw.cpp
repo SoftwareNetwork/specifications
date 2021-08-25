@@ -39,8 +39,8 @@ void build(Solution &s)
                 ;
         }
 
-        if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
+        //if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
+        //{
             auto gperf_cmd = [&utils](const String &s)
             {
                 auto c = utils.addCommand();
@@ -55,12 +55,12 @@ void build(Solution &s)
             };
             gperf_cmd("mime_type_to_extension");
             gperf_cmd("extension_to_mime_type");
-        }
+        /*}
         else
         {
             //set(MIME_TYPE_TO_EXTENSION_CMD ${gperf} -m100 auto/mime_type_to_extension.gperf | grep -v __gnu_inline__ > auto/mime_type_to_extension.cpp)
             //set(EXTENSION_TO_MIME_TYPE_CMD ${gperf} -m100 auto/extension_to_mime_type.gperf | grep -v __gnu_inline__ > auto/extension_to_mime_type.cpp)
-        }
+        }*/
     }
 
     auto &actor = td.addTarget<StaticLibraryTarget>("actor");
@@ -75,7 +75,8 @@ void build(Solution &s)
     {
         db += "tddb/td/db/.*"_rr;
         db.Public += "tddb"_idir;
-        db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
+        //db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
+        db.Public += "org.sw.demo.sqlite3"_dep;
         db.Public += actor;
 
         for (auto &f : { "tddb/td/db/detail/RawSqliteDb.cpp", "tddb/td/db/SqliteDb.cpp", "tddb/td/db/SqliteStatement.cpp" })
