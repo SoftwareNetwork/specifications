@@ -125,8 +125,8 @@ void build(Solution &s)
     {
         if (t.getCompilerType() == CompilerType::MSVC)
             t.CompileOptions.push_back("-bigobj");
-        else
-            t.CompileOptions.push_back("-Wa,-mbig-obj");
+        //else
+            //t.CompileOptions.push_back("-Wa,-mbig-obj");
     };
 
     auto &scheme = td.addTarget<StaticLibraryTarget>("scheme");
