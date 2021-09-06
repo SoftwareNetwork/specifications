@@ -252,7 +252,7 @@ void build(Solution &s)
 
     ADD_LIBRARY(yaml);
     yaml.Public += string, templates,
-        "org.sw.demo.jbeder.yaml_cpp-master"_dep;
+        "org.sw.demo.jbeder.yaml_cpp"_dep;
 
     ADD_LIBRARY(pack);
     pack.Public += filesystem, templates,
@@ -390,7 +390,7 @@ void build(Solution &s)
     }
 
     ADD_LIBRARY(wt);
-    wt.Public += string,
+    wt.Public += string, templates,
         "org.sw.demo.emweb.wt.wt"_dep,
         "org.sw.demo.boost.hana"_dep
         ;
