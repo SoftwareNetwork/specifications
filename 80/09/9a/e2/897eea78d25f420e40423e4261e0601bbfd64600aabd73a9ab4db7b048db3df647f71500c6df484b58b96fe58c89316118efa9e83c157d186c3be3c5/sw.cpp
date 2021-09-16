@@ -31,6 +31,10 @@ void build(Solution &s)
         t += "source/posix/.*"_rr;
         t += "source/arch/intel/asm/.*"_r;
         t -= "source/arch/intel/encoding_avx2.c";
+        if (t.getBuildSettings().TargetOS.isApple())
+            t += "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_NONE"_def;
+        else
+            t += "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR"_def;
         t += "dl"_slib;
         t += "pthread"_slib;
         t += "CoreFoundation"_framework;
