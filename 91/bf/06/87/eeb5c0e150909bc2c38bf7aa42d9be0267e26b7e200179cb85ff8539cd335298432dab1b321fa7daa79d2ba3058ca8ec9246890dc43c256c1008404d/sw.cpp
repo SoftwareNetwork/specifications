@@ -36,6 +36,7 @@ void build(Solution &s)
             "src/unix/loop.c",
             "src/unix/pipe.c",
             "src/unix/poll.c",
+            //"src/unix/posix-poll.c",
             "src/unix/process.c",
             "src/unix/random-devurandom.c",
             "src/unix/signal.c",
@@ -71,6 +72,7 @@ void build(Solution &s)
             break;
         case OSType::Linux:
             uv +=
+                "src/unix/epoll.c",
                 "src/unix/linux-core.c",
                 "src/unix/linux-inotify.c",
                 "src/unix/linux-syscalls.c",
