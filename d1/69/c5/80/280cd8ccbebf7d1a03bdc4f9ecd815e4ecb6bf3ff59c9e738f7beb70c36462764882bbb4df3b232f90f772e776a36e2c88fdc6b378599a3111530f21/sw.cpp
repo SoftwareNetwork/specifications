@@ -16,7 +16,7 @@ void build(Solution &s)
     t.Private += sw::Shared, "AWS_CAL_EXPORTS"_d;
     t.Public += sw::Shared, "AWS_CAL_USE_IMPORT_EXPORT"_d;
 
-    t -= "org.sw.demo.amazon.awslabs.lc-main"_dep;
+    //t -= "org.sw.demo.amazon.awslabs.lc-main"_dep;
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         t.Public += "WIN32"_def;
@@ -32,9 +32,10 @@ void build(Solution &s)
     {
         t += "source/unix/.*"_rr;
         t += "dl"_slib;
-        t += "org.sw.demo.amazon.awslabs.lc-main"_dep;
+        //t += "org.sw.demo.amazon.awslabs.lc-main"_dep;
     }
 
-    //t += "org.sw.demo.openssl.crypto"_dep;
+    t += "org.sw.demo.openssl.crypto"_dep;
     t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;
+    //t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;
 }
