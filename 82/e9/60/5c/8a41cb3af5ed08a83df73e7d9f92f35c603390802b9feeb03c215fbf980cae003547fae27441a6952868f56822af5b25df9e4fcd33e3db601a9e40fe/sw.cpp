@@ -42,6 +42,9 @@ void build(Solution &s)
     opus.replaceInFileOnce("silk/sort.c", "#ifdef FIXED_POINT", "#if 1");
     opus.replaceInFileOnce("silk/x86/x86_silk_map.c", "#if defined(FIXED_POINT)", "#if 1");
 
+    if (opus.getBuildSettings().TargetOS.Type != OSType::Windows)
+        opus.CompileOptions.push_back("-msse4");
+
     if (!opus.DryRun)
     {
         auto dummy = opus.BinaryDir / "private/sw_copy_headers.txt";
