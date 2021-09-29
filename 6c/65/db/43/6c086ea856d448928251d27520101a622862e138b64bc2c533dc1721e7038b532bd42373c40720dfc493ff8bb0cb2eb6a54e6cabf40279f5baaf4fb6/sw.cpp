@@ -1,7 +1,8 @@
 void build(Build &b)
 {
     auto &p = b.addProject("google.protocolbuffers.upb", "master");
-    p += Git("https://github.com/protocolbuffers/upb");
+    //p += Git("https://github.com/protocolbuffers/upb");
+    p += Git("https://github.com/egorpugin/upb"); // old sw compat
 
     //auto &wyhash = p.addStaticLibrary("third_party.wyhash");
     //wyhash += "third_party/wyhash/wyhash.h";
