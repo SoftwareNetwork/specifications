@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &gdcm = s.addProject("malaterre.GDCM", "3.1.0");
+    auto &gdcm = s.addProject("malaterre.GDCM", "3.0.10");
     gdcm += Git("https://github.com/malaterre/GDCM", "v{v}");
 
     auto &rle = gdcm.addStaticLibrary("rle");

@@ -185,7 +185,7 @@ void build(Solution &s)
         gdcm.Public += "org.sw.demo.openssl.crypto"_dep;
         gdcm.Public += "org.sw.demo.madler.zlib"_dep;
         gdcm.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
-        gdcm.Public += "org.sw.demo.json_c-master"_dep;
+        gdcm.Public += "org.sw.demo.json_c"_dep;
         gdcm.Public += "org.sw.demo.expat"_dep;
         gdcm.Public += charls;
 
