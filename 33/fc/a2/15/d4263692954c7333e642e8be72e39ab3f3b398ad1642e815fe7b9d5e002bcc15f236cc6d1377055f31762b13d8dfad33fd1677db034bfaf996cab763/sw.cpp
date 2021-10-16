@@ -25,6 +25,7 @@ void build(Solution &s)
         t += "source/windows/.*"_rr;
         t += "source/arch/intel/msvc/.*"_r;
         t += "bcrypt.lib"_slib;
+        t += "Shlwapi.lib"_slib;
     }
     else
     {
