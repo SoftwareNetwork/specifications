@@ -24,6 +24,7 @@ void build(Solution &s)
     {
         t += "source/windows/.*"_rr;
         t += "source/arch/intel/msvc/.*"_r;
+        t.Public += "WIN32"_def; // some libs still missing _WIN32 def and use WIN32
         t += "bcrypt.lib"_slib;
         t += "Shlwapi.lib"_slib;
     }

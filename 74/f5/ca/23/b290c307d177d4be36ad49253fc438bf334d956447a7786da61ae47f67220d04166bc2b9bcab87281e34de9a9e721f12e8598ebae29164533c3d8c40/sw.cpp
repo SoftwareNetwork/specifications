@@ -17,4 +17,5 @@ void build(Solution &s)
     t.Public += sw::Shared, "AWS_AUTH_USE_IMPORT_EXPORT"_d;
 
     t.Public += "org.sw.demo.amazon.awslabs.c_http"_dep;
+    t.Public += "org.sw.demo.amazon.awslabs.c_sdkutils"_dep;
 }
