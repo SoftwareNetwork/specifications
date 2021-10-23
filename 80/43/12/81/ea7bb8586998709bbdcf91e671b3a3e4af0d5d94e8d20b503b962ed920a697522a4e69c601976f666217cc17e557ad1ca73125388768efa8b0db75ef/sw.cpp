@@ -155,7 +155,33 @@ void build(Solution &s)
     libcurl.Variables["CURL_SIZEOF_LONG"] = libcurl.Variables["SIZEOF_LONG"];
 
     if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
+    {
         libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
+
+        // https://serverfault.com/questions/62496/ssl-certificate-location-on-unix-linux
+        auto default_fn = "/etc/ssl/cert.pem"; // modern fedora
+        bool set = false;
+        for (auto &&fn : {
+            "/etc/ssl/certs/ca-certificates.crt",                // Debian/Ubuntu/Gentoo etc.
+            "/etc/pki/tls/certs/ca-bundle.crt",                  // Fedora/RHEL 6
+            "/etc/ssl/ca-bundle.pem",                            // OpenSUSE
+            "/etc/pki/tls/cacert.pem",                           // OpenELEC
+            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
+            default_fn,                                          // Alpine Linux
+            })
+        {
+            if (fs::exists(fn))
+            {
+                libcurl.Variables["CURL_CA_BUNDLE"] = fn;
+                set = true;
+                break;
+            }
+        }
+        if (!set)
+        {
+            libcurl.Variables["CURL_CA_BUNDLE"] = default_fn;
+        }
+    }
 
     if (libcurl.Variables["SIZEOF_LONG"] == 8)
     {
