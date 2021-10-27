@@ -1,29 +1,25 @@
-struct PythonExecutable : ExecutableTarget
-{
+struct PythonExecutable : ExecutableTarget {
     using ExecutableTarget::ExecutableTarget;
 
-    void setupCommand(builder::Command &c) const override
-    {
+    void setupCommand(builder::Command &c) const override {
         /*if (getBuildSettings().TargetOS.Type != OSType::Windows)
         {
         c.setProgram("python3");
         return;
         }*/
         ExecutableTarget::setupCommand(c);
-        //c.environment["PYTHONHOME"] = to_printable_string(to_path_string(SourceDir / "Lib"));
+        // c.environment["PYTHONHOME"] = to_printable_string(to_path_string(SourceDir / "Lib"));
         c.environment["PYTHONPATH"] = to_printable_string(to_path_string(SourceDir / "Lib"));
         // used in sw package loading
         c.environment["SW_EXECUTABLE"] = to_printable_string(to_path_string(sw::getProgramLocation()));
     }
 
-    void setupCommandForRun(builder::Command &c) const override
-    {
+    void setupCommandForRun(builder::Command &c) const override {
         setupCommand(c);
     }
 };
 
-void build(Solution &s)
-{
+void build(Solution &s) {
     auto &python = s.addProject("python", "3.10.0");
     python += Git("https://github.com/python/cpython", "v{v}");
 
@@ -31,219 +27,70 @@ void build(Solution &s)
     {
         lib.setChecks("lib");
 
-        lib -=
-            "PC/.*"_rr,
-            "Modules/.*"_rr
-            ;
+        lib -= "PC/.*"_rr, "Include/.*"_rr, "Python/.*"_rr, "Objects/.*"_rr, "Modules/.*"_rr;
 
-        lib +=
-            "pyconfig.h.in",
-            "Include/.*"_rr,
-            "Modules/.*\\.h"_rr,
-            "Modules/_abc.c",
-            "Modules/_bisectmodule.c",
-            "Modules/_blake2/.*\\.[hc]"_rr,
-            "Modules/_bz2module.c",
-            "Modules/_codecsmodule.c",
-            "Modules/_collectionsmodule.c",
-            "Modules/_contextvarsmodule.c",
-            "Modules/_csv.c",
-            "Modules/_datetimemodule.c",
-            "Modules/_functoolsmodule.c",
-            "Modules/_heapqmodule.c",
-            "Modules/_io/.*\\.[hc]"_rr,
-            "Modules/_json.c",
-            "Modules/_localemodule.c",
-            "Modules/_lsprof.c",
-            "Modules/_lzmamodule.c",
-            "Modules/_math.c",
-            "Modules/_opcode.c",
-            "Modules/_operator.c",
+        lib += "pyconfig.h.in", "Include/.*"_rr, "Modules/.*\\.h"_rr, "Modules/_abc.c", "Modules/_bisectmodule.c",
+            "Modules/_blake2/.*\\.[hc]"_rr, "Modules/_bz2module.c", "Modules/_codecsmodule.c",
+            "Modules/_collectionsmodule.c", "Modules/_contextvarsmodule.c", "Modules/_csv.c",
+            "Modules/_datetimemodule.c", "Modules/_functoolsmodule.c", "Modules/_heapqmodule.c",
+            "Modules/_io/.*\\.[hc]"_rr, "Modules/_json.c", "Modules/_localemodule.c", "Modules/_lsprof.c",
+            "Modules/_lzmamodule.c", "Modules/_math.c", "Modules/_opcode.c", "Modules/_operator.c",
             //"Modules/_peg_parser.c",
-            "Modules/_pickle.c",
-            "Modules/_randommodule.c",
-            "Modules/_sha3/.*\\.c"_rr,
-            "Modules/_sha3/.*\\.h"_rr,
-            "Modules/_sha3/.*\\.inc"_rr,
-            "Modules/_sha3/.*\\.macros"_rr,
-            "Modules/_sre.c",
-            "Modules/_stat.c",
-            "Modules/_statisticsmodule.c",
-            "Modules/_struct.c",
-            "Modules/_threadmodule.c",
-            "Modules/_tracemalloc.c",
-            "Modules/_weakref.c",
-            "Modules/_xxsubinterpretersmodule.c",
-            "Modules/arraymodule.c",
-            "Modules/atexitmodule.c",
-            "Modules/audioop.c",
-            "Modules/binascii.c",
-            "Modules/cjkcodecs/_codecs_cn.c",
-            "Modules/cjkcodecs/_codecs_hk.c",
-            "Modules/cjkcodecs/_codecs_iso2022.c",
-            "Modules/cjkcodecs/_codecs_jp.c",
-            "Modules/cjkcodecs/_codecs_kr.c",
-            "Modules/cjkcodecs/_codecs_tw.c",
-            "Modules/cjkcodecs/multibytecodec.c",
-            "Modules/cmathmodule.c",
-            "Modules/config.c.in",
-            "Modules/errnomodule.c",
-            "Modules/faulthandler.c",
-            "Modules/gcmodule.c",
-            "Modules/getbuildinfo.c",
-            "Modules/getpath.c",
-            "Modules/itertoolsmodule.c",
-            "Modules/main.c",
-            "Modules/mathmodule.c",
-            "Modules/md5module.c",
-            "Modules/mmapmodule.c",
+            "Modules/_pickle.c", "Modules/_randommodule.c", "Modules/_sha3/.*\\.c"_rr, "Modules/_sha3/.*\\.h"_rr,
+            "Modules/_sha3/.*\\.inc"_rr, "Modules/_sha3/.*\\.macros"_rr, "Modules/_sre.c", "Modules/_stat.c",
+            "Modules/_statisticsmodule.c", "Modules/_struct.c", "Modules/_threadmodule.c", "Modules/_tracemalloc.c",
+            "Modules/_weakref.c", "Modules/_xxsubinterpretersmodule.c", "Modules/arraymodule.c",
+            "Modules/atexitmodule.c", "Modules/audioop.c", "Modules/binascii.c", "Modules/cjkcodecs/_codecs_cn.c",
+            "Modules/cjkcodecs/_codecs_hk.c", "Modules/cjkcodecs/_codecs_iso2022.c", "Modules/cjkcodecs/_codecs_jp.c",
+            "Modules/cjkcodecs/_codecs_kr.c", "Modules/cjkcodecs/_codecs_tw.c", "Modules/cjkcodecs/multibytecodec.c",
+            "Modules/cmathmodule.c", "Modules/config.c.in", "Modules/errnomodule.c", "Modules/faulthandler.c",
+            "Modules/gcmodule.c", "Modules/getbuildinfo.c", "Modules/getpath.c", "Modules/itertoolsmodule.c",
+            "Modules/main.c", "Modules/mathmodule.c", "Modules/md5module.c", "Modules/mmapmodule.c",
             //"Modules/parsermodule.c",
-            "Modules/posixmodule.c",
-            "Modules/pwdmodule.c",
-            "Modules/pyexpat.c",
-            "Modules/rotatingtree.c",
-            "Modules/sha1module.c",
-            "Modules/sha256module.c",
-            "Modules/sha512module.c",
-            "Modules/signalmodule.c",
-            "Modules/symtablemodule.c",
-            "Modules/timemodule.c",
-            "Modules/xxsubtype.c",
-            "Modules/zlibmodule.c",
-            "Objects/.*\\.h"_rr,
-            "Objects/.*\\.inc"_rr,
-            "Objects/abstract.c",
-            "Objects/accu.c",
-            "Objects/boolobject.c",
-            "Objects/bytearrayobject.c",
-            "Objects/bytes_methods.c",
-            "Objects/bytesobject.c",
-            "Objects/call.c",
-            "Objects/capsule.c",
-            "Objects/cellobject.c",
-            "Objects/classobject.c",
-            "Objects/codeobject.c",
-            "Objects/complexobject.c",
-            "Objects/descrobject.c",
-            "Objects/dictobject.c",
-            "Objects/enumobject.c",
-            "Objects/exceptions.c",
-            "Objects/fileobject.c",
-            "Objects/floatobject.c",
-            "Objects/frameobject.c",
-            "Objects/funcobject.c",
-            "Objects/genericaliasobject.c",
-            "Objects/genobject.c",
-            "Objects/iterobject.c",
-            "Objects/interpreteridobject.c",
-            "Objects/listobject.c",
-            "Objects/longobject.c",
-            "Objects/memoryobject.c",
-            "Objects/methodobject.c",
-            "Objects/moduleobject.c",
-            "Objects/namespaceobject.c",
-            "Objects/object.c",
-            "Objects/obmalloc.c",
-            "Objects/odictobject.c",
-            "Objects/picklebufobject.c",
-            "Objects/rangeobject.c",
-            "Objects/setobject.c",
-            "Objects/sliceobject.c",
-            "Objects/structseq.c",
-            "Objects/tupleobject.c",
-            "Objects/typeobject.c",
-            "Objects/unicodectype.c",
-            "Objects/unicodeobject.c",
-            "Objects/unionobject.c",
-            "Objects/weakrefobject.c",
-            "Parser/.*\\.[hc]"_rr,
-            "Python/.*\\.h"_rr,
-            "Python/Python-ast.c",
-            "Python/_warnings.c",
-            "Python/asdl.c",
-            "Python/ast.c",
-            "Python/ast_opt.c",
-            "Python/ast_unparse.c",
-            "Python/bltinmodule.c",
-            "Python/bootstrap_hash.c",
-            "Python/ceval.c",
-            "Python/codecs.c",
-            "Python/compile.c",
-            "Python/context.c",
-            "Python/dtoa.c",
-            "Python/dynamic_annotations.c",
-            "Python/dynload_.*"_rr,
-            "Python/errors.c",
-            "Python/fileutils.c",
-            "Python/formatter_unicode.c",
-            "Python/frozen.c",
-            "Python/future.c",
-            "Python/getargs.c",
-            "Python/getcompiler.c",
-            "Python/getcopyright.c",
-            "Python/getopt.c",
-            "Python/getplatform.c",
-            "Python/getversion.c",
+            "Modules/posixmodule.c", "Modules/pwdmodule.c", "Modules/pyexpat.c", "Modules/rotatingtree.c",
+            "Modules/sha1module.c", "Modules/sha256module.c", "Modules/sha512module.c", "Modules/signalmodule.c",
+            "Modules/symtablemodule.c", "Modules/timemodule.c", "Modules/xxsubtype.c", "Modules/zlibmodule.c",
+            "Objects/.*\\.h"_rr, "Objects/.*\\.inc"_rr, "Objects/abstract.c", "Objects/accu.c", "Objects/boolobject.c",
+            "Objects/bytearrayobject.c", "Objects/bytes_methods.c", "Objects/bytesobject.c", "Objects/call.c",
+            "Objects/capsule.c", "Objects/cellobject.c", "Objects/classobject.c", "Objects/codeobject.c",
+            "Objects/complexobject.c", "Objects/descrobject.c", "Objects/dictobject.c", "Objects/enumobject.c",
+            "Objects/exceptions.c", "Objects/fileobject.c", "Objects/floatobject.c", "Objects/frameobject.c",
+            "Objects/funcobject.c", "Objects/genericaliasobject.c", "Objects/genobject.c", "Objects/iterobject.c",
+            "Objects/interpreteridobject.c", "Objects/listobject.c", "Objects/longobject.c", "Objects/memoryobject.c",
+            "Objects/methodobject.c", "Objects/moduleobject.c", "Objects/namespaceobject.c", "Objects/object.c",
+            "Objects/obmalloc.c", "Objects/odictobject.c", "Objects/picklebufobject.c", "Objects/rangeobject.c",
+            "Objects/setobject.c", "Objects/sliceobject.c", "Objects/structseq.c", "Objects/tupleobject.c",
+            "Objects/typeobject.c", "Objects/unicodectype.c", "Objects/unicodeobject.c", "Objects/unionobject.c",
+            "Objects/weakrefobject.c", "Parser/.*\\.[hc]"_rr, "Python/.*\\.h"_rr, "Python/Python-ast.c",
+            "Python/_warnings.c", "Python/asdl.c", "Python/ast.c", "Python/ast_opt.c", "Python/ast_unparse.c",
+            "Python/bltinmodule.c", "Python/bootstrap_hash.c", "Python/ceval.c", "Python/codecs.c", "Python/compile.c",
+            "Python/context.c", "Python/dtoa.c", "Python/dynamic_annotations.c", "Python/dynload_.*"_rr,
+            "Python/errors.c", "Python/fileutils.c", "Python/formatter_unicode.c", "Python/frozen.c", "Python/future.c",
+            "Python/getargs.c", "Python/getcompiler.c", "Python/getcopyright.c", "Python/getopt.c",
+            "Python/getplatform.c", "Python/getversion.c",
             //"Python/graminit.c",
-            "Python/hamt.c",
-            "Python/hashtable.c",
-            "Python/initconfig.c",
-            "Python/import.c",
-            "Python/importdl.c",
-            "Python/marshal.c",
-            "Python/modsupport.c",
-            "Python/mysnprintf.c",
-            "Python/mystrtoul.c",
+            "Python/hamt.c", "Python/hashtable.c", "Python/initconfig.c", "Python/import.c", "Python/importdl.c",
+            "Python/marshal.c", "Python/modsupport.c", "Python/mysnprintf.c", "Python/mystrtoul.c",
             "Python/pathconfig.c",
             //"Python/peephole.c",
-            "Python/preconfig.c",
-            "Python/pyarena.c",
-            "Python/pyctype.c",
-            "Python/pyfpe.c",
-            "Python/pyhash.c",
-            "Python/pylifecycle.c",
-            "Python/pymath.c",
-            "Python/pystate.c",
-            "Python/pystrcmp.c",
-            "Python/pystrhex.c",
-            "Python/pystrtod.c",
-            "Python/pythonrun.c",
-            "Python/pytime.c",
-            "Python/structmember.c",
-            "Python/suggestions.c",
-            "Python/symtable.c",
-            "Python/sysmodule.c",
-            "Python/thread.c",
-            "Python/traceback.c";
+            "Python/preconfig.c", "Python/pyarena.c", "Python/pyctype.c", "Python/pyfpe.c", "Python/pyhash.c",
+            "Python/pylifecycle.c", "Python/pymath.c", "Python/pystate.c", "Python/pystrcmp.c", "Python/pystrhex.c",
+            "Python/pystrtod.c", "Python/pythonrun.c", "Python/pytime.c", "Python/structmember.c",
+            "Python/suggestions.c", "Python/symtable.c", "Python/sysmodule.c", "Python/thread.c", "Python/traceback.c";
 
         lib -= "Modules/_sha3/kcp/.*"_rr;
         lib -= "Modules/_blake2/impl/.*"_rr;
         lib -= "Python/dynload_.*"_rr;
 
-        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
-            lib +=
-                "Modules/_winapi.c",
-                "PC/.*\\.h"_rr,
-                "PC/config.c",
-                "PC/dl_nt.c",
-                "PC/getpathp.c",
-                "PC/invalid_parameter_handler.c",
-                "PC/msvcrtmodule.c",
-                "PC/winreg.c"
-                ;
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            lib += "Modules/_winapi.c", "PC/.*\\.h"_rr, "PC/config.c", "PC/dl_nt.c", "PC/getpathp.c",
+                "PC/invalid_parameter_handler.c", "PC/msvcrtmodule.c", "PC/winreg.c";
             lib.Public += "PC"_id;
             lib += "WIN32"_def;
 
             lib.replaceInFileOnce("PC/pyconfig.h", "#ifdef MS_COREDLL", "#if 0");
-        }
-        else
-        {
-            lib +=
-                "PC/config.c",
-                "Modules/_posixsubprocess.c",
-                "Modules/selectmodule.c"
-                ;
+        } else {
+            lib += "PC/config.c", "Modules/_posixsubprocess.c", "Modules/selectmodule.c";
 
             lib.configureFile("pyconfig.h.in", "pyconfig.h", ConfigureFlags::EnableUndefReplacements);
         }
@@ -271,8 +118,7 @@ void build(Solution &s)
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
         lib += "_Py_HAVE_ZLIB"_d;
-        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
             lib -= "Modules/pwdmodule.c";
             lib -= "Modules/getpath.c";
             lib += "Python/dynload_win.c";
@@ -285,9 +131,7 @@ void build(Solution &s)
             lib.Public += "advapi32.lib"_slib;
             lib.Public += "Mincore.lib"_slib;
             lib.Public += "Shlwapi.lib"_slib;
-        }
-        else
-        {
+        } else {
             lib += "Python/dynload_shlib.c";
 
             lib.Public += "PY_FORMAT_LONG_LONG=\"ll\""_d;
@@ -423,8 +267,7 @@ if not sw_importer_present:
     }
 }
 
-void check(Checker &c)
-{
+void check(Checker &c) {
     auto &s = c.addSet("lib");
     s.checkTypeAlignment("long");
     s.checkTypeAlignment("size_t");
@@ -861,8 +704,8 @@ void check(Checker &c)
     }
     )sw_xxx");
     s.checkSourceCompiles("HAVE_GETRANDOM_SYSCALL", R"sw_xxx(#include <unistd.h>
-    #include <sys/syscall.h>
     #include <linux/random.h>
+    #include <sys/syscall.h>
 
     int main() {
         char buffer[1];
