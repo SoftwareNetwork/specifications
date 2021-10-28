@@ -97,6 +97,7 @@ void build(Solution &s)
     {
         c_ares.Public += "HAVE_CLOSESOCKET"_d;
         c_ares.Public += "HAVE_IOCTLSOCKET_FIONBIO"_d;
+        c_ares += "Iphlpapi.lib"_slib;
     }
     else
     {
