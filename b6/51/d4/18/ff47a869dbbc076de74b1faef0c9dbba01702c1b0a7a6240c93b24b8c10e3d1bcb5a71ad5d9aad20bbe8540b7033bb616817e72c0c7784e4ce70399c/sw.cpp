@@ -51,7 +51,10 @@ void build(Solution &s)
         t.Variables["XUSE_MTSAFE_API"] = 1;
         t.configureFile("include/X11/XlibConf.h.in", "X11/XlibConf.h", ConfigureFlags::EnableUndefReplacements);
 
-        t.LinkOptions.push_back("--no-undefined");
+        if (t.getCompilerType() == CompilerType::GNU)
+            t.LinkOptions.push_back("-Wno-undef");
+        else
+            t.LinkOptions.push_back("--no-undefined");
         t += "dl"_slib;
 
         auto c = t.addCommand();
