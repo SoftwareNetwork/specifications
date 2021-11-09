@@ -37,9 +37,11 @@ void build(Solution &s)
     auto &p = s.addProject("emweb.wt", "4.5.1.1");
     p += Git("https://github.com/emweb/wt", "", "", "ab34cbe5d4e3cf6d98c841ef3c38ef1f8a338119");
 
+    constexpr auto cppstd = cpp20;
+
     auto &wt = p.addTarget<LibraryTarget>("wt");
     {
-        wt += cpp17;
+        wt += cppstd;
 
         wt +=
             "WConfig.h.in",
@@ -52,6 +54,7 @@ void build(Solution &s)
 
         wt -=
             "src/Wt/Chart/scripts/.*"_rr,
+            "src/Wt/Auth/Saml/.*"_rr,
             "src/Wt/Dbo/.*"_rr,
             "src/Wt/Date/.*"_rr,
             "src/Wt/Test/.*"_rr,
@@ -143,6 +146,7 @@ void build(Solution &s)
         wt.Variables["WT_THREADED"] = "1";
 
         wt.Variables["WT_ASIO_IS_BOOST_ASIO"] = "1";
+        wt.Variables["WT_DATE_TZ_USE_DATE"] = 1;
 
         wt.Variables["VERSION_SERIES"] = wt.Variables["PACKAGE_VERSION_MAJOR"];
         wt.Variables["VERSION_MAJOR"] = wt.Variables["PACKAGE_VERSION_MINOR"];
@@ -162,7 +166,7 @@ void build(Solution &s)
 
     auto &http = p.addTarget<LibraryTarget>("http");
     {
-        http += cpp17;
+        http += cppstd;
 
         http +=
             "src/http/.*"_rr;
@@ -190,7 +194,7 @@ void build(Solution &s)
 
     auto &dbo = p.addTarget<LibraryTarget>("dbo");
     {
-        dbo += cpp17;
+        dbo += cppstd;
 
         dbo +=
             "src/Wt/Dbo/.*"_rr,
@@ -214,7 +218,7 @@ void build(Solution &s)
 
     auto &sqlite3 = dbo.addTarget<LibraryTarget>("backend.sqlite3");
     {
-        sqlite3 += cpp17;
+        sqlite3 += cppstd;
 
         sqlite3 +=
             "src/Wt/Dbo/backend/.*"_rr;
