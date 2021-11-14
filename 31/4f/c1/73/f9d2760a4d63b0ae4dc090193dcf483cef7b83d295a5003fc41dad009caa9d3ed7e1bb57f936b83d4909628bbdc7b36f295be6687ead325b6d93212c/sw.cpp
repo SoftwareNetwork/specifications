@@ -5,7 +5,7 @@ void build(Solution &s)
 
     tiff.setChecks("tiff");
 
-    tiff += gnu89;
+    tiff += gnu99;
     //if (tiff.getBuildSettings().TargetOS.Type != OSType::Windows)
     tiff.ExportAllSymbols = true;
 
