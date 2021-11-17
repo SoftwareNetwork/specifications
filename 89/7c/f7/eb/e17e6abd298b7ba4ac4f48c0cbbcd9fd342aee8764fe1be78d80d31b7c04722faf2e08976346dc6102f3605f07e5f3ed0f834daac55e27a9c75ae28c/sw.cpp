@@ -145,6 +145,8 @@ void build(Solution &s)
 
             t += "HAVE_LIBXML2"_def;
             t += "org.sw.demo.xmlsoft.libxml2"_dep;
+
+            t += "org.sw.demo.jxl"_dep;
         }
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
