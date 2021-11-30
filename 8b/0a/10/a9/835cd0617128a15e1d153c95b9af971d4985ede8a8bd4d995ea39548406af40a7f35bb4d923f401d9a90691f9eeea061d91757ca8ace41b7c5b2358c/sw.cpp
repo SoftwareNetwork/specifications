@@ -230,7 +230,7 @@ void build(Solution &s) {
             "#ver_nodot = sys.winver.replace('.', '')"
         );
         exe.patch("Lib/site.py",
-            "return f'{userbase}\\Python{ver_nodot}\\site-packages'",
+            "return f'{userbase}\\\\Python{ver_nodot}\\\\site-packages'",
             "return f'{userbase}/lib/python{version[0]}.{version[1]}/site-packages'"
         );
 
