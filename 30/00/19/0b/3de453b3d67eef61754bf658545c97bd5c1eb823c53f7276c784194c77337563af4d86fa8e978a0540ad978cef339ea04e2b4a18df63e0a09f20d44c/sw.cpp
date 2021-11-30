@@ -152,7 +152,7 @@ void build(Solution &s)
             n = n.slice(1);
         }
         t.ApiName = "PRIMITIVES_" + boost::to_upper_copy(n2.toString("_")) + "_API";
-        t += cpp20;
+        t += cpp23;
         t.PackageDefinitions = true;
         // not all code works with this yet (e.g. hh.date)
         //t.Public.CompileOptions.push_back("-Zc:__cplusplus");
@@ -177,7 +177,9 @@ void build(Solution &s)
         auto p = setup_primitives_no_all_sources(t);
         t.setRootDirectory(p);
         // explicit!
+        t.AutoDetectOptions = false;
         t -= "include/.*"_rr;
+        t.Public += "include"_idir;
     };
     auto setup_primitives = [&setup_primitives_header_only](auto &t)
     {
@@ -402,7 +404,6 @@ void build(Solution &s)
 
     ADD_LIBRARY_HEADER_ONLY(data);
     {
-        data.AutoDetectOptions = false;
         data.Public +=
             "org.sw.demo.boost.hana"_dep
             ;
@@ -468,7 +469,7 @@ void build(Solution &s)
     {
         auto &t = test.addTarget<ExecutableTarget>(name);
         t.PackageDefinitions = true;
-        t += cpp20;
+        t += cpp23;
         t += path("src/" + name + ".cpp");
         t += "org.sw.demo.catchorg.catch2"_dep;
         if (t.getCompilerType() == CompilerType::MSVC)
