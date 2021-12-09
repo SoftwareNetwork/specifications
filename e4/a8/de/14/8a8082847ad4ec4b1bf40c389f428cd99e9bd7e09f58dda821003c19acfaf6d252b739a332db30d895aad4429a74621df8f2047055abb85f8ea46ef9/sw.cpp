@@ -359,7 +359,14 @@ void build(Solution &s)
     boost_targets["asio"]->patch("include/boost/asio/impl/use_awaitable.hpp", "void dummy_return()", "inline void  dummy_return()");
     if (boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        boost_targets["asio"]->Public += "_WIN32_WINNT=0x0601"_def;
+        // put <sdkddkver.h> include before the first use
+        boost_targets["asio"]->patch("include/boost/asio/detail/config.hpp",
+            "#if !defined(BOOST_ASIO_WINDOWS_APP)",
+            R"xxx(#if !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
+#  include <sdkddkver.h>
+#endif
+#if ! defined(BOOST_ASIO_WINDOWS_APP))xxx"
+            );
         *boost_targets["asio"] += "Mswsock.lib"_slib;
         *boost_targets["asio"] += "Ws2_32.lib"_slib;
     }
@@ -415,6 +422,18 @@ void build(Solution &s)
     {
         *boost_targets["stacktrace"] += "dbgeng.lib"_slib;
         *boost_targets["stacktrace"] += "Ole32.lib"_slib;
+    }
+
+    if (boost_targets["winapi"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    {
+        // put <sdkddkver.h> include before the first use
+        boost_targets["winapi"]->patch("include/boost/winapi/config.hpp",
+            "#if !defined(BOOST_USE_WINAPI_VERSION)",
+            R"xxx(#if ! defined(BOOST_USE_WINAPI_VERSION)
+#if !defined(_WIN32_WINNT) && !defined(WINVER)
+#  include <sdkddkver.h>
+#endif)xxx"
+            );
     }
 
     // compiled
@@ -552,6 +571,8 @@ void build(Solution &s)
             boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
             boost_targets["log"]->Public.Definitions["NOMINMAX"];
             *boost_targets["log"] += "ws2_32.lib"_slib;
+            // since win8
+            *boost_targets["log"] += "Synchronization.lib"_slib;
         }
         else
         {

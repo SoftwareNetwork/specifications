@@ -67,7 +67,7 @@ void build(Solution &s)
             "src/web"_id,
             "src"_id;
 
-        wt.Public += "_WIN32_WINNT=0x0601"_d;
+        //wt.Public += "_WIN32_WINNT=0x0601"_d;
 
         wt += "src/Wt/FontSupportPango.C";
         /*wt -= "src/Wt/WGLWidget.C";
@@ -182,7 +182,7 @@ void build(Solution &s)
 
         if (http.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            http.Private += "_WIN32_WINNT=0x0601"_d;
+            //http.Private += "_WIN32_WINNT=0x0601"_d;
             http.Private += "WIN32_LEAN_AND_MEAN"_d;
         }
 

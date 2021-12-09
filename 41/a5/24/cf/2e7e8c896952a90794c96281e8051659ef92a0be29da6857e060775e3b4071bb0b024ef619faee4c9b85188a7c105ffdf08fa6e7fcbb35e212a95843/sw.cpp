@@ -37,8 +37,8 @@ void build(Solution &s)
         t -= "src/core/ext/upb-generated/google/api/expr/.*"_rr;
         t -= "src/core/lib/surface/init_unsecure.cc";
 
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
-            t.Public += "_WIN32_WINNT=0x0601"_def;
+        //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+            //t.Public += "_WIN32_WINNT=0x0601"_def;
 
         t.Public += "include"_id;
         t.Public += "."_id;
