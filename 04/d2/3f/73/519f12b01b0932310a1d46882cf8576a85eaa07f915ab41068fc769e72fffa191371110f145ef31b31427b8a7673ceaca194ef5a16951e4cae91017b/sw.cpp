@@ -362,7 +362,7 @@ void build(Solution &s)
         // put <sdkddkver.h> include before the first use
         boost_targets["asio"]->patch("include/boost/asio/detail/config.hpp",
             "#if !defined(BOOST_ASIO_WINDOWS_APP)",
-            R"xxx(#if (defined(BOOST_ASIO_WINDOWS) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
+            R"xxx(#if (defined(_WIN32) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
 #  include <sdkddkver.h>
 #endif
 #if ! defined(BOOST_ASIO_WINDOWS_APP))xxx"
@@ -430,7 +430,7 @@ void build(Solution &s)
         boost_targets["winapi"]->patch("include/boost/winapi/config.hpp",
             "#if !defined(BOOST_USE_WINAPI_VERSION)",
             R"xxx(#if ! defined(BOOST_USE_WINAPI_VERSION)
-#if (defined(BOOST_ASIO_WINDOWS) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
+#if (defined(_WIN32) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
 #  include <sdkddkver.h>
 #endif)xxx"
             );
