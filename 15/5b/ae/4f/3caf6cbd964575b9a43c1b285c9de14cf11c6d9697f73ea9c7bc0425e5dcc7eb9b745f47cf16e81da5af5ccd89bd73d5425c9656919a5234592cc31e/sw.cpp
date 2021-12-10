@@ -362,7 +362,7 @@ void build(Solution &s)
         // put <sdkddkver.h> include before the first use
         boost_targets["asio"]->patch("include/boost/asio/detail/config.hpp",
             "#if !defined(BOOST_ASIO_WINDOWS_APP)",
-            R"xxx(#if !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
+            R"xxx(#if (defined(BOOST_ASIO_WINDOWS) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
 #  include <sdkddkver.h>
 #endif
 #if ! defined(BOOST_ASIO_WINDOWS_APP))xxx"
@@ -430,7 +430,7 @@ void build(Solution &s)
         boost_targets["winapi"]->patch("include/boost/winapi/config.hpp",
             "#if !defined(BOOST_USE_WINAPI_VERSION)",
             R"xxx(#if ! defined(BOOST_USE_WINAPI_VERSION)
-#if !defined(_WIN32_WINNT) && !defined(WINVER)
+#if (defined(BOOST_ASIO_WINDOWS) || defined(__CYGWIN__)) && !defined(_WIN32_WINNT) && !defined(_WIN32_WINDOWS)
 #  include <sdkddkver.h>
 #endif)xxx"
             );
@@ -475,7 +475,7 @@ void build(Solution &s)
     // some settings
     if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Windows)
     {
-        *boost_targets["atomic"] -= "src/.*windows.*"_rr;
+        *boost_targets["atomic"] -= "src/wait_on_address.cpp";
         *boost_targets["atomic"] -= "src/find_address_sse41.cpp";
         //(*boost_targets["atomic"])["src/find_address_sse41.cpp"].args.push_back("-msse4.1");
     }
