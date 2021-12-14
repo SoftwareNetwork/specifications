@@ -83,6 +83,7 @@ void build(Solution &s)
         wt.Private += sw::Shared, "wt_EXPORTS"_d;
         wt.Public += sw::Static, "WT_STATIC"_d;
 
+        wt.Public += "org.sw.demo.boost.math"_dep;
         wt.Public += "org.sw.demo.boost.multi_index"_dep;
         wt.Public += "org.sw.demo.boost.asio"_dep;
         wt.Public += "org.sw.demo.boost.date_time"_dep;
