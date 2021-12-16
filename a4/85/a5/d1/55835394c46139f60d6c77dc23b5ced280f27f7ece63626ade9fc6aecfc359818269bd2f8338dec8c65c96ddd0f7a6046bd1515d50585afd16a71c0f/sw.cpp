@@ -48,7 +48,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.openssl.ssl"_dep;
         t.Public += "org.sw.demo.nanopb"_dep;
         t.Public += "org.sw.demo.google.abseil"_dep;
-        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
+        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-0.0.1"_dep;
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -146,7 +146,6 @@ void build(Solution &s)
 
         t.Public += core;
         t.Public += proto;
-        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-master"_dep;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
     }
 
