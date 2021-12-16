@@ -117,6 +117,7 @@ void build(Solution &s)
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
+        t -= "/home/egor/temp/29/.sw/src/2a1cd6f6c86a/grpc-1.43.0/src/core/ext/upbdefs-generated/google/protobuf/descriptor.upbdefs.c";
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
         t -= "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc";
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
