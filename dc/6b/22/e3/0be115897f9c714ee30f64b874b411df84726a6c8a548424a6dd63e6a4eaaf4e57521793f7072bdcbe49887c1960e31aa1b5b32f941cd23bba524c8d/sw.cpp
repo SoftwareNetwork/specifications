@@ -25,6 +25,39 @@ void build(Solution &s)
     //auto cppstd = cpp11;
     // changed for abseil
     auto cppstd = cpp17;
+    
+    auto &dupb = p.addDirectory("third_party.upb");
+    auto &upb = dupb.addStaticLibrary("upb");
+    auto &textformat = dupb.addStaticLibrary("textformat");
+    {
+        upb.setRootDirectory("third_party/upb");
+        upb += "upb/decode.*"_rr;
+        upb += "upb/encode.*"_rr;
+        upb += "upb/msg.*"_rr;
+        upb -= "upb/msg_test.*"_rr;
+        upb += "upb/table.*"_rr;
+        upb += "upb/upb.*"_rr;
+        
+        auto &port = dupb.addStaticLibrary("port");
+        port.setRootDirectory("third_party/upb");
+        port += "upb/port_def.inc";
+        port += "upb/port_undef.inc";
+        
+        upb.Public += port;        
+
+        auto &reflection = dupb.addStaticLibrary("reflection");
+        reflection.setRootDirectory("third_party/upb");
+        reflection += "upb/def.*"_rr;
+        reflection += "upb/reflection.*"_rr;
+        reflection += "cmake/google/.*"_rr;
+        reflection.Public += "."_idir;
+        reflection.Public += "cmake"_idir;
+        reflection.Public += upb;
+
+        textformat.setRootDirectory("third_party/upb");
+        textformat += "upb/text_encode.*"_rr;
+        textformat.Public += reflection;
+    }
 
     auto &core = p.addStaticLibrary("core.lib");
     {
@@ -48,7 +81,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.openssl.ssl"_dep;
         t.Public += "org.sw.demo.nanopb"_dep;
         t.Public += "org.sw.demo.google.abseil"_dep;
-        t.Public += "org.sw.demo.google.protocolbuffers.upb.upb-0.0.1"_dep;
+        t.Public += upb;
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -117,7 +150,6 @@ void build(Solution &s)
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
-        t -= "/home/egor/temp/29/.sw/src/2a1cd6f6c86a/grpc-1.43.0/src/core/ext/upbdefs-generated/google/protobuf/descriptor.upbdefs.c";
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
         t -= "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc";
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
@@ -133,7 +165,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
-        t.Public += "org.sw.demo.google.protocolbuffers.upb.textformat-master"_dep;
+        t.Public += textformat;
         (core + core_ext)->IncludeDirectoriesOnly = true;
     }
 
