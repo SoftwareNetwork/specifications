@@ -757,6 +757,18 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         gio.AllowEmptyRegexes = true;
         gio ^= "gio/.*__pycache__.*"_rr;
         gio.AllowEmptyRegexes = false;
+
+        for (auto &&f : {"gio/xdgmime/xdgmime.c", "gio/xdgmime/xdgmimecache.c"})
+        {
+            gio.pushFrontToFileOnce(f, R"xxx(#define _CRT_INTERNAL_NONSTDC_NAMES 1
+#include <sys/stat.h>
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+  #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+  #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif)xxx");
+        }
     }
 
     auto &rc = p.addTarget<Executable>("compile_resources");
