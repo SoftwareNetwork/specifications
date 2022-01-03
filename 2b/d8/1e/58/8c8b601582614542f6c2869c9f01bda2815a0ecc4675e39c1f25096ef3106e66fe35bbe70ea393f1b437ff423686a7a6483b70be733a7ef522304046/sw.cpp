@@ -149,6 +149,7 @@ void build(Solution &s)
         wt.Variables["WT_DEBUG_ENABLED"] = "0";
         wt.Variables["WT_THREADED"] = "1";
 
+        wt.Variables["WT_ANY_IS_STD_ANY"] = 1;
         wt.Variables["WT_ASIO_IS_BOOST_ASIO"] = "1";
         wt.Variables["WT_DATE_TZ_USE_DATE"] = 1;
 
