@@ -3,9 +3,11 @@ void build(Solution &s)
     auto &fmt = s.addTarget<LibraryTarget>("fmt", "8.1.0");
     fmt += Git("https://github.com/fmtlib/fmt", "{v}");
 
-    fmt += cpp14;
+    fmt += cpp17;
 
-    fmt -= "src/fmt.cc";
+    fmt -= "src/.*"_rr;
+    //fmt -= "src/fmt.cc";
+    fmt.Public += "FMT_HEADER_ONLY"_def;
 
     fmt.Private += sw::Shared, "FMT_EXPORT"_d;
     fmt.Public += sw::Shared, "FMT_SHARED"_d;
