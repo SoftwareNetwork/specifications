@@ -20,12 +20,17 @@ void build(Solution &s)
     auto &mkvparser = p.addStaticLibrary("mkvparser");
     mkvparser += "mkvparser/.*"_rr;
     mkvparser += "mkvparser.hpp";
+    mkvparser += "mkvreader.hpp";
     mkvparser += "common/webmids.h";
+    mkvparser += "webmids.hpp";
     install(mkvparser);
 
     auto &mkvmuxer = p.addStaticLibrary("mkvmuxer");
     mkvmuxer += "mkvmuxer/.*"_rr;
     mkvmuxer += "mkvmuxer.hpp";
+    mkvmuxer += "mkvmuxertypes.hpp";
+    mkvmuxer += "mkvmuxerutil.hpp";
+    mkvmuxer += "mkvwriter.hpp";
     mkvmuxer.Public += mkvparser;
     install(mkvmuxer);
 
