@@ -9,7 +9,7 @@ void build(Solution &s)
             return;
         auto d = t.BinaryDir / "libwebm";
         fs::create_directories(d);
-        for (auto &[p, sf] : t[".*\\.h"_rr])
+        for (auto &[p, sf] : t[".*\\.hpp"_rr])
         {
             auto f = p;
             t.check_absolute(f);
@@ -19,11 +19,13 @@ void build(Solution &s)
 
     auto &mkvparser = p.addStaticLibrary("mkvparser");
     mkvparser += "mkvparser/.*"_rr;
+    mkvparser += "mkvparser.hpp";
     mkvparser += "common/webmids.h";
     install(mkvparser);
 
     auto &mkvmuxer = p.addStaticLibrary("mkvmuxer");
     mkvmuxer += "mkvmuxer/.*"_rr;
+    mkvmuxer += "mkvmuxer.hpp";
     mkvmuxer.Public += mkvparser;
     install(mkvmuxer);
 
