@@ -1369,7 +1369,7 @@ void build(Solution &s)
     {
         t += cpp17;
         if (t.getCompilerType() == CompilerType::MSVC)
-            t.CompileOptions.push_back("/Zc:__cplusplus");
+            t.Public.CompileOptions.push_back("/Zc:__cplusplus");
     };
 
     // base
@@ -2511,11 +2511,17 @@ Q_IMPORT_PLUGIN()" + name + R"();
             make_qt_plugin(windowsvista, "QWindowsVistaStylePlugin");
         }
 
-        /*auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
+        auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
         {
-            winmain += "src/winmain/qtmain_win.cpp";
-            winmain.Public += core;
-        }*/
+            winmain += "src/entrypoint/qtentrypoint_win.cpp";
+            //winmain.Public += core;
+        }
+        // alias?
+        auto &entrypoint = base.addTarget<StaticLibraryTarget>("entrypoint");
+        {
+            entrypoint += "src/entrypoint/qtentrypoint_win.cpp";
+            //winmain.Public += core;
+        }
 
         auto &printsupport = base.addTarget<LibraryTarget>("printsupport");
         {
