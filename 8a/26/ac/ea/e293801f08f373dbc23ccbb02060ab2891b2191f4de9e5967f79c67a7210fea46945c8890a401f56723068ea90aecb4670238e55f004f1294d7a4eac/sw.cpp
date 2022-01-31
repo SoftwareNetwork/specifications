@@ -11,8 +11,12 @@ void build(Solution &s)
     //date_full += "org.sw.demo.badger.curl.libcurl"_dep;
     date_full -= "src/ios.mm";
     date_full.Public += "HAS_REMOTE_API=0"_def;
-    if (date_full.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (date_full.getBuildSettings().TargetOS.Type != OSType::Windows) {
         date_full.Public += "USE_OS_TZDB=1"_def;
+    } else {
+        date_full += "Ole32.lib"_slib;
+        date_full += "Shell32.lib"_slib;
+    }
     date_full += sw::Shared, "DATE_BUILD_DLL"_def;
     date_full.Interface += sw::Shared, "DATE_USE_DLL"_def;
 }
