@@ -9,4 +9,5 @@ void build(Solution &s)
     t += "include/.*\\.h"_rr;
     t += "src/.*\\.[hc]"_rr;
     t.Public += "HAVE_LCMS2MT"_def;
+    t.Public += sw::Shared, "HAVE_FUNC_ATTRIBUTE_VISIBILITY"_def;
 }
