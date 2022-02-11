@@ -22,4 +22,7 @@ void build(Solution &s)
     t += sw::Shared, "BROTLICOMMON_SHARED_COMPILATION"_def;
     t += sw::Shared, "BROTLIDEC_SHARED_COMPILATION"_def;
     t += sw::Shared, "BROTLIENC_SHARED_COMPILATION"_def;
+
+    if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+        t += "m"_slib;
 }
