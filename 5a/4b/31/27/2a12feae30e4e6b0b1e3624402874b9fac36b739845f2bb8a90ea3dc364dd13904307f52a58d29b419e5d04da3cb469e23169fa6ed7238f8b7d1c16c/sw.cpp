@@ -289,6 +289,25 @@ void build(Solution &s)
         flex += common;
         if (flex.getBuildSettings().TargetOS.Type == OSType::Windows)
             flex += "ws2_32.lib"_slib;
+
+        flex.patch("flex/src/main.c",
+            "flexfatal(_(\"_tempnam(main)\"));",
+            R"xxx(flexfatal(_("_tempnam(main)"));
+            char buf[100] = {0};
+            sprintf(buf, "%s_%d", p, (int)GetProcessId(0));
+            flex_temp_out_main = _strdup(buf);
+            )xxx"
+        );
+        flex.patch("flex/src/filter.c",
+            "fd = fopen(name, mode);",
+            R"xxx(
+            char buf[100] = {0};
+            sprintf(buf, "%s_%d", name, (int)GetProcessId(0));
+            name = _strdup(buf);
+
+            fd = fopen(name, mode);
+            )xxx"
+        );
     }
 
     auto &bison = winflexbison.addTarget<BisonExecutable>("bison", "3.8.2");
