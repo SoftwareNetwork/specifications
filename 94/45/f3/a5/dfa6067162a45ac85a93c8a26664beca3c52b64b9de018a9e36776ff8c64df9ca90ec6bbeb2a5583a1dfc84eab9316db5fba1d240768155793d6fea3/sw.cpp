@@ -25,7 +25,7 @@ void build(Solution &s)
     //auto cppstd = cpp11;
     // changed for abseil
     auto cppstd = cpp17;
-    
+
     auto &dupb = p.addDirectory("third_party.upb");
     auto &upb = dupb.addStaticLibrary("upb");
     auto &textformat = dupb.addStaticLibrary("textformat");
@@ -37,13 +37,13 @@ void build(Solution &s)
         upb -= "upb/msg_test.*"_rr;
         upb += "upb/table.*"_rr;
         upb += "upb/upb.*"_rr;
-        
+
         auto &port = dupb.addStaticLibrary("port");
         port.setRootDirectory("third_party/upb");
         port += "upb/port_def.inc";
         port += "upb/port_undef.inc";
-        
-        upb.Public += port;        
+
+        upb.Public += port;
 
         auto &reflection = dupb.addStaticLibrary("reflection");
         reflection.setRootDirectory("third_party/upb");
@@ -66,8 +66,6 @@ void build(Solution &s)
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t += "src/core/ext/upb-generated/.*"_rr;
-        t -= "src/core/ext/upb-generated/envoy/config/rbac/.*"_rr;
-        t -= "src/core/ext/upb-generated/google/api/expr/.*"_rr;
         t -= "src/core/lib/surface/init_unsecure.cc";
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
