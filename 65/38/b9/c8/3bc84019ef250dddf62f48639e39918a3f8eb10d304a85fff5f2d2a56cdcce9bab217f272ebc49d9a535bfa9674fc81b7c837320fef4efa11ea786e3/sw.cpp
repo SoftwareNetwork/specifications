@@ -255,8 +255,8 @@ void build(Solution &s)
     if (!win_flex_bison && !s.DryRun)
     return;*/
 
-    auto &winflexbison = s.addProject("lexxmark.winflexbison", "2.5.24");
-    Git src("https://github.com/lexxmark/winflexbison", "v" + winflexbison.getPackage().getVersion().toString());
+    auto &winflexbison = s.addProject("lexxmark.winflexbison", "2.5.25.1");
+    Git src("https://github.com/lexxmark/winflexbison", "v2.5.24");// + winflexbison.getPackage().getVersion().toString());
     winflexbison += src;
 
     auto &common = winflexbison.addTarget<StaticLibraryTarget>("common");
