@@ -2195,9 +2195,9 @@ void build(Solution &s)
             }
             else
             {
-                widgets += "QT_NO_STYLE_STYLESHEET"_def;
-                qt_widgets_desc.config.public_.features.insert({"style_stylesheet", false});
-                qt_widgets_desc.config.public_.features.insert({"style_windows", false});
+                //widgets += "QT_NO_STYLE_STYLESHEET"_def;
+                qt_widgets_desc.config.public_.features.insert({"style_stylesheet", true});
+                qt_widgets_desc.config.public_.features.insert({"style_windows", true});
                 qt_widgets_desc.config.public_.features.insert({"style_windowsvista", false});
                 qt_widgets_desc.config.public_.features.insert({"style_windowsxp", false});
             }
