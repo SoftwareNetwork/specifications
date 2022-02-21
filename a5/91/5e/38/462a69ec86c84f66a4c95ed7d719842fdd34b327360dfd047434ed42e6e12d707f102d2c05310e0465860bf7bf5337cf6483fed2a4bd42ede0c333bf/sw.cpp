@@ -1232,20 +1232,12 @@ static QtLibrary qt_printsupport_desc{
     {"printdialog", true},
     {"printpreviewwidget", true},
     {"printpreviewdialog", true},
-            },
+            }/*,
             {
                 {"QT_NO_CUPS", ""},
     {"QT_NO_CUPSJOBWIDGET", ""},
-            },
-        },
-        // private
-        {
-            // features
-            {
-                {"cups", false},
-    {"cupsjobwidget", false},
-            },
-        },
+            },*/
+        }
 },
 // deps
     {
@@ -1899,11 +1891,10 @@ void build(Solution &s)
                 core.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
                 core.Public += "QT_COMPILER_SUPPORTS_F16C"_d;
             }
-            core.Public -= "com.Microsoft.Windows.SDK.winrt"_dep;
-            core.Public -= "com.Microsoft.Windows.SDK.cppwinrt"_dep;
             core -= forkfd;
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
+                // we do not do -= these deps, because they are internal only
                 core.Public += "com.Microsoft.Windows.SDK.winrt"_dep;
                 core.Public += "com.Microsoft.Windows.SDK.cppwinrt"_dep;
 
@@ -2649,7 +2640,12 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "platform/.*"_rr
                 ;
 
-            printsupport.Protected += "dialogs"_idir, "kernel"_idir, "widgets"_idir;
+            printsupport.Protected +=
+                "."_idir,
+                "dialogs"_idir,
+                "kernel"_idir,
+                "widgets"_idir
+                ;
 
             printsupport.Private += "QT_BUILD_PRINTSUPPORT_LIB"_d;
             if (printsupport.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -2664,6 +2660,16 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             printsupport.Public += widgets;
 
+            if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
+                qt_printsupport_desc.config.public_.features.insert({ "cups", false });
+                qt_printsupport_desc.config.public_.features.insert({ "cupsjobwidget", false });
+            }
+            else
+            {
+                qt_printsupport_desc.config.public_.features.insert({ "cups", true });
+                qt_printsupport_desc.config.public_.features.insert({ "cupsjobwidget", true });
+            }
             qt_printsupport_desc.print(printsupport);
 
             platform_files(printsupport);
@@ -2672,13 +2678,13 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             ::rcc(rcc, printsupport, printsupport.SourceDir / "dialogs/qprintdialog.qrc");
 
-            for (auto &f : enumerate_files_like(printsupport.SourceDir / "dialogs", ".*\\.ui"))
+            for (auto &f : enumerate_files_like(printsupport.SourceDir, ".*\\.ui"))
                 ::uic(uic, printsupport, f);
         }
 
-        /*auto &plugins_printsupport = plugins.addDirectory("printsupport");
+        auto &plugins_printsupport = plugins.addDirectory("printsupport");
 
-        auto &plugins_printsupport_windows = plugins_printsupport.addTarget<LibraryTarget>("windows");
+        /*auto &plugins_printsupport_windows = plugins_printsupport.addTarget<LibraryTarget>("windows");
         {
             plugins_printsupport_windows.setOutputDir("plugins/printsupport");
             plugins_printsupport_windows +=
@@ -2692,6 +2698,20 @@ Q_IMPORT_PLUGIN()" + name + R"();
             automoc(moc, plugins_printsupport_windows);
             make_qt_plugin(plugins_printsupport_windows, "QWindowsPrinterSupportPlugin");
         }*/
+        auto &plugins_printsupport_cups = plugins_printsupport.addTarget<LibraryTarget>("cups");
+        {
+            plugins_printsupport_cups.setOutputDir("plugins/printsupport");
+            plugins_printsupport_cups +=
+                "src/plugins/printsupport/cups/.*"_rr;
+            plugins_printsupport_cups.Public +=
+                "src/plugins/printsupport/cups"_id;
+
+            plugins_printsupport_cups.Private += sw::Static, "QT_STATICPLUGIN"_d;
+            plugins_printsupport_cups.Public += printsupport;
+            plugins_printsupport_cups += "cups"_slib;
+            automoc(moc, plugins_printsupport_cups);
+            make_qt_plugin(plugins_printsupport_cups, "QCupsPrinterSupportPlugin");
+        }
 
         //
         auto &sqldrivers = plugins.addDirectory("sqldrivers");
