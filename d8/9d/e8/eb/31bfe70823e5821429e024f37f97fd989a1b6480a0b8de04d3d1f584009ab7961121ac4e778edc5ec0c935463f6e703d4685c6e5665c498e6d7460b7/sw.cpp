@@ -49,6 +49,21 @@ struct YasmRule : sw::NativeRule
                     c->push_back("win32");
                 }
             }
+            else if (nt->getBuildSettings().TargetOS.Type == OSType::Linux)
+            {
+                if (nt->getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                {
+                    c->push_back("-f");
+                    c->push_back("elf64");
+                }
+                else
+                {
+                    c->push_back("-f");
+                    c->push_back("elf32");
+                }
+            }
+            else
+                SW_UNIMPLEMENTED;
             auto add_def = [&c](auto &d)
             {
                 c->push_back("-D");
@@ -161,6 +176,15 @@ struct YasmCompiler : sw::NativeCompiler
                 else
                     ObjectFormat = "win32";
             }
+            else if (t.getBuildSettings().TargetOS.Type == OSType::Linux)
+            {
+                if (t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                    ObjectFormat = "elf64";
+                else
+                    ObjectFormat = "elf32";
+            }
+            else
+                SW_UNIMPLEMENTED;
         }
 
         switch (t.getBuildSettings().TargetOS.Arch)

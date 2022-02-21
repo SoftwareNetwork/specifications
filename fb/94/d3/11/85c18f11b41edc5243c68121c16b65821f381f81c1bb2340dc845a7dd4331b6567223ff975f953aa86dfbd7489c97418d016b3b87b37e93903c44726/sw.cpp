@@ -2034,6 +2034,7 @@ void build(Solution &s)
 
             // for declarative; for some reason not generated
             core.writeFileOnce("include/QtCore/QVector", "#include <QtCore/qvector.h>");
+            core.patch("global/qsimd.cpp", "#  include \"..", "//#   include \"..");
         }
 
         // dbus

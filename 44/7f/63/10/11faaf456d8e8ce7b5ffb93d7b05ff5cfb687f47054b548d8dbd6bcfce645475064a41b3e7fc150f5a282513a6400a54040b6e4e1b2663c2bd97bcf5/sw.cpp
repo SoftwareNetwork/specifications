@@ -77,7 +77,8 @@ void build(Solution &s)
         vpx -= "vp9/simple_encode.cc";
     }
 
-    vpx.Public += "WIN32"_def;
+    if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows)
+        vpx.Public += "WIN32"_def;
 
     String arch, os;
 
@@ -92,7 +93,10 @@ void build(Solution &s)
     else
     {
         vpx.Variables["ARCH_X86_64"] = 1;
-        vpx.Variables["asm"] = "win64";
+        if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows)
+            vpx.Variables["asm"] = "win64";
+        else
+            vpx.Variables["asm"] = "elf64";
         arch = "x64";
     }
 
@@ -101,7 +105,12 @@ void build(Solution &s)
     else if (vpx.getBuildSettings().TargetOS.Type == OSType::Macos)
         os = "mac";
     else
+    {
         os = "linux";
+        for (auto &&[p,f] : vpx[".*\\.c"_rr]) {
+            f->args.push_back("-march=native");
+        }
+    }
 
     vpx.Variables["CONFIG_GCC"] = 0;
     vpx.Variables["CONFIG_MSVS"] = 0;
