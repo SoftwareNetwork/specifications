@@ -392,6 +392,7 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*.mm"_rr;
     t -= ".*_mac.*"_rr;
     t -= ".*_unix.*"_rr;
+    t -= ".*_win.*"_rr;
     t -= ".*_android.*"_rr;
     t -= ".*_systemv.*"_rr;
     t -= ".*_haiku.*"_rr;
@@ -419,8 +420,21 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_mips_dsp.*"_rr;
     t -= ".*_es2.*"_rr;
     t -= ".*_qpa.*"_rr;
+    t -= ".*_x11.*"_rr;
     t -= ".*_wasm.*"_rr;
     t -= ".*_coretext.*"_rr;
+    if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
+        t += ".*_win.*"_rr;
+    } else {
+        t += ".*_unix.*"_rr;
+        t += ".*_posix.*"_rr;
+        t += ".*_systemv.*"_rr;
+        t += ".*_tz.*"_rr;
+        t += ".*_qpa.*"_rr;
+        t += ".*_stub.*"_rr;
+        //t += ".*_generic.*"_rr;
+    }
+    t -= "doc/.*"_rr;
     t.AllowEmptyRegexes = false;
 };
 
@@ -870,7 +884,6 @@ static QtLibrary qt_core_desc{
     {"system_pcre", true},
     {"relocatable", true},
     {"system_libb2", true},
-    {"dlopen", false}, // win only
             },
         },
 },
@@ -985,7 +998,6 @@ static QtLibrary qt_gui_desc{
     {"system_png", false},
     {"system_xcb", false},
     {"tslib", false},
-    {"xcb", false},
     {"xinput2", false},
     {"xkbcommon_evdev", false},
     {"xkb", false},
@@ -1072,11 +1084,6 @@ static QtLibrary qt_widgets_desc{
     {"style_android", false},
     {"style_fusion", true},
     {"style_mac", false},
-    {"style_stylesheet", true},
-    // WIN32 is for moc, it does not understand and use _WIN32
-    {"style_windows", true, {"_WIN32", "WIN32"}},
-    {"style_windowsvista", true, {"_WIN32", "WIN32"}},
-    {"style_windowsxp", true, {"_WIN32", "WIN32"}},
     {"syntaxhighlighter", true},
     {"tabbar", true},
     {"tableview", true},
@@ -1158,8 +1165,6 @@ static QtLibrary qt_network_desc{
     {"openssl", true},
     {"securetransport", false},
     {"system_proxies", true},
-
-    {"sspi", true}, // win only!
             },
         },
 },
@@ -1341,6 +1346,7 @@ void build(Solution &s)
     auto &network = base.addTarget<LibraryTarget>("network");
     auto &widgets = base.addTarget<LibraryTarget>("widgets");
     auto &opengl = base.addTarget<LibraryTarget>("opengl");
+    auto &dbus = base.addTarget<LibraryTarget>("dbus");
 
     qt_desc.config.public_.definitions["QT_VERSION_MAJOR"] = core.Variables["PACKAGE_VERSION_MAJOR"].toString();
     qt_desc.config.public_.definitions["QT_VERSION_MINOR"] = core.Variables["PACKAGE_VERSION_MINOR"].toString();
@@ -1355,14 +1361,19 @@ void build(Solution &s)
     {
         auto c = t.addCommand();
         c << cmd::prog(tracegen);
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
-            c << "etw";
-        else
-            c << "lttng";
-        c
-            << cmd::in("qt" + t.getPackage().getPath().back() + ".tracepoints")
-            << cmd::out("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h")
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            c
+                << "etw"
+                << cmd::in("qt" + t.getPackage().getPath().back() + ".tracepoints")
+                << cmd::out("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h")
             ;
+        } else {
+            c
+                << "lttng"
+                << cmd::in("qt" + t.getPackage().getPath().back() + ".tracepoints")
+                << cmd::out("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h")
+            ;
+        }
     };
 
     auto common_setup = [](auto &t)
@@ -1370,6 +1381,10 @@ void build(Solution &s)
         t += cpp17;
         if (t.getCompilerType() == CompilerType::MSVC)
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
+        if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
+            t.ExportAllSymbols = true;
+        }
+
     };
 
     // base
@@ -1400,6 +1415,15 @@ void build(Solution &s)
         {
             wintab += "src/3rdparty/wintab/.*"_rr;
             wintab.Public += "src/3rdparty/wintab"_idir;
+        }
+
+        auto &forkfd = third_party.addTarget<StaticLibraryTarget>("forkfd");
+        {
+            forkfd += c99;
+            forkfd -= "src/3rdparty/forkfd/.*"_rr;
+            forkfd += "src/3rdparty/forkfd/forkfd.c";
+            forkfd += "FORKFD_DISABLE_FORK_FALLBACK"_def;
+            forkfd.Public += "src/3rdparty/forkfd"_idir;
         }
 
         auto &tinycbor = third_party.addTarget<StaticLibraryTarget>("tinycbor");
@@ -1611,6 +1635,7 @@ void build(Solution &s)
             else
             {
                 bootstrap +=
+                    "src/corelib/kernel/qcore_unix.cpp",
                     "src/corelib/io/qfilesystemengine_unix.cpp",
                     "src/corelib/io/qfilesystemiterator_unix.cpp",
                     "src/corelib/io/qfsfileengine_unix.cpp",
@@ -1636,6 +1661,8 @@ void build(Solution &s)
 
             if (bootstrap.getCompilerType() == CompilerType::MSVC)
                 bootstrap.Public += "mkspecs/win32-msvc"_idir;
+            else if (bootstrap.getCompilerType() == CompilerType::GNU)
+                bootstrap.Public += "mkspecs/linux-g++-64"_idir;
 
             bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
         }
@@ -1764,6 +1791,8 @@ void build(Solution &s)
 
             if (core.getCompilerType() == CompilerType::MSVC)
                 core.Public += "mkspecs/win32-msvc"_idir;
+            else if (core.getCompilerType() == CompilerType::GNU)
+                core.Public += "mkspecs/linux-g++-64"_idir;
 
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, core, { "QtCore" });
 
@@ -1785,20 +1814,10 @@ void build(Solution &s)
                 ;
 
             core -=
-                "io/qfilesystemengine_unix.cpp",
-                "io/qfilesystemengine_win.cpp",
-                "io/qfilesystemiterator_unix.cpp",
-                "io/qfilesystemiterator_win.cpp",
+                "global/qversiontagging.cpp",
                 "io/qfilesystemwatcher_.*\\.cpp"_rr,
-                "io/qfsfileengine_unix.cpp",
-                "io/qfsfileengine_win.cpp",
                 "io/qsettings_wasm.cpp",
-                "io/qstandardpaths_mac.mm",
-                "io/qstandardpaths_unix.cpp",
-                "io/qstandardpaths_win.cpp",
-                "kernel/qcore_foundation.mm",
-                "kernel/qcoreapplication_mac.cpp",
-                "kernel/qcoreapplication_win.cpp",
+                "kernel/qwineventnotifier.cpp",
                 "plugin/qsystemlibrary.cpp",
                 "thread/qmutex_.*"_rr;
 
@@ -1808,21 +1827,16 @@ void build(Solution &s)
 
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
-                core += "io/qfilesystemengine_win.cpp";
-                core += "io/qfilesystemiterator_win.cpp";
-                core += "io/qfilesystemwatcher_win.cpp";
-                core += "io/qfsfileengine_win.cpp";
-                core += "kernel/qcoreapplication_win.cpp";
                 core += "plugin/qsystemlibrary.cpp";
-                core += "io/qstandardpaths_win.cpp";
                 core += "NOMINMAX"_def;
             }
             else
             {
-                core += "io/qfilesystemengine_unix.cpp";
-                core += "io/qfilesystemiterator_unix.cpp";
-                core += "io/qfsfileengine_unix.cpp";
-                core += "io/qstandardpaths_unix.cpp";
+                core -= "io/qwindowspipereader_p.h";
+                core -= "io/qwindowspipereader.cpp";
+                core -= "io/qwindowspipewriter_p.h";
+                core -= "io/qwindowspipewriter.cpp";
+                core -= "kernel/qwinregistry.cpp";
             }
 
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos)
@@ -1877,6 +1891,7 @@ void build(Solution &s)
             core.Public += d;
 
             core.Private += "QT_BUILD_CORE_LIB"_d;
+            core.Public += "QT_NO_VERSION_TAGGING"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
             core.Protected += "QT_USE_QSTRINGBUILDER"_d;
             if (core.getCompilerType() == CompilerType::MSVC)
@@ -1886,6 +1901,7 @@ void build(Solution &s)
             }
             core.Public -= "com.Microsoft.Windows.SDK.winrt"_dep;
             core.Public -= "com.Microsoft.Windows.SDK.cppwinrt"_dep;
+            core -= forkfd;
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 core.Public += "com.Microsoft.Windows.SDK.winrt"_dep;
@@ -1900,6 +1916,10 @@ void build(Solution &s)
                 core.Public += "User32.lib"_slib;
                 core.Public += "uuid.lib"_slib;
                 core.Public += "Netapi32.lib"_slib, "Advapi32.lib"_slib, "Ole32.lib"_slib, "Shell32.lib"_slib;
+            }
+            else {
+                core += "QT_CONFIGURE_SETTINGS_PATH=\".\""_def;
+                core += forkfd;
             }
             core.Public += sw::Shared, "QT_SHARED"_d;
             core.Public += sw::Static, "QT_STATIC"_d;
@@ -1918,12 +1938,26 @@ void build(Solution &s)
                 qt_core_desc.config.public_.features.insert({ "alloca", false });
                 qt_core_desc.config.public_.features.insert({ "alloca_h", false });
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
+                qt_core_desc.config.public_.features.insert({ "dlopen", false });
             }
             else
             {
                 qt_core_desc.config.public_.features.insert({ "alloca", true });
                 qt_core_desc.config.public_.features.insert({ "alloca_h", true });
                 qt_core_desc.config.public_.features.insert({ "getauxval", true });
+                qt_core_desc.config.public_.features.insert({ "linkat", true });
+                qt_core_desc.config.public_.features.insert({ "renameat2", true });
+                qt_core_desc.config.public_.features.insert({ "statx", true });
+                qt_core_desc.config.public_.features.insert({ "futimens", true });
+                qt_core_desc.config.public_.features.insert({ "poll_poll", false });
+                qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
+                qt_core_desc.config.public_.features.insert({ "poll_ppoll", true });
+                qt_core_desc.config.public_.features.insert({ "poll_select", true });
+                qt_core_desc.config.public_.features.insert({ "dlopen", true });
+                qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", true });
+            }
+            if (core.getBuildSettings().TargetOS.Type == OSType::Linux) {
+                qt_core_desc.config.public_.features.insert({ "glibc", true });
             }
             qt_core_desc.config.public_.features.insert({"alloca_malloc_h", false});
 
@@ -2002,6 +2036,27 @@ void build(Solution &s)
             core.writeFileOnce("include/QtCore/QVector", "#include <QtCore/qvector.h>");
         }
 
+        // dbus
+        {
+            common_setup(dbus);
+
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, dbus, { "QtDBus" });
+
+            SwapAndRestore sr(xml.SourceDir);
+            dbus.SourceDir /= "src/dbus";
+            dbus += ".*"_r;
+            dbus -= "qdbusmarshaller.cpp";
+            dbus -= "qdbusdemarshaller.cpp";
+
+            dbus += "DBUS_API_SUBJECT_TO_CHANGE"_def;
+
+            dbus.Private += "QT_BUILD_DBUS_LIB"_d;
+            dbus.Public += core;
+
+            auto mocs = automoc(moc, dbus);
+            SW_QT_ADD_MOC_DEPS(dbus);
+        }
+
         // gui
         {
             common_setup(gui);
@@ -2023,19 +2078,24 @@ void build(Solution &s)
                 "util/.*"_rr;
 
             gui -= "doc/.*"_rr;
+            gui -= "text/.*"_rr;
+            gui += "text/.*"_r;
             gui -= "platform/.*"_rr;
             gui -= "text/qcssscanner.cpp";
             gui -= "painting/webgradients.cpp";
 
             gui -= "opengl/platform/egl/.*"_rr;
             gui -= "opengl/platform/unix/.*"_rr;
-            gui -= "accessible/linux/.*"_rr;
+            gui -= "accessible/.*"_rr;
+            gui += "accessible/.*"_r;
 
             gui -= "rhi/qrhivulkan.*"_rr;
             gui -= "rhi/qrhimetal.*"_rr;
             gui -= "rhi/qrhid3d11.*"_rr;
             if (gui.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
+                gui += "accessible/windows/.*"_rr;
+                gui += "text/windows/.*"_rr;
                 gui += "platform/windows/.*"_rr;
                 gui += "rhi/qrhid3d11.*"_rr;
                 gui += "d3d11.lib"_slib;
@@ -2050,7 +2110,16 @@ void build(Solution &s)
             }
             else
             {
+                //gui += "accessible/linux/.*"_rr;
                 gui += "platform/unix/.*"_rr;
+                gui += "text/freetype/.*"_rr;
+                gui += "text/unix/.*"_rr;
+                gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
+                gui -= "platform/unix/qxkbcommon.cpp";
+                gui.CompileOptions.push_back("-msse4.1");
+                gui.CompileOptions.push_back("-mavx");
+                gui.CompileOptions.push_back("-mavx2");
+                gui.CompileOptions.push_back("-march=native");
             }
 
             //gui.Public += "src"_id;
@@ -2060,6 +2129,7 @@ void build(Solution &s)
             gui += "org.sw.demo.mity.md4c"_dep;
             gui.Public += core;
 
+            gui.Public -= dbus;
             if (gui.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 qt_gui_desc.config.public_.features.insert({ "xcb", false });
@@ -2067,6 +2137,7 @@ void build(Solution &s)
             }
             else
             {
+                gui.Public += dbus;
                 qt_gui_desc.config.public_.features.insert({ "xcb", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", true });
             }
@@ -2122,6 +2193,22 @@ void build(Solution &s)
             widgets.Public += gui;
             widgets += "dialogs"_id;
 
+            if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
+                // WIN32 is for moc, it does not understand and use _WIN32
+                qt_widgets_desc.config.public_.features.insert({"style_stylesheet", true});
+                qt_widgets_desc.config.public_.features.insert({"style_windows", true, {"_WIN32", "WIN32"}});
+                qt_widgets_desc.config.public_.features.insert({"style_windowsvista", true, {"_WIN32", "WIN32"}});
+                qt_widgets_desc.config.public_.features.insert({"style_windowsxp", true, {"_WIN32", "WIN32"}});
+            }
+            else
+            {
+                widgets += "QT_NO_STYLE_STYLESHEET"_def;
+                qt_widgets_desc.config.public_.features.insert({"style_stylesheet", false});
+                qt_widgets_desc.config.public_.features.insert({"style_windows", false});
+                qt_widgets_desc.config.public_.features.insert({"style_windowsvista", false});
+                qt_widgets_desc.config.public_.features.insert({"style_windowsxp", false});
+            }
             qt_widgets_desc.print(widgets);
 
             platform_files(widgets);
@@ -2174,6 +2261,12 @@ void build(Solution &s)
                 network.Public += "Dnsapi.lib"_slib;
                 network.Public += "Iphlpapi.lib"_slib;
             }
+            else if (network.getBuildSettings().TargetOS.Type == OSType::Linux)
+            {
+                // add to sw
+                network += "kernel/qnetworkproxy_libproxy.cpp";
+                network += "proxy"_slib;
+            }
 
             network.Public += core;
             network.Public += "org.sw.demo.openssl.ssl"_dep;
@@ -2182,10 +2275,14 @@ void build(Solution &s)
             if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
+                qt_network_desc.config.private_.features.insert({ "sspi", true });
             }
             else
             {
-                qt_network_desc.config.public_.features.insert({ "gssapi", true });
+                qt_network_desc.config.public_.features.insert({ "gssapi", false });
+                qt_network_desc.config.public_.features.insert({ "linux_netlink", true });
+                qt_network_desc.config.public_.features.insert({ "ifr_index", false });
+                qt_network_desc.config.private_.features.insert({ "sspi", false });
             }
             qt_network_desc.print(network);
 
@@ -2514,12 +2611,24 @@ Q_IMPORT_PLUGIN()" + name + R"();
         auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
         {
             winmain += "src/entrypoint/qtentrypoint_win.cpp";
+            if (winmain.getBuildSettings().TargetOS.Type == OSType::Windows)
+                winmain += "src/entrypoint/qtentrypoint_win.cpp";
+            else {
+                winmain.AutoDetectOptions = false;
+                winmain.Empty = true;
+            }
             //winmain.Public += core;
         }
         // alias?
         auto &entrypoint = base.addTarget<StaticLibraryTarget>("entrypoint");
         {
-            entrypoint += "src/entrypoint/qtentrypoint_win.cpp";
+            entrypoint -= "src/entrypoint/qtentrypoint_win.cpp";
+            if (entrypoint.getBuildSettings().TargetOS.Type == OSType::Windows)
+                entrypoint += "src/entrypoint/qtentrypoint_win.cpp";
+            else {
+                entrypoint.AutoDetectOptions = false;
+                entrypoint.Empty = true;
+            }
             //winmain.Public += core;
         }
 
@@ -2675,7 +2784,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             {
                 auto c = masm.addCommand();
-                c << cmd::prog("org.sw.demo.python.exe-2"_dep)
+                c << cmd::prog("org.sw.demo.python.exe-3"_dep)
                     << cmd::wdir(masm.BinaryDir)
                     << cmd::in("src/3rdparty/masm/disassembler/udis86/itab.py")
                     << cmd::in("src/3rdparty/masm/disassembler/udis86/optable.xml")
@@ -2687,7 +2796,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             {
                 auto c = masm.addCommand();
-                c << cmd::prog("org.sw.demo.python.exe-2"_dep)
+                c << cmd::prog("org.sw.demo.python.exe-3"_dep)
                     << cmd::in("src/3rdparty/masm/yarr/create_regex_tables")
                     << cmd::std_out("RegExpJitTables.h")
                     ;
