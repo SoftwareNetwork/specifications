@@ -1611,6 +1611,28 @@ void build(Solution &s)
 
             qt_desc.print(bootstrap);
 
+            bootstrap -=
+                "src/corelib/io/qfilesystemengine_win.cpp",
+                "src/corelib/io/qfilesystemiterator_win.cpp",
+                "src/corelib/io/qfsfileengine_win.cpp",
+                "src/corelib/kernel/qcoreapplication_win.cpp",
+                "src/corelib/kernel/qwinreg.*"_rr,
+                "src/corelib/plugin/qsystemlibrary.cpp",
+                "src/corelib/global/qoperatingsystemversion_win.cpp",
+                "src/corelib/io/qstandardpaths_win.cpp"
+                ;
+            bootstrap -=
+                "src/corelib/kernel/qcore_unix.cpp",
+                "src/corelib/io/qfilesystemengine_unix.cpp",
+                "src/corelib/io/qfilesystemiterator_unix.cpp",
+                "src/corelib/io/qfsfileengine_unix.cpp",
+                "src/corelib/io/qstandardpaths_unix.cpp"
+                ;
+            bootstrap -=
+                "src/corelib/kernel/qcoreapplication_mac.cpp",
+                "src/corelib/global/qoperatingsystemversion_darwin.mm",
+                "src/corelib/io/qstandardpaths_mac.mm"
+                ;
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 bootstrap +=
@@ -1634,15 +1656,11 @@ void build(Solution &s)
                     "src/corelib/io/qstandardpaths_unix.cpp"
                     ;
             }
-
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Macos)
             {
                 bootstrap +=
                     "src/corelib/kernel/qcoreapplication_mac.cpp",
-                    "src/corelib/kernel/qcore_mac_objc.cpp",
-                    "src/corelib/kernel/qcore_foundation.cpp",
                     "src/corelib/global/qoperatingsystemversion_darwin.mm",
-                    "src/corelib/kernel/qcore_foundation.cpp",
                     "src/corelib/io/qstandardpaths_mac.mm"
                     ;
             }
