@@ -1411,11 +1411,19 @@ void build(Solution &s)
 
         auto &forkfd = third_party.addTarget<StaticLibraryTarget>("forkfd");
         {
-            forkfd += c99;
             forkfd -= "src/3rdparty/forkfd/.*"_rr;
-            forkfd += "src/3rdparty/forkfd/forkfd.c";
-            forkfd += "FORKFD_DISABLE_FORK_FALLBACK"_def;
-            forkfd.Public += "src/3rdparty/forkfd"_idir;
+            if (forkfd.getBuildSettings().TargetOS.Type != OSType::Windows)
+            {
+                forkfd += c99;
+                forkfd += "src/3rdparty/forkfd/forkfd.c";
+                forkfd += "FORKFD_DISABLE_FORK_FALLBACK"_def;
+                forkfd.Public += "src/3rdparty/forkfd"_idir;
+            }
+            else
+            {
+                forkfd.AutoDetectOptions = false;
+                forkfd.Empty = false;
+            }
         }
 
         auto &tinycbor = third_party.addTarget<StaticLibraryTarget>("tinycbor");
@@ -1838,6 +1846,7 @@ void build(Solution &s)
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 core += "plugin/qsystemlibrary.cpp";
+                core += "kernel/qwineventnotifier.cpp";
                 core += "NOMINMAX"_def;
             }
             else
@@ -2028,6 +2037,12 @@ void build(Solution &s)
 
             platform_files(core);
 
+            core -=
+                "thread/qmutex_mac.cpp",
+                "thread/qmutex_win.cpp",
+                "thread/qmutex_unix.cpp"
+                ;
+
             auto mocs = automoc(moc, core);
             SW_QT_ADD_MOC_DEPS(core);
             ::rcc(rcc, core, core.SourceDir / "mimetypes/mimetypes.qrc");
@@ -2122,7 +2137,6 @@ void build(Solution &s)
             {
                 //gui += "accessible/linux/.*"_rr;
                 gui += "platform/unix/.*"_rr;
-                gui += "text/freetype/.*"_rr;
                 gui += "text/unix/.*"_rr;
                 gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
                 gui -= "platform/unix/qxkbcommon.cpp";
@@ -2154,6 +2168,7 @@ void build(Solution &s)
             qt_gui_desc.print(gui);
 
             platform_files(gui);
+            gui += "text/freetype/.*"_rr;
 
             //gui.replaceInFileOnce("text/qharfbuzzng_p.h", "#include <harfbuzz/hb.h>", "#include <hb.h>");
             //gui.replaceInFileOnce("text/qfontengine.cpp", "#  include <harfbuzz/hb-ot.h>", "#include <hb-ot.h>");
@@ -2203,7 +2218,7 @@ void build(Solution &s)
             widgets.Public += gui;
             widgets += "dialogs"_id;
 
-            if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
+            if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 // WIN32 is for moc, it does not understand and use _WIN32
                 qt_widgets_desc.config.public_.features.insert({"style_stylesheet", true});
@@ -2222,6 +2237,10 @@ void build(Solution &s)
             qt_widgets_desc.print(widgets);
 
             platform_files(widgets);
+            if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
+                widgets += "util/qsystemtrayicon_qpa.cpp";
+            }
 
             auto mocs = automoc(moc, widgets);
             SW_QT_ADD_MOC_DEPS(widgets);
@@ -2718,6 +2737,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
         }*/
         auto &plugins_printsupport_cups = plugins_printsupport.addTarget<LibraryTarget>("cups");
         {
+            common_setup(plugins_printsupport_cups);
             plugins_printsupport_cups.setOutputDir("plugins/printsupport");
             plugins_printsupport_cups +=
                 "src/plugins/printsupport/cups/.*"_rr;
@@ -2821,10 +2841,17 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 masm += "src/3rdparty/masm/wtf/OSAllocatorPosix.cpp"_rr;
             }
 
+            masm -= "org.sw.demo.python.exe-2"_dep;
+            masm -= "org.sw.demo.python.exe-3"_dep;
             {
                 auto c = masm.addCommand();
-                c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
+                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
+                else
+                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
+                c
                     << cmd::wdir(masm.BinaryDir)
+                    << "-B" // prevent .pyc
                     << cmd::in("src/3rdparty/masm/disassembler/udis86/itab.py")
                     << cmd::in("src/3rdparty/masm/disassembler/udis86/optable.xml")
                     << cmd::end()
@@ -2835,7 +2862,12 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             {
                 auto c = masm.addCommand();
-                c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
+                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
+                else
+                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
+                c
+                    << "-B" // prevent .pyc
                     << cmd::in("src/3rdparty/masm/yarr/create_regex_tables")
                     << cmd::std_out("RegExpJitTables.h")
                     ;
