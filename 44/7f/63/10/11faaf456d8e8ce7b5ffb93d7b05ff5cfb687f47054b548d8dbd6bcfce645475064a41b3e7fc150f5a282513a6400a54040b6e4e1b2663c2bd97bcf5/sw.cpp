@@ -58,6 +58,7 @@ void build(Solution &s)
     }*/
 
     //vpx -= ".*_avx2.*"_rr;
+    vpx -= ".*_avx512.*"_rr;
 
     // CONFIG_VP9_TEMPORAL_DENOISING
     //vpx -= "vp9/encoder/vp9_denoiser.c";
