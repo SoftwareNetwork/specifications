@@ -3448,6 +3448,108 @@ qt_qml_plugin_outro
     //translations.Empty = true;
     translations += "translations/.*\\.ts"_rr;
 
+    auto &wayland = add_subproject<Project>(qt, "wayland");
+    {
+        auto &scanner = wayland.addExecutable("scanner");
+        scanner += "src/qtwaylandscanner/qtwaylandscanner.cpp";
+        scanner += core;
+
+        auto &client = wayland.addLibrary("client");
+        {
+            common_setup(client);
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, client, { "QtWaylandClient" });
+
+            client += "src/shared/.*"_rr;
+            client += "src/client/.*"_rr;
+            client -= "src/client/qwaylandvulkan.*"_rr;
+
+            client += "src/client"_idir;
+            client += "src/shared"_idir;
+            client += "src/client/hardwareintegration"_idir;
+            client += "src/client/inputdeviceintegration"_idir;
+            client += "src/client/shellintegration"_idir;
+
+            client.Public += gui;
+
+            client += "wayland-client"_slib;
+            client += "wayland-cursor"_slib;
+
+            auto mocs = automoc(moc, client);
+            SW_QT_ADD_MOC_DEPS(client);
+
+            QtLibrary qt_wayland_desc{"QtWaylandClient"};
+            qt_wayland_desc.config.public_.features.insert({"tabletevent", true});
+            qt_wayland_desc.config.public_.features.insert({"wayland_text_input_v4_wip", false});
+            qt_wayland_desc.config.public_.features.insert({"clipboard", true});
+            //qt_wayland_desc.config.public_.features.insert({"vulkan", true});
+            qt_wayland_desc.config.public_.features.insert({"cursor", true});
+            qt_wayland_desc.config.public_.features.insert({"wayland_datadevice", true});
+            qt_wayland_desc.config.public_.features.insert({"wayland_client_primary_selection", true});
+            qt_wayland_desc.config.public_.features.insert({"draganddrop", true});
+            qt_wayland_desc.config.public_.features.insert({"xkbcommon", false});
+            qt_wayland_desc.print(client);
+
+            auto generate_wayland_protocol_client_sources = [&](const path &fn) {
+                auto protocol_name = fn.stem().string();
+
+                auto waylandscanner_header_output = "wayland-" + protocol_name + "-client-protocol.h";
+                auto waylandscanner_code_output = "wayland-" + protocol_name + "-protocol.c";
+
+                auto qtwaylandscanner_header_output = "qwayland-" + protocol_name + ".h";
+                auto qtwaylandscanner_code_output = "qwayland-" + protocol_name + ".cpp";
+
+                path idir = "QtWaylandClient/private";
+                auto qtwaylandscanner_code_include = "<QtWaylandClient/private/wayland-wayland-client-protocol.h>"s;
+
+                client.addCommand()
+                    << cmd::prog("wayland-scanner")
+                    << "--strict"
+                    << "--include-core-only"
+                    << "client-header"
+                    << cmd::std_in(fn)
+                    << cmd::std_out(idir / waylandscanner_header_output);
+                client.addCommand()
+                    << cmd::prog("wayland-scanner")
+                    << "--strict"
+                    << "--include-core-only"
+                    << "public-code"
+                    << cmd::std_in(fn)
+                    << cmd::std_out(waylandscanner_code_output);
+
+                client.addCommand()
+                    << cmd::prog(scanner)
+                    << "client-header"
+                    << cmd::in(fn)
+                    << idir
+                    << cmd::std_out(idir / qtwaylandscanner_header_output);
+                client.addCommand()
+                    << cmd::prog(scanner)
+                    << "client-code"
+                    << cmd::in(fn)
+                    << "--header-path=" + idir.string() + ""
+                    << "--add-include=" + qtwaylandscanner_code_include + ""
+                    << cmd::std_out(qtwaylandscanner_code_output);
+            };
+            for (auto &&f : {
+                "src/3rdparty/protocol/pointer-gestures-unstable-v1.xml",
+                "src/3rdparty/protocol/tablet-unstable-v2.xml",
+                "src/3rdparty/protocol/text-input-unstable-v2.xml",
+                "src/3rdparty/protocol/wayland.xml",
+                "src/3rdparty/protocol/wp-primary-selection-unstable-v1.xml",
+                "src/3rdparty/protocol/xdg-output-unstable-v1.xml",
+                "src/extensions/qt-key-unstable-v1.xml",
+                "src/extensions/qt-text-input-method-unstable-v1.xml",
+                "src/extensions/qt-windowmanager.xml",
+                "src/extensions/surface-extension.xml",
+                "src/extensions/touch-extension.xml",
+                "src/extensions/hardware-integration.xml",
+                "src/extensions/server-buffer-extension.xml",
+            }) {
+                generate_wayland_protocol_client_sources(f);
+            }
+        }
+    }
+
     return;
 
     auto &quickcontrols = add_subproject<Project>(qt, "quickcontrols");
