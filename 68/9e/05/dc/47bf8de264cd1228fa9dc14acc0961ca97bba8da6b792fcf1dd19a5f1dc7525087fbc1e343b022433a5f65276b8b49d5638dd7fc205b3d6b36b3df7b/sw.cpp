@@ -1376,7 +1376,24 @@ void build(Solution &s)
         if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
             t.ExportAllSymbols = true;
         }
+    };
 
+    auto make_qt_plugin = [](auto &t, const String &name)
+    {
+        t += sw::Static, "QT_STATICPLUGIN"_def;
+
+        path p = name + ".cpp";
+        t.writeFileOnce(p, R"(#ifndef SW_QT_PLUGIN_)" + name + R"(
+#define SW_QT_PLUGIN_)" + name + R"(
+
+#if defined(QT_STATIC)
+#include <QtPlugin>
+Q_IMPORT_PLUGIN()" + name + R"();
+#endif
+
+#endif
+)");
+        t.Interface += p;
     };
 
     // base
@@ -2556,22 +2573,6 @@ void build(Solution &s)
         auto &platforms = plugins.addDirectory("platforms");
         auto &styles = plugins.addDirectory("styles");
 
-        auto make_qt_plugin = [](auto &t, const String &name)
-        {
-            path p = name + ".cpp";
-            t.writeFileOnce(p, R"(#ifndef SW_QT_PLUGIN_)" + name + R"(
-#define SW_QT_PLUGIN_)" + name + R"(
-
-#if defined(QT_STATIC)
-#include <QtPlugin>
-Q_IMPORT_PLUGIN()" + name + R"();
-#endif
-
-#endif
-)");
-            t.Interface += p;
-        };
-
         auto &windows = platforms.addTarget<LibraryTarget>("windows");
         {
             common_setup(windows);
@@ -2594,7 +2595,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 windows.Public += "Wtsapi32.lib"_slib;
                 //windows += "EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE=EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE"_d;
             }
-            windows.Private += sw::Static, "QT_STATICPLUGIN"_d;
 
             //windows.Public += accessibility;
             //windows.Public += eventdispatchers;
@@ -2629,7 +2629,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 windowsvista.Public += "gdi32.lib"_slib;
                 windowsvista.Public += "user32.lib"_slib;
             }
-            windowsvista.Private += sw::Static, "QT_STATICPLUGIN"_d;
 
             windowsvista.Public += widgets;
 
@@ -2730,7 +2729,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "src/plugins/printsupport/platform/windows"_id;
             plugins_printsupport_windows += "Winspool.lib"_slib;
 
-            plugins_printsupport_windows.Private += sw::Static, "QT_STATICPLUGIN"_d;
             plugins_printsupport_windows.Public += printsupport;
             automoc(moc, plugins_printsupport_windows);
             make_qt_plugin(plugins_printsupport_windows, "QWindowsPrinterSupportPlugin");
@@ -2744,7 +2742,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
             plugins_printsupport_cups.Public +=
                 "src/plugins/printsupport/cups"_id;
 
-            plugins_printsupport_cups.Private += sw::Static, "QT_STATICPLUGIN"_d;
             plugins_printsupport_cups.Public += printsupport;
             plugins_printsupport_cups += "cups"_slib;
             automoc(moc, plugins_printsupport_cups);
@@ -3547,6 +3544,29 @@ qt_qml_plugin_outro
             }) {
                 generate_wayland_protocol_client_sources(f);
             }
+        }
+
+        auto &hwi_egl = wayland.addLibrary("hardwareintegration.client.wayland.egl");
+        {
+            hwi_egl += "src/hardwareintegration/client/wayland-egl/.*"_rr;
+            automoc(moc, hwi_egl);
+            hwi_egl.Public += client;
+            hwi_egl.Public += opengl;
+        }
+
+        auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
+        {
+            generic += "src/plugins/platforms/qwayland-generic/.*"_rr;
+            automoc(moc, generic);
+            generic.Public += client;
+            make_qt_plugin(generic, "QWaylandIntegrationPlugin");
+        }
+        auto &egl = wayland.addLibrary("plugins.platforms.qwayland.egl");
+        {
+            egl += "src/plugins/platforms/qwayland-egl/.*"_rr;
+            automoc(moc, egl);
+            egl.Public += hwi_egl;
+            make_qt_plugin(egl, "QWaylandEglPlatformIntegrationPlugin");
         }
     }
 
