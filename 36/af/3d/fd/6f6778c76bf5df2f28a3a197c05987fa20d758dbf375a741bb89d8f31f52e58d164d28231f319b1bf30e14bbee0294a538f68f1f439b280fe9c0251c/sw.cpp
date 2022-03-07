@@ -963,7 +963,7 @@ static QtLibrary qt_gui_desc{
     {"QT_NO_ACCESSIBILITY_ATSPI_BRIDGE", ""},
     {"QT_OPENGL_DYNAMIC", "true"},
     {"QT_OPENGL_ES_2_ANGLE", "true"},
-    {"QT_NO_FONTCONFIG", ""},
+    //{"QT_NO_FONTCONFIG", ""},
             },
         },
         // private
@@ -978,7 +978,7 @@ static QtLibrary qt_gui_desc{
     {"directwrite2", true},
     {"directwrite", true},
     {"evdev", false},
-    {"fontconfig", false},
+    //{"fontconfig", false},
     {"freetype", true},
     {"gif", true},
     {"harfbuzz", true},
@@ -1974,6 +1974,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "alloca_h", false });
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
                 qt_core_desc.config.public_.features.insert({ "dlopen", false });
+                qt_core_desc.config.public_.features.insert({ "fontconfig", false });
             }
             else
             {
@@ -1990,6 +1991,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
                 qt_core_desc.config.public_.features.insert({ "dlopen", true });
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", true });
+                qt_core_desc.config.public_.features.insert({ "fontconfig", true });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Linux) {
                 qt_core_desc.config.public_.features.insert({ "glibc", true });
@@ -3451,6 +3453,48 @@ qt_qml_plugin_outro
         scanner += "src/qtwaylandscanner/qtwaylandscanner.cpp";
         scanner += core;
 
+        auto generate_wayland_protocol_client_sources = [&](auto &&t, const path &fn, auto &&dir) {
+            auto protocol_name = fn.stem().string();
+
+            auto waylandscanner_header_output = "wayland-" + protocol_name + "-client-protocol.h";
+            auto waylandscanner_code_output = "wayland-" + protocol_name + "-protocol.c";
+
+            auto qtwaylandscanner_header_output = "qwayland-" + protocol_name + ".h";
+            auto qtwaylandscanner_code_output = "qwayland-" + protocol_name + ".cpp";
+
+            path idir = dir;
+            auto qtwaylandscanner_code_include = "<QtWaylandClient/private/wayland-wayland-client-protocol.h>"s;
+
+            t.addCommand()
+                << cmd::prog("wayland-scanner")
+                << "--strict"
+                << "--include-core-only"
+                << "client-header"
+                << cmd::std_in(fn)
+                << cmd::std_out(idir / waylandscanner_header_output);
+            t.addCommand()
+                << cmd::prog("wayland-scanner")
+                << "--strict"
+                << "--include-core-only"
+                << "public-code"
+                << cmd::std_in(fn)
+                << cmd::std_out(waylandscanner_code_output);
+
+            t.addCommand()
+                << cmd::prog(scanner)
+                << "client-header"
+                << cmd::in(fn)
+                << idir
+                << cmd::std_out(idir / qtwaylandscanner_header_output);
+            t.addCommand()
+                << cmd::prog(scanner)
+                << "client-code"
+                << cmd::in(fn)
+                << "--header-path=" + idir.string() + ""
+                << "--add-include=" + qtwaylandscanner_code_include + ""
+                << cmd::std_out(qtwaylandscanner_code_output);
+        };
+
         auto &client = wayland.addLibrary("client");
         {
             common_setup(client);
@@ -3468,8 +3512,8 @@ qt_qml_plugin_outro
 
             client.Public += gui;
 
-            client += "wayland-client"_slib;
-            client += "wayland-cursor"_slib;
+            client.Public += "wayland-client"_slib;
+            client.Public += "wayland-cursor"_slib;
 
             auto mocs = automoc(moc, client);
             SW_QT_ADD_MOC_DEPS(client);
@@ -3486,47 +3530,6 @@ qt_qml_plugin_outro
             qt_wayland_desc.config.public_.features.insert({"xkbcommon", false});
             qt_wayland_desc.print(client);
 
-            auto generate_wayland_protocol_client_sources = [&](const path &fn) {
-                auto protocol_name = fn.stem().string();
-
-                auto waylandscanner_header_output = "wayland-" + protocol_name + "-client-protocol.h";
-                auto waylandscanner_code_output = "wayland-" + protocol_name + "-protocol.c";
-
-                auto qtwaylandscanner_header_output = "qwayland-" + protocol_name + ".h";
-                auto qtwaylandscanner_code_output = "qwayland-" + protocol_name + ".cpp";
-
-                path idir = "QtWaylandClient/private";
-                auto qtwaylandscanner_code_include = "<QtWaylandClient/private/wayland-wayland-client-protocol.h>"s;
-
-                client.addCommand()
-                    << cmd::prog("wayland-scanner")
-                    << "--strict"
-                    << "--include-core-only"
-                    << "client-header"
-                    << cmd::std_in(fn)
-                    << cmd::std_out(idir / waylandscanner_header_output);
-                client.addCommand()
-                    << cmd::prog("wayland-scanner")
-                    << "--strict"
-                    << "--include-core-only"
-                    << "public-code"
-                    << cmd::std_in(fn)
-                    << cmd::std_out(waylandscanner_code_output);
-
-                client.addCommand()
-                    << cmd::prog(scanner)
-                    << "client-header"
-                    << cmd::in(fn)
-                    << idir
-                    << cmd::std_out(idir / qtwaylandscanner_header_output);
-                client.addCommand()
-                    << cmd::prog(scanner)
-                    << "client-code"
-                    << cmd::in(fn)
-                    << "--header-path=" + idir.string() + ""
-                    << "--add-include=" + qtwaylandscanner_code_include + ""
-                    << cmd::std_out(qtwaylandscanner_code_output);
-            };
             for (auto &&f : {
                 "src/3rdparty/protocol/pointer-gestures-unstable-v1.xml",
                 "src/3rdparty/protocol/tablet-unstable-v2.xml",
@@ -3542,7 +3545,7 @@ qt_qml_plugin_outro
                 "src/extensions/hardware-integration.xml",
                 "src/extensions/server-buffer-extension.xml",
             }) {
-                generate_wayland_protocol_client_sources(f);
+                generate_wayland_protocol_client_sources(client, f, "QtWaylandClient/private");
             }
         }
 
@@ -3552,6 +3555,20 @@ qt_qml_plugin_outro
             automoc(moc, hwi_egl);
             hwi_egl.Public += client;
             hwi_egl.Public += opengl;
+        }
+
+        auto &xdg = wayland.addLibrary("plugins.shellintegration.xdg");
+        {
+            xdg += "src/plugins/shellintegration/xdg-shell/.*"_rr;
+            automoc(moc, xdg);
+            xdg.Public += client;
+
+            for (auto &&f : {
+                "src/3rdparty/protocol/xdg-decoration-unstable-v1.xml",
+                "src/3rdparty/protocol/xdg-shell.xml",
+            }) {
+                generate_wayland_protocol_client_sources(xdg, f, ".");
+            }
         }
 
         auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
