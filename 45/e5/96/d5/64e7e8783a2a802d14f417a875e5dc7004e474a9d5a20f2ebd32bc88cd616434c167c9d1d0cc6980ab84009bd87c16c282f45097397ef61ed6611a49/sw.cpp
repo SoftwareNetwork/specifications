@@ -3578,6 +3578,24 @@ qt_qml_plugin_outro
             hwi_egl.Public += "wayland-egl"_slib;
         }
 
+        auto &bradient = wayland.addLibrary("plugins.decorations.bradient");
+        {
+            common_setup(bradient);
+            bradient += "src/plugins/decorations/bradient/.*"_rr;
+            automoc(moc, bradient);
+            bradient.Public += client;
+            make_qt_plugin(bradient, "QWaylandBradientDecorationPlugin");
+        }
+
+        auto &p_egl = wayland.addLibrary("plugins.hardwareintegration.client.wayland_egl");
+        {
+            common_setup(p_egl);
+            p_egl += "src/plugins/hardwareintegration/client/wayland-egl/.*"_rr;
+            automoc(moc, p_egl);
+            p_egl.Public += hwi_egl;
+            make_qt_plugin(p_egl, "QWaylandEglClientBufferPlugin");
+        }
+
         auto &xdg = wayland.addLibrary("plugins.shellintegration.xdg");
         {
             common_setup(xdg);
