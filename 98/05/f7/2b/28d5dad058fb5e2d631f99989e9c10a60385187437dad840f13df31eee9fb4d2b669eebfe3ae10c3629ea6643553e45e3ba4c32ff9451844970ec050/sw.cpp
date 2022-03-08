@@ -2168,6 +2168,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
             gui.Public -= dbus;
             if (gui.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
+                qt_gui_desc.config.public_.features.insert({ "egl", false });
+                qt_gui_desc.config.public_.features.insert({ "egl_x11", false });
                 qt_gui_desc.config.public_.features.insert({ "xcb", false });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", false });
             }
