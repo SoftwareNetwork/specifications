@@ -907,15 +907,6 @@ static QtLibrary qt_gui_desc{
     {"desktopservices", true},
     {"draganddrop", true},
     {"dynamicgl", true},
-    {"eglfs_brcm", false},
-    {"eglfs_egldevice", false},
-    {"eglfs", false},
-    {"eglfs_gbm", false},
-    {"eglfs_mali", false},
-    {"eglfs_viv", false},
-    {"eglfs_viv_wl", false},
-    {"egl", false},
-    {"egl_x11", false},
     {"filesystemmodel", true},
     {"highdpiscaling", true},
     {"imageformat_bmp", true},
@@ -2156,6 +2147,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             {
                 //gui += "accessible/linux/.*"_rr;
                 gui += "platform/unix/.*"_rr;
+                gui += "opengl/platform/egl/.*"_rr;
                 gui += "text/unix/.*"_rr;
                 //gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
                 //gui -= "platform/unix/qxkbcommon.cpp";
@@ -2182,6 +2174,22 @@ Q_IMPORT_PLUGIN()" + name + R"();
             else
             {
                 gui.Public += dbus;
+                gui.Public += "GL"_slib;
+                gui.Public += "EGL"_slib;
+                gui.Public += "X11"_slib;
+
+                qt_gui_desc.config.public_.features.insert({ "egl", true });
+                qt_gui_desc.config.public_.features.insert({ "egl_x11", true });
+                qt_gui_desc.config.public_.features.insert({ "egl_extension_platform_wayland", true });
+                // embedded
+                qt_gui_desc.config.public_.features.insert({ "eglfs", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_brcm", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_egldevice", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_gbm", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_mali", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_viv", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_viv_wl", false });
+
                 qt_gui_desc.config.public_.features.insert({ "xcb", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", true });
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon", true });
@@ -3453,8 +3461,11 @@ qt_qml_plugin_outro
     auto &wayland = add_subproject<Project>(qt, "wayland");
     {
         auto &scanner = wayland.addExecutable("scanner");
-        scanner += "src/qtwaylandscanner/qtwaylandscanner.cpp";
-        scanner += core;
+        {
+            common_setup(scanner);
+            scanner += "src/qtwaylandscanner/qtwaylandscanner.cpp";
+            scanner += core;
+        }
 
         auto generate_wayland_protocol_client_sources = [&](auto &&t, const path &fn, auto &&dir) {
             auto protocol_name = fn.stem().string();
@@ -3554,14 +3565,22 @@ qt_qml_plugin_outro
 
         auto &hwi_egl = wayland.addLibrary("hardwareintegration.client.wayland.egl");
         {
+            common_setup(hwi_egl);
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, hwi_egl, { "QtWaylandEglClientHwIntegration" });
+
             hwi_egl += "src/hardwareintegration/client/wayland-egl/.*"_rr;
-            automoc(moc, hwi_egl);
             hwi_egl.Public += client;
             hwi_egl.Public += opengl;
+
+            auto mocs = automoc(moc, hwi_egl);
+            SW_QT_ADD_MOC_DEPS(client);
+
+            hwi_egl.Public += "wayland-egl"_slib;
         }
 
         auto &xdg = wayland.addLibrary("plugins.shellintegration.xdg");
         {
+            common_setup(xdg);
             xdg += "src/plugins/shellintegration/xdg-shell/.*"_rr;
             automoc(moc, xdg);
             xdg.Public += client;
@@ -3577,6 +3596,7 @@ qt_qml_plugin_outro
 
         auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
         {
+            common_setup(generic);
             generic += "src/plugins/platforms/qwayland-generic/.*"_rr;
             automoc(moc, generic);
             generic.Public += client;
@@ -3584,6 +3604,7 @@ qt_qml_plugin_outro
         }
         auto &egl = wayland.addLibrary("plugins.platforms.qwayland.egl");
         {
+            common_setup(egl);
             egl += "src/plugins/platforms/qwayland-egl/.*"_rr;
             automoc(moc, egl);
             egl.Public += hwi_egl;
