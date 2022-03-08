@@ -999,8 +999,8 @@ static QtLibrary qt_gui_desc{
     {"system_xcb", false},
     {"tslib", false},
     {"xinput2", false},
-    {"xkbcommon_evdev", false},
-    {"xkb", false},
+    //{"xkbcommon_evdev", false},
+    //{"xkb", false},
     {"xlib", false},
     {"xrender", false},
 
@@ -2157,8 +2157,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 //gui += "accessible/linux/.*"_rr;
                 gui += "platform/unix/.*"_rr;
                 gui += "text/unix/.*"_rr;
-                gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
-                gui -= "platform/unix/qxkbcommon.cpp";
+                //gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
+                //gui -= "platform/unix/qxkbcommon.cpp";
+                gui.Public += "xkbcommon"_slib;
                 gui.CompileOptions.push_back("-msse4.1");
                 gui.CompileOptions.push_back("-mavx");
                 gui.CompileOptions.push_back("-mavx2");
@@ -2183,6 +2184,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 gui.Public += dbus;
                 qt_gui_desc.config.public_.features.insert({ "xcb", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", true });
+                qt_gui_desc.config.public_.features.insert({ "xkbcommon", true });
+                qt_gui_desc.config.public_.features.insert({ "xkbcommon_evdev", false });
             }
             qt_gui_desc.print(gui);
 
@@ -3527,7 +3530,7 @@ qt_qml_plugin_outro
             qt_wayland_desc.config.public_.features.insert({"wayland_datadevice", true});
             qt_wayland_desc.config.public_.features.insert({"wayland_client_primary_selection", true});
             qt_wayland_desc.config.public_.features.insert({"draganddrop", true});
-            qt_wayland_desc.config.public_.features.insert({"xkbcommon", false});
+            //qt_wayland_desc.config.public_.features.insert({"xkbcommon", true});
             qt_wayland_desc.print(client);
 
             for (auto &&f : {
@@ -3569,6 +3572,7 @@ qt_qml_plugin_outro
             }) {
                 generate_wayland_protocol_client_sources(xdg, f, ".");
             }
+            make_qt_plugin(xdg, "QWaylandXdgShellIntegrationPlugin");
         }
 
         auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
