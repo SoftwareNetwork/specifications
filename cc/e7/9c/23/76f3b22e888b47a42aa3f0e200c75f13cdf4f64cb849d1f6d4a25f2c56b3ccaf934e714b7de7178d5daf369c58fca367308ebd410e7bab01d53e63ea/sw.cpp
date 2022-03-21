@@ -42,8 +42,12 @@ void build(Solution &s)
         port.setRootDirectory("third_party/upb");
         port += "upb/port_def.inc";
         port += "upb/port_undef.inc";
-
         upb.Public += port;
+
+        auto &utf8_range = dupb.addStaticLibrary("utf8_range");
+        utf8_range.setRootDirectory("third_party/upb");
+        utf8_range += "third_party/utf8_range/.*"_rr;
+        upb.Public += utf8_range;
 
         auto &reflection = dupb.addStaticLibrary("reflection");
         reflection.setRootDirectory("third_party/upb");
@@ -133,7 +137,7 @@ void build(Solution &s)
     {
         auto &t = core_plugin_registry;
         t += cppstd;
-        t += "src/core/plugin_registry/grpc_plugin_registry.cc";
+        t += "src/core/plugin_registry/.*"_rr;
 
         t.Public += "."_id;
 
