@@ -7,4 +7,5 @@ void build(Solution &s)
     t.Public += sw::Shared, "AWS_S3_USE_IMPORT_EXPORT"_d;
 
     t.Public += "org.sw.demo.amazon.awslabs.c_auth"_dep;
+    t.Public += "org.sw.demo.amazon.awslabs.checksums"_dep;
 }
