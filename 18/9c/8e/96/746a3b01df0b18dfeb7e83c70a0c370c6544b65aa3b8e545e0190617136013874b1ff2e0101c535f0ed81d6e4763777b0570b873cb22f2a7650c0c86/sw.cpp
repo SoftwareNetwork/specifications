@@ -167,6 +167,9 @@ void build(Solution &s)
         wt.Variables["CONFIGURATION"] = cfg + "/wthttpd";
 
         wt.configureFile("WConfig.h.in", "Wt/WConfig.h");
+
+        wt.patch("src/web/WebUtils.h", "#include \"3rdparty/rapidxml/rapidxml.hpp\"", "//# include \"3rdparty/rapidxml/rapidxml.hpp\"");
+        wt.patch("src/web/WebUtils.h", "namespace Wt {", "namespace Wt  { namespace rapidxml { template<class Ch> class xml_node; }");
     }
 
     auto &http = p.addTarget<LibraryTarget>("http");
