@@ -152,7 +152,7 @@ void build(Solution &s)
             n = n.slice(1);
         }
         t.ApiName = "PRIMITIVES_" + boost::to_upper_copy(n2.toString("_")) + "_API";
-        t += cpp20;
+        t += cpp23;
         t.PackageDefinitions = true;
         // not all code works with this yet (e.g. hh.date)
         //t.Public.CompileOptions.push_back("-Zc:__cplusplus");
@@ -452,7 +452,7 @@ void build(Solution &s)
     texpp.PackageDefinitions = true;
     setup_primitives_no_all_sources(texpp);
     texpp += "src/tools/texpp.cpp";
-    texpp += sw_main;
+    texpp += sw_main, hash;
 
     {
         auto &git_rev = p.addTarget<StaticLibraryTarget>("git_rev");
@@ -475,7 +475,7 @@ void build(Solution &s)
     {
         auto &t = test.addTarget<ExecutableTarget>(name);
         t.PackageDefinitions = true;
-        t += cpp20;
+        t += cpp23;
         t += path("src/" + name + ".cpp");
         t += "org.sw.demo.catchorg.catch2"_dep;
         if (t.getCompilerType() == CompilerType::MSVC)
