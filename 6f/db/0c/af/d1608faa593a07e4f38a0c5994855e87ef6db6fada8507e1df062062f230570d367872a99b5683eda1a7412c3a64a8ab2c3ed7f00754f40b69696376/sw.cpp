@@ -181,15 +181,8 @@ void build(Solution &s)
 
     auto cppstd = cpp11;
 
-    auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
-    {
-        protobuf_lite += cppstd;
-        //protobuf_lite.ImportFromBazel = true;
-        if (!win_or_mingw(protobuf_lite))
-            protobuf_lite.ExportAllSymbols = true;
-        protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
-        protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
-        protobuf_lite +=
+    auto lite_sources = [](auto &&f) {
+        for (auto &&fn : {
             "src/google/protobuf/any_lite.cc",
             "src/google/protobuf/arena.cc",
             "src/google/protobuf/arenastring.cc",
@@ -221,8 +214,21 @@ void build(Solution &s)
             "src/google/protobuf/stubs/structurally_valid.cc",
             "src/google/protobuf/stubs/strutil.cc",
             "src/google/protobuf/stubs/time.cc",
-            "src/google/protobuf/wire_format_lite.cc"
-            ;
+            "src/google/protobuf/wire_format_lite.cc",
+        }) {
+            f(fn);
+        }
+    };
+
+    auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
+    {
+        protobuf_lite += cppstd;
+        //protobuf_lite.ImportFromBazel = true;
+        if (!win_or_mingw(protobuf_lite))
+            protobuf_lite.ExportAllSymbols = true;
+        protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
+        protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
+        lite_sources([&](auto &&fn) { protobuf_lite += fn; });
         protobuf_lite += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
         protobuf_lite.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
         if (!win_or_mingw(protobuf_lite))
@@ -293,12 +299,11 @@ void build(Solution &s)
             "src/google/protobuf/wire_format.cc",
             "src/google/protobuf/wrappers.pb.cc"
             ;
+        lite_sources([&](auto &&fn) { protobuf -= fn; });
         if (!win_or_mingw(protobuf))
             protobuf.ExportAllSymbols = true;
-        //protobuf += "src/.*\\.h"_rr;
-        //protobuf += "src/.*\\.inc"_rr;
-        //protobuf += "src/google/protobuf/io/strtod.cc";
-        //protobuf += "src/google/protobuf/parse_context.cc";
+        else
+            lite_sources([&](auto &&fn) { protobuf += fn; });
         protobuf.Private += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
         protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
         protobuf.Public += protobuf_lite;
