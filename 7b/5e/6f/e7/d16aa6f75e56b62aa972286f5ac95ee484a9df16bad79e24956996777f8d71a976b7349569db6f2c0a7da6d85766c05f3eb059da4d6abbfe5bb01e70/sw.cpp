@@ -1966,9 +1966,11 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
                 qt_core_desc.config.public_.features.insert({ "dlopen", false });
                 qt_core_desc.config.public_.features.insert({ "fontconfig", false });
+                qt_core_desc.config.public_.features.insert({ "cpp_winrt", true });
             }
             else
             {
+                qt_core_desc.config.public_.features.insert({ "cpp_winrt", false });
                 qt_core_desc.config.public_.features.insert({ "alloca", true });
                 qt_core_desc.config.public_.features.insert({ "alloca_h", true });
                 qt_core_desc.config.public_.features.insert({ "getauxval", true });
