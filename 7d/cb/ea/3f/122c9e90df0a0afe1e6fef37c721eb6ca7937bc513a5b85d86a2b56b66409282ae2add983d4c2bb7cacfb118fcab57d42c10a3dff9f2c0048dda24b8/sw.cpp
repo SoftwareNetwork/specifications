@@ -6,6 +6,7 @@ void build(Solution &s)
     harfbuzz += cpp11;
 
     harfbuzz -=
+        "src/OT/.*"_rr,
         "src/[^/]*\\.cc"_rr,
         "src/[^/]*\\.h"_rr,
         "src/[^/]*\\.hh"_rr,
