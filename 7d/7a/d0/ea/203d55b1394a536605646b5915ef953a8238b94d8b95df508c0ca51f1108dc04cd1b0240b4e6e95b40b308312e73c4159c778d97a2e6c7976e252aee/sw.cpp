@@ -12,6 +12,7 @@ void build(Solution &s)
         "src/.*\\.[hc]"_rr;
 
     freetype.Private += "FT2_BUILD_LIBRARY"_d;
+    freetype += "FT_CONFIG_OPTION_SYSTEM_ZLIB"_def;
 
     freetype.Public += "org.sw.demo.bzip2"_dep;
     freetype.Public += "org.sw.demo.glennrp.png"_dep;
