@@ -3574,6 +3574,8 @@ qt_qml_plugin_outro
             client += "src/client/shellintegration"_idir;
 
             client -= "src/client/qwaylandtextinputv4.cpp";
+            client -= "src/3rdparty/protocol/.*xml"_rr;
+            client -= "src/extensions/.*xml"_rr;
 
             client.Public += gui;
 
@@ -3603,7 +3605,7 @@ qt_qml_plugin_outro
                 "src/3rdparty/protocol/pointer-gestures-unstable-v1.xml",
                 "src/3rdparty/protocol/tablet-unstable-v2.xml",
                 "src/3rdparty/protocol/text-input-unstable-v2.xml",
-                //"src/3rdparty/protocol/text-input-unstable-v4-wip.xml",
+                "src/3rdparty/protocol/text-input-unstable-v4-wip.xml",
                 "src/3rdparty/protocol/wayland.xml",
                 "src/3rdparty/protocol/wp-primary-selection-unstable-v1.xml",
                 "src/3rdparty/protocol/xdg-activation-v1.xml",
