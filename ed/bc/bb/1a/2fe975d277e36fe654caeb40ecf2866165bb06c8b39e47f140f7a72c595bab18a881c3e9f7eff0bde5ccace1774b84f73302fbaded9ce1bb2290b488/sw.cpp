@@ -2696,31 +2696,21 @@ Q_IMPORT_PLUGIN()" + name + R"();
             make_qt_plugin(windowsvista, "QWindowsVistaStylePlugin");
         }
 
-        auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
-        {
+        auto add_winmain = [&](auto &&name) {
+            auto &winmain = base.addTarget<StaticLibraryTarget>("winmain");
             winmain -= "src/entrypoint/qtentrypoint_win.cpp";
             winmain -= "src/corelib/global/qt_windows.h";
-            if (winmain.getBuildSettings().TargetOS.Type == OSType::Windows)
+            if (winmain.getBuildSettings().TargetOS.Type == OSType::Windows) {
                 winmain += "src/entrypoint/qtentrypoint_win.cpp";
-            else {
+                winmain.Public += "src/corelib/global"_idir;
+            } else {
                 winmain.AutoDetectOptions = false;
                 winmain.Empty = true;
             }
             //winmain.Public += core;
-        }
-        // alias?
-        auto &entrypoint = base.addTarget<StaticLibraryTarget>("entrypoint");
-        {
-            entrypoint -= "src/entrypoint/qtentrypoint_win.cpp";
-            entrypoint -= "src/corelib/global/qt_windows.h";
-            if (entrypoint.getBuildSettings().TargetOS.Type == OSType::Windows)
-                entrypoint += "src/entrypoint/qtentrypoint_win.cpp";
-            else {
-                entrypoint.AutoDetectOptions = false;
-                entrypoint.Empty = true;
-            }
-            //winmain.Public += core;
-        }
+        };
+        add_winmain("winmain");
+        add_winmain("entrypoint"); // alias?
 
         auto &printsupport = base.addTarget<LibraryTarget>("printsupport");
         {
