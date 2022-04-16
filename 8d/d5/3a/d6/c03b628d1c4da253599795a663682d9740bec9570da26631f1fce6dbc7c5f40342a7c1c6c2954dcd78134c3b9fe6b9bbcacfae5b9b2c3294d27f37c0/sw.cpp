@@ -1367,7 +1367,7 @@ void build(Solution &s)
     };
 
     auto common_setup = [](auto &t) {
-        t += cpp17;
+        t += cpp20; // cpp17 + msvc requires /permissive-
         if (t.getCompilerType() == CompilerType::MSVC)
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
         if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
