@@ -1367,9 +1367,13 @@ void build(Solution &s)
     };
 
     auto common_setup = [](auto &t) {
-        t += cpp20; // cpp17 + msvc requires /permissive-
-        if (t.getCompilerType() == CompilerType::MSVC)
+        t += cpp20;
+        if (t.getCompilerType() == CompilerType::MSVC) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
+            // cpp17 + msvc requires /permissive-
+            // when client app is built with cpp17, there will be build error
+            t.Public.CompileOptions.push_back("/permissive-");
+        }
         if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
             t.ExportAllSymbols = true;
         }
