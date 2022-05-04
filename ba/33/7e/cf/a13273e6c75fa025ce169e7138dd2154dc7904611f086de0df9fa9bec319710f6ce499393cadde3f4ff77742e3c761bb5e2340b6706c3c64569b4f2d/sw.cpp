@@ -76,7 +76,7 @@ void build(Solution &s)
         }
     };
 
-    auto &libcurl = s.addTarget<LibraryTarget>("badger.curl.libcurl", "7.83.0.0");
+    auto &libcurl = s.addTarget<LibraryTarget>("badger.curl.libcurl", "7.83.0");
     libcurl += Git("https://github.com/curl/curl", "curl-{M}_{m}_{p}");
 
     libcurl.setChecks("libcurl");
