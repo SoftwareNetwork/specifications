@@ -179,7 +179,7 @@ void build(Solution &s)
             ;
     };
 
-    auto cppstd = cpp11;
+    auto cppstd = cpp17;
 
     auto lite_sources = [](auto &&f) {
         for (auto &&fn : {
