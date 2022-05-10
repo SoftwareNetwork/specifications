@@ -577,7 +577,18 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
             gio -= "gio/.*portal.*\\.c"_rr;
 
-            gio -= "gio/.*unix.*\\.c"_rr;
+            //gio -= "gio/.*unix.*\\.c"_rr;
+            gio -= "gio/gunixvolume.c";
+            gio -= "gio/gunixvolumemonitor.c";
+            gio -= "gio/gunixinputstream.c";
+            gio -= "gio/gunixoutputstream.c";
+            gio -= "gio/gunixmount.c";
+            gio -= "gio/gunixmounts.c";
+            gio -= "gio/giounix-private.c";
+            gio -= "gio/gunixfdlist.c";
+            gio -= "gio/gunixfdmessage.c";
+            gio += "gio/gmemorymonitorwin32.c";
+
             gio -= "gio/.*networkmonitornetlink.*\\.c"_rr;
             gio -= "gio/.*networkmonitornm.*\\.c"_rr;
 
@@ -836,6 +847,8 @@ void check(Checker &c)
     s.checkFunctionExists("lstat");
     s.checkFunctionExists("mbrtowc");
     s.checkFunctionExists("memalign");
+    s.checkFunctionExists("aligned_alloc");
+    s.checkFunctionExists("_aligned_malloc");
     s.checkFunctionExists("memmem");
     s.checkFunctionExists("mmap");
     s.checkFunctionExists("newlocale");
