@@ -1294,7 +1294,7 @@ struct project {
 
 void build(Solution &s)
 {
-    project llvm_project{s.addProject("llvm_project", "14.0.3")};
+    project<sw::ProjectTarget> llvm_project{s.addProject("llvm_project", "14.0.3")};
     llvm_project.t += Git("https://github.com/llvm/llvm-project", "llvmorg-{v}");
     LlvmTargets targets;
     build_llvm(llvm_project, targets);
