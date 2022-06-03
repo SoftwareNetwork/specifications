@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &t = s.addTarget<LibraryTarget>("amazon.awslabs.crt_cpp", "0.17.29");
     t += Git("https://github.com/awslabs/aws-crt-cpp", "v{v}");
 
+    t += cpp14;
     t -=
         "include/.*"_rr,
         "source/.*"_rr;

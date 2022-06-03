@@ -204,6 +204,7 @@ auto &addCompiledBoostTarget(Solution &s, String name)
 {
     auto &t = addBoostTarget<LibraryTarget>(s, name);
 
+    t += cpp17;
     t += "include/.*"_rr;
     t += "src/.*"_rr;
 

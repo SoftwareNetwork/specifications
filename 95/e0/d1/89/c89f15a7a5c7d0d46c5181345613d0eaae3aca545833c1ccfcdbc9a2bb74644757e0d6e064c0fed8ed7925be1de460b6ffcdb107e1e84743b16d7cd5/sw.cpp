@@ -339,8 +339,11 @@ void build(Solution &s)
 #endif
 )");
 
-        if (glib.getBuildSettings().TargetOS.Type != OSType::Macos)
-            glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
+        glib.replaceInFileOnce("glib/glib-init.c", "!strcasecmp", "!g_strcasecmp");
+        glib.replaceInFileOnce("glib/glib-init.c", "#include \"gconstructor.h\"", R"(
+        #include  "gconstructor.h"
+        #include "gstrfuncs.h"
+        )");
 
         // win+static
         glib.replaceInFileOnce("glib/glib-init.c", "#if defined (G_OS_WIN32)",
@@ -348,17 +351,17 @@ void build(Solution &s)
         glib.replaceInFileOnce("glib/glib-init.c", "G_DEFINE_CONSTRUCTOR(glib_init_ctor)",
             R"(G_DEFINE_CONSTRUCTOR (glib_init_ctor)
 
-#if defined  (G_OS_WIN32)
+/*#if defined  (G_OS_WIN32)
 HMODULE glib_dll;
-#endif
+#endif*/
 )");
         glib.replaceInFileOnce("glib/glib-init.c", "glib_inited = TRUE;",
             R"(glib_inited = TRUE;
 
-#if defined  (G_OS_WIN32)
+/*#if defined  (G_OS_WIN32)
     g_clock_win32_init();
     g_thread_win32_init();
-#endif
+#endif*/
 )");
 
         // math
@@ -490,7 +493,7 @@ HMODULE glib_dll;
             wi.writeFileOnce("gobject_init.cpp", R"(
 extern "C" void gobject_init(void);
 struct SW_GOBJECT_INITIALIZER { SW_GOBJECT_INITIALIZER() { gobject_init(); } };
-static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
+//static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 )");
             wi += "gobject_init.cpp";
         }

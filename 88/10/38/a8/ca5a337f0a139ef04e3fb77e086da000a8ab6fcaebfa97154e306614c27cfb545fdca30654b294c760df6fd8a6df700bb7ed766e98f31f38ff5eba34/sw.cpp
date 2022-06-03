@@ -12,6 +12,7 @@ void build(Solution &s)
 
     auto process_pb = [&protos](auto &t, auto &&dir)
     {
+        t += cpp17;
         t += FileRegex(t.getFile(protos, dir), ".*\\.proto", true);
 
         ProtobufData d;

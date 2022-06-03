@@ -62,6 +62,19 @@ struct YasmRule : sw::NativeRule
                     c->push_back("elf32");
                 }
             }
+            else if (nt->getBuildSettings().TargetOS.isApple())
+            {
+                if (nt->getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                {
+                    c->push_back("-f");
+                    c->push_back("macho64");
+                }
+                else
+                {
+                    c->push_back("-f");
+                    c->push_back("macho"); // macho32? macho_aarch64?
+                }
+            }
             else
                 SW_UNIMPLEMENTED;
             auto add_def = [&c](auto &d)
@@ -78,6 +91,9 @@ struct YasmRule : sw::NativeRule
             case ArchType::x86:
                 add_def("ARCH_X86_32=1");
                 add_def("ARCH_X86_64=0");
+                break;
+            case ArchType::aarch64:
+                add_def("ARCH_ARM=1");
                 break;
             default:
                 SW_UNIMPLEMENTED;
@@ -183,6 +199,13 @@ struct YasmCompiler : sw::NativeCompiler
                 else
                     ObjectFormat = "elf32";
             }
+            else if (t.getBuildSettings().TargetOS.isApple())
+            {
+                if (t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                    ObjectFormat = "macho64";
+                else
+                    ObjectFormat = "macho"; // macho32? macho_aarch64?
+            }
             else
                 SW_UNIMPLEMENTED;
         }
@@ -196,6 +219,9 @@ struct YasmCompiler : sw::NativeCompiler
         case ArchType::x86:
             add("ARCH_X86_32=1"_def);
             add("ARCH_X86_64=0"_def);
+            break;
+        case ArchType::aarch64:
+            add("ARCH_ARM=1"_def);
             break;
         default:
             SW_UNIMPLEMENTED;
@@ -231,7 +257,7 @@ void build(Solution &s)
     auto setup = [&cfg](auto &t)
     {
         t.PackageDefinitions = true;
-        t.setChecks("libyasm");
+        t.setChecks("libyasm", true);
         t ^= ".*/tests/.*"_rr;
         t += cfg;
     };
@@ -459,9 +485,14 @@ void check(Checker &c)
     s.checkFunctionExists("strsep");
     s.checkFunctionExists("_popen");
     s.checkFunctionExists("_stricmp");
+    s.checkFunctionExists("getcwd");
     s.checkIncludeExists("libgen.h");
     s.checkIncludeExists("locale.h");
     s.checkIncludeExists("strings.h");
+    s.checkIncludeExists("unistd.h");
+    s.checkIncludeExists("direct.h");
+    s.checkIncludeExists("io.h");
+    s.checkIncludeExists("sys/stat.h");
     s.checkTypeSize("size_t");
     s.checkTypeSize("void *");
 }

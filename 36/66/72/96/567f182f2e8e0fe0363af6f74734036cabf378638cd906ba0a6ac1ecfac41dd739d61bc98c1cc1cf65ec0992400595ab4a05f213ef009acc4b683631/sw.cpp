@@ -217,6 +217,16 @@ void build(Solution &s)
 
         imgcodecs += "HAVE_GDAL"_def;
         imgcodecs += "org.sw.demo.OSGeo.gdal"_dep;
+
+        imgcodecs -= "modules/imgcodecs/src/ios_conversions.mm";
+        if (imgcodecs.getBuildSettings().TargetOS.isApple()) {
+            imgcodecs.Public += "Cocoa"_framework;
+            imgcodecs.Public += "CoreGraphics"_framework;
+            if (imgcodecs.getBuildSettings().TargetOS.Type == OSType::IOS) {
+                imgcodecs += "modules/imgcodecs/src/ios_conversions.mm";
+                imgcodecs.Public += "UIKit"_framework;
+            }
+        }
     }
 
     auto &highgui = add_target("highgui");
@@ -243,6 +253,9 @@ void build(Solution &s)
             highgui.Public += "OPENCV_HIGHGUI_BUILTIN_BACKEND_STR=\"GTK\""_def;
             highgui -= "modules/highgui/src/window_w32.cpp";
         }
+        if (highgui.getBuildSettings().TargetOS.isApple()) {
+            highgui -= "modules/highgui/src/window_cocoa.mm";
+        }
     }
 
     auto &videoio = add_target("videoio");
@@ -268,12 +281,15 @@ void build(Solution &s)
         }
         videoio -=
             "modules/videoio/src/cap_android.*"_rr,
+            "modules/videoio/src/cap_avfoundation.*"_rr,
             "modules/videoio/src/cap_winrt.*"_rr,
             "modules/videoio/src/cap_mfx.*"_rr,
+            "modules/videoio/src/cap_ios.*"_rr,
             "modules/videoio/src/cap_ffmpeg.*"_rr,
             "modules/videoio/src/cap_gstreamer.cpp",
             "modules/videoio/src/cap_ueye.cpp",
             "modules/videoio/src/cap_ximea.cpp",
+            "modules/videoio/src/cap_msmf.cpp",
             "modules/videoio/src/cap_xine.cpp";
 
         if (videoio.getBuildSettings().TargetOS.Type != OSType::Windows &&
@@ -282,20 +298,26 @@ void build(Solution &s)
         {
             videoio += "dl"_slib;
         }
+        else
+        {
+            videoio += "modules/videoio/src/cap_msmf.cpp";
+        }
+        if (imgcodecs.getBuildSettings().TargetOS.isApple()) {
+            videoio.Public += "AVFoundation"_framework;
+            videoio.Public += "CoreMedia"_framework;
+            videoio.Public += "CoreVideo"_framework;
+            if (videoio.getBuildSettings().TargetOS.Type == OSType::IOS) {
+                videoio += "modules/videoio/src/cap_ios.*"_rr;
+                videoio += "modules/videoio/src/cap_avfoundation.mm";
+            } else {
+                videoio += "modules/videoio/src/cap_avfoundation_mac.mm";
+            }
+        }
     }
 
     auto &calib3d = add_target("calib3d");
     calib3d.Public += features2d;
     add_dispatch_file(calib3d, "undistort");
-
-    auto &objdetect = add_target("objdetect");
-    objdetect.Public += ml, videoio, calib3d;
-    if (objdetect.getBuildSettings().TargetOS.Type != OSType::Windows &&
-        objdetect.getBuildSettings().TargetOS.Type != OSType::Mingw
-        )
-    {
-        objdetect += "pthread"_slib;
-    }
 
     auto &photo = add_target("photo");
     photo.Public += imgproc;
@@ -311,6 +333,7 @@ void build(Solution &s)
         dnn += "HAVE_PROTOBUF"_def;
         dnn += "OPENCV_DNN_EXTERNAL_PROTOBUF"_def;
         add_dispatch_file(dnn, "layers/layers_common");
+        add_dispatch_file(dnn, "int8layers/layers_common");
 
         for (auto &f : enumerate_files_like(dnn.SourceDir / "modules/dnn/src", ".*\\.proto", true))
         {
@@ -318,6 +341,15 @@ void build(Solution &s)
             d.addIncludeDirectory(f.parent_path());
             gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, dnn, f, d);
         }
+    }
+
+    auto &objdetect = add_target("objdetect");
+    objdetect.Public += ml, videoio, calib3d, dnn;
+    if (objdetect.getBuildSettings().TargetOS.Type != OSType::Windows &&
+        objdetect.getBuildSettings().TargetOS.Type != OSType::Mingw
+        )
+    {
+        objdetect += "pthread"_slib;
     }
 
     auto &stitching = add_target("stitching");

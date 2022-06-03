@@ -20,6 +20,14 @@ void build(Solution &s)
     pixman.Public +=
         "pixman"_id;
 
+    if (pixman.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
+    {
+        pixman -= "pixman/pixman-sse2.c";
+        pixman -= "pixman/pixman-ssse3.c";
+        pixman.Variables["USE_ARM_NEON"] = 1;
+        pixman.Variables["USE_ARM_SIMD"] = 1;
+    }
+
     if (pixman.Variables["USE_VMX"] == 1)
         pixman += "pixman/pixman-vmx.c";
     if (pixman.Variables["USE_ARM_NEON"] == 1)

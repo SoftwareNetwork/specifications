@@ -91,6 +91,11 @@ void build(Solution &s)
         t.Public += "org.sw.demo.nanopb"_dep;
         t.Public += "org.sw.demo.google.abseil"_dep;
         t.Public += upb;
+
+        t.patch("include/grpc/impl/codegen/port_platform.h",
+            "#if !(defined(__has_feature) && __has_feature(cxx_thread_local))",
+            "#if 1//!(defined(__has_feature) && __has_feature(cxx_thread_local))"
+        );
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");

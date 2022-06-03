@@ -4,8 +4,9 @@ void build(Solution &s)
     t += Git("https://github.com/google/gumbo-parser", "v{v}");
 
     t += "src/.*"_rr;
-    t += "visualc/include/.*"_rr;
+    t -= "visualc/include/.*"_rr;
 
     t.Public += "src"_idir;
-    t += "visualc/include"_idir;
+    if (t.getCompilerType() == CompilerType::MSVC)
+        t += "visualc/include"_idir;
 }

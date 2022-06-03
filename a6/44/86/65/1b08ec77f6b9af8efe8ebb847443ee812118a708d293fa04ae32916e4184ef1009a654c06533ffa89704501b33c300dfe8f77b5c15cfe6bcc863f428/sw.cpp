@@ -19,6 +19,11 @@ void build(Solution &s)
     t += "pq-crypto/sike_r1/sike_r1_kem.c";
     t += "pq-crypto/sike_r1/fips202_r1.c";
 
+    if (t.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+        t -= ".*x64.*"_rr;
+        t -= ".*avx.*"_rr;
+    }
+
     /*t -= "pq-crypto/sike_r2/.*"_rr;
     t += "pq-crypto/sike_r2/fips202.c";
     t += "pq-crypto/sike_r2/P434.c";*/

@@ -39,6 +39,7 @@ void build(Solution &s)
                 ;
         }
 
+        utils -= "org.sw.demo.gnu.gperf"_dep;
         if (utils.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             auto gperf_cmd = [&utils](const String &s)

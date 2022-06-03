@@ -35,6 +35,14 @@ void build(Solution &s)
         //t += "org.sw.demo.amazon.awslabs.lc-main"_dep;
     }
 
+    if (t.getBuildSettings().TargetOS.isApple()) {
+        t -= "source/unix/.*"_rr;
+        t += "source/darwin/.*"_rr;
+        t += "CoreFoundation"_framework;
+        t += "Security"_framework;
+        //t += "OPENSSL_IS_AWSLC"_def;
+    }
+
     t += "org.sw.demo.openssl.crypto"_dep;
     t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;
     //t.Public += "org.sw.demo.amazon.awslabs.c_common"_dep;

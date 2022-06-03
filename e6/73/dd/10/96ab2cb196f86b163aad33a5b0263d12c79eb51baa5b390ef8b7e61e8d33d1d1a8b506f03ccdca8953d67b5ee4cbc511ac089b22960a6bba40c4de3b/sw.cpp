@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &jasper = s.addTarget<LibraryTarget>("mdadams.jasper", "3.0.3");
     jasper += Git("https://github.com/mdadams/jasper", "version-{v}");
 
+    jasper += c11;
     jasper += "JAS_EXPORT"_api;
     jasper.SourceDir /= "src/libjasper";
     jasper.setChecks("jas");
@@ -14,6 +15,7 @@ void build(Solution &s)
     jasper -= "heic/.*"_rr;
 
     jasper.Public += "org.sw.demo.jpeg"_dep;
+    jasper.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
 
     jasper.Variables["JAS_VERSION_MAJOR"] = jasper.Variables["PACKAGE_VERSION_MAJOR"];
     jasper.Variables["JAS_VERSION_MINOR"] = jasper.Variables["PACKAGE_VERSION_MINOR"];
@@ -23,6 +25,11 @@ void build(Solution &s)
 
     jasper.Variables["JAS_INCLUDE_BMP_CODEC"] = 1;
     jasper.Variables["JAS_INCLUDE_JPG_CODEC"] = 1;
+    jasper.Variables["JAS_ENABLE_JPG_CODEC"] = 1;
+    jasper -= "jp2/.*"_rr;
+    /*jasper.Variables["JAS_INCLUDE_JP2_CODEC"] = 1;
+    jasper.Variables["JAS_ENABLE_JP2_CODEC"] = 1;
+    jasper.Variables["JAS_ENABLE_JPC_CODEC"] = 1;*/
 
     jasper.Variables["JAS_THREADS"] = 1;
     if (jasper.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -38,13 +45,17 @@ void build(Solution &s)
 void check(Checker &c)
 {
     auto &s = c.addSet("jas");
-    s.checkIncludeExists("io.h");
+    s.checkFunctionExists("unlink");
+    s.checkFunctionExists("close");
+    s.checkFunctionExists("lseek");
     s.checkIncludeExists("fcntl.h");
+    s.checkIncludeExists("io.h");
+    s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("sys/types.h");
     s.checkIncludeExists("sys/time.h");
     s.checkTypeSize("int");
     s.checkTypeSize("long");
-    s.checkTypeSize("long long");
+    s.checkTypeSize("long long", "SIZEOF_LLONG");
     s.checkTypeSize("size_t");
     s.checkTypeSize("ssize_t");
 

@@ -27,6 +27,7 @@ struct moc_file
     bool build = false;
     path from_file;
     bool from_cpp = false;
+    path ext;
 };
 
 struct MocCommand : Command
@@ -113,12 +114,17 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         return false;
     };
 
+    auto has_mm = t.getBuildSettings().TargetOS.isApple();
+    auto is_cpp_ext = [&](auto &&ext) {
+        return ext == ".cpp" || (has_mm && ext == ".mm");
+    };
+
     std::vector<moc_file> files;
     for (auto &[p, f] : t)
     {
         if (f->skip)
             continue;
-        if (p.extension() == ".cpp")
+        if (is_cpp_ext(p.extension()))
         {
             static std::regex r("(^|\n)[ \t]*#[ \t]*include[ \t]+"
                 "[\"<](([^ \">]+/)?moc_[^ \">/]+\\.cpp|[^ \">]+\\.moc)[\">]");
@@ -136,6 +142,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
                 {
                     f.p = inc_string;
                     f.from_cpp = true;
+                    f.ext = p.extension();
                 }
                 f.p = p.parent_path() / f.p.stem();
                 f.from_file = p;
@@ -152,7 +159,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         if (f->skip)
             continue;
         auto ext = to_string(p.extension().u8string());
-        if (ext == ".cpp" ||
+        if (is_cpp_ext(ext) ||
             (ext.size() > 1 && HeaderFileExtensionsSet.find(ext.substr(1)) != HeaderFileExtensionsSet.end()))
         {
             auto s = read_file(p);
@@ -163,6 +170,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
                 moc_file f;
                 f.p = p.parent_path() / p.stem();
                 f.build = true;
+                f.ext = p.extension();
                 files.push_back(f);
             }
         }
@@ -181,7 +189,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         String fn;
 
         if (f.from_cpp)
-            f.p += ".cpp";
+            f.p += f.ext;
         else if (!find_header(f.p.parent_path(), f.p.stem(), f.p))
         {
             if (find_header(f.p.parent_path(), f.p.stem() += "_p", f.p))
@@ -194,7 +202,12 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
                 return find_header(i, f.p.stem(), f.p);
             }))
             {
-                f.p += ".cpp";
+                //std::cout << f.p << "\n";
+                if (!f.ext.empty()) {
+                    f.p += f.ext;
+                } else {
+                    f.p += ".cpp";
+                }
                 //throw std::runtime_error("moc: nothing found for: " + f.p.u8string());
             }
         }
@@ -326,7 +339,10 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
             s += fn.filename().string();
         else
             s += alias;
-        s += "\">" + to_string(normalize_path(fn)) + "</file>";
+        auto p = fn;
+        if (!p.is_absolute())
+            p = t.SourceDir / p;
+        s += "\">" + to_string(normalize_path(p)) + "</file>";
     }
     s += "</qresource>";
     s += "</RCC>";
@@ -409,7 +425,6 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_inotify.*"_rr;
     t -= ".*_kqueue.*"_rr;
     t -= ".*_linux.*"_rr;
-    t -= ".*_macx.*"_rr;
     t -= ".*_posix.*"_rr;
     t -= ".*_tz.*"_rr;
     t -= ".*_stub.*"_rr;
@@ -432,7 +447,7 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_coretext.*"_rr;
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
         t += ".*_win.*"_rr;
-    } else {
+    } else if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
         t += ".*_unix.*"_rr;
         t += ".*_posix.*"_rr;
         t += ".*_systemv.*"_rr;
@@ -440,6 +455,22 @@ static void platform_files(NativeExecutedTarget &t)
         t += ".*_qpa.*"_rr;
         t += ".*_stub.*"_rr;
         //t += ".*_generic.*"_rr;
+    } else if (t.getBuildSettings().TargetOS.isApple()) {
+        t += ".*qcf.*"_rr;
+        t += ".*_kqueue.*"_rr;
+        t += ".*_kqueue_p.*"_rr;
+        t += ".*_unix.*"_rr;
+        t += ".*_posix.*"_rr;
+        t += ".*_systemv.*"_rr;
+        t += ".*.mm"_rr;
+        t += ".*_mac.*"_rr;
+        t += ".*_macx.*"_rr;
+        t += ".*_coretext.*"_rr;
+        t += ".*_cf.*"_rr;
+        t += ".*_cf_p.*"_rr;
+        t += ".*_fsevents.*"_rr;
+        t += ".*_fsevents_p.*"_rr;
+        t += ".*_qpa.*"_rr;
     }
     t -= "doc/.*"_rr;
     t.AllowEmptyRegexes = false;
@@ -718,8 +749,9 @@ struct QtLibrary
         config_fn += "config.h";
         private_config_fn += "config_p.h";
 
-        t.writeFileOnce(actual_name + "/" + config_fn, config.public_.print());
-        t.writeFileOnce(actual_name + "/private/" + private_config_fn, config.private_.print());
+        auto all = config.public_.print() + "\n" + config.private_.print();
+        t.writeFileOnce(actual_name + "/" + config_fn, all);
+        t.writeFileOnce(actual_name + "/private/" + private_config_fn, all);
         t += IncludeDirectory(t.BinaryDir / actual_name / "private");
 
         t.writeFileOnce(actual_name + "/" + actual_name + "Depends", printDependencies());
@@ -748,7 +780,7 @@ static QtLibrary qt_desc{
     {"build_all", true},
     {"c__11", true},
     {"c__14", true},
-    {"c__1z", false},
+    {"c__1z", true},
     {"concurrent", true},
     {"cxx11_future", true},
     {"datetimeparser", true},
@@ -772,13 +804,6 @@ static QtLibrary qt_desc{
             },
             // defs
             {
-                {"QT_COMPILER_SUPPORTS_SSE2", "1"},
-    {"QT_COMPILER_SUPPORTS_SSE3", "1"},
-    {"QT_COMPILER_SUPPORTS_SSSE3", "1"},
-    {"QT_COMPILER_SUPPORTS_SSE4_1", "1"},
-    {"QT_COMPILER_SUPPORTS_SSE4_2", "1"},
-    {"QT_COMPILER_SUPPORTS_AVX", "1"},
-    {"QT_COMPILER_SUPPORTS_AVX2", "1"},
     {"QT_LARGEFILE_SUPPORT", "64"},
             },
         },
@@ -795,7 +820,6 @@ static QtLibrary qt_desc{
     {"reduce_exports", false},
     {"reduce_relocations", false},
     {"release_tools", false},
-    {"sse2", true},
     {"system_zlib", false},
     {"widgets", true},
             },
@@ -823,7 +847,6 @@ static QtLibrary qt_core_desc{
     {"library", true},
     {"mimetype", true},
     {"mimetype_database", true},
-    {"process", true},
     {"properties", true},
     {"qeventtransition", true},
     {"regularexpression", true},
@@ -882,7 +905,6 @@ static QtLibrary qt_core_desc{
     {"glib", false},
     {"gnu_libiconv", false},
     {"iconv", false},
-    {"icu", false},
     {"inotify", false},
     {"libatomic", false},
     {"posix_libiconv", false},
@@ -957,7 +979,6 @@ static QtLibrary qt_gui_desc{
             // defs
             {
                 {"QT_NO_XRENDER", ""},
-    {"QT_QPA_DEFAULT_PLATFORM_NAME", "\"windows\""},
     {"QT_NO_ACCESSIBILITY_ATSPI_BRIDGE", ""},
     {"QT_OPENGL_DYNAMIC", "true"},
     {"QT_OPENGL_ES_2_ANGLE", "true"},
@@ -1349,6 +1370,8 @@ void build(Solution &s)
 
     auto write_tracepoints = [&tracegen](auto &t)
     {
+        t -= path{"qt" + t.getPackage().getPath().back() + ".tracepoints"};
+
         auto c = t.addCommand();
         c << cmd::prog(tracegen);
         if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
@@ -1357,12 +1380,20 @@ void build(Solution &s)
                 << cmd::in("qt" + t.getPackage().getPath().back() + ".tracepoints")
                 << cmd::out("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h")
             ;
-        } else {
+        } else if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
             c
                 << "lttng"
                 << cmd::in("qt" + t.getPackage().getPath().back() + ".tracepoints")
                 << cmd::out("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h")
             ;
+        } else {
+            t.writeFileOnce("qt" + t.getPackage().getPath().back() + "_tracepoints_p.h", R"(
+                #define Q_TRACE(...)
+                #define Q_TRACE_SCOPE(...)
+                #define Q_TRACE_EXIT(...)
+                #define Q_HAS_TRACEPOINTS 0
+                #define Q_TRACE_ENABLED(...) 0
+                )");
         }
     };
 
@@ -1455,7 +1486,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
         auto &forkfd = third_party.addTarget<StaticLibraryTarget>("forkfd");
         {
             forkfd -= "src/3rdparty/forkfd/.*"_rr;
-            if (forkfd.getBuildSettings().TargetOS.Type != OSType::Windows)
+            if (forkfd.getBuildSettings().TargetOS.Type != OSType::Windows && !forkfd.getBuildSettings().TargetOS.isApple())
             {
                 forkfd += c99;
                 forkfd += "src/3rdparty/forkfd/forkfd.c";
@@ -1473,6 +1504,32 @@ Q_IMPORT_PLUGIN()" + name + R"();
         {
             tinycbor.setRootDirectory("src/3rdparty/tinycbor");
         }
+
+        auto mkspecs = [](auto &&t) {
+            if (t.getCompilerType() == CompilerType::MSVC)
+                t.Public += "mkspecs/win32-msvc"_idir;
+            else if (t.getCompilerType() == CompilerType::GNU)
+                t.Public += "mkspecs/linux-g++-64"_idir;
+
+            if (t.getBuildSettings().TargetOS.isApple())
+            {
+                if (t.getBuildSettings().TargetOS.Type == OSType::Macos)
+                {
+                    // macx-xcode
+                    if (t.getCompilerType() == CompilerType::GNU)
+                        t.Public += "mkspecs/macx-g++"_idir;
+                    else
+                        t.Public += "mkspecs/macx-clang"_idir;
+                }
+
+                t.Protected += "CoreFoundation"_framework;
+                t.Protected += "CoreServices"_framework;
+                t.Protected += "Foundation"_framework;
+                t.Protected += "Security"_framework;
+                t.Protected += "AppKit"_framework;
+                t.Protected += "IOKit"_framework;
+            }
+        };
 
         auto &bootstrap = base_tools.addTarget<StaticLibraryTarget>("bootstrap");
         {
@@ -1675,11 +1732,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "src/corelib/io/qfsfileengine_unix.cpp",
                 "src/corelib/io/qstandardpaths_unix.cpp"
                 ;
-            bootstrap -=
-                "src/corelib/kernel/qcoreapplication_mac.cpp",
-                "src/corelib/global/qoperatingsystemversion_darwin.mm",
-                "src/corelib/io/qstandardpaths_mac.mm"
-                ;
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 bootstrap +=
@@ -1703,12 +1755,29 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/io/qstandardpaths_unix.cpp"
                     ;
             }
+
+            bootstrap -=
+                "src/corelib/kernel/qcoreapplication_mac.cpp",
+                "src/corelib/global/qoperatingsystemversion_darwin.mm",
+                "src/corelib/io/qstandardpaths_mac.mm"
+                ;
+            bootstrap -=
+                "src/corelib/kernel/qcore_mac.mm",
+                "src/corelib/kernel/qcore_foundation.mm",
+                "src/corelib/kernel/qcoreapplication_mac.cpp",
+                "src/corelib/global/qoperatingsystemversion_darwin.mm",
+                "src/corelib/io/qstandardpaths_mac.mm",
+                "src/corelib/io/qfilesystemengine_mac.mm"
+                ;
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Macos)
             {
                 bootstrap +=
+                    "src/corelib/kernel/qcore_mac.mm",
+                    "src/corelib/kernel/qcore_foundation.mm",
                     "src/corelib/kernel/qcoreapplication_mac.cpp",
                     "src/corelib/global/qoperatingsystemversion_darwin.mm",
-                    "src/corelib/io/qstandardpaths_mac.mm"
+                    "src/corelib/io/qstandardpaths_mac.mm",
+                    "src/corelib/io/qfilesystemengine_mac.mm"
                     ;
             }
 
@@ -1716,10 +1785,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             //c << cmd::in("src/xml/sax/qxml_p.h") << cmd::out("private/qxml_p.h");
             syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, bootstrap, { "QtCore", "QtXml" });
 
-            if (bootstrap.getCompilerType() == CompilerType::MSVC)
-                bootstrap.Public += "mkspecs/win32-msvc"_idir;
-            else if (bootstrap.getCompilerType() == CompilerType::GNU)
-                bootstrap.Public += "mkspecs/linux-g++-64"_idir;
+            mkspecs(bootstrap);
 
             bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
 
@@ -1854,10 +1920,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             core -= "src/3rdparty/sha3/.*"_rr;
             core += "src/3rdparty/tinycbor/src"_idir;
 
-            if (core.getCompilerType() == CompilerType::MSVC)
-                core.Public += "mkspecs/win32-msvc"_idir;
-            else if (core.getCompilerType() == CompilerType::GNU)
-                core.Public += "mkspecs/linux-g++-64"_idir;
+            mkspecs(core);
 
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, core, { "QtCore" });
 
@@ -1906,16 +1969,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 core -= "io/qwindowspipewriter_p.h";
                 core -= "io/qwindowspipewriter.cpp";
                 core -= "kernel/qwinregistry.cpp";
-            }
-
-            if (core.getBuildSettings().TargetOS.Type == OSType::Macos)
-            {
-                core += "kernel/qcoreapplication_mac.cpp";
-                core += "kernel/qcore_mac_objc.cpp";
-                core += "kernel/qcore_foundation.cpp";
-                core += "kernel/qcore_foundation.cpp";
-                core += "io/qstandardpaths_mac.mm";
-                core += "plugin/qmachparser.cpp";
             }
 
             core -= "kernel/qjniobject.cpp";
@@ -2011,28 +2064,56 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "fontconfig", false });
                 qt_core_desc.config.public_.features.insert({ "cpp_winrt", true });
                 qt_core_desc.config.public_.features.insert({ "backtrace", false });
+                qt_core_desc.config.public_.features.insert({ "process", false });
+                qt_core_desc.config.private_.features.insert({ "icu", false });
+                qt_core_desc.config.private_.features.insert({ "icu", false });
             }
             else
             {
                 qt_core_desc.config.public_.features.insert({ "cpp_winrt", false });
                 qt_core_desc.config.public_.features.insert({ "alloca", true });
                 qt_core_desc.config.public_.features.insert({ "alloca_h", true });
-                qt_core_desc.config.public_.features.insert({ "getauxval", true });
                 qt_core_desc.config.public_.features.insert({ "linkat", true });
                 qt_core_desc.config.public_.features.insert({ "renameat2", true });
                 qt_core_desc.config.public_.features.insert({ "statx", true });
                 qt_core_desc.config.public_.features.insert({ "futimens", true });
-                qt_core_desc.config.public_.features.insert({ "poll_poll", false });
-                qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
-                qt_core_desc.config.public_.features.insert({ "poll_ppoll", true });
-                qt_core_desc.config.public_.features.insert({ "poll_select", true });
                 qt_core_desc.config.public_.features.insert({ "dlopen", true });
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", true });
                 qt_core_desc.config.public_.features.insert({ "fontconfig", true });
                 qt_core_desc.config.public_.features.insert({ "backtrace", false });
+                qt_core_desc.config.private_.features.insert({ "icu", false });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Linux) {
                 qt_core_desc.config.public_.features.insert({ "glibc", true });
+                qt_core_desc.config.public_.features.insert({ "process", true });
+                qt_core_desc.config.public_.features.insert({ "poll_poll", false });
+                qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
+                qt_core_desc.config.public_.features.insert({ "poll_ppoll", true });
+                qt_core_desc.config.public_.features.insert({ "poll_select", true });
+            }
+            if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
+                qt_core_desc.config.public_.features.insert({ "getauxval", false });
+                qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", false });
+                qt_core_desc.config.public_.features.insert({ "appstore_compliant", false });
+                qt_core_desc.config.public_.features.insert({ "poll_poll", true });
+                qt_core_desc.config.public_.features.insert({ "poll_ppoll", false });
+                qt_core_desc.config.public_.features.insert({ "poll_select", false });
+                qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
+                qt_core_desc.config.public_.features.insert({ "process", false });
+                qt_core_desc.config.private_.features.insert({ "icu", true });
+            }
+
+            if (core.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+                qt_core_desc.config.public_.features.insert({ "sse2", false });
+            } else {
+                qt_core_desc.config.public_.features.insert({ "sse2", true });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE2", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE3", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSSE3", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE4_1", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE4_2", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_AVX", "1" });
+                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_AVX2", "1" });
             }
             qt_core_desc.config.public_.features.insert({"alloca_malloc_h", false});
 
@@ -2103,6 +2184,24 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "thread/qmutex_win.cpp",
                 "thread/qmutex_unix.cpp"
                 ;
+
+            if (core.getBuildSettings().TargetOS.Type == OSType::Macos)
+            {
+                core += "plugin/qmachparser.cpp";
+
+                core -= "io/qstorageinfo_unix.cpp";
+                core -= "kernel/qelapsedtimer_unix.cpp";
+                core -= "text/qcollator_posix.cpp";
+                core -= "io/qstandardpaths_unix.cpp";
+                core -= "text/qlocale_unix.cpp";
+
+                if (core.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+                    core -= "global/qsimd_x86.cpp";
+                } else {
+                    core.CompileOptions.push_back("-mavx2");
+                    core.CompileOptions.push_back("-mf16c");
+                }
+            }
 
             auto mocs = automoc(moc, core);
             SW_QT_ADD_MOC_DEPS(core);
@@ -2193,6 +2292,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             {
                 gui += "platform/darwin/.*"_rr;
                 gui += "rhi/qrhimetal.*"_rr;
+                gui += "platform/unix/qunixeventdispatcher.cpp";
             }
             else
             {
@@ -2223,10 +2323,14 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_gui_desc.config.public_.features.insert({ "egl_x11", false });
                 qt_gui_desc.config.public_.features.insert({ "xcb", false });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", false });
+                qt_gui_desc.config.public_.definitions.insert({ "QT_QPA_DEFAULT_PLATFORM_NAME", "\"windows\"" });
             }
             else
             {
                 gui.Public += dbus;
+            }
+            if (gui.getBuildSettings().TargetOS.Type == OSType::Linux)
+            {
                 gui.Public += "GL"_slib;
                 gui.Public += "EGL"_slib;
                 gui.Public += "X11"_slib;
@@ -2247,8 +2351,37 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", true });
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon", true });
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon_evdev", false });
+                qt_gui_desc.config.public_.definitions.insert({ "QT_QPA_DEFAULT_PLATFORM_NAME", "\"wayland\"" }); // ? other? xcb?
+            }
+            else if (gui.getBuildSettings().TargetOS.isApple())
+            {
+                if (gui.getBuildSettings().TargetOS.Arch == ArchType::x86_64) {
+                    gui.CompileOptions.push_back("-mavx2");
+                    gui.CompileOptions.push_back("-mf16c");
+                }
+
+                qt_gui_desc.config.public_.features.insert({ "egl", false });
+                qt_gui_desc.config.public_.features.insert({ "egl_x11", false });
+                qt_gui_desc.config.public_.features.insert({ "egl_extension_platform_wayland", false });
+                // embedded
+                qt_gui_desc.config.public_.features.insert({ "eglfs", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_brcm", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_egldevice", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_gbm", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_mali", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_viv", false });
+                qt_gui_desc.config.public_.features.insert({ "eglfs_viv_wl", false });
+
+                qt_gui_desc.config.public_.features.insert({ "xcb", false });
+                qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", false });
+                qt_gui_desc.config.public_.features.insert({ "xkbcommon", false });
+                qt_gui_desc.config.public_.features.insert({ "xkbcommon_evdev", false });
+                qt_gui_desc.config.public_.definitions.insert({ "QT_QPA_DEFAULT_PLATFORM_NAME", "\"cocoa\"" });
             }
             qt_gui_desc.print(gui);
+
+            gui.Protected += "Carbon"_framework;
+            gui.Protected += "Metal"_framework;
 
             platform_files(gui);
             gui += "text/freetype/.*"_rr;
@@ -2389,10 +2522,17 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", true });
             }
-            else
+            else if (network.getBuildSettings().TargetOS.Type == OSType::Linux)
             {
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
                 qt_network_desc.config.public_.features.insert({ "linux_netlink", true });
+                qt_network_desc.config.public_.features.insert({ "ifr_index", false });
+                qt_network_desc.config.private_.features.insert({ "sspi", false });
+            }
+            else if (network.getBuildSettings().TargetOS.isApple())
+            {
+                qt_network_desc.config.public_.features.insert({ "gssapi", false });
+                qt_network_desc.config.public_.features.insert({ "linux_netlink", false });
                 qt_network_desc.config.public_.features.insert({ "ifr_index", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", false });
             }
@@ -2417,6 +2557,12 @@ Q_IMPORT_PLUGIN()" + name + R"();
             }
 
             platform_files(network);
+
+            if (network.getBuildSettings().TargetOS.isApple())
+            {
+                network.Protected += "SystemConfiguration"_framework;
+            }
+
             auto mocs = automoc(moc, network);
             SW_QT_ADD_MOC_DEPS(network);
         }
@@ -2657,6 +2803,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 windows.Public += "UxTheme.lib"_slib;
                 windows.Public += "Winmm.lib"_slib;
                 windows.Public += "Wtsapi32.lib"_slib;
+                windows.Public += "Shcore.lib"_slib;
+                windows.Public += "Comdlg32.lib"_slib;
+                windows.Public += "D3d9.lib"_slib;
                 //windows += "EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE=EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE"_d;
             }
 
@@ -2677,6 +2826,43 @@ Q_IMPORT_PLUGIN()" + name + R"();
             windows.Public += opengl;
 
             make_qt_plugin(windows, "QWindowsIntegrationPlugin");
+        }
+
+        // also add ios
+        auto &cocoa = platforms.addTarget<LibraryTarget>("cocoa");
+        {
+            common_setup(cocoa);
+            cocoa.setOutputDir("plugins/platforms");
+            cocoa += "src/plugins/platforms/cocoa/.*"_rr;
+            cocoa.Public += "src/plugins/platforms/cocoa"_id;
+
+            cocoa -= "src/plugins/platforms/cocoa/qnsview_.*.mm"_rr;
+            cocoa -= "src/plugins/platforms/cocoa/qcocoavulkaninstance.mm";
+
+            // public?
+            cocoa.Protected += "AppKit"_framework;
+            cocoa.Protected += "Carbon"_framework;
+            cocoa.Protected += "CoreServices"_framework;
+            cocoa.Protected += "CoreVideo"_framework;
+            cocoa.Protected += "IOKit"_framework;
+            cocoa.Protected += "IOSurface"_framework;
+            cocoa.Protected += "Metal"_framework;
+            cocoa.Protected += "QuartzCore"_framework;
+            cocoa.Protected += "OpenGL"_framework;
+
+            automoc(moc, cocoa);
+
+            RccData d;
+            d.files["src/plugins/platforms/cocoa/images/sizeallcursor.png"] = "images/sizeallcursor.png";
+            d.files["src/plugins/platforms/cocoa/images/spincursor.png"] = "images/spincursor.png";
+            d.files["src/plugins/platforms/cocoa/images/waitcursor.png"] = "images/waitcursor.png";
+            d.name = "qcocoaresources";
+            d.prefix = "/qt-project.org/mac/cursors";
+            ::rcc(rcc, cocoa, d);
+
+            cocoa.Public += gui;
+
+            make_qt_plugin(cocoa, "QCocoaIntegrationPlugin");
         }
 
         auto &windowsvista = styles.addTarget<LibraryTarget>("windowsvista");
@@ -2762,9 +2948,22 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_printsupport_desc.config.public_.features.insert({ "cups", true });
                 qt_printsupport_desc.config.public_.features.insert({ "cupsjobwidget", true });
             }
+            if (printsupport.getBuildSettings().TargetOS.isApple())
+            {
+                printsupport += "Q_OS_MAC"_def; // for moc
+            }
             qt_printsupport_desc.print(printsupport);
 
             platform_files(printsupport);
+
+            if (printsupport.getBuildSettings().TargetOS.isApple())
+            {
+                printsupport -= "dialogs/qprintdialog_unix.*"_rr;
+                printsupport -= "dialogs/qpagesetupdialog_unix.*"_rr;
+                printsupport += "platform/macos/.*"_rr;
+                printsupport += "cups"_slib;
+            }
+
             auto mocs = automoc(moc, printsupport);
             SW_QT_ADD_MOC_DEPS(printsupport);
 
@@ -3500,6 +3699,8 @@ qt_qml_plugin_outro
     auto &translations = add_subproject<LibraryTarget>(qt, "translations");
     //translations.Empty = true;
     translations += "translations/.*\\.ts"_rr;
+
+    return;
 
     auto &wayland = add_subproject<Project>(qt, "wayland");
     {

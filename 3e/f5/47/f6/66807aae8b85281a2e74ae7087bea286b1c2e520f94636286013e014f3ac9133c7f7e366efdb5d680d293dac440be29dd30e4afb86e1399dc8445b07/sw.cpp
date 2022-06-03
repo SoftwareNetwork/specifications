@@ -147,11 +147,11 @@ void build(Solution &s)
 
     libcurl += "org.sw.demo.gnu.gss"_dep;
 
-    libcurl.Public -= "org.sw.demo.openldap.ldap_r"_dep;
+    libcurl.Public -= "org.sw.demo.openldap.ldap"_dep;
     if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows)
         libcurl.Public += "Wldap32.lib"_slib;
     else
-        libcurl.Public += "org.sw.demo.openldap.ldap_r"_dep;
+        libcurl.Public += "org.sw.demo.openldap.ldap"_dep;
 
     libcurl.Variables["OPERATING_SYSTEM"] = "${CMAKE_SYSTEM_NAME}";
     libcurl.Variables["OS"] = "\"${CMAKE_SYSTEM_NAME}\"";
@@ -252,6 +252,8 @@ void build(Solution &s)
     libcurl.Variables["CURL_EXTERN_SYMBOL"] = "SW_EXPORT";
 
     libcurl.configureFile("lib/curl_config.h.cmake", "curl_config.h");
+
+    libcurl.patch("lib/vtls/sectransp.c", "SecTrustEvaluateAsync", "SecTrustEvaluateWithError");
 }
 
 void check(Checker &c)

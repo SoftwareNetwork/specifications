@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &libarchive = s.addTarget<LibraryTarget>("libarchive.libarchive", "3.6.1");
     libarchive += Git("https://github.com/libarchive/libarchive", "v{v}");
 
-    libarchive.setChecks("libarchive");
+    libarchive.setChecks("libarchive", true);
     libarchive +=
         "build/cmake/CheckFuncs.cmake",
         "build/cmake/CheckFuncs_stub.c.in",
@@ -15,6 +15,7 @@ void build(Solution &s)
     libarchive.Public +=
         "libarchive"_id;
 
+    libarchive += "_GNU_SOURCE"_d;
     libarchive.Public += "ARCHIVE_CRYPTO_MD5_NETTLE"_d;
     libarchive.Public += "ARCHIVE_CRYPTO_RMD160_NETTLE"_d;
     libarchive.Public += "ARCHIVE_CRYPTO_SHA1_NETTLE"_d;
@@ -415,6 +416,7 @@ void check(Checker &c)
     s.checkIncludeExists("sys/utime.h");
     s.checkIncludeExists("sys/utsname.h");
     s.checkIncludeExists("sys/vfs.h");
+    s.checkIncludeExists("sys/wait.h");
     s.checkIncludeExists("sys/xattr.h");
     s.checkIncludeExists("time.h");
     s.checkIncludeExists("unistd.h");

@@ -13,6 +13,7 @@ void build(Solution &s)
     auto &t = s.addLibrary("OSGeo.PROJ", "9.0.0");
     t += Git("https://github.com/OSGeo/PROJ");
     {
+        t += cpp14;
         t.ApiName = "PROJ_DLL";
         t.setChecks("proj");
 

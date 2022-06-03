@@ -18,9 +18,12 @@ void build(Solution &s)
     mng.Interface += sw::Shared, "MNG_USE_DLL"_d;
     mng.Private += sw::Shared, "MNG_BUILD_DLL"_d;
 
-    mng.Public += "org.sw.demo.jpeg-9"_dep;
-    mng.Public += "org.sw.demo.madler.zlib-1"_dep;
+    mng.Public += "org.sw.demo.jpeg"_dep;
+    mng.Public += "org.sw.demo.madler.zlib"_dep;
 
     mng.writeFileOnce(mng.BinaryPrivateDir / "config.h");
     mng.replaceInFileOnce("libmng_types.h", "__stdcall", "");
+
+    mng.patch("libmng_jpeg.c", " FALSE", " 0");
+    mng.patch("libmng_jpeg.c", " TRUE", " 1");
 }

@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &p = s.addProject("webmproject", "1.0.0.28");
-    p += Git("https://github.com/webmproject/libwebm", "libwebm-{v}");
+    p += Git("https://github.com/webmproject/libwebm", "", "main");//"libwebm-{v}");
 
     auto install = [](auto &t)
     {

@@ -4,6 +4,7 @@ void build(Solution &s)
     png += Git("https://github.com/glennrp/libpng", "v{v}");
 
     png.ApiName = "PNG_IMPEXP";
+    png -= "arm/.*"_rr;
     png +=
         "png.c",
         "png.h",
@@ -27,7 +28,10 @@ void build(Solution &s)
         "pngwtran.c",
         "pngwutil.c",
         "scripts/pnglibconf.h.prebuilt";
+    if (png.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+        png += "arm/.*"_rr;
+    }
 
-    png.Public += "org.sw.demo.madler.zlib-1"_dep;
+    png.Public += "org.sw.demo.madler.zlib"_dep;
     png.configureFile("scripts/pnglibconf.h.prebuilt", "pnglibconf.h");
 }

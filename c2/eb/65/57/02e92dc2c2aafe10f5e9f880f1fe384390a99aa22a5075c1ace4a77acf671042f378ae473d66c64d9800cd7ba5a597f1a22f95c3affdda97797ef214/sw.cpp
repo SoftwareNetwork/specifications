@@ -8,7 +8,7 @@ void build(Solution &s)
     {
         auto &t = lber;
 
-        t.setChecks("ldap");
+        t.setChecks("ldap", true);
         t += "include/.*"_rr;
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
@@ -187,6 +187,7 @@ void check(Checker &c)
     s.checkFunctionExists("getnameinfo");
     s.checkFunctionExists("getpassphrase");
     s.checkFunctionExists("getpeerucred");
+    s.checkFunctionExists("getpid");
     s.checkFunctionExists("getpwnam");
     s.checkFunctionExists("getpwuid");
     s.checkFunctionExists("getspnam");

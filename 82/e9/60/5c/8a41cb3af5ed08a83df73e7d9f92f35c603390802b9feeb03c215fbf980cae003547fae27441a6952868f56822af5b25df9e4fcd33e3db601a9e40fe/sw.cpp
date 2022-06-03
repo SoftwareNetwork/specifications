@@ -33,16 +33,33 @@ void build(Solution &s)
         "include"_id;
 
     opus.Private += "OPUS_BUILD"_d;
-    opus.Private += "OPUS_HAVE_RTCD"_d;
-    opus.Private += "OPUS_X86_MAY_HAVE_SSE"_d;
-    opus.Private += "OPUS_X86_MAY_HAVE_SSE2"_d;
-    opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
     opus.Private += "USE_ALLOCA"_d;
 
     opus.replaceInFileOnce("silk/sort.c", "#ifdef FIXED_POINT", "#if 1");
     opus.replaceInFileOnce("silk/x86/x86_silk_map.c", "#if defined(FIXED_POINT)", "#if 1");
 
-    if (opus.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
+    {
+        opus -= ".*sse.*"_rr;
+        /*opus +=
+            "celt/arm/.*"_rr,
+            "silk/arm/.*"_rr,
+            "silk/fixed/arm/.*"_rr
+            ;*/
+        opus += "OPUS_ARM_ASM"_def;
+        opus += "OPUS_ARM_MAY_HAVE_EDSP"_def;
+        opus += "OPUS_ARM_MAY_HAVE_NEON"_def;
+        opus += "OPUS_ARM_MAY_HAVE_MEDIA"_def;
+        opus += "OPUS_ARM_MAY_HAVE_NEON_INTR"_def;
+    }
+    else
+    {
+        opus.Private += "OPUS_HAVE_RTCD"_d;
+        opus.Private += "OPUS_X86_MAY_HAVE_SSE"_d;
+        opus.Private += "OPUS_X86_MAY_HAVE_SSE2"_d;
+        opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
+    }
+    if (opus.getBuildSettings().TargetOS.Type == OSType::Linux)
         opus.CompileOptions.push_back("-msse4");
 
     if (!opus.DryRun)

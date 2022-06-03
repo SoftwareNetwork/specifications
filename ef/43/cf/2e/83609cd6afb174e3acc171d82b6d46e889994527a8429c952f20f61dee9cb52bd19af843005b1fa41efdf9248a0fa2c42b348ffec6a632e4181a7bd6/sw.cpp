@@ -31,11 +31,20 @@ void build(Solution &s)
     }
     else
     {
-        t += "source/linux/.*"_rr;
         t += "source/posix/.*"_rr;
         t += "dl"_slib;
+    }
+    if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
+        t += "source/linux/.*"_rr;
         t += "source/s2n/.*"_r;
         t += "org.sw.demo.amazon.awslabs.s2n"_dep;
+    }
+    if (t.getBuildSettings().TargetOS.isApple()) {
+        //t += "source/bsd/.*"_rr;
+        t += "source/bsd/kqueue_event_loop.c";
+        t += "source/darwin/.*"_rr;
+        t += "CoreFoundation"_framework;
+        t += "Security"_framework;
     }
 
     t.Public += "org.sw.demo.amazon.awslabs.c_cal"_dep;

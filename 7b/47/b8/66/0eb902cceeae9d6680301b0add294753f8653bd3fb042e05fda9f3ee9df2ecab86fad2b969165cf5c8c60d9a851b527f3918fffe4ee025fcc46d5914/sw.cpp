@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &t = s.addLibrary("jxl", "0.6.1");
     t += Git("https://github.com/libjxl/libjxl", "v{M}.{m}{po}");
 
+    t += cpp11;
     t += "JXL_EXPORT"_api;
 
     t += "lib/include/.*"_rr;
@@ -19,7 +20,7 @@ void build(Solution &s)
     t += "."_idir;
     t.Public += "lib/include"_idir;
 
-    t += "org.sw.demo.google.highway"_dep; // public?
+    t += "org.sw.demo.google.highway-0.15"_dep; // public?
     t += "org.sw.demo.google.brotli"_dep;
     t += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2"_dep;
 

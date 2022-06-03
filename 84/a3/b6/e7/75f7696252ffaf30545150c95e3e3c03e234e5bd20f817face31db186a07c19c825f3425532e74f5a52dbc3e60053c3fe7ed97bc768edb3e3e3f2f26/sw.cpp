@@ -2657,6 +2657,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 windows.Public += "UxTheme.lib"_slib;
                 windows.Public += "Winmm.lib"_slib;
                 windows.Public += "Wtsapi32.lib"_slib;
+                windows.Public += "Shcore.lib"_slib;
+                windows.Public += "Comdlg32.lib"_slib;
+                windows.Public += "D3d9.lib"_slib;
                 //windows += "EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE=EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE"_d;
             }
 

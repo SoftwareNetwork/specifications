@@ -41,5 +41,9 @@ void build(Solution &s)
         t += "pthread"_slib;
         t += "CoreFoundation"_framework;
     }
+    if (t.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+        t -= "source/arch/intel/.*"_rr;
+        t += "source/arch/arm/asm/.*"_r;
+    }
     t.writeFileOnce("aws/common/config.h");
 }

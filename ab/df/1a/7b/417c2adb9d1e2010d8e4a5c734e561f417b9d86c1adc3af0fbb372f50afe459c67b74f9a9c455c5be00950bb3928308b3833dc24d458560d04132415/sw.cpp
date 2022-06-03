@@ -14,6 +14,7 @@ void build(Solution &s)
     {
         auto &config = ilmbase.addLibrary("config");
         {
+            config += cpp11;
             config += "IlmBase/config.*"_rr;
             config.Variables["ILMBASE_VERSION_STRING"] = "\"" + config.Variables["PACKAGE_VERSION"].toString() + "\"";
             config.Variables["ILMBASE_PACKAGE_STRING"] = "\"IlmBase " + config.Variables["PACKAGE_VERSION"].toString() + "\"";
@@ -49,6 +50,7 @@ void build(Solution &s)
         }
 
         {
+            Half += cpp11;
             Half += "IlmBase/Half/half.*"_rr;
             Half += "IlmBase/Half/eLut.h", "IlmBase/Half/toFloat.h";
             Half -= "IlmBase/Half/eLut.cpp", "IlmBase/Half/toFloat.cpp";
@@ -64,6 +66,7 @@ void build(Solution &s)
             Half.Public += "IlmBase/Half"_idir;
         }
 
+        Iex += cpp11;
         Iex += "IlmBase/Iex/Iex.*"_rr;
         Iex += sw::Shared, "IEX_EXPORTS"_def;
         if (Iex.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -76,6 +79,7 @@ void build(Solution &s)
         Iex.Public += Half;
         Iex.Public += "IlmBase/Iex"_idir;
 
+        IexMath += cpp11;
         IexMath += "IlmBase/IexMath/IexMath.*"_rr;
         IexMath += sw::Shared, "IEXMATH_EXPORTS"_def;
         if (IexMath.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -88,6 +92,7 @@ void build(Solution &s)
         IexMath.Public += Iex;
         IexMath.Public += "IlmBase/IexMath"_idir;
 
+        Imath += cpp11;
         Imath += "IlmBase/Imath/Imath.*"_rr;
         Imath += sw::Shared, "IMATH_EXPORTS"_def;
         if (Imath.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -100,6 +105,7 @@ void build(Solution &s)
         Imath.Public += Iex;
         Imath.Public += "IlmBase/Imath"_idir;
 
+        IlmThread += cpp11;
         IlmThread += "IlmBase/IlmThread/IlmThread.*"_rr;
         IlmThread += sw::Shared, "ILMTHREAD_EXPORTS"_def;
         if (IlmThread.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -119,6 +125,7 @@ void build(Solution &s)
     //
     auto &config = openexr.addLibrary("config");
     {
+        config += cpp11;
         config += "OpenEXR/config.*"_rr;
         config.Variables["OPENEXR_VERSION_STRING"] = "\"" + config.Variables["PACKAGE_VERSION"].toString() + "\"";
         config.Variables["OPENEXR_PACKAGE_STRING"] = "\"IlmBase " + config.Variables["PACKAGE_VERSION"].toString() + "\"";
@@ -160,6 +167,7 @@ void build(Solution &s)
 
     auto &IlmImf = openexr.addLibrary("IlmImf");
     {
+        IlmImf += cpp11;
         IlmImf += "OpenEXR/IlmImf/Imf.*"_rr;
         IlmImf += "OpenEXR/IlmImf/b44ExpLogTable.h", "OpenEXR/IlmImf/dwaLookups.h";
         IlmImf -= "OpenEXR/IlmImf/b44ExpLogTable.cpp", "OpenEXR/IlmImf/dwaLookups.cpp";
