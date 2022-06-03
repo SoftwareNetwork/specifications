@@ -92,9 +92,17 @@ void build(Solution &s)
     {
         t.writeFileOnce(name + ".simd_declarations.hpp",
             "#define CV_CPU_SIMD_FILENAME \"" + name + ".simd.hpp\"\n"
+            "#if !defined(__aarch64__)\n"
             "#define CV_CPU_DISPATCH_MODE SSE2\n"
+            "#else\n"
+            "#define CV_CPU_DISPATCH_MODE NEON\n"
+            "#endif\n"
             "#include \"opencv2/core/private/cv_cpu_include_simd_declarations.hpp\"\n"
+            "#if !defined(__aarch64__)\n"
             "#define CV_CPU_DISPATCH_MODES_ALL SSE2, BASELINE\n"
+            "#else\n"
+            "#define CV_CPU_DISPATCH_MODES_ALL NEON, BASELINE\n"
+            "#endif\n"
         );
     };
 
@@ -105,27 +113,44 @@ void build(Solution &s)
         core.Public += "org.sw.demo.madler.zlib"_dep;
 
         core.Variables["OPENCV_CPU_BASELINE_DEFINITIONS_CONFIGMAKE"] = R"(
-            #define CV_CPU_COMPILE_SSE 1
-            #define CV_CPU_BASELINE_COMPILE_SSE 1
+            #if !defined(__aarch64__)
+                #define CV_CPU_COMPILE_SSE 1
+                #define CV_CPU_BASELINE_COMPILE_SSE 1
 
-            #define CV_CPU_COMPILE_SSE2 1
-            #define CV_CPU_BASELINE_COMPILE_SSE2 1
+                #define CV_CPU_COMPILE_SSE2 1
+                #define CV_CPU_BASELINE_COMPILE_SSE2 1
 
-            #define CV_CPU_BASELINE_FEATURES 0 \
-                , CV_CPU_SSE \
-                , CV_CPU_SSE2
+                #define CV_CPU_BASELINE_FEATURES 0 \
+                    , CV_CPU_SSE \
+                    , CV_CPU_SSE2
 
-            #define CV_CPU_DISPATCH_FEATURES 0 \
-                , CV_CPU_SSE4_1 \
-                , CV_CPU_SSE4_2 \
-                , CV_CPU_FP16 \
-                , CV_CPU_AVX
+                #define CV_CPU_DISPATCH_FEATURES 0 \
+                    , CV_CPU_SSE4_1 \
+                    , CV_CPU_SSE4_2 \
+                    , CV_CPU_FP16 \
+                    , CV_CPU_AVX
+            #else
+                #define CV_CPU_COMPILE_NEON 1
+                #define CV_CPU_BASELINE_COMPILE_NEON 1
+
+                //FP16?
+
+                #define CV_CPU_BASELINE_FEATURES 0 \
+                    , CV_CPU_NEON
+
+                #define CV_CPU_DISPATCH_FEATURES 0 \
+                    , CV_CPU_NEON
+            #endif
 )";
 
         core.Variables["OPENCV_CPU_DISPATCH_DEFINITIONS_CONFIGMAKE"] = R"(
-            #define CV_CPU_DISPATCH_COMPILE_SSE4_1 1
-            #define CV_CPU_DISPATCH_COMPILE_SSE4_2 1
             #define CV_CPU_DISPATCH_COMPILE_FP16 1
+            #if !defined(__aarch64__)
+                #define CV_CPU_DISPATCH_COMPILE_SSE4_1 1
+                #define CV_CPU_DISPATCH_COMPILE_SSE4_2 1
+            #else
+                #define CV_CPU_DISPATCH_COMPILE_NEON 1
+            #endif
 )";
 
         add_dispatch_file(core, "mathfuncs_core");
