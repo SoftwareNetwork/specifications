@@ -3,6 +3,7 @@ void build(Solution &s)
     auto &t = s.addStaticLibrary("catchorg.catch2", "3.0.1");
     t += Git("https://github.com/catchorg/Catch2", "v{v}");
 
+    t.WholeArchive = true;
     t += "src/.*"_rr;
 
     //t.Variables["CATCH_CONFIG_ANDROID_LOGWRITE"] = "";
