@@ -17,8 +17,8 @@ void build(Solution &s)
     //t.Variables["CATCH_CONFIG_CPP17_UNCAUGHT_EXCEPTIONS"] = "";
     //t.Variables["CATCH_CONFIG_CPP17_VARIANT"] = "";
 
-    t.Variables["CATCH_CONFIG_DEFAULT_REPORTER"] = "";
-    t.Variables["CATCH_CONFIG_CONSOLE_WIDTH"] = "80";
-    t.Variables["CATCH_CONFIG_FALLBACK_STRINGIFIER"] = "";
+    //t.Variables["CATCH_CONFIG_DEFAULT_REPORTER"] = "";
+    //t.Variables["CATCH_CONFIG_CONSOLE_WIDTH"] = "80";
+    //t.Variables["CATCH_CONFIG_FALLBACK_STRINGIFIER"] = "";
     t.configureFile("src/catch2/catch_user_config.hpp.in", "catch2/catch_user_config.hpp");
 }
