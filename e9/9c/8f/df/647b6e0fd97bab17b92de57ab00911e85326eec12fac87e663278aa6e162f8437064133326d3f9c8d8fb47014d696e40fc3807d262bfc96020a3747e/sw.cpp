@@ -2084,6 +2084,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.private_.features.insert({ "icu", false });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Linux) {
+                qt_core_desc.config.public_.features.insert({ "getauxval", true });
                 qt_core_desc.config.public_.features.insert({ "glibc", true });
                 qt_core_desc.config.public_.features.insert({ "process", true });
                 qt_core_desc.config.public_.features.insert({ "poll_poll", false });
