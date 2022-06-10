@@ -39,9 +39,8 @@ struct PerlExecutable : ExecutableTarget
 
     void setupCommand(builder::Command &c) const override
     {
-        path base = SourceDir;
         std::vector<path> paths;
-        perl_dirs([&](auto &&p) {paths.push_back(p);});
+        perl_dirs([&](auto &&p) {paths.push_back(SourceDir / p);});
         String s;
         for (auto &&p : paths)
             s += p.string() + ";";
