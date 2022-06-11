@@ -358,7 +358,7 @@ void build(Solution &s)
     }
 
     //boost_targets["asio"]->patch("include/boost/asio/impl/use_awaitable.hpp", "void dummy_return()", "inline void  dummy_return()");
-    if (boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["asio"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         // put <sdkddkver.h> include before the first use
         boost_targets["asio"]->patch("include/boost/asio/detail/config.hpp",
@@ -379,13 +379,13 @@ void build(Solution &s)
     *boost_targets["pool"] += "include/.*\\.[ih]pp"_rr;
     *boost_targets["spirit"] += "include/.*\\.[cih]pp"_rr;*/
 
-    if (boost_targets["config"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["config"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["config"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         boost_targets["config"]->Public.Definitions["BOOST_USE_WINDOWS_H"];
         boost_targets["config"]->Public.Definitions["BOOST_USE_INTRIN_H"];
     }
 
-    if (boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["dll"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
         *boost_targets["dll"] += "dl"_slib;
 
     // dll
@@ -417,7 +417,7 @@ void build(Solution &s)
             "#if defined(_MSC_VER)// && !defined(__clang__)");
     }
 
-    if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
         boost_targets["stacktrace"]->Public.Definitions["BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"];
     else
     {
@@ -425,7 +425,7 @@ void build(Solution &s)
         *boost_targets["stacktrace"] += "Ole32.lib"_slib;
     }
 
-    if (boost_targets["winapi"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["winapi"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["winapi"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         // put <sdkddkver.h> include before the first use
         boost_targets["winapi"]->patch("include/boost/winapi/config.hpp",
@@ -474,24 +474,25 @@ void build(Solution &s)
     boost_targets["exception"] = &addStaticOnlyCompiledBoostTarget(s, "exception");
 
     // some settings
-    if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["atomic"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
     {
         *boost_targets["atomic"] -= "src/wait_on_address.cpp";
         *boost_targets["atomic"] -= "src/find_address_sse41.cpp";
-        //(*boost_targets["atomic"])["src/find_address_sse41.cpp"].args.push_back("-msse4.1");
     }
+    if (boost_targets["atomic"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
+        (*boost_targets["atomic"])["src/find_address_sse41.cpp"].args.push_back("-mavx2");
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
-    if (boost_targets["graph"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["graph"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["graph"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["graph"] += "User32.lib"_slib;
     // when not in cpp20 mode
     *boost_targets["filesystem"] += "BOOST_FILESYSTEM_NO_CXX20_ATOMIC_REF"_def;
-    if (boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["filesystem"] += "advapi32.lib"_slib;
     *boost_targets["iostreams"] += "org.sw.demo.xz_utils.lzma-*"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
-    if (boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["random"] += "Advapi32.lib"_slib;
 
     // math
@@ -505,7 +506,7 @@ void build(Solution &s)
     // locale
     {
         *boost_targets["locale"] -= "org.sw.demo.unicode.icu.i18n"_dep;
-        if (boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["locale"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             *boost_targets["locale"] -= "src/icu/.*"_rr;
             *boost_targets["locale"] -= "src/posix/.*"_rr;
@@ -567,7 +568,7 @@ void build(Solution &s)
             ;
         boost_targets["log"]->Public.Definitions["BOOST_LOG_WITHOUT_EVENT_LOG"];
         boost_targets["log"]->Private += sw::Shared, "BOOST_LOG_DLL"_d;
-        if (boost_targets["log"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (boost_targets["log"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["log"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             boost_targets["log"]->Public.Definitions["WIN32_LEAN_AND_MEAN"];
             boost_targets["log"]->Public.Definitions["NOMINMAX"];
@@ -583,16 +584,16 @@ void build(Solution &s)
 
     //*boost_targets["python"] += "pvt.cppan.demo.python.libcompat";
 
-    if (boost_targets["process"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["process"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["process"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["process"] += "Shell32.lib"_slib;
 
-    if (boost_targets["regex"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["regex"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["regex"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["regex"] += "User32.lib"_slib;
 
     *boost_targets["test"] -= "src/test_main.cpp";
 
     *boost_targets["thread"] -= "src/pthread/once_atomic.cpp";
-    if (boost_targets["thread"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["thread"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["thread"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         *boost_targets["thread"] -= "src/pthread/.*"_rr;
         *boost_targets["thread"] -= sw::Shared, "src/win32/tss_pe.cpp";
@@ -604,7 +605,7 @@ void build(Solution &s)
         (*boost_targets["thread"]).Public += "pthread"_slib; // some apis are in headers (cond_vars)
     }
 
-    if (boost_targets["uuid"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (boost_targets["uuid"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["uuid"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["uuid"] += "Bcrypt.lib"_slib;
 
     // context
@@ -621,7 +622,7 @@ void build(Solution &s)
             a += "x86_64";
         else
             a += "i386";
-        if (boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["context"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             a += "_ms_pe_masm.asm";
 
@@ -641,7 +642,7 @@ void build(Solution &s)
             a += "_sysv_elf_gas.S";
             boost_targets["context"]->Public += "BOOST_USE_UCONTEXT"_def;
         }
-        if (boost_targets["context"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (boost_targets["context"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["context"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
             *boost_targets["context"] -= "src/windows/.*"_rr;
         *boost_targets["context"] += FileRegex("src/asm/", a, false);
     }
@@ -654,13 +655,18 @@ void build(Solution &s)
         *boost_targets["fiber"] += "src/.*"_r;
         *boost_targets["fiber"] += "src/algo/.*"_rr;
         *boost_targets["fiber"] += "src/numa/algo/.*"_r;
-        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Mingw) {
             *boost_targets["fiber"] += "src/numa/windows/.*"_rr;
-        else if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Linux)
+            boost_targets["fiber"]->patch("src/numa/windows/pin_thread.cpp", "h,", "(HANDLE)h ,");
+            boost_targets["fiber"]->patch("src/numa/windows/pin_thread.cpp",
+                "::GetCurrentThread()",
+                "(std::thread::native_handle_type)::GetCurrentThread()"
+            );
+        } else if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type == OSType::Linux)
             *boost_targets["fiber"] += "src/numa/linux/.*"_rr;
         else
             *boost_targets["fiber"] += "src/numa/.*"_r;
-        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
             *boost_targets["fiber"] += "pthread"_slib;
     }
 
@@ -670,6 +676,17 @@ void build(Solution &s)
     //if (boost_targets["fiber"]->getBuildSettings().TargetOS.Type != OSType::Windows)
     //*boost_targets["python"] -= "src/.*"_rr;
     //
+
+    if (boost_targets["serialization"]->getBuildSettings().TargetOS.Type == OSType::Mingw) {
+        boost_targets["serialization"]->patch("include/boost/archive/detail/decl.hpp",
+            "#if defined(BOOST_ARCHIVE_SOURCE)",
+            "#if  defined(BOOST_WARCHIVE_SOURCE) || defined(BOOST_ARCHIVE_SOURCE)"
+        );
+        boost_targets["serialization"]->patch("include/boost/archive/detail/decl.hpp",
+            "#if defined(BOOST_WARCHIVE_SOURCE)",
+            "#if  defined(BOOST_WARCHIVE_SOURCE) || defined(BOOST_ARCHIVE_SOURCE)"
+        );
+    }
 
     boost_deps(boost_targets);
 
