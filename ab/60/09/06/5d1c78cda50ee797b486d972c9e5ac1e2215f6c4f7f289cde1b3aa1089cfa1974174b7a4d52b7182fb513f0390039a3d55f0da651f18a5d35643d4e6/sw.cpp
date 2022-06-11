@@ -9,7 +9,7 @@ void build(Solution &s)
     uv += "include/.*"_rr;
     uv -= "src/.*"_rr;
     uv += "src/.*"_r;
-    if (uv.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (uv.getBuildSettings().TargetOS.Type == OSType::Windows || uv.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         uv += "src/win/.*"_rr;
         uv.Public +=
