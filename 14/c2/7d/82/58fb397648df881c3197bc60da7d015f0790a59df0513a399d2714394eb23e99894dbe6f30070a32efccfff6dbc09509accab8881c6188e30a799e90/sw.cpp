@@ -25,7 +25,7 @@ void build(Solution &s) {
 
     auto &lib = python.addLibrary("lib");
     {
-        lib.setChecks("lib");
+        lib.setChecks("lib");//, true);
 
         lib -= "PC/.*"_rr, "Include/.*"_rr, "Python/.*"_rr, "Objects/.*"_rr, "Modules/.*"_rr;
 
@@ -82,7 +82,7 @@ void build(Solution &s) {
         lib -= "Modules/_blake2/impl/.*"_rr;
         lib -= "Python/dynload_.*"_rr;
 
-        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows || lib.getBuildSettings().TargetOS.Type == OSType::Mingw) {
             lib += "Modules/_winapi.c", "PC/.*\\.h"_rr, "PC/config.c", "PC/dl_nt.c", "PC/getpathp.c",
                 "PC/invalid_parameter_handler.c", "PC/msvcrtmodule.c", "PC/winreg.c";
             lib.Public += "PC"_id;
@@ -110,7 +110,7 @@ void build(Solution &s) {
         lib.Public += "HAVE_GCC_UINT128_T=HAVE___UINT128_T"_d;
         lib.Public += "HAVE_STDARG_PROTOTYPES"_d;
         lib.Public += "HAVE_ZLIB_COPY"_d;
-        lib.Public += "PLATFORM=\"\""_d;
+        //lib.Public += "PLATFORM=\"\""_d;
         lib.Public += "RETSIGTYPE=void"_d;
         lib.Public += "SOABI=\"\""_d;
         lib.Public += "STDC_HEADERS=1"_d;
@@ -118,19 +118,45 @@ void build(Solution &s) {
         lib.Public += "WITH_DOC_STRINGS=1"_d;
         lib.Public += "WITH_PYMALLOC"_d;
         lib += "_Py_HAVE_ZLIB"_d;
-        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows || lib.getBuildSettings().TargetOS.Type == OSType::Mingw) {
             lib -= "Modules/pwdmodule.c";
             lib -= "Modules/getpath.c";
             lib += "Python/dynload_win.c";
 
             lib.Private += "PYTHONPATH=L\"\""_d;
             lib.Private += "MS_DLL_ID=\"\""_d;
-            lib.Public += "MS_WINDOWS"_d;
-            lib.Public += "NT_THREADS"_d;
+            //lib.Public += "MS_WINDOWS"_d;
+            //lib.Public += "NT_THREADS"_d;
 
             lib.Public += "advapi32.lib"_slib;
             lib.Public += "Mincore.lib"_slib;
             lib.Public += "Shlwapi.lib"_slib;
+
+            if (lib.getBuildSettings().TargetOS.Type == OSType::Mingw) {
+                lib.patch("Modules/posixmodule.c", "#      define HAVE_FORK", "//#       define HAVE_FORK");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_GETEGID", "//#     define HAVE_GETEGID");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_GETEUID", "//#     define HAVE_GETEUID");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_GETGID", "//#     define HAVE_GETGID");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_GETUID", "//#     define HAVE_GETUID");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_WAIT", "//#     define HAVE_WAIT");
+                lib.patch("Modules/posixmodule.c", "#    define HAVE_TTYNAME", "//#     define HAVE_TTYNAME");
+                lib.pushFrontToFileOnce("Modules/posixmodule.c", R"xxx(
+#ifdef __MINGW32__
+#define HAVE_DIRENT_H 1
+#endif
+                )xxx");
+                lib.patch("Modules/posixmodule.c", "#include <stdio.h>", R"xxx(
+#include  <stdio.h>
+#  include "osdefs.h"
+                )xxx");
+                lib.Private += "MS_WINDOWS"_d;
+                lib.Public += "Version.lib"_slib;
+                lib.Protected.LinkOptions.push_back("-municode");
+                if (lib.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                    lib.Private += "MS_WIN64"_d;
+                else
+                    lib.Private += "MS_WIN32"_d;
+            }
         } else {
             lib += "Python/dynload_shlib.c";
 
