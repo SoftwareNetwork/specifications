@@ -13,7 +13,7 @@ void build(Solution &s)
         t += "libraries/liblber/.*"_rr;
         t -= "libraries/liblber/.*test.*"_rr;
         t -= "libraries/liblber/stdio.c";
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
             t += "ws2_32.lib"_slib;
         else
             t -= "libraries/liblber/nt_err.c";
@@ -34,7 +34,7 @@ void build(Solution &s)
         t.Variables["ber_socklen_t"] = "int";
         t.Variables["LBER_LEN_T"] = "int";
         //
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             t.Variables["uid_t"] = "int";
             t.Variables["gid_t"] = "int";
@@ -79,7 +79,7 @@ void build(Solution &s)
         t += "libraries/libldap/.*"_rr;
         t -= "libraries/libldap/.*test.*"_rr;
         t -= "libraries/libldap/t61.c";
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
             t += "ws2_32.lib"_slib;
 
         t.Protected += "libraries/libldap"_idir;
@@ -90,7 +90,7 @@ void build(Solution &s)
         t.Public += lber;
 
         t += "LDAP_R_COMPILE"_def;
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
             t += "HAVE_NT_THREADS"_def;
         else
         {
@@ -143,7 +143,7 @@ void build(Solution &s)
 #endif
 )");
 
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             t += "WIN32_LEAN_AND_MEAN"_def;
             t += "NOMINMAX"_def;
