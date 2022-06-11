@@ -13,7 +13,7 @@ void build(Solution &s)
             t.Variables["RECVFROM_TYPE_ARG3"] = "int";
         }
 
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
             t.Variables["RECVFROM_TYPE_ARG1"] = "SOCKET";
         else
             t.Variables["RECVFROM_TYPE_ARG1"] = "int";
@@ -67,7 +67,7 @@ void build(Solution &s)
         if (t.Variables["HAVE_IOCTLSOCKET_CAMEL"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_CAMEL_FIONBIO"] = 1;
 
-        if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type != OSType::Windows && t.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             t.Variables["HAVE_STRUCT_TIMEVAL"] = 1;
             t.Variables["HAVE_BOOL_T"] = 1;
@@ -98,7 +98,7 @@ void build(Solution &s)
     libcurl.Public += "CURL_HIDDEN_SYMBOLS"_d;
     libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
-    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
     {
         libcurl.Public += "HAVE_GSSAPI"_d;
         if (!libcurl.getBuildSettings().TargetOS.isApple())
@@ -112,7 +112,7 @@ void build(Solution &s)
     libcurl.Public += "HAVE_SOCKET"_d;
     libcurl.Public += "USE_OPENSSL"_d;
     libcurl += "CURL_WITH_MULTI_SSL"_d; // allow multiple ssl backends
-    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
     {
         libcurl.Private += "HAVE_CONFIG_H"_d;
     }
@@ -148,7 +148,7 @@ void build(Solution &s)
     libcurl += "org.sw.demo.gnu.gss"_dep;
 
     libcurl.Public -= "org.sw.demo.openldap.ldap"_dep;
-    if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows || libcurl.getBuildSettings().TargetOS.Type == OSType::Mingw)
         libcurl.Public += "Wldap32.lib"_slib;
     else
         libcurl.Public += "org.sw.demo.openldap.ldap"_dep;
@@ -159,7 +159,7 @@ void build(Solution &s)
 
     libcurl.Variables["CURL_SIZEOF_LONG"] = libcurl.Variables["SIZEOF_LONG"];
 
-    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
     {
         libcurl.Definitions["SIZEOF_CURL_OFF_T"] = 8;
 

@@ -13,7 +13,7 @@ void build(Solution &s)
             t.Variables["RECVFROM_TYPE_ARG3"] = "int";
         }
 
-        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows || t.getBuildSettings().TargetOS.Type == OSType::Mingw)
             t.Variables["RECVFROM_TYPE_ARG1"] = "SOCKET";
         else
             t.Variables["RECVFROM_TYPE_ARG1"] = "int";
@@ -70,7 +70,7 @@ void build(Solution &s)
 
     c_ares.setChecks("c_ares");
 
-    if (c_ares.getBuildSettings().TargetOS.Type != OSType::Windows)
+    if (c_ares.getBuildSettings().TargetOS.Type != OSType::Windows && c_ares.getBuildSettings().TargetOS.Type != OSType::Mingw)
         c_ares.ExportAllSymbols = true;
 
     c_ares += "include/.*\\.h"_rr;
@@ -93,7 +93,7 @@ void build(Solution &s)
     c_ares.Public += "HAVE_STRUCT_ADDRINFO"_d;
     c_ares.Public += "HAVE_STRUCT_SOCKADDR_IN6"_d;
     c_ares.Public += "HAVE_STRUCT_TIMEVAL"_d;
-    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows || c_ares.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         c_ares.Public += "HAVE_CLOSESOCKET"_d;
         c_ares.Public += "HAVE_IOCTLSOCKET_FIONBIO"_d;
@@ -118,15 +118,15 @@ void build(Solution &s)
     c_ares.Variables["CARES_HAVE_WS2TCPIP_H"] = c_ares.Variables["HAVE_WS2TCPIP_H"];
     c_ares.Variables["CARES_HAVE_WINSOCK2_H"] = c_ares.Variables["HAVE_WINSOCK2_H"];
 
-    if (c_ares.getBuildSettings().TargetOS.Type != OSType::Windows || c_ares.getBuildSettings().TargetOS.is(ArchType::x86))
+    if (c_ares.getBuildSettings().TargetOS.Type != OSType::Windows && c_ares.getBuildSettings().TargetOS.Type != OSType::Mingw || c_ares.getBuildSettings().TargetOS.is(ArchType::x86))
         c_ares.Variables["CARES_TYPEOF_ARES_SSIZE_T"] = "long";
     else
         c_ares.Variables["CARES_TYPEOF_ARES_SSIZE_T"] = "long long";
 
-    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows || c_ares.getBuildSettings().TargetOS.Type == OSType::Mingw)
         c_ares.Public += "ws2_32.lib"_slib, "Advapi32.lib"_slib;
 
-    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (c_ares.getBuildSettings().TargetOS.Type == OSType::Windows || c_ares.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         c_ares.Public.Definitions["MSG_NOSIGNAL"] = 0;
     }
