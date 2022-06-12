@@ -30,6 +30,7 @@ void build(Solution &s)
             "include/llvm-c/.*Types\\.h"_rr,
             "include/llvm-c/Error.h",
             "include/llvm-c/ErrorHandling.h",
+            "include/llvm-c/ExternC.h",
             "include/llvm-c/Support.h",
             "include/llvm/ADT/.*\\.h"_rr,
             "include/llvm/Config/.*\\.cmake"_rr,
