@@ -55,7 +55,10 @@ void build(Solution &s)
         llvm_support_lite += "LLVM_ENABLE_THREADS=1"_v;
         llvm_support_lite += "LLVM_HAS_ATOMICS=1"_v;
         if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows || llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            llvm_support_lite.Public += "NOMINMAX"_d;
             llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-windows"_v;
+        }
         else
         {
             llvm_support_lite += "LLVM_HOST_TRIPLE=unknown-unknown-unknown"_v;
