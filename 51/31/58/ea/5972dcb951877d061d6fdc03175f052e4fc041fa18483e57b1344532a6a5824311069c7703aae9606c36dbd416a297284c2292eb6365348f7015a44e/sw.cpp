@@ -85,6 +85,8 @@ void build(Solution &s)
         // turn on when gcc catch up
         //wt.Public += "WT_CPP20_DATE_TZ_IMPLEMENTATION=std"_d;
 
+        //wt += "OpenGL"_framework;
+
         wt.Public += "org.sw.demo.boost.math"_dep;
         wt.Public += "org.sw.demo.boost.multi_index"_dep;
         wt.Public += "org.sw.demo.boost.asio"_dep;
@@ -170,6 +172,12 @@ void build(Solution &s)
 
         wt.patch("src/web/WebUtils.h", "#include \"3rdparty/rapidxml/rapidxml.hpp\"", "//# include \"3rdparty/rapidxml/rapidxml.hpp\"");
         wt.patch("src/web/WebUtils.h", "namespace Wt {", "namespace Wt  { namespace rapidxml { template<class Ch> class xml_node; }");
+
+        wt.patch("src/Wt/WServerGLWidget.C", "#include <GL/gl.h>", R"(
+            #ifndef APPLE_GL
+            #include <GL/gl.h>
+            #endif
+        )");
     }
 
     auto &http = p.addTarget<LibraryTarget>("http");
