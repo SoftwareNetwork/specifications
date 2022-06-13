@@ -89,10 +89,10 @@ void build(Solution &s)
 
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Macos)
         {
-            cairo +=
-                "src/cairo-quartz-font.c",
-                "src/cairo-quartz-image-surface.c",
-                "src/cairo-quartz-surface.c";
+            cairo.add("src/cairo-quartz-font.c", ".m");
+            cairo.add("src/cairo-quartz-image-surface.c", ".m");
+            cairo.add("src/cairo-quartz-surface.c", ".m");
+
             cairo.Public += "CAIRO_HAS_QUARTZ_SURFACE"_def;
             cairo.Public += "CAIRO_HAS_QUARTZ_IMAGE_SURFACE"_def;
             cairo.Public += "CAIRO_HAS_QUARTZ_FONT"_def;
