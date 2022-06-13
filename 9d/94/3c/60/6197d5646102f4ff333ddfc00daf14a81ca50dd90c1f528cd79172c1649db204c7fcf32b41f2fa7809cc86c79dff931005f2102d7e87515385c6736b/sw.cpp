@@ -1,4 +1,3 @@
-#pragma sw require pub.egorpugin.primitives.emitter-master
 #pragma sw require header org.sw.demo.google.protobuf.protoc
 
 #include <primitives/emitter.h>
@@ -12,35 +11,40 @@ void build(Solution &s)
 
     auto add_opencl_kernels = [](auto &t)
     {
-        primitives::CppEmitter hpp, cpp;
-        hpp.addLine("// This file is auto-generated. Do not edit!");
-        hpp.addLine("#include \"opencv2/core/ocl.hpp\"");
-        hpp.addLine("#include \"opencv2/core/ocl_genbase.hpp\"");
-        hpp.addLine("#include \"opencv2/core/opencl/ocl_defs.hpp\"");
-        hpp.addLine("#ifdef HAVE_OPENCL");
-        hpp.addLine("namespace cv { namespace ocl {");
-        hpp.addLine("namespace " + t.getPackage().getPath().back() + " {");
+        String hpp, cpp;
 
-        cpp.addLine("// This file is auto-generated. Do not edit!");
-        cpp.addLine("#include \"opencv2/core.hpp\"");
-        cpp.addLine("#include \"cvconfig.h\"");
-        cpp.addLine("#include \"opencl_kernels_" + t.getPackage().getPath().back() + ".hpp\"");
-        cpp.addLine("#ifdef HAVE_OPENCL");
-        cpp.addLine("namespace cv { namespace ocl {");
-        cpp.addLine("namespace " + t.getPackage().getPath().back() + " {");
-        cpp.addLine("static const char* const moduleName = \"" + t.getPackage().getPath().back() + "\";");
+        auto nl = [](auto &&s) {
+            return s + "\n"s;
+        };
+
+        hpp += nl("// This file is auto-generated. Do not edit!");
+        hpp += nl("#include \"opencv2/core/ocl.hpp\"");
+        hpp += nl("#include \"opencv2/core/ocl_genbase.hpp\"");
+        hpp += nl("#include \"opencv2/core/opencl/ocl_defs.hpp\"");
+        hpp += nl("#ifdef HAVE_OPENCL");
+        hpp += nl("namespace cv { namespace ocl {");
+        hpp += nl("namespace " + t.getPackage().getPath().back() + " {");
+
+        cpp += nl("// This file is auto-generated. Do not edit!");
+        cpp += nl("#include \"opencv2/core.hpp\"");
+        cpp += nl("#include \"cvconfig.h\"");
+        cpp += nl("#include \"opencl_kernels_" + t.getPackage().getPath().back() + ".hpp\"");
+        cpp += nl("#ifdef HAVE_OPENCL");
+        cpp += nl("namespace cv { namespace ocl {");
+        cpp += nl("namespace " + t.getPackage().getPath().back() + " {");
+        cpp += nl("static const char* const moduleName = \"" + t.getPackage().getPath().back() + "\";");
 
         // todo
         //auto files = enumerate_files_like(t.SourceDir, "modules/" + t.getPackage().getPath().back() + "/src/opencl/.*\\.cl");
 
-        hpp.addLine("}}}");
-        hpp.addLine("#endif");
+        hpp += nl("}}}");
+        hpp += nl("#endif");
 
-        cpp.addLine("}}}");
-        cpp.addLine("#endif");
+        cpp += nl("}}}");
+        cpp += nl("#endif");
 
-        t.writeFileOnce("opencl_kernels_" + t.getPackage().getPath().back() + ".hpp", hpp.getText());
-        t.writeFileOnce("opencl_kernels_" + t.getPackage().getPath().back() + ".cpp", cpp.getText());
+        t.writeFileOnce("opencl_kernels_" + t.getPackage().getPath().back() + ".hpp", hpp);
+        t.writeFileOnce("opencl_kernels_" + t.getPackage().getPath().back() + ".cpp", cpp);
         t += path("opencl_kernels_" + t.getPackage().getPath().back() + ".cpp");
     };
 
