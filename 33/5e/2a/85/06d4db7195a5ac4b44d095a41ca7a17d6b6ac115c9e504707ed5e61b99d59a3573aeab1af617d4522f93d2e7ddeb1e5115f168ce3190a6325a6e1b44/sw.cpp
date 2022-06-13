@@ -134,6 +134,7 @@ void check(Checker &c)
     s.checkIncludeExists("pthread.h");
     s.checkIncludeExists("signal.h");
     s.checkIncludeExists("stdint.h");
+    s.checkIncludeExists("sysexits.h");
     s.checkIncludeExists("sys/dir.h");
     s.checkIncludeExists("sys/ioctl.h");
     s.checkIncludeExists("sys/mman.h");
