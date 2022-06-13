@@ -2,7 +2,7 @@
 
 #pragma sw header on
 
-#pragma sw require pub.egorpugin.primitives.hash-master
+#pragma sw require pub.egorpugin.primitives.hash
 
 //#include <iostream>
 #include <regex>
