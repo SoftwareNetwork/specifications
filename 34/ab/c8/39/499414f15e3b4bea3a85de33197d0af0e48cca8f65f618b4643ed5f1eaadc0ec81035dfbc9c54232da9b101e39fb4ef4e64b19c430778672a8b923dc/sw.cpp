@@ -1,5 +1,5 @@
 #pragma sw require header org.sw.demo.re2c.re2c
-#pragma sw require pub.egorpugin.primitives.filesystem-master
+#pragma sw require pub.egorpugin.primitives.filesystem
 
 #if SW_CPP_DRIVER_API_VERSION >= 2
 struct YasmRule : sw::NativeRule
