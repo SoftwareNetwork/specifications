@@ -32,7 +32,9 @@ void build(Solution &s)
         harfbuzz += "HAVE_PTHREAD"_def;
     if (harfbuzz.getBuildSettings().TargetOS.is(OSType::Macos))
     {
+#if SW_MODULE_ABI_VERSION > 28
         harfbuzz.add("src/harfbuzz.cc", ".mm");
+#endif
         harfbuzz += "HAVE_CORETEXT"_def;
         harfbuzz += "CoreFoundation"_framework;
         harfbuzz += "CoreGraphics"_framework;
