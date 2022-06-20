@@ -89,9 +89,11 @@ void build(Solution &s)
 
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Macos)
         {
+#if SW_MODULE_ABI_VERSION > 28
             cairo.add("src/cairo-quartz-font.c", ".m");
             cairo.add("src/cairo-quartz-image-surface.c", ".m");
             cairo.add("src/cairo-quartz-surface.c", ".m");
+#endif
 
             cairo.Public += "CAIRO_HAS_QUARTZ_SURFACE"_def;
             cairo.Public += "CAIRO_HAS_QUARTZ_IMAGE_SURFACE"_def;
