@@ -15,6 +15,7 @@ void build(Solution &s)
     auto &csa = gdcm.addStaticLibrary("csa");
     {
         csa += "Utilities/gdcmcsa/.*"_rr;
+        csa.Public += "Utilities"_id;
     }
 
     auto &uuid = gdcm.addStaticLibrary("uuid");
