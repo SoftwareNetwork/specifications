@@ -165,6 +165,7 @@ void build(Solution &s)
         t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
         t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
+        t -= "src/core/ext/filters/load_reporting/.*"_rr;
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
 
         t += "GRPC_ARES"_def;
