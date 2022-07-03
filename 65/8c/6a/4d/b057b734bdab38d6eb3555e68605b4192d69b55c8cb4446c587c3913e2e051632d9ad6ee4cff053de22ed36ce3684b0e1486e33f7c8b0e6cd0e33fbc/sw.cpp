@@ -1397,7 +1397,7 @@ void build(Solution &s)
         }
     };
 
-    auto common_setup = [](auto &t) {
+    auto common_setup = [](auto &t, const String &custom_name = {}) {
         t += cpp20;
         if (t.getCompilerType() == CompilerType::MSVC) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
@@ -1410,6 +1410,8 @@ void build(Solution &s)
         }
 
         auto name = t.getPackage().getPath().back();
+        if (!custom_name.empty())
+            name = custom_name;
         auto lower = boost::to_lower_copy(name);
         auto sentence = lower;
         sentence[0] = toupper(sentence[0]);
@@ -1419,6 +1421,8 @@ void build(Solution &s)
             sentence = "PrintSupport";
         if (lower == "opengl")
             sentence = "OpenGL";
+        if (custom_name == "WaylandClient")
+            sentence = "WaylandClient";
         auto upper = boost::to_upper_copy(name);
         t += sw::ApiNameType{"Q_" + upper + "_EXPORT"};
         t += sw::ApiNameType{"Q_" + upper + "_PRIVATE_EXPORT"};
@@ -3754,7 +3758,7 @@ qt_qml_plugin_outro
 
         auto &client = wayland.addLibrary("client");
         {
-            common_setup(client);
+            common_setup(client, "WaylandClient");
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, client, { "QtWaylandClient" });
 
             client += "src/shared/.*"_rr;
