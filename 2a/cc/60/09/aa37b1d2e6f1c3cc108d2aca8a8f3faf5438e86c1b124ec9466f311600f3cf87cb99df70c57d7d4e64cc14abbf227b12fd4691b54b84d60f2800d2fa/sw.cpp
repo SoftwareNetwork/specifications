@@ -44,10 +44,12 @@ void build(Solution &s)
         pixman.getCompilerType() == CompilerType::GNU)
     {
 #if SW_CPP_DRIVER_API_VERSION >= 2
-        pixman["pixman/pixman-ssse3.c"].getAdditionalArguments()["c"].push_back("-mssse3");
+        //pixman["pixman/pixman-ssse3.c"].getAdditionalArguments()["c"].push_back("-mssse3");
 #else
-        pixman["pixman/pixman-ssse3.c"].args.push_back("-mssse3");
+        //pixman["pixman/pixman-ssse3.c"].args.push_back("-mssse3");
 #endif
+        pixman.CompileOptions.push_back("-mssse3");
+        //pixman.CompileOptions.push_back("-msse4.2");
     }
 }
 

@@ -3701,8 +3701,6 @@ qt_qml_plugin_outro
     //translations.Empty = true;
     translations += "translations/.*\\.ts"_rr;
 
-    return;
-
     auto &wayland = add_subproject<Project>(qt, "wayland");
     {
         auto &scanner = wayland.addExecutable("scanner");
