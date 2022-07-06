@@ -552,7 +552,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
     {
         gvdb.setRootDirectory("subprojects/gvdb");
         gvdb += "gvdb/.*"_rr;
-        gvdb.Public += glib;
+        gvdb.Public += gobject;
         (gvdb + gio)->IncludeDirectoriesOnly = true;
     }
 
