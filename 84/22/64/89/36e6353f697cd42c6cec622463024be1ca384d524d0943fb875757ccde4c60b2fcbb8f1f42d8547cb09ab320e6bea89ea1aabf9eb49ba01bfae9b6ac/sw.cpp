@@ -548,13 +548,13 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
     }
 
     auto &gio = p.addTarget<LibraryTarget>("gio");
-    auto &gvdb = p.addTarget<StaticLibraryTarget>("subprojects.gvdb");
+    /*auto &gvdb = p.addTarget<StaticLibraryTarget>("subprojects.gvdb");
     {
         gvdb.setRootDirectory("subprojects/gvdb");
         gvdb += "gvdb/.*"_rr;
         gvdb.Public += gobject;
         (gvdb + gio)->IncludeDirectoriesOnly = true;
-    }
+    }*/
 
     // gio
     {
@@ -568,6 +568,9 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
             "."_id,
             "gio"_id;
         gio += IncludeDirectory(gio.BinaryDir / "gio");
+
+        gio += "subprojects/gvdb/.*"_rr;
+        gio += "subprojects/gvdb"_idir;
 
         gio += "gio/.*\\.[hc]"_r;
         gio -= "gio/inotify/.*\\.[hc]"_r;
@@ -689,7 +692,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
 
         //gio.CompileOptions.push_back("/W0");
 
-        gio.Protected += gvdb;
+        //gio.Protected += gvdb;
         gio.Public += gobject, gmodule;
         gio.Public += "org.sw.demo.madler.zlib"_dep;
         gio.Public -= "org.sw.demo.tronkko.dirent-master"_dep;
@@ -804,6 +807,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             "gio/glib-compile-resources.c";
         rc += "GIO_COMPILATION"_def;
         rc += gio;
+        rc += "subprojects/gvdb/.*"_rr;
+        rc += "subprojects/gvdb"_idir;
         rc.writeFileOnce(rc.BinaryPrivateDir / "config.h");
 
         {
