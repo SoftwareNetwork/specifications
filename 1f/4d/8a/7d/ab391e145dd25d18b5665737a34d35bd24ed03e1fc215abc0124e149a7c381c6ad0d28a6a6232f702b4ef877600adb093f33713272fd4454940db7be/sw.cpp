@@ -2303,7 +2303,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             {
                 //gui += "accessible/linux/.*"_rr;
                 gui += "platform/unix/.*"_rr;
-                gui += "opengl/platform/egl/.*"_rr;
+                gui += "opengl/platform/.*"_rr;
                 gui += "text/unix/.*"_rr;
                 //gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
                 //gui -= "platform/unix/qxkbcommon.cpp";
@@ -2353,7 +2353,11 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_gui_desc.config.public_.features.insert({ "eglfs_viv_wl", false });
 
                 qt_gui_desc.config.public_.features.insert({ "xcb", true });
+                qt_gui_desc.config.public_.features.insert({ "xcb_xlib", true });
+                qt_gui_desc.config.public_.features.insert({ "xcb_sm", false });
+                qt_gui_desc.config.public_.features.insert({ "xcb_glx", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_glx_plugin", true });
+                qt_gui_desc.config.public_.features.insert({ "xcb_native_painting", false });
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon", true });
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon_evdev", false });
                 qt_gui_desc.config.public_.definitions.insert({ "QT_QPA_DEFAULT_PLATFORM_NAME", "\"wayland\"" }); // ? other? xcb?
@@ -2831,6 +2835,49 @@ Q_IMPORT_PLUGIN()" + name + R"();
             windows.Public += opengl;
 
             make_qt_plugin(windows, "QWindowsIntegrationPlugin");
+        }
+
+        auto &xcb = platforms.addTarget<LibraryTarget>("xcb");
+        {
+            auto &t = xcb;
+            common_setup(t, "Xcb");
+            t.setOutputDir("plugins/platforms");
+            t += "src/plugins/platforms/xcb/.*"_rr;
+            t -= "src/plugins/platforms/xcb/nativepainting/.*"_rr;
+            t.Public += "src/plugins/platforms/xcb"_id;
+            t += "src/plugins/platforms/xcb/gl_integrations"_id;
+            //t += "src/plugins/platforms/xcb/nativepainting"_id;
+
+            t -= "src/plugins/platforms/xcb/.*vulkan.*"_rr;
+            t -= "src/plugins/platforms/xcb/gl_integrations/xcb_egl/qxcbeglmain.cpp";
+            t -= "src/plugins/platforms/xcb/gl_integrations/xcb_glx/qxcbglxmain.cpp";
+            t -= "src/plugins/platforms/xcb/qxcbsessionmanager.cpp";
+
+            t += "QT_BUILD_XCB_PLUGIN"_def;
+
+            t += "xcb"_slib;
+            t += "xcb-image"_slib;
+            t += "xcb-render"_slib;
+            t += "xcb-render-util"_slib;
+            t += "xcb-randr"_slib;
+            t += "xcb-shm"_slib;
+            t += "xcb-glx"_slib;
+            t += "xcb-xfixes"_slib;
+            t += "xcb-xkb"_slib;
+            t += "xcb-xinput"_slib;
+            t += "xcb-shape"_slib;
+            t += "xcb-icccm"_slib;
+            t += "xcb-sync"_slib;
+            t += "xcb-keysyms"_slib;
+            t += "xkbcommon-x11"_slib;
+            t += "X11-xcb"_slib;
+
+            automoc(moc, t);
+
+            t.Public += gui;
+            t.Public += opengl;
+
+            make_qt_plugin(t, "QXcbIntegrationPlugin");
         }
 
         // also add ios
