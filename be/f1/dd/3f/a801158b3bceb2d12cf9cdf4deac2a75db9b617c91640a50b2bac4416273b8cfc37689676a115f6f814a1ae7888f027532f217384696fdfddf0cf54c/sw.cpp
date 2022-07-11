@@ -445,6 +445,8 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_x11.*"_rr;
     t -= ".*_wasm.*"_rr;
     t -= ".*_coretext.*"_rr;
+    t -= ".*_osx.*"_rr;
+    t -= ".*_freebsd.*"_rr;
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
         t += ".*_win.*"_rr;
     } else if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
@@ -3933,6 +3935,21 @@ qt_qml_plugin_outro
             automoc(moc, egl);
             egl.Public += hwi_egl;
             make_qt_plugin(egl, "QWaylandEglPlatformIntegrationPlugin");
+        }
+    }
+
+    auto &serialport = add_subproject<Library>(qt, "serialport");
+    {
+        common_setup(serialport);
+        serialport += "src/.*"_rr;
+        platform_files(serialport);
+        auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, serialport, { "QtSerialPort" });
+        serialport.Public += core;
+        automoc(moc, serialport);
+        if (serialport.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            serialport.Protected += "UNICODE"_d;
+            serialport += "Setupapi.lib"_slib;
         }
     }
 
