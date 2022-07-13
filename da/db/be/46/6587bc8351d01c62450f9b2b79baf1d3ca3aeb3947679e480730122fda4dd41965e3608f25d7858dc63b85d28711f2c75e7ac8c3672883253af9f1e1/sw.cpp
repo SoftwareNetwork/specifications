@@ -89,7 +89,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.madler.zlib"_dep;
         t.Public += "org.sw.demo.openssl.ssl"_dep;
         t.Public += "org.sw.demo.nanopb"_dep;
-        t.Public += "org.sw.demo.google.abseil-2021.11.2.0"_dep;
+        t.Public += "org.sw.demo.google.abseil"_dep;
         t.Public += upb;
 
         t.patch("include/grpc/impl/codegen/port_platform.h",
