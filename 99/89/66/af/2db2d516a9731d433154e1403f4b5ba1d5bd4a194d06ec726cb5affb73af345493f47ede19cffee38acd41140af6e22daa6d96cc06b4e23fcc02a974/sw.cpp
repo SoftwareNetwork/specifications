@@ -25,7 +25,7 @@ void build(Solution &s)
         //t -= "synchronization/internal/waiter.cc";
         t += "random/internal/distribution_test_util.cc";
 
-        if (abseil.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (abseil.getBuildSettings().TargetOS.is(OSType::Windows) || abseil.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             abseil.Public += "NOMINMAX"_def;
             abseil += "Dbghelp.lib"_slib;
