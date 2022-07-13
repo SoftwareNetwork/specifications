@@ -35,6 +35,9 @@ void build(Solution &s)
     turf.patch("turf/c/platform_detect.h",
         "defined(__ARM64_ARCH_8__)",
         "defined(__ARM64_ARCH_8__ ) || defined(__aarch64__)");
+    turf.patch("turf/c/platform_detect.h",
+        "#define TURF_TARGET_MINGW 1\n        #define TURF_TARGET_POSIX 1",
+        "#define TURF_TARGET_MINGW 1\n        #define TURF_TARGET_WIN32 1");
 
     for (auto &&from : {
         "Relaxed"s,

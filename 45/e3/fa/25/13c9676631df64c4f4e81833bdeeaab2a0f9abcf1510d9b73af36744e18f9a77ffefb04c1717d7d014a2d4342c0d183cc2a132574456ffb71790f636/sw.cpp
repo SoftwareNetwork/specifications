@@ -11,7 +11,7 @@ void build(Solution &s)
         t += "SQLITE_ENABLE_COLUMN_METADATA"_def;
         t += "SQLITE_ENABLE_FTS5"_def;
 
-        if (!t.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (!t.getBuildSettings().TargetOS.is(OSType::Windows) && !t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             t += "dl"_slib;
             t += "pthread"_slib;
