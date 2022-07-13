@@ -88,7 +88,7 @@ void build(Solution &s)
 
         if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows || llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
-            llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib;
+            llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib, "uuid.lib"_slib;
         }
         else
         {
