@@ -261,6 +261,8 @@ void check(Checker &c)
     s.checkFunctionExists("stpcpy");
     s.checkFunctionExists("tsearch");
     s.checkFunctionExists("wcrtomb");
+    s.checkFunctionExists("stpcpy");
+    s.checkFunctionExists("mempcpy");
     s.checkIncludeExists("alloca.h");
     s.checkIncludeExists("argz.h");
     s.checkIncludeExists("features.h");

@@ -9,11 +9,14 @@ void build(Solution &s)
         "build/cmake/CheckFuncs_stub.c.in",
         "build/cmake/CheckTypeExists.cmake",
         "build/cmake/config.h.in",
+        "contrib/android/include/android_lf.h",
         "libarchive/[^/]*\\.c"_rr,
         "libarchive/[^/]*\\.h"_rr;
 
     libarchive.Public +=
-        "libarchive"_id;
+        "contrib/android/include"_id,
+        "libarchive"_id
+        ;
 
     libarchive += "_GNU_SOURCE"_d;
     libarchive.Public += "ARCHIVE_CRYPTO_MD5_NETTLE"_d;
