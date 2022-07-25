@@ -26,6 +26,7 @@ void build(Solution &s)
         "emscripten_sdl",
         "osx",
         "glfw",
+        "emscripten_glfw",
         "opengl2",
         "opengl3",
         "allegro5",
@@ -35,7 +36,7 @@ void build(Solution &s)
         })
     {
         auto &t = imgui.addStaticLibrary("backend." + b);
-        bool emscripten = b == "emscripten_sdl";
+        bool emscripten = b == "emscripten_sdl" || b == "emscripten_glfw";
         if (emscripten)
             b = "sdl";
         t += "IMGUI_API"_api;
@@ -59,9 +60,13 @@ void build(Solution &s)
             t.Public += "org.sw.demo.find.opengl-master"_dep;
             t.Public += "org.sw.demo.glew"_dep;
         }
-        else if (b == "glfw")
+        else if (b == "glfw" && !emscripten)
         {
             t.Public += "org.sw.demo.glfw"_dep;
+        }
+        else if (b == "glfw" && emscripten)
+        {
+            //t.Public += "org.sw.demo.glfw"_dep;
         }
         else if (b == "sdl" && !emscripten)
         {
