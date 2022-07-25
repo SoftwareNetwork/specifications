@@ -35,6 +35,9 @@ void build(Solution &s)
 
         sdl -= "src/hidapi/.*"_rr;
 
+        sdl -= "src/haptic/.*"_rr;
+        sdl += "src/haptic/[^/]*"_rr;
+
         if (sdl.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             sdl += "src/core/windows/.*"_rr;
@@ -44,6 +47,7 @@ void build(Solution &s)
             sdl += "src/thread/windows/.*"_rr;
             sdl += "src/thread/generic/SDL_syscond.c"_rr;
             sdl += "src/video/windows/.*"_rr;
+            sdl += "src/haptic/windows/.*"_rr;
             sdl.Public +=
                 "user32.lib"_slib,
                 "gdi32.lib"_slib,
