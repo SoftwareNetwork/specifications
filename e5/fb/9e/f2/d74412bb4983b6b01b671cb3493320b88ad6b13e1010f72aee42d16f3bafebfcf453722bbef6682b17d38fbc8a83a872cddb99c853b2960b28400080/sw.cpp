@@ -20,8 +20,7 @@ void build(Solution &s)
         libtesseract -= "src/training/.*"_rr;
 
         libtesseract -=
-            "src/tesseract.cpp",
-            "src/viewer/svpaint.cpp";
+            "src/tesseract.cpp";
 
         libtesseract.Public += "include"_idir;
         libtesseract.Protected +=
@@ -72,15 +71,23 @@ void build(Solution &s)
         // check arch (arm)
         libtesseract -= "src/arch/dotproductneon.cpp";
 
-        if (libtesseract.getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (libtesseract.getBuildSettings().TargetOS.Type != OSType::Windows &&
+            libtesseract.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
         {
             libtesseract["src/arch/dotproductavx.cpp"].args.push_back("-mavx");
+            libtesseract["src/arch/dotproductavx512.cpp"].args.push_back("-mavx512f");
             libtesseract["src/arch/dotproductsse.cpp"].args.push_back("-msse4.1");
             libtesseract["src/arch/intsimdmatrixsse.cpp"].args.push_back("-msse4.1");
             libtesseract["src/arch/intsimdmatrixavx2.cpp"].args.push_back("-mavx2");
         }
         if (!win_or_mingw)
+        {
             libtesseract += "pthread"_slib;
+        }
+        if (libtesseract.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
+        {
+            libtesseract += "src/arch/dotproductneon.cpp";
+        }
 
         libtesseract.Public += "HAVE_CONFIG_H"_d;
         libtesseract.Public += "_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1"_d;
