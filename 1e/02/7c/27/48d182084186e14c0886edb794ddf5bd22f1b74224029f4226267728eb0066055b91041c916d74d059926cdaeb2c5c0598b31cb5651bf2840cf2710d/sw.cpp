@@ -187,8 +187,11 @@ void build(Solution &s)
             )
         {
             core += "dl"_slib;
-            core += "pthread"_slib;
+            if (!core.getBuildSettings().TargetOS.Android)
+                core += "pthread"_slib;
         }
+        if (core.getBuildSettings().TargetOS.Android)
+            core += "log"_slib;
     }
 
     auto add_target_with_core = [&add_target, &core](const String &name) -> decltype(auto)
@@ -378,7 +381,8 @@ void build(Solution &s)
         objdetect.getBuildSettings().TargetOS.Type != OSType::Mingw
         )
     {
-        objdetect += "pthread"_slib;
+        if (!objdetect.getBuildSettings().TargetOS.Android)
+            objdetect += "pthread"_slib;
     }
 
     auto &stitching = add_target("stitching");

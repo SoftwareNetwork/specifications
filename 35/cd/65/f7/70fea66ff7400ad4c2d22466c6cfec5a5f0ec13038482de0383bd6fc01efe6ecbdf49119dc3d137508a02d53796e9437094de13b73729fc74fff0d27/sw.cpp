@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &lzma = s.addTarget<LibraryTarget>("xz_utils.lzma", "5.2.5");
     lzma += RemoteFile("https://tukaani.org/xz/xz-{v}.tar.gz");
 
-    lzma.setChecks("lzma", true);
+    lzma.setChecks("lzma", true);;
 
     lzma +=
         "src/common/.*\\.c"_rr,
@@ -43,7 +43,8 @@ void build(Solution &s)
     {
         lzma.Private += "MYTHREAD_POSIX"_d;
         lzma.Public += "HAVE_VISIBILITY"_d;
-        lzma += "pthread"_slib;
+        if (!lzma.getBuildSettings().TargetOS.Android)
+            lzma += "pthread"_slib;
     }
     lzma.Private += sw::Shared, "DLL_EXPORT"_d;
     lzma.Public += sw::Static, "LZMA_API_STATIC"_d;

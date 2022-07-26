@@ -40,10 +40,14 @@ void build(Solution &s)
         verdep->getSettings()["export-if-static"].setRequired();
         srcdep->getSettings()["export-if-static"] = "true";
         srcdep->getSettings()["export-if-static"].setRequired();
-        if (support.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (support.getBuildSettings().TargetOS.Type == OSType::Windows || support.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             support.Protected += "_CRT_SECURE_NO_WARNINGS"_d;
             support.Public += "UNICODE"_d;
+        }
+        if (support.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        {
+            support += "ucrt"_slib;
         }
         if (support.getCompilerType() != CompilerType::MSVC &&
             support.getCompilerType() != CompilerType::ClangCl)
@@ -94,7 +98,7 @@ void build(Solution &s)
             ;
 
         manager.Public -= "pub.egorpugin.primitives.win32helpers" PRIMITIVES_VERSION ""_dep;
-        if (manager.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (manager.getBuildSettings().TargetOS.Type == OSType::Windows || manager.getBuildSettings().TargetOS.Type == OSType::Mingw)
             manager.Public += "pub.egorpugin.primitives.win32helpers" PRIMITIVES_VERSION ""_dep;
 
         manager += "src/sw/manager/.*"_rr;
@@ -173,16 +177,16 @@ void build(Solution &s)
             "org.sw.demo.boost.assign"_dep,
             "org.sw.demo.boost.bimap"_dep,
             "org.sw.demo.boost.uuid"_dep;
-        cpp_driver.Public -= "org.sw.demo.giovannidicanio.winreg-2"_dep;
+        cpp_driver.Public -= "org.sw.demo.giovannidicanio.winreg"_dep;
         cpp_driver += "src/sw/driver/.*"_rr;
         cpp_driver -= "src/sw/driver/tools/.*"_rr;
         cpp_driver -= "src/sw/driver/misc/delay_load_helper.cpp";
         gen_flex_bison("org.sw.demo.lexxmark.winflexbison"_dep, cpp_driver, "src/sw/driver/bazel/lexer.ll", "src/sw/driver/bazel/grammar.yy");
         if (cpp_driver.getCompilerType() == CompilerType::MSVC || cpp_driver.getCompilerType() == CompilerType::ClangCl)
             cpp_driver.CompileOptions.push_back("-bigobj");
-        if (cpp_driver.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (cpp_driver.getBuildSettings().TargetOS.Type == OSType::Windows || cpp_driver.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
-            cpp_driver.Public += "org.sw.demo.giovannidicanio.winreg-2"_dep;
+            cpp_driver.Public += "org.sw.demo.giovannidicanio.winreg"_dep;
             cpp_driver += "dbghelp.lib"_slib;
             cpp_driver += "OleAut32.lib"_slib;
         }
@@ -315,7 +319,7 @@ void build(Solution &s)
             ;
         if (client.getCompilerType() == CompilerType::MSVC)
             client.CompileOptions.push_back("-bigobj");
-        if (client.getBuildSettings().TargetOS.Type != OSType::Windows)
+        if (client.getBuildSettings().TargetOS.Type != OSType::Windows && client.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             //client.getSelectedTool()->LinkOptions.push_back("-static-libstdc++");
             //client.getSelectedTool()->LinkOptions.push_back("-static-libgcc");
@@ -404,6 +408,7 @@ void build(Solution &s)
             t += "org.sw.demo.qtproject.qt.base.plugins.styles.windowsvista" QT_VERSION ""_dep;
         }
         if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
+            t += "org.sw.demo.qtproject.qt.base.plugins.platforms.xcb" QT_VERSION ""_dep;
             t += "org.sw.demo.qtproject.qt.wayland.plugins.platforms.qwayland.generic" QT_VERSION ""_dep;
             t += "org.sw.demo.qtproject.qt.wayland.plugins.platforms.qwayland.egl" QT_VERSION ""_dep;
             t += "org.sw.demo.qtproject.qt.wayland.plugins.hardwareintegration.client.wayland_egl" QT_VERSION ""_dep;
