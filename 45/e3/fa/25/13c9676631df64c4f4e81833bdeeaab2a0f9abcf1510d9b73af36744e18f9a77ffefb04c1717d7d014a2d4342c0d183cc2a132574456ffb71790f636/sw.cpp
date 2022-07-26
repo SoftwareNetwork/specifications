@@ -14,7 +14,8 @@ void build(Solution &s)
         if (!t.getBuildSettings().TargetOS.is(OSType::Windows) && !t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             t += "dl"_slib;
-            t += "pthread"_slib;
+            if (!t.getBuildSettings().TargetOS.Android)
+                t += "pthread"_slib;
         }
     }
 
