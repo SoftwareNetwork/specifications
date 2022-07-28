@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &p = s.addLibrary("cisco.openh264", "2.2.0");
+    auto &p = s.addStaticLibrary("cisco.openh264", "2.2.0");
     p += Git("https://github.com/cisco/openh264", "v{v}");
 
     auto &api = p.addLibrary("api");
@@ -14,27 +14,22 @@ void build(Solution &s)
         t.setRootDirectory("codec/common");
         t.Public += api;
     }
-    auto &processing = p.addLibrary("processing");
+    auto &processing = p.addStaticLibrary("processing");
     {
         auto &t = processing;
         t.setRootDirectory("codec/processing");
         t += "interface/.*"_rr;
         t +=
-          "src/adaptivequantization/AdaptiveQuantization.cpp",
-          "src/backgrounddetection/BackgroundDetection.cpp",
+          "src/adaptivequantization/.*"_rr,
+          "src/backgrounddetection/.*"_rr,
           "src/common/.*"_rr,
-          "src/complexityanalysis/ComplexityAnalysis.cpp",
-          "src/denoise/denoise.cpp",
-          "src/denoise/denoise_filter.cpp",
-          "src/downsample/downsample.cpp",
-          "src/downsample/downsamplefuncs.cpp",
-          "src/imagerotate/imagerotate.cpp",
-          "src/imagerotate/imagerotatefuncs.cpp",
-          "src/scenechangedetection/SceneChangeDetection.cpp",
-          "src/scrolldetection/ScrollDetection.cpp",
-          "src/scrolldetection/ScrollDetectionFuncs.cpp",
-          "src/vaacalc/vaacalcfuncs.cpp",
-          "src/vaacalc/vaacalculation.cpp"
+          "src/complexityanalysis/.*"_rr,
+          "src/denoise/.*"_rr,
+          "src/downsample/.*"_rr,
+          "src/imagerotate/.*"_rr,
+          "src/scenechangedetection/.*"_rr,
+          "src/scrolldetection/.*"_rr,
+          "src/vaacalc/.*"_rr
           ;
         t += "src/common"_idir;
         t.Public += "interface"_idir;
@@ -83,12 +78,12 @@ void build(Solution &s)
     // h264 main
     {
         auto &t = p;
-        t += "openh264.def";
-        if (!t.DryRun && t.getBuildSettings().TargetOS.is(OSType::Windows))
+        /*t += "openh264.def";
+        /*if (!t.DryRun && t.getBuildSettings().TargetOS.is(OSType::Windows))
         {
             t.writeFileOnce(t.BinaryPrivateDir / "dummy.cpp");
             t += t.BinaryPrivateDir / "dummy.cpp";
-        }
+        }*/
         t.Public += console_dec, console_enc;
     }
 
