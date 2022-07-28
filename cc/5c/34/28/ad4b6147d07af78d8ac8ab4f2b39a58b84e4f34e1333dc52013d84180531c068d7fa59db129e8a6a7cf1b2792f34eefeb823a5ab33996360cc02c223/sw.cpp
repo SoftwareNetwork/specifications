@@ -14,7 +14,7 @@ void build(Solution &s)
         t.setRootDirectory("codec/common");
         t.Public += api;
     }
-    auto &processing = p.addStaticLibrary("processing");
+    auto &processing = p.addLibrary("processing");
     {
         auto &t = processing;
         t.setRootDirectory("codec/processing");
@@ -78,12 +78,12 @@ void build(Solution &s)
     // h264 main
     {
         auto &t = p;
-        /*t += "openh264.def";
-        /*if (!t.DryRun && t.getBuildSettings().TargetOS.is(OSType::Windows))
+        t += "openh264.def";
+        if (!t.DryRun && t.getBuildSettings().TargetOS.is(OSType::Windows))
         {
             t.writeFileOnce(t.BinaryPrivateDir / "dummy.cpp");
             t += t.BinaryPrivateDir / "dummy.cpp";
-        }*/
+        }
         t.Public += console_dec, console_enc;
     }
 
