@@ -43,7 +43,9 @@ void build(Solution &s)
     {
         lzma.Private += "MYTHREAD_POSIX"_d;
         lzma.Public += "HAVE_VISIBILITY"_d;
+#if SW_MODULE_ABI_VERSION > 29
         if (!lzma.getBuildSettings().TargetOS.Android)
+#endif
             lzma += "pthread"_slib;
     }
     lzma.Private += sw::Shared, "DLL_EXPORT"_d;
