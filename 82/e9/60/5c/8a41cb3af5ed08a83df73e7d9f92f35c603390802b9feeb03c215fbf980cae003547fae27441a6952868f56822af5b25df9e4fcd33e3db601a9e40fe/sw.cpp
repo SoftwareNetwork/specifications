@@ -60,7 +60,15 @@ void build(Solution &s)
         opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
     }
     if (opus.getBuildSettings().TargetOS.Type == OSType::Linux)
+    {
         opus.CompileOptions.push_back("-msse4");
+    }
+    if (opus.getBuildSettings().TargetOS.Type == OSType::Windows &&
+        (opus.getCompilerType() == CompilerType::Clang || opus.getCompilerType() == CompilerType::ClangCl
+        ))
+    {
+        opus.CompileOptions.push_back("-mavx2");
+    }
 
     if (!opus.DryRun)
     {
