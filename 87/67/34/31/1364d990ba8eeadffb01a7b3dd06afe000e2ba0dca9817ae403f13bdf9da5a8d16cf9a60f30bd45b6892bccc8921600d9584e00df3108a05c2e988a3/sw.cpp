@@ -8,14 +8,15 @@ void build(Solution &s)
     auto &common = tools.addStaticLibrary("common");
     common += cpp20;
     common.setRootDirectory("src/common");
-    common.Public += "pub.egorpugin.primitives.filesystem-master"_dep;
+    common.Public += "pub.egorpugin.primitives.filesystem"_dep;
 
     auto add_exe = [&tools](const String &name) -> decltype(auto)
     {
         auto &t = tools.addExecutable(name);
+        t.PackageDefinitions = true;
         t += cpp20;
         t.setRootDirectory("src/" + name);
-        t += "pub.egorpugin.primitives.sw.main-master"_dep;
+        t += "pub.egorpugin.primitives.sw.main"_dep;
         return t;
     };
 
@@ -33,40 +34,46 @@ void build(Solution &s)
         return t;
     };
 
-    add_exe_with_data_manager("db_add_language") += "pub.egorpugin.primitives.executor-master"_dep;
+    add_exe_with_data_manager("db_add_language") += "pub.egorpugin.primitives.executor"_dep;
     add_exe_with_data_manager("db_extractor");
     add_exe_with_data_manager("mmm_extractor");
     add_exe_with_data_manager("mmo_extractor");
-    add_exe_with_common("mmp_extractor") += "org.sw.demo.intel.opencv.highgui-*"_dep;
+    add_exe_with_common("mmp_extractor") += "org.sw.demo.intel.opencv.highgui"_dep;
     add_exe_with_common("mpj_loader");
     add_exe_with_common("tm_converter");
     add_exe("name_generator");
     add_exe_with_common("save_loader");
-    if (common.getBuildSettings().TargetOS.Arch == ArchType::x86)
-        add_exe("unpaker"); // 32-bit only
+    auto &unpaker = add_exe("unpaker"); // 32-bit only
+    if (unpaker.getBuildSettings().TargetOS.Arch != ArchType::x86)
+        unpaker.HeaderOnly = true;
 
     // not so simple targets
-    auto &script2txt = tools.addStaticLibrary("script2txt");
-    script2txt += cpp20;
-    script2txt.setRootDirectory("src/script2txt");
-    script2txt += "pub.lzwdgc.Polygon4.DataManager.schema-master"_dep;
-    gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison"_dep, script2txt, "LALR1_CPP_VARIANT_PARSER", "script2txt");
-    script2txt.CompileOptions.push_back("/Zc:__cplusplus");
+    auto &script2txt = add_exe_with_common("script2txt");
+    {
+        script2txt += ".*"_rr;
+        script2txt += "pub.lzwdgc.Polygon4.DataManager.schema-master"_dep;
+        gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison"_dep, script2txt, "LALR1_CPP_VARIANT_PARSER", "script2txt");
+        if (script2txt.getCompilerType() == CompilerType::MSVC)
+            script2txt.CompileOptions.push_back("/Zc:__cplusplus");
+    }
 
     auto &model = tools.addStaticLibrary("model");
-    model += cpp20;
-    model.setRootDirectory("src/model");
-    model.Public += common,
-        "org.sw.demo.unicode.icu.i18n"_dep,
-        "org.sw.demo.eigen"_dep,
-        "pub.egorpugin.primitives.yaml-master"_dep,
-        "pub.egorpugin.primitives.sw.settings-master"_dep
-        ;
+    {
+        model += cpp20;
+        model.setRootDirectory("src/model");
+        model.Public += common,
+            "org.sw.demo.unicode.icu.i18n"_dep,
+            "org.sw.demo.eigen"_dep,
+            "pub.egorpugin.primitives.yaml"_dep,
+            "pub.egorpugin.primitives.sw.settings"_dep
+            ;
+    }
 
     add_exe("mod_reader") += model;
 
     auto &mod_converter = add_exe("mod_converter");
     mod_converter += model;
+    mod_converter += "org.sw.demo.xmlsoft.libxml2"_dep; // fbx 2020 sdk requires libxml2
     path sdk = "d:/arh/apps/Autodesk/FBX/FBX SDK/2019.0";
     mod_converter += IncludeDirectory(sdk / "include");
     String cfg = "release";
