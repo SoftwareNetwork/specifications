@@ -20,6 +20,7 @@ void build(Solution &s)
     {
         schema += cpp20;
         schema.ApiName = "SCHEMA_API";
+        schema += "data/schema.txt";
         schema += "include/.*"_rr;
         schema += "src/schema/.*\\.h"_rr;
         schema += "src/schema/.*\\.cpp"_rr;
@@ -28,9 +29,9 @@ void build(Solution &s)
         schema += "include/Polygon4/DataManager/Schema"_idir;
         schema += "src/schema"_idir;
 
-        schema.Public += "pub.egorpugin.primitives.filesystem-master"_dep;
-        schema.Public += "pub.egorpugin.primitives.templates-master"_dep;
-        schema.Public += "pub.egorpugin.primitives.emitter-master"_dep;
+        schema.Public += "pub.egorpugin.primitives.filesystem"_dep;
+        schema.Public += "pub.egorpugin.primitives.templates"_dep;
+        schema.Public += "pub.egorpugin.primitives.emitter"_dep;
         schema.Public += "org.sw.demo.boost.algorithm"_dep;
         schema.Public += "org.sw.demo.boost.variant"_dep;
         schema.Public += memory;
@@ -38,10 +39,11 @@ void build(Solution &s)
     }
 
     auto &generator = DataManager.addExecutable("tools.generator");
+    generator.PackageDefinitions = true;
     generator += cpp20;
     generator += "src/generator/main.cpp";
     generator += schema;
-    generator += "pub.egorpugin.primitives.sw.main-master"_dep;
+    generator += "pub.egorpugin.primitives.sw.main"_dep;
 
     // DataManager
     {
@@ -55,7 +57,7 @@ void build(Solution &s)
 
         DataManager.Public += schema;
         DataManager.Public += "org.sw.demo.sqlite3-3"_dep;
-        DataManager.Public += "pub.egorpugin.primitives.log-master"_dep;
+        DataManager.Public += "pub.egorpugin.primitives.log"_dep;
 
         {
             auto c = DataManager.addCommand();
