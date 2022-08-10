@@ -1,12 +1,19 @@
 void build(Solution &s)
 {
     auto &t = s.addLibrary("enzo1982.mp4v2", "2.1.1");
-    t += Git("https://github.com/enzo1982/mp4v2", "v{v}");
+    t += Git("https://github.com/enzo1982/mp4v2", "", "main");
 
     t += "include/.*"_rr;
     t += "libplatform/.*"_rr;
     t -= "libplatform/.*posix.*"_rr;
+    t -= "libplatform/.*win32.*"_rr;
     t += "src/.*"_rr;
+
+    if (t.getBuildSettings().TargetOS.is(OSType::Windows)) {
+        t += "libplatform/.*win32.*"_rr;
+    } else {
+        t += "libplatform/.*posix.*"_rr;
+    }
 
     t += sw::Shared, "MP4V2_EXPORTS"_def;
     //t.Interface += sw::Shared, "MP4V2_USE_DLL_IMPORT"_def;
