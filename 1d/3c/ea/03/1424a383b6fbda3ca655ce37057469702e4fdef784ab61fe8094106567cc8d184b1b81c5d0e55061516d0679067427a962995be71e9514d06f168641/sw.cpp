@@ -39,6 +39,8 @@ void build(Solution &s)
 
         set_arch(t);
 
+        t += "HAVE_ASM"_def;
+
         t.Public += "include"_idir;
         t.Protected += "include/dav1d"_idir;
         t.Protected += "."_idir;
@@ -72,11 +74,13 @@ void build(Solution &s)
 
         d += Definition("BITDEPTH=" + std::to_string(depth));
         d += "HAVE_AVX512ICL=0"_def;
+        d += "private_prefix=dav1d"_def;
 
         d.setChecks("dav1d", true);
         d.setExtensionProgram(".asm", "org.sw.demo.nasm"_dep);
 
         d += "src/.*\\.asm"_rr;
+        d -= "src/x86/filmgrain_common.asm";
         d += "src/.*_tmpl.c"_rr;
         d += IncludeDirectory(t.BinaryPrivateDir);
 
