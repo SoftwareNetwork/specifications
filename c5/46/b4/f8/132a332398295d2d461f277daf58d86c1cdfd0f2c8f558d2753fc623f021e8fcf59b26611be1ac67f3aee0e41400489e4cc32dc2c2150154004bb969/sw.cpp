@@ -54,12 +54,35 @@ void build(Solution &s)
     auto &avcodec = ffmpeg.addTarget<LibraryTarget>("avcodec");
     auto &avfilter = ffmpeg.addTarget<LibraryTarget>("avfilter");
 
+    auto setup_asm = [](auto &t) {
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            if (t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+            {
+                //for (auto &[p, f] : avutil["libavutil/.*\\.asm"_rr])
+                    //f->args.push_back("-fwin64");
+            }
+
+            t += "HAVE_CPUNOP=1"_def;
+            t += "HAVE_FMA3_EXTERNAL=1"_def;
+            t += "HAVE_FMA4_EXTERNAL=0"_def;
+            t += "HAVE_AVX_EXTERNAL=1"_def;
+            t += "HAVE_AVX2_EXTERNAL=1"_def;
+            t += "HAVE_XOP_EXTERNAL=0"_def;
+            t += "HAVE_MMX_INLINE=0"_def;
+            t += "HAVE_MMX_EXTERNAL=1"_def;
+            t += "HAVE_MMXEXT_EXTERNAL=1"_def;
+            t += "HAVE_SSE2_EXTERNAL=1"_def;
+            t += "HAVE_SSE3_EXTERNAL=1"_def;
+            t += "HAVE_SSSE3_EXTERNAL=1"_def;
+        }
+    };
+
     auto &avutil = ffmpeg.addTarget<LibraryTarget>("avutil");
     {
         avutil.setChecks("avutil");
 
-        if (avutil.getBuildSettings().TargetOS.Type == OSType::Windows)
-            avutil.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
+        avutil.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
 
         avutil +=
             "compat/.*\\.h"_rr,
@@ -72,16 +95,7 @@ void build(Solution &s)
 
         if (avutil.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
-            if (avutil.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
-            {
-                for (auto &[p, f] : avutil["libavutil/.*\\.asm"_rr])
-                    f->args.push_back("-fwin64");
-            }
-
-            avutil += "HAVE_CPUNOP=1"_def;
-            avutil += "HAVE_FMA3_EXTERNAL=0"_def;
-            avutil += "HAVE_AVX_EXTERNAL=0"_def;
-            avutil += "HAVE_AVX2_EXTERNAL=0"_def;
+            setup_asm(avutil);
 
             avutil -=
                 "libavutil/hwcontext_vdpau.c",
@@ -2270,13 +2284,18 @@ R"(
 
     auto &swscale = ffmpeg.addTarget<LibraryTarget>("swscale");
     {
+        swscale.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
+
         swscale.ExportAllSymbols = true;
         swscale +=
+            "libswscale/.*\\.asm"_rr,
             "libswscale/.*\\.c"_rr,
             "libswscale/.*\\.h"_rr;
         setup(swscale, "libswscale");
         swscale.Public += "SWS_MAX_FILTER_SIZE=256"_d;
         swscale.Public += avutil;
+
+        setup_asm(swscale);
     }
 
     auto &swresample = ffmpeg.addTarget<LibraryTarget>("swresample");
@@ -2304,7 +2323,10 @@ R"(
 
     // avcodec
     {
+        avcodec.setExtensionProgram(".asm", "org.sw.demo.yasm"_dep);
+
         avcodec +=
+            "libavcodec/.*\\.asm"_rr,
             "libavcodec/.*\\.c"_rr,
             "libavcodec/.*\\.h"_rr;
         setup(avcodec, "libavcodec");
@@ -2395,6 +2417,9 @@ R"(
         // data vars are not exported properly on win
         //avcodec += "libavutil/xga_font_data.c";
 
+        setup_asm(avcodec);
+        avcodec.writeFileOnce("config.asm");
+
         avcodec += "CONFIG_INFLATE_WRAPPER"_def;
         avcodec += "CONFIG_DEFLATE_WRAPPER"_def;
         avcodec += "CONFIG_SPEEDHQ_ENCODER"_def;
@@ -2447,10 +2472,15 @@ R"(
             )");
         avcodec.writeFileOnce("libavcodec/parser_list.c", R"(
             static const AVCodecParser *parser_list[] = {
+                &ff_h264_parser,
+                &ff_gif_parser,
                 NULL };
 )");
         avcodec.writeFileOnce("libavcodec/codec_list.c", R"(
             static const FFCodec *codec_list[] = {
+                &ff_h264_decoder,
+                &ff_gif_encoder,
+                &ff_gif_decoder,
                 NULL };
 )");
     }
@@ -2512,14 +2542,16 @@ R"(
                 //&ff_unix_protocol,
                 NULL };
 )");
-
         avformat.writeFileOnce("libavformat/muxer_list.c", R"(
             static const AVOutputFormat *muxer_list[] = {
+                &ff_gif_muxer,
                 NULL };
 )");
-
         avformat.writeFileOnce("libavformat/demuxer_list.c", R"(
             static const AVInputFormat *demuxer_list[] = {
+                &ff_h264_demuxer,
+                &ff_mpegps_demuxer,
+                &ff_mov_demuxer,
                 NULL };
 )");
 
@@ -2532,8 +2564,8 @@ R"(
             "libavformat/libopenmpt.c",
             "libavformat/librtmp.c",
             "libavformat/libsrt.c",
-            "libavformat/rtmpcrypt.c",
-            "libavformat/rtmpdh.c",
+            //"libavformat/rtmpcrypt.c",
+            //"libavformat/rtmpdh.c",
             "libavformat/chromaprint.c",
             "libavformat/tls_gnutls.c",
             "libavformat/tls_libtls.c",
@@ -2645,6 +2677,13 @@ R"(
 
         avfilter.writeFileOnce("libavfilter/filter_list.c", R"(
             static const AVFilter *filter_list[] = {
+                &ff_vf_null,
+
+                &ff_vf_format,
+                &ff_vf_scale,
+
+                &ff_vsrc_buffer,
+                &ff_vsink_buffer,
                 NULL };
 )");
     }
