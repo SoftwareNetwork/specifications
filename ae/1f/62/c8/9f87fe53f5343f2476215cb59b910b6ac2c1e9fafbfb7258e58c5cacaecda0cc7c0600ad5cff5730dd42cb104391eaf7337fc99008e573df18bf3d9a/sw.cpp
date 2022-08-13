@@ -188,7 +188,7 @@ void build(Solution &s)
         else // win32
         {
             glib.Variables["glongbits"] = "32";
-            if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+            if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64 || glib.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
             {
                 glib.Variables["glib_intptr_type_define"] = "long long";
                 glib.Variables["glib_size_type_define"] = "long long";
