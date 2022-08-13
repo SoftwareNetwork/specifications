@@ -1,3 +1,5 @@
+#include <iostream>
+
 void build(Solution &s)
 {
     auto &icu = s.addProject("unicode.icu", "71.1.0");
@@ -115,15 +117,34 @@ void build(Solution &s)
 
         if (data.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
+            auto &&host = data.getContext().getHostOs();
+            bool crosscompilation = false;
+            crosscompilation =
+                (host.Arch == ArchType::x86 || host.Arch == ArchType::x86_64) &&
+                data.getBuildSettings().TargetOS.Arch == ArchType::aarch64
+                ||
+                host.Arch == ArchType::aarch64 &&
+                (data.getBuildSettings().TargetOS.Arch == ArchType::x86 || data.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+                ;
+
             auto d = data.addDummyDependency(s_genccode);
-            d->getSettings() = data.getSettings(); // use the same settings for gencode
+            if (!crosscompilation)
+            {
+                d->getSettings() = data.getSettings(); // use the same settings for gencode
+            }
             auto c = data.addCommand();
             c << cmd::prog(d)
                 << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path();
             if (data.getBuildSettings().Native.LibrariesType == LibraryType::Static)
                 c << "--skip-dll-export";
             c
-                << cmd::in(path("data") / "in" / (namel + ".dat"))
+                << cmd::in(path("data") / "in" / (namel + ".dat"));
+            if (crosscompilation)
+            {
+                //auto p = s_genccode.getOutputFile();
+                //c << "-m" << cmd::in(p);
+            }
+            c
                 << cmd::end() << cmd::out(obj)
                 ;
         }
