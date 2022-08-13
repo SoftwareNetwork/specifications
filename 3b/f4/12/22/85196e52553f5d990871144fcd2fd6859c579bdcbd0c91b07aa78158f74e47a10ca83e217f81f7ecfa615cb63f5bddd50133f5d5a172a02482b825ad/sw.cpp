@@ -63,7 +63,7 @@ void build(Solution &s)
 
         glib.Public += "ENABLE_NLS"_def;
         glib.Public += "org.sw.demo.gnu.gettext.intl"_dep;
-        glib.Public += "org.sw.demo.pcre.pcre8-8"_dep;
+        glib.Public += "org.sw.demo.pcre.pcre8"_dep;
 
         glib.Variables["GLIB_MAJOR_VERSION"] = glib.Variables["PACKAGE_VERSION_MAJOR"];
         glib.Variables["GLIB_MINOR_VERSION"] = glib.Variables["PACKAGE_VERSION_MINOR"];
