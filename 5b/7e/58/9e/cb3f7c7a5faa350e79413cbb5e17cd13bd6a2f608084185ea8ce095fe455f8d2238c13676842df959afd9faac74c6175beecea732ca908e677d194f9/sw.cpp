@@ -12,4 +12,9 @@ void build(Solution &s)
     rhash.Public += "librhash"_id;
 
     rhash += Definition("RHASH_XVERSION=" + rhash.Variables["PACKAGE_VERSION_NUM"].toString());
+
+    rhash.patch("librhash/byte_order.h",
+        "defined(_ARM_) || defined(__arm__)",
+        "defined(_ARM_) ||  defined(__arm__) || defined(_M_ARM64) || defined(_M_ARM64EC)"
+    );
 }

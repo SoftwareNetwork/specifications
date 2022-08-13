@@ -58,7 +58,13 @@ void build(Solution &s)
 
     lzma.replaceInFileOnce("src/liblzma/check/check.h",
         "#ifndef LZMA_SHA256FUNC",
-        "#undef LZMA_SHA256FUNC\n#ifndef LZMA_SHA256FUNC");
+        "#undef LZMA_SHA256FUNC\n#ifndef LZMA_SHA256FUNC"
+    );
+    lzma.replaceInFileOnce("src/liblzma/common/memcmplen.h",
+        "#ifdef HAVE_IMMINTRIN_H",
+        "#if defined(HAVE_IMMINTRIN_H) && !(defined(_M_ARM64) || defined(_M_ARM64EC))"
+    );
+
     lzma.writeFileOnce(lzma.BinaryPrivateDir / "config.h", R"(
 #include <stdbool.h>
 #include <stdint.h>

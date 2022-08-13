@@ -46,6 +46,25 @@ void build(Solution &s)
         "Release"s,
         "ConsumeRelease"s,
         "AcquireRelease"s,
-    })
+    }) {
         turf.patch("turf/impl/Atomic_CPP11.h", from + " = ", from + "  = (int)");
+    }
+    turf.patch("turf/c/platform_detect.h",
+        "    #else\n        #error \"Unrecognized platform!\"",
+        R"(
+    #elif defined(_M_ARM64) || defined(_M_ARM64EC)
+        // ARM64
+        #define TURF_CPU_ARM64 1
+        #define TURF_PTR_SIZE 8
+    #else
+       #error "Unrecognized platform!"
+)");
+    turf.patch("turf/impl/TID_Win32.h",
+        "GetCurrentThreadID",
+        "GetCurrentThreadId"
+    );
+    turf.patch("turf/impl/TID_Win32.h",
+        "GetCurrentProcessID",
+        "GetCurrentProcessId"
+    );
 }

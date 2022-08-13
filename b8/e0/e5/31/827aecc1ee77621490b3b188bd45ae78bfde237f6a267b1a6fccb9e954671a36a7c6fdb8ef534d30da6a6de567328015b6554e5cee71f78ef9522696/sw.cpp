@@ -417,6 +417,10 @@ void build(Solution &s)
             "#if defined(_MSC_VER)// && !defined(__clang__)");
     }
 
+    boost_targets["process"]->patch("include/boost/process/detail/posix/executor.hpp",
+        "int data[2] = {ec.value(), len + 1};",
+        "int data[2] = {ec.value(), (int)len + 1};");
+
     if (boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["stacktrace"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
         boost_targets["stacktrace"]->Public.Definitions["BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"];
     else
