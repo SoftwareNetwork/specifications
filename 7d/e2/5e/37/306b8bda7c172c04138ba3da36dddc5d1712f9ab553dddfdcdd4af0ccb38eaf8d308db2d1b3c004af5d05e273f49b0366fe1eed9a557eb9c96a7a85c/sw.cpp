@@ -592,6 +592,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
         {
             gio -= "gio/gdesktopappinfo.c";
             gio -= "gio/giowin32-private.c";
+            gio -= "gio/gio-launch-desktop.c";
 
             gio -= "gio/.*portal.*\\.c"_rr;
 
@@ -673,8 +674,10 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         }
         else
         {
-            if (glib.getBuildSettings().TargetOS.Type != OSType::Macos)
+            if (!glib.getBuildSettings().TargetOS.isApple())
+            {
                 gio += "gio/inotify/.*\\.[hc]"_r;
+            }
             else
             {
                 gio += "gio/kqueue/.*"_rr;
@@ -687,6 +690,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio += "USE_STATFS"_def;
             gio += "GIO_MODULE_DIR=\".\""_def;
             gio += "LOCALSTATEDIR=\"/var\""_def;
+            gio += "GIO_LAUNCH_DESKTOP=\"gio-launch-desktop\""_def;
             gio += "resolv"_slib;
         }
 
