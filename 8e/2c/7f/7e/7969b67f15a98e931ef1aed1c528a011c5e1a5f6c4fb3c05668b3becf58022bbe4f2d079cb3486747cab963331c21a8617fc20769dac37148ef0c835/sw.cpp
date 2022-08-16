@@ -93,6 +93,8 @@ void build(Solution &s)
             "libavutil/.*\\.asm"_rr;
         setup(avutil, "libavutil");
 
+        avutil.Public += "."_idir;
+
         if (avutil.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             setup_asm(avutil);
@@ -2420,6 +2422,8 @@ R"(
         setup_asm(avcodec);
         avcodec.writeFileOnce("config.asm");
 
+        avcodec += "CONFIG_MSMPEG4DEC=1"_def;
+        avcodec += "CONFIG_MSMPEG4ENC=1"_def;
         avcodec += "CONFIG_INFLATE_WRAPPER"_def;
         avcodec += "CONFIG_DEFLATE_WRAPPER"_def;
         avcodec += "CONFIG_SPEEDHQ_ENCODER"_def;
@@ -2427,6 +2431,8 @@ R"(
         avcodec += "HAVE_AVX512ICL_EXTERNAL=0"_def;
 
         avcodec.Public += swresample;
+        //avcodec.Public += avutil;
+        (avcodec + avutil)->IncludeDirectoriesOnly = true;
         (avcodec + avfilter)->IncludeDirectoriesOnly = true;
         //(avcodec + avformat)->IncludeDirectoriesOnly = true;
 
@@ -2445,6 +2451,7 @@ R"(
         avcodec.Public += "org.sw.demo.xiph.vorbis.libvorbis"_dep;
         avcodec.Public += "org.sw.demo.videolan.dav1d"_dep;
         avcodec.Public += "org.sw.demo.jxl"_dep;
+        avcodec.Public += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2"_dep;
 
         avcodec.replaceInFileOnce("libavcodec/ac3dec.h", "static int ff_eac3_parse_header", "int ff_eac3_parse_header");
         avcodec.replaceInFileOnce("libavcodec/ac3dec.h", "static void ff_eac3_decode_transform_coeffs_aht_ch", "void ff_eac3_decode_transform_coeffs_aht_ch");
@@ -2754,10 +2761,16 @@ R"(
         auto &ffmpeg = ffmpeg2;
 
         ffmpeg +=
+            "fftools/.*\\.h"_rr,
+            //"fftools/objpool.*"_rr,
+            //"fftools/sync_queue.*"_rr,
+            //"fftools/thread_queue.*"_rr,
             "fftools/opt_common.*"_rr,
             "fftools/cmdutils.*"_rr,
             "fftools/ffmpeg.*"_rr;
         setup(ffmpeg, "fftools");
+
+        //ffmpeg += "fftools"_idir;
 
         ffmpeg.Public += "CONFIG_THIS_YEAR=2018"_d;
         if (ffmpeg.getBuildSettings().TargetOS.Type != OSType::Windows)
