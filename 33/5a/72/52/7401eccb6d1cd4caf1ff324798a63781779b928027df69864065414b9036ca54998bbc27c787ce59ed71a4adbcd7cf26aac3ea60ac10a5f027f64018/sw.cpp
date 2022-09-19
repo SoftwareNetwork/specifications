@@ -5,8 +5,9 @@ void build(Solution &s)
 
     webp.ApiName = "WEBP_API";
     webp +=
-        "src/.*\\.c"_rr,
-        "src/.*\\.h"_rr;
+        "sharpyuv/.*\\.[hc]"_rr,
+        "src/.*\\.[hc]"_rr
+        ;
 
     webp += "."_id;
     webp.Public += "src"_id;
