@@ -57,6 +57,7 @@ void build(Solution &s)
         t -= "src/x86/sysv_intel.S";
         t -= "src/aarch64/win64_armasm.S";
     }
+    t.patch("src/x86/sysv_intel.S", " */ */", " */");
 
     t.Variables["TARGET"] = arch;
     t.Variables["FFI_EXEC_TRAMPOLINE_TABLE"] = "0";
