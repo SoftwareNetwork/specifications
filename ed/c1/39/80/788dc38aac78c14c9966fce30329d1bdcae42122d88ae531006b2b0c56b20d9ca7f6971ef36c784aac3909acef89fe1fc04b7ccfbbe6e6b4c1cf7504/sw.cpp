@@ -28,47 +28,21 @@ void build(Solution &s)
 
     auto &dupb = p.addDirectory("third_party.upb");
     auto &upb = dupb.addStaticLibrary("upb");
-    auto &textformat = dupb.addStaticLibrary("textformat");
-    auto &json = dupb.addStaticLibrary("json");
     {
         upb.setRootDirectory("third_party/upb");
-        upb += "upb/decode.*"_rr;
-        upb += "upb/encode.*"_rr;
-        upb += "upb/msg.*"_rr;
-        upb -= "upb/msg_test.*"_rr;
-        upb += "upb/table.*"_rr;
-        upb += "upb/upb.*"_rr;
-
-        auto &port = dupb.addStaticLibrary("port");
-        port.setRootDirectory("third_party/upb");
-        port += "upb/port_def.inc";
-        port += "upb/port_undef.inc";
-        upb.Public += port;
+        upb += "upb/.*"_rr;
+        upb -= "upb/.*test.*"_rr;
+        upb -= "upb/bindings/.*"_rr;
+        upb -= "upb/fuzz/.*"_rr;
+        upb -= "upb/conformance_upb.c";
+        upb.Public += "."_idir;
+        //upb.Public += "org.sw.demo.google.protobuf.protobuf"_dep;
+        (upb + core)->IncludeDirectoriesOnly = true;
 
         auto &utf8_range = dupb.addStaticLibrary("utf8_range");
         utf8_range.setRootDirectory("third_party/upb");
         utf8_range += "third_party/utf8_range/.*"_rr;
         upb.Public += utf8_range;
-
-        auto &reflection = dupb.addStaticLibrary("reflection");
-        reflection.setRootDirectory("third_party/upb");
-        reflection += "upb/def.*"_rr;
-        reflection += "upb/reflection.*"_rr;
-        //reflection += "cmake/google/.*"_rr;
-        reflection.Public += "."_idir;
-        //reflection.Public += "cmake"_idir;
-        reflection.Public += upb;
-        (reflection + core)->IncludeDirectoriesOnly = true;
-
-        textformat.setRootDirectory("third_party/upb");
-        textformat += "upb/text_encode.*"_rr;
-        textformat.Public += reflection;
-        (textformat + core)->IncludeDirectoriesOnly = true;
-
-        json.setRootDirectory("third_party/upb");
-        json += "upb/json.*"_rr;
-        json.Public += reflection;
-        (json + core)->IncludeDirectoriesOnly = true;
     }
 
     // core
@@ -179,8 +153,6 @@ void build(Solution &s)
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
-        t.Public += textformat;
-        t.Public += json;
         (core + core_ext)->IncludeDirectoriesOnly = true;
     }
 
