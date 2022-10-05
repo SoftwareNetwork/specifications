@@ -273,7 +273,7 @@ void build(Solution &s)
 
     ADD_LIBRARY(http);
     http.Public += filesystem, templates,
-        "org.sw.demo.badger.curl.libcurl"_dep;
+        "org.sw.demo.badger.curl.libcurl-7.84"_dep;
     if (http.getBuildSettings().TargetOS.Type == OSType::Windows || http.getBuildSettings().TargetOS.Type == OSType::Mingw)
         http += "Winhttp.lib"_slib;
 
@@ -381,7 +381,7 @@ void build(Solution &s)
     }
 
     ADD_LIBRARY_HEADER_ONLY(webdriver);
-    webdriver.Public += http,
+    webdriver.Public += http, templates2,
         "org.sw.demo.nlohmann.json"_dep;
 
     // experimental
@@ -547,7 +547,7 @@ void build(Solution &s)
     test_version += version;
 
     auto &test_source = add_test("source");
-    test_source += source, sw_main;
+    test_source += source;
 
     auto &test_patch = add_test("patch");
     test_patch += patch;
