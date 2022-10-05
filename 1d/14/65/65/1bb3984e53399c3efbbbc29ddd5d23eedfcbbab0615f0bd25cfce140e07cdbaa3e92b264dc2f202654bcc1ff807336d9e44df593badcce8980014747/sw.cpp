@@ -1402,7 +1402,7 @@ void build(Solution &s)
         }
     };
 
-    auto exports_setup = [&](auto &t, const String &custom_name = {}) {
+    auto exports_setup = [&](auto &t, const String &custom_name = {}, bool bootstrap = false) {
         auto name = t.getPackage().getPath().back();
         if (!custom_name.empty())
             name = custom_name;
@@ -1433,7 +1433,8 @@ void build(Solution &s)
         t.Variables["module_define_infix"] = upper;
         t.configureFile(t.getFile(core, "cmake/modulecppexports.h.in"), "Qt" + sentence + "/" + header_base_name + ".h");
         t.configureFile(t.getFile(core, "cmake/modulecppexports_p.h.in"), "Qt" + sentence + "/private/" + header_base_name + "_p.h");
-        t += Definition("QT_BUILD_" + upper + "_LIB");
+        if (!bootstrap)
+            t += Definition("QT_BUILD_" + upper + "_LIB");
         //t.writeFileOnce("Qt" + sentence + "/private/qt" + lower + "exports_p.h");
     };
     auto common_setup = [&](auto &t, const String &custom_name = {}) {
@@ -1823,17 +1824,17 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
 
-            bootstrap += "Q_CORE_EXPORT"_api;
+            /*bootstrap += "Q_CORE_EXPORT"_api;
             bootstrap += "Q_XML_EXPORT"_api;
             bootstrap.writeFileOnce("QtCore/qtcoreexports.h", R"(
                 #pragma once
                 #define QT_CORE_REMOVED_SINCE(x,y) (QT_VERSION_MAJOR == x && QT_VERSION_MINOR < y || QT_VERSION_MAJOR < x)
                 #define QT_CORE_INLINE_SINCE(x,y) inline
                 #define QT_CORE_INLINE_IMPL_SINCE(x,y) 1 inline
-            )");
-            //exports_setup(bootstrap, "core");
-            //exports_setup(bootstrap, "xml");
-            bootstrap.writeFileOnce("QtXml/qtxmlexports.h");
+            )");*/
+            exports_setup(bootstrap, "core", true);
+            exports_setup(bootstrap, "xml");
+            //bootstrap.writeFileOnce("QtXml/qtxmlexports.h");
             bootstrap.writeFileOnce("QtXml/qtxml-config.h");
         }
 
