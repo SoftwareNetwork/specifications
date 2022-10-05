@@ -1427,11 +1427,12 @@ void build(Solution &s)
                 "#define QT_" + upper + "_INLINE_IMPL_SINCE(x,y) QT_IF_DEPRECATED_SINCE(x,y, 1, 0)\n"
         );*/
         t.Variables["module_include_name"] = "Qt" + sentence;
-        t.Variables["header_base_name"] = "qt" + lower + "exports.h";
+        auto header_base_name = "qt"s + lower + "exports";
+        t.Variables["header_base_name"] = header_base_name;
         t.Variables["header_base_name_upper"] = "SW_QT_EXPORTS_GUARD_" + upper;
         t.Variables["module_define_infix"] = upper;
-        t.configureFile(t.getFile(core, "cmake/modulecppexports.h.in"), "Qt" + sentence + "/qt" + lower + "exports.h");
-        t.configureFile(t.getFile(core, "cmake/modulecppexports_p.h.in"), "Qt" + sentence + "/private/qt" + lower + "exports_p.h");
+        t.configureFile(t.getFile(core, "cmake/modulecppexports.h.in"), "Qt" + sentence + "/" + header_base_name + ".h");
+        t.configureFile(t.getFile(core, "cmake/modulecppexports_p.h.in"), "Qt" + sentence + "/private/" + header_base_name + "_p.h");
         t += Definition("QT_BUILD_" + upper + "_LIB");
         //t.writeFileOnce("Qt" + sentence + "/private/qt" + lower + "exports_p.h");
     };
