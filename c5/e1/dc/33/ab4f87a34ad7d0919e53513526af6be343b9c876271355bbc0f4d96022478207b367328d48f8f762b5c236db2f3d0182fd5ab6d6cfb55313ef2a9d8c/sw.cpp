@@ -1402,18 +1402,7 @@ void build(Solution &s)
         }
     };
 
-    auto common_setup = [](auto &t, const String &custom_name = {}) {
-        t += cpp20;
-        if (t.getCompilerType() == CompilerType::MSVC) {
-            t.Public.CompileOptions.push_back("/Zc:__cplusplus");
-            // cpp17 + msvc requires /permissive-
-            // when client app is built with cpp17, there will be build error
-            t.Public.CompileOptions.push_back("/permissive-");
-        }
-        if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
-            t.ExportAllSymbols = true;
-        }
-
+    auto exports_setup = [&](auto &t, const String &custom_name = {}) {
         auto name = t.getPackage().getPath().back();
         if (!custom_name.empty())
             name = custom_name;
@@ -1429,15 +1418,35 @@ void build(Solution &s)
         if (custom_name == "WaylandClient")
             sentence = "WaylandClient";
         auto upper = boost::to_upper_copy(name);
-        t += sw::ApiNameType{"Q_" + upper + "_EXPORT"};
-        t += sw::ApiNameType{"Q_" + upper + "_PRIVATE_EXPORT"};
-        t.writeFileOnce("Qt" + sentence + "/qt" + lower + "exports.h",
+        //t += sw::ApiNameType{"Q_" + upper + "_EXPORT"};
+        //t += sw::ApiNameType{"Q_" + upper + "_PRIVATE_EXPORT"};
+        /*t.writeFileOnce("Qt" + sentence + "/qt" + lower + "exports.h",
                 "#pragma once\n"
-                "#define QT_" + upper + "_REMOVED_SINCE(x,y) (QT_VERSION_MAJOR == x && QT_VERSION_MINOR < y || QT_VERSION_MAJOR < x)\n"
-                "#define QT_" + upper + "_INLINE_SINCE(x,y) inline\n"
-                "#define QT_" + upper + "_INLINE_IMPL_SINCE(x,y) 1 inline\n"
-        );
-        t.writeFileOnce("Qt" + sentence + "/private/qt" + lower + "exports_p.h");
+                "#define QT_" + upper + "_REMOVED_SINCE(x,y) QT_DEPRECATED_SINCE(x,y)\n"
+                "#define QT_" + upper + "_INLINE_SINCE(x,y) QT_IF_DEPRECATED_SINCE(x,y, inline, /* not inline /)\n"
+                "#define QT_" + upper + "_INLINE_IMPL_SINCE(x,y) QT_IF_DEPRECATED_SINCE(x,y, 1, 0)\n"
+        );*/
+        t.Variables["module_include_name"] = "Qt" + sentence;
+        t.Variables["header_base_name"] = "qt" + lower + "exports.h";
+        t.Variables["header_base_name_upper"] = "SW_QT_EXPORTS_GUARD_" + upper;
+        t.Variables["module_define_infix"] = upper;
+        t.configureFile(t.getFile(core, "cmake/modulecppexports.h.in"), "Qt" + sentence + "/qt" + lower + "exports.h");
+        t.configureFile(t.getFile(core, "cmake/modulecppexports_p.h.in"), "Qt" + sentence + "/private/qt" + lower + "exports_p.h");
+        t += Definition("QT_BUILD_" + upper + "_LIB");
+        //t.writeFileOnce("Qt" + sentence + "/private/qt" + lower + "exports_p.h");
+    };
+    auto common_setup = [&](auto &t, const String &custom_name = {}) {
+        t += cpp20;
+        if (t.getCompilerType() == CompilerType::MSVC) {
+            t.Public.CompileOptions.push_back("/Zc:__cplusplus");
+            // cpp17 + msvc requires /permissive-
+            // when client app is built with cpp17, there will be build error
+            t.Public.CompileOptions.push_back("/permissive-");
+        }
+        if (t.getBuildSettings().TargetOS.Type != OSType::Windows) {
+            t.ExportAllSymbols = true;
+        }
+        exports_setup(t, custom_name);
     };
 
     auto make_qt_plugin = [](auto &t, const String &name)
@@ -1559,6 +1568,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 bootstrap +=
                     "mkspecs/.*\\.h"_rr,
                     "src/3rdparty/sha1/sha1.cpp",
+                    //"src/corelib/compat/removed_api.cpp",
                     "src/corelib/.*\\.h"_rr,
                     "src/corelib/global/archdetect.cpp",
                     "src/corelib/global/qglobal.cpp",
@@ -1690,6 +1700,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 bootstrap -= "src/corelib/serialization/qcbormap.cpp";
 
                 bootstrap.Private +=
+                    "src/corelib"_id,
                     "src/xml"_id,
                     "src/xml/dom"_id
                     ;
@@ -1819,6 +1830,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 #define QT_CORE_INLINE_SINCE(x,y) inline
                 #define QT_CORE_INLINE_IMPL_SINCE(x,y) 1 inline
             )");
+            //exports_setup(bootstrap, "core");
+            //exports_setup(bootstrap, "xml");
             bootstrap.writeFileOnce("QtXml/qtxmlexports.h");
             bootstrap.writeFileOnce("QtXml/qtxml-config.h");
         }
@@ -1921,6 +1934,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
             core -=
                 "mkspecs/.*\\.h"_rr;
             core +=
+                "cmake/modulecppexports.h.in",
+                "cmake/modulecppexports_p.h.in",
+                "src/corelib/compat/removed_api.cpp",
                 "src/3rdparty/easing/easing.cpp",
                 //"src/3rdparty/freebsd/.*\\.c"_rr,
                 "src/3rdparty/md[45]/.*"_rr,
@@ -2039,7 +2055,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             core.Public += d;
 
             core.Private += "QT_BUILD_CORE_LIB"_d;
-            core.Interface += "QT_NO_VERSION_TAGGING"_d;
+            core.Interface += sw::Shared, "QT_NO_VERSION_TAGGING"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
             core.Protected += "QT_USE_QSTRINGBUILDER"_d;
             if (core.getCompilerType() == CompilerType::MSVC)
@@ -2424,6 +2440,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             SwapAndRestore sr(widgets.SourceDir);
             widgets.SourceDir /= "src/widgets";
             widgets +=
+                "compat/removed_api.cpp",
                 "accessible/.*"_rr,
                 "dialogs/.*"_rr,
                 "effects/.*"_rr,
@@ -2861,6 +2878,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             SwapAndRestore sr(sql.SourceDir);
             sql.SourceDir /= "src/sql";
             sql +=
+                "compat/removed_api.cpp",
                 "kernel/.*"_rr,
                 "models/.*"_rr
                 ;
