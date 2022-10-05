@@ -2148,58 +2148,30 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             // see src/corelib/global/qconfig.cpp.in
             core.writeFileOnce(core.BinaryDir / "qconfig.cpp", R"xxx(
-                #include "private/qoffsetstringarray_p.h"
+#include "private/qoffsetstringarray_p.h"
 
-                /* Build date */
-                static const char qt_configure_installation          [11  + 12] = "qt_instdate=2017-01-01";
+/* Installation Info */
+static const char qt_configure_prefix_path_str  [12+256] = "qt_prfxpath=.";
 
-                /* Installation Info */
-                static const char qt_configure_prefix_path_str       [512 + 12] = "qt_prfxpath=.";
-                #ifdef QT_BUILD_QMAKE
-                static const char qt_configure_ext_prefix_path_str   [512 + 12] = "qt_epfxpath=.";
-                static const char qt_configure_host_prefix_path_str  [512 + 12] = "qt_hpfxpath=.";
-                #endif
+static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArray)(
+    R"qconfig(doc)qconfig",
+    R"qconfig(include)qconfig",
+    R"qconfig(lib)qconfig",
+    R"qconfig(bin)qconfig",
+    R"qconfig(bin)qconfig",
+    R"qconfig(plugins)qconfig",
+    R"qconfig(qml)qconfig",
+    R"qconfig(.)qconfig",
+    R"qconfig(.)qconfig",
+    R"qconfig(translations)qconfig",
+    R"qconfig(examples)qconfig",
+    R"qconfig(tests)qconfig"
+);
 
-                static const short qt_configure_str_offsets[] = {
-                     0, 4, 12, 16, 20, 24, 32, 40, 44, 46, 48, 61, 70,
-                #ifdef QT_BUILD_QMAKE
-                     76, 77, 81, 85, 87, 102,
-                #endif
-                };
-                static const auto qt_configure_strs = qOffsetStringArray(
-                    "doc\0"
-                    "include\0"
-                    "lib\0"
-                    "bin\0"
-                    "bin\0"
-                    "plugins\0"
-                    "imports\0"
-                    "qml\0"
-                    ".\0"
-                    ".\0"
-                    "translations\0"
-                    "examples\0"
-                    "tests\0"
-                #ifdef QT_BUILD_QMAKE
-                    "\0"
-                    "bin\0"
-                    "lib\0"
-                    ".\0"
-                    "win32-msvc2015\0"
-                    "win32-msvc2015\0"
-                #endif
-                )
-                ;
-
-                #ifdef QT_BUILD_QMAKE
-                # define QT_CONFIGURE_SYSROOTIFY_PREFIX false
-                #endif
-
-                #define QT_CONFIGURE_PREFIX_PATH qt_configure_prefix_path_str + 12
-                #ifdef QT_BUILD_QMAKE
-                # define QT_CONFIGURE_EXT_PREFIX_PATH qt_configure_ext_prefix_path_str + 12
-                # define QT_CONFIGURE_HOST_PREFIX_PATH qt_configure_host_prefix_path_str + 12
-                #endif
+// comment?
+#define QT_CONFIGURE_SETTINGS_PATH "."
+//#define QT_CONFIGURE_LIBLOCATION_TO_PREFIX_PATH "@QT_CONFIGURE_LIBLOCATION_TO_PREFIX_PATH@"_L1
+#define QT_CONFIGURE_PREFIX_PATH qt_configure_prefix_path_str + 12
     )xxx");
             core += core.BinaryDir / "qconfig.cpp";
 
