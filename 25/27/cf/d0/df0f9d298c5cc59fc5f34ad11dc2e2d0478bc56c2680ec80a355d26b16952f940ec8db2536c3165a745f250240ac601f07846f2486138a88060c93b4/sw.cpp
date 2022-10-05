@@ -2216,6 +2216,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
                 if (core.getBuildSettings().TargetOS.Arch != ArchType::aarch64) {
                     core.CompileOptions.push_back("-mavx2");
+                    core.CompileOptions.push_back("-mhaswell");
                     core.CompileOptions.push_back("-mf16c");
                 }
             }
@@ -2323,6 +2324,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui.CompileOptions.push_back("-msse4.1");
                 gui.CompileOptions.push_back("-mavx");
                 gui.CompileOptions.push_back("-mavx2");
+                gui.CompileOptions.push_back("-mhaswell");
                 gui.CompileOptions.push_back("-march=native");
             }
 
@@ -2378,6 +2380,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             {
                 if (gui.getBuildSettings().TargetOS.Arch == ArchType::x86_64) {
                     gui.CompileOptions.push_back("-mavx2");
+                    gui.CompileOptions.push_back("-mhaswell");
                     gui.CompileOptions.push_back("-mf16c");
                 }
 
