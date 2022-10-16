@@ -49,6 +49,7 @@ void build(Solution &s)
         glib ^= "glib/glib-object.h";
 
         glib.Private += "GLIB_COMPILATION"_d;
+        glib += "STRERROR_R_CHAR_P"_def;
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
         glib.Public += "GLIB_BINARY_AGE=2"_d;
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;
@@ -736,6 +737,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             "'#endif\\n'\n"
             "'#if 1\\n'\n"
             "'#   include <gio/gunixfdlist.h>\\n'");
+        gio.patch("gio/gio-launch-desktop.c", "G_STATIC_ASSERT (LOG_", "//G_STATIC_ASSERT  (LOG_");
 
         {
             auto c = gio.addCommand();
