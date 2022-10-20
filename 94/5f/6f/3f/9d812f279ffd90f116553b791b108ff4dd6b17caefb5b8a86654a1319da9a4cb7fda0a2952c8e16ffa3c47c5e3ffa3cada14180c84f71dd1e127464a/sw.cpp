@@ -22,7 +22,9 @@ void build(Solution &s)
     auto &s_data = stub.addTarget<LibraryTarget>("data");
     {
         setup(s_data);
-        s_data += "source/stubdata/stubdata.cpp", "source"_id;
+        s_data += "source/stubdata/stubdata.cpp";
+        s_data += "source/stubdata/stubdata.h";
+        s_data += "source"_id;
 
         auto dc = s_data.Public + s_common;
         dc->IncludeDirectoriesOnly = true;

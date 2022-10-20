@@ -4180,6 +4180,7 @@ qt_qml_plugin_outro
             for (auto &&f : {
                 "src/3rdparty/protocol/pointer-gestures-unstable-v1.xml",
                 "src/3rdparty/protocol/tablet-unstable-v2.xml",
+                "src/3rdparty/protocol/text-input-unstable-v1.xml",
                 "src/3rdparty/protocol/text-input-unstable-v2.xml",
                 "src/3rdparty/protocol/text-input-unstable-v4-wip.xml",
                 "src/3rdparty/protocol/wayland.xml",
