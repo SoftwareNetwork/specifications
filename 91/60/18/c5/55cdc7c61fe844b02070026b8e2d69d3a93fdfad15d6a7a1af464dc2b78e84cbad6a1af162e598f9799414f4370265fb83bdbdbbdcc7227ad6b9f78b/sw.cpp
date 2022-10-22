@@ -162,6 +162,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
+        (core_plugin_registry + core_ext)->IncludeDirectoriesOnly = true;
     }
 
     auto &core_tsi = p.addStaticLibrary("core.tsi");
