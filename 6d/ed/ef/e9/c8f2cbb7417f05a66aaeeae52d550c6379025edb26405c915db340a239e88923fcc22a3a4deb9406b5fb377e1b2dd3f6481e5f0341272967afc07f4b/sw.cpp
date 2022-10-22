@@ -71,13 +71,14 @@ void build(Solution &s)
             "#if 1//!(defined(__has_feature) && __has_feature(cxx_thread_local))"
         );
 
-        t -= "src/core/lib/event_engine/windows.*"_rr;
-        t -= "src/core/lib/event_engine/posix_engine.*"_rr;
+        t -= "src/core/lib/event_engine/windows/.*"_rr;
+        t -= "src/core/lib/event_engine/posix_engine/.*"_rr;
         if (t.getBuildSettings().TargetOS.is(OSType::Windows)) {
-            t += "src/core/lib/event_engine/windows.*"_rr;
+            t += "src/core/lib/event_engine/windows/.*"_rr;
         } else {
-            t += "src/core/lib/event_engine/posix_engine.*"_rr;
+            t += "src/core/lib/event_engine/posix_engine/.*"_rr;
         }
+        t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
