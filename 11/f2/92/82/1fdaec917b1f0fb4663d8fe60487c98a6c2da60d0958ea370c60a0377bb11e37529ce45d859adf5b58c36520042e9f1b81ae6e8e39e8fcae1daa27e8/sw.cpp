@@ -308,5 +308,8 @@ void build(Solution &s)
         "\nreturn  cp ? cp : relocate2(PKGDATADIR, &relocate_buffer);");*/
         bison.replaceInFileOnce("bison/src/main.c", "if (!last_divider)", "");
         bison.replaceInFileOnce("bison/src/main.c", "free(local_pkgdatadir);", "");
+        if (bison.getCompilerType() == CompilerType::MSVC) {
+            bison.CompileOptions.push_back("-utf-8");
+        }
     }
 }
