@@ -273,7 +273,7 @@ void build(Solution &s)
 
     ADD_LIBRARY(http);
     http.Public += filesystem, templates,
-        "org.sw.demo.badger.curl.libcurl-7.84"_dep;
+        "org.sw.demo.badger.curl.libcurl"_dep;
     if (http.getBuildSettings().TargetOS.Type == OSType::Windows || http.getBuildSettings().TargetOS.Type == OSType::Mingw)
         http += "Winhttp.lib"_slib;
 
