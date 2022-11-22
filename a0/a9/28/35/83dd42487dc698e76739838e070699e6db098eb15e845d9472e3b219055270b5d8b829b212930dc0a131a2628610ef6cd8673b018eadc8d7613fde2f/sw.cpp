@@ -1994,6 +1994,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 ;
 
             core -=
+                "platform/.*"_rr,
                 "plugin/qcoffpeparser.cpp",
                 "plugin/qmachparser.cpp",
                 "global/qversiontagging.cpp",
@@ -2009,6 +2010,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
+                core += "platform/windows/.*"_rr;
                 core += "plugin/qcoffpeparser.cpp";
                 core += "plugin/qsystemlibrary.cpp";
                 core += "kernel/qwineventnotifier.cpp";
@@ -2145,6 +2147,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
+                core += "platform/darwin/.*"_rr;
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", false });
                 qt_core_desc.config.public_.features.insert({ "appstore_compliant", false });
