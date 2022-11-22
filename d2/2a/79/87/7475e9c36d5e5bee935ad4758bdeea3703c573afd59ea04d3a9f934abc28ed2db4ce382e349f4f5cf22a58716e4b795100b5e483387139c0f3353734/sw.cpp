@@ -520,9 +520,11 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     Files ts_files, sources;
     for (auto &[p, f] : t)
     {
-        auto pp = to_printable_string(p);
-        bool ok = sw::isCppHeaderFileExtension(pp) || sw::isCppSourceFileExtensions(pp)
-            || p.extension() == ".ui" // include qt .ui files
+        auto ext = p.extension().string();
+        bool ok = 0
+            || sw::isCppHeaderFileExtension(ext)
+            || sw::isCppSourceFileExtensions(ext)
+            || ext == ".ui" // include qt .ui files
         ;
         if (ok)
             ;
