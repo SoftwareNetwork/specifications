@@ -124,7 +124,9 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
     {
         if (f->skip)
             continue;
-        if (is_cpp_ext(p.extension()))
+        if (is_cpp_ext(p.extension())
+            && p.filename() != "qrc_sw_qm.cpp"s
+            )
         {
             static std::regex r("(^|\n)[ \t]*#[ \t]*include[ \t]+"
                 "[\"<](([^ \">]+/)?moc_[^ \">/]+\\.cpp|[^ \">]+\\.moc)[\">]");
@@ -159,7 +161,9 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         if (f->skip)
             continue;
         auto ext = to_string(p.extension().u8string());
-        if (is_cpp_ext(ext) ||
+        if (is_cpp_ext(ext)
+            && p.filename() != "qrc_sw_qm.cpp"s
+            ||
             (ext.size() > 1 && HeaderFileExtensionsSet.find(ext.substr(1)) != HeaderFileExtensionsSet.end()))
         {
             auto s = read_file(p);
@@ -167,6 +171,7 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
                 || s.find("Q_OBJECT") != s.npos
                 || s.find("Q_GADGET") != s.npos
                 || s.find("Q_NAMESPACE") != s.npos
+                // ?
                 || s.find("QMETATYPE_CONVERTER") != s.npos
                 || s.find("QT_METATYPE_CONVERT_ID_TO_TYPE") != s.npos
                 || s.find("Q_CONSTRUCTOR_FUNCTION") != s.npos
@@ -558,8 +563,9 @@ static Files qt_create_translation(const DependencyPtr &lupdate, const Dependenc
     for (auto &ts : ts_files)
         c << cmd::out(ts);
     c << cmd::end();
-    for (auto &f : sources)
-        c << cmd::in(sources);
+    for (auto &f : sources) {
+        c.getCommand()->addInput(f);
+    }
 
     return qt_add_translation(lrelease, t, ts_files);
 }
@@ -582,7 +588,7 @@ static auto qt_tr(const DependencyPtr &base, NativeExecutedTarget &t)
     RccData d;
     d.prefix = "/ts";
     d.name = "qm";
-    d.outfilename_prefix = "qmake_";
+    d.outfilename_prefix = "sw_"; //"qmake_";
     for (auto &p : qm)
         d.files[p];
     auto rccbin = std::make_shared<Dependency>(base->package);
