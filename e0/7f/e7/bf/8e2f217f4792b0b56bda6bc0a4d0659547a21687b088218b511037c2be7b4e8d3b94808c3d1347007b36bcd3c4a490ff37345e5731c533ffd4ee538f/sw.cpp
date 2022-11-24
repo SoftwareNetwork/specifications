@@ -134,6 +134,7 @@ void build(Solution &s)
             "pango/pangocoretext.*"_rr,
             "pango/pangowin32-fontcache.c",
             "pango/pangowin32-fontmap.c",
+            "pango/pangowin32-dwrite-fontmap.cpp",
             "pango/pangowin32.c"
             ;
 
@@ -150,6 +151,7 @@ void build(Solution &s)
                 "pango/pangocoretext.*"_rr,
                 "pango/pangocairo-coretext.*"_rr;
             pangocairo +=
+                "Dwrite.lib"_slib,
                 "Usp10.lib"_slib;
         }
         else if (pangocairo.getBuildSettings().TargetOS.Type == OSType::Linux)
