@@ -126,6 +126,7 @@ void build(Solution &s)
 
         t.configureFile("port/cpl_config.h.in", "cpl_config.h", ConfigureFlags::EnableUndefReplacements);
         t.configureFile("gcore/gdal_version.h.in", "gdal_version_full/gdal_version.h", ConfigureFlags::EnableUndefReplacements);
+        t.configureFile("gcore/gdal_version.h.in", "gdal_version.h", ConfigureFlags::EnableUndefReplacements);
 
         {
             t += "HAVE_LIBZ"_def;
