@@ -172,9 +172,9 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
                 || s.find("Q_GADGET") != s.npos
                 || s.find("Q_NAMESPACE") != s.npos
                 // ?
-                || s.find("QMETATYPE_CONVERTER") != s.npos
-                || s.find("QT_METATYPE_CONVERT_ID_TO_TYPE") != s.npos
-                || s.find("Q_CONSTRUCTOR_FUNCTION") != s.npos
+                //|| s.find("QMETATYPE_CONVERTER") != s.npos
+                //|| s.find("QT_METATYPE_CONVERT_ID_TO_TYPE") != s.npos
+                //|| s.find("Q_CONSTRUCTOR_FUNCTION") != s.npos
                 )
             {
                 moc_file f;
@@ -2155,7 +2155,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
-                core += "platform/darwin/.*"_rr;
+                //core += "platform/darwin/.*"_rr; >6.4.1
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", false });
                 qt_core_desc.config.public_.features.insert({ "appstore_compliant", false });
@@ -2226,6 +2226,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             //}
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos)
             {
+                core.Public += "kernel/qmetatype.cpp"; // not only mac?
                 core += "plugin/qmachparser.cpp";
 
                 core -= "io/qstorageinfo_unix.cpp";

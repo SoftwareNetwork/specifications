@@ -256,6 +256,9 @@ void build(Solution &s)
     }
 
     {
+        curl.setChecks("libcurl", true);
+        curl.setChecks("c_ares", true);
+
         curl += "src/.*"_rr;
         curl +=
           "lib/strtoofft.c",
@@ -283,6 +286,10 @@ void build(Solution &s)
             void hugehelp(void){};
         )");
         curl += "tool_hugehelp.c";
+
+        if (curl.getBuildSettings().TargetOS.isApple()) {
+            curl += "HAVE_FCNTL_O_NONBLOCK"_def;
+        }
     }
 }
 
@@ -291,6 +298,7 @@ void check(Checker &c)
     {
         auto &s = c.addSet("c_ares");
         s.checkFunctionExists("bitncmp");
+        s.checkFunctionExists("close");
         s.checkFunctionExists("closesocket");
         s.checkFunctionExists("connect");
         s.checkFunctionExists("fcntl");
@@ -309,6 +317,7 @@ void check(Checker &c)
         s.checkFunctionExists("inet_addr");
         s.checkFunctionExists("ldap_init_fd");
         s.checkFunctionExists("ldap_url_parse");
+        s.checkFunctionExists("open");
         s.checkFunctionExists("perror");
         s.checkFunctionExists("pipe");
         s.checkFunctionExists("pthread_create");
