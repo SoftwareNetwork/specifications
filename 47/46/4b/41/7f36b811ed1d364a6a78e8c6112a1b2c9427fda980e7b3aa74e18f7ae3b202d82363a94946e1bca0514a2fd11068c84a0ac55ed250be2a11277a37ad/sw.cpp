@@ -45,9 +45,16 @@ void build(Solution &s)
     t += FileRegex("src/" + arch_dir, ".*", false);
     t.Public += IncludeDirectory("src/" + arch_dir);
 
-    if (t.getCompilerType() == CompilerType::MSVC && t.getBuildSettings().TargetOS.Arch == ArchType::x86)
+    if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        t -= path("src/" + arch_dir + "/ffiw64.c");
+        if ((t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) && t.getBuildSettings().TargetOS.Arch == ArchType::x86)
+        {
+            t -= path("src/" + arch_dir + "/ffiw64.c");
+        }
+        if ((t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) && t.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
+        {
+            t -= path("src/" + arch_dir + "/ffi64.c");
+        }
     }
     if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
     {
@@ -92,7 +99,7 @@ void build(Solution &s)
     if (t.DryRun)
         return;
 
-    if (t.getCompilerType() == CompilerType::MSVC)
+    if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl)
     {
         String f = t.getBuildSettings().TargetOS.Arch == ArchType::x86_64 ? "win64" : "sysv";
         f += "_intel";
@@ -130,19 +137,27 @@ void build(Solution &s)
             std::shared_ptr<sw::Program> ch1(p->clone());
             auto ch = std::static_pointer_cast<sw::NativeCompiler>(ch1);
             t.Storage.push_back(ch);
-            auto c = dynamic_cast<VisualStudioCompiler*>(ch.get());
-            c->PreprocessSupressLineDirectives = true;
-            c->PreprocessToFile = true;
-            c->PreprocessFileName = out;
-            c->CSourceFile = t.SourceDir / "src" / "x86" / (f + ".S");
-            auto cmd = c->createCommand(t.getMainBuild());
-            cmd->working_directory = t.BinaryDir;
-            t.registerCommand(*cmd);
-            t.add(sw::CallbackType::EndPrepare, [ch, &t]()
-            {
-                ch->merge(t);
-                ch->getCommand(t);
-            });
+            auto fun = [&](auto c) {
+                c->PreprocessSupressLineDirectives = true;
+                c->PreprocessToFile = true;
+                c->PreprocessFileName = out;
+                c->CSourceFile = t.SourceDir / "src" / "x86" / (f + ".S");
+                auto cmd = c->createCommand(t.getMainBuild());
+                cmd->working_directory = t.BinaryDir;
+                t.registerCommand(*cmd);
+                t.add(sw::CallbackType::EndPrepare, [ch, &t]()
+                {
+                    ch->merge(t);
+                    ch->getCommand(t);
+                });
+            };
+            if (auto c = dynamic_cast<VisualStudioCompiler*>(ch.get())) {
+                fun(c);
+            } else if (auto c = dynamic_cast<sw::ClangClCompiler*>(ch.get())) {
+                fun(c);
+            } else {
+                SW_UNIMPLEMENTED;
+            }
         }
         {
             auto p = t.findProgramByExtension(".asm");
