@@ -40,7 +40,9 @@ void build(Solution &s)
     if (pixman.getBuildSettings().TargetOS.Type != OSType::Windows)
         pixman.Public += "HAVE_PTHREADS"_d;
 
-    if (pixman.getCompilerType() == CompilerType::Clang ||
+    if (
+        pixman.getCompilerType() == CompilerType::Clang ||
+        pixman.getCompilerType() == CompilerType::ClangCl ||
         pixman.getCompilerType() == CompilerType::GNU)
     {
 #if SW_CPP_DRIVER_API_VERSION >= 2

@@ -117,7 +117,6 @@ void build(Solution &s)
         glib.Variables["g_pollerr"] = "8";
         glib.Variables["g_pollnval"] = "32";
 
-        glib.Variables["g_pid_type"] = "int";
         glib.Variables["g_pid_format"] = "\"i\"";
 
         glib.Variables["g_af_unix"] = "1";
@@ -156,6 +155,7 @@ void build(Solution &s)
         if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
             glib.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
+            glib.Variables["g_pid_type"] = "int";
             glib.Variables["glongbits"] = "64";
             glib.Variables["glib_size_type_define"] = "long";
             glib.Variables["glib_intptr_type_define"] = "long";
@@ -188,6 +188,7 @@ void build(Solution &s)
         }
         else // win32
         {
+            glib.Variables["g_pid_type"] = "void*";
             glib.CompileOptions.insert("/utf-8");
             glib.Variables["glongbits"] = "32";
             if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64 || glib.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
