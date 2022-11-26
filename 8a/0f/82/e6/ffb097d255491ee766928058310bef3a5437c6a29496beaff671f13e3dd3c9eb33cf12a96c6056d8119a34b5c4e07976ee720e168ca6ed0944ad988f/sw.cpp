@@ -771,6 +771,7 @@ struct QtLibrary
         auto all = config.public_.print() + "\n" + config.private_.print();
         t.writeFileOnce(actual_name + "/" + config_fn, all);
         t.writeFileOnce(actual_name + "/private/" + private_config_fn, all);
+        t.writeFileOnce("private/" + private_config_fn, all);
         t += IncludeDirectory(t.BinaryDir / actual_name / "private");
 
         t.writeFileOnce(actual_name + "/" + actual_name + "Depends", printDependencies());
@@ -1432,6 +1433,8 @@ void build(Solution &s)
             sentence = "PrintSupport";
         if (lower == "opengl")
             sentence = "OpenGL";
+        if (lower == "core5compat")
+            sentence = "Core5Compat";
         if (custom_name == "WaylandClient")
             sentence = "WaylandClient";
         auto upper = boost::to_upper_copy(name);
@@ -1466,6 +1469,15 @@ void build(Solution &s)
             t.ExportAllSymbols = true;
         }
         exports_setup(t, custom_name);
+    };
+    auto set_apple_flags = [](auto &t) {
+        if (t.getBuildSettings().TargetOS.isApple()) {
+            if (t.getBuildSettings().TargetOS.Arch != ArchType::aarch64) {
+                t.CompileOptions.push_back("-mavx2");
+                t.CompileOptions.push_back("-march=haswell");
+                t.CompileOptions.push_back("-mf16c");
+            }
+        }
     };
 
     auto make_qt_plugin = [](auto &t, const String &name)
@@ -2155,7 +2167,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
-                //core += "platform/darwin/.*"_rr; >6.4.1
+                //core += "platform/darwin/.*"_rr; > qt6. 4. 1
                 qt_core_desc.config.public_.features.insert({ "getauxval", false });
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", false });
                 qt_core_desc.config.public_.features.insert({ "appstore_compliant", false });
@@ -2234,13 +2246,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core -= "text/qcollator_posix.cpp";
                 core -= "io/qstandardpaths_unix.cpp";
                 core -= "text/qlocale_unix.cpp";
-
-                if (core.getBuildSettings().TargetOS.Arch != ArchType::aarch64) {
-                    core.CompileOptions.push_back("-mavx2");
-                    core.CompileOptions.push_back("-march=haswell");
-                    core.CompileOptions.push_back("-mf16c");
-                }
             }
+            set_apple_flags(core);
 
             auto mocs = automoc(moc, core);
             SW_QT_ADD_MOC_DEPS(core);
@@ -2400,12 +2407,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             }
             else if (gui.getBuildSettings().TargetOS.isApple())
             {
-                if (gui.getBuildSettings().TargetOS.Arch == ArchType::x86_64) {
-                    gui.CompileOptions.push_back("-mavx2");
-                    gui.CompileOptions.push_back("-march=haswell");
-                    gui.CompileOptions.push_back("-mf16c");
-                }
-
                 qt_gui_desc.config.public_.features.insert({ "egl", false });
                 qt_gui_desc.config.public_.features.insert({ "egl_x11", false });
                 qt_gui_desc.config.public_.features.insert({ "egl_extension_platform_wayland", false });
@@ -2424,6 +2425,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 qt_gui_desc.config.public_.features.insert({ "xkbcommon_evdev", false });
                 qt_gui_desc.config.public_.definitions.insert({ "QT_QPA_DEFAULT_PLATFORM_NAME", "\"cocoa\"" });
             }
+            set_apple_flags(gui);
             qt_gui_desc.print(gui);
 
             gui.Protected += "Carbon"_framework;
@@ -4303,6 +4305,57 @@ qt_qml_plugin_outro
             serialport.Protected += "UNICODE"_d;
             serialport += "Setupapi.lib"_slib;
         }
+    }
+
+    auto &qt5compat = add_subproject<Library>(qt, "5compat");
+    {
+        auto &t = qt5compat;
+        common_setup(t, "core5compat");
+        t += "src/core5/.*"_rr;
+        t -= "src/core5/doc/.*"_rr;
+        t -= "src/core5/codecs/qiconvcodec.cpp";
+        t -= "src/core5/codecs/qicucodec.cpp";
+        //t -= "src/core5/codecs/qtextcodec.cpp";
+        platform_files(t);
+        t += "QT_USE_FAST_OPERATOR_PLUS"_def;
+        t += "QT_USE_QSTRINGBUILDER"_def;
+        auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, t, { "QtCore5Compat" });
+        t.Public += gui, xml;
+        automoc(moc, t);
+
+        QtLibrary qt5compat_desc{
+            "QtCore5Compat",
+            // config
+            {
+                // public
+                {
+                    // features
+                    {
+                    }
+                },
+                // private
+                {
+                    // features
+                    {
+                        {"codecs", true},
+                        {"iconv", false},
+                        {"icu", false},
+                        {"textcodec", true},
+                    }
+                }
+            },
+            // deps
+            {
+                "QtGui",
+                "QtXml",
+            },
+        };
+        qt5compat_desc.print(t);
+        /*
+        exports_setup(bootstrap, "xml");
+        //bootstrap.writeFileOnce("QtXml/qtxmlexports.h");
+        bootstrap.writeFileOnce("QtXml/qtxml-config.h");
+        */
     }
 
     return;
