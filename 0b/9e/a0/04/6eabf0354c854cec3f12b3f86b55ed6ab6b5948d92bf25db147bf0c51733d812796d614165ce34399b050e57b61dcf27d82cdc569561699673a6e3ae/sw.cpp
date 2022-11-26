@@ -63,6 +63,9 @@ void build(Solution &s)
         cairo.Public += "CAIRO_HAS_XLIB_XRENDER_SURFACE=0"_d;
         cairo.Public += "CAIRO_HAS_XML_SURFACE=0"_d;
 
+        // without this clang-cl does not work - requires some builtin
+        cairo += "HAVE_UINT128_T=0"_d;
+
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             cairo.Public += "CAIRO_HAS_WIN32_FONT=1"_d;
@@ -107,8 +110,10 @@ void build(Solution &s)
         cairo.Public += "org.sw.demo.glennrp.png"_dep;
 
         cairo.writeFileOnce("cairo-features.h");
+        cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define access _access");
         cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define vsnprintf _vsnprintf");
         cairo.writeFileOnce(cairo.BinaryPrivateDir / "config.h");
+        cairo.pushFrontToFileOnce("src/cairo-ft-font.c", "#include <wchar.h>");
 
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
@@ -144,7 +149,7 @@ static SW_CAIRO_INITIALIZER ___________SW_CAIRO_INITIALIZER;
         cairo -= wi;
         if (cairo.getBuildSettings().TargetOS.Type == OSType::Windows
             && cairo.getBuildSettings().Native.LibrariesType == LibraryType::Static
-            && cairo.getCompilerType() == CompilerType::MSVC
+            && (cairo.getCompilerType() == CompilerType::MSVC || cairo.getCompilerType() == CompilerType::ClangCl)
             )
         {
             cairo += wi;
@@ -167,6 +172,7 @@ static SW_CAIRO_INITIALIZER ___________SW_CAIRO_INITIALIZER;
 void check(Checker &c)
 {
     auto &s = c.addSet("cairo");
+    s.checkFunctionExists("accept");
     s.checkFunctionExists("ctime_r");
     s.checkFunctionExists("dlsym");
     s.checkFunctionExists("XRenderCreateConicalGradient");
@@ -176,12 +182,14 @@ void check(Checker &c)
     s.checkIncludeExists("byteswap.h");
     s.checkIncludeExists("dlfcn.h");
     s.checkIncludeExists("inttypes.h");
+    s.checkIncludeExists("io.h");
     s.checkIncludeExists("stdint.h");
     s.checkIncludeExists("sys/int_types.h");
     s.checkIncludeExists("sys/ioctl.h");
     s.checkIncludeExists("sys/ipc.h");
     s.checkIncludeExists("sys/shm.h");
     s.checkIncludeExists("unistd.h");
+    s.checkIncludeExists("wchar.h");
     s.checkIncludeExists("X11/extensions/shmproto.h");
     s.checkIncludeExists("X11/extensions/shmstr.h");
     s.checkIncludeExists("X11/extensions/XShm.h");
@@ -189,10 +197,10 @@ void check(Checker &c)
     s.checkTypeSize("long");
     s.checkTypeSize("long long");
     s.checkTypeSize("size_t");
-    s.checkTypeSize("uint128_t");
+    //s.checkTypeSize("uint128_t");
+    //s.checkTypeSize("__uint128_t");
     s.checkTypeSize("uint64_t");
     s.checkTypeSize("void *");
-    s.checkTypeSize("__uint128_t");
     s.checkLibraryFunctionExists("bfd", "bfd_openr");
     s.checkLibraryFunctionExists("csi", "csi_stream_attachresource");
     s.checkLibraryFunctionExists("dl", "dlsym");
