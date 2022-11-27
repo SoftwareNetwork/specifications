@@ -1477,9 +1477,10 @@ void build(Solution &s)
     auto set_apple_flags = [](auto &t) {
         if (t.getBuildSettings().TargetOS.isApple()) {
             if (t.getBuildSettings().TargetOS.Arch != ArchType::aarch64) {
-                //t.CompileOptions.push_back("-mavx2");
-                t.CompileOptions.push_back("-march=x86-64-v3");
-                t.CompileOptions.push_back("-mf16c");
+                ////t.CompileOptions.push_back("-mavx2");
+                //t.CompileOptions.push_back("-march=x86-64-v3");
+                //t.CompileOptions.push_back("-mf16c");
+                t.CompileOptions.push_back("-march=native");
             }
         }
     };
