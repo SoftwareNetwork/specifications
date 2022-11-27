@@ -1437,6 +1437,10 @@ void build(Solution &s)
             sentence = "Core5Compat";
         if (custom_name == "WaylandClient")
             sentence = "WaylandClient";
+        if (custom_name == "webenginecore")
+            sentence = "WebEngineCore";
+        if (custom_name == "qmlmodels")
+            sentence = "QmlModels";
         auto upper = boost::to_upper_copy(name);
         //t += sw::ApiNameType{"Q_" + upper + "_EXPORT"};
         //t += sw::ApiNameType{"Q_" + upper + "_PRIVATE_EXPORT"};
@@ -1459,7 +1463,7 @@ void build(Solution &s)
     };
     auto common_setup = [&](auto &t, const String &custom_name = {}) {
         t += cpp20;
-        if (t.getCompilerType() == CompilerType::MSVC) {
+        if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
             // cpp17 + msvc requires /permissive-
             // when client app is built with cpp17, there will be build error
@@ -1562,7 +1566,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
         }
 
         auto mkspecs = [](auto &&t) {
-            if (t.getCompilerType() == CompilerType::MSVC) {
+            if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
                 if (t.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
                     t.Public += "mkspecs/win32-arm64-msvc"_idir;
                 } else {
@@ -2087,7 +2091,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
             d.d = "QT_VERSION_STR=\"" + core.getPackage().getVersion().toString() + "\"";
             core.Public += d;
 
-            core.Private += "QT_BUILD_CORE_LIB"_d;
             core.Interface += sw::Shared, "QT_NO_VERSION_TAGGING"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
             core.Protected += "QT_USE_QSTRINGBUILDER"_d;
@@ -2282,7 +2285,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             dbus += "DBUS_API_SUBJECT_TO_CHANGE"_def;
             dbus += "QDBUS_NO_SPECIALTYPES"_def;
 
-            dbus.Private += "QT_BUILD_DBUS_LIB"_d;
             dbus.Public += core;
 
             auto mocs = automoc(moc, dbus);
@@ -2356,9 +2358,14 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 //gui.CompileOptions.push_back("-march=haswell");
                 gui.CompileOptions.push_back("-march=native");
             }
+            if (gui.getCompilerType() == CompilerType::ClangCl) {
+                gui.CompileOptions.push_back("-msse4.1");
+                gui.CompileOptions.push_back("-mavx");
+                gui.CompileOptions.push_back("-mavx2");
+                gui.CompileOptions.push_back("-mf16c");
+            }
 
             //gui.Public += "src"_id;
-            gui.Private += "QT_BUILD_GUI_LIB"_d;
 
             gui.Public += "org.sw.demo.glennrp.png"_dep;
             gui += "org.sw.demo.mity.md4c"_dep;
@@ -2480,7 +2487,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "util/.*"_rr,
                 "widgets/.*"_rr;
 
-            widgets.Private += "QT_BUILD_WIDGETS_LIB"_d;
             if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 widgets.Public += "dwmapi.lib"_slib;
@@ -2780,7 +2786,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "."_id,
                 "kernel"_id;
 
-            network.Private += "QT_BUILD_NETWORK_LIB"_d;
             network += "QT_USE_QSTRINGBUILDER"_d;
             if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
@@ -2865,8 +2870,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "qvkconvenience.cpp"
             ;
 
-            opengl.Private += "QT_BUILD_OPENGL_LIB"_d;
-
             auto mocs = automoc(moc, opengl);
             SW_QT_ADD_MOC_DEPS(opengl);
 
@@ -2891,10 +2894,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "dom/qdom.*"_rr,
                 "qtxmlglobal.h"
                 ;
-
-            xml.Private += "QT_BUILD_XML_LIB"_d;
             xml.Public += core;
-
             qt_xml_desc.print(xml);
         }
 
@@ -2911,12 +2911,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "kernel/.*"_rr,
                 "models/.*"_rr
                 ;
-
-            sql.Private += "QT_BUILD_SQL_LIB"_d;
             sql.Public += core;
-
             qt_sql_desc.print(sql);
-
             auto mocs = automoc(moc, sql);
             SW_QT_ADD_MOC_DEPS(sql);
         }
@@ -3283,7 +3279,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             printsupport -=
                 "platform/.*"_rr
                 ;
-
             printsupport.Protected +=
                 "."_idir,
                 "dialogs"_idir,
@@ -3291,7 +3286,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "widgets"_idir
                 ;
 
-            printsupport.Private += "QT_BUILD_PRINTSUPPORT_LIB"_d;
             if (printsupport.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 printsupport += "platform/windows/.*"_rr;
@@ -3456,8 +3450,16 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
     NativeExecutedTarget *qml_imports_layouts, *qml_imports_window, *pquick;
     {
         auto &third_party = declarative.addDirectory("third_party");
-
         auto &qml = declarative.addLibrary("qml");
+
+        auto &integration = qml.addLibrary("integration");
+        {
+            common_setup(integration);
+            String module = "QtQmlIntegration";
+            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, integration, { module });
+            integration.SourceDir /= "src/qmlintegration";
+            integration.Public += core;
+        }
 
         auto &masm = third_party.addStaticLibrary("masm");
         {
@@ -3489,6 +3491,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             masm.Protected += "NOMINMAX"_d;
 
             masm.Public += core;
+            masm.Public += integration;
             (masm + qml)->IncludeDirectoriesOnly = true;
 
             if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -3584,7 +3587,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             //qml += "qml/jsapi"_idir;
             qml.Protected += "jsruntime"_idir;
 
-            qml += "QT_BUILD_QML_LIB"_d;
             qml.Protected += "QT_USE_QSTRINGBUILDER"_d;
 
             if (qml.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -3598,6 +3600,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             }
 
             qml += masm;
+            qml.Public += integration;
             qml.Public += network;
 
             qml.writeFileOnce("private/qml_compile_hash_p.h", R"xxx(
@@ -3663,16 +3666,12 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
         auto &qml_models = qml.addLibrary("models");
         {
-            common_setup(qml_models);
+            common_setup(qml_models, "qmlmodels");
             String module = "QtQmlModels";
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, qml_models, { module });
             qml_models.SourceDir /= "src/qmlmodels";
-
             qml_models += ".*"_r;
-            qml_models += "QT_BUILD_QMLMODELS_LIB"_def;
-
             qml_models.Public += qml;
-
             auto mocs = automoc(moc, qml_models);
             SW_QT_ADD_MOC_DEPS(qml_models);
 
@@ -3748,8 +3747,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             quick += "."_idir;
 
-            quick += "QT_BUILD_QUICK_LIB"_d;
-            quick += "M_PI=3.14159265358979323846"_d;
+            //quick += "M_PI=3.14159265358979323846"_d;
 
             if (quick.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
@@ -3914,7 +3912,6 @@ qt_qml_plugin_outro
         auto &t = svg;
 
         svg += "src/svg/[^/]*"_rr;
-        svg.Private += "QT_BUILD_SVG_LIB"_d;
         svg += "QT_USE_QSTRINGBUILDER"_d;
         svg.Public += gui;
         if (svg.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -4358,7 +4355,61 @@ qt_qml_plugin_outro
         */
     }
 
+
+    auto &webengine = add_subproject<Project>(qt, "webengine");
+    {
+        auto &core = webengine.addLibrary("core");
+        common_setup(core, "webenginecore");
+        core += "src/core/.*"_rr;
+        core -= "src/core/doc/.*"_rr;
+        core += "BUILDING_CHROMIUM"_def;
+        core.Public += "src/core"_idir;
+        core.Public += "src/core/api"_idir;
+        core.Public += "d:/dev/chromium/src"_idir;
+        core.Public += "d:/dev/chromium/src/out/ninja2/gen"_idir;
+        auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, core, { "QtWebEngineCore" });
+        core.Public += gui, network, *pquick;
+        automoc(moc, core);
+
+        QtLibrary webengine_core_desc{
+            "QtWebEngineCore",
+            // config
+            {
+                // public
+                {
+                    // features
+                    {
+                        {"webengine_webchannel", true},
+                        {"draganddrop", true},
+                        {"webengine_printing_and_pdf", true},
+                    }
+                },
+                // private
+                {
+                    // features
+                    {
+                    }
+                }
+            },
+            // deps
+            {
+                "QtGui",
+                "QtNetwork",
+            },
+        };
+        webengine_core_desc.print(core);
+    }
+
     return;
+
+    auto &webview = add_subproject<Library>(qt, "webview");
+    {
+        common_setup(webview);
+        webview += "src/webview/.*"_r;
+        auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, webview, { "QtWebView" });
+        webview.Public += gui;
+        automoc(moc, webview);
+    }
 
     auto &quickcontrols = add_subproject<Project>(qt, "quickcontrols");
     {

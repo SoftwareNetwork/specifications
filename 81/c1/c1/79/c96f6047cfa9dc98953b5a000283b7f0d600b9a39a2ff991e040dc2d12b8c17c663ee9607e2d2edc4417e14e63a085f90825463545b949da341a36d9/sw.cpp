@@ -40,6 +40,10 @@ void build(Solution &s)
         harfbuzz += "CoreGraphics"_framework;
         harfbuzz += "CoreText"_framework;
     }
+    if (harfbuzz.getCompilerType() == CompilerType::ClangCl)
+    {
+        //harfbuzz.CompileOptions.push_back("-w");
+    }
 
     harfbuzz.Public += "org.sw.demo.cairographics.cairo"_dep;
     harfbuzz.Public += "org.sw.demo.freetype"_dep;
@@ -53,6 +57,10 @@ void build(Solution &s)
 
     harfbuzz.configureFile("src/hb-version.h.in", "hb-version.h");
     harfbuzz.writeFileOnce(harfbuzz.BinaryPrivateDir / "config.h");
+    harfbuzz.patch("src/hb.hh",
+        "#if defined(__GNUC__) || defined(__clang__)",
+        "#if defined(__GNUC__) ||  (defined(__clang__) && !defined(_MSC_VER))"
+    );
 
     /*auto ragel = [&harfbuzz](const std::string &f)
     {
