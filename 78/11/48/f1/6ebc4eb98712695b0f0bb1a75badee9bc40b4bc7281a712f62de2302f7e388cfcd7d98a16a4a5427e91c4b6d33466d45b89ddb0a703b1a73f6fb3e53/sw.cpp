@@ -4360,6 +4360,7 @@ qt_qml_plugin_outro
     {
         auto &core = webengine.addLibrary("core");
         common_setup(core, "webenginecore");
+        core += cpp17;
         core += "src/core/.*"_rr;
         core -= "src/core/doc/.*"_rr;
         core += "BUILDING_CHROMIUM"_def;
