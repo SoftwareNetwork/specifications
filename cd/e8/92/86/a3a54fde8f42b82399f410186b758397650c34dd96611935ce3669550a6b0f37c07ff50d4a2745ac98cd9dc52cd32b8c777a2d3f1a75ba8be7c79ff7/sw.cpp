@@ -2193,7 +2193,10 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE4_1", "1" });
                 qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_SSE4_2", "1" });
                 qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_AVX", "1" });
-                qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_AVX2", "1" });
+                // github actions ci does not support avx2?
+                if (core.getBuildSettings().TargetOS.Type != OSType::Macos) {
+                    qt_core_desc.config.public_.definitions.insert({ "QT_COMPILER_SUPPORTS_AVX2", "1" });
+                }
             }
             qt_core_desc.config.public_.features.insert({"alloca_malloc_h", false});
 
