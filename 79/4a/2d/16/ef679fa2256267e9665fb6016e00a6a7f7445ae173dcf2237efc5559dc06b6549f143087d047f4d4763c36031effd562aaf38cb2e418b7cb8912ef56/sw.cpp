@@ -202,7 +202,6 @@ void build(Solution &s)
         vpx -= ".*mmx.*"_rr;
         vpx -= ".*.highbd.*"_rr;
 
-        vpx -= "vp8/vp8_ratectrl_rtc.cc";
         vpx -= "vp9/encoder/arm/neon/vp9_denoiser_neon.c";
         vpx -= "vp9/encoder/arm/neon/vp9_dct_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve_neon.c";
@@ -253,6 +252,7 @@ void build(Solution &s)
     }
     if (vpx.getBuildSettings().TargetOS.isApple())
     {
+        vpx -= "vp8/vp8_ratectrl_rtc.cc";
         vpx -= "vp9/ratectrl_rtc.cc";
     }
 
