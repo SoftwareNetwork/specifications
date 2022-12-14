@@ -1480,7 +1480,9 @@ void build(Solution &s)
                 ////t.CompileOptions.push_back("-mavx2");
                 //t.CompileOptions.push_back("-march=x86-64-v3");
                 //t.CompileOptions.push_back("-mf16c");
-                t.CompileOptions.push_back("-march=native");
+                if (t.getContext().getHostOs().Arch != ArchType::aarch64) {
+                    t.CompileOptions.push_back("-march=native");
+                }
             }
         }
     };
