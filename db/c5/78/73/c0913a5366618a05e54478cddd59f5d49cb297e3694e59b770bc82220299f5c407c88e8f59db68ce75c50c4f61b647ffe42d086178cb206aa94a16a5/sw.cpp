@@ -2215,7 +2215,7 @@ static const char qt_configure_prefix_path_str  [12+256] = "qt_prfxpath=.";
 static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArray)(
     R"qconfig(doc)qconfig",
     R"qconfig(include)qconfig",
-    R"qconfig(lib)qconfig",
+    R"qconfig(bin)qconfig", // was: lib, changed for linux
     R"qconfig(bin)qconfig",
     R"qconfig(bin)qconfig",
     R"qconfig(plugins)qconfig",
@@ -4361,7 +4361,6 @@ qt_qml_plugin_outro
         */
     }
 
-
     auto &webengine = add_subproject<Project>(qt, "webengine");
     {
         auto &core = webengine.addLibrary("core");
@@ -4372,8 +4371,8 @@ qt_qml_plugin_outro
         core += "BUILDING_CHROMIUM"_def;
         core.Public += "src/core"_idir;
         core.Public += "src/core/api"_idir;
-        core.Public += "d:/dev/chromium/src"_idir;
-        core.Public += "d:/dev/chromium/src/out/ninja2/gen"_idir;
+        //core.Public += "d:/dev/chromium/src"_idir;
+        //core.Public += "d:/dev/chromium/src/out/ninja2/gen"_idir;
         auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, core, { "QtWebEngineCore" });
         core.Public += gui, network, *pquick;
         automoc(moc, core);
