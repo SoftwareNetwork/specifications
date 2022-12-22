@@ -29,6 +29,7 @@ void build(Solution &s)
     }
 
     libharu.Public += "org.sw.demo.glennrp.png"_dep;
+    libharu += "LIBHPDF_HAVE_LIBPNG"_def;
     libharu.configureFile("include/hpdf_config.h.cmake", "hpdf_config.h");
 }
 
