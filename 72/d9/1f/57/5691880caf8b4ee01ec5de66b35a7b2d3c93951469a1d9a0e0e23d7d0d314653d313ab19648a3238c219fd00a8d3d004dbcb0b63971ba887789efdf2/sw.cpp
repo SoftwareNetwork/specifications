@@ -38,6 +38,11 @@ void build(Solution &s)
         t += "source/linux/.*"_rr;
         t += "source/s2n/.*"_r;
         t += "org.sw.demo.amazon.awslabs.s2n"_dep;
+        t += "USE_S2N=1"_def;
+    }
+    else
+    {
+        t += "USE_S2N=0"_def;
     }
     if (t.getBuildSettings().TargetOS.isApple()) {
         //t += "source/bsd/.*"_rr;

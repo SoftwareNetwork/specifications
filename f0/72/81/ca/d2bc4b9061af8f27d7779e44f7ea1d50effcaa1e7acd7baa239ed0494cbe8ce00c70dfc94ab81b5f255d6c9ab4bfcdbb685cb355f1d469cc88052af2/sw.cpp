@@ -19,5 +19,10 @@ void build(Solution &s)
     t.patch("api/s2n.h", "#    define S2N_API", "//#     define S2N_API");
     t.patch("utils/s2n_asn1_time.c", "__tm_gmtoff", "tm_gmtoff");
 
+    if (t.getBuildSettings().TargetOS.Type != OSType::Windows)
+    {
+        t += "pthread"_slib;
+    }
+
     t.Public += "org.sw.demo.openssl.crypto"_dep;
 }
