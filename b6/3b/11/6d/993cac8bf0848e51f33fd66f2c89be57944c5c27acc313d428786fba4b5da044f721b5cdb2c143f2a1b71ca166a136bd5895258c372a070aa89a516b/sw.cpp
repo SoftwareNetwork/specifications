@@ -169,6 +169,8 @@ void build(Solution &s)
 
     auto &port = pg.addStaticLibrary("port");
     {
+        port.setChecks("includes", true);
+
         port += "src/port/.*\\.[hc]"_r;
         port -= "src/port/.*armv8.*"_rr;
         port -= "src/port/pthread_barrier_wait.c";
@@ -187,8 +189,9 @@ void build(Solution &s)
             if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
                 port.CompileOptions.push_back("-msse4.2");
         }
-        else
+        if (port.getBuildSettings().TargetOS.is(OSType::Linux))
         {
+            port += "bsd"_slib;
         }
         if (port.getBuildSettings().TargetOS.isApple())
         {
@@ -388,7 +391,10 @@ void check(Checker &c)
     s.checkIncludeExists("sys/sem.h");
     s.checkIncludeExists("sys/shm.h");
     s.checkIncludeExists("sys/sockio.h");
+    s.checkIncludeExists("socket.h");
+    s.checkIncludeExists("sys/socket.h");
     s.checkIncludeExists("sys/tas.h");
+    s.checkIncludeExists("sys/types.h");
     s.checkIncludeExists("sys/ucred.h");
     s.checkIncludeExists("sys/uio.h");
     s.checkIncludeExists("sys/un.h");
@@ -396,6 +402,7 @@ void check(Checker &c)
     s.checkIncludeExists("termios.h");
     s.checkIncludeExists("ucred.h");
     s.checkIncludeExists("utime.h");
+    s.checkIncludeExists("unistd.h");
     //s.checkIncludeExists("uuid.h");
     //s.checkIncludeExists("uuid/uuid.h");
     s.checkIncludeExists("wchar.h");
