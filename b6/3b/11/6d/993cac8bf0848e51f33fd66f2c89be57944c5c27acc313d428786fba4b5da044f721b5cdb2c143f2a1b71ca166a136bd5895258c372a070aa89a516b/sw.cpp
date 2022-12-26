@@ -200,6 +200,7 @@ void build(Solution &s)
         }
         port.Protected += "src/port"_idir;
 
+        port += "STRERROR_R_INT"_def;
         port.Protected += "FRONTEND"_def;
 
         port.Protected += includes;
@@ -334,7 +335,7 @@ void check(Checker &c)
     s.checkFunctionExists("shm_open");
     s.checkFunctionExists("strchrnul");
     s.checkFunctionExists("strerror_r");
-    s.checkFunctionExists("strerror_r_int");
+    //s.checkFunctionExists("strerror_r_int");
     s.checkFunctionExists("strsignal");
     s.checkFunctionExists("strtoll");
     s.checkFunctionExists("strtoq");
