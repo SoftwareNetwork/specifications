@@ -25,6 +25,7 @@ void build(Solution &s)
         intl -= "gettext-runtime/intl/.*windows.*"_rr;
         intl.Public += "LOCALE_ALIAS_PATH=\"/etc/locale.alias\""_d;
     }
+    intl.Private += "_GNU_SOURCE"_d;
 
     //
     intl += "HAVE_STDINT_H_WITH_UINTMAX=1"_d;
@@ -265,7 +266,6 @@ void check(Checker &c)
     s.checkFunctionExists("tsearch");
     s.checkFunctionExists("wcrtomb");
     s.checkFunctionExists("stpcpy");
-    s.checkFunctionExists("mempcpy");
     s.checkIncludeExists("alloca.h");
     s.checkIncludeExists("argz.h");
     s.checkIncludeExists("direct.h");
@@ -275,6 +275,7 @@ void check(Checker &c)
     s.checkIncludeExists("limits.h");
     s.checkIncludeExists("pthread.h");
     s.checkIncludeExists("stdint.h");
+    s.checkIncludeExists("string.h");
     s.checkIncludeExists("sys/param.h");
     s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("wchar.h");

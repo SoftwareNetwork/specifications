@@ -20,6 +20,7 @@ void build(Solution &s)
     t.Public += "org.sw.demo.amazon.awslabs.c_event_stream"_dep;
     t.Public += "org.sw.demo.amazon.awslabs.c_mqtt"_dep;
     t.Public += "org.sw.demo.amazon.awslabs.c_s3"_dep;
+    t.Public += "org.sw.demo.amazon.awslabs.c_sdkutils"_dep;
 
     t.Variables["AWS_CRT_CPP_VERSION"] = t.Variables["PACKAGE_VERSION"];
     t.configureFile("include/aws/crt/Config.h.in", "aws/crt/Config.h");
