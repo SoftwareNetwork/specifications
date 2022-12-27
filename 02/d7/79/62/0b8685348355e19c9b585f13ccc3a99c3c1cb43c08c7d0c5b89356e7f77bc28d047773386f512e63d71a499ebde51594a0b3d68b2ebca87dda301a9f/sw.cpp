@@ -723,8 +723,12 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             else
             {
                 gio += "gio/kqueue/.*"_rr;
+                gio -= "gio/gcontenttype.c";
+                gio -= "gio/gdesktopappinfo.c";
                 gio -= "gio/.*networkmonitornetlink.*\\.c"_rr;
                 gio -= "gio/.*networkmonitornm.*\\.c"_rr;
+                gio += "CoreFoundation"_framework;
+                gio += "Cocoa"_framework;
                 gio.Variables["NAMESER_COMPAT_INCLUDE"] = "#include <arpa/nameser_compat.h>";
             }
             gio -= "gio/.*win32.*"_rr;
