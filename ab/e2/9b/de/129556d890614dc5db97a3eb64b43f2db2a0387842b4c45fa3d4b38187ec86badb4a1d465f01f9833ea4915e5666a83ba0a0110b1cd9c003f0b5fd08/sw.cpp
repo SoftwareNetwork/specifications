@@ -14,6 +14,11 @@ void build(Solution &s)
             << N
             << cmd::out(n + "/" + n + "-visibility.h")
             ;
+
+
+        //t.Private += sw::Shared, "DLL_EXPORT"_d;
+        t += Definition(N + "_COMPILATION");
+        t.Public += sw::Static, Definition(N + "_STATIC_COMPILATION");
     };
 
     auto &glib = p.addTarget<LibraryTarget>("glib");
@@ -62,7 +67,6 @@ void build(Solution &s)
 
         glib ^= "glib/glib-object.h";
 
-        glib.Private += "GLIB_COMPILATION"_d;
         glib += "STRERROR_R_CHAR_P"_def;
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
         glib.Public += "GLIB_BINARY_AGE=2"_d;
@@ -72,9 +76,6 @@ void build(Solution &s)
         glib.Protected += "_GNU_SOURCE"_def;
         glib.Public.Definitions["ALIGNOF_GUINT32"] += glib.Variables["ALIGNOF_UINT32_T"];
         glib.Public.Definitions["ALIGNOF_GUINT64"] += glib.Variables["ALIGNOF_UINT64_T"];
-
-        glib.Private += sw::Shared, "DLL_EXPORT"_d;
-        glib.Public += sw::Static, "GLIB_STATIC_COMPILATION"_d;
 
         glib.Public += "ENABLE_NLS"_def;
         glib.Public += "org.sw.demo.gnu.gettext.intl"_dep;
@@ -95,8 +96,8 @@ void build(Solution &s)
         glib.Variables["GLIB_MINOR_VERSION"] = glib.Variables["PACKAGE_VERSION_MINOR"];
         glib.Variables["GLIB_MICRO_VERSION"] = glib.Variables["PACKAGE_VERSION_PATCH"];
 
-        if (glib.getBuildSettings().Native.LibrariesType == LibraryType::Static)
-            glib.Variables["GLIB_WIN32_STATIC_COMPILATION_DEFINE"] = "#define GLIB_STATIC_COMPILATION 1";
+        //if (glib.getBuildSettings().Native.LibrariesType == LibraryType::Static)
+            //glib.Variables["GLIB_WIN32_STATIC_COMPILATION_DEFINE"] = "#define GLIB_STATIC_COMPILATION 1";
 
         if (glib.Variables["WORDS_BIGENDIAN"])
         {
@@ -495,10 +496,6 @@ HMODULE glib_dll;
 
         gobject += "glib/glib-object.h";
 
-        gobject.Private += "GOBJECT_COMPILATION"_d;
-        gobject.Private += sw::Shared, "DLL_EXPORT"_d;
-        gobject.Public += sw::Static, "GOBJECT_STATIC_COMPILATION"_d;
-
         gobject.Public += "org.sw.demo.libffi"_dep;
         gobject.Public += glib;
         gobject.writeFileOnce(gobject.BinaryPrivateDir / "config.h");
@@ -611,7 +608,6 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         gio += "gio/.*\\.[hcm]"_r;
         gio -= "gio/inotify/.*\\.[hc]"_r;
-        gio += "GIO_COMPILATION"_def;
         gio += "GLIB_RUNSTATEDIR=\".\""_def;
 
         gio -= "gio/gio-querymodules.c";
