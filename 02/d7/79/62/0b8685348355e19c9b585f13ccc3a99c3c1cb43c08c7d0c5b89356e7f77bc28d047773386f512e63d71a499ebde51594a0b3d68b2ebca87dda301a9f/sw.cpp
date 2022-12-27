@@ -262,8 +262,8 @@ void build(Solution &s)
         }
 
         glib.configureFile("glib/glibconfig.h.in", "glibconfig.h");
-        glib.writeFileOnce("glib/gversionmacros.h");
-        glib.writeFileOnce("glib/glib-visibility.h");
+
+        glib.pushFrontToFileOnce("glib/gwakeup.c", R"xxx(#include <stdint.h>)xxx");
 
         glib.writeFileOnce(glib.BinaryPrivateDir / "config.h", R"(
 #define _GL_INLINE_HEADER_BEGIN
@@ -570,6 +570,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         if (gmodule.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
+            gmodule += "gmodule/gmodule-deprecated.c";
             gmodule += "dl"_slib;
         }
 
@@ -714,6 +715,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         }
         else
         {
+            gio += "GLIB_LOCALSTATEDIR=\".\""_def;
             if (!glib.getBuildSettings().TargetOS.isApple())
             {
                 gio += "gio/inotify/.*\\.[hc]"_r;
@@ -744,6 +746,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 
         gio.writeFileOnce(gio.BinaryPrivateDir / "config.h");
+        gio.pushBackToFileOnce("gio/gio.h", "#include <gio/gsandbox.h>");
 
         gio.configureFile("gio/gnetworking.h.in", "gio/gnetworking.h");
 
