@@ -173,8 +173,7 @@ void build(Solution &s)
         glib.Variables["gssize_modifier"] = "\"l\"";
         glib.Variables["gsize_format"] = "\"lu\"";
         glib.Variables["gssize_format"] = "\"li\"";
-        glib.Variables["glib_msize_type"] = "LONG";
-
+        glib.Variables["glib_msize_type"] = "INT64";
         glib.Variables["gintbits"] = "32";
 
         if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
@@ -184,7 +183,6 @@ void build(Solution &s)
             glib.Variables["glongbits"] = "64";
             glib.Variables["glib_size_type_define"] = "long";
             glib.Variables["glib_intptr_type_define"] = "long";
-            glib.Variables["glib_msize_type"] = "LONG";
 
             glib.Variables["gintptr_modifier"] = "G_GINT64_MODIFIER";
             glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
@@ -214,7 +212,9 @@ void build(Solution &s)
         }
         else // win32
         {
-            glib.Variables["glib_msize_type"] = "INT64";
+            if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86) {
+                glib.Variables["glib_msize_type"] = "INT32";
+            }
             glib.Variables["g_pid_type"] = "void*";
             glib.CompileOptions.insert("/utf-8");
             glib.Variables["glongbits"] = "32";
@@ -609,7 +609,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
         gio += "subprojects/gvdb/.*"_rr;
         gio += "subprojects/gvdb"_idir;
 
-        gio += "gio/.*\\.[hc]"_r;
+        gio += "gio/.*\\.[hcm]"_r;
         gio -= "gio/inotify/.*\\.[hc]"_r;
         gio += "GIO_COMPILATION"_def;
         gio += "GLIB_RUNSTATEDIR=\".\""_def;
