@@ -209,7 +209,7 @@ auto &addCompiledBoostTarget(Solution &s, String name)
     t += "include/.*"_rr;
     t += "src/.*"_rr;
 
-    if (name == "fiber")
+    if (name == "fiber" || name == "coroutine")
         name += "s";
     auto N = boost::to_upper_copy(name);
     addPrivateDefinitions(t, N);
@@ -255,7 +255,6 @@ void build(Solution &s)
         "conversion",
         "convert",
         "core",
-        "coroutine",
         "coroutine2",
         "crc",
         "date_time",
@@ -451,7 +450,7 @@ void build(Solution &s)
         "container",
         "context",
         "contract",
-        //"coroutine",
+        "coroutine",
         //"exception", added below
         "fiber",
         "filesystem",
@@ -494,6 +493,14 @@ void build(Solution &s)
         (*boost_targets["atomic"])["src/find_address_sse41.cpp"].args.push_back("-mavx2");
     }
     *boost_targets["container"] -= "src/dlmalloc.*\\.c"_rr;
+    if (boost_targets["coroutine"]->getBuildSettings().TargetOS.Type != OSType::Windows && boost_targets["coroutine"]->getBuildSettings().TargetOS.Type != OSType::Mingw)
+    {
+        *boost_targets["coroutine"] -= "src/windows/.*"_rr;
+    }
+    else
+    {
+        *boost_targets["coroutine"] -= "src/posix/.*"_rr;
+    }
     if (boost_targets["graph"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["graph"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["graph"] += "User32.lib"_slib;
     // when not in cpp20 mode
