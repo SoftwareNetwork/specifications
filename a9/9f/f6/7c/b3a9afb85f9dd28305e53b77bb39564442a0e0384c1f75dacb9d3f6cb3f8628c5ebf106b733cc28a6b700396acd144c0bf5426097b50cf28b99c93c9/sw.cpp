@@ -255,6 +255,7 @@ void build(Solution &s)
         "conversion",
         "convert",
         "core",
+        "coroutine",
         "coroutine2",
         "crc",
         "date_time",
