@@ -93,6 +93,7 @@ void build(Solution &s)
 
             cairo += "CoreFoundation"_framework;
             cairo += "CoreGraphics"_framework;
+            cairo += "CoreText"_framework;
         }
         else
         {
