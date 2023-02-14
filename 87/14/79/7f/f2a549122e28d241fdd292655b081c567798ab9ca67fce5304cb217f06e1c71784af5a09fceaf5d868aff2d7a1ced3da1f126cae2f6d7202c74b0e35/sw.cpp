@@ -69,6 +69,7 @@ void build(Solution &s)
         t -=
             FileRegex("modules/" + name + "/src/.*avx.cpp", true),
             FileRegex("modules/" + name + "/src/.*avx2.cpp", true),
+            FileRegex("modules/" + name + "/src/.*lasx.cpp", true),
             FileRegex("modules/" + name + "/src/.*sse4_1.cpp", true),
             FileRegex("modules/" + name + "/src/.*avx512.*", true)
             ;
@@ -395,7 +396,7 @@ void build(Solution &s)
     current_project = &contrib;
 
     auto &aruco = add_target("aruco");
-    aruco.Public += calib3d;
+    aruco.Public += calib3d, objdetect;
 
     auto &bgsegm = add_target("bgsegm");
     bgsegm.Public += calib3d, video;
@@ -497,7 +498,7 @@ void build(Solution &s)
     optflow.Public += ximgproc;
 
     auto &text = add_target("text");
-    text.Public += imgproc, dnn, ml, "org.sw.demo.google.tesseract.libtesseract-master"_dep;
+    text.Public += imgproc, dnn, ml, "org.sw.demo.google.tesseract.libtesseract"_dep;
     text.writeFileOnce("text_config.hpp");
     text.Public += "HAVE_TESSERACT"_def;
 
