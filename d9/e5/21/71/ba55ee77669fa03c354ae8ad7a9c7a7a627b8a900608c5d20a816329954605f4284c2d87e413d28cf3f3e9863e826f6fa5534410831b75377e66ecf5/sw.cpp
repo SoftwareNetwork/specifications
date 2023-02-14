@@ -16,6 +16,7 @@ void build(Solution &s)
     {
         ext += "Utilities/gdcmext/.*"_rr;
         ext.Public += "Utilities"_id;
+        ext.Public += "org.sw.demo.gnu.iconv.libiconv"_dep;
     }
 
     auto &uuid = gdcm.addStaticLibrary("uuid");

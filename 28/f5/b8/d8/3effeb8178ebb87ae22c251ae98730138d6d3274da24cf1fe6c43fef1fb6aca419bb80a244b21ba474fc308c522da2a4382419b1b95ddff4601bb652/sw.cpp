@@ -5,7 +5,7 @@ void build(Solution &s)
 
     jasper += "JAS_EXPORT"_api;
     jasper.SourceDir /= "src/libjasper";
-    jasper.setChecks("jas");
+    jasper.setChecks("jas", true);
     jasper +=
         ".*\\.c"_rr,
         ".*\\.h"_rr,
@@ -23,6 +23,7 @@ void build(Solution &s)
 
     jasper.Variables["JAS_INCLUDE_BMP_CODEC"] = 1;
     jasper.Variables["JAS_INCLUDE_JPG_CODEC"] = 1;
+    jasper.Variables["JAS_INCLUDE_JPC_CODEC"] = 1;
 
     jasper.Variables["JAS_THREADS"] = 1;
     if (jasper.getBuildSettings().TargetOS.Type == OSType::Windows ||
@@ -38,6 +39,12 @@ void build(Solution &s)
 void check(Checker &c)
 {
     auto &s = c.addSet("jas");
+    s.checkFunctionExists("lseek");
+    s.checkFunctionExists("mkostemp");
+    s.checkFunctionExists("read");
+    s.checkFunctionExists("unlink");
+    s.checkFunctionExists("write");
+    s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("io.h");
     s.checkIncludeExists("fcntl.h");
     s.checkIncludeExists("sys/types.h");
