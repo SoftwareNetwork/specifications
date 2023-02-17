@@ -29,6 +29,7 @@ void build(Solution &s)
         if (abseil.getBuildSettings().TargetOS.is(OSType::Windows) || abseil.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
             abseil.Public += "NOMINMAX"_def;
+            abseil += "advapi32.lib"_slib;
             abseil += "Dbghelp.lib"_slib;
         }
         abseil += "CoreFoundation"_framework;
