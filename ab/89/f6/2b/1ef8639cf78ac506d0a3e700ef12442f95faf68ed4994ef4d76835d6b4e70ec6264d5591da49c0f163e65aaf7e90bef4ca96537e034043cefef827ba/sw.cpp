@@ -15,7 +15,7 @@ void build(Solution &s)
     };
 
     auto &cpp = p.addStaticLibrary("cpp");
-    cpp += cpp11;
+    cpp += cpp17;
     add_dir(cpp, "common");
     add_dir(cpp, "context");
     add_dir(cpp, "stats");
