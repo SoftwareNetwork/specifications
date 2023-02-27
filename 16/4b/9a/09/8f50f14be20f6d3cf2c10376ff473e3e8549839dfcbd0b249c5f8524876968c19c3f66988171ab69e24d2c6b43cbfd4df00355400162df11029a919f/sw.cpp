@@ -257,17 +257,20 @@ void build(Solution &s)
             imgcodecs += "org.sw.demo.OSGeo.gdal"_dep;
         }
 
+        //imgcodecs -= "modules/imgcodecs/src/apple_conversions.mm";
         imgcodecs -= "modules/imgcodecs/src/macosx_conversions.mm";
         imgcodecs -= "modules/imgcodecs/src/ios_conversions.mm";
         if (imgcodecs.getBuildSettings().TargetOS.isApple()) {
-            imgcodecs.Public += "Cocoa"_framework;
+            imgcodecs.Public += "CoreFoundation"_framework;
             imgcodecs.Public += "CoreGraphics"_framework;
             if (imgcodecs.getBuildSettings().TargetOS.Type == OSType::IOS) {
                 imgcodecs += "modules/imgcodecs/src/ios_conversions.mm";
                 imgcodecs.Public += "UIKit"_framework;
             } else {
+                //imgcodecs += "modules/imgcodecs/src/apple_conversions.mm";
                 imgcodecs += "modules/imgcodecs/src/macosx_conversions.mm";
                 imgcodecs.Public += "AppKit"_framework;
+                imgcodecs.Public += "Cocoa"_framework;
             }
         }
     }
@@ -346,9 +349,11 @@ void build(Solution &s)
             videoio += "modules/videoio/src/cap_msmf.cpp";
         }
         if (imgcodecs.getBuildSettings().TargetOS.isApple()) {
+            videoio.Public += "Foundation"_framework;
             videoio.Public += "AVFoundation"_framework;
             videoio.Public += "CoreMedia"_framework;
             videoio.Public += "CoreVideo"_framework;
+            videoio.Public += "QuartzCore"_framework;
             if (videoio.getBuildSettings().TargetOS.Type == OSType::IOS) {
                 videoio += "modules/videoio/src/cap_ios.*"_rr;
                 videoio += "modules/videoio/src/cap_avfoundation.mm";
