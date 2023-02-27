@@ -242,15 +242,22 @@ void build(Solution &s)
         imgcodecs += "HAVE_JASPER"_def;
         imgcodecs += "org.sw.demo.mdadams.jasper"_dep;
 
-        imgcodecs += "HAVE_OPENEXR"_def;
-        imgcodecs += "org.sw.demo.openexr.ilmimf"_dep;
+        imgcodecs -= "org.sw.demo.openexr.ilmimf"_dep;
+        if (imgcodecs.getBuildSettings().TargetOS.Type != OSType::IOS) {
+            imgcodecs += "HAVE_OPENEXR"_def;
+            imgcodecs += "org.sw.demo.openexr.ilmimf"_dep;
+        }
 
         imgcodecs += "HAVE_GDCM"_def;
         imgcodecs += "org.sw.demo.malaterre.gdcm.gdcm"_dep;
 
-        imgcodecs += "HAVE_GDAL"_def;
-        imgcodecs += "org.sw.demo.OSGeo.gdal"_dep;
+        imgcodecs -= "org.sw.demo.OSGeo.gdal"_dep;
+        if (imgcodecs.getBuildSettings().TargetOS.Type != OSType::IOS) {
+            imgcodecs += "HAVE_GDAL"_def;
+            imgcodecs += "org.sw.demo.OSGeo.gdal"_dep;
+        }
 
+        imgcodecs -= "modules/imgcodecs/src/macosx_conversions.mm";
         imgcodecs -= "modules/imgcodecs/src/ios_conversions.mm";
         if (imgcodecs.getBuildSettings().TargetOS.isApple()) {
             imgcodecs.Public += "Cocoa"_framework;
@@ -258,6 +265,9 @@ void build(Solution &s)
             if (imgcodecs.getBuildSettings().TargetOS.Type == OSType::IOS) {
                 imgcodecs += "modules/imgcodecs/src/ios_conversions.mm";
                 imgcodecs.Public += "UIKit"_framework;
+            } else {
+                imgcodecs += "modules/imgcodecs/src/macosx_conversions.mm";
+                imgcodecs.Public += "AppKit"_framework;
             }
         }
     }

@@ -100,7 +100,7 @@ void build(Solution &s)
         if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             libcurl.Public += "HAVE_GSSAPI"_d;
-            if (!libcurl.getBuildSettings().TargetOS.isApple())
+            //if (!libcurl.getBuildSettings().TargetOS.isApple())
                 libcurl.Public += "HAVE_GSSGNU"_d;
         }
         else
