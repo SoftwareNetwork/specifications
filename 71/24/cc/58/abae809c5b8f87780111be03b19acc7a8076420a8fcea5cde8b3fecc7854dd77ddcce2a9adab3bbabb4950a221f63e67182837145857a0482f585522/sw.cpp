@@ -1757,6 +1757,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
             d.d = "QT_VERSION_STR=\"" + bootstrap.getPackage().getVersion().toString() + "\"";
             bootstrap.Public += d;
 
+            //bootstrap += "QT_BUILD_BOOTSTRAP_LIB"_d;
+            //bootstrap += "QT_BUILD_CORE_LIB"_d;
             bootstrap.Public += "QT_BOOTSTRAPPED"_d;
             //bootstrap.Public += "QT_NO_QOBJECT"_d;
             bootstrap.Public += "QT_NO_CAST_FROM_ASCII"_d;
@@ -1858,7 +1860,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
             mkspecs(bootstrap);
 
-            bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
+            //bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
 
             /*bootstrap += "Q_CORE_EXPORT"_api;
             bootstrap += "Q_XML_EXPORT"_api;
