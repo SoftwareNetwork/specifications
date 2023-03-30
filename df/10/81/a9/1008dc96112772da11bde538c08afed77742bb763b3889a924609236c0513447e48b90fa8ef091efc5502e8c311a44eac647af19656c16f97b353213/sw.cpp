@@ -1,6 +1,6 @@
 #pragma sw header on
 
-#pragma sw require header org.sw.demo.google.protobuf.protoc-21
+#pragma sw require header org.sw.demo.google.protobuf.protoc
 
 static void gen_grpc_cpp(const DependencyPtr &protobuf_base, const DependencyPtr &grpc_cpp_plugin,
     NativeExecutedTarget &t, const path &f, const ProtobufData &data = {})
@@ -36,7 +36,7 @@ void build(Solution &s)
         upb -= "upb/fuzz/.*"_rr;
         upb -= "upb/conformance_upb.c";
         upb.Public += "."_idir;
-        //upb.Public += "org.sw.demo.google.protobuf.protobuf-21"_dep;
+        //upb.Public += "org.sw.demo.google.protobuf.protobuf"_dep;
         (upb + core)->IncludeDirectoriesOnly = true;
 
         auto &utf8_range = dupb.addStaticLibrary("utf8_range");
@@ -91,7 +91,7 @@ void build(Solution &s)
         t.Public += "."_id;
 
         t.Public += core;
-        t += "org.sw.demo.google.protobuf.protobuf-21"_dep;
+        t += "org.sw.demo.google.protobuf.protobuf"_dep;
     }
 
     auto &grpc_cpp_plugin = p.addExecutable("cpp.plugin");
@@ -101,7 +101,7 @@ void build(Solution &s)
         t += "src/compiler/cpp_plugin.cc";
         t += "src/compiler/proto_parser_helper.cc";
         t += grpc_plugin_support;
-        t += "org.sw.demo.google.protobuf.protoc_lib-21"_dep;
+        t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
     }
 
     auto &proto = p.addStaticLibrary("proto");
@@ -118,7 +118,7 @@ void build(Solution &s)
         {
             if (sf->skip)
                 continue;
-            gen_grpc_cpp("org.sw.demo.google.protobuf-21"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
+            gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
         }
     }
 
