@@ -1861,6 +1861,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             mkspecs(bootstrap);
 
             //bootstrap.patch("src/corelib/global/qconfig-bootstrapped.h", "#define QT_NO_DEPRECATED", "//#define  QT_NO_DEPRECATED");
+            //bootstrap.patch("src/corelib/tools/qhashfunctions.h", "#if QT_DEPRECATED_SINCE(6,6)", "#if 1");
 
             /*bootstrap += "Q_CORE_EXPORT"_api;
             bootstrap += "Q_XML_EXPORT"_api;
@@ -1934,6 +1935,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 uic.Public += "WIN32"_d;
             }
             uic.Public += bootstrap;
+
+            uic.patch("src/tools/uic/main.cpp", "qSetGlobalQHashSeed(0)", "QHashSeed::globalSeed()");
         }
 
         // qlalr
