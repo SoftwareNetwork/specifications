@@ -1617,6 +1617,14 @@ Q_IMPORT_PLUGIN()" + name + R"();
         {
             common_setup(bootstrap);
             {
+                bootstrap -=
+                    "src/3rdparty/blake2/.*"_rr,
+                    "src/3rdparty/md4/.*"_rr,
+                    "src/3rdparty/rfc6234/.*"_rr,
+                    "src/3rdparty/sha1/.*"_rr,
+                    "src/3rdparty/sha3/.*"_rr
+                    ;
+
                 bootstrap +=
                     "mkspecs/.*\\.h"_rr,
                     "src/3rdparty/sha1/sha1.cpp",
