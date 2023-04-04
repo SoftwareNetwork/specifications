@@ -4067,6 +4067,7 @@ qt_qml_plugin_outro
         {
             common_setup(formats);
             formats.SourceDir /= "src/linguist/shared";
+            formats += ".*\\.h"_rr;
             formats +=
                 "numerus.cpp",
                 "po.cpp",
@@ -4074,13 +4075,10 @@ qt_qml_plugin_outro
                 "qph.cpp",
                 "simtexth.*"_rr,
                 "translator.cpp",
-                "translator.h",
                 "translatormessage.cpp",
-                "translatormessage.h",
                 "ts.cpp",
                 "xliff.cpp",
-                "xmlparser.cpp",
-                "xmlparser.h"
+                "xmlparser.cpp"
                 ;
             formats += "QT_USE_QSTRINGBUILDER"_d;
 
