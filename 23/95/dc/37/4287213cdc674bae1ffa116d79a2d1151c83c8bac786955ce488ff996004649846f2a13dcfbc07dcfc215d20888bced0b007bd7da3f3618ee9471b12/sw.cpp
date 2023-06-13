@@ -25,7 +25,7 @@ void build(Solution &s)
         uv -= "src/win/.*"_rr;
         uv +=
             "src/unix/async.c",
-            "src/unix/atomic-ops.h",
+            //"src/unix/atomic-ops.h",
             "src/unix/core.c",
             "src/unix/dl.c",
             "src/unix/fs.c",
@@ -39,7 +39,7 @@ void build(Solution &s)
             "src/unix/process.c",
             "src/unix/random-devurandom.c",
             "src/unix/signal.c",
-            "src/unix/spinlock.h",
+            //"src/unix/spinlock.h",
             "src/unix/stream.c",
             "src/unix/tcp.c",
             "src/unix/thread.c",
@@ -71,12 +71,14 @@ void build(Solution &s)
             break;
         case OSType::Linux:
             uv +=
-                "src/unix/epoll.c",
-                "src/unix/linux-core.c",
-                "src/unix/linux-inotify.c",
-                "src/unix/linux-syscalls.c",
-                "src/unix/linux-syscalls.h",
+                //"src/unix/epoll.c",
+                //"src/unix/linux-core.c",
+                //"src/unix/linux-inotify.c",
+                //"src/unix/linux-syscalls.c",
+                //"src/unix/linux-syscalls.h",
+                "src/unix/linux.c",
                 "src/unix/proctitle.c",
+                "src/unix/random-devurandom.c",
                 "src/unix/random-getrandom.c",
                 "src/unix/random-sysctl-linux.c"
                 ;
