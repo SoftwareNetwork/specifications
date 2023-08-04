@@ -1479,7 +1479,8 @@ void build(Solution &s)
         //t.writeFileOnce("Qt" + sentence + "/private/qt" + lower + "exports_p.h");
     };
     auto common_setup = [&](auto &t, const String &custom_name = {}) {
-        t += cpp20;
+        //t += cpp20; // we still have issues with that
+        t += cpp17;
         if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
             // cpp17 + msvc requires /permissive-
@@ -3180,6 +3181,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 windows.Public += "Comdlg32.lib"_slib;
                 windows.Public += "D3d9.lib"_slib;
                 windows.Public += "Shlwapi.lib"_slib;
+                windows.Public += "Setupapi.lib"_slib;
                 //windows += "EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE=EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE"_d;
             }
 
