@@ -169,6 +169,7 @@ void build(Solution &s)
         add_dispatch_file(core, "mean");
         add_dispatch_file(core, "sum");
         add_dispatch_file(core, "merge");
+        add_dispatch_file(core, "has_non_zero");
 
         core.writeFileOnce("opencv_data_config.hpp",
             "#define OPENCV_INSTALL_PREFIX \"\"\n"
@@ -381,6 +382,9 @@ void build(Solution &s)
         dnn += "HAVE_PROTOBUF"_def;
         dnn += "OPENCV_DNN_EXTERNAL_PROTOBUF"_def;
         add_dispatch_file(dnn, "layers/layers_common");
+        add_dispatch_file(dnn, "layers/cpu_kernels/conv_block");
+        add_dispatch_file(dnn, "layers/cpu_kernels/conv_winograd_f63");
+        add_dispatch_file(dnn, "layers/cpu_kernels/conv_depthwise");
         add_dispatch_file(dnn, "int8layers/layers_common");
 
         for (auto &f : enumerate_files_like(dnn.SourceDir / "modules/dnn/src", ".*\\.proto", true))
@@ -467,6 +471,7 @@ void build(Solution &s)
     auto &xfeatures2d = add_target("xfeatures2d");
     {
         xfeatures2d.Public += features2d;
+        xfeatures2d += "OPENCV_XFEATURES2D_HAS_VGG_DATA"_def;
 
         if (!s.DryRun)
         {

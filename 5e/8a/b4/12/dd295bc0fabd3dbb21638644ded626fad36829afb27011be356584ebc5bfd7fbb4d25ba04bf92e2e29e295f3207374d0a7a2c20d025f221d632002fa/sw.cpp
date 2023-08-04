@@ -18,6 +18,7 @@ void build(Solution &s)
     p += Git("https://github.com/skvadrik/re2c", "{M}.{m}{po}");
 
     auto &libre2c = p.addStaticLibrary("libre2c");
+    libre2c += cpp14;
     libre2c.SourceDir /= "libre2c_old";
     libre2c += "libre2c/.*"_rr;
     if (libre2c.getBuildSettings().TargetOS.Arch == ArchType::x86)
@@ -33,6 +34,7 @@ void build(Solution &s)
     auto &re2c = p.addExecutable("re2c");
     re2c.PackageDefinitions = true;
     re2c.setChecks("re2c", true);
+    re2c += cpp14;
     re2c += "bootstrap/src/.*"_rr;
     re2c += "src/.*"_rr;
     re2c -= "src/test/.*"_rr;

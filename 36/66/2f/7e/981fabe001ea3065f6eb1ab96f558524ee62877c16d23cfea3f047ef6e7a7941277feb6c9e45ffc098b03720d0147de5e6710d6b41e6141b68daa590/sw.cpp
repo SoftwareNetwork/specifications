@@ -26,6 +26,7 @@ void build(Solution &s)
 
         t += "alg/.*"_r;
         t += "alg/marching_squares/.*"_r;
+        t -= "alg/polygonize_polygonizer.cpp";
         t += "alg/marching_squares"_idir;
         t.Public += "alg"_idir;
 
@@ -73,6 +74,7 @@ void build(Solution &s)
             add_frmt("frmts/hfa");
             add_frmt("frmts/mem");
             add_frmt("frmts/png");
+            t -= "frmts/png/filter_sse2_intrinsics.c";
             t += "org.sw.demo.glennrp.png"_dep;
             add_frmt("frmts/vrt");
 
