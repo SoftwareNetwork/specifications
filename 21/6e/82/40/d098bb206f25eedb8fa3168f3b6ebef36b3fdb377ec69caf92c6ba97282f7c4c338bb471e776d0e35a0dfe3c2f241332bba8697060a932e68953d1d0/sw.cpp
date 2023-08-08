@@ -14,6 +14,8 @@ void build(Solution &s)
     vpx.ExportAllSymbols = true;
     vpx.setChecks("vpx");
 
+    vpx += c99;
+
     vpx +=
         "third_party/x86inc/x86inc.asm",
         "vp8/.*"_rr,
@@ -206,6 +208,7 @@ void build(Solution &s)
         vpx -= "vp9/encoder/arm/neon/vp9_dct_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve8_neon.c";
+        vpx -= "vpx_dsp/arm/subpel_variance_neon.c";
     }
     else
     {
