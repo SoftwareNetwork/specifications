@@ -178,18 +178,30 @@ void build(Solution &s)
     if (vpx.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
     {
         vpx.Variables["ARCH_X86_64"] = 1;
-        if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows) {
             vpx.Variables["asm"] = "win64";
-        else if (vpx.getBuildSettings().TargetOS.isApple()) {
+            //vpx.CompileOptions.push_back("/arch:);
+        } else if (vpx.getBuildSettings().TargetOS.isApple()) {
             vpx.Variables["asm"] = "macho";
             for (auto &&[p,f] : vpx[".*\\.cc?"_rr]) {
                 f->args.push_back("-mavx2");
             }
             vpx -= "vp8/common/x86/loopfilter_x86.c";
             vpx -= "vp9/encoder/x86/vp9_dct_intrin_sse2.c";
-        } else
+        } else {
             vpx.Variables["asm"] = "elf64";
+            for (auto &&[p,f] : vpx[".*\\.cc?"_rr]) {
+                f->args.push_back("-mavx2");
+            }
+            vpx -=
+                "vp9/encoder/x86/vp9_dct_intrin_sse2.c",
+                "vp8/common/x86/loopfilter_x86.c",
+                "vpx_dsp/x86/subtract_avx2.c"
+                ;
+            vpx += "pthread"_slib;
+        }
         arch = "x64";
+        //vpx -= "vpx_dsp/x86/subtract_avx2.c";
     }
     else if (vpx.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
     {

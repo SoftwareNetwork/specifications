@@ -34,6 +34,7 @@ void build(Solution &s)
 
     opus.Private += "OPUS_BUILD"_d;
     opus.Private += "USE_ALLOCA"_d;
+    opus.Private += "CPU_INFO_BY_C"_d;
 
     opus.replaceInFileOnce("silk/sort.c", "#ifdef FIXED_POINT", "#if 1");
     opus.replaceInFileOnce("silk/x86/x86_silk_map.c", "#if defined(FIXED_POINT)", "#if 1");
