@@ -188,6 +188,7 @@ void build(Solution &s)
             }
             vpx -= "vp8/common/x86/loopfilter_x86.c";
             vpx -= "vp9/encoder/x86/vp9_dct_intrin_sse2.c";
+            vpx -= "vpx_dsp/x86/subtract_avx2.c";
         } else {
             vpx.Variables["asm"] = "elf64";
             for (auto &&[p,f] : vpx[".*\\.cc?"_rr]) {
@@ -201,7 +202,6 @@ void build(Solution &s)
             vpx += "pthread"_slib;
         }
         arch = "x64";
-        //vpx -= "vpx_dsp/x86/subtract_avx2.c";
     }
     else if (vpx.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
     {
