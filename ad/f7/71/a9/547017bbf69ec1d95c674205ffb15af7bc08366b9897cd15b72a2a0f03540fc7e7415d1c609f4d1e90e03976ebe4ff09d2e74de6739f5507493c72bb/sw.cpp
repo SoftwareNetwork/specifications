@@ -22,8 +22,8 @@ void build(Solution &s)
         "dx11",
         "dx12",
         "win32",
-        "sdl",
-        "emscripten_sdl",
+        "sdl2",
+        "emscripten_sdl2",
         "osx",
         "glfw",
         "emscripten_glfw",
@@ -36,9 +36,12 @@ void build(Solution &s)
         })
     {
         auto &t = imgui.addStaticLibrary("backend." + b);
-        bool emscripten = b == "emscripten_sdl" || b == "emscripten_glfw";
-        if (emscripten)
-            b = "sdl";
+        bool emscripten_sdl2 = b == "emscripten_sdl2";
+        if (emscripten_sdl2)
+            b = "sdl2";
+        bool emscripten_glfw = b == "emscripten_glfw";
+        if (emscripten_glfw)
+            b = "glfw";
         t += "IMGUI_API"_api;
         t += FileRegex("backends", "imgui_impl_" + b + ".*", false);
         t.Public += IncludeDirectory("backends"s);
@@ -60,19 +63,19 @@ void build(Solution &s)
             t.Public += "org.sw.demo.find.opengl-master"_dep;
             t.Public += "org.sw.demo.glew"_dep;
         }
-        else if (b == "glfw" && !emscripten)
+        else if (b == "glfw" && !emscripten_glfw)
         {
             t.Public += "org.sw.demo.glfw"_dep;
         }
-        else if (b == "glfw" && emscripten)
+        else if (b == "glfw" && emscripten_glfw)
         {
             //t.Public += "org.sw.demo.glfw"_dep;
         }
-        else if (b == "sdl" && !emscripten)
+        else if (b == "sdl2" && !emscripten_sdl2)
         {
-            t.Public += "org.sw.demo.valve.sdl"_dep;
+            t.Public += "org.sw.demo.valve.sdl-2"_dep;
         }
-        else if (b == "sdl" && emscripten)
+        else if (b == "sdl2" && emscripten_sdl2)
         {
             //t.Public += "org.sw.demo.valve.sdl"_dep;
         }
