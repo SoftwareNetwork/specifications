@@ -4,6 +4,10 @@ void build(Solution &s)
     sdl += Git("https://github.com/libsdl-org/SDL", "release-{v}");
     {
         sdl.ApiName = "DECLSPEC";
+        //sdl.Public += sw::Shared, "DLL_EXPORT";
+        sdl.Public += "SDL_DYNAMIC_API=0"_def;
+        sdl.patch("src/dynapi/SDL_dynapi.h", "#error", "//# error");
+
         sdl -=
             "include/.*"_rr,
             "src/.*"_rr
