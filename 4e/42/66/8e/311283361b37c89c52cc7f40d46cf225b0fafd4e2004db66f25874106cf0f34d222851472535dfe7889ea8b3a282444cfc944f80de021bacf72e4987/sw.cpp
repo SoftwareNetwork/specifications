@@ -33,6 +33,7 @@ void build(Solution &s)
             abseil.Public += "NOMINMAX"_def;
             abseil += "advapi32.lib"_slib;
             abseil += "Dbghelp.lib"_slib;
+            abseil += "com.Microsoft.Windows.SDK.winrt"_dep;
         }
         abseil += "CoreFoundation"_framework;
     }
