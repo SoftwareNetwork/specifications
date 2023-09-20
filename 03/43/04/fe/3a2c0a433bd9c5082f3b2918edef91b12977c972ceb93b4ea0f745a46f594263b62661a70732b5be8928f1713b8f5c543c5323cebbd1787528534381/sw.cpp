@@ -7,7 +7,11 @@ void build(Solution &s)
     t += "sdk/include/.*"_rr;
     t += "sdk/src/.*"_rr;
 
-    t -= "sdk/src/common/platform/fork_unix.cc";
+    if (t.getBuildSettings().TargetOS.is(OSType::Windows)) {
+        t -= "sdk/src/common/platform/fork_unix.cc";
+    } else {
+        t -= "sdk/src/common/platform/fork_windows.cc";
+    }
 
     t.Public += "api/include"_idir;
     t += "sdk/include"_idir;

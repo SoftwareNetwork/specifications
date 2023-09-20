@@ -47,6 +47,9 @@ void build(Solution &s)
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t -= "src/core/ext/upb-generated/.*"_rr;
+        t += "src/core/ext/upb-generated/google/.*"_rr;
+        t += "src/core/ext/upb-generated/src/.*"_rr;
+        t += "src/core/ext/upb-generated/xds/.*"_rr;
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             //t.Public += "_WIN32_WINNT=0x0601"_def;
@@ -183,6 +186,7 @@ void build(Solution &s)
         t += "src/cpp/.*"_rr;
         t -= "src/cpp/common/insecure_create_auth_context.cc";
         t -= "src/cpp/ext/gcp.*"_rr;
+        //t -= "src/cpp/ext/gcp/observability.*"_rr;
         t -= "src/cpp/ext/otel.*"_rr;
         t -= "src/cpp/ext/gsm.*"_rr;
 
