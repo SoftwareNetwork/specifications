@@ -259,7 +259,7 @@ void check(Checker &c)
     s.checkTypeSize("sig_atomic_t");
     s.checkTypeSize("size_t");
     s.checkTypeSize("socket");
-    s.checkTypeSize("socklen_t");
+    s.checkTypeSize("socklen_t").Parameters.Includes.push_back("sys/socket.h");
     s.checkTypeSize("ssize_t");
     s.checkTypeSize("struct addrinfo");
     s.checkTypeSize("struct in6_addr");
