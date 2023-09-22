@@ -202,6 +202,7 @@ void build(Solution &s)
             "src/google/protobuf/io/zero_copy_sink.cc",
             "src/google/protobuf/map.cc",
             "src/google/protobuf/message_lite.cc",
+            "src/google/protobuf/port.cc",
             "src/google/protobuf/parse_context.cc",
             "src/google/protobuf/raw_ptr.cc",
             "src/google/protobuf/repeated_field.cc",
