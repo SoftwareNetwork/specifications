@@ -221,6 +221,9 @@ void build(Solution &s)
         vpx -= "vpx_dsp/arm/vpx_convolve_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve8_neon.c";
         vpx -= "vpx_dsp/arm/subpel_variance_neon.c";
+        if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            vpx.patch("vp9/encoder/arm/neon/vp9_diamond_search_sad_neon.c", "__attribute__((aligned(16)))", "");
+        }
     }
     else
     {
