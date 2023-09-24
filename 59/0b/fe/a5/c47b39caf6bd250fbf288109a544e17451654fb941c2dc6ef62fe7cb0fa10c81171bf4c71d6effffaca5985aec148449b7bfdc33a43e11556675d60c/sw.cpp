@@ -35,6 +35,7 @@ void build(Solution &s)
         upb -= "upb/conformance/.*"_rr;
         upb -= "upb/reflection/stage0/google/protobuf/descriptor.upb.c";
         upb.Public += "."_idir;
+        upb += "upb/reflection/stage0"_idir;
         //upb.Public += "org.sw.demo.google.protobuf.protobuf"_dep;
         (upb + core)->IncludeDirectoriesOnly = true;
         upb.Public += "org.sw.demo.google.protocolbuffers.utf8_range-main"_dep;
@@ -46,7 +47,7 @@ void build(Solution &s)
         t += cppstd;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
-        //t -= "src/core/ext/upb-generated/.*"_rr;
+        t += "src/core/ext/upb-generated/.*"_rr;
         /*t += "src/core/ext/upb-generated/google/.*"_rr;
         t += "src/core/ext/upb-generated/src/.*"_rr;
         t += "src/core/ext/upb-generated/xds/.*"_rr;
@@ -148,7 +149,7 @@ void build(Solution &s)
         auto &t = core_ext;
         t += cppstd;
         t += "src/core/ext/.*"_rr;
-        //t -= "src/core/ext/upb-generated/.*"_rr;
+        t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
         //t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
         //t -= "src/core/ext/filters/load_reporting/.*"_rr;
