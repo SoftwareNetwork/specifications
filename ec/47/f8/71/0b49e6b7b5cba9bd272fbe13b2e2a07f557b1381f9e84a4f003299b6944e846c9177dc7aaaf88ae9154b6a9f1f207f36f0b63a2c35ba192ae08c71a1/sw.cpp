@@ -4,6 +4,7 @@ void build(Solution &s)
     re2 += Git("https://github.com/google/re2", "{M}-{m:02}-{p:02}");
 
     re2 += cpp14;
+    re2.ExportAllSymbols = true;
     re2.ImportFromBazel = true;
     re2.BazelTargetName = "re2";
     re2.Public += "."_idir;
