@@ -5,6 +5,7 @@ void build(Solution &s)
 
     {
         auto &t = abseil;
+        //t.ExportAllSymbols = true;
         t += cpp17;
         SwapAndRestore sr(t.SourceDir, t.SourceDir / "absl");
         t += ".*\\.cc"_rr;

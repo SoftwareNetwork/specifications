@@ -46,10 +46,12 @@ void build(Solution &s)
         t += cppstd;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
-        t -= "src/core/ext/upb-generated/.*"_rr;
-        t += "src/core/ext/upb-generated/google/.*"_rr;
+        //t -= "src/core/ext/upb-generated/.*"_rr;
+        /*t += "src/core/ext/upb-generated/google/.*"_rr;
         t += "src/core/ext/upb-generated/src/.*"_rr;
         t += "src/core/ext/upb-generated/xds/.*"_rr;
+        t += "src/core/ext/upb-generated/envoy/.*"_rr;
+        t += "src/core/ext/upb-generated/udpa/.*"_rr;*/
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             //t.Public += "_WIN32_WINNT=0x0601"_def;
@@ -63,6 +65,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.nanopb"_dep;
         t.Public += "org.sw.demo.google.abseil"_dep;
         t.Public += "org.sw.demo.opentelemetry"_dep;
+        t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += upb;
 
         t.patch("include/grpc/impl/codegen/port_platform.h",
@@ -145,10 +148,10 @@ void build(Solution &s)
         auto &t = core_ext;
         t += cppstd;
         t += "src/core/ext/.*"_rr;
-        t -= "src/core/ext/upb-generated/.*"_rr;
+        //t -= "src/core/ext/upb-generated/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
         //t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
-        t -= "src/core/ext/filters/load_reporting/.*"_rr;
+        //t -= "src/core/ext/filters/load_reporting/.*"_rr;
         t += "third_party/objective_c/Cronet/.*\\.h"_rr;
 
         t += "GRPC_ARES"_def;
@@ -160,7 +163,6 @@ void build(Solution &s)
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.Cyan4973.xxHash"_dep;
         t.Public += "org.sw.demo.c_ares"_dep;
-        t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
         (core_plugin_registry + core_ext)->IncludeDirectoriesOnly = true;
