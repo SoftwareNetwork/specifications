@@ -2228,6 +2228,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "backtrace", false });
                 qt_core_desc.config.public_.features.insert({ "permissions", true });
                 qt_core_desc.config.private_.features.insert({ "icu", false });
+                qt_core_desc.config.public_.features.insert({ "poll_exit_on_error", false });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Linux) {
                 qt_core_desc.config.public_.features.insert({ "getauxval", true });
