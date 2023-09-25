@@ -2226,7 +2226,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "forkfd_pidfd", true });
                 qt_core_desc.config.public_.features.insert({ "fontconfig", true });
                 qt_core_desc.config.public_.features.insert({ "backtrace", false });
-                qt_core_desc.config.public_.features.insert({ "permissions", true });
+                core -= "kernel/qpermissions.*"_rr;
+                qt_core_desc.config.public_.features.insert({ "permissions", false });
                 qt_core_desc.config.private_.features.insert({ "icu", false });
                 qt_core_desc.config.public_.features.insert({ "poll_exit_on_error", false });
             }
@@ -2429,6 +2430,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui += "platform/unix/.*"_rr;
                 gui += "opengl/platform/.*"_rr;
                 gui += "text/unix/.*"_rr;
+                //gui.Public += "QWindow=QWaylandWindow"_def;
+                gui.patch("kernel/qplatformwindow_p.h", "#include <QtGui/private/qtguiglobal_p.h>", "#include <qwindow.h>\n#include  <QtGui/private/qtguiglobal_p.h>");
                 //gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
                 //gui -= "platform/unix/qxkbcommon.cpp";
                 gui.Public += "xkbcommon"_slib;
@@ -2482,6 +2485,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 qt_gui_desc.config.public_.features.insert({ "eglfs_viv", false });
                 qt_gui_desc.config.public_.features.insert({ "eglfs_viv_wl", false });
 
+                //gui -= "platform/unix/qtx11extras.cpp";
                 qt_gui_desc.config.public_.features.insert({ "xcb", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_xlib", true });
                 qt_gui_desc.config.public_.features.insert({ "xcb_sm", false });
@@ -3401,6 +3405,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             {
                 qt_printsupport_desc.config.public_.features.insert({ "cups", true });
                 qt_printsupport_desc.config.public_.features.insert({ "cupsjobwidget", true });
+                qt_printsupport_desc.config.public_.features.insert({ "cupspassworddialog", true });
             }
             if (printsupport.getBuildSettings().TargetOS.isApple())
             {
@@ -4290,24 +4295,11 @@ qt_qml_plugin_outro
             f("QtWaylandClient");
             f("QtWaylandGlobal");
 
-            for (auto &&f : {
-                "src/3rdparty/protocol/pointer-gestures-unstable-v1.xml",
-                "src/3rdparty/protocol/tablet-unstable-v2.xml",
-                "src/3rdparty/protocol/text-input-unstable-v1.xml",
-                "src/3rdparty/protocol/text-input-unstable-v2.xml",
-                "src/3rdparty/protocol/text-input-unstable-v4-wip.xml",
-                "src/3rdparty/protocol/wayland.xml",
-                "src/3rdparty/protocol/wp-primary-selection-unstable-v1.xml",
-                "src/3rdparty/protocol/xdg-activation-v1.xml",
-                "src/3rdparty/protocol/xdg-output-unstable-v1.xml",
-                "src/extensions/qt-key-unstable-v1.xml",
-                "src/extensions/qt-text-input-method-unstable-v1.xml",
-                "src/extensions/qt-windowmanager.xml",
-                "src/extensions/surface-extension.xml",
-                "src/extensions/touch-extension.xml",
-                "src/extensions/hardware-integration.xml",
-                "src/extensions/server-buffer-extension.xml",
-            }) {
+            for (auto &&[f,_] : client["src/3rdparty/protocol/.*xml"_rr]) {
+                generate_wayland_protocol_client_sources(client, f, "QtWaylandClient/private");
+                generate_wayland_protocol_client_sources(client, f, "");
+            }
+            for (auto &&[f,_] : client["src/extensions/.*xml"_rr]) {
                 generate_wayland_protocol_client_sources(client, f, "QtWaylandClient/private");
                 generate_wayland_protocol_client_sources(client, f, "");
             }
