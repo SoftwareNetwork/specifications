@@ -214,12 +214,12 @@ void build(Solution &s)
         }
     };
 
-    auto &protobuf_lite = p.addTarget<LibraryTarget>("protobuf_lite");
+    auto &protobuf_lite = p.addTarget<StaticLibraryTarget>("protobuf_lite");
     {
         protobuf_lite += cppstd;
         //protobuf_lite.ImportFromBazel = true;
-        if (!win_or_mingw(protobuf_lite))
-            protobuf_lite.ExportAllSymbols = true;
+        //if (!win_or_mingw(protobuf_lite))
+            //protobuf_lite.ExportAllSymbols = true;
         protobuf_lite += "src/google/protobuf/.*\\.h"_rr;
         protobuf_lite += "src/google/protobuf/.*\\.inc"_rr;
         lite_sources([&](auto &&fn) { protobuf_lite += fn; });
@@ -236,7 +236,7 @@ void build(Solution &s)
         protobuf_lite.Public += "org.sw.demo.google.protocolbuffers.utf8_validity-main"_dep;
     }
 
-    auto &protobuf = p.addTarget<LibraryTarget>("protobuf");
+    auto &protobuf = p.addTarget<StaticLibraryTarget>("protobuf");
     {
         protobuf += cppstd;
         //protobuf.ImportFromBazel = true;
@@ -286,9 +286,9 @@ void build(Solution &s)
             "src/google/protobuf/wrappers.pb.cc"
             ;
         lite_sources([&](auto &&fn) { protobuf -= fn; });
-        if (!win_or_mingw(protobuf))
-            protobuf.ExportAllSymbols = true;
-        else
+        //if (!win_or_mingw(protobuf))
+            //protobuf.ExportAllSymbols = true;
+        //else
             lite_sources([&](auto &&fn) { protobuf += fn; });
         protobuf.Private += sw::Shared, "LIBPROTOBUF_EXPORTS"_d;
         protobuf.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
@@ -303,7 +303,7 @@ void build(Solution &s)
         protobuf.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
     }
 
-    auto &protoc_lib = p.addTarget<LibraryTarget>("protoc_lib");
+    auto &protoc_lib = p.addTarget<StaticLibraryTarget>("protoc_lib");
     {
         protoc_lib += cppstd;
         //protoc_lib.ImportFromBazel = true;
@@ -328,8 +328,8 @@ void build(Solution &s)
             protoc_lib -= FileRegex{"src/google/protobuf/compiler/"s + l + "/", ".*test.cc", true};
             protoc_lib.AllowEmptyRegexes = false;
         }
-        if (!win_or_mingw(protoc_lib))
-            protoc_lib.ExportAllSymbols = true;
+        //if (!win_or_mingw(protoc_lib))
+            //protoc_lib.ExportAllSymbols = true;
         protoc_lib.Private += sw::Shared, "LIBPROTOC_EXPORTS"_d;
         protoc_lib.Public += sw::Shared, "PROTOBUF_USE_DLLS"_d;
         protoc_lib.Public += protobuf;
