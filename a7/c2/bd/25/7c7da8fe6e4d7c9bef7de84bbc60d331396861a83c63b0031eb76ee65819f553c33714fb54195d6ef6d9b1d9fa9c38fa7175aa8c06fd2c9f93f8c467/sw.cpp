@@ -2630,21 +2630,9 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             if (widgets.getBuildSettings().TargetOS.Type == OSType::Macos)
             {
-                //widgets -= "dialogs/qwizard.cpp";
-                //widgets.add("dialogs/qwizard.cpp", ".mm");
-                if (!widgets.DryRun)
+                if (auto f = widgets["dialogs/qwizard.cpp"].as<NativeSourceFile*>())
                 {
-                    /*if (fs::exists(widgets.SourceDir / "dialogs/qwizard.cpp"))
-                    {
-                        fs::copy_file(widgets.SourceDir / "dialogs/qwizard.cpp", widgets.SourceDir / "dialogs/qwizard.mm");
-                        fs::remove(widgets.SourceDir / "dialogs/qwizard.cpp");
-                    }*/
-                    //auto f = read_file(widgets.SourceDir / "dialogs/qwizard.cpp");
-                    //write_file_if_different(widgets.BinaryDir / "qwizard.mm", f);
-                    //widgets += "qwizard.mm";
-                    //auto c = widgets.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file));
-                    //c << cmd::in("dialogs/qwizard.cpp");
-                    //c << cmd::out("qwizard.mm");
+                    f->BuildAs = NativeSourceFile::ObjCPP;
                 }
             }
 
