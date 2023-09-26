@@ -327,7 +327,7 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const Files &
 
 struct RccData
 {
-    std::unordered_map<path, String /* alias */> files;
+    std::map<path, String /* alias */> files;
     String name;
     String prefix;
     String base; // unused for now
@@ -337,11 +337,11 @@ struct RccData
 static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData &d)
 {
     String s;
-    s += "<!DOCTYPE RCC><RCC version=\"1.0\">";
+    s += "<!DOCTYPE RCC><RCC version=\"1.0\">\n";
     s += "<qresource";
     if (!d.prefix.empty())
         s += " prefix=\"" + d.prefix + "/\"";
-    s += ">";
+    s += ">\n";
     for (auto &[fn, alias] : d.files)
     {
         s += "<file alias=\"";
@@ -352,13 +352,16 @@ static void rcc(const DependencyPtr &rcc, NativeExecutedTarget &t, const RccData
         auto p = fn;
         if (!p.is_absolute())
             p = t.SourceDir / p;
-        s += "\">" + to_string(normalize_path(p)) + "</file>";
+        s += "\">" + to_string(normalize_path(p)) + "</file>\n";
     }
-    s += "</qresource>";
-    s += "</RCC>";
+    s += "</qresource>\n";
+    s += "</RCC>\n";
     auto in = t.BinaryDir / (d.name + ".qrc");
-    write_file_if_different(in, s);
-    File(in, t.getFs()).setGenerated(true);
+    if (!t.DryRun)
+    {
+        write_file_if_different(in, s);
+        File(in, t.getFs()).setGenerated(true);
+    }
 
     auto outfilename = d.outfilename_prefix + d.name;
     auto outfile = t.BinaryDir / ("qrc_" + outfilename + ".cpp");
@@ -2322,8 +2325,18 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core -= "text/qcollator_posix.cpp";
                 core -= "io/qstandardpaths_unix.cpp";
                 core -= "text/qlocale_unix.cpp";
+
+                core -= "kernel/qpermissions.*"_rr;
+                core -= "platform/darwin/qdarwinpermission.*"_rr;
             }
             set_apple_flags(core);
+
+            auto add_darwin_permission_plugin = [&](String name) {
+
+            };
+            for (auto &&p : {"Camera","Microphone","Bluetooth","Contacts","Calendar","Location"}) {
+                add_darwin_permission_plugin(p);
+            }
 
             auto mocs = automoc(moc, core);
             SW_QT_ADD_MOC_DEPS(core);
@@ -2430,8 +2443,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui += "platform/unix/.*"_rr;
                 gui += "opengl/platform/.*"_rr;
                 gui += "text/unix/.*"_rr;
-                //gui.Public += "QWindow=QWaylandWindow"_def;
-                gui.patch("kernel/qplatformwindow_p.h", "#include <QtGui/private/qtguiglobal_p.h>", "#include <qwindow.h>\n#include  <QtGui/private/qtguiglobal_p.h>");
                 //gui -= "platform/unix/qxkbcommon_3rdparty.cpp";
                 //gui -= "platform/unix/qxkbcommon.cpp";
                 gui.Public += "xkbcommon"_slib;
@@ -2528,6 +2539,13 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             //gui.replaceInFileOnce("text/qharfbuzzng_p.h", "#include <harfbuzz/hb.h>", "#include <hb.h>");
             //gui.replaceInFileOnce("text/qfontengine.cpp", "#  include <harfbuzz/hb-ot.h>", "#include <hb-ot.h>");
             gui.replaceInFileOnce("text/qtextmarkdownimporter.cpp", "#include \"../../3rdparty/md4c/md4c.h\"", "#include <md4c/md4c.h>");
+            gui.patch("kernel/qplatformwindow_p.h", "#include <QtGui/private/qtguiglobal_p.h>", "#include <qwindow.h>\n#include  <QtGui/private/qtguiglobal_p.h>");
+            gui -= "kernel/qplatformwindow_p.h"; // moc
+            // Q_OS_DARWIN?
+            gui.patch("kernel/qplatformwindow_p.h", "#if defined(Q_OS_UNIX)", "#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
+            gui.patch("kernel/qwindow.cpp", "#if defined(Q_OS_UNIX)", "#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
+            gui.patch("kernel/qscreen.cpp", "#if defined(Q_OS_UNIX)", "#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
+            gui.patch("kernel/qguiapplication.cpp", "#endif\n#if defined(Q_OS_UNIX)", "#endif\n#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
 
             auto mocs = automoc(moc, gui);
             SW_QT_ADD_MOC_DEPS(gui);
@@ -2608,6 +2626,26 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             if (widgets.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 widgets += "util/qsystemtrayicon_qpa.cpp";
+            }
+
+            if (widgets.getBuildSettings().TargetOS.Type == OSType::Macos)
+            {
+                //widgets -= "dialogs/qwizard.cpp";
+                //widgets.add("dialogs/qwizard.cpp", ".mm");
+                if (!widgets.DryRun)
+                {
+                    /*if (fs::exists(widgets.SourceDir / "dialogs/qwizard.cpp"))
+                    {
+                        fs::copy_file(widgets.SourceDir / "dialogs/qwizard.cpp", widgets.SourceDir / "dialogs/qwizard.mm");
+                        fs::remove(widgets.SourceDir / "dialogs/qwizard.cpp");
+                    }*/
+                    //auto f = read_file(widgets.SourceDir / "dialogs/qwizard.cpp");
+                    //write_file_if_different(widgets.BinaryDir / "qwizard.mm", f);
+                    //widgets += "qwizard.mm";
+                    //auto c = widgets.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file));
+                    //c << cmd::in("dialogs/qwizard.cpp");
+                    //c << cmd::out("qwizard.mm");
+                }
             }
 
             auto mocs = automoc(moc, widgets);
