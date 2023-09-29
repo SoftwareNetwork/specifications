@@ -1807,6 +1807,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             {
                 bootstrap.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
             }
+            bootstrap -= "src/corelib/kernel/qfunctions_win.cpp";
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 //bootstrap += "src/corelib/time/qtimezoneprivate_win.cpp";
