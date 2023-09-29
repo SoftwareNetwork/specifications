@@ -2540,7 +2540,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             //gui.replaceInFileOnce("text/qfontengine.cpp", "#  include <harfbuzz/hb-ot.h>", "#include <hb-ot.h>");
             gui.replaceInFileOnce("text/qtextmarkdownimporter.cpp", "#include \"../../3rdparty/md4c/md4c.h\"", "#include <md4c/md4c.h>");
             gui.patch("kernel/qplatformwindow_p.h", "#include <QtGui/private/qtguiglobal_p.h>", "#include <qwindow.h>\n#include  <QtGui/private/qtguiglobal_p.h>");
-            gui -= "kernel/qplatformwindow_p.h"; // moc
+            //gui -= "kernel/qplatformwindow_p.h"; // moc
             // Q_OS_DARWIN?
             gui.patch("kernel/qplatformwindow_p.h", "#if defined(Q_OS_UNIX)", "#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
             gui.patch("kernel/qwindow.cpp", "#if defined(Q_OS_UNIX)", "#if  defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)");
@@ -3303,6 +3303,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             t += "xcb-icccm"_slib;
             t += "xcb-sync"_slib;
             t += "xcb-keysyms"_slib;
+            t += "xcb-cursor"_slib;
             t += "xkbcommon-x11"_slib;
             t += "X11-xcb"_slib;
 
