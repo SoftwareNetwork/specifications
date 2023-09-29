@@ -180,6 +180,7 @@ void build(Solution &s)
         t.Public += core;
         t.Public += proto;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
+        (core_ext + core_tsi)->IncludeDirectoriesOnly = true;
     }
 
     auto &cpp = p.addStaticLibrary("cpp");
