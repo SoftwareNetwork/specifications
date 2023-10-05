@@ -136,7 +136,9 @@ void build(Solution &s)
             }
             auto c = data.addCommand();
             c << cmd::prog(d)
-                << "--name" << namel << "-e" << name << "-o" << "-d" << obj.parent_path();
+                << "--name" << namel << "-e"
+                << ((data.getBuildSettings().TargetOS.Arch == ArchType::x86 ? "_" : "") + name)
+                << "-o" << "-d" << obj.parent_path();
             if (data.getBuildSettings().Native.LibrariesType == LibraryType::Static)
                 c << "--skip-dll-export";
             c
