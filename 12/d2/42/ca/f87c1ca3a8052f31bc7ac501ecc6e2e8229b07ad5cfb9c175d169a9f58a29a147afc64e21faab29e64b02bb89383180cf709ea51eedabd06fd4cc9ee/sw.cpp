@@ -228,7 +228,8 @@ void build(Solution &s)
         if (!win_or_mingw(protobuf_lite))
         {
             protobuf_lite.Public += "HAVE_PTHREAD"_d;
-            protobuf_lite += "pthread"_slib;
+            if (!protobuf_lite.getBuildSettings().TargetOS.Android)
+                protobuf_lite += "pthread"_slib;
         }
         protobuf_lite.patch("src/google/protobuf/port_def.inc", "[[nodiscard]]", ""); // does not work on clang+shared build
         protobuf_lite.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
@@ -297,7 +298,8 @@ void build(Solution &s)
         if (!win_or_mingw(protobuf))
         {
             protobuf.Public += "HAVE_PTHREAD"_d;
-            protobuf += "pthread"_slib;
+            if (!protobuf.getBuildSettings().TargetOS.Android)
+                protobuf += "pthread"_slib;
         }
         protobuf.patch("src/google/protobuf/port_def.inc", "[[nodiscard]]", ""); // does not work on clang+shared build
         protobuf.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
