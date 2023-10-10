@@ -137,6 +137,7 @@ void build(Solution &s)
         "#cmakedefine CARES_SYMBOL_SCOPE_EXTERN @CARES_SYMBOL_SCOPE_EXTERN@");
     c_ares.configureFile("src/lib/ares_config.h.cmake", "ares_config.h");
     c_ares.configureFile("include/ares_build.h.cmake", "ares_build.h");
+    c_ares.pushFrontToFileOnce("src/lib/ares__htable.c", "#include <time.h>");
 }
 
 void check(Checker &c)
@@ -173,6 +174,8 @@ void check(Checker &c)
     s.checkFunctionExists("setmode");
     s.checkFunctionExists("setrlimit");
     s.checkFunctionExists("strcasecmp");
+    //s.checkFunctionExists("time").Parameters.Includes.push_back("time.h");
+    //s.checkFunctionExists("time").Parameters.Includes.push_back("sys/time.h");
     s.checkFunctionExists("writev");
     s.checkFunctionExists("uname");
     s.checkFunctionExists("utime");

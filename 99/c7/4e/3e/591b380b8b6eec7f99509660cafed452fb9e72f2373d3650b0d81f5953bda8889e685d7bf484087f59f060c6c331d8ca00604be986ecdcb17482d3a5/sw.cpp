@@ -24,17 +24,27 @@ void build(Solution &s)
         t.Public += "org.sw.demo.google.grpc.core.lib"_dep;
     };
 
-    auto &rpc = p.addProtoLibrary("rpc");
-    process_pb(rpc, "google/rpc");
+    auto add_simple_lib = [&](auto &&name) -> decltype(auto) {
+        auto &t = p.addProtoLibrary(name);
+        process_pb(t, "google/"s + name);
+        return t;
+    };
 
-    auto &type = p.addProtoLibrary("type");
-    process_pb(type, "google/type");
+    #define ADD_LIB(x) auto &x = add_simple_lib(#x)
+
+    ADD_LIB(rpc);
+    ADD_LIB(type);
 
     auto &api = p.addProtoLibrary("api");
     process_pb(api, "google/api");
     process_pb(api, "google/logging");
     process_pb(api, "google/longrunning");
     api.Public += rpc;
+
+    ADD_LIB(iam);
+    iam.Public += api, type;
+    ADD_LIB(storage);
+    storage.Public += iam;
 
     auto &cloud = p.addDirectory("cloud");
     auto &vision = cloud.addProtoLibrary("vision");
