@@ -53,6 +53,20 @@ void build(Solution &s)
         std.Protected += cm3p;
     }
 
+    auto &cmcppdap = p.addStaticLibrary("cmcppdap");
+    {
+        cmcppdap += cpp17;
+        cmcppdap += "Utilities/cmcppdap/include/.*"_rr;
+        cmcppdap += "Utilities/cmcppdap/src/.*"_rr;
+        cmcppdap -= "Utilities/cmcppdap/src/.*_test.cpp"_rr;
+        cmcppdap -= "Utilities/cmcppdap/src/jsoncpp_json_serializer.cpp"_rr;
+        cmcppdap -= "Utilities/cmcppdap/src/rapid_json_serializer.cpp"_rr;
+        cmcppdap.Public += "CPPDAP_JSON_NLOHMANN"_def;
+        cmcppdap.Public += "Utilities"_idir;
+        cmcppdap.Public += "Utilities/cmcppdap/include"_idir;
+        cmcppdap.Public += "org.sw.demo.nlohmann.json"_dep;
+    }
+
     auto &sys = p.addLibrary("sys");
     {
         auto &t = sys;
@@ -212,6 +226,7 @@ void build(Solution &s)
         t.Public += cm3p;
         t.Public += std;
         t.Public += sys;
+        t.Public += cmcppdap;
     }
 
     auto &cmake = p;

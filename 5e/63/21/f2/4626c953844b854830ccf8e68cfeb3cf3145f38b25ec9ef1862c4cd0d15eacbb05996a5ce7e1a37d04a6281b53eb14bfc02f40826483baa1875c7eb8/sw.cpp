@@ -18,7 +18,12 @@ void build(Solution &s)
             "Advapi32.lib"_slib,
             "iphlpapi.lib"_slib,
             "psapi.lib"_slib,
-            "userenv.lib"_slib;
+            "userenv.lib"_slib,
+            "uuid.lib"_slib,
+            "ole32.lib"_slib,
+            "dbghelp.lib"_slib,
+            "Shell32.lib"_slib
+            ;
     }
     else
     {
