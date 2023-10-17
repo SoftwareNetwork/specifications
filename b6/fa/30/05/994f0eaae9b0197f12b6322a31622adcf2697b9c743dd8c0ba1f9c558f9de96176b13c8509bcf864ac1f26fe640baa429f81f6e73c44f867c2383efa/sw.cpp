@@ -1,4 +1,4 @@
-struct PythonExecutable : ExecutableTarget {
+struct PythonExecutable_3_10 : ExecutableTarget {
     using ExecutableTarget::ExecutableTarget;
 
     void setupCommand(builder::Command &c) const override {
@@ -246,7 +246,7 @@ void build(Solution &s) {
 )xxx");
     }
 
-    auto &exe = python.addTarget<PythonExecutable>("exe");
+    auto &exe = python.addTarget<PythonExecutable_3_10>("exe");
     {
         exe += "Lib/.*"_rr;
         exe -= ".*.def"_rr;
