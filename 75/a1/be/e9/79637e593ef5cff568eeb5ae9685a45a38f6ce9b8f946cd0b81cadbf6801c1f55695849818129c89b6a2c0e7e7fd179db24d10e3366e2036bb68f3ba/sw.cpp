@@ -303,6 +303,7 @@ void build(Solution &s) {
         python_lib(lib);
         lib += "Python/frozen.c";
         lib += "Modules/getpath.c";
+        lib += "Tools/build/.*"_rr;
 
         auto freeze_modules1 = [&](String path, String name) {
             lib.addCommand()
