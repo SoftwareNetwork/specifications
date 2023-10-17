@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &t = s.addStaticLibrary("akheron.jansson", "2.14.0");
-    t += Git("https://github.com/akheron/jansson", "v{M}.{m}{po}");
+    t += Git("https://github.com/akheron/jansson", "v{v}");
 
     t.setChecks("jansson");
 
