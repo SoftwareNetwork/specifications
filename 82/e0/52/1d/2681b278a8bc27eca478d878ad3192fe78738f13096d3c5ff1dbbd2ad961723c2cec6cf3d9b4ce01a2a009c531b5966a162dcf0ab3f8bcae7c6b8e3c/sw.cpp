@@ -22,7 +22,7 @@ void build(Solution &s)
         "dx11",
         "dx12",
         "win32",
-        "sdl2",
+        "sdl",
         "emscripten_sdl",
         "osx",
         "glfw",
@@ -38,7 +38,7 @@ void build(Solution &s)
         auto &t = imgui.addStaticLibrary("backend." + b);
         bool emscripten = b == "emscripten_sdl" || b == "emscripten_glfw";
         if (emscripten)
-            b = "sdl2";
+            b = "sdl";
         t += "IMGUI_API"_api;
         t += FileRegex("backends", "imgui_impl_" + b + ".*", false);
         t.Public += IncludeDirectory("backends"s);
@@ -68,11 +68,11 @@ void build(Solution &s)
         {
             //t.Public += "org.sw.demo.glfw"_dep;
         }
-        else if (b == "sdl2" && !emscripten)
+        else if (b == "sdl" && !emscripten)
         {
-            t.Public += "org.sw.demo.valve.sdl-2"_dep;
+            t.Public += "org.sw.demo.valve.sdl"_dep;
         }
-        else if (b == "sdl2" && emscripten)
+        else if (b == "sdl" && emscripten)
         {
             //t.Public += "org.sw.demo.valve.sdl"_dep;
         }
