@@ -38,6 +38,7 @@ void build(Solution &s)
             ;
     };
 
+    if (!t.DryRun)
     for (auto &f : enumerate_files_like(t.getFile("org.sw.demo.xorg.proto.xcb"_dep) / "src", ".*\\.xml", false))
         generate(f.stem().string());
 
