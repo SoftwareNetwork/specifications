@@ -16,6 +16,7 @@ void build(Solution &s)
     t.Private += sw::Shared, "AWS_IO_EXPORTS"_d;
     t.Public += sw::Shared, "AWS_IO_USE_IMPORT_EXPORT"_d;
 
+    t += "org.sw.demo.intel.ittnotify"_dep;
     t -= "org.sw.demo.amazon.awslabs.s2n"_dep;
 
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
