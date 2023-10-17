@@ -2265,6 +2265,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
                 qt_core_desc.config.public_.features.insert({ "poll_ppoll", true });
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
+                qt_core_desc.config.public_.features.insert({ "close_range", true });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
                 //core += "platform/darwin/.*"_rr; > qt6. 4. 1

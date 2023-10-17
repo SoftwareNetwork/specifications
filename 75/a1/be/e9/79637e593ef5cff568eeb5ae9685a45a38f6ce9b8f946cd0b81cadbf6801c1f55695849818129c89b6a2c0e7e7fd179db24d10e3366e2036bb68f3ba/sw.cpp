@@ -278,6 +278,8 @@ void build(Solution &s) {
             #endif
 )xxx");
 
+        lib.replaceInFileOnce("Include/internal/pycore_dtoa.h", "_PY_SHORT_FLOAT_REPR == ", "");
+
         lib += "Modules/_hacl/.*"_rr;
         lib += "Modules/_hacl/include"_idir;
 
