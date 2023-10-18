@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &libxml2 = s.addTarget<LibraryTarget>("xmlsoft.libxml2", "2.11.5");
-    libxml2 += Git("https://gitlab.gnome.org/GNOME/libxml2", "v2.11.4");
+    libxml2 += Git("https://gitlab.gnome.org/GNOME/libxml2", "v{v}");
 
     libxml2.setChecks("libxml2", true);
 
