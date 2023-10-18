@@ -130,7 +130,7 @@ void build(Solution &s)
         "WITH_ISO8859X=1"_v,
         "WITH_ISO8859X=1"_v,
         "WITH_THREADS=1"_v,
-        "WITH_THREAD_ALLOC=1"_v
+        "WITH_THREAD_ALLOC=0"_v
         ;
     libxml2.configureFile(
         libxml2.SourceDir / "include/libxml/xmlversion.h.in",
