@@ -1,3 +1,6 @@
+// glib does not work with py3.12 yet (uses removed distutils module)
+#define PYTHON_DEP "org.sw.demo.python.exe-3.10"_dep
+
 void build(Solution &s)
 {
     auto &p = s.addProject("gnome.glib", "2.78.0");
@@ -7,7 +10,7 @@ void build(Solution &s)
         auto n = t.getPackage().getPath().back();
         auto N = boost::to_upper_copy(n);
         auto c = t.addCommand();
-        c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+        c << cmd::prog(PYTHON_DEP)
             << cmd::in("tools/gen-visibility-macros.py")
             << t.getPackage().getVersion().toString()
             << "visibility-macros"
@@ -83,7 +86,7 @@ void build(Solution &s)
 
         {
             auto c = glib.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << cmd::in("tools/gen-visibility-macros.py")
                 << glib.getPackage().getVersion().toString()
                 << "versions-macros"
@@ -133,8 +136,8 @@ void build(Solution &s)
         glib.Variables["gint64_format"] = "\"lli\"";
         glib.Variables["guint64_format"] = "\"llu\"";
 
-        glib.Variables["gint64_constant"] = "(val##L)";
-        glib.Variables["guint64_constant"] = "(val##UL)";
+        glib.Variables["gint64_constant"] = "(val##LL)";
+        glib.Variables["guint64_constant"] = "(val##ULL)";
 
         glib.Variables["g_pollin"] = "1";
         glib.Variables["g_pollout"] = "4";
@@ -504,7 +507,7 @@ HMODULE glib_dll;
         {
             // glib.mkenums
             auto c = gobject.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << cmd::in("gobject/glib-mkenums.in")
                 << "--template"
                 << cmd::in("gobject/glib-enumtypes."s + ext + ".template")
@@ -754,7 +757,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         {
             // glib.mkenums
             auto c = gio.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << gio.getFile(gobject, "gobject/glib-mkenums.in")
                 << "--template"
                 << cmd::in("gio/gioenumtypes."s + ext + ".template")
@@ -783,7 +786,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
 
         {
             auto c = gio.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << cmd::in("gio/gdbus-2.0/codegen/gdbus-codegen.in")
                 << "--interface-prefix" << "org."
                 << "--output-directory" << gio.BinaryDir
@@ -799,7 +802,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         if (gio.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             auto c = gio.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << cmd::in("gio/gdbus-2.0/codegen/gdbus-codegen.in")
                 << "--interface-prefix" << "org.freedesktop.portal."
                 << "--output-directory" << gio.BinaryDir
@@ -861,7 +864,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
 
         {
             auto c = rc.addCommand();
-            c << cmd::prog("org.sw.demo.python.exe-3"_dep)
+            c << cmd::prog(PYTHON_DEP)
                 << cmd::in(rc.getFile(gio, "gio/data-to-c.py"))
                 << cmd::in(rc.getFile(glib, "glib/gconstructor.h"))
                 << "gconstructor_code"
