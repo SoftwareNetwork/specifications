@@ -2348,7 +2348,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core += "plugin/qmachparser.cpp";
 
                 core -= "io/qstorageinfo_unix.cpp";
-                core -= "kernel/qelapsedtimer_unix.cpp";
+                //core -= "kernel/qelapsedtimer_unix.cpp";
                 core -= "text/qcollator_posix.cpp";
                 core -= "io/qstandardpaths_unix.cpp";
                 core -= "text/qlocale_unix.cpp";
@@ -2986,6 +2986,12 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 qt_network_desc.config.public_.features.insert({ "linux_netlink", false });
                 qt_network_desc.config.public_.features.insert({ "ifr_index", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", false });
+            }
+            if (network.getBuildSettings().TargetOS.Type != OSType::Windows)
+            {
+                qt_network_desc.config.public_.features.insert({ "libresolv", true });
+                qt_network_desc.config.public_.features.insert({ "res_setservers", true });
+                network += "resolv"_slib;
             }
             qt_network_desc.print(network);
 
