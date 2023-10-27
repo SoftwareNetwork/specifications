@@ -2990,7 +2990,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             if (network.getBuildSettings().TargetOS.Type != OSType::Windows)
             {
                 qt_network_desc.config.public_.features.insert({ "libresolv", true });
-                qt_network_desc.config.public_.features.insert({ "res_setservers", true });
+                qt_network_desc.config.public_.features.insert({ "res_setservers", network.getBuildSettings().TargetOS.isApple() });
                 network += "resolv"_slib;
             }
             qt_network_desc.print(network);
