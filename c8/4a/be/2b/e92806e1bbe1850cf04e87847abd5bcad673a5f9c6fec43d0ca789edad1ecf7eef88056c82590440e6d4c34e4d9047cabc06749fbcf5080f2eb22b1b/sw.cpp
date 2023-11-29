@@ -2942,6 +2942,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             network -= "kernel/qdnslookup_dummy.cpp";
 
+            network -= "org.sw.demo.gnome.glib.gobject"_dep;
             network += "QT_USE_QSTRINGBUILDER"_d;
             if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
@@ -2956,6 +2957,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 // add to sw
                 network += "kernel/qnetworkproxy_libproxy.cpp";
                 network += "proxy"_slib;
+                network += "/usr/include/libproxy"_idir;
+                network += "org.sw.demo.gnome.glib.gobject"_dep;
             }
 
             if (!network.getBuildSettings().TargetOS.isApple())

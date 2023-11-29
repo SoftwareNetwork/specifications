@@ -6,7 +6,7 @@ void build(Solution &s)
     pqxx.setChecks("pqxx", true);
 
     pqxx.ApiName = "PQXX_LIBEXPORT";
-    pqxx += cpp17;
+    pqxx += cpp20;
 
     if (pqxx.getBuildSettings().TargetOS.Type == OSType::Windows)
         pqxx.Public += "ws2_32.lib"_slib;
