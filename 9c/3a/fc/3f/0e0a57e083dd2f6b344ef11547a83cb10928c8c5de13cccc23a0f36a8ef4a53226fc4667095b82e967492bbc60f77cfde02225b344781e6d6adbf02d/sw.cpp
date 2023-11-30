@@ -85,7 +85,8 @@ void build(Solution &s)
         t.Variables["HAVE_STRUCT_SOCKADDR_STORAGE"] = 1;
         t.Variables["HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY"] = 1;
         t.Variables["HAVE_FSEEKO"] = 1;
-        t.Variables["HAVE__CPUID"] = 1;
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+            t.Variables["HAVE__CPUID"] = 1;
         t.Variables["USE_SSE42_CRC32C_WITH_RUNTIME_CHECK"] = 1;
         t.Variables["HAVE_LONG_LONG_INT_64"] = 1;
         t.Variables["PG_INT64_TYPE"] = "long long int";
@@ -183,7 +184,8 @@ void build(Solution &s)
             port -= "src/port/getrusage.c";
             port -= "src/port/getopt.*"_rr;
 
-            port -= "src/port/pg_bitutils.c";
+            //port -= "src/port/pg_bitutils.c";
+            port += "HAVE__GET_CPUID"_def;
             port -= "src/port/getpeereid.c";
             port -= "src/port/pg_crc32c_sse42_choose.c";
             if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
