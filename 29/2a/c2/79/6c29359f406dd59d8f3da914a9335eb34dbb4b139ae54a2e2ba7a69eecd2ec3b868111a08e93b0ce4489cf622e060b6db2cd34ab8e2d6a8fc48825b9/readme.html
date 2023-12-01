@@ -1,0 +1,125 @@
+<h1 id="dynamic_bitset">dynamic_bitset</h1>
+<p><a href="https://travis-ci.org/pinam45/dynamic_bitset"><img src="https://travis-ci.org/pinam45/dynamic_bitset.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/pinam45/dynamic-bitset/branch/master"><img src="https://ci.appveyor.com/api/projects/status/h0vnyjlaunqgbrp4/branch/master?svg=true" alt="Build status" /></a> <a href="https://codecov.io/gh/pinam45/dynamic_bitset"><img src="https://codecov.io/gh/pinam45/dynamic_bitset/branch/master/graph/badge.svg" alt="codecov" /></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/pinam45/dynamic_bitset.svg" alt="license" /></a></p>
+<p>A C++ header-only dynamic bitset</p>
+<h2 id="requirements">Requirements</h2>
+<p>To use this <em>dynamic_bitset</em>, you will need a <strong>C++17 compliant compiler</strong>. If you use CMake and want to use the <em>dynamic_bitset</em> as a subproject, you will need <strong>CMake 3.10 or later</strong>.</p>
+<h2 id="usage-sample">Usage sample</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;dynamic_bitset.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;random&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="co">// predefined bitset</span>
+    dynamic_bitset&lt;&gt; bitset1(<span class="dv">12</span>, <span class="bn">0b0100010110111</span>);
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;bitset1     = &quot;</span> &lt;&lt; bitset1 &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="co">// random bitset</span>
+    <span class="bu">std::</span>minstd_rand rand(<span class="bu">std::</span>random_device{}());
+    <span class="bu">std::</span>bernoulli_distribution dist;
+    dynamic_bitset&lt;&gt; bitset2;
+    <span class="cf">for</span>(<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; <span class="dv">12</span>; ++i)
+    {
+        bitset2.push_back(dist(rand));
+    }
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;bitset2     = &quot;</span> &lt;&lt; bitset2 &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;common bits = &quot;</span> &lt;&lt; (bitset1 &amp; bitset2) &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>Possible output:</p>
+<pre><code>bitset1     = 100010110111
+bitset2     = 001011011011
+common bits = 000010010011</code></pre>
+<p>See it on <a href="https://godbolt.org/z/eUAVDm">godbolt.org</a>.</p>
+<h2 id="optional-dependency">Optional dependency</h2>
+<p>Optionally, <a href="https://github.com/kimwalisch/libpopcnt">libpopcnt</a> will be used optimize the bits counting operations, if the header is available (<code>__has_include(&lt;libpopcnt.h&gt;)</code>) and <code>DYNAMIC_BITSET_NO_LIBPOPCNT</code> is not defined.</p>
+<h2 id="integration">Integration</h2>
+<p>As it is a header-only library, the easiest way to integrate the <em>dynamic_bitset</em> class in your project is to just copy <em>dynamic_bitset.hpp</em> in your project sources. Optionally, if you also copy <em>libpopcnt.h</em> from <a href="https://github.com/kimwalisch/libpopcnt">libpopcnt</a>, it will be used by default if it is available.</p>
+<h2 id="cmake-integration">CMake integration</h2>
+<p>If you use CMake and want to use the <em>dynamic_bitset</em> as a subproject, clone the repository (or add it as a git submodule) in a sub-folder of your project. Then, in your <em>CMakeLists.txt</em> add:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">add_subdirectory</span>(&lt;path_to_dynamic_bitset_folder&gt;)</code></pre></div>
+<p>It will define the <em>dynamic_bitset</em> target and the alias target <em>dynamic_bitset::dynamic_bitset</em> that you can use to add the folder containing <em>dynamic_bitset.hpp</em> to your project header folders. To do so, in your <em>CMakeLists.txt</em> add:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">target_link_libraries</span>(&lt;your_project_target&gt; <span class="ot">PRIVATE</span> dynamic_bitset)</code></pre></div>
+<p>For example, a simple project with the repository as a git submodule in the <em>extlibs</em> folder, could have a <em>CMakeLists.txt</em> similar to this:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.10)
+<span class="kw">project</span>(CoolProject <span class="ot">LANGUAGES</span> CXX)
+
+<span class="kw">add_executable</span>(CoolProject main.cpp)
+
+<span class="kw">add_subdirectory</span>(extlibs/dynamic_bitset)
+<span class="kw">target_link_libraries</span>(CoolProject <span class="ot">PRIVATE</span> dynamic_bitset)</code></pre></div>
+<p>If you pulled the git submodule libpopcnt (in <a href="extlibs" class="uri">extlibs</a>) and set the <em>dynamic_bitset</em> CMake options <code>DYNAMICBITSET_USE_LIBPOPCNT</code> and <code>DYNAMICBITSET_USE_LIBPOPCNT_SUBMODULE</code> to <code>ON</code>(default values), the folder containing <em>libpopcnt.h</em> will also be added to the headers paths and libpopcnt will be used.</p>
+<h2 id="cmake-options">CMake options</h2>
+<h3 id="descriptions">Descriptions</h3>
+<ul>
+<li><code>DYNAMICBITSET_USE_LIBPOPCNT</code>: Enable using libpopcnt for bits counting operations</li>
+<li><code>DYNAMICBITSET_USE_LIBPOPCNT_SUBMODULE</code>: Enable adding libpopcnt submodule to include paths (disable if your project already include libpopcnt)</li>
+<li><code>DYNAMICBITSET_BUILD_TESTS</code>: Enable building tests for dynamic_bitset</li>
+<li><code>DYNAMICBITSET_BUILD_EXAMPLE</code>: Enable building example for dynamic_bitset</li>
+<li><code>DYNAMICBITSET_FORMAT_TARGET</code>: Enable generating a code formating target for dynamic_bitset</li>
+<li><code>DYNAMICBITSET_HEADERS_TARGET_IDE</code>: Enable generating a target with headers for ide for dynamic_bitset</li>
+</ul>
+<h3 id="default-values">Default values</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Option</th>
+<th align="center">Default value as master project</th>
+<th align="center">Default value as subdirectory</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DYNAMICBITSET_USE_LIBPOPCNT</td>
+<td align="center">ON</td>
+<td align="center">ON</td>
+</tr>
+<tr class="even">
+<td>DYNAMICBITSET_USE_LIBPOPCNT_SUBMODULE</td>
+<td align="center">ON</td>
+<td align="center">ON</td>
+</tr>
+<tr class="odd">
+<td>DYNAMICBITSET_BUILD_TESTS</td>
+<td align="center">ON</td>
+<td align="center">OFF</td>
+</tr>
+<tr class="even">
+<td>DYNAMICBITSET_BUILD_EXAMPLE</td>
+<td align="center">ON</td>
+<td align="center">OFF</td>
+</tr>
+<tr class="odd">
+<td>DYNAMICBITSET_FORMAT_TARGET</td>
+<td align="center">ON</td>
+<td align="center">OFF</td>
+</tr>
+<tr class="even">
+<td>DYNAMICBITSET_HEADERS_TARGET_IDE</td>
+<td align="center">ON</td>
+<td align="center">OFF</td>
+</tr>
+</tbody>
+</table>
+<h2 id="build-tests-and-example">Build tests and example</h2>
+<p>To build the tests and the example, git submodules are required, so don't forget to pull the submodules with the repository using <code>--recursive</code>:</p>
+<pre><code>git clone --recursive https://github.com/pinam45/dynamic_bitset.git</code></pre>
+<p>or if you have already cloned the repository:</p>
+<pre><code>git submodule update --init</code></pre>
+<p>The project uses CMake to build and define the options <code>DYNAMICBITSET_BUILD_TESTS</code> and <code>DYNAMICBITSET_BUILD_EXAMPLE</code> to enable the generation of the tests and example targets, these option are enabled by default if the project is the master project (not included from another <em>CMakeLists.txt</em> with <em>add_subdirectory</em>).</p>
+<p>For running the tests, just build the <em>dynamic_bitset_tests</em> target and launch the tests using ctest. See <a href="https://cmake.org/runningcmake/">Running CMake</a> and <a href="https://cmake.org/cmake/help/latest/manual/ctest.1.html">the ctest documentation</a> for more information.</p>
+<p>On linux, a common way of doing this is:</p>
+<pre><code>$ mkdir cmake-build
+$ cd cmake-build
+$ cmake ..
+$ cmake --build .
+$ ctest</code></pre>
+<p>On Windows, there is batch files available to configure a Visual Studio project in the <code>ide</code> folder.</p>
+<h2 id="license">License</h2>
+<p><img align="right" src="http://opensource.org/trademarks/opensource/OSI-Approved-License-100x137.png"></p>
+<p>dynamic_bitset is licensed under the <a href="http://opensource.org/licenses/MIT">MIT License</a>:</p>
+<p>Copyright © 2019 <a href="https://github.com/pinam45">Maxime Pinard</a></p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>

@@ -1,0 +1,119 @@
+<h1 id="msgpack-for-c"><code>msgpack</code> for C++</h1>
+<p>Version 4.1.1 <a href="https://github.com/msgpack/msgpack-c/actions"><img src="https://github.com/msgpack/msgpack-c/workflows/CI/badge.svg?branch=cpp_master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/redboltz/msgpack-c/branch/cpp_master"><img src="https://ci.appveyor.com/api/projects/status/8kstcgt79qj123mw/branch/cpp_master?svg=true" alt="Build status" /></a> <a href="https://codecov.io/gh/msgpack/msgpack-c/branch/cpp_master"><img src="https://codecov.io/gh/msgpack/msgpack-c/branch/cpp_master/graph/badge.svg" alt="codecov" /></a></p>
+<p>It’s like JSON but smaller and faster.</p>
+<h2 id="overview">Overview</h2>
+<p><a href="http://msgpack.org/">MessagePack</a> is an efficient binary serialization format, which lets you exchange data among multiple languages like JSON, except that it’s faster and smaller. Small integers are encoded into a single byte and short strings require only one extra byte in addition to the strings themselves.</p>
+<h2 id="example">Example</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;msgpack.hpp&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sstream&gt;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>type<span class="op">::</span>tuple<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;</span> src<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="kw">true</span><span class="op">,</span> <span class="st">&quot;example&quot;</span><span class="op">);</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// serialize the object into the buffer.</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// any classes that implements write(const char*,size_t) can be a buffer.</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>stringstream<span class="op"> </span>buffer<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>pack<span class="op">(</span>buffer<span class="op">,</span> src<span class="op">);</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// send the buffer ...</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    buffer<span class="op">.</span>seekg<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// deserialize the buffer into msgpack::object instance.</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string<span class="op"> </span>str<span class="op">(</span>buffer<span class="op">.</span>str<span class="op">());</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>object_handle oh <span class="op">=</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        msgpack<span class="op">::</span>unpack<span class="op">(</span>str<span class="op">.</span>data<span class="op">(),</span> str<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// deserialized object is valid during the msgpack::object_handle instance is alive.</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>object deserialized <span class="op">=</span> oh<span class="op">.</span>get<span class="op">();</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// msgpack::object supports ostream.</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> deserialized <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// convert msgpack::object instance into the original type.</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// if the type is mismatched, it throws msgpack::type_error exception.</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>type<span class="op">::</span>tuple<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;</span> dst<span class="op">;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    deserialized<span class="op">.</span>convert<span class="op">(</span>dst<span class="op">);</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    <span class="co">// or create the new instance</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    msgpack<span class="op">::</span>type<span class="op">::</span>tuple<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;</span> dst2 <span class="op">=</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        deserialized<span class="op">.</span>as<span class="op">&lt;</span>msgpack<span class="op">::</span>type<span class="op">::</span>tuple<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;</span> <span class="op">&gt;();</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See <a href="./QUICKSTART-CPP.md"><code>QUICKSTART-CPP.md</code></a> for more details.</p>
+<h2 id="dependency">Dependency</h2>
+<p>msgpack-c requires <a href="https://www.boost.org/">boost library</a>. C++ version of msgpack-c itself is a header-only library and depends only on boost headers. Tests depend on boost unit test framework and are linked with it, so if you want to build them, you need to have this dependency installed.</p>
+<p>Experimental support for removing boost dependency</p>
+<p>For cmake:</p>
+<pre><code>cmake -DMSGPACK_USE_BOOST=OFF ..</code></pre>
+<p>NOTE: <code>-DMSGPACK_BUILD_TESTS=ON</code> doesn’t work with <code>-DMSGPACK_USE_BOOST=OFF</code>.</p>
+<p>For C++ compiler</p>
+<pre><code>clang++ -DMSGPACK_NO_BOOST your_code.cpp</code></pre>
+<h2 id="usage">Usage</h2>
+<ul>
+<li><p>If you build your project with cmake, you can find msgpack-c with a canonical cmake-way:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(msgpack <span class="ot">REQUIRED</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ...</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(your_target_name &lt;<span class="ot">PRIVATE</span>/<span class="ot">PUBLIC</span>/<span class="ot">INTERFACE</span>&gt; msgpackc-cxx)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ...</span></span></code></pre></div>
+<p>This will search for <code>msgpack</code> cmake package in a system prefix and in prefixes from <code>CMAKE_PREFIX_PATH</code>. Note that msgpack-c depends on boost headers, and <code>msgpack</code> cmake package depends on <code>Boost</code> cmake package. The library is header-only and <code>target_link_libraries</code> command just adds path to msgpack-c headers to your compiler’s include path.</p>
+<p>A usage example can be found at <a href="test-install">test-install</a> directory.</p></li>
+<li><p>If you do not use cmake, you can just add path yo msgpack-c and boost headers to your include path:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">g++</span> <span class="at">-I</span> msgpack-c/include <span class="at">-I</span> path_to_boost your_source_file.cpp</span></code></pre></div></li>
+</ul>
+<h2 id="building-and-installing">Building and Installing</h2>
+<h3 id="install-from-git-repository">Install from git repository</h3>
+<h4 id="using-the-terminal-cli">Using the Terminal (CLI)</h4>
+<p>You will need:</p>
+<ul>
+<li><code>gcc &gt;= 4.1.0</code></li>
+<li><code>cmake &gt;= 3.1.0</code></li>
+</ul>
+<p>C++03:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/msgpack/msgpack-c.git</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> msgpack-c</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> checkout cpp_master</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> .</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cmake <span class="at">--build</span> . <span class="at">--target</span> install</span></code></pre></div>
+<p>If you want to build tests with different C++ version, you can use <code>MSGPACK_CXX11</code>, <code>MSGPACK_CXX14</code>, <code>MSGPACK_CXX17</code>, <code>MSGPACK_CXX20</code> options. Just replace the line</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> .</span></code></pre></div>
+<p>with a line like that:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DMSGPACK_CXX20</span><span class="op">=</span>ON .</span></code></pre></div>
+<p>Note that these flags do not affect installation. They just switch test cases. All files are installed in every settings.</p>
+<p>If you don’t have superuser permissions or don’t want to install the library to a system-wide prefix, you can use <code>CMAKE_INSTALL_PREFIX</code> option like that:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DCMAKE_INSTALL_PREFIX</span><span class="op">=</span>/your/custom/prefix .</span></code></pre></div>
+<p>Other useful options:</p>
+<ul>
+<li><code>MSGPACK_BUILD_TESTS</code> (default <code>OFF</code>): build tests</li>
+<li><code>MSGPACK_BUILD_EXAMPLES</code> (default <code>OFF</code>): build examples</li>
+<li><code>MSGPACK_32BIT</code> (default <code>OFF</code>): 32bit compile</li>
+<li><code>MSGPACK_USE_X3_PARSE</code> (default <code>OFF</code>): use Boost X3 parse (note that it requires C++14 or newer)</li>
+<li><code>MSGPACK_CHAR_SIGN</code> (not set explicitly by default): char sign to use (signed or unsigned)</li>
+<li><code>MSGPACK_USE_STATIC_BOOST</code> (default <code>OFF</code>): statically link with boost libraries</li>
+</ul>
+<h4 id="gui-on-windows">GUI on Windows</h4>
+<p>Clone msgpack-c git repository with the command:</p>
+<pre><code>git clone https://github.com/msgpack/msgpack-c.git</code></pre>
+<p>or using GUI git client (e.g. <a href="https://code.google.com/p/tortoisegit/">tortoise git</a>).</p>
+<ol type="1">
+<li><p>Checkout to <code>cpp_master</code> branch</p></li>
+<li><p>Launch <a href="http://www.cmake.org/cmake/resources/software.html">cmake GUI client</a>.</p></li>
+<li><p>Set ‘Where is the source code:’ text box and ‘Where to build the binaries:’ text box.</p></li>
+<li><p>Click ‘Configure’ button.</p></li>
+<li><p>Choose your Visual Studio version.</p></li>
+<li><p>Click ‘Generate’ button.</p></li>
+<li><p>Open the created msgpack.sln on Visual Studio.</p></li>
+<li><p>Build all.</p></li>
+</ol>
+<h2 id="documentation">Documentation</h2>
+<p>You can get additional information including the tutorial on the <a href="https://github.com/msgpack/msgpack-c/wiki">wiki</a>.</p>
+<h2 id="contributing">Contributing</h2>
+<p><code>msgpack-c</code> is developed on GitHub at <a href="https://github.com/msgpack/msgpack-c">msgpack/msgpack-c</a>. To report an issue or send a pull request, use the <a href="https://github.com/msgpack/msgpack-c/issues">issue tracker</a>.</p>
+<p>Here’s the list of <a href="https://github.com/msgpack/msgpack-c/graphs/contributors">great contributors</a>.</p>
+<h2 id="license">License</h2>
+<p><code>msgpack-c</code> is licensed under the Boost Software License, Version 1.0. See the <a href="./LICENSE_1_0.txt"><code>LICENSE_1_0.txt</code></a> file for details.</p>

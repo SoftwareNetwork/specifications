@@ -1,0 +1,136 @@
+<p>Support development of enkiTS through our <a href="https://www.patreon.com/enkisoftware">Patreon</a></p>
+<p><a href="https://www.patreon.com/enkisoftware"><img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" alt="Become a Patron" width="150"/></a></p>
+<h1 id="enkits">enkiTS</h1>
+<p><a href="https://travis-ci.org/dougbinks/enkiTS"><img src="https://travis-ci.org/dougbinks/enkiTS.svg?branch=master" alt="Build Status for branch: master" /></a></p>
+<h2 id="enki-task-scheduler">enki Task Scheduler</h2>
+<p>A permissively licensed C and C++ Task Scheduler for creating parallel programs.</p>
+<ul>
+<li><a href="src/TaskScheduler_c.h">C API via src/TaskScheduler_c.h</a></li>
+<li><a href="src/TaskScheduler.h">C++ API via src/TaskScheduler.h</a></li>
+<li><a href="https://github.com/dougbinks/enkiTS/tree/C++11">C++ 11 version on Branch C++11</a></li>
+<li><a href="https://github.com/dougbinks/enkiTS/tree/UserThread">User thread version on Branch UserThread</a> for running enkiTS on other tasking / threading systems, so it can be used as in other engines as well as standalone for example.</li>
+<li><a href="https://github.com/dougbinks/enkiTS/tree/UserThread_C++11">C++ 11 version of user threads on Branch UserThread_C++11</a></li>
+</ul>
+<p>Note - this is a work in progress conversion from my code for <a href="http://www.enkisoftware.com/">enkisoftware</a>'s Avoyd codebase, with <a href="https://github.com/RuntimeCompiledCPlusPlus/RuntimeCompiledCPlusPlus">RuntimeCompiledC++</a> removed along with the removal of profiling code.</p>
+<p>As this was originally written before widespread decent C++11 support for atomics and threads, these are implemented here per-platform supporting Windows, Linux and OSX on Intel x86 / x64 (also works on ARM iOS and Android but not as well tested). <a href="https://github.com/dougbinks/enkiTS/tree/C++11">A separate C++11 branch exists</a> for those who would like to use it, but this currently has slightly slower performance under very high task throughput when there is low work per task.</p>
+<p>The example code requires C++ 11 for chrono (and for <a href="https://github.com/dougbinks/enkiTS/tree/C++11">C++ 11 features in the C++11 branch C++11</a> )</p>
+<p>For further examples, see https://github.com/dougbinks/enkiTSExamples</p>
+<h2 id="building">Building</h2>
+<p>Building enkiTS is simple, just add the files in enkiTS/src to your build system (_c.* files can be ignored if you only need C++ interface), and add enkiTS/src to your include path. Unix / Linux builds will require the pthreads library.</p>
+<p>For cmake, on Windows / Mac OS X / Linux with cmake installed, open a prompt in the enkiTS directory and:</p>
+<ol style="list-style-type: decimal">
+<li><code>mkdir build</code></li>
+<li><code>cmake ..</code></li>
+<li>either run <code>make</code> or open <code>enkiTS.sln</code></li>
+</ol>
+<h2 id="project-features">Project Features</h2>
+<ol style="list-style-type: decimal">
+<li><em>Lightweight</em> - enkiTS is designed to be lean so you can use it anywhere easily, and understand it.</li>
+<li><em>Fast, then scalable</em> - enkiTS is designed for consumer devices first, so performance on a low number of threads is important, followed by scalability.</li>
+<li><em>Braided parallelism</em> - enkiTS can issue tasks from another task as well as from the thread which created the Task System.</li>
+<li><em>Up-front Allocation friendly</em> - enkiTS is designed for zero allocations during scheduling.</li>
+<li><strong>NEW</strong> - <em>Can pin tasks to a given thread</em> - enkiTS can schedule a task which will only be run on the specified thread.</li>
+</ol>
+<h2 id="usage">Usage</h2>
+<p>C usage:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;TaskScheduler_c.h&quot;</span>
+
+enkiTaskScheduler*  g_pTS;
+
+<span class="dt">void</span> ParalleTaskSetFunc( <span class="dt">uint32_t</span> start_, <span class="dt">uint32_t</span> end, <span class="dt">uint32_t</span> threadnum_, <span class="dt">void</span>* pArgs_ ) {
+   <span class="co">/* Do something here, can issue tasks with g_pTS */</span>
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> * argv[]) {
+   enkiTaskSet* pTask;
+   g_pTS = enkiNewTaskScheduler();
+   enkiInitTaskScheduler( g_pTS );
+    
+   <span class="co">// create a task, can re-use this to get allocation occurring on startup</span>
+   pTask    = enkiCreateTaskSet( g_pTS, ParalleTaskSetFunc );
+
+   enkiAddTaskSetToPipe( g_pTS, pTask, NULL, <span class="dv">1</span>); <span class="co">// NULL args, setsize of 1</span>
+
+   <span class="co">// wait for task set (running tasks if they exist) - since we&#39;ve just added it and it has no range we&#39;ll likely run it.</span>
+   enkiWaitForTaskSet( g_pTS, pTask );
+   
+   enkiDeleteTaskSet( pTask );
+   
+   enkiDeleteTaskScheduler( g_pTS );
+   
+   <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>C++ usage:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;TaskScheduler.h&quot;</span>
+
+enki::TaskScheduler g_TS;
+
+<span class="co">// define a task set, can ignore range if we only do one thing</span>
+<span class="kw">struct</span> ParallelTaskSet : enki::ITaskSet {
+   virtual <span class="dt">void</span>    ExecuteRange(  enki::TaskSetPartition range, <span class="dt">uint32_t</span> threadnum ) {
+      <span class="co">// do something here, can issue tasks with g_TS</span>
+   }
+};
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> * argv[]) {
+   g_TS.Initialize();
+   ParallelTaskSet task; <span class="co">// default constructor has a set size of 1</span>
+   g_TS.AddTaskSetToPipe( &amp;task );
+
+   <span class="co">// wait for task set (running tasks if they exist) - since we&#39;ve just added it and it has no range we&#39;ll likely run it.</span>
+   g_TS.WaitforTask( &amp;task );
+   <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>C++ 11 usage (currently requires <a href="https://github.com/dougbinks/enkiTS/tree/C++11">C++11 branch</a>, or define own lambda wrapper taskset interface.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;TaskScheduler.h&quot;</span>
+
+enki::TaskScheduler g_TS;
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> * argv[]) {
+   g_TS.Initialize();
+
+   enki::TaskSet task( <span class="dv">1</span>, []( enki::TaskSetPartition range, <span class="dt">uint32_t</span> threadnum  ) {
+         <span class="co">// do something here</span>
+      }  );
+
+   g_TS.AddTaskSetToPipe( &amp;task );
+   g_TS.WaitforTask( &amp;task );
+   <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>Pinned Tasks usage in C++ (see example/PinnedTask_c.c for C example).</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;TaskScheduler.h&quot;</span>
+
+enki::TaskScheduler g_TS;
+
+<span class="co">// define a task set, can ignore range if we only do one thing</span>
+<span class="kw">struct</span> PinnedTask : enki::IPinnedTask {
+    virtual <span class="dt">void</span>    Execute() {
+      <span class="co">// do something here, can issue tasks with g_TS</span>
+   }
+};
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">const</span> <span class="dt">char</span> * argv[]) {
+   g_TS.Initialize();
+   PinnedTask task; <span class="co">//default constructor sets thread for pinned task to 0 (main thread)</span>
+   g_TS.AddPinnedTask( &amp;task );
+   
+   <span class="co">// RunPinnedTasks must be called on main thread to run any pinned tasks for that thread.</span>
+   <span class="co">// Tasking threads automatically do this in their task loop.</span>
+   g_TS.RunPinnedTasks();
+   <span class="co">// wait for task set (running tasks if they exist) - since we&#39;ve just added it and it has no range we&#39;ll likely run it.</span>
+   g_TS.WaitforTask( &amp;task );
+   <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="bindings">Bindings</h2>
+<ul>
+<li>C# <a href="https://github.com/nxrighthere/EnkiTasks-CSharp">EnkiTasks C#</a></li>
+</ul>
+<h2 id="license-zlib">License (zlib)</h2>
+<p>Copyright (c) 2013 Doug Binks</p>
+<p>This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.</p>
+<p>Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:</p>
+<ol style="list-style-type: decimal">
+<li>The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgement in the product documentation would be appreciated but is not required.</li>
+<li>Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.</li>
+<li>This notice may not be removed or altered from any source distribution.</li>
+</ol>

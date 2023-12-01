@@ -1,0 +1,247 @@
+<h1 id="folly-facebook-open-source-library">Folly: Facebook Open-source
+Library</h1>
+<p><a href="https://opensource.facebook.com/support-ukraine">
+<img src="https://img.shields.io/badge/Support-Ukraine-FFD500?style=flat&labelColor=005BBB" alt="Support Ukraine - Help Provide Humanitarian Aid to Ukraine." />
+</a></p>
+<h1 id="what-is-folly">What is <code>folly</code>?</h1>
+<p><img src="static/logo.svg" alt="Logo Folly" width="15%" align="right" /></p>
+<p>Folly (acronymed loosely after Facebook Open Source Library) is a
+library of C++14 components designed with practicality and efficiency in
+mind. <strong>Folly contains a variety of core library components used
+extensively at Facebook</strong>. In particular, it’s often a dependency
+of Facebook’s other open source C++ efforts and place where those
+projects can share code.</p>
+<p>It complements (as opposed to competing against) offerings such as
+Boost and of course <code>std</code>. In fact, we embark on defining our
+own component only when something we need is either not available, or
+does not meet the needed performance profile. We endeavor to remove
+things from folly if or when <code>std</code> or Boost obsoletes
+them.</p>
+<p>Performance concerns permeate much of Folly, sometimes leading to
+designs that are more idiosyncratic than they would otherwise be (see
+e.g. <code>PackedSyncPtr.h</code>, <code>SmallLocks.h</code>). Good
+performance at large scale is a unifying theme in all of Folly.</p>
+<h2 id="check-it-out-in-the-intro-video">Check it out in the intro
+video</h2>
+<p><a href="https://www.youtube.com/watch?v=Wr_IfOICYSs"><img
+src="https://img.youtube.com/vi/Wr_IfOICYSs/0.jpg"
+alt="Explain Like I’m 5: Folly" /></a></p>
+<h1 id="logical-design">Logical Design</h1>
+<p>Folly is a collection of relatively independent components, some as
+simple as a few symbols. There is no restriction on internal
+dependencies, meaning that a given folly module may use any other folly
+components.</p>
+<p>All symbols are defined in the top-level namespace
+<code>folly</code>, except of course macros. Macro names are
+ALL_UPPERCASE and should be prefixed with <code>FOLLY_</code>. Namespace
+<code>folly</code> defines other internal namespaces such as
+<code>internal</code> or <code>detail</code>. User code should not
+depend on symbols in those namespaces.</p>
+<p>Folly has an <code>experimental</code> directory as well. This
+designation connotes primarily that we feel the API may change heavily
+over time. This code, typically, is still in heavy use and is well
+tested.</p>
+<h1 id="physical-design">Physical Design</h1>
+<p>At the top level Folly uses the classic “stuttering” scheme
+<code>folly/folly</code> used by Boost and others. The first directory
+serves as an installation root of the library (with possible versioning
+a la <code>folly-1.0/</code>), and the second is to distinguish the
+library when including files,
+e.g. <code>#include &lt;folly/FBString.h&gt;</code>.</p>
+<p>The directory structure is flat (mimicking the namespace structure),
+i.e. we don’t have an elaborate directory hierarchy (it is possible this
+will change in future versions). The subdirectory
+<code>experimental</code> contains files that are used inside folly and
+possibly at Facebook but not considered stable enough for client use.
+Your code should not use files in <code>folly/experimental</code> lest
+it may break when you update Folly.</p>
+<p>The <code>folly/folly/test</code> subdirectory includes the unittests
+for all components, usually named <code>ComponentXyzTest.cpp</code> for
+each <code>ComponentXyz.*</code>. The <code>folly/folly/docs</code>
+directory contains documentation.</p>
+<h1 id="whats-in-it">What’s in it?</h1>
+<p>Because of folly’s fairly flat structure, the best way to see what’s
+in it is to look at the headers in <a
+href="https://github.com/facebook/folly/tree/main/folly">top level
+<code>folly/</code> directory</a>. You can also check the <a
+href="folly/docs"><code>docs</code> folder</a> for documentation,
+starting with the <a href="folly/docs/Overview.md">overview</a>.</p>
+<p>Folly is published on GitHub at
+https://github.com/facebook/folly.</p>
+<h1 id="build-notes">Build Notes</h1>
+<p>Because folly does not provide any ABI compatibility guarantees from
+commit to commit, we generally recommend building folly as a static
+library.</p>
+<p>folly supports gcc (5.1+), clang, or MSVC. It should run on Linux
+(x86-32, x86-64, and ARM), iOS, macOS, and Windows (x86-64). The CMake
+build is only tested on some of these platforms; at a minimum, we aim to
+support macOS and Linux (on the latest Ubuntu LTS release or newer.)</p>
+<h2 id="getdeps.py"><code>getdeps.py</code></h2>
+<p>This script is used by many of Meta’s OSS tools. It will download and
+build all of the necessary dependencies first, and will then invoke
+cmake etc to build folly. This will help ensure that you build with
+relevant versions of all of the dependent libraries, taking into account
+what versions are installed locally on your system.</p>
+<p>It’s written in python so you’ll need python3.6 or later on your
+PATH. It works on Linux, macOS and Windows.</p>
+<p>The settings for folly’s cmake build are held in its getdeps manifest
+<code>build/fbcode_builder/manifests/folly</code>, which you can edit
+locally if desired.</p>
+<h3 id="dependencies">Dependencies</h3>
+<p>If on Linux or MacOS (with homebrew installed) you can install system
+dependencies to save building them:</p>
+<pre><code># Clone the repo
+git clone https://github.com/facebook/folly
+# Install dependencies
+cd folly
+sudo ./build/fbcode_builder/getdeps.py install-system-deps --recursive</code></pre>
+<p>If you’d like to see the packages before installing them:</p>
+<pre><code>./build/fbcode_builder/getdeps.py install-system-deps --dry-run --recursive</code></pre>
+<p>On other platforms or if on Linux and without system dependencies
+<code>getdeps.py</code> will mostly download and build them for you
+during the build step.</p>
+<p>Some of the dependencies <code>getdeps.py</code> uses and installs
+are:</p>
+<ul>
+<li>a version of boost compiled with C++14 support.</li>
+<li>googletest is required to build and run folly’s tests.</li>
+</ul>
+<h3 id="build">Build</h3>
+<p>This script will download and build all of the necessary dependencies
+first, and will then invoke cmake etc to build folly. This will help
+ensure that you build with relevant versions of all of the dependent
+libraries, taking into account what versions are installed locally on
+your system.</p>
+<p><code>getdeps.py</code> currently requires python 3.6+ to be on your
+path.</p>
+<p><code>getdeps.py</code> will invoke cmake etc.</p>
+<pre><code># Clone the repo
+git clone https://github.com/facebook/folly
+cd folly
+# Build, using system dependencies if available
+python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build</code></pre>
+<p>It puts output in its scratch area:</p>
+<ul>
+<li><code>installed/folly/lib/libfolly.a</code>: Library</li>
+</ul>
+<p>You can also specify a <code>--scratch-path</code> argument to
+control the location of the scratch directory used for the build. You
+can find the default scratch install location from logs or with
+<code>python3 ./build/fbcode_builder/getdeps.py show-inst-dir</code>.</p>
+<p>There are also <code>--install-dir</code> and
+<code>--install-prefix</code> arguments to provide some more
+fine-grained control of the installation directories. However, given
+that folly provides no compatibility guarantees between commits we
+generally recommend building and installing the libraries to a temporary
+location, and then pointing your project’s build at this temporary
+location, rather than installing folly in the traditional system
+installation directories. e.g., if you are building with CMake you can
+use the <code>CMAKE_PREFIX_PATH</code> variable to allow CMake to find
+folly in this temporary installation directory when building your
+project.</p>
+<p>If you want to invoke <code>cmake</code> again to iterate, there is a
+helpful <code>run_cmake.py</code> script output in the scratch build
+directory. You can find the scratch build directory from logs or with
+<code>python3 ./build/fbcode_builder/getdeps.py show-build-dir</code>.</p>
+<h3 id="run-tests">Run tests</h3>
+<p>By default <code>getdeps.py</code> will build the tests for folly. To
+run them:</p>
+<pre><code>cd folly
+python3 ./build/fbcode_builder/getdeps.py --allow-system-packages test</code></pre>
+<h3
+id="build.shbuild.bat-wrapper"><code>build.sh</code>/<code>build.bat</code>
+wrapper</h3>
+<p><code>build.sh</code> can be used on Linux and MacOS, on Windows use
+the <code>build.bat</code> script instead. Its a wrapper around
+<code>getdeps.py</code>.</p>
+<h2 id="build-with-cmake-directly">Build with cmake directly</h2>
+<p>If you don’t want to let getdeps invoke cmake for you then by
+default, building the tests is disabled as part of the CMake
+<code>all</code> target. To build the tests, specify
+<code>-DBUILD_TESTS=ON</code> to CMake at configure time.</p>
+<p>NB if you want to invoke <code>cmake</code> again to iterate on a
+<code>getdeps.py</code> build, there is a helpful
+<code>run_cmake.py</code> script output in the scratch-path build
+directory. You can find the scratch build directory from logs or with
+<code>python3 ./build/fbcode_builder/getdeps.py show-build-dir</code>.</p>
+<p>Running tests with ctests also works if you cd to the build dir, e.g.
+<code>(cd $(python3 ./build/fbcode_builder/getdeps.py show-build-dir) &amp;&amp; ctest)</code></p>
+<h3 id="finding-dependencies-in-non-default-locations">Finding
+dependencies in non-default locations</h3>
+<p>If you have boost, gtest, or other dependencies installed in a
+non-default location, you can use the <code>CMAKE_INCLUDE_PATH</code>
+and <code>CMAKE_LIBRARY_PATH</code> variables to make CMAKE look also
+look for header files and libraries in non-standard locations. For
+example, to also search the directories <code>/alt/include/path1</code>
+and <code>/alt/include/path2</code> for header files and the directories
+<code>/alt/lib/path1</code> and <code>/alt/lib/path2</code> for
+libraries, you can invoke <code>cmake</code> as follows:</p>
+<pre><code>cmake \
+  -DCMAKE_INCLUDE_PATH=/alt/include/path1:/alt/include/path2 \
+  -DCMAKE_LIBRARY_PATH=/alt/lib/path1:/alt/lib/path2 ...</code></pre>
+<h2 id="ubuntu-lts-centos-stream-fedora">Ubuntu LTS, CentOS Stream,
+Fedora</h2>
+<p>Use the <code>getdeps.py</code> approach above. We test in CI on
+Ubuntu LTS, and occasionally on other distros.</p>
+<p>If you find the set of system packages is not quite right for your
+chosen distro, you can specify distro version specific overrides in the
+dependency manifests
+(e.g. https://github.com/facebook/folly/blob/main/build/fbcode_builder/manifests/boost
+). You could probably make it work on most recent Ubuntu/Debian or
+Fedora/Redhat derived distributions.</p>
+<p>At time of writing (Dec 2021) there is a build break on GCC 11.x
+based systems in lang_badge_test. If you don’t need badge functionality
+you can work around by commenting it out from CMakeLists.txt
+(unfortunately fbthrift does need it)</p>
+<h2 id="windows-vcpkg">Windows (Vcpkg)</h2>
+<p>Note that many tests are disabled for folly Windows builds, you can
+see them in the log from the cmake configure step, or by looking for
+WINDOWS_DISABLED in <code>CMakeLists.txt</code></p>
+<p>That said, <code>getdeps.py</code> builds work on Windows and are
+tested in CI.</p>
+<p>If you prefer, you can try Vcpkg. folly is available in <a
+href="https://github.com/Microsoft/vcpkg#vcpkg">Vcpkg</a> and releases
+may be built via <code>vcpkg install folly:x64-windows</code>.</p>
+<p>You may also use <code>vcpkg install folly:x64-windows --head</code>
+to build against <code>main</code>.</p>
+<h2 id="macos">macOS</h2>
+<p><code>getdeps.py</code> builds work on macOS and are tested in CI,
+however if you prefer, you can try one of the macOS package managers</p>
+<h3 id="homebrew">Homebrew</h3>
+<p>folly is available as a Formula and releases may be built via
+<code>brew install folly</code>.</p>
+<p>You may also use <code>folly/build/bootstrap-osx-homebrew.sh</code>
+to build against <code>main</code>:</p>
+<pre><code>  ./folly/build/bootstrap-osx-homebrew.sh</code></pre>
+<p>This will create a build directory <code>_build</code> in the
+top-level.</p>
+<h3 id="macports">MacPorts</h3>
+<p>Install the required packages from MacPorts:</p>
+<pre><code>  sudo port install \
+    boost \
+    cmake \
+    gflags \
+    git \
+    google-glog \
+    libevent \
+    libtool \
+    lz4 \
+    lzma \
+    openssl \
+    snappy \
+    xz \
+    zlib</code></pre>
+<p>Download and install double-conversion:</p>
+<pre><code>  git clone https://github.com/google/double-conversion.git
+  cd double-conversion
+  cmake -DBUILD_SHARED_LIBS=ON .
+  make
+  sudo make install</code></pre>
+<p>Download and install folly with the parameters listed below:</p>
+<pre><code>  git clone https://github.com/facebook/folly.git
+  cd folly
+  mkdir _build
+  cd _build
+  cmake ..
+  make
+  sudo make install</code></pre>

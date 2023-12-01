@@ -1,0 +1,834 @@
+<h1 id="sigslot-a-signal-slot-library">Sigslot, a signal-slot
+library</h1>
+<p>Sigslot is a header-only, thread safe implementation of signal-slots
+for C++.</p>
+<h2 id="features">Features</h2>
+<p>The main goal was to replace Boost.Signals2.</p>
+<p>Apart from the usual features, it offers</p>
+<ul>
+<li>Thread safety,</li>
+<li>Object lifetime tracking for automatic slot disconnection
+(extensible through ADL),</li>
+<li>RAII connection management,</li>
+<li>Slot groups to enforce slots execution order,</li>
+<li>Reasonable performance. and a simple and straightforward
+implementation.</li>
+</ul>
+<p>Sigslot is unit-tested and should be reliable and stable enough to
+replace Boost Signals2.</p>
+<p>The tests run cleanly under the address, thread and undefined
+behaviour sanitizers.</p>
+<p>Many implementations allow signal return types, Sigslot does not
+because I have no use for them. If I can be convinced of otherwise I may
+change my mind later on.</p>
+<h2 id="installation">Installation</h2>
+<p>No compilation or installation is required, just include
+<code>sigslot/signal.hpp</code> and use it. Sigslot currently depends on
+a C++14 compliant compiler, but if need arises it may be retrofitted to
+C++11. It is known to work with Clang 4.0 and GCC 5.0+ compilers on GNU
+Linux, MSVC 2017 and up, Clang-cl and MinGW on Windows.</p>
+<p>However, be aware of a potential gotcha on Windows with MSVC and
+Clang-Cl compilers, which may need the <code>/OPT:NOICF</code> linker
+flags in exceptional situations. Read The Implementation Details chapter
+for an explanation.</p>
+<p>A CMake list file is supplied for installation purpose and generating
+a CMake import module. This is the preferred installation method. The
+<code>Pal::Sigslot</code> imported target is available and already
+applies the needed linker flags. It is also required for examples and
+tests, which optionally depend on Qt5 and Boost for adapters unit
+tests.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using Sigslot from cmake</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(PalSigslot)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="bn">MyExe</span> main.cpp)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">MyExe</span> <span class="ot">PRIVATE</span> <span class="bn">Pal::Sigslot</span>)</span></code></pre></div>
+<p>A configuration option <code>SIGSLOT_REDUCE_COMPILE_TIME</code> is
+available at configuration time. When activated, it attempts to reduce
+code bloat by avoiding heavy template instantiations resulting from
+calls to <code>std::make_shared</code>. This option is off by default,
+but can be activated for those who wish to favor code size and
+compilation time at the expanse of slightly less efficient code.</p>
+<p>Installation may be done using the following instructions from the
+root directory:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> .. <span class="at">-DSIGSLOT_REDUCE_COMPILE_TIME</span><span class="op">=</span>ON <span class="at">-DCMAKE_INSTALL_PREFIX</span><span class="op">=</span>~/local</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> . <span class="at">--target</span> install</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># If you want to compile examples:</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> . <span class="at">--target</span> sigslot-examples</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># And compile/execute unit tests:</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> . <span class="at">--target</span> sigslot-tests</span></code></pre></div>
+<h3 id="cmake-fetchcontent">CMake FetchContent</h3>
+<p><code>Pal::Sigslot</code> can also be integrated using the <a
+href="https://cmake.org/cmake/help/latest/module/FetchContent.html">FetchContent</a>
+method.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>(<span class="im">FetchContent</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  sigslot</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_REPOSITORY</span> https://github.com/palacaze/sigslot</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_TAG</span>        19a6f0f5ea11fc121fe67f81fd5e491f2d7a4637 <span class="co"># v1.2.0</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_MakeAvailable</span>(sigslot)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="bn">MyExe</span> main.cpp)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">MyExe</span> <span class="ot">PRIVATE</span> <span class="bn">Pal::Sigslot</span>)</span></code></pre></div>
+<h2 id="documentation">Documentation</h2>
+<p>Sigslot implements the signal-slot construct popular in UI
+frameworks, making it easy to use the observer pattern or event-based
+programming. The main entry point of the library is the
+<code>sigslot::signal&lt;T...&gt;</code> class template.</p>
+<p>A signal is an object that can emit typed notifications, really
+values parametrized after the signal class template parameters, and
+register any number of notification handlers (callables) of compatible
+argument types to be executed with the values supplied whenever a signal
+emission happens. In signal-slot parlance this is called connecting a
+slot to a signal, where a “slot” represents a callable instance and a
+“connection” can be thought of as a conceptual link from signal to
+slot.</p>
+<p>All the snippets presented below are available in compilable source
+code form in the example subdirectory.</p>
+<h3 id="basic-usage">Basic usage</h3>
+<p>Here is a first example that showcases the most basic features of the
+library.</p>
+<p>We first declare a parameter-free signal <code>sig</code>, then we
+proceed to connect several slots and at last emit a signal which
+triggers the invocation of every slot callable connected beforehand.
+Notice how The library handles diverse forms of callables.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> f<span class="op">()</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;free function</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> s <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m<span class="op">()</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;member function</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> sm<span class="op">()</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;static member function</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span>  <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> o <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()()</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;function object</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    s d<span class="op">;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> lambda <span class="op">=</span> <span class="op">[]()</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;lambda</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">};</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> gen_lambda <span class="op">=</span> <span class="op">[](</span><span class="kw">auto</span> <span class="op">&amp;&amp;</span> <span class="op">...</span>a<span class="op">)</span> <span class="op">{</span> <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;generic lambda</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">};</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// declare a signal instance with no arguments</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// connect slots</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m<span class="op">,</span> <span class="op">&amp;</span>d<span class="op">);</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>sm<span class="op">);</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>o<span class="op">());</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>lambda<span class="op">);</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>gen_lambda<span class="op">);</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// emit a signal</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>By default, the slot invocation order when emitting a signal is
+unspecified, please do not rely on it being always the same. You may
+constrain a particular invocation order by using slot groups, which are
+presented later on.</p>
+<h3 id="signal-with-arguments">Signal with arguments</h3>
+<p>That first example was simple but not so useful, let us move on to a
+signal that emits values instead. A signal can emit any number of
+arguments, below.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> foo <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Notice how we accept a double as first argument here.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// This is fine because float is convertible to double.</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// &#39;s&#39; is a reference and can thus be modified.</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> bar<span class="op">(</span><span class="dt">double</span> d<span class="op">,</span> <span class="dt">int</span> i<span class="op">,</span> <span class="dt">bool</span> b<span class="op">,</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>s<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        s <span class="op">=</span> b <span class="op">?</span> <span class="bu">std::</span>to_string<span class="op">(</span>i<span class="op">)</span> <span class="op">:</span> <span class="bu">std::</span>to_string<span class="op">(</span>d<span class="op">);</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Function objects can cope with default arguments and overloading.</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">// It does not work with static and member functions.</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> obj <span class="op">{</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="dt">float</span><span class="op">,</span> <span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op"> &amp;,</span> <span class="dt">int</span> <span class="op">=</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;I was here</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()()</span> <span class="op">{}</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// declare a signal with float, int, bool and string&amp; arguments</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;</span><span class="dt">float</span><span class="op">,</span> <span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&amp;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a generic lambda that prints its arguments to stdout</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> printer <span class="op">=</span> <span class="op">[]</span> <span class="op">(</span><span class="kw">auto</span> a<span class="op">,</span> <span class="kw">auto</span> <span class="op">&amp;&amp;</span> <span class="op">...</span>args<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> a<span class="op">;</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="dt">void</span><span class="op">)</span><span class="bu">std::</span>initializer_list<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;{</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>            <span class="op">((</span><span class="dt">void</span><span class="op">)(</span><span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot; &quot;</span> <span class="op">&lt;&lt;</span> args<span class="op">),</span> <span class="dv">1</span><span class="op">)...</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">};</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="co">// connect the slots</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    foo ff<span class="op">;</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>printer<span class="op">);</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>foo<span class="op">::</span>bar<span class="op">,</span> <span class="op">&amp;</span>ff<span class="op">);</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>obj<span class="op">());</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>    <span class="dt">float</span> f <span class="op">=</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">;</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>    <span class="dt">short</span> i <span class="op">=</span> <span class="dv">2</span><span class="op">;</span>  <span class="co">// convertible to int</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string<span class="op"> </span>s <span class="op">=</span> <span class="st">&quot;0&quot;</span><span class="op">;</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    <span class="co">// emit a signal</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span>f<span class="op">,</span> i<span class="op">,</span> <span class="kw">false</span><span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span>f<span class="op">,</span> i<span class="op">,</span> <span class="kw">true</span><span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>As shown, slots arguments types don’t need to be strictly identical
+to the signal template parameters, being convertible-from is fine.
+Generic arguments are fine too, as shown with the <code>printer</code>
+generic lambda (which could have been written as a function template
+too).</p>
+<p>Right now there are two limitations that I can think of with respect
+to callable handling: default arguments and function overloading. Both
+are working correctly in the case of function objects but will fail to
+compile with static and member functions, for different but related
+reasons.</p>
+<h4 id="coping-with-overloaded-functions">Coping with overloaded
+functions</h4>
+<p>Consider the following piece of code:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> foo <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> bar<span class="op">(</span><span class="dt">double</span> d<span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> bar<span class="op">();</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>What should <code>&amp;foo::bar</code> refer to? As per overloading,
+this pointer over member function does not map to a unique symbol, so
+the compiler won’t be able to pick the right symbol. One way of
+resolving the right symbol is to explicitly cast the function pointer to
+the right function type. Here is an example that does just that using a
+little helper tool for a lighter syntax (In fact I will probably add
+this to the library soon).</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span><span class="op">...</span> Args<span class="op">,</span> <span class="kw">typename</span> C<span class="op">&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> <span class="kw">auto</span> overload<span class="op">(</span><span class="dt">void</span> <span class="op">(</span>C<span class="op">::*</span>ptr<span class="op">)(</span>Args<span class="op">...))</span> <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ptr<span class="op">;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span><span class="op">...</span> Args<span class="op">&gt;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> <span class="kw">auto</span> overload<span class="op">(</span><span class="dt">void</span> <span class="op">(*</span>ptr<span class="op">)(</span>Args<span class="op">...))</span> <span class="op">{</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ptr<span class="op">;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> obj <span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="dt">int</span><span class="op">)</span> <span class="at">const</span> <span class="op">{}</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()()</span> <span class="op">{}</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> foo <span class="op">{</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> bar<span class="op">(</span><span class="dt">int</span><span class="op">)</span> <span class="op">{}</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> bar<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> baz<span class="op">(</span><span class="dt">int</span><span class="op">)</span> <span class="op">{}</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> baz<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> moo<span class="op">(</span><span class="dt">int</span><span class="op">)</span> <span class="op">{}</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> moo<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> sig<span class="op">;</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// connect the slots, casting to the right overload if necessary</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    foo ff<span class="op">;</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>overload<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(&amp;</span>foo<span class="op">::</span>bar<span class="op">),</span> <span class="op">&amp;</span>ff<span class="op">);</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>overload<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(&amp;</span>foo<span class="op">::</span>baz<span class="op">));</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>overload<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(&amp;</span>moo<span class="op">));</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>obj<span class="op">());</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="coping-with-function-with-default-arguments">Coping with
+function with default arguments</h4>
+<p>Default arguments are not part of the function type signature, and
+can be redefined, so they are really difficult to deal with. When
+connecting a slot to a signal, the library determines if the supplied
+callable can be invoked with the signal argument types, but at this
+point the existence of default function arguments is unknown so there
+might be a mismatch in the number of arguments.</p>
+<p>A simple work around for this use case would is to create a bind
+adapter, in fact we can even make it quite generic like so:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define ADAPT</span><span class="op">(</span>func<span class="op">)</span><span class="pp"> </span><span class="op">\</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="pp">    </span><span class="op">[=](</span><span class="kw">auto</span><span class="pp"> </span><span class="op">&amp;&amp;</span><span class="pp"> </span><span class="op">...</span>a<span class="op">)</span><span class="pp"> </span><span class="op">{</span><span class="pp"> </span><span class="op">(</span>func<span class="op">)(</span><span class="bu">std::</span>forward<span class="op">&lt;</span><span class="kw">decltype</span><span class="op">(</span>a<span class="op">)&gt;(</span>a<span class="op">)...);</span><span class="pp"> </span><span class="op">}</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> foo<span class="op">(</span><span class="dt">int</span> <span class="op">&amp;</span>i<span class="op">,</span> <span class="dt">int</span> b <span class="op">=</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    i <span class="op">+=</span> b<span class="op">;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// fine, all the arguments are handled</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;</span><span class="dt">int</span><span class="op">&amp;,</span> <span class="dt">int</span><span class="op">&gt;</span> sig1<span class="op">;</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    sig1<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>foo<span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    sig1<span class="op">(</span>i<span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// must wrap in an adapter</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;</span><span class="dt">int</span><span class="op">&amp;&gt;</span> sig2<span class="op">;</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    sig2<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>ADAPT<span class="op">(</span>foo<span class="op">));</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    sig2<span class="op">(</span>i<span class="op">);</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="connection-management">Connection management</h3>
+<h4 id="connection-object">Connection object</h4>
+<p>What was not made apparent until now is that
+<code>signal::connect()</code> actually returns a
+<code>sigslot::connection</code> object that may be used to manage the
+behaviour and lifetime of a signal-slot connection.
+<code>sigslot::connection</code> is a lightweight object (basically a
+<code>std::weak_ptr</code>) that allows interaction with an ongoing
+signal-slot connection and exposes the following features:</p>
+<ul>
+<li>Status querying, that is testing whether a connection is valid,
+ongoing or facing destruction,</li>
+<li>Connection (un)blocking, which allows to temporarily disable the
+invocation of a slot when a signal is emitted,</li>
+<li>Disconnection of a slot, the destruction of a connection previously
+created via <code>signal::connect()</code>.</li>
+</ul>
+<p>A <code>sigslot::connection</code> does not tie a connection to a
+scope: this is not a RAII object, which explains why it can be copied.
+It can be however implicitly converted into a
+<code>sigslot::scoped_connection</code> which destroys the connection
+when going out of scope.</p>
+<p>Here is an example illustrating some of those features:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> f<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// keep a sigslot::connection object</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> c1 <span class="op">=</span> sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// disconnection</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 1</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    c1<span class="op">.</span><span class="fu">disconnect</span><span class="op">();</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 1</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// scope based disconnection</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>        sigslot<span class="op">::</span>scoped_connection sc <span class="op">=</span> sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">();</span>  <span class="co">// i == 2</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 2;</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// connection blocking</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> c2 <span class="op">=</span> sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 3</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    c2<span class="op">.</span>block<span class="op">();</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 3</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    c2<span class="op">.</span>unblock<span class="op">();</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 4</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="extended-connection-signature">Extended connection
+signature</h4>
+<p>Sigslot supports an extended slot signature with an additional
+<code>sigslot::connection</code> reference as first argument, which
+permits connection management from inside the slot. This extended
+signature is accessible using the <code>connect_extended()</code>
+method.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// extended connection</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> f <span class="op">=</span> <span class="op">[](</span><span class="kw">auto</span> <span class="op">&amp;</span>con<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span>             <span class="co">// do work</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        con<span class="op">.</span><span class="fu">disconnect</span><span class="op">();</span>   <span class="co">// then disconnects</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span>connect_extended<span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 1</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 1 because f was disconnected</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="automatic-slot-lifetime-tracking">Automatic slot lifetime
+tracking</h4>
+<p>The user must make sure that the lifetime of a slot exceeds the one
+of a signal, which may get tedious in complex software. To simplify this
+task, Sigslot can automatically disconnect slot object whose lifetime it
+is able to track. In order to do that, the slot must be convertible to a
+weak pointer of some form.</p>
+<p><code>std::shared_ptr</code> and <code>std::weak_ptr</code> are
+supported out of the box, and adapters are provided to support
+<code>boost::shared_ptr</code>, <code>boost::weak_ptr</code> and Qt
+<code>QSharedPointer</code>, <code>QWeakPointer</code> and any class
+deriving from <code>QObject</code>.</p>
+<p>Other trackable objects can be added by declaring a
+<code>to_weak()</code> adapter function.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/adapter/qt.hpp&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> sum <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> s <span class="op">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> f<span class="op">(</span><span class="dt">int</span> i<span class="op">)</span> <span class="op">{</span> sum <span class="op">+=</span> i<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyObject <span class="op">:</span> <span class="kw">public</span> <span class="ex">QObject</span> <span class="op">{</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Q_OBJECT</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> add<span class="op">(</span><span class="dt">int</span> i<span class="op">)</span> <span class="at">const</span> <span class="op">{</span> sum <span class="op">+=</span> i<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    signal<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> sig<span class="op">;</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// track lifetime of object and also connect to a member function</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> p <span class="op">=</span> <span class="bu">std::</span>make_shared<span class="op">&lt;</span>s<span class="op">&gt;();</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>f<span class="op">,</span> p<span class="op">);</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 1</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    p<span class="op">.</span>reset<span class="op">();</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 1</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// track an unrelated object lifetime</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> dummy<span class="op">;</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> l <span class="op">=</span> <span class="op">[&amp;](</span><span class="dt">int</span> i<span class="op">)</span> <span class="op">{</span> sum <span class="op">+=</span> i<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> d <span class="op">=</span> <span class="bu">std::</span>make_shared<span class="op">&lt;</span>dummy<span class="op">&gt;();</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>l<span class="op">,</span> d<span class="op">);</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 2</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>    d<span class="op">.</span>reset<span class="op">();</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 2</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    <span class="co">// track a QObject</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>        MyObject o<span class="op">;</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>MyObject<span class="op">::</span>add<span class="op">,</span> <span class="op">&amp;</span>o<span class="op">);</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span> <span class="co">// sum == 3</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 3</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="intrusive-slot-lifetime-tracking">Intrusive slot lifetime
+tracking</h4>
+<p>Another way of ensuring automatic disconnection of pointer over
+member functions slots is by explicitly inheriting from
+<code>sigslot::observer</code> or <code>sigslot::observer_st</code>. The
+former is thread-safe, contrary to the later.</p>
+<p>Here is an example usage.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> sum <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> s <span class="op">:</span> sigslot<span class="op">::</span>observer_st <span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> f<span class="op">(</span><span class="dt">int</span> i<span class="op">)</span> <span class="op">{</span> sum <span class="op">+=</span> i<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="va">s_mt</span> <span class="op">:</span> sigslot<span class="op">::</span>observer <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">~</span><span class="va">s_mt</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Needed to ensure proper disconnection prior to object destruction</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// in multithreaded contexts.</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">-&gt;</span>disconnect_all<span class="op">();</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> f<span class="op">(</span><span class="dt">int</span> i<span class="op">)</span> <span class="op">{</span> sum <span class="op">+=</span> i<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    signal<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> sig<span class="op">;</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Lifetime of object instance p is tracked</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        s p<span class="op">;</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>        <span class="va">s_mt</span> pm<span class="op">;</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>f<span class="op">,</span> <span class="op">&amp;</span>p<span class="op">);</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span><span class="va">s_mt</span><span class="op">::</span>f<span class="op">,</span> <span class="op">&amp;</span>pm<span class="op">);</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>        sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>     <span class="co">// sum == 2</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// The slots got disconnected at instance destruction</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">(</span><span class="dv">1</span><span class="op">);</span>         <span class="co">// sum == 2</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The objects that use this intrusive approach may be connected to any
+number of unrelated signals.</p>
+<h3 id="disconnection-without-a-connection-object">Disconnection without
+a connection object</h3>
+<p>Support for slot disconnection by supplying an appropriate function
+signature, object pointer or tracker has been introduced in version
+1.2.0.</p>
+<p>One can disconnect any number of slots using the
+<code>signal::disconnect()</code> method, which proposes 4 overloads to
+specify the disconnection criterion:</p>
+<ul>
+<li>The first takes a reference to a callable. Any kind of callable can
+be passed, even pointers to member functions, function objects and
+lambdas,</li>
+<li>The second takes a pointer to an object, for slots bound to a
+pointer to member function, or a tracking object,</li>
+<li>The third overload takes both kinds of arguments at the same time
+and can be used to pinpoint a specific pair of object + callable.</li>
+<li>The last overload takes a group id and disconnects all the slots in
+this group.</li>
+</ul>
+<p>Disconnection of lambdas is only possible for lambdas bound to a
+variable, due to their uniqueness.</p>
+<p>The second overload currently needs RTTI to disconnect from pointers
+to member functions, function objects and lambdas. This limitation does
+not apply to free and static member functions. The reasons stems from
+the fact that in C++, pointers to member functions of unrelated types
+are not comparable, contrary to pointers to free and static member
+functions. For instance, the pointer to member functions of virtual
+methods of different classes can have the same address (they kind of
+store the offset of the method into the vtable).</p>
+<p>However, Sigslot can be compiled with RTTI disabled and the overload
+will be deactivated for problematic cases.</p>
+<p>As a side node, this feature admittedly added more code than
+anticipated at first because it is a tricky and easy to get wrong. It
+has been designed carefully, with correctness in mind, and does not have
+any hidden costs unless you actually use it.</p>
+<p>Here is an example demonstrating the feature.</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> f1<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> f2<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> s <span class="op">{</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m1<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m2<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m3<span class="op">()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> o <span class="op">{</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()()</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    s s1<span class="op">;</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> s2 <span class="op">=</span> <span class="bu">std::</span>make_shared<span class="op">&lt;</span>s<span class="op">&gt;();</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> lbd <span class="op">=</span> <span class="op">[&amp;]</span> <span class="op">{</span> i <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span> <span class="op">};</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f1<span class="op">);</span>           <span class="co">// #1</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>f2<span class="op">);</span>           <span class="co">// #2</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m1<span class="op">,</span> <span class="op">&amp;</span>s1<span class="op">);</span>  <span class="co">// #3</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m2<span class="op">,</span> <span class="op">&amp;</span>s1<span class="op">);</span>  <span class="co">// #4</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m3<span class="op">,</span> <span class="op">&amp;</span>s1<span class="op">);</span>  <span class="co">// #5</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m1<span class="op">,</span> s2<span class="op">);</span>   <span class="co">// #6</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(&amp;</span>s<span class="op">::</span>m2<span class="op">,</span> s2<span class="op">);</span>   <span class="co">// #7</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>o<span class="op">{});</span>          <span class="co">// #8</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>lbd<span class="op">);</span>          <span class="co">// #9</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 9</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(</span>f2<span class="op">);</span>              <span class="co">// #2 is removed</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(&amp;</span>s<span class="op">::</span>m1<span class="op">);</span>          <span class="co">// #3 and #6 are removed</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(</span>o<span class="op">{});</span>             <span class="co">// #8 and is removed</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a> <span class="co">// sig.disconnect(&amp;o::operator());  // same as the above, more efficient</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(</span>lbd<span class="op">);</span>             <span class="co">// #9 and is removed</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(</span>s2<span class="op">);</span>              <span class="co">// #7 is removed</span></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">disconnect</span><span class="op">(&amp;</span>s<span class="op">::</span>m3<span class="op">,</span> <span class="op">&amp;</span>s1<span class="op">);</span>     <span class="co">// #5 is removed, not #4</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span>  <span class="co">// i == 11</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span>disconnect_all<span class="op">();</span>         <span class="co">// remove all remaining slots</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="enforcing-slot-invocation-order-with-slot-groups">Enforcing slot
+invocation order with slot groups</h3>
+<p>From version 1.2.0, slots can be assigned a group id in order to
+control the relative order of invocation of slots.</p>
+<p>The order of invocation of slots in a same group is unspecified and
+should not be relied upon, however slot groups are invoked in ascending
+group id order. When the group id of a slot is not set, it is assigned
+to the group 0. Group ids can have any value in the range of signed 32
+bit integers.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sigslot/signal.hpp&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdio&gt;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;limits&gt;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    sigslot<span class="op">::</span>signal<span class="op">&lt;&gt;</span> sig<span class="op">;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// simply assigning a group id as last argument to connect</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">([]</span> <span class="op">{</span> <span class="bu">std::</span>puts<span class="op">(</span><span class="st">&quot;Second&quot;</span><span class="op">);</span> <span class="op">},</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">([]</span> <span class="op">{</span> <span class="bu">std::</span>puts<span class="op">(</span><span class="st">&quot;Last&quot;</span><span class="op">);</span> <span class="op">},</span> <span class="bu">std::</span>numeric_limits<span class="op">&lt;</span>sigslot<span class="op">::</span>group_id<span class="op">&gt;::</span>max<span class="op">());</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">.</span><span class="fu">connect</span><span class="op">([]</span> <span class="op">{</span> <span class="bu">std::</span>puts<span class="op">(</span><span class="st">&quot;First&quot;</span><span class="op">);</span> <span class="op">},</span> <span class="op">-</span><span class="dv">10</span><span class="op">);</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    sig<span class="op">();</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="thread-safety">Thread safety</h3>
+<p>Thread safety is unit-tested. In particular, cross-signal emission
+and recursive emission run fine in a multiple threads scenario.</p>
+<p><code>sigslot::signal</code> is a typedef to the more general
+<code>sigslot::signal_base</code> template class, whose first template
+argument must be a Lockable type. This type will dictate the locking
+policy of the class.</p>
+<p>Sigslot offers 2 typedefs,</p>
+<ul>
+<li><code>sigslot::signal</code> usable from multiple threads and uses
+std::mutex as a lockable. In particular, connection, disconnection,
+emission and slot execution are thread safe. It is also safe with
+recursive signal emission.</li>
+<li><code>sigslot::signal_st</code> is a non thread-safe alternative, it
+trades safety for slightly faster operation.</li>
+</ul>
+<h2 id="implementation-details">Implementation details</h2>
+<h3 id="using-function-pointers-to-disconnect-slots">Using function
+pointers to disconnect slots</h3>
+<p>Comparing function pointers is a nightmare in C++. Here is a table
+demonstrating the size and address of a variety of cases as a
+showcase:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> fun<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> b1 <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>b1<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span><span class="op">;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> sm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> vm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> b2 <span class="op">{</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>b2<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span><span class="op">;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> sm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> vm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> c <span class="op">{</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="op">~</span>c<span class="op">()</span> <span class="op">=</span> <span class="cf">default</span><span class="op">;</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">virtual</span> <span class="dt">void</span> w<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> d <span class="op">:</span> b1 <span class="op">{</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> sm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> vm<span class="op">()</span> <span class="kw">override</span> <span class="op">{}</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> e <span class="op">:</span> b1<span class="op">,</span> c <span class="op">{</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="dt">void</span> sm<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> m<span class="op">()</span> <span class="op">{}</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> vm<span class="op">()</span> <span class="kw">override</span><span class="op">{}</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 4%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 11%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>GCC 9 Linux 64<br>Sizeof</th>
+<th>GCC 9 Linux 64<br>Address</th>
+<th>MSVC 16.6 32<br>Sizeof</th>
+<th>MSVC 16.6 32<br>Address</th>
+<th>GCC 8 Mingw 32<br>Sizeof</th>
+<th>GCC 8 Mingw 32<br>Address</th>
+<th>Clang-cl 9 32<br>Sizeof</th>
+<th>Clang-cl 9 32<br>Address</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fun</td>
+<td>8</td>
+<td>0x802340</td>
+<td>4</td>
+<td>0x1311A6</td>
+<td>4</td>
+<td>0xF41540</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="even">
+<td>&amp;b1::sm</td>
+<td>8</td>
+<td>0xE03140</td>
+<td>4</td>
+<td>0x7612A5</td>
+<td>4</td>
+<td>0x308D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;b1::m</td>
+<td>16</td>
+<td>0xF03240</td>
+<td>4</td>
+<td>0x1514A5</td>
+<td>8</td>
+<td>0x248D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="even">
+<td>&amp;b1::vm</td>
+<td>16</td>
+<td>0x11</td>
+<td>4</td>
+<td>0x9F11A5</td>
+<td>8</td>
+<td>0x09</td>
+<td>4</td>
+<td>0x8023AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;b2::sm</td>
+<td>8</td>
+<td>0x003340</td>
+<td>4</td>
+<td>0xA515A5</td>
+<td>4</td>
+<td>0x408D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="even">
+<td>&amp;b2::m</td>
+<td>16</td>
+<td>0x103440</td>
+<td>4</td>
+<td>0xEB10A5</td>
+<td>8</td>
+<td>0x348D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;b2::vm</td>
+<td>16</td>
+<td>0x11</td>
+<td>4</td>
+<td>0x6A14A5</td>
+<td>8</td>
+<td>0x09</td>
+<td>4</td>
+<td>0x8023AE</td>
+</tr>
+<tr class="even">
+<td>&amp;d::sm</td>
+<td>8</td>
+<td>0x203440</td>
+<td>4</td>
+<td>0x2612A5</td>
+<td>4</td>
+<td>0x108D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;d::m</td>
+<td>16</td>
+<td>0x303540</td>
+<td>4</td>
+<td>0x9D13A5</td>
+<td>8</td>
+<td>0x048D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="even">
+<td>&amp;d::vm</td>
+<td>16</td>
+<td>0x11</td>
+<td>4</td>
+<td>0x4412A5</td>
+<td>8</td>
+<td>0x09</td>
+<td>4</td>
+<td>0x8023AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;e::sm</td>
+<td>8</td>
+<td>0x403540</td>
+<td>4</td>
+<td>0xF911A5</td>
+<td>4</td>
+<td>0x208D40</td>
+<td>4</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="even">
+<td>&amp;e::m</td>
+<td>16</td>
+<td>0x503640</td>
+<td>8</td>
+<td>0x8111A5</td>
+<td>8</td>
+<td>0x148D40</td>
+<td>8</td>
+<td>0x0010AE</td>
+</tr>
+<tr class="odd">
+<td>&amp;e::vm</td>
+<td>16</td>
+<td>0x11</td>
+<td>8</td>
+<td>0xA911A5</td>
+<td>8</td>
+<td>0x09</td>
+<td>8</td>
+<td>0x8023AE</td>
+</tr>
+</tbody>
+</table>
+<p>MSVC and Clang-cl in Release mode optimize functions with the same
+definition by merging them. This is a behaviour that can be deactivated
+with the <code>/OPT:NOICF</code> linker option. Sigslot tests and
+examples rely on a lot a identical callables which trigger this
+behaviour, which is why it deactivates this particular optimization on
+the affected compilers.</p>
+<h3 id="known-bugs">Known bugs</h3>
+<p>Using generic lambdas with GCC less than version 7.4 can trigger <a
+href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=68071">Bug
+#68071</a>.</p>

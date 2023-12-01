@@ -1,0 +1,189 @@
+<h1 id="news">News</h1>
+<ol style="list-style-type: decimal">
+<li>Visual Studio 2013 is no longer supported</li>
+</ol>
+<p><a href="https://github.com/KhronosGroup/glslang/blob/9eef54b2513ca6b40b47b07d24f453848b65c0df/README.md#planned-deprecationsremovals">As scheduled</a>, Microsoft Visual Studio 2013 is no longer officially supported.<br />
+Please upgrade to at least Visual Studio 2015.</p>
+<ol start="2" style="list-style-type: decimal">
+<li><p>The versioning scheme is being improved, and you might notice some differences. This is currently WIP, but will be coming soon. See, for example, PR #2277.</p></li>
+<li><p>If you get a new <strong>compilation error due to a missing header</strong>, it might be caused by this planned removal:</p></li>
+</ol>
+<p><strong>SPIRV Folder, 1-May, 2020.</strong> Glslang, when installed through CMake, will install a <code>SPIRV</code> folder into <code>${CMAKE_INSTALL_INCLUDEDIR}</code>. This <code>SPIRV</code> folder is being moved to <code>glslang/SPIRV</code>. During the transition the <code>SPIRV</code> folder will be installed into both locations. The old install of <code>SPIRV/</code> will be removed as a CMake install target no sooner than May 1, 2020. See issue #1964.</p>
+<p>If people are only using this location to get spirv.hpp, I recommend they get that from <a href="https://github.com/KhronosGroup/SPIRV-Headers">SPIRV-Headers</a> instead.</p>
+<p><a href="https://travis-ci.org/KhronosGroup/glslang"><img src="https://travis-ci.org/KhronosGroup/glslang.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Khronoswebmaster/glslang/branch/master"><img src="https://ci.appveyor.com/api/projects/status/q6fi9cb0qnhkla68/branch/master?svg=true" alt="Build status" /></a></p>
+<h1 id="glslang-components-and-status">Glslang Components and Status</h1>
+<p>There are several components:</p>
+<h3 id="reference-validator-and-glslessl---ast-front-end">Reference Validator and GLSL/ESSL -&gt; AST Front End</h3>
+<p>An OpenGL GLSL and OpenGL|ES GLSL (ESSL) front-end for reference validation and translation of GLSL/ESSL into an internal abstract syntax tree (AST).</p>
+<p><strong>Status</strong>: Virtually complete, with results carrying similar weight as the specifications.</p>
+<h3 id="hlsl---ast-front-end">HLSL -&gt; AST Front End</h3>
+<p>An HLSL front-end for translation of an approximation of HLSL to glslang's AST form.</p>
+<p><strong>Status</strong>: Partially complete. Semantics are not reference quality and input is not validated. This is in contrast to the <a href="https://github.com/Microsoft/DirectXShaderCompiler">DXC project</a>, which receives a much larger investment and attempts to have definitive/reference-level semantics.</p>
+<p>See <a href="https://github.com/KhronosGroup/glslang/issues/362">issue 362</a> and <a href="https://github.com/KhronosGroup/glslang/issues/701">issue 701</a> for current status.</p>
+<h3 id="ast---spir-v-back-end">AST -&gt; SPIR-V Back End</h3>
+<p>Translates glslang's AST to the Khronos-specified SPIR-V intermediate language.</p>
+<p><strong>Status</strong>: Virtually complete.</p>
+<h3 id="reflector">Reflector</h3>
+<p>An API for getting reflection information from the AST, reflection types/variables/etc. from the HLL source (not the SPIR-V).</p>
+<p><strong>Status</strong>: There is a large amount of functionality present, but no specification/goal to measure completeness against. It is accurate for the input HLL and AST, but only approximate for what would later be emitted for SPIR-V.</p>
+<h3 id="standalone-wrapper">Standalone Wrapper</h3>
+<p><code>glslangValidator</code> is command-line tool for accessing the functionality above.</p>
+<p>Status: Complete.</p>
+<p>Tasks waiting to be done are documented as GitHub issues.</p>
+<h2 id="other-references">Other References</h2>
+<p>Also see the Khronos landing page for glslang as a reference front end:</p>
+<p>https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/</p>
+<p>The above page, while not kept up to date, includes additional information regarding glslang as a reference validator.</p>
+<h1 id="how-to-use-glslang">How to Use Glslang</h1>
+<h2 id="execution-of-standalone-wrapper">Execution of Standalone Wrapper</h2>
+<p>To use the standalone binary form, execute <code>glslangValidator</code>, and it will print a usage statement. Basic operation is to give it a file containing a shader, and it will print out warnings/errors and optionally an AST.</p>
+<p>The applied stage-specific rules are based on the file extension: * <code>.vert</code> for a vertex shader * <code>.tesc</code> for a tessellation control shader * <code>.tese</code> for a tessellation evaluation shader * <code>.geom</code> for a geometry shader * <code>.frag</code> for a fragment shader * <code>.comp</code> for a compute shader</p>
+<p>There is also a non-shader extension * <code>.conf</code> for a configuration file of limits, see usage statement for example</p>
+<h2 id="building">Building</h2>
+<p>Instead of building manually, you can also download the binaries for your platform directly from the <a href="https://github.com/KhronosGroup/glslang/releases/tag/master-tot">master-tot release</a> on GitHub. Those binaries are automatically uploaded by the buildbots after successful testing and they always reflect the current top of the tree of the master branch.</p>
+<h3 id="dependencies">Dependencies</h3>
+<ul>
+<li>A C++11 compiler. (For MSVS: use 2015 or later.)</li>
+<li><a href="https://cmake.org/">CMake</a>: for generating compilation targets.</li>
+<li>make: <em>Linux</em>, ninja is an alternative, if configured.</li>
+<li><a href="https://www.python.org/">Python 3.x</a>: for executing SPIRV-Tools scripts. (Optional if not using SPIRV-Tools and the 'External' subdirectory does not exist.)</li>
+<li><a href="https://www.gnu.org/software/bison/">bison</a>: <em>optional</em>, but needed when changing the grammar (glslang.y).</li>
+<li><a href="https://github.com/google/googletest">googletest</a>: <em>optional</em>, but should use if making any changes to glslang.</li>
+</ul>
+<h3 id="build-steps">Build steps</h3>
+<p>The following steps assume a Bash shell. On Windows, that could be the Git Bash shell or some other shell of your choosing.</p>
+<h4 id="check-out-this-project">1) Check-Out this project</h4>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> <span class="op">&lt;</span>parent of where you want glslang to be<span class="op">&gt;</span>
+<span class="fu">git</span> clone https://github.com/KhronosGroup/glslang.git</code></pre></div>
+<h4 id="check-out-external-projects">2) Check-Out External Projects</h4>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> <span class="op">&lt;</span>the directory glslang was cloned to, <span class="st">&quot;External&quot;</span> will be a subdirectory<span class="op">&gt;</span>
+<span class="fu">git</span> clone https://github.com/google/googletest.git External/googletest</code></pre></div>
+<p>If you wish to assure that SPIR-V generated from HLSL is legal for Vulkan, wish to invoke -Os to reduce SPIR-V size from HLSL or GLSL, or wish to run the integrated test suite, install spirv-tools with this:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">./update_glslang_sources.py</span></code></pre></div>
+<h4 id="configure">3) Configure</h4>
+<p>Assume the source directory is <code>$SOURCE_DIR</code> and the build directory is <code>$BUILD_DIR</code>. First ensure the build directory exists, then navigate to it:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> -p <span class="va">$BUILD_DIR</span>
+<span class="bu">cd</span> <span class="va">$BUILD_DIR</span></code></pre></div>
+<p>For building on Linux:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">cmake</span> -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=<span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/install&quot;</span> <span class="va">$SOURCE_DIR</span>
+<span class="co"># &quot;Release&quot; (for CMAKE_BUILD_TYPE) could also be &quot;Debug&quot; or &quot;RelWithDebInfo&quot;</span></code></pre></div>
+<p>For building on Android:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">cmake</span> <span class="va">$SOURCE_DIR</span> -G <span class="st">&quot;Unix Makefiles&quot;</span> -DCMAKE_INSTALL_PREFIX=<span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/install&quot;</span> -DANDROID_ABI=arm64-v8a -DCMAKE_BUILD_TYPE=Release -DANDROID_STL=c++_static -DANDROID_PLATFORM=android-24 -DCMAKE_SYSTEM_NAME=Android -DANDROID_TOOLCHAIN=clang -DANDROID_ARM_MODE=arm -DCMAKE_MAKE_PROGRAM=<span class="va">$ANDROID_NDK_ROOT</span>/prebuilt/linux-x86_64/bin/make -DCMAKE_TOOLCHAIN_FILE=<span class="va">$ANDROID_NDK_ROOT</span>/build/cmake/android.toolchain.cmake
+<span class="co"># If on Windows will be -DCMAKE_MAKE_PROGRAM=%ANDROID_NDK_ROOT%\prebuilt\windows-x86_64\bin\make.exe</span>
+<span class="co"># -G is needed for building on Windows</span>
+<span class="co"># -DANDROID_ABI can also be armeabi-v7a for 32 bit</span></code></pre></div>
+<p>For building on Windows:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">cmake</span> <span class="va">$SOURCE_DIR</span> -DCMAKE_INSTALL_PREFIX=<span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/install&quot;</span>
+<span class="co"># The CMAKE_INSTALL_PREFIX part is for testing (explained later).</span></code></pre></div>
+<p>The CMake GUI also works for Windows (version 3.4.1 tested).</p>
+<p>Also, consider using <code>git config --global core.fileMode false</code> (or with <code>--local</code>) on Windows to prevent the addition of execution permission on files.</p>
+<h4 id="build-and-install">4) Build and Install</h4>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># for Linux:</span>
+<span class="fu">make</span> -j4 install
+
+<span class="co"># for Windows:</span>
+<span class="fu">cmake</span> --build . --config Release --target install
+<span class="co"># &quot;Release&quot; (for --config) could also be &quot;Debug&quot;, &quot;MinSizeRel&quot;, or &quot;RelWithDebInfo&quot;</span></code></pre></div>
+<p>If using MSVC, after running CMake to configure, use the Configuration Manager to check the <code>INSTALL</code> project.</p>
+<h3 id="if-you-need-to-change-the-glsl-grammar">If you need to change the GLSL grammar</h3>
+<p>The grammar in <code>glslang/MachineIndependent/glslang.y</code> has to be recompiled with bison if it changes, the output files are committed to the repo to avoid every developer needing to have bison configured to compile the project when grammar changes are quite infrequent. For windows you can get binaries from <a href="http://gnuwin32.sourceforge.net/packages/bison.htm">GnuWin32</a>.</p>
+<p>The command to rebuild is:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">m4</span> -P MachineIndependent/glslang.m4 <span class="op">&gt;</span> MachineIndependent/glslang.y
+<span class="fu">bison</span> --defines=MachineIndependent/glslang_tab.cpp.h
+      <span class="ex">-t</span> MachineIndependent/glslang.y
+      <span class="ex">-o</span> MachineIndependent/glslang_tab.cpp</code></pre></div>
+<p>The above commands are also available in the bash script in <code>updateGrammar</code>, when executed from the glslang subdirectory of the glslang repository. With no arguments it builds the full grammar, and with a &quot;web&quot; argument, the web grammar subset (see more about the web subset in the next section).</p>
+<h3 id="building-to-wasm-for-the-web-and-node">Building to WASM for the Web and Node</h3>
+<h3 id="building-a-standalone-jswasm-library-for-the-web-and-node">Building a standalone JS/WASM library for the Web and Node</h3>
+<p>Use the steps in <a href="#build-steps">Build Steps</a>, with the following notes/exceptions: * <code>emsdk</code> needs to be present in your executable search path, <em>PATH</em> for Bash-like environments: + <a href="https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install">Instructions located here</a> * Wrap cmake call: <code>emcmake cmake</code> * Set <code>-DBUILD_TESTING=OFF -DENABLE_OPT=OFF -DINSTALL_GTEST=OFF</code>. * Set <code>-DENABLE_HLSL=OFF</code> if HLSL is not needed. * For a standalone JS/WASM library, turn on <code>-DENABLE_GLSLANG_JS=ON</code>. * For building a minimum-size web subset of core glslang: + turn on <code>-DENABLE_GLSLANG_WEBMIN=ON</code> (disables HLSL) + execute <code>updateGrammar web</code> from the glslang subdirectory (or if using your own scripts, <code>m4</code> needs a <code>-DGLSLANG_WEB</code> argument) + optionally, for GLSL compilation error messages, turn on <code>-DENABLE_GLSLANG_WEBMIN_DEVEL=ON</code> * To get a fully minimized build, make sure to use <code>brotli</code> to compress the .js and .wasm files</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">emcmake</span> cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_GLSLANG_JS=ON \
+    -DENABLE_HLSL=OFF -DBUILD_TESTING=OFF -DENABLE_OPT=OFF -DINSTALL_GTEST=OFF ..</code></pre></div>
+<h2 id="building-glslang---using-vcpkg">Building glslang - Using vcpkg</h2>
+<p>You can download and install glslang using the <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> dependency manager:</p>
+<pre><code>git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install glslang</code></pre>
+<p>The glslang port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull request</a> on the vcpkg repository.</p>
+<h2 id="testing">Testing</h2>
+<p>Right now, there are two test harnesses existing in glslang: one is <a href="gtests/">Google Test</a>, one is the <a href="Test/runtests"><code>runtests</code> script</a>. The former runs unit tests and single-shader single-threaded integration tests, while the latter runs multiple-shader linking tests and multi-threaded tests.</p>
+<h3 id="running-tests">Running tests</h3>
+<p>The <a href="Test/runtests"><code>runtests</code> script</a> requires compiled binaries to be installed into <code>$BUILD_DIR/install</code>. Please make sure you have supplied the correct configuration to CMake (using <code>-DCMAKE_INSTALL_PREFIX</code>) when building; otherwise, you may want to modify the path in the <code>runtests</code> script.</p>
+<p>Running Google Test-backed tests:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> <span class="va">$BUILD_DIR</span>
+
+<span class="co"># for Linux:</span>
+<span class="ex">ctest</span>
+
+<span class="co"># for Windows:</span>
+<span class="ex">ctest</span> -C <span class="dt">{Debug|Release|RelWithDebInfo|MinSizeRel}</span>
+
+<span class="co"># or, run the test binary directly</span>
+<span class="co"># (which gives more fine-grained control like filtering):</span>
+<span class="op">&lt;</span><span class="ex">dir-to-glslangtests-in-build-dir</span><span class="op">&gt;</span>/glslangtests</code></pre></div>
+<p>Running <code>runtests</code> script-backed tests:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> <span class="va">$SOURCE_DIR</span>/Test <span class="kw">&amp;&amp;</span> <span class="ex">./runtests</span></code></pre></div>
+<p>If some tests fail with validation errors, there may be a mismatch between the version of <code>spirv-val</code> on the system and the version of glslang. In this case, it is necessary to run <code>update_glslang_sources.py</code>. See &quot;Check-Out External Projects&quot; above for more details.</p>
+<h3 id="contributing-tests">Contributing tests</h3>
+<p>Test results should always be included with a pull request that modifies functionality.</p>
+<p>If you are writing unit tests, please use the Google Test framework and place the tests under the <code>gtests/</code> directory.</p>
+<p>Integration tests are placed in the <code>Test/</code> directory. It contains test input and a subdirectory <code>baseResults/</code> that contains the expected results of the tests. Both the tests and <code>baseResults/</code> are under source-code control.</p>
+<p>Google Test runs those integration tests by reading the test input, compiling them, and then compare against the expected results in <code>baseResults/</code>. The integration tests to run via Google Test is registered in various <code>gtests/*.FromFile.cpp</code> source files. <code>glslangtests</code> provides a command-line option <code>--update-mode</code>, which, if supplied, will overwrite the golden files under the <code>baseResults/</code> directory with real output from that invocation. For more information, please check <code>gtests/</code> directory's <a href="gtests/README.md">README</a>.</p>
+<p>For the <code>runtests</code> script, it will generate current results in the <code>localResults/</code> directory and <code>diff</code> them against the <code>baseResults/</code>. When you want to update the tracked test results, they need to be copied from <code>localResults/</code> to <code>baseResults/</code>. This can be done by the <code>bump</code> shell script.</p>
+<p>You can add your own private list of tests, not tracked publicly, by using <code>localtestlist</code> to list non-tracked tests. This is automatically read by <code>runtests</code> and included in the <code>diff</code> and <code>bump</code> process.</p>
+<h2 id="programmatic-interfaces">Programmatic Interfaces</h2>
+<p>Another piece of software can programmatically translate shaders to an AST using one of two different interfaces: * A new C++ class-oriented interface, or * The original C functional interface</p>
+<p>The <code>main()</code> in <code>StandAlone/StandAlone.cpp</code> shows examples using both styles.</p>
+<h3 id="c-class-interface-new-preferred">C++ Class Interface (new, preferred)</h3>
+<p>This interface is in roughly the last 1/3 of <code>ShaderLang.h</code>. It is in the glslang namespace and contains the following, here with suggested calls for generating SPIR-V:</p>
+<div class="sourceCode"><pre class="sourceCode cxx"><code class="sourceCode cpp"><span class="at">const</span> <span class="dt">char</span>* GetEsslVersionString();
+<span class="at">const</span> <span class="dt">char</span>* GetGlslVersionString();
+<span class="dt">bool</span> InitializeProcess();
+<span class="dt">void</span> FinalizeProcess();
+
+<span class="kw">class</span> TShader
+    setStrings(...);
+    setEnvInput(EShSourceHlsl <span class="kw">or</span> EShSourceGlsl, stage,  EShClientVulkan <span class="kw">or</span> EShClientOpenGL, <span class="dv">100</span>);
+    setEnvClient(EShClientVulkan <span class="kw">or</span> EShClientOpenGL, EShTargetVulkan_1_0 <span class="kw">or</span> EShTargetVulkan_1_1 <span class="kw">or</span> EShTargetOpenGL_450);
+    setEnvTarget(EShTargetSpv, EShTargetSpv_1_0 <span class="kw">or</span> EShTargetSpv_1_3);
+    <span class="dt">bool</span> parse(...);
+    <span class="at">const</span> <span class="dt">char</span>* getInfoLog();
+
+<span class="kw">class</span> TProgram
+    <span class="dt">void</span> addShader(...);
+    <span class="dt">bool</span> link(...);
+    <span class="at">const</span> <span class="dt">char</span>* getInfoLog();
+    Reflection queries</code></pre></div>
+<p>For just validating (not generating code), substitute these calls:</p>
+<div class="sourceCode"><pre class="sourceCode cxx"><code class="sourceCode cpp">    setEnvInput(EShSourceHlsl <span class="kw">or</span> EShSourceGlsl, stage,  EShClientNone, <span class="dv">0</span>);
+    setEnvClient(EShClientNone, <span class="dv">0</span>);
+    setEnvTarget(EShTargetNone, <span class="dv">0</span>);</code></pre></div>
+<p>See <code>ShaderLang.h</code> and the usage of it in <code>StandAlone/StandAlone.cpp</code> for more details. There is a block comment giving more detail above the calls for <code>setEnvInput, setEnvClient, and setEnvTarget</code>.</p>
+<h3 id="c-functional-interface-original">C Functional Interface (original)</h3>
+<p>This interface is in roughly the first 2/3 of <code>ShaderLang.h</code>, and referred to as the <code>Sh*()</code> interface, as all the entry points start <code>Sh</code>.</p>
+<p>The <code>Sh*()</code> interface takes a &quot;compiler&quot; call-back object, which it calls after building call back that is passed the AST and can then execute a back end on it.</p>
+<p>The following is a simplified resulting run-time call stack:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ShCompile(shader, compiler) -&gt; compiler(AST) -&gt; &lt;back end&gt;</code></pre></div>
+<p>In practice, <code>ShCompile()</code> takes shader strings, default version, and warning/error and other options for controlling compilation.</p>
+<h2 id="basic-internal-operation">Basic Internal Operation</h2>
+<ul>
+<li><p>Initial lexical analysis is done by the preprocessor in <code>MachineIndependent/Preprocessor</code>, and then refined by a GLSL scanner in <code>MachineIndependent/Scan.cpp</code>. There is currently no use of flex.</p></li>
+<li><p>Code is parsed using bison on <code>MachineIndependent/glslang.y</code> with the aid of a symbol table and an AST. The symbol table is not passed on to the back-end; the intermediate representation stands on its own. The tree is built by the grammar productions, many of which are offloaded into <code>ParseHelper.cpp</code>, and by <code>Intermediate.cpp</code>.</p></li>
+<li><p>The intermediate representation is very high-level, and represented as an in-memory tree. This serves to lose no information from the original program, and to have efficient transfer of the result from parsing to the back-end. In the AST, constants are propagated and folded, and a very small amount of dead code is eliminated.</p></li>
+</ul>
+<p>To aid linking and reflection, the last top-level branch in the AST lists all global symbols.</p>
+<ul>
+<li><p>The primary algorithm of the back-end compiler is to traverse the tree (high-level intermediate representation), and create an internal object code representation. There is an example of how to do this in <code>MachineIndependent/intermOut.cpp</code>.</p></li>
+<li><p>Reduction of the tree to a linear byte-code style low-level intermediate representation is likely a good way to generate fully optimized code.</p></li>
+<li><p>There is currently some dead old-style linker-type code still lying around.</p></li>
+<li><p>Memory pool: parsing uses types derived from C++ <code>std</code> types, using a custom allocator that puts them in a memory pool. This makes allocation of individual container/contents just few cycles and deallocation free. This pool is popped after the AST is made and processed.</p></li>
+</ul>
+<p>The use is simple: if you are going to call <code>new</code>, there are three cases:</p>
+<ul>
+<li><p>the object comes from the pool (its base class has the macro <code>POOL_ALLOCATOR_NEW_DELETE</code> in it) and you do not have to call <code>delete</code></p></li>
+<li><p>it is a <code>TString</code>, in which case call <code>NewPoolTString()</code>, which gets it from the pool, and there is no corresponding <code>delete</code></p></li>
+<li><p>the object does not come from the pool, and you have to do normal C++ memory management of what you <code>new</code></p></li>
+<li><p>Features can be protected by version/extension/stage/profile: See the comment in <code>glslang/MachineIndependent/Versions.cpp</code>.</p></li>
+</ul>

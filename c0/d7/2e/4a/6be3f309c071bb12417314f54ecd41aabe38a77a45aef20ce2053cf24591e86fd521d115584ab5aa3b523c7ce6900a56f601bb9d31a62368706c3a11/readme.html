@@ -1,0 +1,76 @@
+<h1 id="efficient-and-performance-portable-simd">Efficient and performance-portable SIMD</h1>
+<p>Highway is a C++ library for SIMD (Single Instruction, Multiple Data), i.e. applying the same operation to multiple ‘lanes’ using a single CPU instruction.</p>
+<h2 id="why-highway">Why Highway?</h2>
+<ul>
+<li>more portable (same source code) than platform-specific intrinsics,</li>
+<li>works on a wider range of compilers than compiler-specific vector extensions,</li>
+<li>more dependable than autovectorization,</li>
+<li>easier to write/maintain than assembly language,</li>
+<li>supports <strong>runtime dispatch</strong>,</li>
+<li>supports <strong>variable-length vector</strong> architectures.</li>
+</ul>
+<h2 id="current-status">Current status</h2>
+<p>Supported targets: scalar, S-SSE3, SSE4, AVX2, AVX-512, AVX3_DL (~Icelake, requires opt-in by defining <code>HWY_WANT_AVX3_DL</code>), NEON (ARMv7 and v8), SVE, WASM SIMD.</p>
+<p>SVE is tested using farm_sve (see acknowledgments). SVE2 is implemented but not yet validated. A subset of RVV is implemented and tested with GCC and QEMU. Work is underway to compile using LLVM, which has different intrinsics with AVL.</p>
+<p>Version 0.11 is considered stable enough to use in other projects, and is expected to remain backwards compatible unless serious issues are discovered while finishing the RVV target. After that, Highway will reach version 1.0.</p>
+<p>Continuous integration tests build with a recent version of Clang (running on x86 and QEMU for ARM) and MSVC from VS2015 (running on x86).</p>
+<p>Before releases, we also test on x86 with Clang and GCC, and ARMv7/8 via GCC cross-compile and QEMU. See the <a href="g3doc/release_testing_process.md">testing process</a> for details.</p>
+<p>The <code>contrib</code> directory contains SIMD-related utilities: an image class with aligned rows, and a math library (16 functions already implemented, mostly trigonometry).</p>
+<h2 id="installation">Installation</h2>
+<p>This project uses cmake to generate and build. In a Debian-based system you can install it via:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install cmake</span></code></pre></div>
+<p>Highway’s unit tests use <a href="https://github.com/google/googletest">googletest</a>. By default, Highway’s CMake downloads this dependency at configuration time. You can disable this by setting the <code>HWY_SYSTEM_GTEST</code> CMake variable to ON and installing gtest separately:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libgtest-dev</span></code></pre></div>
+<p>To build and test the library the standard cmake workflow can be used:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> ..</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">-j</span> <span class="kw">&amp;&amp;</span> <span class="fu">make</span> test</span></code></pre></div>
+<p>Or you can run <code>run_tests.sh</code> (<code>run_tests.bat</code> on Windows).</p>
+<p>Bazel is also supported for building, but it is not as widely used/tested.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>You can use the <code>benchmark</code> inside examples/ as a starting point.</p>
+<p>A <a href="g3doc/quick_reference.md">quick-reference page</a> briefly lists all operations and their parameters, and the <a href="g3doc/instruction_matrix.pdf">instruction_matrix</a> indicates the number of instructions per operation.</p>
+<p>We recommend using full SIMD vectors whenever possible for maximum performance portability. To obtain them, pass a <code>HWY_FULL(float)</code> tag to functions such as <code>Zero/Set/Load</code>. There is also the option of a vector of up to <code>N</code> (a power of two &lt;= 16/sizeof(T)) lanes of type <code>T</code>: <code>HWY_CAPPED(T, N)</code>. If <code>HWY_TARGET == HWY_SCALAR</code>, the vector always has one lane. For all other targets, up to 128-bit vectors are guaranteed to be available.</p>
+<p>Functions using Highway must be inside <code>namespace HWY_NAMESPACE {</code> (possibly nested in one or more other namespaces defined by the project), and additionally either prefixed with <code>HWY_ATTR</code>, or residing between <code>HWY_BEFORE_NAMESPACE()</code> and <code>HWY_AFTER_NAMESPACE()</code>.</p>
+<ul>
+<li><p>For static dispatch, <code>HWY_TARGET</code> will be the best available target among <code>HWY_BASELINE_TARGETS</code>, i.e. those allowed for use by the compiler (see <a href="g3doc/quick_reference.md">quick-reference</a>). Functions inside <code>HWY_NAMESPACE</code> can be called using <code>HWY_STATIC_DISPATCH(func)(args)</code> within the same module they are defined in. You can call the function from other modules by wrapping it in a regular function and declaring the regular function in a header.</p></li>
+<li><p>For dynamic dispatch, a table of function pointers is generated via the <code>HWY_EXPORT</code> macro that is used by <code>HWY_DYNAMIC_DISPATCH(func)(args)</code> to call the best function pointer for the current CPU’s supported targets. A module is automatically compiled for each target in <code>HWY_TARGETS</code> (see <a href="g3doc/quick_reference.md">quick-reference</a>) if <code>HWY_TARGET_INCLUDE</code> is defined and foreach_target.h is included.</p></li>
+</ul>
+<h2 id="compiler-flags">Compiler flags</h2>
+<p>Applications should be compiled with optimizations enabled - without inlining, SIMD code may slow down by factors of 10 to 100. For clang and GCC, <code>-O2</code> is generally sufficient.</p>
+<p>For MSVC, we recommend compiling with <code>/Gv</code> to allow non-inlined functions to pass vector arguments in registers. If intending to use the AVX2 target together with half-width vectors (e.g. for <code>PromoteTo</code>), it is also important to compile with <code>/arch:AVX2</code>. This seems to be the only way to generate VEX-encoded SSE4 instructions on MSVC. Otherwise, mixing VEX-encoded AVX2 instructions and non-VEX SSE4 may cause severe performance degradation. Unfortunately, the resulting binary will then require AVX2. Note that no such flag is needed for clang and GCC because they support target-specific attributes, which we use to ensure proper VEX code generation for AVX2 targets.</p>
+<h2 id="strip-mining-loops">Strip-mining loops</h2>
+<p>To vectorize a loop, “strip-mining” transforms it into an outer loop and inner loop with number of iterations matching the preferred vector width.</p>
+<p>In this section, let <code>T</code> denote the element type, <code>d = HWY_FULL(T)</code>, <code>count</code> the number of elements to process, and <code>N = Lanes(d)</code> the number of lanes in a full vector. Assume the loop body is given as a function <code>template&lt;bool partial, class D&gt; void LoopBody(D d, size_t max_n)</code>.</p>
+<p>Highway offers several ways to express loops where <code>N</code> need not divide <code>count</code>:</p>
+<ul>
+<li><p>Ensure all inputs/outputs are padded. Then the loop is simply</p>
+<pre><code>for (size_t i = 0; i &lt; count; i += N) LoopBody&lt;false&gt;(d, 0);</code></pre>
+<p>Here, the template parameter and second function argument are not needed.</p>
+<p>This is the preferred option, unless <code>N</code> is in the thousands and vector operations are pipelined with long latencies. This was the case for supercomputers in the 90s, but nowadays ALUs are cheap and we see most implementations split vectors into 1, 2 or 4 parts, so there is little cost to processing entire vectors even if we do not need all their lanes. Indeed this avoids the (potentially large) cost of predication or partial loads/stores on older targets, and does not duplicate code.</p></li>
+<li><p>Process whole vectors as above, followed by a scalar loop:</p>
+<pre><code>size_t i = 0;
+for (; i + N &lt;= count; i += N) LoopBody&lt;false&gt;(d, 0);
+for (; i &lt; count; ++i) LoopBody&lt;false&gt;(HWY_CAPPED(T, 1)(), 0);</code></pre>
+<p>The template parameter and second function arguments are again not needed.</p>
+<p>This avoids duplicating code, and is reasonable if <code>count</code> is large. If <code>count</code> is small, the second loop may be slower than the next option.</p></li>
+<li><p>Process whole vectors as above, followed by a single call to a modified <code>LoopBody</code> with masking:</p>
+<pre><code>size_t i = 0;
+for (; i + N &lt;= count; i += N) {
+  LoopBody&lt;false&gt;(d, 0);
+}
+if (i &lt; count) {
+  LoopBody&lt;true&gt;(d, count - i);
+}</code></pre>
+<p>Now the template parameter and second function argument can be used inside <code>LoopBody</code> to ‘blend’ the new partial vector with previous memory contents: <code>Store(IfThenElse(FirstN(d, N), partial, prev_full), d, aligned_pointer);</code>.</p>
+<p>This is a good default when it is infeasible to ensure vectors are padded. In contrast to the scalar loop, only a single final iteration is needed.</p></li>
+</ul>
+<h2 id="additional-resources">Additional resources</h2>
+<ul>
+<li><a href="g3doc/highway_intro.pdf">Highway introduction (slides)</a></li>
+<li><a href="g3doc/instruction_matrix.pdf">Overview of instructions per operation on different architectures</a></li>
+<li><a href="g3doc/design_philosophy.md">Design philosophy and comparison</a></li>
+</ul>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>We have used <a href="https://gitlab.inria.fr/bramas/farm-sve">farm-sve</a> by Berenger Bramas; it has proved useful for checking the SVE port on an x86 development machine.</p>
+<p>This is not an officially supported Google product. Contact: janwas@google.com</p>

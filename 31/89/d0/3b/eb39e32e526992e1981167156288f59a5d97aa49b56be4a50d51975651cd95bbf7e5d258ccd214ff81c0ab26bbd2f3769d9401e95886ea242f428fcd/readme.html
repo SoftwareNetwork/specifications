@@ -1,0 +1,334 @@
+<h1 id="dart">Dart</h1>
+<p><a href="https://travis-ci.com/target/libdart"><img src="https://travis-ci.com/target/libdart.svg?branch=master" alt="Build Status" /></a> ### A High Performance, Network Optimized, JSON Manipulation Library <strong>Dart</strong> is both a wire-level binary <code>JSON</code> protocol, along with a high performance, and surprisingly high level, <code>C++</code> API to interact with that <code>JSON</code>. It is primarily optimized for on-the-wire representation size along with efficiency of receiver-side interaction, however, it also allows for reasonably performant dynamic modification when necessary.</p>
+<p><strong>Dart</strong> can be used in any application as a dead-simple, fast, and lightweight <code>JSON</code> parser, but it first and foremost targets real-time stream processing engines in a schema-less environment.</p>
+<p>It retains logarithmic complexity of object key-lookup, scales extremely well as packet sizes increase (see performance below), requires <strong>zero</strong> receiver-side memory allocations/parsing/unpacking for read-only interactions, and is header-only, allowing for trivially easy installation.</p>
+<p>Although not a <code>JSON</code> parser itself, <strong>Dart</strong> leverages the fastest general purpose <code>JSON</code> parsers available (<a href="https://github.com/miloyip/nativejson-benchmark">source</a>), <a href="https://github.com/Tencent/rapidjson">RapidJSON</a> and <a href="https://github.com/chadaustin/sajson">sajson</a>, for format conversion both into, and out of, <code>JSON</code>.</p>
+<p>As <strong>Dart</strong> can also be useful when working with config files, it also supports parsing <code>YAML</code> via <a href="https://github.com/yaml/libyaml.git">libyaml</a>.</p>
+<h2 id="performance">Performance</h2>
+<p><img src="benchmark/dart.png" alt="Dart vs Google Flexbuffers vs sajson" /> For more in depth performance details, see our <a href="PERFORMANCE.md">performance</a> document, for those interested in where this performance comes from, see our <a href="IMPLEMENTATION.md">implementation</a> document.</p>
+<p><code>JSON</code> parsing performance is a big enough topic to be given its own document, which can be found here: <a href="PARSING.md">parsing performance</a>.</p>
+<h2 id="api-stability">API Stability</h2>
+<p><strong>Dart</strong> has been an ongoing development effort over the last few years, and its API has morphed several times during that period. All of the network-level logic is very stable and has not changed significantly in some time, but the user-facing API is still being finalized and may change some before the first release.</p>
+<p>The library is currently set at version <code>0.9.0</code>, and after a period of a few weeks, collecting user/community feedback on the API, the project will transition to its <code>1.0.0</code> release, at which point the API will be considered stable.</p>
+<h2 id="compilation-and-installation">Compilation and Installation</h2>
+<p><strong>Dart</strong> is implemented using modern C++, and requires both Microsoft's Guidelines Support Library <a href="https://github.com/Microsoft/GSL">GSL</a>, and a C++14 enabled toolchain (<code>clang</code> &gt;= 3.8, <code>gcc</code> &gt;= 5.0, apple's <code>clang</code> &gt;= 8.3). Support for C++11 may be added in the future, but is not currently being pursued.</p>
+<p><strong>Dart</strong> utilizes <code>cmake</code> for its build process, currently supports Linux/OS X, and can be built in the following manner:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># Clone it down.</span>
+<span class="fu">git</span> clone git@github.com:target/libdart.git
+<span class="bu">cd</span> libdart/
+
+<span class="co"># Create the cmake build directory and prepare a build</span>
+<span class="co"># with tests enabled.</span>
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+
+<span class="co"># Build, test, and install (assuming a 4 core machine).</span>
+<span class="co"># Running tests isn&#39;t mandatory, but is highly recommended.</span>
+<span class="fu">cmake</span> ..
+<span class="fu">make</span> -j 4
+<span class="ex">ctest</span>
+<span class="fu">make</span> install
+
+<span class="co"># Generate documentation (if desired).</span>
+<span class="co"># Doxygen must have already been installed.</span>
+<span class="co"># Generates documentation inside the directory &quot;docs&quot;</span>
+<span class="bu">cd</span> ..
+<span class="ex">doxygen</span></code></pre></div>
+<p><strong>Dart</strong> can optionally leverage <a href="https://github.com/Tencent/rapidjson">RapidJSON</a>, <a href="https://github.com/chadaustin/sajson">sajson</a>, and <a href="https://github.com/yaml/libyaml.git">libyaml</a>, and will attempt to detect installations automatically while building, but can be independently specified with <code>-DDART_HAS_RAPIDJSON</code>, <code>-DDART_USE_SAJSON</code>, and <code>-DDART_HAS_YAML</code> preprocessor flags.</p>
+<h2 id="basic-usage">Basic Usage</h2>
+<p>Overly detailed usage examples can be obtained from the <code>test/</code> directory, or by building the included documentation, but for the impatient among us, examples of basic usage are below.<br />
+Parsing a JSON string with <strong>Dart</strong>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Get some JSON from somewhere.</span>
+<span class="bu">std::</span>string json = input.read();
+
+<span class="co">// Get a packet.</span>
+dart::packet pkt = dart::packet::from_json(json);
+
+<span class="co">// Do stuff with it.</span>
+dart::packet header = pkt[<span class="st">&quot;header&quot;</span>];
+<span class="bu">std::</span>cout &lt;&lt; header[<span class="st">&quot;User-Agent&quot;</span>] &lt;&lt; <span class="bu">std::</span>endl;
+<span class="bu">std::</span>cout &lt;&lt; header[<span class="st">&quot;Content-Type&quot;</span>] &lt;&lt; <span class="bu">std::</span>endl;
+
+<span class="co">// When machine types are needed.</span>
+<span class="kw">auto</span> resp = pkt[<span class="st">&quot;response&quot;</span>];
+<span class="cf">switch</span> (resp[<span class="st">&quot;code&quot;</span>].integer()) {
+  <span class="cf">case</span> <span class="dv">200</span>:
+    {
+      <span class="bu">std::</span>string_view body {resp[<span class="st">&quot;body&quot;</span>]};
+      <span class="dt">double</span> elapsed = resp[<span class="st">&quot;elapsed_millis&quot;</span>].decimal();
+      process_success(body, elapsed);
+      <span class="cf">break</span>;
+    }
+  <span class="cf">case</span> <span class="dv">300</span>:
+    <span class="cf">for</span> (<span class="kw">auto</span> res : resp[<span class="st">&quot;resources&quot;</span>]) {
+      resource_moved(res[<span class="st">&quot;path&quot;</span>].strv(), res[<span class="st">&quot;mods&quot;</span>][<span class="dv">0</span>]);
+    }
+    <span class="cf">break</span>;
+  <span class="cf">case</span> <span class="dv">400</span>:
+    {
+      <span class="dt">char</span> <span class="at">const</span>* err = resp[<span class="st">&quot;error&quot;</span>].str();
+      <span class="bu">std::</span>string_view warn = resp[<span class="st">&quot;warning&quot;</span>].strv();
+      process_failure(err, warn);
+      <span class="cf">break</span>;
+    }
+  <span class="cf">default</span>:
+    printf(<span class="st">&quot;Encountered internal error </span><span class="sc">%s\n</span><span class="st">&quot;</span>, resp[<span class="st">&quot;error&quot;</span>].str());
+}</code></pre></div>
+<p>Build a JSON object from scratch:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Create a base object.</span>
+<span class="co">// dart::packet::make_object can take arbitrarily many pairs of arguments.</span>
+dart::packet obj = dart::packet::make_object(<span class="st">&quot;hello&quot;</span>, <span class="st">&quot;goodbye&quot;</span>, <span class="st">&quot;answer&quot;</span>, <span class="dv">42</span>);
+
+<span class="co">// Put some more stuff in it.</span>
+obj.add_field(<span class="st">&quot;c&quot;</span>, <span class="fl">2.99792</span>);
+obj.add_field(<span class="st">&quot;none&quot;</span>, <span class="kw">nullptr</span>);
+obj.add_field(<span class="st">&quot;truth&quot;</span>, <span class="kw">true</span>);
+obj.add_field(<span class="st">&quot;lies&quot;</span>, <span class="kw">false</span>);
+obj.add_field(<span class="st">&quot;fib&quot;</span>, dart::packet::make_array(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">8</span>, <span class="dv">13</span>));
+
+<span class="co">// Send it somewhere.</span>
+do_something(obj.to_json());</code></pre></div>
+<p>Preparing a JSON object to be sent over the network:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Assuming the packet from the previous example:</span>
+<span class="kw">auto</span> buffer = obj.finalize().get_bytes();
+
+<span class="co">// Write the buffer to some output:</span>
+socket.write(buffer.data(), buffer.size());</code></pre></div>
+<h2 id="conversion-api">Conversion API</h2>
+<p>As you've seen by now, <strong>Dart</strong> ships with a large number of type conversions predefined, allowing for expressive, and safe, interaction with a dynamically typed notation language from a statically typed programming language. Out-of-the-box, <strong>Dart</strong> can work with any machine type, and with most STL containers:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Get a packet to test with.</span>
+<span class="kw">auto</span> obj = dart::packet::make_object();
+
+<span class="co">// Machine types.</span>
+obj.add_field(<span class="st">&quot;bool&quot;</span>, <span class="kw">true</span>);
+obj.add_field(<span class="st">&quot;int&quot;</span>, <span class="dv">5</span>);
+obj.add_field(<span class="st">&quot;uint&quot;</span>, <span class="dv">5U</span>);
+obj.add_field(<span class="st">&quot;long&quot;</span>, <span class="dv">5L</span>);
+obj.add_field(<span class="st">&quot;ulong&quot;</span>, <span class="dv">5UL</span>);
+obj.add_field(<span class="st">&quot;long long&quot;</span>, <span class="dv">5LL</span>);
+obj.add_field(<span class="st">&quot;ulong long&quot;</span>, <span class="dv">5ULL</span>);
+obj.add_field(<span class="st">&quot;float&quot;</span>, <span class="fl">5.0f</span>);
+obj.add_field(<span class="st">&quot;double&quot;</span>, <span class="fl">5.0</span>);
+obj.add_field(<span class="st">&quot;str&quot;</span>, <span class="st">&quot;asdf&quot;</span>);
+obj.add_field(<span class="st">&quot;null&quot;</span>, <span class="kw">nullptr</span>);
+
+<span class="co">// STL types</span>
+obj.add_field(<span class="st">&quot;arr&quot;</span>, <span class="bu">std::</span>vector {<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">8</span>});
+obj.add_field(<span class="st">&quot;maybe&quot;</span>, <span class="bu">std::</span>optional {<span class="st">&quot;present&quot;</span>});
+obj.add_field(<span class="st">&quot;oneof&quot;</span>, <span class="bu">std::</span>variant&lt;<span class="dt">int</span>, <span class="dt">double</span>&gt; {<span class="dv">5</span>});
+obj.add_field(<span class="st">&quot;many&quot;</span>, <span class="bu">std::</span>tuple {<span class="fl">3.14159</span>, <span class="fl">2.99792</span>})</code></pre></div>
+<p>However, in addition to the pre-defined conversions, <strong>Dart</strong> exposes an API to allow for user defined conversions like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;dart.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="co">// A simple custom string class that Dart doesn&#39;t know about.</span>
+<span class="kw">struct</span> my_string {
+  <span class="bu">std::</span>string str;
+};
+
+<span class="co">// We define an explicit specialization of the struct dart::convert::to_dart,</span>
+<span class="co">// which Dart will call to perform our conversion</span>
+<span class="kw">namespace</span> dart::convert {
+  <span class="kw">template</span> &lt;&gt;
+  <span class="kw">struct</span> to_dart&lt;my_string&gt; {
+    <span class="kw">template</span> &lt;<span class="kw">class</span> Packet&gt;
+    <span class="at">static</span> Packet cast(my_string <span class="at">const</span>&amp; s) {
+      <span class="cf">return</span> Packet::make_string(s.str);
+    }
+  };
+}
+
+<span class="co">// Example usage</span>
+<span class="dt">int</span> main() {
+  <span class="co">// If dart::convert::to_dart had not been specialized, this line would fail to</span>
+  <span class="co">// compile with an error about an undefined overload of dart::packet::push_back.</span>
+  <span class="kw">auto</span> arr = dart::packet::make_array(my_string {<span class="st">&quot;one&quot;</span>}, my_string {<span class="st">&quot;two&quot;</span>});
+
+  <span class="co">// The conversions are applied recursively, so we can also use STL containers</span>
+  <span class="co">// of our custom type.</span>
+  arr.push_back(<span class="bu">std::</span>optional&lt;my_string&gt; {});
+  arr.push_back(<span class="bu">std::</span>vector {my_string {<span class="st">&quot;three&quot;</span>}, my_string {<span class="st">&quot;four&quot;</span>}});
+
+  <span class="co">// Will print:</span>
+  <span class="co">// [&quot;one&quot;, &quot;two&quot;, null, [&quot;three&quot;, &quot;four&quot;]]</span>
+  <span class="bu">std::</span>cout &lt;&lt; arr &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>For those who are meta-programming inclined, you can test if a <strong>Dart</strong> conversion is defined by using the type trait <code>dart::convert::is_castable</code>.</p>
+<h2 id="mutability-and-copy-on-write">Mutability and Copy-on-Write</h2>
+<p>By default, to keep memory in scope safely, <strong>Dart</strong> uses thread safe reference counting based on <code>std::shared_ptr</code>. This behavior is a configuration point for the library which will be covered later.</p>
+<p>To allow easy embedding in threaded applications, <strong>Dart</strong> follows a copy-on-write data model in non-finalized mode, allowing for frictionless mutation of shared data. This &quot;just works&quot; for the most part without the user being very involved, but it can have some surprising implications:</p>
+<p>Example of it &quot;just working&quot;:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Create a base object.</span>
+<span class="kw">auto</span> orig = dart::packet::make_object(<span class="st">&quot;hello&quot;</span>, <span class="st">&quot;world&quot;</span>);
+assert(orig.refcount() == <span class="dv">1U</span>);
+
+<span class="co">// Copy it.</span>
+<span class="co">// At this point, copy and orig share the same underlying representation, only an atomic</span>
+<span class="co">// increment was performed.</span>
+<span class="kw">auto</span> copy = orig;
+assert(orig.refcount() == <span class="dv">2U</span>);
+assert(copy.refcount() == orig.refcount());
+
+<span class="co">// Mutate the copy.</span>
+<span class="co">// At this point, copy performs a shallow copy-out, copying only the immediate</span>
+<span class="co">// level of an arbitrarily deep tree maintained by orig.</span>
+copy.add_field(<span class="st">&quot;hello&quot;</span>, <span class="st">&quot;life&quot;</span>);
+assert(orig.refcount() == <span class="dv">1U</span>);
+assert(copy.refcount() == <span class="dv">1U</span>);
+assert(copy != orig);
+
+<span class="co">// Will output:</span>
+<span class="co">// {&quot;hello&quot;:&quot;world&quot;}</span>
+<span class="co">// {&quot;hello&quot;:&quot;life&quot;}</span>
+<span class="bu">std::</span>cout &lt;&lt; orig &lt;&lt; <span class="bu">std::</span>endl;
+<span class="bu">std::</span>cout &lt;&lt; copy &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Example of a surprising implication:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Get an object with a nested array.</span>
+<span class="kw">auto</span> arr = dart::packet::make_array(<span class="st">&quot;surprise&quot;</span>);
+<span class="kw">auto</span> obj = dart::packet::make_object(<span class="st">&quot;nested&quot;</span>, <span class="bu">std::</span>move(arr));
+
+<span class="co">// Attempt to remove something from the array.</span>
+<span class="co">// Subscript operator returns a temporary packet instance, which is then mutated, copying out</span>
+<span class="co">// in the processes, and is then destroyed at the semicolon, taking its modifications with it.</span>
+<span class="co">// If you&#39;re on a supported compiler, this line will yield a warning about a discarded</span>
+<span class="co">// result.</span>
+obj[<span class="st">&quot;nested&quot;</span>].pop_back();
+
+<span class="co">// The original object was not modified, and so the following will abort.</span>
+assert(obj[<span class="st">&quot;nested&quot;</span>].empty()); <span class="co">// &lt;-- BOOM</span>
+
+<span class="co">// What should have been done is the following:</span>
+<span class="kw">auto</span> nested = obj[<span class="st">&quot;nested&quot;</span>].pop_back();
+obj.add_field(<span class="st">&quot;nested&quot;</span>, <span class="bu">std::</span>move(nested));
+
+<span class="co">// This behavior also means that assigning to the subscript operator will not insert</span>
+<span class="co">// as the user might expect, instead assigning to a temporary null value.</span>
+<span class="co">// To avoid confusion on this point, the case is explicitly called out by the library.</span>
+obj[<span class="st">&quot;oops&quot;</span>] = dart::packet::make_string(<span class="st">&quot;ouch&quot;</span>); <span class="co">// &lt;-- WILL NOT COMPILE</span></code></pre></div>
+<h2 id="api-lifecycle">API Lifecycle</h2>
+<p>The type <code>dart::packet</code> is the primary class of the library, is likely to be the type most commonly interacted with, and can be in two distinct states: &quot;finalized&quot; and non-&quot;finalized&quot;.</p>
+<p>Finalized packets are represented internally as a contiguous buffer of bytes, are immutable, and are immediately ready to be sent over a network connection. In exchange for mutability, finalized packets come with <strong><em>significant</em></strong> performance improvements, with object key-lookups in particular seeing a 200%-300% performance increase.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Get an object, starts out mutable.</span>
+<span class="kw">auto</span> data = dart::packet::make_object(<span class="st">&quot;status&quot;</span>, <span class="dv">200</span>, <span class="st">&quot;err&quot;</span>, <span class="kw">nullptr</span>);
+assert(!data.is_finalized());
+data.add_field(<span class="st">&quot;message&quot;</span>, <span class="st">&quot;OK&quot;</span>);
+
+<span class="co">// Transition it into the finalized state.</span>
+<span class="co">// Finalizing a packet requires making a single allocation, walking across the object tree,</span>
+<span class="co">// and then freeing the original tree.</span>
+data.finalize();
+assert(data.is_finalized());
+
+<span class="co">// Key lookups are now much faster, but we can no longer mutate the packet.</span>
+<span class="co">// The following line would throw:</span>
+data.add_field(<span class="st">&quot;can&#39;t&quot;</span>, <span class="st">&quot;do it&quot;</span>); <span class="co">// &lt;-- BOOM</span>
+
+<span class="co">// We can also now get access to a contiguous buffer of bytes representing the packet,</span>
+<span class="co">// ready to be written out to a file/over the network/etc.</span>
+gsl::span&lt;gsl::byte <span class="at">const</span>&gt; bytes = data.get_bytes();
+file.write(bytes.data(), bytes.size());
+
+<span class="co">// We can transition back to being a mutable packet, ableit expensively, by calling:</span>
+data.lift();
+assert(!data.is_finalized());
+data.add_field(<span class="st">&quot;can&quot;</span>, <span class="st">&quot;do it&quot;</span>);</code></pre></div>
+<h2 id="explicit-api-lifecycle">Explicit API Lifecycle</h2>
+<p>The fact that <code>dart::packet</code> can interoperably juggle data across two very different internal representations is convenient for many use-cases, but this necessarily comes with an inability to reason at compile-time as to whether a particular packet can be mutated. For this reason, <strong>Dart</strong> exposes two other types that explicitly document this division at compile-time: <code>dart::buffer</code> and <code>dart::heap</code>.</p>
+<p><code>dart::packet</code> is internally implemented in terms of <code>dart::buffer</code> and <code>dart::heap</code>, and is implicitly covertible with either, which allows for expressive, safe, and performant usage across a wide variety of domains.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Function takes a dart object that is definitely mutable</span>
+<span class="dt">void</span> a_high_level_function(dart::heap obj);
+
+<span class="co">// Function takes a dart object that is definitely immutable and can be</span>
+<span class="co">// used as a buffer of bytes.</span>
+<span class="dt">void</span> a_lower_level_network_function(dart::buffer buf);
+
+<span class="co">// Get a packet using the mutable api.</span>
+<span class="kw">auto</span> pkt = dart::heap::make_object(<span class="st">&quot;hello&quot;</span>, <span class="st">&quot;world&quot;</span>);
+
+<span class="co">// Do stuff with it.</span>
+pkt.add_field(<span class="st">&quot;missing&quot;</span>, <span class="kw">nullptr</span>);
+a_high_level_function(pkt);
+
+<span class="co">// Say that we now know that we want an immutable representation, we can</span>
+<span class="co">// describe that in code using dart::buffer.</span>
+<span class="co">// dart::buffer exposes a smaller subset of the API presented by dart::packet,</span>
+<span class="co">// but it still behaves like any other dart object.</span>
+dart::buffer finalized = pkt.finalize();
+assert(finalized.size() == <span class="dv">1U</span>);
+assert(finalized[<span class="st">&quot;hello&quot;</span>] == <span class="st">&quot;world&quot;</span>);
+a_lower_level_network_function(finalized);
+
+<span class="co">// We can also convert back and forth as we choose.</span>
+<span class="co">// In general:</span>
+<span class="co">// *  dart::heap|dart::buffer -&gt; dart::packet is essentially free and does not</span>
+<span class="co">//    require a cast.</span>
+<span class="co">// *  dart::heap -&gt; dart::buffer requires a single allocation and walking across</span>
+<span class="co">//    the object tree, and is still relatively cheap, but requires a cast.</span>
+<span class="co">// *  dart::buffer -&gt; dart::heap requires allocations for as at least as many nodes</span>
+<span class="co">//    in the tree and is very expensive; it also requires a cast.</span>
+dart::packet copy = pkt;
+copy = finalized;
+dart::heap unfinalized {finalized};
+dart::buffer refinalized {unfinalized};</code></pre></div>
+<h2 id="type-safe-api">Type-Safe API</h2>
+<p><strong>Dart</strong> is first and foremost a dynamically typed library, for interacting with a dynamically typed notation language, but as C++ is a statically typed language, it can be useful to statically know the type of a variable at compile-time.</p>
+<p>To enable this use-case, <strong>Dart</strong> exposes a secondary interface, fully interoperable with the first, that enables static type enforcement.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Definitely an object, might be mutable.</span>
+dart::packet::object dynamic {<span class="st">&quot;pi&quot;</span>, <span class="fl">3.14159</span>, <span class="st">&quot;c&quot;</span>, <span class="fl">2.99792</span>};
+
+<span class="co">// Definitely a mutable object.</span>
+dart::heap::object mut {<span class="st">&quot;pi&quot;</span>, <span class="fl">3.14159</span>, <span class="st">&quot;c&quot;</span>, <span class="fl">2.99792</span>};
+
+<span class="co">// Definitely an immutable object.</span>
+dart::buffer::object immut {<span class="st">&quot;pi&quot;</span>, <span class="fl">3.14159</span>, <span class="st">&quot;c&quot;</span>, <span class="fl">2.99792</span>};
+
+<span class="co">// Definitely an array, might be mutable.</span>
+dart::packet::array dynarr {<span class="dv">1</span>, <span class="st">&quot;fish&quot;</span>, <span class="dv">2</span>, <span class="st">&quot;fish&quot;</span>};
+
+<span class="co">// Definitely a mutable array.</span>
+dart::heap::array mutarr {<span class="st">&quot;red&quot;</span>, <span class="st">&quot;fish&quot;</span>, <span class="st">&quot;blue&quot;</span>, <span class="st">&quot;fish&quot;</span>};
+
+assert(dynamic == mut);
+assert(mut == immut);
+assert(immut == dynamic);
+assert(dynamic != dynarr);
+assert(mut != mutarr);</code></pre></div>
+<p>A variety of conversions between the APIs are defined, but generally speaking, if the conversion can be performed safely and inexpensively, without throwing an exception or allocating memory, it's allowed implicitly, otherwise it requires a cast.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> dart::literals;
+
+<span class="co">// Examples of some implicit conversions.</span>
+dart::buffer::object fin {<span class="st">&quot;rick&quot;</span>, <span class="st">&quot;sanchez&quot;</span>, <span class="st">&quot;morty&quot;</span>, <span class="st">&quot;smith&quot;</span>};
+dart::buffer untyped = fin;
+dart::packet::object dynamic = fin;
+dart::packet untyped_dynamic = dynamic;
+
+<span class="co">// Mixing the type-safe/non API.</span>
+dart::packet str = <span class="st">&quot;world&quot;_dart</span>;
+dart::packet::object obj {<span class="st">&quot;hello&quot;</span>, str};
+obj.insert(dart::heap::string {<span class="st">&quot;yes&quot;</span>}, dart::heap::make_string(<span class="st">&quot;no&quot;</span>));</code></pre></div>
+<p>It is worth noting that while this API is included as a convenience, to allow <strong>Dart</strong> to naturally express data across a variety of different domains and development workflows, it does <em>not</em> come with any performance improvement.</p>
+<p>The type-safe API is implemented on top of the API described up to this point, should exhibit identical performance characteristics, and exists solely for the purposes of code-organization/developer quality of life improvements.</p>
+<p>A consequence of all this conversion logic, and becoming especially compelling with class template argument deduction in C++17, is that code like this is actually valid:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;map&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;dart.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;variant&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="dt">int</span> main() {
+  <span class="bu">std::</span>cout &lt;&lt; dart::packet::object {
+    <span class="st">&quot;a key&quot;</span>, <span class="st">&quot;a value&quot;</span>,
+    <span class="st">&quot;a homogenous array&quot;</span>, <span class="bu">std::</span>vector {<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">8</span>, <span class="dv">13</span>},
+    <span class="st">&quot;a heterogenous array&quot;</span>, <span class="bu">std::</span>tuple {<span class="kw">false</span>, <span class="fl">0.0</span>, <span class="st">&quot;hello&quot;</span>},
+    <span class="st">&quot;an object&quot;</span>, dart::packet::object {
+      <span class="st">&quot;oneof&quot;</span>, <span class="bu">std::</span>variant&lt;<span class="dt">int</span>, <span class="dt">float</span>, <span class="dt">bool</span>&gt; {<span class="kw">false</span>},
+      <span class="st">&quot;maybe_null&quot;</span>, <span class="bu">std::</span>optional {<span class="st">&quot;present&quot;</span>}
+    }
+  } &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>Which outputs:</p>
+<pre><code>{&quot;a heterogenous array&quot;:[false,0.0,&quot;hello&quot;],&quot;a homogenous array&quot;:[1,1,2,3,5,8,13],&quot;a key&quot;:&quot;a value&quot;,&quot;an object&quot;:{&quot;maybe_null&quot;:&quot;present&quot;,&quot;oneof&quot;:false}}</code></pre>
+<p>Deciding as to whether it's actually sensible/ethical/<em>practically useful</em> to do so is left as an exercise to the reader.</p>
+<h2 id="customization-pointsexpert-usage">Customization Points/Expert Usage</h2>
+<p>For a guide on the customization points the library exposes, see our <a href="ADVANCED.md">Advanced Usage</a> document.</p>

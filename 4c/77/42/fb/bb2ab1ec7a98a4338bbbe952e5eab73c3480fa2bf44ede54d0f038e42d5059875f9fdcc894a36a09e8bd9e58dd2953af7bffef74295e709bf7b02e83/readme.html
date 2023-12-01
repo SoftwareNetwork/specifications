@@ -1,0 +1,456 @@
+<h1 id="what-is-sobjectizer">What is SObjectizer?</h1>
+<p>SObjectizer is one of a few cross-platform and OpenSource &quot;actor frameworks&quot; for C++. But SObjectizer supports not only Actor Model, but also Publish-Subscribe Model and CSP-like channels. The goal of SObjectizer is significant simplification of development of concurrent and multithreaded applications in C++.</p>
+<p>SObjectizer allows the creation of a concurrent app as a set of agent-objects which interact with each other through asynchronous messages. It handles message dispatching and provides a working context for message processing. And allows to tune those things by supplying various ready-to-use dispatchers.</p>
+<h1 id="what-distinguishes-sobjectizer">What distinguishes SObjectizer?</h1>
+<p><strong>Maturity</strong>. SObjectizer is based on ideas that have been put forward in 1995-2000. And SObjectizer itself is being developed since 2002. SObjectizer-5 is continuously evolved since 2010.</p>
+<p><strong>Stability</strong>. From the very beginning SObjectizer was used for business-critical applications, and some of them are still being used in production. Breaking changes in SObjectizer are rare and we approach to them very carefully.</p>
+<p><strong>Cross-platform</strong>. SObjectizer runs on Windows, Linux, FreeBSD, macOS and Android.</p>
+<p><strong>Easy-to-use</strong>. SObjectizer provides easy to understand and easy to use API with a lot of examples in the SObjectizer's distributive and a plenty of information in the project's Wiki.</p>
+<p><strong>Free</strong>. SObjectizer is distributed under BSD-3-CLAUSE license, so it can be used in development of proprietary commercial software for free.</p>
+<h1 id="show-me-the-code">Show me the code!</h1>
+<h2 id="helloworld-example">HelloWorld example</h2>
+<p>This is a classical example &quot;Hello, World&quot; expressed by using SObjectizer's agents:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;so_5/all.hpp&gt;</span>
+
+<span class="kw">class</span> hello_actor <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+<span class="kw">public</span>:
+    <span class="kw">using</span> so_5::<span class="dt">agent_t</span>::<span class="dt">agent_t</span>;
+
+    <span class="dt">void</span> so_evt_start() <span class="kw">override</span> {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Hello, World!&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        <span class="co">// Finish work of example.</span>
+        so_deregister_agent_coop_normally();
+    }
+};
+
+<span class="dt">int</span> main() {
+    <span class="co">// Launch SObjectizer.</span>
+    so_5::launch([](so_5::<span class="dt">environment_t</span> &amp; env) {
+            <span class="co">// Add a hello_actor instance in a new cooperation.</span>
+            env.register_agent_as_coop( env.make_agent&lt;hello_actor&gt;() );
+        });
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="ping-pong-example">Ping-Pong example</h2>
+<p>Let's look at more interesting example with two agents and message exchange between them. It is another famous example for actor frameworks, &quot;Ping-Pong&quot;:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;so_5/all.hpp&gt;</span>
+
+<span class="kw">struct</span> ping {
+    <span class="dt">int</span> <span class="va">counter_</span>;
+};
+
+<span class="kw">struct</span> pong {
+    <span class="dt">int</span> <span class="va">counter_</span>;
+};
+
+<span class="kw">class</span> pinger <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+    so_5::<span class="dt">mbox_t</span> <span class="va">ponger_</span>;
+
+    <span class="dt">void</span> on_pong(<span class="dt">mhood_t</span>&lt;pong&gt; cmd) {
+        <span class="cf">if</span>(cmd-&gt;<span class="va">counter_</span> &gt; <span class="dv">0</span>)
+            so_5::send&lt;ping&gt;(<span class="va">ponger_</span>, cmd-&gt;<span class="va">counter_</span> - <span class="dv">1</span>);
+        <span class="cf">else</span>
+            so_deregister_agent_coop_normally();
+    }
+
+<span class="kw">public</span>:
+    pinger(<span class="dt">context_t</span> ctx) : so_5::<span class="dt">agent_t</span>{<span class="bu">std::</span>move(ctx)} {}
+
+    <span class="dt">void</span> set_ponger(<span class="at">const</span> so_5::<span class="dt">mbox_t</span> mbox) { <span class="va">ponger_</span> = mbox; }
+
+    <span class="dt">void</span> so_define_agent() <span class="kw">override</span> {
+        so_subscribe_self().event( &amp;pinger::on_pong );
+    }
+
+    <span class="dt">void</span> so_evt_start() <span class="kw">override</span> {
+        so_5::send&lt;ping&gt;(<span class="va">ponger_</span>, <span class="dv">1000</span>);
+    }
+};
+
+<span class="kw">class</span> ponger <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+    <span class="at">const</span> so_5::<span class="dt">mbox_t</span> <span class="va">pinger_</span>;
+    <span class="dt">int</span> <span class="va">pings_received_</span>{};
+
+<span class="kw">public</span>:
+    ponger(<span class="dt">context_t</span> ctx, so_5::<span class="dt">mbox_t</span> pinger)
+        :   so_5::<span class="dt">agent_t</span>{<span class="bu">std::</span>move(ctx)}
+        ,   <span class="va">pinger_</span>{<span class="bu">std::</span>move(pinger)}
+    {}
+
+    <span class="dt">void</span> so_define_agent() <span class="kw">override</span> {
+        so_subscribe_self().event(
+            [<span class="kw">this</span>](<span class="dt">mhood_t</span>&lt;ping&gt; cmd) {
+                ++<span class="va">pings_received_</span>;
+                so_5::send&lt;pong&gt;(<span class="va">pinger_</span>, cmd-&gt;<span class="va">counter_</span>);
+            });
+    }
+
+    <span class="dt">void</span> so_evt_finish() <span class="kw">override</span> {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;pings received: &quot;</span> &lt;&lt; <span class="va">pings_received_</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+};
+
+<span class="dt">int</span> main() {
+    so_5::launch([](so_5::<span class="dt">environment_t</span> &amp; env) {
+            env.introduce_coop([](so_5::<span class="dt">coop_t</span> &amp; coop) {
+                    <span class="kw">auto</span> pinger_actor = coop.make_agent&lt;pinger&gt;();
+                    <span class="kw">auto</span> ponger_actor = coop.make_agent&lt;ponger&gt;(
+                            pinger_actor-&gt;so_direct_mbox());
+
+                    pinger_actor-&gt;set_ponger(ponger_actor-&gt;so_direct_mbox());
+                });
+        });
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>All agents in the code above are working on the same work thread. How to bind them to different work threads?</p>
+<p>It is very simple. Just use an appropriate dispatcher:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> main() {
+    so_5::launch([](so_5::<span class="dt">environment_t</span> &amp; env) {
+            env.introduce_coop(
+                so_5::disp::active_obj::make_dispatcher(env).binder(),
+                [](so_5::<span class="dt">coop_t</span> &amp; coop) {
+                    <span class="kw">auto</span> pinger_actor = coop.make_agent&lt;pinger&gt;();
+                    <span class="kw">auto</span> ponger_actor = coop.make_agent&lt;ponger&gt;(
+                            pinger_actor-&gt;so_direct_mbox());
+
+                    pinger_actor-&gt;set_ponger(ponger_actor-&gt;so_direct_mbox());
+                });
+        });
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="pubsub-example">Pub/Sub example</h2>
+<p>SObjectizer supports Pub/Sub model via multi-producer/multi-consumer message boxes. A message sent to that message box will be received by all subscribers of that message type:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;so_5/all.hpp&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>literals;
+
+<span class="kw">struct</span> acquired_value {
+    <span class="bu">std::</span>chrono<span class="bu">::</span>steady_clock<span class="bu">::</span>time_point <span class="va">acquired_at_</span>;
+    <span class="dt">int</span> <span class="va">value_</span>;
+};
+
+<span class="kw">class</span> producer <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+    <span class="at">const</span> so_5::<span class="dt">mbox_t</span> <span class="va">board_</span>;
+    so_5::<span class="dt">timer_id_t</span> <span class="va">timer_</span>;
+    <span class="dt">int</span> <span class="va">counter_</span>{};
+
+    <span class="kw">struct</span> acquisition_time <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">signal_t</span> {};
+
+    <span class="dt">void</span> on_timer(<span class="dt">mhood_t</span>&lt;acquisition_time&gt;) {
+        <span class="co">// Publish the next value for all consumers.</span>
+        so_5::send&lt;acquired_value&gt;(
+                <span class="va">board_</span>, <span class="bu">std::</span>chrono<span class="bu">::</span>steady_clock<span class="bu">::</span>now(), ++<span class="va">counter_</span>);
+    }
+
+<span class="kw">public</span>:
+    producer(<span class="dt">context_t</span> ctx, so_5::<span class="dt">mbox_t</span> board)
+        :   so_5::<span class="dt">agent_t</span>{<span class="bu">std::</span>move(ctx)}
+        ,   <span class="va">board_</span>{<span class="bu">std::</span>move(board)}
+    {}
+
+    <span class="dt">void</span> so_define_agent() <span class="kw">override</span> {
+        so_subscribe_self().event(&amp;producer::on_timer);
+    }
+
+    <span class="dt">void</span> so_evt_start() <span class="kw">override</span> {
+        <span class="co">// Agent will periodically recive acquisition_time signal</span>
+        <span class="co">// without initial delay and with period of 750ms.</span>
+        <span class="va">timer_</span> = so_5::send_periodic&lt;acquisition_time&gt;(*<span class="kw">this</span>, <span class="er">0ms</span>, <span class="er">750ms</span>);
+    }
+};
+
+<span class="kw">class</span> consumer <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+    <span class="at">const</span> so_5::<span class="dt">mbox_t</span> <span class="va">board_</span>;
+    <span class="at">const</span> <span class="bu">std::</span>string <span class="va">name_</span>;
+
+    <span class="dt">void</span> on_value(<span class="dt">mhood_t</span>&lt;acquired_value&gt; cmd) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="va">name_</span> &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; cmd-&gt;<span class="va">value_</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+<span class="kw">public</span>:
+    consumer(<span class="dt">context_t</span> ctx, so_5::<span class="dt">mbox_t</span> board, <span class="bu">std::</span>string name)
+        :   so_5::<span class="dt">agent_t</span>{<span class="bu">std::</span>move(ctx)}
+        ,   <span class="va">board_</span>{<span class="bu">std::</span>move(board)}
+        ,   <span class="va">name_</span>{<span class="bu">std::</span>move(name)}
+    {}
+
+    <span class="dt">void</span> so_define_agent() <span class="kw">override</span> {
+        so_subscribe(<span class="va">board_</span>).event(&amp;consumer::on_value);
+    }
+};
+
+<span class="dt">int</span> main() {
+    so_5::launch([](so_5::<span class="dt">environment_t</span> &amp; env) {
+            <span class="kw">auto</span> board = env.create_mbox();
+            env.introduce_coop([board](so_5::<span class="dt">coop_t</span> &amp; coop) {
+                    coop.make_agent&lt;producer&gt;(board);
+                    coop.make_agent&lt;consumer&gt;(board, <span class="st">&quot;first&quot;</span>s);
+                    coop.make_agent&lt;consumer&gt;(board, <span class="st">&quot;second&quot;</span>s);
+                });
+
+            <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">4</span>));
+            env.stop();
+        });
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="blinkingled-example">BlinkingLed example</h2>
+<p>All agents in SObjectizer are finite-state machines. Almost all functionality of hierarchical finite-states machines (HSM) are supported: child states and handlers inheritance, on_enter/on_exit handlers, state timeouts, deep- and shallow state history, except orthogonal states.</p>
+<p>This is a very simple example that demonstrates an agent that is HSM:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;so_5/all.hpp&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>literals;
+
+<span class="kw">class</span> blinking_led <span class="kw">final</span> : <span class="kw">public</span> so_5::<span class="dt">agent_t</span> {
+    <span class="dt">state_t</span> off{ <span class="kw">this</span> }, blinking{ <span class="kw">this</span> },
+        blink_on{ initial_substate_of{ blinking } },
+        blink_off{ substate_of{ blinking } };
+
+<span class="kw">public</span> :
+    <span class="kw">struct</span> turn_on_off : <span class="kw">public</span> so_5::<span class="dt">signal_t</span> {};
+
+    blinking_led(<span class="dt">context_t</span> ctx) : so_5::<span class="dt">agent_t</span>{<span class="bu">std::</span>move(ctx)} {
+        <span class="kw">this</span> &gt;&gt;= off;
+
+        off.just_switch_to&lt;turn_on_off&gt;(blinking);
+
+        blinking.just_switch_to&lt;turn_on_off&gt;(off);
+
+        blink_on
+            .on_enter([]{ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;ON&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; })
+            .on_exit([]{ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;off&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; })
+            .time_limit(<span class="er">1250ms</span>, blink_off);
+
+        blink_off
+            .time_limit(<span class="er">750ms</span>, blink_on);
+    }
+};
+
+<span class="dt">int</span> main()
+{
+    so_5::launch([](so_5::<span class="dt">environment_t</span> &amp; env) {
+        so_5::<span class="dt">mbox_t</span> m;
+        env.introduce_coop([&amp;](so_5::<span class="dt">coop_t</span> &amp; coop) {
+                <span class="kw">auto</span> led = coop.make_agent&lt; blinking_led &gt;();
+                m = led-&gt;so_direct_mbox();
+            });
+
+        <span class="at">const</span> <span class="kw">auto</span> pause = [](<span class="kw">auto</span> duration) {
+            <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for(duration);
+        };
+
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Turn blinking on for 10s&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        so_5::send&lt;blinking_led::turn_on_off&gt;(m);
+        pause(<span class="er">10s</span>);
+
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Turn blinking off for 5s&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        so_5::send&lt;blinking_led::turn_on_off&gt;(m);
+        pause(<span class="er">5s</span>);
+
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Turn blinking on for 5s&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        so_5::send&lt;blinking_led::turn_on_off&gt;(m);
+        pause(<span class="er">5s</span>);
+
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Stopping...&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        env.stop();
+    } );
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="csp-like-ping-pong-example">CSP-like Ping-Pong example</h2>
+<p>SObjectizer allows to write concurrent applications even without agents inside. Only plain threads and CSP-like channels can be used.</p>
+<p>This is plain-thread implementation of Ping-Pong example (please note that main() is not exception-safe):</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;so_5/all.hpp&gt;</span>
+
+<span class="kw">struct</span> ping {
+    <span class="dt">int</span> <span class="va">counter_</span>;
+};
+
+<span class="kw">struct</span> pong {
+    <span class="dt">int</span> <span class="va">counter_</span>;
+};
+
+<span class="dt">void</span> pinger_proc(so_5::<span class="dt">mchain_t</span> self_ch, so_5::<span class="dt">mchain_t</span> ping_ch) {
+    so_5::send&lt;ping&gt;(ping_ch, <span class="dv">1000</span>);
+
+    <span class="co">// Read all message until channel will be closed.</span>
+    so_5::receive( so_5::from(self_ch).handle_all(),
+        [&amp;](so_5::<span class="dt">mhood_t</span>&lt;pong&gt; cmd) {
+            <span class="cf">if</span>(cmd-&gt;<span class="va">counter_</span> &gt; <span class="dv">0</span>)
+                so_5::send&lt;ping&gt;(ping_ch, cmd-&gt;<span class="va">counter_</span> - <span class="dv">1</span>);
+            <span class="cf">else</span> {
+                <span class="co">// Channels have to be closed to break `receive` calls.</span>
+                so_5::close_drop_content(self_ch);
+                so_5::close_drop_content(ping_ch);
+            }
+        });
+}
+
+<span class="dt">void</span> ponger_proc(so_5::<span class="dt">mchain_t</span> self_ch, so_5::<span class="dt">mchain_t</span> pong_ch) {
+    <span class="dt">int</span> pings_received{};
+
+    <span class="co">// Read all message until channel will be closed.</span>
+    so_5::receive( so_5::from(self_ch).handle_all(),
+        [&amp;](so_5::<span class="dt">mhood_t</span>&lt;ping&gt; cmd) {
+            ++pings_received;
+            so_5::send&lt;pong&gt;(pong_ch, cmd-&gt;<span class="va">counter_</span>);
+        });
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;pings received: &quot;</span> &lt;&lt; pings_received &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+<span class="dt">int</span> main() {
+    so_5::<span class="dt">wrapped_env_t</span> sobj;
+
+    <span class="kw">auto</span> pinger_ch = so_5::create_mchain(sobj);
+    <span class="kw">auto</span> ponger_ch = so_5::create_mchain(sobj);
+
+    <span class="bu">std::</span>thread pinger{pinger_proc, pinger_ch, ponger_ch};
+    <span class="bu">std::</span>thread ponger{ponger_proc, ponger_ch, pinger_ch};
+
+    ponger.join();
+    pinger.join();
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="want-to-know-more">Want to know more?</h2>
+<p>More information about SObjectizer can be found in the corresponding section of the <a href="https://bitbucket.org/sobjectizerteam/sobjectizer/wiki/">project's Wiki</a>.</p>
+<h1 id="limitations">Limitations</h1>
+<p>SObjectizer is an in-process message dispatching framework. It doesn't support distributed applications just out of box. But external tools and libraries can be used in that case. Please take a look at our mosquitto_transport experiment: https://bitbucket.org/sobjectizerteam/mosquitto_transport-0.6</p>
+<h1 id="obtaining-and-building">Obtaining and building</h1>
+<p>SObjectizer can be checked out from <a href="https://bitbucket.org/sobjectizerteam/sobjectizer">BitBucket</a>. Archives with SObjectizer's source code can be downloaded from <a href="https://bitbucket.org/sobjectizerteam/sobjectizer/downloads/">BitBucket</a> or from <a href="https://sourceforge.net/projects/sobjectizer/files/sobjectizer">SourceForge</a>.</p>
+<p>There are two ways for building SObjectizer. The first one by using <a href="https://sourceforge.net/projects/mxxru/">Mxx_ru</a> tool. The second one by using <a href="https://cmake.org">CMake</a>.</p>
+<p>NOTE. Since v.5.5.15.2 there is a support of Android platform. Building for Android is possible by CMake only. See the corresponding section below.</p>
+<p>SObjectizer can also be installed and used via <strong>vcpkg</strong> and <strong>Conan</strong> dependency managers. See the appropriate sections below.</p>
+<h2 id="sobjectizer-5.6-requires-c17">SObjectizer-5.6 requires C++17!</h2>
+<p>The 5.6-branch of SObjectizer requires C++17.</p>
+<p>If you need support for C++14 or C++11 try to look to older versions of SObjectizer on <a href="https://sourceforge.net/projects/sobjectizer">SourceForge</a>. Or contact <a href="https://stiffstream.com/en/services.html">stiffstream</a> to discuss porting of SObjectizer-5.6 to older C++ standards.</p>
+<h2 id="building-via-mxx_ru">Building via Mxx_ru</h2>
+<p><em>NOTE. This is a standard way for building SObjectizer. This way is used in SObjectizer development process.</em></p>
+<p>To build SObjectizer it is necessary to use Ruby language and Mxx_ru tool. Install Ruby and then install Mxx_ru via RubyGems command:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">gem</span> install Mxx_ru</code></pre></div>
+<p>If you already have Mxx_ru installed please update to at least version 1.6.14.6:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">gem</span> update Mxx_ru</code></pre></div>
+<p>SObjectizer can be obtained from Mercurial repository on BitBucket:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">hg</span> clone https://bitbucket.org/sobjectizerteam/sobjectizer</code></pre></div>
+<p>To build SObjectizer:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/dev
+<span class="ex">ruby</span> build.rb</code></pre></div>
+<p>Static and shared library for SObjectizer will be built. Libraries will be placed into target/release subdirectory.</p>
+<p>If you want to build just shared library:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/dev
+<span class="ex">ruby</span> so_5/prj.rb</code></pre></div>
+<p>Or if you want to build just static library:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/dev
+<span class="ex">ruby</span> so_5/prj_s.rb</code></pre></div>
+<p>To build SObjectizer with all tests and samples:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/dev
+<span class="ex">ruby</span> build_all.rb</code></pre></div>
+<p>Please note that under FreeBSD it could be necessary to define LD_LIBRARY_PATH environment variable. And the actual build command sequence under FreeBSD could be as follows:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/dev
+<span class="bu">export</span> <span class="va">LD_LIBRARY_PATH=</span>target/release
+<span class="ex">ruby</span> build_all.rb</code></pre></div>
+<p>To build html-format documentation for SObjectizer the Doxygen tool is necessary. If it is installed then:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> sobjectizer/doxygen
+<span class="ex">doxygen</span></code></pre></div>
+<p>Generated html-files will be located in sobjectizer/dev/doc/html.</p>
+<p>NOTE. If you do not specify MXX_RU_CPP_TOOLSET by youself then Mxx_ru will try to detect your C++ toolset automatically. If you want to use C++ compiler which is not default in your system please define MXX_RU_CPP_TOOLSET environment variable manually. It could look like:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">export</span> <span class="va">MXX_RU_CPP_TOOLSET=</span><span class="st">&quot;clang_linux compiler_name=clang++-6 linker_name=clang++-6&quot;</span></code></pre></div>
+<p>More information about tuning Mxx_ru for your needs you can find in the <a href="http://sourceforge.net/projects/mxxru/files/Mxx_ru%201.6/mxx_ru-1.6.4-r1.pdf/download">corresponding documentation</a>.</p>
+<h2 id="building-via-cmake">Building via CMake</h2>
+<p>To build SObjectizer via CMake it is necessary to have CMake and some knowledge of how to use it. The following action is just a demonstration. For more detailed info about cmake build system for SObjectizer see dev/cmake/CmakeQuickHowto.txt</p>
+<p>To get and build SObjectizer under Linux/FreeBSD in command line run:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">hg</span> clone https://bitbucket.org/sobjectizerteam/sobjectizer
+<span class="bu">cd</span> sobjectizer
+<span class="fu">mkdir</span> cmake_build
+<span class="bu">cd</span> cmake_build
+<span class="fu">cmake</span> -DCMAKE_INSTALL_PREFIX=target -DCMAKE_BUILD_TYPE=Release ../dev
+<span class="fu">cmake</span> --build . --config Release
+<span class="fu">cmake</span> --build . --config Release --target install</code></pre></div>
+<p>Those commands will create all necessary Makefile, then build SObjectizer. If it necessary to build examples and tests too, use</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">cmake</span> -DBUILD_ALL=ON -DCMAKE_INSTALL_PREFIX=target ../dev</code></pre></div>
+<p>When 'make install' finished './target' will contain two subfolders './bin' with samples and './lib' with shared libso.5.x.x.so</p>
+<p>CMake build system currently supports this options:</p>
+<ul>
+<li><code>SOBJECTIZER_BUILD_STATIC</code>. Enable building SObjectizer as a static library [default: ON]</li>
+<li><code>SOBJECTIZER_BUILD_SHARED</code>. Enable building SObjectizer as a shared library [default: ON]</li>
+<li><code>BUILD_ALL</code>. Enable building examples and tests [default: OFF]</li>
+<li><code>BUILD_EXAMPLES</code>. Enable building examples [default: OFF]</li>
+<li><code>BUILD_TESTS</code>. Enable building tests [default: OFF]</li>
+</ul>
+<p>Please note that if <code>BUILD_ALL</code> or <code>BUILD_EXAMPLES</code> or <code>BUILD_TESTS</code> is turned ON then both <code>SOBJECTIZER_BUILD_STATIC</code> and <code>SOBJECTIZER_BUILD_SHARED</code> must be turned ON. It means that if <code>SOBJECTIZER_BUILD_STATIC</code> or <code>SOBJECTIZER_BUILD_SHARED</code> is turned OFF then <code>BUILD_ALL</code>/<code>BUILD_EXAMPLES</code>/<code>BUILD_TESTS</code> all must be turned OFF.</p>
+<p>To build SObjectizer under Windows by MS Visual Studio 2013 from command line:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">hg</span> clone https://bitbucket.org/sobjectizerteam/sobjectizer
+<span class="bu">cd</span> sobjectizer
+<span class="fu">mkdir</span> cmake_build
+<span class="bu">cd</span> cmake_build
+<span class="fu">cmake</span> -DCMAKE_INSTALL_PREFIX=target -DCMAKE_BUILD_TYPE=Release -G <span class="st">&quot;Visual Studio 15 2017&quot;</span> ../dev
+<span class="fu">cmake</span> --build . --config Release
+<span class="fu">cmake</span> --build . --config Release --target install</code></pre></div>
+<p>If it necessary to build examples too, use <code>BUILD_ALL</code> in cmake invocation:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">cmake</span> -DCMAKE_INSTALL_PREFIX=target -DCMAKE_BUILD_TYPE=Release -DBUILD_ALL=ON -G <span class="st">&quot;Visual Studio 15 2017&quot;</span> ../dev</code></pre></div>
+<p>Since v.5.5.24 SObjectizer provides sobjectizer-config.cmake files. These files are automatically installed into <target>/lib/cmake/sobjectizer subfolder. It allows to use SObjectizer via CMake's find_package command.</p>
+<h2 id="building-for-android">Building for Android</h2>
+<p>Building for Android is possible via a rather fresh Android NDK or <a href="https://www.crystax.net/android/ndk">CrystaX NDK</a>.</p>
+<h3 id="building-with-android-ndk">Building with Android NDK</h3>
+<p>You need Android SDK and Android NDK installed in your system. As well as an appropriate version of CMake. You have also need properly set environment variables <code>ANDROID_HOME</code>, <code>ANDROID_NDK</code>. Then you can issue the following commands:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">hg</span> clone https://bitbucket.org/sobjectizerteam/sobjectizer
+<span class="bu">cd</span> sobjectizer
+<span class="fu">mkdir</span> cmake_build
+<span class="bu">cd</span> cmake_build
+<span class="fu">cmake</span> -DBUILD_ALL -DCMAKE_INSTALL_PREFIX=target -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=<span class="va">${ANDROID_NDK}</span>/build/cmake/android.toolchain.cmake \
+      -G Ninja \
+      -DANDROID_ABI=arm64-v8a \
+      -DANDROID_NDK=<span class="va">${ANDROID_NDK}</span> \
+      -DANDROID_NATIVE_API_LEVEL=23 \
+      -DANDROID_TOOLCHAIN=clang \
+      ../dev
+<span class="fu">cmake</span> --build . --config=Release
+<span class="fu">cmake</span> --build . --config=Release --target install</code></pre></div>
+<h3 id="building-with-crystax-ndk">Building with CrystaX NDK</h3>
+<p>You need CrystaX NDK v.10.4.0 or higher already installed in your system. CMake is used for building SObjectizer:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">hg</span> clone https://bitbucket.org/sobjectizerteam/sobjectizer
+<span class="bu">cd</span> sobjectizer
+<span class="fu">mkdir</span> cmake_build
+<span class="bu">cd</span> cmake_build
+<span class="bu">export</span> <span class="va">NDK=</span>/path/to/the/crystax-ndk
+<span class="fu">cmake</span> -DBUILD_ALL -DCMAKE_INSTALL_PREFIX=result -DCMAKE_TOOLCHAIN_FILE=<span class="va">$NDK</span>/cmake/toolchain.cmake -DANDROID_ABI=arm64-v8a ../dev
+<span class="fu">make</span>
+<span class="fu">make</span> test
+<span class="fu">make</span> install</code></pre></div>
+<h2 id="using-c-dependency-managers">Using C++ Dependency Managers</h2>
+<h3 id="using-via-vcpkg">Using via vcpkg</h3>
+<p>To use SObjectizer via <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> it is necessary to do the following steps.</p>
+<p>Install <code>sobjectizer</code> package:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">vcpkg</span> install sobjectizer</code></pre></div>
+<p>Add the following lines into your CMakeLists.txt file:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(sobjectizer <span class="ot">CONFIG</span> <span class="ot">REQUIRED</span>)
+<span class="kw">target_link_libraries</span>(your_target sobjectizer::SharedLib) <span class="co"># or sobjectizer::StaticLib</span></code></pre></div>
+<h3 id="using-via-conan">Using via Conan</h3>
+<h4 id="installing-sobjectizer-and-adding-it-to-conanfile.txt">Installing SObjectizer And Adding It To conanfile.txt</h4>
+<p>To use SObjectizer via Conan it is necessary to do the following steps:</p>
+<p>Add the corresponding remote to your conan:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">conan</span> remote add stiffstream https://api.bintray.com/conan/stiffstream/public</code></pre></div>
+<p>Add SObjectizer to <code>conanfile.txt</code> of your project:</p>
+<pre><code>[requires]
+sobjectizer/5.6.0@stiffstream/testing</code></pre>
+<p>It also may be necessary to specify <code>shared</code> option for SObjectizer. For example, for build SObjectizer as a static library:</p>
+<pre><code>[options]
+sobjectizer:shared=False</code></pre>
+<p>Install dependencies for your project:</p>
+<pre><code>conan install SOME_PATH --build=missing</code></pre>
+<h4 id="adding-sobjectizer-to-your-cmakelists.txt">Adding SObjectizer To Your CMakeLists.txt</h4>
+<p>Please note that SObjectizer should be added to your <code>CMakeLists.txt</code> via <code>find_package</code> command:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake">...
+<span class="kw">include</span>(<span class="va">${CMAKE_BINARY_DIR}</span>/conanbuildinfo.cmake)
+<span class="fu">conan_basic_setup</span>()
+
+<span class="kw">find_package</span>(sobjectizer <span class="ot">CONFIG</span> <span class="ot">REQUIRED</span>)
+...
+<span class="kw">target_link_libraries</span>(your_target sobjectizer::SharedLib) <span class="co"># Or sobjectizer::StaticLib</span></code></pre></div>
+<h1 id="license">License</h1>
+<p>SObjectizer is distributed under 3-clause BSD license. For license information please see LICENSE file.</p>

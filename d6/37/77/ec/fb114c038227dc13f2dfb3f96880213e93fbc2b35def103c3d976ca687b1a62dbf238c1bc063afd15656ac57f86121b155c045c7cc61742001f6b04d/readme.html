@@ -1,0 +1,225 @@
+<h1 id="fu2function-an-improved-drop-in-replacement-to-stdfunction">fu2::function an improved drop-in replacement to std::function</h1>
+<p><img src="https://img.shields.io/badge/Version-4.0.0-0091EA.svg" /> <img src="https://img.shields.io/badge/License-Boost-blue.svg" /> <a href="https://travis-ci.org/Naios/function2"><img src="https://travis-ci.org/Naios/function2.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Naios/function2/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1tl0vqpg8ndccats/branch/master?svg=true" alt="Build status" /></a></p>
+<p>Provides improved implementations of <code>std::function</code>:</p>
+<ul>
+<li><strong>copyable</strong> <code>fu2::function</code></li>
+<li><strong>move-only</strong> <code>fu2::unique_function</code> (capable of holding move only types)</li>
+<li><strong>non-owning</strong> <code>fu2::function_view</code> (capable of referencing callables in a non owning way)</li>
+</ul>
+<p>that provide many benefits and improvements over <code>std::function</code>:</p>
+<ul>
+<li>[x] <strong>const</strong>, <strong>volatile</strong>, <strong>reference</strong> and <strong>noexcept</strong> correct (qualifiers are part of the <code>operator()</code> signature)</li>
+<li>[x] <strong>convertible</strong> to and from <code>std::function</code> as well as other callable types</li>
+<li>[x] <strong>adaptable</strong> through <code>fu2::function_base</code> (internal capacity, copyable and exception guarantees)</li>
+<li>[x] <strong>overloadable</strong> with an arbitrary count of signatures (<code>fu2::function&lt;bool(int), bool(float)&gt;</code>)</li>
+<li>[x] <strong>full allocator support</strong> in contrast to <code>std::function</code>, which doesn't provide support anymore</li>
+<li>[x] <strong>covered</strong> by many unit tests and continuous integration services (<em>GCC</em>, <em>Clang</em> and <em>MSVC</em>)</li>
+<li>[x] <strong>header only</strong>, just copy and include <code>function.hpp</code> in your project</li>
+<li>[x] <strong>permissively licensed</strong> under the <strong>boost</strong> license</li>
+</ul>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><strong><a href="#documentation">Documentation</a></strong></li>
+<li><strong><a href="#how-to-use">How to use</a></strong></li>
+<li><strong><a href="#constructing-a-function">Constructing a function</a></strong></li>
+<li><strong><a href="#non-copyable-unique-functions">Non copyable unique functions</a></strong></li>
+<li><strong><a href="#convertibility-of-functions">Convertibility of functions</a></strong></li>
+<li><strong><a href="#adapt-function2">Adapt function2</a></strong></li>
+<li><strong><a href="#performance-and-optimization">Performance and optimization</a></strong></li>
+<li><strong><a href="#small-functor-optimization">Small functor optimization</a></strong></li>
+<li><strong><a href="#compiler-optimization">Compiler optimization</a></strong></li>
+<li><strong><a href="#stdfunction-vs-fu2function">std::function vs fu2::function</a></strong></li>
+<li><strong><a href="#coverage-and-runtime-checks">Coverage and runtime checks</a></strong></li>
+<li><strong><a href="#compatibility">Compatibility</a></strong></li>
+<li><strong><a href="#licence">License</a></strong></li>
+<li><strong><a href="#similar-implementations">Similar implementations</a></strong></li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<h3 id="how-to-use">How to use</h3>
+<p><strong>function2</strong> is implemented in one header (<code>function.hpp</code>), no compilation is required. Just copy the <code>function.hpp</code> header in your project and include it to start. It's recommended to import the library as git submodule using CMake:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="co"># Shell:</span>
+<span class="fu">git</span> submodule add https://github.com/Naios/function2.git</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># CMake file:</span>
+<span class="kw">add_subdirectory</span>(function2)
+<span class="co"># function2 provides an interface target which makes it&#39;s</span>
+<span class="co"># headers available to all projects using function2</span>
+<span class="kw">target_link_libraries</span>(my_project function2)</code></pre></div>
+<p>Use <code>fu2::function</code> as a wrapper for copyable function wrappers and <code>fu2::unique_function</code> for move only types. The standard implementation <code>std::function</code> and <code>fu2::function</code> are convertible to each other, see <a href="#convertibility-of-functions">the chapter convertibility of functions</a> for details.</p>
+<p>A function wrapper is declared as following:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">fu2::function&lt;<span class="dt">void</span>(<span class="dt">int</span>, <span class="dt">float</span>) <span class="at">const</span>&gt;
+<span class="co">// Return type ~^   ^     ^     ^</span>
+<span class="co">// Parameters  ~~~~~|~~~~~|     ^</span>
+<span class="co">// Qualifier ~~~~~~~~~~~~~~~~~~~|</span></code></pre></div>
+<ul>
+<li><strong>Return type</strong>: The return type of the function to wrap.</li>
+<li><strong>Arguments</strong>: The argument types of the function to wrap. Any argument types are allowed.</li>
+<li><strong>Qualifiers</strong>: There are several qualifiers allowed:</li>
+<li><strong>no qualifier</strong> provides <code>ReturnType operator() (Args...)</code>
+<ul>
+<li>Can be assigned from const and no const objects (<em>mutable lambdas</em> for example).</li>
+</ul></li>
+<li><strong>const</strong> provides <code>ReturnType operator() (Args...) const</code>
+<ul>
+<li>Requires that the assigned functor is const callable (won't work with <em>mutable lambdas</em>),</li>
+</ul></li>
+<li><strong>volatile</strong> provides <code>ReturnType operator() (Args...) volatile</code>
+<ul>
+<li>Can only be assigned from volatile qualified functors.</li>
+</ul></li>
+<li><strong>const volatile</strong> provides <code>ReturnType operator() (Args...) const volatile</code>
+<ul>
+<li>Same as const and volatile together.</li>
+</ul></li>
+<li><strong>r-value (one-shot) functions</strong> <code>ReturnType operator() (Args...) &amp;&amp;</code>
+<ul>
+<li>one-shot functions which are invalidated after the first call (can be mixed with <code>const</code>, <code>volatile</code> and <code>noexcept</code>). Can only wrap callable objects which call operator is also qualified as <code>&amp;&amp;</code> (r-value callable). Normal (<em>C</em>) functions are considered to be r-value callable by default.</li>
+</ul></li>
+<li><strong>noexcept functions</strong> <code>ReturnType operator() (Args...) noexcept</code>
+<ul>
+<li>such functions are guaranteed not to throw an exception (can be mixed with <code>const</code>, <code>volatile</code> and <code>&amp;&amp;</code>). Can only wrap functions or callable objects which call operator is also qualified as <code>noexcept</code>. Requires enabled C++17 compilation to work (support is detected automatically). Empty function calls to such a wrapped function will lead to a call to <code>std::abort</code> regardless the wrapper is configured to support exceptions or not (see <a href="#adapt-function2">adapt function2</a>).</li>
+</ul></li>
+<li><strong>Multiple overloads</strong>: The library is capable of providing multiple overloads: <code>cpp   fu2::function&lt;int(std::vector&lt;int&gt; const&amp;),             int(std::set&lt;int&gt; const&amp;) const&gt; fn = [] (auto const&amp; container) {               return container.size());             };</code></li>
+</ul>
+<h3 id="constructing-a-function">Constructing a function</h3>
+<p><code>fu2::function</code> and <code>fu2::unique_function</code> (non copyable) are easy to use:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">fu2::function&lt;<span class="dt">void</span>() <span class="at">const</span>&gt; fun = [] {
+  <span class="co">// ...</span>
+};
+
+<span class="co">// fun provides void operator()() const now</span>
+fun();</code></pre></div>
+<h3 id="non-copyable-unique-functions">Non copyable unique functions</h3>
+<p><code>fu2::unique_function</code> also works with non copyable functors/ lambdas.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">fu2::unique_function&lt;<span class="dt">bool</span>() <span class="at">const</span>&gt; fun = [ptr = <span class="bu">std::</span>make_unique&lt;<span class="dt">bool</span>&gt;(<span class="kw">true</span>)] {
+  <span class="cf">return</span> *ptr;
+};
+
+<span class="co">// unique functions are move only</span>
+fu2::unique_function&lt;<span class="dt">bool</span>() <span class="at">const</span>&gt; otherfun = <span class="bu">std::</span>move(fun):
+
+otherfun();</code></pre></div>
+<h3 id="non-owning-functions">Non owning functions</h3>
+<p>A <code>fu2::function_view</code> can be used to create a non owning view on a persistent object. Note that the view is only valid as long as the object lives.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> callable = [ptr = <span class="bu">std::</span>make_unique&lt;<span class="dt">bool</span>&gt;(<span class="kw">true</span>)] {
+  <span class="cf">return</span> *ptr;
+};
+
+fu2::function_view&lt;<span class="dt">bool</span>() <span class="at">const</span>&gt; view(callable);</code></pre></div>
+<h3 id="convertibility-of-functions">Convertibility of functions</h3>
+<p><code>fu2::function</code>, <code>fu2::unique_function</code> and <code>std::function</code> are convertible to each other when:</p>
+<ul>
+<li>The return type and parameter type match.</li>
+<li>The functions are both volatile or not.</li>
+<li>The functions are const correct:</li>
+<li><code>noconst = const</code></li>
+<li><code>const = const</code></li>
+<li><code>noconst = noconst</code></li>
+<li>The functions are copyable correct when:</li>
+<li><code>unique = unique</code></li>
+<li><code>unique = copyable</code></li>
+<li><code>copyable = copyable</code></li>
+<li>The functions are reference correct when:</li>
+<li><code>lvalue = lvalue</code></li>
+<li><code>lvalue = rvalue</code></li>
+<li><code>rvalue = rvalue</code></li>
+<li>The functions are <code>noexcept</code> correct when:</li>
+<li><code>callable = callable</code></li>
+<li><code>callable = noexcept callable</code></li>
+<li><code>noexcept callable = noexcept callable</code></li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>Convertibility from  to</th>
+<th>fu2::function</th>
+<th>fu2::unique_function</th>
+<th>std::function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fu2::function</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>fu2::unique_function</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>std::function</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">fu2::function&lt;<span class="dt">void</span>()&gt; fun = []{};
+<span class="co">// OK</span>
+<span class="bu">std::</span>function&lt;<span class="dt">void</span>()&gt; std_fun = fun;
+<span class="co">// OK</span>
+fu2::unique_function&lt;<span class="dt">void</span>()&gt; un_fun = fun;
+
+<span class="co">// Error (non copyable -&gt; copyable)</span>
+fun = un_fun;
+<span class="co">// Error (non copyable -&gt; copyable)</span>
+fun = un_fun;</code></pre></div>
+<h3 id="adapt-function2">Adapt function2</h3>
+<p>function2 is adaptable through <code>fu2::function_base</code> which allows you to set:</p>
+<ul>
+<li><strong>IsOwning</strong>: defines whether the function owns its contained object</li>
+<li><strong>Copyable:</strong> defines if the function is copyable or not.</li>
+<li><p><strong>Capacity:</strong> defines the internal capacity used for <a href="#small-functor-optimization">sfo optimization</a>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> my_capacity {
+  <span class="at">static</span> <span class="kw">constexpr</span> <span class="bu">std::</span>size_t capacity = <span class="kw">sizeof</span>(<span class="dt">my_type</span>);
+  <span class="at">static</span> <span class="kw">constexpr</span> <span class="bu">std::</span>size_t alignment = <span class="kw">alignof</span>(<span class="dt">my_type</span>);
+};</code></pre></div></li>
+<li><strong>IsThrowing</strong> defines if empty function calls throw an <code>fu2::bad_function_call</code> exception, otherwise <code>std::abort</code> is called.</li>
+<li><strong>HasStrongExceptGuarantee</strong> defines whether the strong exception guarantees shall be met.</li>
+<li><p><strong>Signatures:</strong> defines the signatures of the function.</p></li>
+</ul>
+<p>The following code defines an owning function with a variadic signature which is copyable and sfo optimization is disabled:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> Signature&gt;
+<span class="kw">using</span> my_function = fu2::function_base&lt;<span class="kw">true</span>, <span class="kw">true</span>, fu2::capacity_none, <span class="kw">true</span>, <span class="kw">false</span>, Signature&gt;;</code></pre></div>
+<p>The following code defines a non copyable function which just takes 1 argument, and has a huge capacity for internal sfo optimization. Also it must be called as r-value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> Arg&gt;
+<span class="kw">using</span> my_consumer = fu2::function_base&lt;<span class="kw">true</span>, <span class="kw">false</span>, fu2::capacity_fixed&lt;<span class="dv">100U</span>&gt;,
+                                       <span class="kw">true</span>, <span class="kw">false</span>, <span class="dt">void</span>(Arg)&amp;&amp;&gt;;
+
+<span class="co">// Example</span>
+my_consumer&lt;<span class="dt">int</span>, <span class="dt">float</span>&gt; consumer = [](<span class="dt">int</span>, <span class="dt">float</span>) { }
+<span class="bu">std::</span>move(consumer)(<span class="dv">44</span>, <span class="fl">1.7363f</span>);</code></pre></div>
+<h2 id="performance-and-optimization">Performance and optimization</h2>
+<h3 id="small-functor-optimization">Small functor optimization</h3>
+<p>function2 uses small functor optimization like the most common <code>std::function</code> implementations which means it allocates a small internal capacity to evade heap allocation for small functors.</p>
+<p>Smart heap allocation moves the inplace allocated functor automatically to the heap to speed up moving between objects.</p>
+<p>It's possible to disable small functor optimization through setting the internal capacity to 0.</p>
+<h2 id="coverage-and-runtime-checks">Coverage and runtime checks</h2>
+<p>Function2 is checked with unit tests and valgrind (for memory leaks), where the unit tests provide coverage for all possible template parameter assignments.</p>
+<h2 id="compatibility">Compatibility</h2>
+<p>Tested with:</p>
+<ul>
+<li>Visual Studio 2017+ Update 3</li>
+<li>Clang 3.8+</li>
+<li>GCC 5.4+</li>
+</ul>
+<p>Every compiler with modern C++14 support should work. <em>function2</em> only depends on the standard library.</p>
+<h2 id="license">License</h2>
+<p><em>function2</em> is licensed under the very permissive Boost 1.0 License.</p>
+<h2 id="similar-implementations">Similar implementations</h2>
+<p>There are similar implementations of a function wrapper:</p>
+<ul>
+<li><a href="https://github.com/pmed/fixed_size_function">pmed/fixed_size_function</a></li>
+<li>stdex::function - A multi-signature function implementation.</li>
+<li>multifunction - Example from <a href="http://www.boost.org/doc/html/boost_typeerasure/examples.html#boost_typeerasure.examples.multifunction">Boost.TypeErasure</a>, another multi-signature function.</li>
+<li>std::function - <a href="http://en.cppreference.com/w/cpp/utility/functional/function">Standard</a>.</li>
+<li>boost::function - The one from <a href="http://www.boost.org/doc/libs/1_55_0/doc/html/function.html">Boost</a>.</li>
+<li>func::function - From this <a href="http://probablydance.com/2013/01/13/a-faster-implementation-of-stdfunction/">blog</a>.</li>
+<li>generic::delegate - <a href="http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11">Fast delegate in C++11</a>, also see <a href="https://code.google.com/p/cpppractice/source/browse/trunk/">here</a>.</li>
+<li>ssvu::FastFunc - Another Don Clugston's FastDelegate, as shown <a href="https://groups.google.com/a/isocpp.org/forum/#!topic/std-discussion/QgvHF7YMi3o">here</a>.</li>
+<li><a href="https://github.com/potswa/cxx_function">cxx_function::function</a> - By David Krauss</li>
+</ul>
+<p>Also check out the amazing <a href="https://github.com/jamboree/CxxFunctionBenchmark"><strong>CxxFunctionBenchmark</strong></a> which compares several implementations.</p>

@@ -1,0 +1,160 @@
+<p><img alt="NFHTTP" src="NFHTTP.png" width="100%" max-width="888"></p>
+<p><a href="https://circleci.com/gh/spotify/NFHTTP/tree/master"><img src="https://circleci.com/gh/spotify/NFHTTP/tree/master.svg?style=svg" alt="CircleCI" /></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/spotify/NFHTTP.svg" alt="License" /></a> <a href="https://slackin.spotify.com"><img src="https://slackin.spotify.com/badge.svg" alt="Spotify FOSS Slack" /></a> <a href="http://clayallsopp.github.io/readme-score?url=https://github.com/spotify/nfhttp"><img src="http://readme-score-api.herokuapp.com/score.svg?url=https://github.com/spotify/nfhttp" alt="Readme Score" /></a></p>
+<p>A cross platform C++ HTTP framework.</p>
+<ul>
+<li>[x] 📱 <a href="https://www.apple.com/ios/">iOS</a> 9.0+</li>
+<li>[x] 💻 <a href="https://www.apple.com/macos/">OS X</a> 10.11+</li>
+<li>[x] 🐧 <a href="https://www.ubuntu.com/">Ubuntu</a> Trusty 14.04+</li>
+<li>[x] 🤖 <a href="https://developer.android.com/studio/">Android</a> SDK r24+</li>
+<li>[x] 🖥️ <a href="https://developer.microsoft.com/en-us/windows/apps">Microsoft UWP</a></li>
+</ul>
+<h2 id="raison-dêtre-thought_balloon">Raison D'être :thought_balloon:</h2>
+<p>At Spotify we have performed studies that show the efficacy of using native backed solutions for interfacing to backends, especially when it came to the battery life of certain devices. In order to carry this forward in the cross-platform C++ world, we created this library that provides a common interface to many of the system level HTTP interfaces, and predictable caching and request hooking. We found that many of the current solutions that claimed to do this lacked key supports for many kinds of platforms, and ended up being libraries that heavily favoured 1 platform and gave the other platforms a generic implementation. We also wanted to provide a caching layer that was consistent across all platforms in our layered architecture.</p>
+<h2 id="architecture-triangular_ruler">Architecture :triangular_ruler:</h2>
+<p><code>NFHTTP</code> is designed as a common C++ interface to communicate with different systems over HTTP! The API allows you to create objects to make <code>Requests</code> and read <code>Responses</code>. To initiate, send and receive messages you create and use a <code>Client</code> object. This is a layered architecture where requests and responses can pass through multiple places in the stack and get decorated or have actions taken upon them.</p>
+<p>The layer design is as follows: - <strong>The Modification layer</strong>, which takes requests and responses, performs any modifications on them that might be required by the functions provided to the factory, and forwards them on. - <strong>The Multi-Request Layer</strong>, which takes a request, determines if the same request is currently being executed, then ties the response to that request with the response currently coming in from the previously sent request. - <strong>The Caching Layer</strong>, which takes a request, determines whether it is cached and if so sends a response immediately, if not forwards the request, and when it receives the response stores the response in its cache. - <strong>The Native Layer</strong>, which takes a request and converts it to a system level call depending on the system the user is using, then converts the response back to an NFHTTP response and sends the response back up the chain.</p>
+<p>Our support table looks like so:</p>
+<table>
+<thead>
+<tr class="header">
+<th>OS</th>
+<th align="center">Underlying Framework</th>
+<th align="right">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>iOS</td>
+<td align="center"><a href="https://developer.apple.com/documentation/foundation/nsurlsession">NSURLSession</a></td>
+<td align="right">Stable</td>
+</tr>
+<tr class="even">
+<td>OSX</td>
+<td align="center"><a href="https://developer.apple.com/documentation/foundation/nsurlsession">NSURLSession</a></td>
+<td align="right">Stable</td>
+</tr>
+<tr class="odd">
+<td>Linux</td>
+<td align="center"><a href="https://curl.haxx.se/">curl</a></td>
+<td align="right">Stable</td>
+</tr>
+<tr class="even">
+<td>Android</td>
+<td align="center"><a href="https://curl.haxx.se/">curl</a></td>
+<td align="right">Beta</td>
+</tr>
+<tr class="odd">
+<td>Windows</td>
+<td align="center"><a href="https://docs.microsoft.com/en-us/windows/desktop/winhttp/about-winhttp">WinHTTP</a></td>
+<td align="right">Alpha</td>
+</tr>
+</tbody>
+</table>
+<p>In addition to this, it is also possible to use curl on any of the above platforms or boost ASIO (provided by CPP REST SDK).</p>
+<h2 id="dependencies-globe_with_meridians">Dependencies :globe_with_meridians:</h2>
+<ul>
+<li><a href="https://github.com/Microsoft/cpprestsdk">C++ REST SDK</a></li>
+<li><a href="https://curl.haxx.se/">curl</a></li>
+<li><a href="https://github.com/nlohmann/json">JSON for Modern C++</a></li>
+<li><a href="https://www.openssl.org/">OpenSSL</a></li>
+<li><a href="https://www.sqlite.org/index.html">SQLite</a></li>
+<li><a href="https://www.boost.org/">boost</a></li>
+</ul>
+<h2 id="installation-inbox_tray">Installation :inbox_tray:</h2>
+<p><code>NFHTTP</code> is a <a href="https://cmake.org/">Cmake</a> project, while you are free to download the prebuilt static libraries it is recommended to use Cmake to install this project into your wider project. In order to add this into a wider Cmake project (who needs monorepos anyway?), simply add the following lines to your <code>CMakeLists.txt</code> file:</p>
+<pre><code>add_subdirectory(NFHTTP)
+
+# Link NFHTTP to your executables or target libs
+target_link_libraries(your_target_lib_or_executable NFHTTP)</code></pre>
+<h3 id="for-iososx">For iOS/OSX</h3>
+<p>Generate an <a href="https://developer.apple.com/xcode/">Xcode</a> project from the Cmake project like so:</p>
+<pre class="shell"><code>$ git submodule update --init --recursive
+$ mkdir build
+$ cd build
+$ cmake .. -GXcode</code></pre>
+<h3 id="for-linux">For linux</h3>
+<p>Generate a <a href="https://ninja-build.org/">Ninja</a> project from the Cmake project like so:</p>
+<pre class="shell"><code>$ git submodule update --init --recursive
+$ mkdir build
+$ cd build
+$ cmake .. -GNinja</code></pre>
+<h3 id="for-android">For Android</h3>
+<p>Use <a href="https://gradle.org/">gradle</a></p>
+<pre><code>android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId &quot;com.spotify.nfhttptest_android&quot;
+        minSdkVersion 19
+        targetSdkVersion 26
+        versionCode 1
+        versionName &quot;1.0&quot;
+        externalNativeBuild {
+            cmake {
+                cppFlags &quot;&quot;
+                arguments &quot;-DANDROID_APP=1 -DANDROID=1&quot;
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = [&#39;src/main/cpp&#39;]
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path &quot;../CMakeLists.txt&quot;
+        }
+    }
+}</code></pre>
+<h3 id="for-windows">For Windows</h3>
+<p>Generate a <a href="https://visualstudio.microsoft.com/">Visual Studio</a> project from the Cmake project like so:</p>
+<pre class="shell"><code>$ mkdir build
+$ cd build
+$ cmake .. -G &quot;Visual Studio 12 2013 Win64&quot;</code></pre>
+<h2 id="usage-example-eyes">Usage example :eyes:</h2>
+<p>In order to execute HTTP requests, you must first create a client like so:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> client = nativeformat::http::createClient(nativeformat::http::standardCacheLocation(),
+                                               <span class="st">&quot;NFHTTP-&quot;</span> + nativeformat::http::version());</code></pre></div>
+<p>It is wise to only create one client per application instance, in reality you will only need one (unless you need to separate the caching mechanism for your own reasons). After you have done this you can proceed to creating request objects like so:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="at">const</span> <span class="bu">std::</span>string url = <span class="st">&quot;http://localhost:6582/world&quot;</span>;
+<span class="kw">auto</span> request = nativeformat::http::createRequest(url, <span class="bu">std::</span>unordered_map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt;());</code></pre></div>
+<p>This will create a GET request with no added headers to send to the localhost:682/world location. This does not mean other headers will not be added, we have multiple layers that will add caching requirement headers, language headers, content size headers and the native layer can also add headers as it sees fit. After we have created our request we can then execute it:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> token = client-&gt;performRequest(request, [](<span class="at">const</span> <span class="bu">std::</span>shared_ptr&lt;nativeformat::http::Response&gt; &amp;response) {
+    printf(<span class="st">&quot;Received Response: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, response-&gt;data());
+});</code></pre></div>
+<p>The callback will be called asynchronously in whatever thread the native libraries post the response on, so watch out for thread safety within this callback. In order to execute requests synchronously on whatever thread you happen to be on, you can perform the follow actions:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> response = client-&gt;performSynchronousRequest(request);
+printf(<span class="st">&quot;Received Response: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, response-&gt;data());</code></pre></div>
+<p>You might wonder how you can hook requests and responses, this can be done when creating the client, for example:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> client = nativeformat::http::createClient(nativeformat::http::standardCacheLocation(),
+                                               <span class="st">&quot;NFHTTP-&quot;</span> + nativeformat::http::version(),
+                                               [](<span class="bu">std::</span>function&lt;<span class="dt">void</span>(<span class="at">const</span> <span class="bu">std::</span>shared_ptr&lt;nativeformat::http::Request&gt; &amp;request)&gt; callback,
+                                                  <span class="at">const</span> <span class="bu">std::</span>shared_ptr&lt;nativeformat::http::Request&gt; &amp;request) {
+                                                 printf(<span class="st">&quot;Request URL: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, request-&gt;url().c_str());
+                                                 callback(request);
+                                               },
+                                               [](<span class="bu">std::</span>function&lt;<span class="dt">void</span>(<span class="at">const</span> <span class="bu">std::</span>shared_ptr&lt;nativeformat::http::Response&gt; &amp;response, <span class="dt">bool</span> retry)&gt; callback,
+                                                  <span class="at">const</span> <span class="bu">std::</span>shared_ptr&lt;nativeformat::http::Response&gt; &amp;response) {
+                                                 printf(<span class="st">&quot;Response URL: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, response-&gt;request()-&gt;url().c_str());
+                                                 callback(response, <span class="kw">false</span>);
+                                               });</code></pre></div>
+<p>Here we have hooked the client up to receive requests and responses via the hook functions. Because we are now part of the layered architecture, we can perform any changes we want on the requests or responses, such as decorating with OAuth tokens, redirecting to other URLs, retrying responses or even cancelling responses altogether. If you are interested in the concept of cache pinning, it can be done like so:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">client-&gt;pinResponse(response, <span class="st">&quot;my-offlined-entity-token&quot;</span>);</code></pre></div>
+<p>This will then ensure that the response is in the cache until it is explicitly removed, and ignore all backend caching directives.</p>
+<h2 id="contributing-mailbox_with_mail">Contributing :mailbox_with_mail:</h2>
+<p>Contributions are welcomed, have a look at the <a href="CONTRIBUTING.md" class="uri">CONTRIBUTING.md</a> document for more information.</p>
+<h2 id="license-memo">License :memo:</h2>
+<p>The project is available under the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0</a> license.</p>
+<h3 id="acknowledgements">Acknowledgements</h3>
+<ul>
+<li>Icon in readme banner is “<a href="https://thenounproject.com/search/?q=http&amp;i=174663">Download</a>” by romzicon from the Noun Project.</li>
+</ul>
+<h4 id="contributors">Contributors</h4>
+<ul>
+<li><a href="https://github.com/8W9aG">Will Sackfield</a></li>
+<li><a href="https://github.com/astrocox">Julia Cox</a></li>
+<li><a href="https://github.com/drubinstein">David Rubinstein</a></li>
+<li><a href="https://github.com/jsarma">Justin Sarma</a></li>
+</ul>

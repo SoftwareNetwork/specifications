@@ -1,0 +1,78 @@
+<h1 id="expected">expected</h1>
+<p>Single header implementation of <code>std::expected</code> with functional-style extensions.</p>
+<p>Clang + GCC: <a href="https://travis-ci.org/TartanLlama/expected"><img src="https://travis-ci.org/TartanLlama/expected.png?branch=master" alt="Linux Build Status" /></a> MSVC: <a href="https://ci.appveyor.com/project/TartanLlama/expected"><img src="https://ci.appveyor.com/api/projects/status/k5x00xa11y3s5wsg?svg=true" alt="Windows Build Status" /></a></p>
+<p><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0323r3.pdf"><code>std::expected</code></a> is proposed as the preferred way to represent object which will either have an expected value, or an unexpected value giving information about why something failed. Unfortunately, chaining together many computations which may fail can be verbose, as error-checking code will be mixed in with the actual programming logic. This implementation provides a number of utilities to make coding with <code>expected</code> cleaner.</p>
+<p>For example, instead of writing this code:</p>
+<pre><code>std::expected&lt;image,fail_reason&gt; get_cute_cat (const image&amp; img) {
+    auto cropped = crop_to_cat(img);
+    if (!cropped) {
+      return cropped;
+    }
+
+    auto with_tie = add_bow_tie(*cropped);
+    if (!with_tie) {
+      return with_tie;
+    }
+
+    auto with_sparkles = make_eyes_sparkle(*with_tie);
+    if (!with_sparkles) {
+       return with_sparkles;
+    }
+
+    return add_rainbow(make_smaller(*with_sparkles));
+}</code></pre>
+<p>You can do this:</p>
+<pre><code>tl::expected&lt;image,fail_reason&gt; get_cute_cat (const image&amp; img) {
+    return crop_to_cat(img)
+           .and_then(add_bow_tie)
+           .and_then(make_eyes_sparkle)
+           .map(make_smaller)
+           .map(add_rainbow);
+}</code></pre>
+<p>Full documentation available at <a href="https://expected.tartanllama.xyz">expected.tartanllama.xyz</a></p>
+<p>The interface is the same as <code>std::expected</code> as proposed in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0323r3.pdf">p0323r3</a>, but the following member functions are also defined. Explicit types are for clarity.</p>
+<ul>
+<li><code>map</code>: carries out some operation on the stored object if there is one.</li>
+<li><code>tl::expected&lt;std::size_t,std::error_code&gt; s = exp_string.map(&amp;std::string::size);</code></li>
+<li><code>map_error</code>: carries out some operation on the unexpected object if there is one.</li>
+<li><code>my_error_code translate_error (std::error_code);</code></li>
+<li><code>tl::expected&lt;int,my_error_code&gt; s = exp_int.map_error(translate_error);</code></li>
+<li><code>and_then</code>: like <code>map</code>, but for operations which return a <code>tl::expected</code>.</li>
+<li><code>tl::expected&lt;ast, fail_reason&gt; parse (const std::string&amp; s);</code></li>
+<li><code>tl::expected&lt;ast, fail_reason&gt; exp_ast = exp_string.and_then(parse);</code></li>
+<li><code>or_else</code>: calls some function if there is no value stored.</li>
+<li><code>exp.or_else([] { throw std::runtime_error{&quot;oh no&quot;}; });</code></li>
+</ul>
+<h3 id="compiler-support">Compiler support</h3>
+<p>Tested on:</p>
+<ul>
+<li>Linux</li>
+<li>clang 6.0.1</li>
+<li>clang 5.0.2</li>
+<li>clang 4.0.1</li>
+<li>clang 3.9</li>
+<li>clang 3.8</li>
+<li>clang 3.7</li>
+<li>clang 3.6</li>
+<li>clang 3.5</li>
+<li>g++ 8.0.1<br />
+</li>
+<li>g++ 7.3<br />
+</li>
+<li>g++ 6.4</li>
+<li>g++ 5.5<br />
+</li>
+<li>g++ 4.9</li>
+<li>g++ 4.8</li>
+<li>Windows</li>
+<li>MSVC 2015</li>
+<li>MSVC 2017</li>
+</ul>
+<h3 id="dependencies">Dependencies</h3>
+<p>Requires <a href="https://github.com/foonathan/standardese">Standardese</a> for generating documentation.</p>
+<p>Requires <a href="https://github.com/philsquared/Catch">Catch</a> for testing. This is bundled in the test directory.</p>
+<h3 id="acknowledgements">Acknowledgements</h3>
+<p>Thanks to <a href="https://github.com/KABoissonneault">Kévin Alexandre Boissonneault</a> and <a href="https://github.com/rollbear">Björn Fahller</a> for various bug fixes.</p>
+<hr />
+<p><a href="%22http://creativecommons.org/publicdomain/zero/1.0/%22"><img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" alt="CC0" /></a></p>
+<p>To the extent possible under law, <a href="https://twitter.com/TartanLlama">Simon Brand</a> has waived all copyright and related or neighboring rights to the <code>expected</code> library. This work is published from: United Kingdom.</p>

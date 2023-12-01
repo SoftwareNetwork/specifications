@@ -1,0 +1,220 @@
+<h2 id="hidapi-library-for-windows-linux-freebsd-and-macos">HIDAPI library for Windows, Linux, FreeBSD and macOS</h2>
+<table>
+<thead>
+<tr class="header">
+<th>CI instance</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>macOS master</code></td>
+<td><a href="https://travis-ci.org/libusb/hidapi"><img src="https://travis-ci.org/libusb/hidapi.svg?branch=master" alt="Build Status" /></a></td>
+</tr>
+<tr class="even">
+<td><code>Windows master</code></td>
+<td><a href="https://ci.appveyor.com/project/Youw/hidapi/branch/master"><img src="https://ci.appveyor.com/api/projects/status/r482aevuigmi86rk/branch/master?svg=true" alt="Build status" /></a></td>
+</tr>
+<tr class="odd">
+<td><code>Linux/BSD, last build (branch/PR)</code></td>
+<td><a href="https://builds.sr.ht/~qbicz/hidapi?"><img src="https://builds.sr.ht/~qbicz/hidapi.svg" alt="builds.sr.ht status" /></a></td>
+</tr>
+</tbody>
+</table>
+<p>HIDAPI is a multi-platform library which allows an application to interface with USB and Bluetooth HID-Class devices on Windows, Linux, FreeBSD, and macOS. HIDAPI can be either built as a shared library (<code>.so</code>, <code>.dll</code> or <code>.dylib</code>) or can be embedded directly into a target application by adding a single source file (per platform) and a single header.</p>
+<p>HIDAPI library was originally developed by Alan Ott (<a href="https://github.com/signal11">signal11</a>).</p>
+<p>It was moved to <a href="https://github.com/libusb/hidapi">libusb/hidapi</a> on June 4th, 2019, in order to merge important bugfixes and continue development of the library.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#about">About</a></li>
+<li><a href="#what-does-the-api-look-like">What Does the API Look Like?</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#download">Download</a></li>
+<li><a href="#build-instructions">Build Instructions</a>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#linux">Linux</a></li>
+<li><a href="#freebsd">FreeBSD</a></li>
+<li><a href="#mac">Mac</a></li>
+<li><a href="#windows">Windows</a></li>
+<li><a href="#building-hidapi-into-a-shared-library-on-unix-platforms">Building HIDAPI into a shared library on Unix Platforms</a></li>
+<li><a href="#building-the-manual-way-on-unix-platforms">Building the manual way on Unix platforms</a></li>
+<li><a href="#building-on-windows">Building on Windows</a></li>
+</ul></li>
+<li><a href="#cross-compiling">Cross Compiling</a>
+<ul>
+<li><a href="#prerequisites-1">Prerequisites</a></li>
+<li><a href="#building-hidapi">Building HIDAPI</a></li>
+</ul></li>
+</ul>
+<h2 id="about">About</h2>
+<p>HIDAPI has five back-ends: * Windows (using <code>hid.dll</code>) * Linux/hidraw (using the Kernel's hidraw driver) * Linux/libusb (using libusb-1.0) * FreeBSD (using libusb-1.0) * Mac (using IOHidManager)</p>
+<p>On Linux, either the hidraw or the libusb back-end can be used. There are tradeoffs, and the functionality supported is slightly different.</p>
+<p><strong>Linux/hidraw</strong> (<code>linux/hid.c</code>):</p>
+<p>This back-end uses the hidraw interface in the Linux kernel, and supports both USB and Bluetooth HID devices. It requires kernel version at least 2.6.39 to build. In addition, it will only communicate with devices which have hidraw nodes associated with them. Keyboards, mice, and some other devices which are blacklisted from having hidraw nodes will not work. Fortunately, for nearly all the uses of hidraw, this is not a problem.</p>
+<p><strong>Linux/FreeBSD/libusb</strong> (<code>libusb/hid.c</code>):</p>
+<p>This back-end uses libusb-1.0 to communicate directly to a USB device. This back-end will of course not work with Bluetooth devices.</p>
+<p>HIDAPI also comes with a Test GUI. The Test GUI is cross-platform and uses Fox Toolkit <a href="http://www.fox-toolkit.org" class="uri">http://www.fox-toolkit.org</a>. It will build on every platform which HIDAPI supports. Since it relies on a 3rd party library, building it is optional but recommended because it is so useful when debugging hardware.</p>
+<h2 id="what-does-the-api-look-like">What Does the API Look Like?</h2>
+<p>The API provides the most commonly used HID functions including sending and receiving of input, output, and feature reports. The sample program, which communicates with a heavily hacked up version of the Microchip USB Generic HID sample looks like this (with error checking removed for simplicity):</p>
+<p><strong>Warning: Only run the code you understand, and only when it conforms to the device spec. Writing data at random to your HID devices can break them.</strong></p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#ifdef WIN32</span>
+<span class="pp">#include </span><span class="im">&lt;windows.h&gt;</span>
+<span class="pp">#endif</span>
+<span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;hidapi.h&quot;</span>
+
+<span class="pp">#define MAX_STR 255</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>* argv[])
+{
+    <span class="dt">int</span> res;
+    <span class="dt">unsigned</span> <span class="dt">char</span> buf[<span class="dv">65</span>];
+    <span class="dt">wchar_t</span> wstr[MAX_STR];
+    hid_device *handle;
+    <span class="dt">int</span> i;
+
+    <span class="co">// Initialize the hidapi library</span>
+    res = hid_init();
+
+    <span class="co">// Open the device using the VID, PID,</span>
+    <span class="co">// and optionally the Serial number.</span>
+    handle = hid_open(<span class="bn">0x4d8</span>, <span class="bn">0x3f</span>, NULL);
+
+    <span class="co">// Read the Manufacturer String</span>
+    res = hid_get_manufacturer_string(handle, wstr, MAX_STR);
+    wprintf(L<span class="st">&quot;Manufacturer String: %s</span><span class="sc">\n</span><span class="st">&quot;</span>, wstr);
+
+    <span class="co">// Read the Product String</span>
+    res = hid_get_product_string(handle, wstr, MAX_STR);
+    wprintf(L<span class="st">&quot;Product String: %s</span><span class="sc">\n</span><span class="st">&quot;</span>, wstr);
+
+    <span class="co">// Read the Serial Number String</span>
+    res = hid_get_serial_number_string(handle, wstr, MAX_STR);
+    wprintf(L<span class="st">&quot;Serial Number String: (%d) %s</span><span class="sc">\n</span><span class="st">&quot;</span>, wstr[<span class="dv">0</span>], wstr);
+
+    <span class="co">// Read Indexed String 1</span>
+    res = hid_get_indexed_string(handle, <span class="dv">1</span>, wstr, MAX_STR);
+    wprintf(L<span class="st">&quot;Indexed String 1: %s</span><span class="sc">\n</span><span class="st">&quot;</span>, wstr);
+
+    <span class="co">// Toggle LED (cmd 0x80). The first byte is the report number (0x0).</span>
+    buf[<span class="dv">0</span>] = <span class="bn">0x0</span>;
+    buf[<span class="dv">1</span>] = <span class="bn">0x80</span>;
+    res = hid_write(handle, buf, <span class="dv">65</span>);
+
+    <span class="co">// Request state (cmd 0x81). The first byte is the report number (0x0).</span>
+    buf[<span class="dv">0</span>] = <span class="bn">0x0</span>;
+    buf[<span class="dv">1</span>] = <span class="bn">0x81</span>;
+    res = hid_write(handle, buf, <span class="dv">65</span>);
+
+    <span class="co">// Read requested state</span>
+    res = hid_read(handle, buf, <span class="dv">65</span>);
+
+    <span class="co">// Print out the returned buffer.</span>
+    <span class="cf">for</span> (i = <span class="dv">0</span>; i &lt; <span class="dv">4</span>; i++)
+        printf(<span class="st">&quot;buf[%d]: %d</span><span class="sc">\n</span><span class="st">&quot;</span>, i, buf[i]);
+
+    <span class="co">// Close the device</span>
+    hid_close(handle);
+
+    <span class="co">// Finalize the hidapi library</span>
+    res = hid_exit();
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>You can also use <a href="hidtest/test.c" class="uri">hidtest/test.c</a> as a starting point for your applications.</p>
+<h2 id="license">License</h2>
+<p>HIDAPI may be used by one of three licenses as outlined in <a href="LICENSE.txt" class="uri">LICENSE.txt</a>.</p>
+<h2 id="download">Download</h2>
+<p>HIDAPI can be downloaded from GitHub</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clone git://github.com/libusb/hidapi.git</code></pre></div>
+<h2 id="build-instructions">Build Instructions</h2>
+<p>This section is long. Don't be put off by this. It's not long because it's complicated to build HIDAPI; it's quite the opposite. This section is long because of the flexibility of HIDAPI and the large number of ways in which it can be built and used. You will likely pick a single build method.</p>
+<p>HIDAPI can be built in several different ways. If you elect to build a shared library, you will need to build it from the HIDAPI source distribution. If you choose instead to embed HIDAPI directly into your application, you can skip the building and look at the provided platform Makefiles for guidance. These platform Makefiles are located in <code>linux/</code>, <code>libusb/</code>, <code>mac/</code> and <code>windows/</code> and are called <code>Makefile-manual</code>. In addition, Visual Studio projects are provided. Even if you're going to embed HIDAPI into your project, it is still beneficial to build the example programs.</p>
+<h3 id="prerequisites">Prerequisites:</h3>
+<h4 id="linux">Linux:</h4>
+<p>On Linux, you will need to install development packages for libudev, libusb and optionally Fox-toolkit (for the test GUI). On Debian/Ubuntu systems these can be installed by running:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">sudo</span> apt-get install libudev-dev libusb-1.0-0-dev libfox-1.6-dev</code></pre></div>
+<p>If you downloaded the source directly from the git repository (using git clone), you'll need Autotools:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">sudo</span> apt-get install autotools-dev autoconf automake libtool</code></pre></div>
+<h4 id="freebsd">FreeBSD:</h4>
+<p>On FreeBSD you will need to install GNU make, libiconv, and optionally Fox-Toolkit (for the test GUI). This is done by running the following:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">pkg_add</span> -r gmake libiconv fox16</code></pre></div>
+<p>If you downloaded the source directly from the git repository (using git clone), you'll need Autotools:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">pkg_add</span> -r autotools</code></pre></div>
+<h4 id="mac">Mac:</h4>
+<p>On Mac, you will need to install Fox-Toolkit if you wish to build the Test GUI. There are two ways to do this, and each has a slight complication. Which method you use depends on your use case.</p>
+<p>If you wish to build the Test GUI just for your own testing on your own computer, then the easiest method is to install Fox-Toolkit using ports:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">sudo</span> port install fox</code></pre></div>
+<p>If you wish to build the TestGUI app bundle to redistribute to others, you will need to install Fox-toolkit from source. This is because the version of fox that gets installed using ports uses the ports X11 libraries which are not compatible with the Apple X11 libraries. If you install Fox with ports and then try to distribute your built app bundle, it will simply fail to run on other systems. To install Fox-Toolkit manually, download the source package from <a href="http://www.fox-toolkit.org" class="uri">http://www.fox-toolkit.org</a>, extract it, and run the following from within the extracted source:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">./configure</span> <span class="kw">&amp;&amp;</span> <span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">make</span> install</code></pre></div>
+<h4 id="windows">Windows:</h4>
+<p>On Windows, if you want to build the test GUI, you will need to get the <code>hidapi-externals.zip</code> package from the download site. This contains pre-built binaries for Fox-toolkit. Extract <code>hidapi-externals.zip</code> just outside of hidapi, so that hidapi-externals and hidapi are on the same level, as shown:</p>
+<pre><code>     Parent_Folder
+       |
+       +hidapi
+       +hidapi-externals</code></pre>
+<p>Again, this step is not required if you do not wish to build the test GUI.</p>
+<h3 id="building-hidapi-into-a-shared-library-on-unix-platforms">Building HIDAPI into a shared library on Unix Platforms:</h3>
+<p>On Unix-like systems such as Linux, FreeBSD, macOS, and even Windows, using MinGW or Cygwin, the easiest way to build a standard system-installed shared library is to use the GNU Autotools build system. If you checked out the source from the git repository, run the following:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">./bootstrap</span>
+<span class="ex">./configure</span>
+<span class="fu">make</span>
+<span class="fu">make</span> install <span class="co"># as root, or using sudo</span></code></pre></div>
+<p>If you downloaded a source package (i.e.: if you did not run git clone), you can skip the <code>./bootstrap</code> step.</p>
+<p><code>./configure</code> can take several arguments which control the build. The two most likely to be used are:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">    <span class="ex">--enable-testgui</span>
+        <span class="ex">Enable</span> build of the Test GUI. This requires Fox toolkit to
+        <span class="ex">be</span> installed.  Instructions for installing Fox-Toolkit on
+        <span class="ex">each</span> platform are in the Prerequisites section above.
+
+    <span class="ex">--prefix</span>=/usr
+        <span class="ex">Specify</span> where you want the output headers and libraries to
+        <span class="ex">be</span> installed. The example above will put the headers in
+        <span class="ex">/usr/include</span> and the binaries in /usr/lib. The default is to
+        <span class="fu">install</span> into /usr/local which is fine on most systems.</code></pre></div>
+<h3 id="building-the-manual-way-on-unix-platforms">Building the manual way on Unix platforms:</h3>
+<p>Manual Makefiles are provided mostly to give the user and idea what it takes to build a program which embeds HIDAPI directly inside of it. These should really be used as examples only. If you want to build a system-wide shared library, use the Autotools method described above.</p>
+<p>To build HIDAPI using the manual Makefiles, change to the directory of your platform and run make. For example, on Linux run:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> linux/
+<span class="fu">make</span> -f Makefile-manual</code></pre></div>
+<p>To build the Test GUI using the manual makefiles:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">cd</span> testgui/
+<span class="fu">make</span> -f Makefile-manual</code></pre></div>
+<h3 id="building-on-windows">Building on Windows:</h3>
+<p>To build the HIDAPI DLL on Windows using Visual Studio, build the <code>.sln</code> file in the <code>windows/</code> directory.</p>
+<p>To build the Test GUI on windows using Visual Studio, build the <code>.sln</code> file in the <code>testgui/</code> directory.</p>
+<p>To build HIDAPI using MinGW or Cygwin using Autotools, use the instructions in the section <a href="#building-hidapi-into-a-shared-library-on-unix-platforms">Building HIDAPI into a shared library on Unix Platforms</a> above. Note that building the Test GUI with MinGW or Cygwin will require the Windows procedure in the <a href="#prerequisites-1">Prerequisites</a> section above (i.e.: <code>hidapi-externals.zip</code>).</p>
+<p>To build HIDAPI using MinGW using the Manual Makefiles, see the section <a href="#building-the-manual-way-on-unix-platforms">Building the manual way on Unix platforms</a> above.</p>
+<p>HIDAPI can also be built using the Windows DDK (now also called the Windows Driver Kit or WDK). This method was originally required for the HIDAPI build but not anymore. However, some users still prefer this method. It is not as well supported anymore but should still work. Patches are welcome if it does not. To build using the DDK:</p>
+<ol style="list-style-type: decimal">
+<li>Install the Windows Driver Kit (WDK) from Microsoft.</li>
+<li>From the Start menu, in the Windows Driver Kits folder, select Build Environments, then your operating system, then the x86 Free Build Environment (or one that is appropriate for your system).</li>
+<li>From the console, change directory to the <code>windows/ddk_build/</code> directory, which is part of the HIDAPI distribution.</li>
+<li>Type build.</li>
+<li>You can find the output files (DLL and LIB) in a subdirectory created by the build system which is appropriate for your environment. On Windows XP, this directory is <code>objfre_wxp_x86/i386</code>.</li>
+</ol>
+<h2 id="cross-compiling">Cross Compiling</h2>
+<p>This section talks about cross compiling HIDAPI for Linux using Autotools. This is useful for using HIDAPI on embedded Linux targets. These instructions assume the most raw kind of embedded Linux build, where all prerequisites will need to be built first. This process will of course vary based on your embedded Linux build system if you are using one, such as OpenEmbedded or Buildroot.</p>
+<p>For the purpose of this section, it will be assumed that the following environment variables are exported.</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="bu">export</span> <span class="va">STAGING=$HOME</span>/out
+$ <span class="bu">export</span> <span class="va">HOST=</span>arm-linux</code></pre></div>
+<p><code>STAGING</code> and <code>HOST</code> can be modified to suit your setup.</p>
+<h3 id="prerequisites-1">Prerequisites</h3>
+<p>Note that the build of libudev is the very basic configuration.</p>
+<p>Build libusb. From the libusb source directory, run:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">./configure</span> --host=<span class="va">$HOST</span> --prefix=<span class="va">$STAGING</span>
+<span class="fu">make</span>
+<span class="fu">make</span> install</code></pre></div>
+<p>Build libudev. From the libudev source directory, run:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">./configure</span> --disable-gudev --disable-introspection --disable-hwdb \
+     --host=<span class="va">$HOST</span> --prefix=<span class="va">$STAGING</span>
+<span class="fu">make</span>
+<span class="fu">make</span> install</code></pre></div>
+<h3 id="building-hidapi">Building HIDAPI</h3>
+<p>Build HIDAPI:</p>
+<pre><code>PKG_CONFIG_DIR= \
+PKG_CONFIG_LIBDIR=$STAGING/lib/pkgconfig:$STAGING/share/pkgconfig \
+PKG_CONFIG_SYSROOT_DIR=$STAGING \
+./configure --host=$HOST --prefix=$STAGING</code></pre>

@@ -1,0 +1,49 @@
+<h1 id="oroch">Oroch</h1>
+<p>A C++ library for integer array compression.</p>
+<p>The focus of the library is uniform handling of the different integer types. The same template-based interface deals with short and long, unsigned and signed types. Below is a sample of the library use:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">    <span class="bu">std::</span>array&lt;<span class="dt">int</span>, <span class="dv">6</span>&gt; ints = { <span class="dv">1</span>, <span class="dv">100</span>, <span class="dv">10000</span>, <span class="dv">-1</span>, <span class="dv">-100</span>, <span class="dv">-10000</span> };
+    <span class="bu">std::</span>array&lt;<span class="dt">size_t</span>, <span class="dv">6</span>&gt; sizes { <span class="dv">1</span>, <span class="dv">100</span>, <span class="dv">10000</span>, <span class="dv">1</span>, <span class="dv">100</span>, <span class="dv">10000</span> };
+
+    <span class="co">// Get the memory space required to encode the arrays.</span>
+    <span class="dt">size_t</span> ints_space = oroch::varint_codec&lt;<span class="dt">int</span>&gt;::space(ints.begin(), ints.end());
+    <span class="dt">size_t</span> sizes_space = oroch::varint_codec&lt;<span class="dt">size_t</span>&gt;::space(sizes.begin(), sizes.end());
+    <span class="bu">std::</span>cout &lt;&lt; ints_space &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span> &lt;&lt; sizes_space &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+
+    <span class="co">// Allocate the required memory.</span>
+    <span class="bu">std::</span>unique_ptr&lt;<span class="dt">uint8_t</span>[]&gt; store(<span class="kw">new</span> <span class="dt">uint8_t</span>[ints_space + sizes_space]);
+
+    <span class="co">// Encode the arrays.</span>
+    <span class="dt">uint8_t</span> *ptr = store.get();
+    oroch::varint_codec&lt;<span class="dt">int</span>&gt;::encode(ptr, ints.begin(), ints.end());
+    assert(ptr == (store.get() + ints_space));
+    oroch::varint_codec&lt;<span class="dt">size_t</span>&gt;::encode(ptr, sizes.begin(), sizes.end());
+    assert(ptr == (store.get() + ints_space + sizes_space));</code></pre></div>
+<p>The output of this sample would be like this:</p>
+<pre><code>12
+8</code></pre>
+<p>The template mechanism provided by the library automatically applies zigzag encoding to the int type and only after that uses the varint codec. For the size_t type the zigzag codec is avoided.</p>
+<p>In addition to the varint codec the library also provides bit-packing codecs:</p>
+<ul>
+<li>basic bit-packing codec (in &quot;oroch/bitpck.h&quot;),</li>
+<li>bit-packing with a frame-of-reference technique (in &quot;oroch/bitfor.h&quot;),</li>
+<li>bit-packing with a frame-of-reference and patching (in &quot;oroch/bitpfr.h&quot;).</li>
+</ul>
+<p>The best choice among these codecs depends on the input data. The library provides a utility class that compares different codecs against a given input and selects the best. The class is defined in the &quot;oroch/integer_codec.h&quot; header. This utility has somewhat complicated interface though. An example of how to properly use it is provided in the &quot;oroch/integer_group.h&quot; header.</p>
+<p>A more useful example is provided in the &quot;oroch/integer_array.h&quot; header. As might be obvious from it contains an implementation of an array of integers that are stored in compressed form.</p>
+<p>The implementation supports just a few methods:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;oroch/integer_array.h&gt;</span>
+...
+oroch::integer_array&lt;<span class="dt">int</span>&gt; array;
+array.insert(<span class="dv">0</span>, <span class="dv">100</span>);
+array.insert(<span class="dv">0</span>, <span class="dv">200</span>);
+<span class="bu">std::</span>cout &lt;&lt; array.at(<span class="dv">0</span>) &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+<span class="bu">std::</span>cout &lt;&lt; array.find(<span class="dv">200</span>) &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<h2 id="comparison">Comparison</h2>
+<p>There are already many integer compression libraies available:</p>
+<ul>
+<li>A few different libraries here: https://github.com/lemire</li>
+<li>Another one here: https://github.com/powturbo/TurboPFor</li>
+</ul>
+<p>It seems that these libraries are extremely good at what they do. Mostly they focus on the speed. To this end they limit other features and flexibility. For instance, some of the libraies handle only 32-bit integers. Or implement a narrow set of compression algorithms. Or they are too big.</p>
+<p>The focus of the Oroch library is flexibility and ability to switch to other compression method by changing just a single line of the code. It is also realtively small compared to other libraries.</p>
+<p>If your project does not need to decode billions of integers per second and could trade this for smaller and more manageable source code base, then the Oroch library might be for you.</p>

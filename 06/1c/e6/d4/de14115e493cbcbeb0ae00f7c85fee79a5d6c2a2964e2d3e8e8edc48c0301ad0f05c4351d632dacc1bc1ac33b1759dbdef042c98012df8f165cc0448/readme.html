@@ -1,0 +1,586 @@
+<h1 id="static_vector">static_vector<T></h1>
+<blockquote>
+<p>A dynamically-resizable vector with fixed capacity and embedded storage (revision 3)</p>
+</blockquote>
+<p><strong>Document number</strong>: P0843r3.</p>
+<p><strong>Date</strong>: 2019-01-20.</p>
+<p><strong>Project</strong>: Programming Language C++, Library Working Group.</p>
+<p><strong>Audience</strong>: LEWG.</p>
+<p><strong>Reply-to</strong>: Gonzalo Brito Gadeschi &lt;gonzalo.gadeschi at rwth-aachen dot de&gt;.</p>
+<h1 id="table-of-contents">Table of contents</h1>
+<ul>
+<li><a href="#INTRODUCTION">1. Introduction</a></li>
+<li><a href="#MOTIVATION">2. Motivation</a></li>
+<li><a href="#EXISTING_PRACTICE">3. Existing practice</a></li>
+<li><a href="#DESIGN">4. Design Decisions</a></li>
+<li><a href="#STORAGE">4.1 Storage/Memory Layout</a></li>
+<li><a href="#MOVE">4.2 Move semantics</a></li>
+<li><a href="#CONSTEXPR">4.3 <code>constexpr</code> support</a></li>
+<li><a href="#EXCEPTION">4.4 Exception safety</a></li>
+<li><a href="#ITERATOR">4.5 Iterator invalidation</a></li>
+<li><a href="#NAMING">4.6 Naming</a></li>
+<li><a href="#EXTENSIONS">4.7 Potential extensions</a></li>
+<li><a href="#TECHNICAL_SPECIFICATION">5. Technical Specification</a></li>
+<li><a href="#OVERVIEW">5.1 Overview</a></li>
+<li><a href="#CONSTRUCTION">5.2 Construction</a></li>
+<li><a href="#DESTRUCTION">5.3 Destruction</a></li>
+<li><a href="#SIZE">5.4 Size and capacity</a></li>
+<li><a href="#ACCESS">5.5 Element and data access</a></li>
+<li><a href="#MODIFIERS">5.6 Modifiers</a></li>
+<li><a href="#SPEC_ALG">5.7 Specialized algorithms</a></li>
+<li><a href="#ACKNOWLEDGEMENTS">6. Acknowledgments</a></li>
+<li><a href="#REFERENCES">7. References</a></li>
+</ul>
+<h3 id="changelog">Changelog</h3>
+<h4 id="revision-3">Revision 3</h4>
+<ul>
+<li>Include LWG design questions for LEWG.</li>
+<li>Incorporates LWG feedback.</li>
+</ul>
+<h4 id="revision-2">Revision 2</h4>
+<ul>
+<li>Replace the placeholder name <code>fixed_capacity_vector</code> with <code>static_vector</code></li>
+<li>Remove <code>at</code> checked element access member function.</li>
+<li>Add changelog section.</li>
+</ul>
+<h4 id="revision-1">Revision 1</h4>
+<ul>
+<li>Minor style changes and bugfixes.</li>
+</ul>
+<h1 id="design-questions-from-lwg-to-lewg">Design Questions from LWG to LEWG</h1>
+<p>LWG asks LEWG to re-consider the following two design decisions:</p>
+<ul>
+<li><p>In this document, exceeding the capacity in methods like <code>static_vector::push_back</code> is a pre-condition violation, that is, if the capacity is exceeded, the behavior is undefined. LWG suggested that exceeding the capacity in these methods should <code>std::abort</code> instead. The trade-offs in this space are discussed in Section <a href="#EXCEPTION">4.4 Exception safety</a> of this proposal.</p></li>
+<li><p>In this document, <code>&lt;static_vector&gt;</code> is a <em>free-standing</em> header, this is now clarified in Section <a href="#TECHNICAL_SPECIFICATION">5. Technical Specification</a>. LWG suggests that <code>static_vector</code> should be included in <code>&lt;vector&gt;</code> instead.</p></li>
+</ul>
+<h1 id="introduction"><a id="INTRODUCTION"></a>1. Introduction</h1>
+<p>This paper proposes a modernized version of <a href="http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html"><code>boost::container::static_vector&lt;T,Capacity&gt;</code></a> [1]. That is, a dynamically-resizable <code>vector</code> with compile-time fixed capacity and contiguous embedded storage in which the elements are stored within the vector object itself.</p>
+<p>Its API closely resembles that of <code>std::vector&lt;T, A&gt;</code>. It is a contiguous container with <code>O(1)</code> insertion and removal of elements at the end (non-amortized) and worst case <code>O(size())</code> insertion and removal otherwise. Like <code>std::vector</code>, the elements are initialized on insertion and destroyed on removal. For trivial <code>value_type</code>s, the vector is fully usable inside <code>constexpr</code> functions.</p>
+<h1 id="motivation-and-scope"><a id="MOTIVATION"></a>2. Motivation and Scope</h1>
+<p>The <code>static_vector</code> container is useful when:</p>
+<ul>
+<li>memory allocation is not possible, e.g., embedded environments without a free store, where only a stack and the static memory segment are available,</li>
+<li>memory allocation imposes an unacceptable performance penalty, e.g., with respect to latency,</li>
+<li>allocation of objects with complex lifetimes in the <em>static</em>-memory segment is required,</li>
+<li><code>std::array</code> is not an option, e.g., if non-default constructible objects must be stored,</li>
+<li>a dynamically-resizable array is required within <code>constexpr</code> functions,</li>
+<li>the storage location of the <code>static_vector</code> elements is required to be within the <code>static_vector</code> object itself (e.g. to support <code>memcopy</code> for serialization purposes).</li>
+</ul>
+<h1 id="existing-practice"><a id="EXISTING_PRACTICE"></a>3. Existing practice</h1>
+<p>There are at least 3 widely used implementations of <code>static_vector</code>: <a href="http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html">Boost.Container</a> [1], <a href="https://github.com/questor/eastl/blob/master/fixed_vector.h#L71">EASTL</a> [2], and <a href="https://github.com/facebook/folly/blob/master/folly/docs/small_vector.md">Folly</a> [3]. The main difference between these is that <code>Boost.Container</code> implements <code>static_vector</code> as a standalone type with its own guarantees, while both EASTL and Folly implement it by adding an extra template parameter to their <code>small_vector</code> types.</p>
+<p>A <code>static_vector</code> can also be poorly emulated by using a custom allocator, like for example <a href="https://howardhinnant.github.io/stack_alloc.html">Howard Hinnant's <code>stack_alloc</code></a> [4], on top of <code>std::vector</code>.</p>
+<p>This proposal shares a similar purpose with <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0494r0.pdf">P0494R0</a> [5] and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">P0597R0: <code>std::constexpr_vector&lt;T&gt;</code></a> [6]. The main difference is that this proposal closely follows <a href="http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html"><code>boost::container::static_vector</code></a> [1] and proposes to standardize existing practice. A prototype implementation of this proposal for standardization purposes is provided here: <a href="http://github.com/gnzlbg/fixed_capacity_vector"><code>http://github.com/gnzlbg/fixed_capacity_vector</code></a>.</p>
+<h1 id="design-decisions"><a id="DESIGN"></a>4. Design Decisions</h1>
+<p>The most fundamental question that must be answered is:</p>
+<blockquote>
+<p>Should <code>static_vector</code> be a standalone type or a special case of some other type?</p>
+</blockquote>
+<p>The <a href="https://github.com/questor/eastl/blob/master/fixed_vector.h#L71">EASTL</a> [2] and <a href="https://github.com/facebook/folly/blob/master/folly/docs/small_vector.md">Folly</a> [3] special case <code>small_vector</code>, e.g., using a 4th template parameter, to make it become a <code>static_vector</code>. The paper <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0639r0.html">P0639R0: Changing attack vector of the <code>constexpr_vector</code></a> [7] proposes improving the <code>Allocator</code> concepts to allow <code>static_vector</code>, among others, to be implemented as a special case of <code>std::vector</code> with a custom allocator.</p>
+<p>Both approaches run into the same fundamental issue: <code>static_vector</code> methods are identically-named to those of <code>std::vector</code> yet they have subtly different effects, exception-safety, iterator invalidation, and complexity guarantees.</p>
+<p>This proposal follows <a href="http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html"><code>boost::container::static_vector&lt;T,Capacity&gt;</code></a> [1] closely and specifies the semantics that <code>static_vector</code> ought to have as a standalone type. As a library component this delivers immediate value.</p>
+<p>I hope that having the concise semantics of this type specified will also be helpful for those that want to generalize the <code>Allocator</code> interface to allow implementing <code>static_vector</code> as a <code>std::vector</code> with a custom allocator.</p>
+<h2 id="storagememory-layout"><a id="STORAGE"></a>4.1 Storage/Memory Layout</h2>
+<p>The container models <code>ContiguousContainer</code>. The elements of the <code>static_vector</code> are contiguously stored and properly aligned within the <code>static_vector</code> object itself. The exact location of the contiguous elements within the <code>static_vector</code> is not specified. If the <code>Capacity</code> is zero the container has zero size:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">static_assert</span>(is_empty_v&lt;static_vector&lt;T, <span class="dv">0</span>&gt;&gt;); <span class="co">// for all T</span></code></pre></div>
+<p>This optimization is easily implementable, enables the EBO, and felt right.</p>
+<h2 id="move-semantics"><a id="MOVE"></a>4.2 Move semantics</h2>
+<p>The move semantics of <code>static_vector&lt;T, Capacity&gt;</code> are equal to those of <code>std::array&lt;T, Size&gt;</code>. That is, after</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">static_vector a(<span class="dv">10</span>);
+static_vector b(<span class="bu">std::</span>move(a));</code></pre></div>
+<p>the elements of <code>a</code> have been moved element-wise into <code>b</code>, the elements of <code>a</code> are left in an initialized but unspecified state (have been moved from state), the size of <code>a</code> is not altered, and <code>a.size() == b.size()</code>.</p>
+<p>Note: this behavior differs from <code>std::vector&lt;T, Allocator&gt;</code>, in particular for the similar case in which <code>std::allocator_traits&lt;Allocator&gt;::propagate_on_container_move_assignment</code> is <code>false</code>. In this situation the state of <code>std::vector</code> is initialized but unspecified.</p>
+<h2 id="constexpr-support"><a id="CONSTEXPR"></a>4.3 <code>constexpr</code> support</h2>
+<p>The API of <code>static_vector&lt;T, Capacity&gt;</code> is <code>constexpr</code>. If <code>is_trivially_copyable_v&lt;T&gt; &amp;&amp; is_default_constructible_v&lt;T&gt;</code> is <code>true</code>, <code>static_vector</code>s can be seamlessly used from <code>constexpr</code> code. This allows using <code>static_vector</code> as a <code>constexpr_vector</code> to, e.g., implement other constexpr containers.</p>
+<p>The implementation cost of this is small: the prototye implementation specializes the storage for trivial types to use a C array with value-initialized elements and a defaulted destructor.</p>
+<p>This changes the algorithmic complexity of <code>static_vector</code> constructors for trivial-types from &quot;Linear in <code>N</code>&quot; to &quot;Constant in <code>Capacity</code>. When the value-initialization takes place at run-time, this difference in behavior might be signficiant: <code>static_vector&lt;non_trivial_type, 38721943228473&gt;(4)</code> will only initialize 4 elements but <code>static_vector&lt;trivial_type, 38721943228473&gt;(4)</code> must value-initialize the <code>38721943228473 - 4</code> excess elements to be a valid <code>constexpr</code> constructor.</p>
+<p>Very large <code>static_vector</code>'s are not the target use case of this container class and will have, in general, worse performance than, e.g., <code>std::vector</code> (e.g. due to moves being <code>O(N)</code>).</p>
+<p>Future improvements to <code>constexpr</code> (e.g. being able to properly use <code>std::aligned_storage</code> in constexpr contexts) allow improving the performance of <code>static_vector</code> in a backwards compatible way.</p>
+<h2 id="exception-safety"><a id="EXCEPTION"></a>4.4 Exception Safety</h2>
+<p>The only operations that can actually fail within <code>static_vector&lt;value_type, Capacity&gt;</code> are:</p>
+<ol style="list-style-type: decimal">
+<li><p><code>value_type</code>'s constructors/assignment/destructors/swap can potentially throw,</p></li>
+<li><p>Mutating operations exceeding the capacity (<code>push_back</code>, <code>insert</code>, <code>emplace</code>, <code>static_vector(value_type, size)</code>, <code>static_vector(begin, end)</code>...).</p></li>
+<li>Out-of-bounds unchecked access:
+<ul>
+<li>3.1 <code>front</code>/<code>back</code>/<code>pop_back</code> when empty, <code>operator[]</code> (unchecked random-access).</li>
+</ul></li>
+</ol>
+<p>When <code>value_type</code>'s operations are invoked, the exception safety guarantees of <code>static_vector</code> depend on whether these operations can throw. This is detected with <code>noexcept</code>.</p>
+<p>Since its <code>Capacity</code> is fixed at compile-time, <code>static_vector</code> never dynamically allocates memory, the answer to the following question determines the exception safety for all other operations:</p>
+<blockquote>
+<p>What should <code>static_vector</code> do when its <code>Capacity</code> is exceeded?</p>
+</blockquote>
+<p>Three main answers were explored in the prototype implementation:</p>
+<ol style="list-style-type: decimal">
+<li>Throw an exception.</li>
+<li>Abort the process.</li>
+<li>Make this a precondition violation.</li>
+</ol>
+<p>Throwing an exception is appealing because it makes the interface slightly more similar to that of <code>std::vector</code>. However, which exception should be thrown? It cannot be <code>std::bad_alloc</code>, because nothing is being allocated. It could throw either <code>std::out_of_bounds</code> or <code>std::logic_error</code> but in any case the interface does not end up being equal to that of <code>std::vector</code>.</p>
+<p>Aborting the process avoids the perils of undefined behavior but comes at the cost of enforcing a particular &quot;error handling&quot; mechanism in the implementation, which would not allow extending it to use, e.g., Contracts, in the future.</p>
+<p>The alternative is to make not exceeding the capacity a precondition on the <code>static_vector</code>'s methods. This approach allows implementations to provide good run-time diagnostics if they so desire, e.g., on debug builds by means of an assertion, and makes implementation that avoid run-time checks conforming as well. Since the mutating methods have a precondition, they have narrow contracts, and are not conditionally <code>noexcept</code>. This provides implementations that desire throwing an exception the freedom to do so, and it also provides the standard the freedom to improve these APIs by using contracts in the future.</p>
+<p>This proposal previously chooses this path and makes exceeding the <code>static_vector</code>'s capacity a precondition violation that results in undefined behavior. Throwing <code>checked_xxx</code> methods can be provided in a backwards compatible way.</p>
+<h2 id="iterator-invalidation"><a id="ITERATOR"></a>4.5 Iterator invalidation</h2>
+<p>The iterator invalidation rules are different than those for <code>std::vector</code>, since:</p>
+<ul>
+<li>moving a <code>static_vector</code> invalidates all iterators,</li>
+<li>swapping two <code>static_vector</code>s invalidates all iterators, and</li>
+<li>inserting elements at the end of an <code>static_vector</code> never invalidates iterators.</li>
+</ul>
+<p>The following functions can potentially invalidate the iterators of <code>static_vector</code>s: <code>resize(n)</code>, <code>resize(n, v)</code>, <code>pop_back</code>, <code>erase</code>, and <code>swap</code>.</p>
+<h2 id="naming"><a id="NAMING"></a>4.6 Naming</h2>
+<p>The <code>static_vector</code> name was chosen after considering the following names via a poll in LEWG:</p>
+<ul>
+<li><code>array_vector</code>: a vector whose storage is backed up by a raw array.</li>
+<li><code>bounded_vector</code>: clearly indicates that the the size of the vector is bounded.</li>
+<li><code>fixed_capacity_vector</code>: clearly indicates that the capacity is fixed.</li>
+<li><code>static_capacity_vector</code>: clearly indicates that the capacity is fixed at compile time (static is overloaded).</li>
+<li><code>static_vector</code> (Boost.Container): due to &quot;static&quot; / compile-time allocation of the elements. The term <code>static</code> is, however, overloaded in C++ (e.g. <code>static</code> memory?).</li>
+<li><code>embedded_vector&lt;T, Capacity&gt;</code>: since the elements are &quot;embedded&quot; within the <code>fixed_capacity_vector</code> object itself. Sadly, the name <code>embedded</code> is overloaded, e.g., embedded systems.</li>
+<li><code>inline_vector</code>: the elements are stored &quot;inline&quot; within the <code>fixed_capacity_vector</code> object itself. The term <code>inline</code> is, however, already overloaded in C++ (e.g. <code>inline</code> functions =&gt; ODR, inlining, <code>inline</code> variables).</li>
+<li><code>stack_vector</code>: to denote that the elements can be stored on the stack. Is confusing since the elements can be on the stack, the heap, or the static memory segment. It also has a resemblance with <code>std::stack</code>.</li>
+<li><code>limited_vector</code></li>
+<li><code>vector_n</code></li>
+</ul>
+<p>The names <code>static_vector</code> and <code>vector_n</code> tied in the number of votes. Many users are already familiar with the most widely implementation of this container (<code>boost::container::static_vector</code>), which gives <code>static_vector</code> an edge over a completely new name.</p>
+<h2 id="future-extensions"><a id="EXTENSIONS"></a>4.7 Future extensions</h2>
+<p>The following extensions could be added in a backwards compatible way:</p>
+<ul>
+<li><p>utilities for hiding the concrete type of vector-like containers (e.g. <code>any_vector_ref&lt;T&gt;</code>/<code>any_vector&lt;T&gt;</code>).</p></li>
+<li><p>default-initialization of the vector elements (as opposed to value-initialization): e.g. by using a tagged constructor with a <code>default_initialized_t</code> tag.</p></li>
+<li><p>tagged-constructor of the form <code>static_vector(with_size_t, std::size_t N, T const&amp; t = T())</code> to avoid the complexity introduced by initializer lists and braced initialization:</p></li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="dt">vec_t</span> = static_vector&lt;<span class="bu">std::</span>size_t, Capacity&gt;;
+<span class="dt">vec_t</span> v0(<span class="dv">2</span>);  <span class="co">// two-elements: 0, 0</span>
+<span class="dt">vec_t</span> v1{<span class="dv">2</span>};  <span class="co">// one-element: 2</span>
+<span class="dt">vec_t</span> v2(<span class="dv">2</span>, <span class="dv">1</span>);  <span class="co">// two-elements: 1, 1</span>
+<span class="dt">vec_t</span> v3{<span class="dv">2</span>, <span class="dv">1</span>};  <span class="co">// two-elements: 2, 1</span></code></pre></div>
+<p>All these extensions are generally useful and not part of this proposal.</p>
+<h1 id="technical-specification"><a id="TECHNICAL_SPECIFICATION"></a>5. Technical specification</h1>
+<hr />
+<p>Note to editor: This enhancement is a pure header-only addition to the C++ standard library as the <em>freestanding</em> <code>&lt;static_vector&gt;</code> header. It belongs in the &quot;Sequence containers&quot; (<code>\ref{sequences}</code>) part of the &quot;Containers library&quot; (<code>\ref{containers}</code>) as &quot;Class template <code>static_vector</code>&quot;.</p>
+<p>Note to LWG: one of the primary use cases for this container is embedded/freestanding. An alternative to adding a new <code>&lt;static_vector&gt;</code> header would be to add <code>static_vector</code> to any of the <em>freestanding</em> headers. None of the current <em>freestanding</em> headers is a good semantic fit.</p>
+<hr />
+<h2 id="class-template-static_vector">5. Class template <code>static_vector</code></h2>
+<p>Changes to <code>library.requirements.organization.headers</code> table &quot;C++ library headers&quot;, add a new header: <code>&lt;static_vector&gt;</code>.</p>
+<p>Changes to <code>library.requirements.organization.compliance</code> table &quot;C++ headers for freestanding implementations&quot;, add a new row:</p>
+<blockquote>
+<p>[static_vector] Static vector <code>&lt;static_vector&gt;</code></p>
+</blockquote>
+<p>Changes to <code>container.requirements.general</code>.</p>
+<p>The note of Table &quot;Container Requirements&quot; should be changed to contain <code>static_vector</code> as well:</p>
+<div class="sourceCode"><pre class="sourceCode diff"><code class="sourceCode diff">Those entries marked “(Note A)” or “(Note B)” have linear complexity 
+<span class="st">- for array</span>
+<span class="va">+ for array and static_vector</span>
+and have constant complexity for all other standard containers. 
+[ Note: The algorithm equal() is defined in [algorithms]. — end note ]</code></pre></div>
+<p>Changes to <code>sequence.reqmts.1</code>:</p>
+<div class="sourceCode"><pre class="sourceCode diff"><code class="sourceCode diff">The library provides four basic kinds of sequence containers: vector,
+<span class="st">- forward_­list, list, and deque.</span>
+<span class="va">+ static_vector, forward_­list, list, and deque.</span></code></pre></div>
+<p>Changes to <code>sequence.reqmts.2</code>:</p>
+<div class="sourceCode"><pre class="sourceCode diff"><code class="sourceCode diff">vector is the type of sequence container that should be used by default. 
+<span class="va">+ static_vector should be used when the container has a fixed capacity known during translation.</span>
+array should be used when the container has a fixed size known during translation. </code></pre></div>
+<h3 id="class-template-static_vector-overview"><a id="OVERVIEW"></a>5.1 Class template <code>static_vector</code> overview</h3>
+<ul>
+<li><ol style="list-style-type: decimal">
+<li>A <code>static_vector</code> is a contiguous container that supports constant time insert and erase operations at the end; insert and erase in the middle take linear time. Its capacity is part of its type and its elements are stored within the <code>static_vector</code> object itself, meaning that that if <code>v</code> is a <code>static_vector&lt;T, N&gt;</code> then it obeys the identity <code>&amp;v[n] == &amp;v[0] + n</code> for all <code>0 &lt;= n &lt;= v.size()</code>.</li>
+</ol></li>
+<li><ol start="2" style="list-style-type: decimal">
+<li>A <code>static_vector</code> satisfies the container requirements (<code>\ref{container.requirements}</code>) with the exception of the <code>swap</code> member function, whose complexity is linear instead of constant. It satisfies the sequence container requirements, including the optional sequence container requirements (<code>\ref{sequence.reqmts}</code>), with the exception of the <code>push_front</code>, <code>pop_front</code>, and <code>emplace_front</code> member functions, which are not provided. It satisfies the reversible container (<code>\ref{container.requirements}</code>) and contiguous container (<code>\ref{container.requirements.general}</code>) requirements. Descriptions are provided here only for operations on <code>static_vector</code> that are not described in one of these tables or for operations where there is additional semantic information.</li>
+</ol></li>
+<li><ol start="3" style="list-style-type: decimal">
+<li>Class <code>static_vector</code> relies on the implicitly-declared special member functions (<code>\ref{class.default.ctor}</code>, <code>\ref{class.dtor}</code>, and <code>\ref{class.copy.ctor}</code>) to conform to the container requirements table in <code>\ref{container.requirements}</code>. In addition to the requirements specified in the container requirements table, the move constructor and move assignment operator for array require that <code>T</code> be <code>Cpp17MoveConstructible</code> or <code>Cpp17MoveAssignable</code>, respectively.</li>
+</ol></li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> std {
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">class</span> static_vector {
+<span class="kw">public</span>:
+<span class="co">// types:</span>
+<span class="kw">using</span> <span class="dt">value_type</span> = T;
+<span class="kw">using</span> pointer = T*;
+<span class="kw">using</span> const_pointer = <span class="at">const</span> T*; 
+<span class="kw">using</span> reference = <span class="dt">value_type</span>&amp;;
+<span class="kw">using</span> const_reference = <span class="at">const</span> <span class="dt">value_type</span>&amp;;
+<span class="kw">using</span> <span class="dt">size_type</span> =  <span class="dt">size_t</span>;
+<span class="kw">using</span> <span class="dt">difference_type</span> = <span class="dt">ptrdiff_t</span>;
+<span class="kw">using</span> iterator = implementation-defined;  <span class="co">// see [container.requirements]</span>
+<span class="kw">using</span> const_iterator = implementation-defined; <span class="co">// see [container.requirements]</span>
+<span class="kw">using</span> reverse_iterator = <span class="bu">std::</span>reverse_iterator&lt;iterator&gt;;
+<span class="kw">using</span> const_reverse_iterator = <span class="bu">std::</span>reverse_iterator&lt;const_iterator&gt;;
+
+<span class="co">// 5.2, copy/move construction:</span>
+<span class="kw">constexpr</span> static_vector() <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> static_vector(<span class="at">const</span> static_vector&amp;);
+<span class="kw">constexpr</span> static_vector(static_vector&amp;&amp;);
+<span class="kw">constexpr</span> <span class="kw">explicit</span> static_vector(<span class="dt">size_type</span> n);
+<span class="kw">constexpr</span> static_vector(<span class="dt">size_type</span> n, <span class="at">const</span> <span class="dt">value_type</span>&amp; value);
+<span class="kw">template</span> &lt;<span class="kw">class</span> InputIterator&gt;
+<span class="kw">constexpr</span> static_vector(InputIterator first, InputIterator last);
+<span class="kw">constexpr</span> static_vector(initializer_list&lt;<span class="dt">value_type</span>&gt; il);
+
+<span class="co">// 5.3, copy/move assignment:</span>
+<span class="kw">constexpr</span> static_vector&amp; <span class="kw">operator</span>=(<span class="at">const</span> static_vector&amp; other)
+  <span class="kw">noexcept</span>(is_nothrow_copy_assignable_v&lt;<span class="dt">value_type</span>&gt;);
+<span class="kw">constexpr</span> static_vector&amp; <span class="kw">operator</span>=(static_vector&amp;&amp; other);
+  <span class="kw">noexcept</span>(is_nothrow_move_assignable_v&lt;<span class="dt">value_type</span>&gt;);
+<span class="kw">template</span> &lt;<span class="kw">class</span> InputIterator&gt;
+<span class="kw">constexpr</span> <span class="dt">void</span> assign(InputIterator first, InputIterator last);
+<span class="kw">constexpr</span> <span class="dt">void</span> assign(<span class="dt">size_type</span> n, <span class="at">const</span> <span class="dt">value_type</span>&amp; u);
+<span class="kw">constexpr</span> <span class="dt">void</span> assign(initializer_list&lt;<span class="dt">value_type</span>&gt; il);
+
+<span class="co">// 5.4, destruction</span>
+~static_vector();
+
+<span class="co">// iterators</span>
+<span class="kw">constexpr</span> iterator               begin()         <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_iterator         begin()   <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> iterator               end()           <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_iterator         end()     <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> reverse_iterator       rbegin()        <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_reverse_iterator rbegin()  <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> reverse_iterator       rend()          <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_reverse_iterator rend()    <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_iterator         cbegin()  <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_iterator         cend()    <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_reverse_iterator crbegin() <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> const_reverse_iterator crend()   <span class="at">const</span> <span class="kw">noexcept</span>;
+
+<span class="co">// 5.5, size/capacity:</span>
+<span class="kw">constexpr</span> <span class="dt">bool</span> empty() <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> <span class="dt">size_type</span> size() <span class="at">const</span> <span class="kw">noexcept</span>;
+<span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">size_type</span> max_size() <span class="kw">noexcept</span>;
+<span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">size_type</span> capacity() <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> <span class="dt">void</span> resize(<span class="dt">size_type</span> sz);
+<span class="kw">constexpr</span> <span class="dt">void</span> resize(<span class="dt">size_type</span> sz, <span class="at">const</span> <span class="dt">value_type</span>&amp; c);
+
+<span class="co">// 5.6, element and data access:</span>
+<span class="kw">constexpr</span> reference       <span class="kw">operator</span>[](<span class="dt">size_type</span> n); 
+<span class="kw">constexpr</span> const_reference <span class="kw">operator</span>[](<span class="dt">size_type</span> n) <span class="at">const</span>;
+<span class="kw">constexpr</span> reference       front();
+<span class="kw">constexpr</span> const_reference front() <span class="at">const</span>;
+<span class="kw">constexpr</span> reference       back();
+<span class="kw">constexpr</span> const_reference back() <span class="at">const</span>;
+<span class="kw">constexpr</span>       T* data()       <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> <span class="at">const</span> T* data() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+<span class="co">// 5.7, modifiers:</span>
+<span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="at">const</span> <span class="dt">value_type</span>&amp; x);
+<span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="dt">value_type</span>&amp;&amp; x);
+<span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="dt">size_type</span> n, <span class="at">const</span> <span class="dt">value_type</span>&amp; x);
+<span class="kw">template</span> &lt;<span class="kw">class</span> InputIterator&gt;
+  <span class="kw">constexpr</span> iterator insert(const_iterator position, InputIterator first, InputIterator last);
+<span class="kw">constexpr</span> iterator insert(const_iterator position, initializer_list&lt;<span class="dt">value_type</span>&gt; il);
+
+<span class="kw">template</span> &lt;<span class="kw">class</span>... Args&gt;
+  <span class="kw">constexpr</span> iterator emplace(const_iterator position, Args&amp;&amp;... args);
+<span class="kw">template</span> &lt;<span class="kw">class</span>... Args&gt;
+  <span class="kw">constexpr</span> reference emplace_back(Args&amp;&amp;... args);
+<span class="kw">constexpr</span> <span class="dt">void</span> push_back(<span class="at">const</span> <span class="dt">value_type</span>&amp; x);
+<span class="kw">constexpr</span> <span class="dt">void</span> push_back(<span class="dt">value_type</span>&amp;&amp; x);
+
+<span class="kw">constexpr</span> <span class="dt">void</span> pop_back();
+<span class="kw">constexpr</span> iterator erase(const_iterator position);
+<span class="kw">constexpr</span> iterator erase(const_iterator first, const_iterator last);
+
+<span class="kw">constexpr</span> <span class="dt">void</span> clear() <span class="kw">noexcept</span>;
+
+<span class="kw">constexpr</span> <span class="dt">void</span> swap(static_vector&amp; x)
+  <span class="kw">noexcept</span>(is_nothrow_swappable_v&lt;<span class="dt">value_type</span>&gt; &amp;&amp;
+           is_nothrow_move_constructible_v&lt;<span class="dt">value_type</span>&gt;);
+};
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> static_vector&lt;T, N&gt;&amp; a, <span class="at">const</span> static_vector&lt;T, N&gt;&amp; b);
+
+<span class="co">// 5.8, specialized algorithms:</span>
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">void</span> swap(static_vector&lt;T, N&gt;&amp; x, static_vector&lt;T, N&gt;&amp; y)
+  <span class="kw">noexcept</span>(<span class="kw">noexcept</span>(x.swap(y)));
+  
+}  <span class="co">// namespace std</span></code></pre></div>
+<h2 id="static_vector-constructors"><a id="CONSTRUCTION"></a>5.2 <code>static_vector</code> constructors</h2>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> static_vector() <span class="kw">noexcept</span>;</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Constructs an empty <code>static_vector</code>.</p></li>
+<li><p><em>Ensures</em>: <code>empty()</code>.</p></li>
+<li><p><em>Complexity</em>: Constant.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> static_vector(static_vector&amp;&amp; rv);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Constructs a <code>static_vector</code> by move-inserting the elements of <code>rv</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_move_constructivle&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Ensures</em>: The <code>static_vector</code> is equal to the value that <code>rv</code> had before this construction.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>rv.size()</code>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="kw">explicit</span> static_vector(<span class="dt">size_type</span> n);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Constructs a <code>static_vector</code> with <code>n</code> default-inserted elements.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_default_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Expects</em>: <code>n &lt;= capacity()</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>n</code>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> static_vector(<span class="dt">size_type</span> n, <span class="at">const</span> <span class="dt">value_type</span>&amp; value);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Constructs a <code>static_vector</code> with <code>n</code> copies of <code>value</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code></p></li>
+<li><p><em>Expects</em>: <code>n &lt;= capacity()</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>n</code>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span> InputIterator&gt;
+<span class="kw">constexpr</span> static_vector(InputIterator first, InputIterator last);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Constructs a <code>static_vector</code> equal to the range <code>[first, last)</code></p></li>
+<li><p><em>Mandates</em>: <code>std::is_constructible&lt;value_type, decltype(*first)&gt;</code></p></li>
+<li><p><em>Expects</em>: <code>distance(first, last) &lt;= capacity()</code></p></li>
+<li><p><em>Complexity</em>: Linear in <code>distance(first, last)</code>.</p></li>
+</ul>
+</blockquote>
+<h2 id="destruction"><a id="DESTRUCTION"></a>5.3 Destruction</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">~static_vector();</code></pre></div>
+<blockquote>
+<p><em>Effects</em>: Destroys the <code>static_vector</code> and its elements.</p>
+<p><em>Remarks</em>: This destructor is trivial if the destructor of <code>value_type</code> is trivial.</p>
+</blockquote>
+<h2 id="size-and-capacity"><a id="SIZE"></a>5.4 Size and capacity</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">size_type</span> capacity() <span class="kw">noexcept</span>
+<span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">size_type</span> max_size() <span class="kw">noexcept</span></code></pre></div>
+<blockquote>
+<ul>
+<li><em>Returns</em>: <code>N</code>.</li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> resize(<span class="dt">size_type</span> sz);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: If <code>sz &lt; size()</code>, erases the last <code>size() - sz</code> elements from the sequence. Otherwise, appends <code>sz - size()</code> default-constructed elements.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_default_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Expects</em>: <code>sz &lt;= capacity()</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>sz</code>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> resize(<span class="dt">size_type</span> sz, <span class="at">const</span> <span class="dt">value_type</span>&amp; c);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: If <code>sz &lt; size()</code>, erases the last <code>size() - sz</code> elements from the sequence. Otherwise, appends <code>sz - size()</code> copies of <code>c</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Expects</em>: <code>sz &lt;= capacity()</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>sz</code>.</p></li>
+</ul>
+</blockquote>
+<h2 id="element-and-data-access"><a id="ACCESS"></a>5.5 Element and data access</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span>       T* data()       <span class="kw">noexcept</span>;
+<span class="kw">constexpr</span> <span class="at">const</span> T* data() <span class="at">const</span> <span class="kw">noexcept</span>;</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Returns</em>: A pointer such that <code>[data(), data() + size())</code> is a valid range. For a non-empty <code>static_vector</code>, <code>data() == addressof(front())</code>.</p></li>
+<li><p><em>Complexity</em>: Constant time.</p></li>
+</ul>
+</blockquote>
+<h2 id="modifiers"><a id="MODIFIERS"></a>5.6 Modifiers</h2>
+<hr />
+<p>Note to LWG: All modifiers have a pre-condition on not exceeding the <code>capacity()</code> when inserting elements. That is, exceeding the <code>capacity()</code> of the vector is undefined behavior. This supports some of the major use cases of this container (embedded, freestanding, etc.) and was required by the stakeholders during LEWG review. Currently, this provides maximum freedom to the implementation to choose an appropriate behavior: <code>abort</code>, <code>assert</code>, throw an exception (which exception? <code>bad_alloc</code>? <code>logic_error</code>? <code>out_of_bounds</code>? etc. ). In the future, this freedom allows us to specify these pre-conditions using contracts.</p>
+<p>Note to LWG: Because all modifiers have preconditions, they all have narrow contracts and are not unconditionally <code>noexcept</code>.</p>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="at">const</span> <span class="dt">value_type</span>&amp; x);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts <code>x</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s copy constructor and <code>is_nothrow_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> there are no effects. Otherwise, if an exception is thrown by <code>value_type</code>'s copy constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="dt">size_type</span> n, <span class="at">const</span> <span class="dt">value_type</span>&amp; x);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts <code>n</code> copies of <code>x</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>n &lt;= capacity() - size()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>n</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s copy constructor and <code>is_nothrow_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> there are no effects. Otherwise, if an exception is thrown by <code>value_type</code>'s copy constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator insert(const_iterator position, <span class="dt">value_type</span>&amp;&amp; x);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts <code>x</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_move_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s move constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> InputIterator&gt;
+<span class="kw">constexpr</span> iterator insert(const_iterator position, InputIterator first, InputIterator last);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts elements in range <code>[first, last)</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>distance(first, last) &lt;= capacity() - size()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_constructible&lt;value_type, decltype(*first)&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>distance(first, last)</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code> constructor from <code>decltype(*first)</code> and <code>is_nothrow_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> there are no effects. Otherwise, if an exception is thrown by <code>value_type</code>'s constructor from <code>decltype(*first)</code> the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator insert(const_iterator position, initializer_list&lt;<span class="dt">value_type</span>&gt; il);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts elements of <code>il</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>il.size() &lt;= capacity() - size()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>il.size()</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s copy constructor and <code>is_nothrow_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> there are no effects. Otherwise, if an exception is thrown by <code>value_type</code>'s copy constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span>... Args&gt;
+<span class="kw">constexpr</span> iterator emplace(const_iterator position, Args&amp;&amp;... args);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts an element constructed from <code>args...</code> at <code>position</code> and invalidates all references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_constructible&lt;value_type, Args...&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s constructor from <code>args...</code> and <code>is_nothrow_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> there are no effects. Otherwise, if an exception is thrown by <code>value_type</code>'s constructor from <code>args...</code> the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span>... Args&gt;
+<span class="kw">constexpr</span> reference emplace_back(Args&amp;&amp;... args);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts an element constructed from <code>args...</code> at the end.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_constructible&lt;value_type, Args...&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Constant.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s constructor from <code>args...</code> there are no effects.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> push_back(<span class="at">const</span> <span class="dt">value_type</span>&amp; x);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Inserts a copy of <code>x</code> at the end.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_copy_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Constant.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s copy constructor there are no effects.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> push_back(<span class="dt">value_type</span>&amp;&amp; x);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Moves <code>x</code> to the end.</p></li>
+<li><p><em>Expects</em>: <code>size() &lt; capacity()</code>.</p></li>
+<li><p><em>Mandates</em>: <code>std::is_move_constructible&lt;value_type&gt;</code>.</p></li>
+<li><p><em>Complexity</em>: Constant.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s move constructor there are no effects.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> pop_back();</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Removes the last element of the container and destroys it.</p></li>
+<li><p><em>Expects</em>: <code>!empty()</code>.</p></li>
+<li><p><em>Complexity</em>: Constant.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator erase(const_iterator position);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Removes the element at <code>position</code>, destroys it, and invalidates references to elements after <code>position</code>.</p></li>
+<li><p><em>Expects</em>: <code>position</code> in range <code>[begin(), end())</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s move constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> iterator erase(const_iterator first, const_iterator last);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Removes the elements in range <code>[first, last)</code>, destroying them, and invalidating references to elements after <code>last</code>.</p></li>
+<li><p><em>Expects</em>: <code>[first, last)</code> in range <code>[begin(), end())</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>distance(first, last)</code>.</p></li>
+<li><p><em>Remarks</em>: If an exception is thrown by <code>value_type</code>'s move constructor the effects are <em>unspecified</em>.</p></li>
+</ul>
+</blockquote>
+<hr />
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">constexpr</span> <span class="dt">void</span> swap(static_vector&amp; x)
+  <span class="kw">noexcept</span>(is_nothrow_swappable_v&lt;<span class="dt">value_type</span>&gt; &amp;&amp;
+           is_nothrow_move_constructible_v&lt;<span class="dt">value_type</span>&gt;);</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Effects</em>: Exchanges the contents of <code>*this</code> with <code>x</code>. All references to the elements of <code>*this</code> and <code>x</code> are invalidated.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>x.size()</code>.</p></li>
+<li><p><em>Remarks</em>: Shall not participate in overload resolution unless <code>is_move_constructible_v&lt;value_type&gt;</code> is <code>true</code> and <code>is_swappable_v&lt;value_type&gt;</code> is <code>true</code></p></li>
+</ul>
+</blockquote>
+<h2 id="static_vector-specialized-algorithms"><a id="SPEC_ALG"></a>5.7 <code>static_vector</code> specialized algorithms</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="dt">size_t</span> N&gt;
+<span class="kw">constexpr</span> <span class="dt">void</span> swap(static_vector&lt;T, N&gt;&amp; x, 
+                    static_vector&lt;T, N&gt;&amp; y)
+  <span class="kw">noexcept</span>(<span class="kw">noexcept</span>(x.swap(y)));</code></pre></div>
+<blockquote>
+<ul>
+<li><p><em>Constraints</em>: This function shall not participate in overload resolution unless <code>is_swappable_v&lt;T&gt;</code> is <code>true</code>.</p></li>
+<li><p><em>Effects</em>: As if by <code>x.swap(y)</code>.</p></li>
+<li><p><em>Complexity</em>: Linear in <code>size()</code> and <code>x.size()</code>.</p></li>
+</ul>
+</blockquote>
+<h1 id="acknowledgments"><a id="ACKNOWLEDGEMENTS"></a>6. Acknowledgments</h1>
+<p>The following people have significantly contributed to the development of this proposal. This proposal is based on Boost.Container's <code>boost::container::static_vector</code> and my extensive usage of this class over the years. As a consequence the authors of Boost.Container (Adam Wulkiewicz, Andrew Hundt, and Ion Gaztanaga) have had a very significant indirect impact on this proposal. The implementation of libc++ <code>std::vector</code> and the libc++ test-suite have been used extensively while prototyping this proposal, such that its author, Howard Hinnant, has had a significant indirect impact on the result of this proposal as well. The following people provided valuable feedback that influenced some aspects of this proposal: Walter Brown, Zach Laine, Rein Halbersma, and Andrzej Krzemieński. But I want to wholeheartedly acknowledge Casey Carter for taking the time to do a very detailed analysis of the whole proposal, which was invaluable and reshaped it in fundamental ways.</p>
+<h1 id="references"><a id="REFERENCES"></a>7. References</h1>
+<ul>
+<li>[1] [Boost.Container::static_vector]<a href="http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html">boost_static_vector</a>: http://www.boost.org/doc/libs/1_59_0/doc/html/boost/container/static_vector.html .</li>
+<li>[2] [EASTL fixed_vector]<a href="https://github.com/questor/eastl/blob/master/fixed_vector.h#L71">eastl</a>: https://github.com/questor/eastl/blob/master/fixed_vector.h#L71 .</li>
+<li>[3] [Folly small_vector]<a href="https://github.com/facebook/folly/blob/master/folly/docs/small_vector.md">folly</a>: https://github.com/facebook/folly/blob/master/folly/docs/small_vector.md .</li>
+<li>[4] [Howard Hinnant's stack_alloc]<a href="https://howardhinnant.github.io/stack_alloc.html">stack_alloc</a>: https://howardhinnant.github.io/stack_alloc.html .</li>
+<li>[5] [P0494R0: <code>contiguous_container</code> proposal]<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0494r0.pdf">contiguous_container</a>: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0494r0.pdf</li>
+<li>[6] [P0597R0: <code>std::constexpr_vector&lt;T&gt;</code>]<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html">constexpr_vector_1</a>: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0597r0.html</li>
+<li>[7] [P0639R0: Changing attack vector of the <code>constexpr_vector</code>]<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0639r0.html">constexpr_vector_2</a>: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0639r0.html .</li>
+<li>[8] [PR0274: Clump – A Vector-like Contiguous Sequence Container with Embedded Storage]<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0274r0.pdf">clump</a>: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0274r0.pdf</li>
+<li>[9] [Boost.Container::small_vector]<a href="http://www.boost.org/doc/libs/master/doc/html/boost/container/small_vector.html">boostsmallvector</a>: http://www.boost.org/doc/libs/master/doc/html/boost/container/small_vector.html.</li>
+<li>[10] [LLVM small_vector]<a href="http://llvm.org/docs/doxygen/html/classllvm_1_1SmallVector.html">llvmsmallvector</a>: http://llvm.org/docs/doxygen/html/classllvm_1_1SmallVector.html .</li>
+<li>[11] [EASTL design]<a href="https://github.com/questor/eastl/blob/master/doc/EASTL%20Design.html#L284">eastldesign</a>: https://github.com/questor/eastl/blob/master/doc/EASTL%20Design.html#L284 .</li>
+<li>[12] [Interest in StaticVector - fixed capacity vector](https:&gt;&gt;groups.google.com&gt;d&gt;topic&gt;boost-developers-archive&gt;4n1QuJyKTTk&gt;discussion): https://groups.google.com/d/topic/boost-developers-archive/4n1QuJyKTTk/discussion .</li>
+<li>[13] [Stack-based vector container](https:&gt;&gt;groups.google.com&gt;d&gt;topic&gt;boost-developers-archive&gt;9BEXjV8ZMeQ&gt;discussion): https://groups.google.com/d/topic/boost-developers-archive/9BEXjV8ZMeQ/discussion.</li>
+<li>[14] [static_vector: fixed capacity vector update](https:&gt;&gt;groups.google.com&gt;d&gt;topic&gt;boost-developers-archive&gt;d5_Kp-nmW6c&gt;discussion): https://groups.google.com/d/topic/boost-developers-archive/d5_Kp-nmW6c/discussion.</li>
+</ul>
+<!-- Links -->

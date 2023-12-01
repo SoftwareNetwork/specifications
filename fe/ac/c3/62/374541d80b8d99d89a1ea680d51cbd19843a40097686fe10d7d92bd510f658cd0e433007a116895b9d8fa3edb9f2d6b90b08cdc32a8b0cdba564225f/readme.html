@@ -1,0 +1,103 @@
+<h1 id="eventpp----c-library-for-event-dispatcher-and-callback-list">eventpp -- C++ library for event dispatcher and callback list</h1>
+<p>eventpp is a C++ event library that provides tools that allow your application components to communicate with each other by dispatching events and listening to them. With eventpp you can implement signal/slot mechanism, or observer pattern, very easily.</p>
+<h2 id="facts-and-features">Facts and features</h2>
+<ul>
+<li><strong>Powerful</strong></li>
+<li>Supports both synchronous event dispatching and asynchronous event queue.</li>
+<li>Configurable and extensible with policies and mixins.</li>
+<li>Supports event filter via mixins.</li>
+<li><strong>Robust</strong></li>
+<li>Supports nested event. During handling an event a listener can safely dispatch event, append/prepend/insert/remove other listeners.</li>
+<li>Thread safety. Supports multiple threading.</li>
+<li>Exception safety. Most operations guarantee strong exception safety.</li>
+<li>Well tested. Backed by unit tests.</li>
+<li><strong>Fast</strong></li>
+<li>The EventQueue can process 10M events in 1 second (10K events per millisecond).</li>
+<li>The CallbackList can invoke 100M callbacks in 1 second (100K callbacks per millisecond).</li>
+<li>The CallbackList can add/remove 5M callbacks in 1 second (5K callbacks per millisecond).</li>
+<li><strong>Flexible and easy to use</strong></li>
+<li>The listeners and events can be any type, no need to inherit from any base class.</li>
+<li>Header only, no source file, no need to build. No dependencies on other libraries.</li>
+<li>Requires C++ 11 (tested with MSVC 2017, MSVC 2015, MinGW (Msys) gcc 7.2, and Ubuntu gcc 5.4).</li>
+<li>Written in portable and standard C++, no hacks or quirks.</li>
+</ul>
+<h2 id="license">License</h2>
+<p>Apache License, Version 2.0</p>
+<h2 id="version-0.1.0">Version 0.1.0</h2>
+<p>eventpp is currently usable and near stable.</p>
+<h2 id="source-code">Source code</h2>
+<p><a href="https://github.com/wqking/eventpp" class="uri">https://github.com/wqking/eventpp</a></p>
+<h2 id="quick-start">Quick start</h2>
+<h3 id="namespace">Namespace</h3>
+<p><code>eventpp</code></p>
+<h3 id="add-eventpp-to-your-project">Add eventpp to your project</h3>
+<p>eventpp is header only library. Just add the 'include' folder in eventpp to your project, then you can use the library.<br />
+You don't need to link to any source code.</p>
+<h3 id="using-callbacklist">Using CallbackList</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;eventpp/callbacklist.h&quot;</span>
+eventpp::CallbackList&lt;<span class="dt">void</span> (<span class="at">const</span> <span class="bu">std::</span>string &amp;, <span class="at">const</span> <span class="dt">bool</span>)&gt; callbackList;
+callbackList.append([](<span class="at">const</span> <span class="bu">std::</span>string &amp; s, <span class="at">const</span> <span class="dt">bool</span> b) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>boolalpha &lt;&lt; <span class="st">&quot;Got callback 1, s is &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot; b is &quot;</span> &lt;&lt; b &lt;&lt; <span class="bu">std::</span>endl;
+});
+callbackList.append([](<span class="bu">std::</span>string s, <span class="dt">int</span> b) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>boolalpha &lt;&lt; <span class="st">&quot;Got callback 2, s is &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot; b is &quot;</span> &lt;&lt; b &lt;&lt; <span class="bu">std::</span>endl;
+});
+callbackList(<span class="st">&quot;Hello world&quot;</span>, <span class="kw">true</span>);</code></pre></div>
+<h3 id="using-eventdispatcher">Using EventDispatcher</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;eventpp/eventdispatcher.h&quot;</span>
+eventpp::EventDispatcher&lt;<span class="dt">int</span>, <span class="dt">void</span> ()&gt; dispatcher;
+dispatcher.appendListener(<span class="dv">3</span>, []() {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Got event 3.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+});
+dispatcher.appendListener(<span class="dv">5</span>, []() {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Got event 5.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+});
+dispatcher.appendListener(<span class="dv">5</span>, []() {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Got another event 5.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+});
+<span class="co">// dispatch event 3</span>
+dispatcher.dispatch(<span class="dv">3</span>);
+<span class="co">// dispatch event 5</span>
+dispatcher.dispatch(<span class="dv">5</span>);</code></pre></div>
+<h3 id="using-eventqueue">Using EventQueue</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">eventpp::EventQueue&lt;<span class="dt">int</span>, <span class="dt">void</span> (<span class="at">const</span> <span class="bu">std::</span>string &amp;, <span class="at">const</span> <span class="dt">bool</span>)&gt; queue;
+
+dispatcher.appendListener(<span class="dv">3</span>, [](<span class="at">const</span> <span class="bu">std::</span>string s, <span class="dt">bool</span> b) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>boolalpha &lt;&lt; <span class="st">&quot;Got event 3, s is &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot; b is &quot;</span> &lt;&lt; b &lt;&lt; <span class="bu">std::</span>endl;
+});
+dispatcher.appendListener(<span class="dv">5</span>, [](<span class="at">const</span> <span class="bu">std::</span>string s, <span class="dt">bool</span> b) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>boolalpha &lt;&lt; <span class="st">&quot;Got event 5, s is &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot; b is &quot;</span> &lt;&lt; b &lt;&lt; <span class="bu">std::</span>endl;
+});
+
+<span class="co">// The listeners are not triggered during enqueue.</span>
+queue.enqueue(<span class="dv">3</span>, <span class="st">&quot;Hello&quot;</span>, <span class="kw">true</span>);
+queue.enqueue(<span class="dv">5</span>, <span class="st">&quot;World&quot;</span>, <span class="kw">false</span>);
+
+<span class="co">// Process the event queue, dispatch all queued events.</span>
+queue.process();</code></pre></div>
+<h2 id="documentations">Documentations</h2>
+<ul>
+<li><a href="doc/introduction.md">Overview, thread and exception safety</a></li>
+<li><a href="doc/tutorial_callbacklist.md">Tutorials of CallbackList</a></li>
+<li><a href="doc/tutorial_eventdispatcher.md">Tutorials of EventDispatcher</a></li>
+<li><a href="doc/tutorial_eventqueue.md">Tutorials of EventQueue</a></li>
+<li><a href="doc/callbacklist.md">Class CallbackList</a></li>
+<li><a href="doc/eventdispatcher.md">Class EventDispatcher</a></li>
+<li><a href="doc/eventqueue.md">Class EventQueue</a></li>
+<li><a href="doc/counterremover.md">Utility class CounterRemover -- auto remove listeners after triggered certain times</a></li>
+<li><a href="doc/conditionalremover.md">Utility class ConditionalRemover -- auto remove listeners when certain condition is satisfied</a></li>
+<li><a href="doc/scopedremover.md">Utility class ScopedRemover -- auto remove listeners when out of scope</a></li>
+<li><a href="doc/eventutil.md">Document of utilities</a></li>
+<li><a href="doc/policies.md">Policies -- configure eventpp</a></li>
+<li><a href="doc/mixins.md">Mixins -- extend eventpp</a></li>
+<li><a href="doc/benchmark.md">Performance benchmarks</a></li>
+<li><a href="doc/faq.md">FAQs, tricks, and tips</a></li>
+<li>There are compilable tutorials in the unit tests.</li>
+</ul>
+<h2 id="build-the-unit-tests">Build the unit tests</h2>
+<p>The library itself is header only and doesn't need building.<br />
+The unit test requires CMake to build, and there is a makefile to ease the building.<br />
+Go to folder <code>tests/build</code>, then run <code>make</code> with different target. - <code>make vc17</code> #generate solution files for Microsoft Visual Studio 2017, then open eventpptest.sln in folder project_vc17 - <code>make vc15</code> #generate solution files for Microsoft Visual Studio 2015, then open eventpptest.sln in folder project_vc15 - <code>make mingw</code> #build using MinGW - <code>make linux</code> #build on Linux</p>
+<h2 id="motivations">Motivations</h2>
+<p>I (wqking) am a big fan of observer pattern (publish/subscribe pattern), I used such pattern a lot in my code. I either used GCallbackList in my <a href="https://github.com/cpgf/cpgf">cpgf library</a> which is too simple and not safe (not support multi threading nor nested event), or repeated coding event dispatching mechanism such as I did in my <a href="https://github.com/wqking/gincu">Gincu game engine</a> (the latest version has be rewritten to use eventpp). Both approaches are neither fun nor robust.<br />
+Thanking to C++11, now it's quite easy to write a reusable event library with beautiful syntax (it's a nightmare to simulate the variadic template in C++03), so here comes <code>eventpp</code>.</p>

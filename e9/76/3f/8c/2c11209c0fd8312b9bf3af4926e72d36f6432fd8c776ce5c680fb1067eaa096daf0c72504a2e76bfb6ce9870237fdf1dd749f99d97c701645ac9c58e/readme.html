@@ -1,0 +1,256 @@
+<blockquote>
+<h4 id="announcements">ANNOUNCEMENTS</h4>
+<h5 id="use-files-in-headeronly_src-directory.-the-files-in-src-are-exactly-same-but-in-the-form-of-hcpp-files-which-you-need-to-compile-and-link-with.">Use files in <code>headeronly_src</code> directory. The files in <code>src</code> are exactly same but in the form of h/cpp files, which you need to compile and link with.</h5>
+<h5 id="boost_src-is-no-longer-maintained.-do-not-use-unless-you-need-to-use-pre-c1x.-it-requires-boost-library."><code>boost_src</code> is no longer maintained. Do not use unless you need to use pre-c++1x. It requires <code>boost</code> library.</h5>
+</blockquote>
+<h1 id="sqlite3pp">sqlite3pp</h1>
+<p>This library makes SQLite3 API more friendly to C++ users. It supports almost all of SQLite3 features using C++ classes such as database, command, query, and transaction. The query class supports iterator concept for fetching records.</p>
+<p>With ext::function class, it's also easy to use the sqlite3's functions and aggregations in C++.</p>
+<h1 id="usage">Usage</h1>
+<h2 id="database">database</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::database db(<span class="st">&quot;test.db&quot;</span>);
+db.execute(<span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (&#39;Mike&#39;, &#39;555-1234&#39;)&quot;</span>);</code></pre></div>
+<h2 id="command">command</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::command cmd(
+  db, <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (?, ?)&quot;</span>);
+cmd.binder() &lt;&lt; <span class="st">&quot;Mike&quot;</span> &lt;&lt; <span class="st">&quot;555-1234&quot;</span>;
+cmd.execute();</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::command cmd(db, <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (?, ?)&quot;</span>);
+cmd.bind(<span class="dv">1</span>, <span class="st">&quot;Mike&quot;</span>, sqlite3pp::nocopy);
+cmd.bind(<span class="dv">2</span>, <span class="st">&quot;555-1234&quot;</span>, sqlite3pp::nocopy);
+cmd.execute();</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::command cmd(
+  db, <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (?100, ?101)&quot;</span>);
+cmd.bind(<span class="dv">100</span>, <span class="st">&quot;Mike&quot;</span>, sqlite3pp::nocopy);
+cmd.bind(<span class="dv">101</span>, <span class="st">&quot;555-1234&quot;</span>, sqlite3pp::nocopy);
+cmd.execute();</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::command cmd(
+  db, <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (:user, :phone)&quot;</span>);
+cmd.bind(<span class="st">&quot;:user&quot;</span>, <span class="st">&quot;Mike&quot;</span>, sqlite3pp::nocopy);
+cmd.bind(<span class="st">&quot;:phone&quot;</span>, <span class="st">&quot;555-1234&quot;</span>, sqlite3pp::nocopy);
+cmd.execute();</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::command cmd(
+  db,
+  <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (:user, &#39;555-0000&#39;);&quot;</span>
+  <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (:user, &#39;555-1111&#39;);&quot;</span>
+  <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (:user, &#39;555-2222&#39;)&quot;</span>);
+cmd.bind(<span class="st">&quot;:user&quot;</span>, <span class="st">&quot;Mike&quot;</span>, sqlite3pp::nocopy);
+cmd.execute_all();</code></pre></div>
+<h2 id="transaction">transaction</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::transaction xct(db);
+{
+  sqlite3pp::command cmd(
+    db, <span class="st">&quot;INSERT INTO contacts (name, phone) VALUES (:user, :phone)&quot;</span>);
+  cmd.bind(<span class="st">&quot;:user&quot;</span>, <span class="st">&quot;Mike&quot;</span>, sqlite3pp::nocopy);
+  cmd.bind(<span class="st">&quot;:phone&quot;</span>, <span class="st">&quot;555-1234&quot;</span>, sqlite3pp::nocopy);
+  cmd.execute();
+}
+xct.rollback();</code></pre></div>
+<h2 id="query">query</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::query qry(db, <span class="st">&quot;SELECT id, name, phone FROM contacts&quot;</span>);
+
+<span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; qry.column_count(); ++i) {
+  cout &lt;&lt; qry.column_name(i) &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span> (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+  <span class="cf">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; qry.column_count(); ++j) {
+    cout &lt;&lt; (*i).get&lt;<span class="dt">char</span> <span class="at">const</span>*&gt;(j) &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>;
+  }
+  cout &lt;&lt; endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span> (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+  <span class="dt">int</span> id;
+  <span class="dt">char</span> <span class="at">const</span>* name, *phone;
+  <span class="bu">std::</span>tie(id, name, phone) =
+    (*i).get_columns&lt;<span class="dt">int</span>, <span class="dt">char</span> <span class="at">const</span>*, <span class="dt">char</span> <span class="at">const</span>*&gt;(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>);
+  cout &lt;&lt; id &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; name &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; phone &lt;&lt; endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span> (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+  string name, phone;
+  (*i).getter() &gt;&gt; sqlite3pp::ignore &gt;&gt; name &gt;&gt; phone;
+  cout &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; name &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; phone &lt;&lt; endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span> (<span class="kw">auto</span> v : qry) {
+  string name, phone;
+  v.getter() &gt;&gt; sqlite3pp::ignore &gt;&gt; name &gt;&gt; phone;
+  cout &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; name &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span> &lt;&lt; phone &lt;&lt; endl;
+}</code></pre></div>
+<h2 id="attach">attach</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::database db(<span class="st">&quot;foods.db&quot;</span>);
+db.attach(<span class="st">&quot;test.db&quot;</span>, <span class="st">&quot;test&quot;</span>);
+
+sqlite3pp::query qry(
+  db,
+  <span class="st">&quot;SELECT epi.* FROM episodes epi, test.contacts con WHERE epi.id = con.id&quot;</span>);</code></pre></div>
+<h2 id="backup">backup</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::database db(<span class="st">&quot;test.db&quot;</span>);
+sqlite3pp::database backupdb(<span class="st">&quot;backup.db&quot;</span>);
+
+db.backup(backupdb);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">db.backup(
+  backupdb,
+  [](<span class="dt">int</span> pagecount, <span class="dt">int</span> remaining, <span class="dt">int</span> rc) {
+    cout &lt;&lt; pagecount &lt;&lt; <span class="st">&quot;/&quot;</span> &lt;&lt; remaining &lt;&lt; endl;
+    <span class="cf">if</span> (rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED) {
+      <span class="co">// sleep or do nothing.</span>
+    }
+  });</code></pre></div>
+<h2 id="callback">callback</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> rollback_handler
+{
+  <span class="dt">void</span> <span class="kw">operator</span>()() {
+    cout &lt;&lt; <span class="st">&quot;handle_rollback&quot;</span> &lt;&lt; endl;
+  }
+};
+
+sqlite3pp::database db(<span class="st">&quot;test.db&quot;</span>);
+
+db.set_commit_handler([]{ cout &lt;&lt; <span class="st">&quot;handle_commit</span><span class="sc">\n</span><span class="st">&quot;</span>; <span class="cf">return</span> <span class="dv">0</span>; });
+db.set_rollback_handler(rollback_handler());</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> handle_authorize(<span class="dt">int</span> evcode, <span class="dt">char</span> <span class="at">const</span>* p1, <span class="dt">char</span> <span class="at">const</span>* p2,
+                     <span class="dt">char</span> <span class="at">const</span>* dbname, <span class="dt">char</span> <span class="at">const</span>* tvname) {
+  cout &lt;&lt; <span class="st">&quot;handle_authorize(&quot;</span> &lt;&lt; evcode &lt;&lt; <span class="st">&quot;)&quot;</span> &lt;&lt; endl;
+  <span class="cf">return</span> <span class="dv">0</span>;
+}
+
+db.set_authorize_handler(&amp;handle_authorize);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> handler
+{
+  handler() : <span class="va">cnt_</span>(<span class="dv">0</span>) {}
+
+  <span class="dt">void</span> handle_update(<span class="dt">int</span> opcode, <span class="dt">char</span> <span class="at">const</span>* dbname,
+                     <span class="dt">char</span> <span class="at">const</span>* tablename, <span class="dt">int64_t</span> rowid) {
+    cout &lt;&lt; <span class="st">&quot;handle_update(&quot;</span> &lt;&lt; opcode &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; dbname &lt;&lt; <span class="st">&quot;, &quot;</span>
+         &lt;&lt; tablename &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; rowid &lt;&lt; <span class="st">&quot;) - &quot;</span> &lt;&lt; <span class="va">cnt_</span>++ &lt;&lt; endl;
+  }
+  <span class="dt">int</span> <span class="va">cnt_</span>;
+};
+
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>placeholders;
+
+db.set_update_handler(<span class="bu">std::</span>bind(&amp;handler::handle_update, &amp;h, _1, _2, _3, _4));</code></pre></div>
+<h2 id="function">function</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> test0()
+{
+  <span class="cf">return</span> <span class="dv">100</span>;
+}
+
+sqlite3pp::database db(<span class="st">&quot;test.db&quot;</span>);
+sqlite3pp::ext::function func(db);
+
+func.create&lt;<span class="dt">int</span> ()&gt;(<span class="st">&quot;test0&quot;</span>, &amp;test0);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> test1(sqlite3pp::ext::context&amp; ctx)
+{
+  ctx.result(<span class="dv">200</span>);
+}
+
+<span class="dt">void</span> test2(sqlite3pp::ext::context&amp; ctx)
+{
+  string args = ctx.get&lt;string&gt;(<span class="dv">0</span>);
+  ctx.result(args);
+}
+
+<span class="dt">void</span> test3(sqlite3pp::ext::context&amp; ctx)
+{
+  ctx.result_copy(<span class="dv">0</span>);
+}
+
+func.create(<span class="st">&quot;test1&quot;</span>, &amp;test1);
+func.create(<span class="st">&quot;test2&quot;</span>, &amp;test2, <span class="dv">1</span>);
+func.create(<span class="st">&quot;test3&quot;</span>, &amp;test3, <span class="dv">1</span>);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">func.create&lt;<span class="dt">int</span> ()&gt;(<span class="st">&quot;test4&quot;</span>, []{ <span class="cf">return</span> <span class="dv">500</span>; });</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">string test5(string <span class="at">const</span>&amp; value)
+{
+  <span class="cf">return</span> value;
+}
+
+string test6(string <span class="at">const</span>&amp; s1, string <span class="at">const</span>&amp; s2, string <span class="at">const</span>&amp; s3)
+{
+  <span class="cf">return</span> s1 + s2 + s3;
+}
+
+func.create&lt;<span class="dt">int</span> (<span class="dt">int</span>)&gt;(<span class="st">&quot;test5&quot;</span>, [](<span class="dt">int</span> i){ <span class="cf">return</span> i + <span class="dv">10000</span>; });
+func.create&lt;string (string, string, string)&gt;(<span class="st">&quot;test6&quot;</span>, &amp;test6);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::query qry(
+  db,
+  <span class="st">&quot;SELECT test0(), test1(), test2(&#39;x&#39;), test3(&#39;y&#39;), test4(), test5(10), &quot;</span>
+  <span class="st">&quot;test6(&#39;a&#39;, &#39;b&#39;, &#39;c&#39;)&quot;</span>);</code></pre></div>
+<h2 id="aggregate">aggregate</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> step(sqlite3pp::ext::context&amp; c)
+{
+  <span class="dt">int</span>* sum = (<span class="dt">int</span>*) c.aggregate_data(<span class="kw">sizeof</span>(<span class="dt">int</span>));
+
+  *sum += c.get&lt;<span class="dt">int</span>&gt;(<span class="dv">0</span>);
+}
+<span class="dt">void</span> finalize(sqlite3pp::ext::context&amp; c)
+{
+  <span class="dt">int</span>* sum = (<span class="dt">int</span>*) c.aggregate_data(<span class="kw">sizeof</span>(<span class="dt">int</span>));
+  c.result(*sum);
+}
+
+sqlite3pp::database db(<span class="st">&quot;foods.db&quot;</span>);
+sqlite3pp::ext::aggregate aggr(db);
+
+aggr.create(<span class="st">&quot;aggr0&quot;</span>, &amp;step, &amp;finalize);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> mycnt
+{
+  <span class="dt">void</span> step() {
+    ++<span class="va">n_</span>;
+  }
+  <span class="dt">int</span> finish() {
+    <span class="cf">return</span> <span class="va">n_</span>;
+  }
+  <span class="dt">int</span> <span class="va">n_</span>;
+};
+
+aggr.create&lt;mycnt&gt;(<span class="st">&quot;aggr1&quot;</span>);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> strcnt
+{
+  <span class="dt">void</span> step(string <span class="at">const</span>&amp; s) {
+    <span class="va">s_</span> += s;
+  }
+  <span class="dt">int</span> finish() {
+    <span class="cf">return</span> <span class="va">s_</span>.size();
+  }
+  string <span class="va">s_</span>;
+};
+
+<span class="kw">struct</span> plussum
+{
+  <span class="dt">void</span> step(<span class="dt">int</span> n1, <span class="dt">int</span> n2) {
+    <span class="va">n_</span> += n1 + n2;
+  }
+  <span class="dt">int</span> finish() {
+    <span class="cf">return</span> <span class="va">n_</span>;
+  }
+  <span class="dt">int</span> <span class="va">n_</span>;
+};
+
+aggr.create&lt;strcnt, string&gt;(<span class="st">&quot;aggr2&quot;</span>);
+aggr.create&lt;plussum, <span class="dt">int</span>, <span class="dt">int</span>&gt;(<span class="st">&quot;aggr3&quot;</span>);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite3pp::query qry(
+  db,
+  <span class="st">&quot;SELECT aggr0(id), aggr1(type_id), aggr2(name), aggr3(id, type_id) &quot;</span>
+  <span class="st">&quot;FROM foods&quot;</span>);</code></pre></div>
+<h2 id="loadable-extension">loadable extension</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#define SQLITE3PP_LOADABLE_EXTENSION</span>
+<span class="pp">#include </span><span class="im">&lt;sqlite3ppext.h&gt;</span>
+
+<span class="dt">int</span> sqlite3_extension_init(
+  sqlite3 *pdb,
+  <span class="dt">char</span> **pzErrMsg,
+  <span class="at">const</span> sqlite3_api_routines *pApi) {
+  SQLITE_EXTENSION_INIT2(pApi);
+  sqlite3pp:database db(sqlite3pp::ext::borrow(pdb));
+  <span class="co">// pdb is not closed since db just borrows it.</span>
+}</code></pre></div>
+<h1 id="see-also">See also</h1>
+<ul>
+<li>http://www.sqlite.org/</li>
+<li>https://code.google.com/p/sqlite3pp/</li>
+<li>https://github.com/iwongu/sqlite3pp/wiki/Using-variadic-templates-with-different-parameter-types</li>
+<li>https://github.com/iwongu/sqlite3pp/wiki/Using-variadic-templates-with-function-calls-using-tuple</li>
+<li><a href="http://idea-thinking.blogspot.com/2007/09/c-of-day-43-sqlite3-c-wrapper-1.html">c-of-day-43-sqlite3-c-wrapper-1</a> (Korean)</li>
+<li><a href="http://idea-thinking.blogspot.com/2007/09/c-of-day-44-sqlite3-c-wrapper-2.html">c-of-day-44-sqlite3-c-wrapper-2</a> (Korean)</li>
+<li><a href="http://idea-thinking.blogspot.com/2007/09/c-of-day-45-sqlite3-c-wrapper-3.html">c-of-day-45-sqlite3-c-wrapper-3</a> (Korean)</li>
+</ul>

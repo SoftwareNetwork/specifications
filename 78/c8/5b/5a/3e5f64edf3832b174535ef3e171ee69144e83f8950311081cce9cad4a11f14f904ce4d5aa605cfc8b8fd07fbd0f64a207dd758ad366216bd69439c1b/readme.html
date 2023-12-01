@@ -1,0 +1,162 @@
+<h1 id="mstch---mustache-templates-in-c11">mstch - {{mustache}} templates in C++11</h1>
+<div class="figure">
+<img src="http://i.imgur.com/MRyStO5.png" alt="mstch logo" />
+<p class="caption">mstch logo</p>
+</div>
+<p>mstch is a complete implementation of <a href="http://mustache.github.io/">{{mustache}}</a> templates using modern C++. It's compliant with <a href="https://github.com/mustache/spec">specifications</a> v1.1.3, including the lambda module.</p>
+<p><a href="http://badge.fury.io/gh/no1msd%2Fmstch"><img src="https://badge.fury.io/gh/no1msd%2Fmstch.svg" alt="GitHub version" /></a> <a href="https://travis-ci.org/no1msd/mstch"><img src="https://travis-ci.org/no1msd/mstch.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/no1msd/mstch"><img src="https://ci.appveyor.com/api/projects/status/d6mxp0uba5646x16?svg=true" alt="Build status" /></a></p>
+<h2 id="supported-features">Supported features</h2>
+<p>mstch supports the complete feature set described in the <code>mustache(5)</code> <a href="http://mustache.github.com/mustache.5.html">manpage</a>:</p>
+<ul>
+<li>JSON-like data structure using <a href="http://www.boost.org/libs/variant">Boost.Variant</a></li>
+<li>variables, sections, inverted sections</li>
+<li>partials</li>
+<li>changing the delimiter</li>
+<li>C++11 lambdas</li>
+<li>C++ objects as view models</li>
+</ul>
+<h2 id="basic-usage">Basic usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;mstch/mstch.hpp&gt;</span>
+
+<span class="dt">int</span> main() {
+  <span class="bu">std::</span>string view{<span class="st">&quot;{{#names}}Hi {{name}}!</span><span class="sc">\n</span><span class="st">{{/names}}&quot;</span>};
+  mstch::map context{
+    {<span class="st">&quot;names&quot;</span>, mstch::array{
+      mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Chris&quot;</span>}}},
+      mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Mark&quot;</span>}}},
+      mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Scott&quot;</span>}}},
+    }}
+  };
+  
+  <span class="bu">std::</span>cout &lt;&lt; mstch::render(view, context) &lt;&lt; <span class="bu">std::</span>endl;
+  
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The output of this example will be:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html">Hi Chris!
+Hi Mark!
+Hi Scott!</code></pre></div>
+<h3 id="data-structure">Data structure</h3>
+<p>The types in the example above, <code>mstch::array</code> and <code>mstch::map</code> are actually aliases for standard types:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> map = <span class="bu">std::</span>map&lt;<span class="at">const</span> <span class="bu">std::</span>string, node&gt;;
+<span class="kw">using</span> array = <span class="bu">std::</span>vector&lt;node&gt;;</code></pre></div>
+<p><code>mstch::node</code> is a <code>boost::variant</code> that can hold a <code>std::string</code>, <code>int</code>, <code>double</code>, <code>bool</code>, <code>mstch::lambda</code> or a <code>std::shared_ptr&lt;mstch::object&gt;</code> (see below), also a map or an array recursively. Essentially it works just like a JSON object.</p>
+<p>Note that when using a <code>std::string</code> as value you must explicitly specify the type, since a <code>const char*</code> literal like <code>&quot;foobar&quot;</code> would be implicitly converted to <code>bool</code>. Alternatively you can use <a href="http://en.cppreference.com/w/cpp/string/basic_string/operator%22%22s">C++14 string_literals</a> if your compiler supports it.</p>
+<h2 id="advanced-usage">Advanced usage</h2>
+<h3 id="partials">Partials</h3>
+<p>Partials can be passed in a <code>std::map</code> as the third parameter of the <code>mstch::render</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>string view{<span class="st">&quot;{{#names}}{{&gt; user}}{{/names}}&quot;</span>};
+<span class="bu">std::</span>string user_view{<span class="st">&quot;&lt;strong&gt;{{name}}</span><span class="sc">\n</span><span class="st">&lt;/strong&gt;&quot;</span>};
+mstch::map context{
+  {<span class="st">&quot;names&quot;</span>, mstch::array{
+    mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Chris&quot;</span>}}},
+    mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Mark&quot;</span>}}},
+    mstch::map{{<span class="st">&quot;name&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Scott&quot;</span>}}},
+  }}
+};
+  
+<span class="bu">std::</span>cout &lt;&lt; mstch::render(view, context, {{<span class="st">&quot;user&quot;</span>, user_view}}) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Output:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;strong&gt;</span>Chris<span class="kw">&lt;/strong&gt;</span>
+<span class="kw">&lt;strong&gt;</span>Mark<span class="kw">&lt;/strong&gt;</span>
+<span class="kw">&lt;strong&gt;</span>Scott<span class="kw">&lt;/strong&gt;</span></code></pre></div>
+<h3 id="lambdas">Lambdas</h3>
+<p>C++11 lambda expressions can be used to add logic to your templates. Like a <code>const char*</code> literal, lambdas can be implicitly converted to <code>bool</code>, so they must be wrapped in a <code>mstch::lambda</code> object when used in a <code>mstch::node</code>. The lambda expression passed to <code>mstch::lambda</code> must itself return a <code>mstch::node</code>. The returned node will be rendered to a string, then it will be parsed as a template.</p>
+<p>The lambda expression accepts either no parameters:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>string view{<span class="st">&quot;Hello {{lambda}}!&quot;</span>};
+mstch::map context{
+  {<span class="st">&quot;lambda&quot;</span>, mstch::lambda{[]() -&gt; mstch::node {
+    <span class="cf">return</span> <span class="bu">std::</span>string{<span class="st">&quot;World&quot;</span>};
+  }}}
+};
+
+<span class="bu">std::</span>cout &lt;&lt; mstch::render(view, context) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Output:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html">Hello World!</code></pre></div>
+<p>Or it accepts a <code>const std::string&amp;</code> that gets the unrendered literal block:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>string view{<span class="st">&quot;{{#bold}}{{yay}} :){{/bold}}&quot;</span>};
+mstch::map context{
+  {<span class="st">&quot;yay&quot;</span>, <span class="bu">std::</span>string{<span class="st">&quot;Yay!&quot;</span>}},
+  {<span class="st">&quot;bold&quot;</span>, mstch::lambda{[](<span class="at">const</span> <span class="bu">std::</span>string&amp; text) -&gt; mstch::node {
+    <span class="cf">return</span> <span class="st">&quot;&lt;b&gt;&quot;</span> + text + <span class="st">&quot;&lt;/b&gt;&quot;</span>;
+  }}}
+};
+
+<span class="bu">std::</span>cout &lt;&lt; mstch::render(view, context) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Output:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;b&gt;</span>Yay! :)<span class="kw">&lt;/b&gt;</span></code></pre></div>
+<h3 id="objects">Objects</h3>
+<p>Custom objects can also be used as context for rendering templates. The class must inherit from <code>mstch::object</code>, and register it's exported methods with <code>register_methods</code>. Exported methods must have the return type of <code>mstch::node</code>. Objects must be created as a <code>std::shared_ptr</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> example: <span class="kw">public</span> mstch::object {
+ <span class="kw">public</span>:
+  example(): <span class="va">m_value</span>(<span class="dv">1</span>) {
+    register_methods(<span class="kw">this</span>, {
+      {<span class="st">&quot;count&quot;</span>, &amp;example::count},
+      {<span class="st">&quot;names&quot;</span>, &amp;example::names}  
+    });
+  }
+  
+  mstch::node count() {
+    <span class="cf">return</span> <span class="va">m_value</span>++;
+  }
+  
+  mstch::node names() {
+    <span class="cf">return</span> mstch::array{
+      <span class="bu">std::</span>string{<span class="st">&quot;Chris&quot;</span>}, <span class="bu">std::</span>string{<span class="st">&quot;Mark&quot;</span>}, <span class="bu">std::</span>string{<span class="st">&quot;Scott&quot;</span>}};
+  }
+  
+ <span class="kw">private</span>:
+  <span class="dt">int</span> <span class="va">m_value</span>;
+};
+
+<span class="bu">std::</span>string view{<span class="st">&quot;{{#names}}&lt;b&gt;{{count}}&lt;/b&gt;: {{.}}</span><span class="sc">\n</span><span class="st">{{/names}}&quot;</span>};
+<span class="at">const</span> <span class="kw">auto</span> context = <span class="bu">std::</span>make_shared&lt;example&gt;();
+
+<span class="bu">std::</span>cout &lt;&lt; mstch::render(view, context) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Output:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;b&gt;</span>1<span class="kw">&lt;/b&gt;</span>: Chris
+<span class="kw">&lt;b&gt;</span>2<span class="kw">&lt;/b&gt;</span>: Mark
+<span class="kw">&lt;b&gt;</span>3<span class="kw">&lt;/b&gt;</span>: Scott</code></pre></div>
+<h3 id="custom-escape-function">Custom escape function</h3>
+<p>By default, mstch uses HTML escaping on the output, as per specification. This is not useful if your output is not HTML, so mstch provides a way to supply your own escape implementation. Just assign any callable object to the static <code>mstch::config::escape</code>, which is an initially empty <code>std::function&lt;std::string(const std::string&amp;)&gt;</code>.</p>
+<p>For example you can turn off escaping entirely with a lambda:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">mstch::config::escape = [](<span class="at">const</span> <span class="bu">std::</span>string&amp; str) -&gt; <span class="bu">std::</span>string {
+  <span class="cf">return</span> str;
+};</code></pre></div>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>A C++ compiler with decent C++11 support. Currently tested with:</li>
+<li>GCC 4.7, 4.8, 4.9, 5.1</li>
+<li>clang 3.5, 3.6, 3.7 (both libstdc++ and libc++ are supported)</li>
+<li>MSVC 2013, 2015</li>
+<li>Boost 1.54+ for <a href="http://www.boost.org/libs/variant">Boost.Variant</a></li>
+<li>CMake 3.0+ for building</li>
+</ul>
+<h2 id="using-mstch-in-your-project">Using mstch in your project</h2>
+<p>If you are using CMake, the easiest way to include mstch in your project is to copy the whole directory to your source tree, and use <code>add_subdirectory</code> in your CMakeLists.txt. This will set a variable named <code>mstch_INCLUDE_DIR</code> that contains its include path, and add a static library target named <code>mstch</code>. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">add_subdirectory</span>(external/mstch)
+<span class="kw">include_directories</span>(<span class="va">${mstch_INCLUDE_DIR}</span>)
+<span class="kw">target_link_libraries</span>(your_project mstch)</code></pre></div>
+<p>If you prefer to install the library globally, you can simply do the following from the root of the source tree:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"> $ <span class="fu">mkdir</span> build
+ $ <span class="bu">cd</span> build
+ $ <span class="fu">cmake</span> ..
+ $ <span class="fu">make</span>
+ $ <span class="fu">make</span> install</code></pre></div>
+<p>The install command may require root privileges. This will also install CMake config files, so you can use use <code>find_package</code> in your CMakeLists.txt:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(mstch)
+<span class="kw">target_link_libraries</span>(your_project mstch::mstch)</code></pre></div>
+<h2 id="running-the-unit-tests">Running the unit tests</h2>
+<p>Unit tests are using the <a href="https://github.com/philsquared/Catch">Catch</a> framework and <a href="http://rapidjson.org/">rapidjson</a> to parse the <a href="https://github.com/mustache/spec">Mustache specifications</a>, all of which are included in the repository as git submodules. Various <a href="http://www.boost.org/">Boost</a> libraries are also required to build them.</p>
+<p>Don't forget to initialize submodules:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"> $ <span class="fu">git</span> submodule init
+ $ <span class="fu">git</span> submodule update</code></pre></div>
+<p>To build and run the unit tests:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"> $ <span class="fu">mkdir</span> build
+ $ <span class="bu">cd</span> build
+ $ <span class="fu">cmake</span> -DWITH_UNIT_TESTS=ON ..
+ $ <span class="fu">make</span>
+ $ <span class="fu">make</span> test</code></pre></div>
+<h2 id="license">License</h2>
+<p>mstch is licensed under the <a href="https://github.com/no1msd/mstch/blob/master/LICENSE">MIT license</a>.</p>

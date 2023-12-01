@@ -1,0 +1,125 @@
+<h1 id="libnop-c-native-object-protocols">libnop: C++ Native Object Protocols</h1>
+<p>libnop is a header-only library for serializing and deserializing C++ data types without external code generators or runtime support libraries. The only mandatory requirement is a compiler that supports the C++14 standard.</p>
+<p>Note: This is not an officially supported Google product at this time.</p>
+<h2 id="goals">Goals</h2>
+<p>libnop has the following goals:</p>
+<ul>
+<li>Make simple serialization tasks easy and complex tasks tractable.</li>
+<li>Remove the need to use code generators and schema files to describe data types, formats, and protocols: perform these tasks naturally within the C++ language.</li>
+<li>Avoid additional runtime support requirements for serialization.</li>
+<li>Provide contemporary features such as bidirectional binary compatability, data validation, type safety, and type fungibility.</li>
+<li>Handle intrinsic types, common STL types and containers, and user-defined types with a minimum of effort.</li>
+<li>Produce optimized code that is easy to analyze and profile.</li>
+<li>Avoid internal dynamic memory allocation when possible.</li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<p>Take a look at <a href="docs/getting-started.md">Getting Started</a> for an introduction to the library.</p>
+<h2 id="quick-examples">Quick Examples</h2>
+<p>Here is a quick series of examples to demonstrate how libnop is used. You can find more examples in the repository under <a href="examples/" class="uri">examples/</a>.</p>
+<h3 id="writing-stl-containers-to-a-stream">Writing STL Containers to a Stream</h3>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;map&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;utility&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;nop/serializer.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;nop/utility/stream_writer.h&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {
+  <span class="kw">using</span> Writer = nop::StreamWriter&lt;<span class="bu">std::</span>stringstream&gt;;
+  nop::Serializer&lt;Writer&gt; serializer;
+
+  serializer.Write(<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;{<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>});
+  serializer.Write(<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;{<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>});
+
+  <span class="kw">using</span> MapType =
+      <span class="bu">std::</span>map&lt;<span class="bu">std::</span>uint32_t, <span class="bu">std::</span>pair&lt;<span class="bu">std::</span>uint64_t, <span class="bu">std::</span>string&gt;&gt;;
+  serializer.Write(
+      MapType{{<span class="dv">0</span>, {<span class="dv">10</span>, <span class="st">&quot;foo&quot;</span>}}, {<span class="dv">1</span>, {<span class="dv">20</span>, <span class="st">&quot;bar&quot;</span>}}, {<span class="dv">2</span>, {<span class="dv">30</span>, <span class="st">&quot;baz&quot;</span>}}});
+
+  <span class="at">const</span> <span class="bu">std::</span>string data = serializer.writer().stream().str();
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Wrote &quot;</span> &lt;&lt; data.size() &lt;&lt; <span class="st">&quot; bytes.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h3 id="simple-user-defined-types">Simple User-Defined Types</h3>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;nop/serializer.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;nop/structure.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;nop/utility/stream_writer.h&gt;</span>
+
+<span class="kw">namespace</span> example {
+
+<span class="kw">struct</span> Person {
+  <span class="bu">std::</span>string name;
+  <span class="bu">std::</span>uint32_t age_years;
+  <span class="bu">std::</span>uint8_t height_inches;
+  <span class="bu">std::</span>uint16_t weight_pounds;
+  NOP_STRUCTURE(Person, name, age_years, height_inches, weight_pounds);
+};
+
+}  <span class="co">// namespace example</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {
+  <span class="kw">using</span> Writer = nop::StreamWriter&lt;<span class="bu">std::</span>stringstream&gt;;
+  nop::Serializer&lt;Writer&gt; serializer;
+
+  serializer.Write(example::Person{<span class="st">&quot;John Doe&quot;</span>, <span class="dv">37</span>, <span class="dv">72</span>, <span class="dv">180</span>});
+  serializer.Write(<span class="bu">std::</span>vector&lt;example::Person&gt;{
+      {<span class="st">&quot;John Doe&quot;</span>, <span class="dv">37</span>, <span class="dv">72</span>, <span class="dv">180</span>}, {<span class="st">&quot;Jane Doe&quot;</span>, <span class="dv">36</span>, <span class="dv">69</span>, <span class="dv">130</span>}});
+
+  <span class="at">const</span> <span class="bu">std::</span>string data = serializer.writer().stream().str();
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Wrote &quot;</span> &lt;&lt; data.size() &lt;&lt; <span class="st">&quot; bytes.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h3 id="more-complex-user-defined-types">More Complex User-Defined Types</h3>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;array&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;nop/serializer.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;nop/structure.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;nop/utility/stream_writer.h&gt;</span>
+
+<span class="kw">namespace</span> example {
+
+<span class="co">// Contrived template type with private members.</span>
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+<span class="kw">struct</span> UserDefined {
+ <span class="kw">public</span>:
+  UserDefined() = <span class="cf">default</span>;
+  UserDefined(<span class="bu">std::</span>string label, <span class="bu">std::</span>vector&lt;T&gt; vector)
+      : <span class="va">label_</span>{<span class="bu">std::</span>move(label)}, <span class="va">vector_</span>{<span class="bu">std::</span>move(vector)} {}
+
+  <span class="at">const</span> <span class="bu">std::</span>string label() <span class="at">const</span> { <span class="cf">return</span> <span class="va">label_</span>; }
+  <span class="at">const</span> <span class="bu">std::</span>vector&lt;T&gt;&amp; vector() <span class="at">const</span> { <span class="cf">return</span> <span class="va">vector_</span>; }
+
+ <span class="kw">private</span>:
+  <span class="bu">std::</span>string <span class="va">label_</span>;
+  <span class="bu">std::</span>vector&lt;T&gt; <span class="va">vector_</span>;
+
+  NOP_STRUCTURE(UserDefined, <span class="va">label_</span>, <span class="va">vector_</span>);
+};
+
+}  <span class="co">// namespace example</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {
+  <span class="kw">using</span> Writer = nop::StreamWriter&lt;<span class="bu">std::</span>stringstream&gt;;
+  nop::Serializer&lt;Writer&gt; serializer;
+
+  serializer.Write(example::UserDefined&lt;<span class="dt">int</span>&gt;{<span class="st">&quot;ABC&quot;</span>, {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>}});
+
+  <span class="kw">using</span> ArrayType = <span class="bu">std::</span>array&lt;example::UserDefined&lt;<span class="dt">float</span>&gt;, <span class="dv">2</span>&gt;;
+  serializer.Write(
+      ArrayType{{{<span class="st">&quot;ABC&quot;</span>, {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>}}, {<span class="st">&quot;XYZ&quot;</span>, {<span class="fl">3.14</span>, <span class="fl">2.72</span>, <span class="fl">23.14</span>}}}});
+
+  <span class="at">const</span> <span class="bu">std::</span>string data = serializer.writer().stream().str();
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Wrote &quot;</span> &lt;&lt; data.size() &lt;&lt; <span class="st">&quot; bytes.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>

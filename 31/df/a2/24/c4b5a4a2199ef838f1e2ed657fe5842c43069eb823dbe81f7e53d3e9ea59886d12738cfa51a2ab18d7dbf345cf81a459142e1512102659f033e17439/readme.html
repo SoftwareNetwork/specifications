@@ -1,0 +1,1200 @@
+<h1 id="gsl-lite-guidelines-support-library-for-c98-c11-up">GSL Lite: Guidelines Support Library for C++98, C++11 up</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-98/11/14/17-blue.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/gsl-lite"><img src="https://travis-ci.org/martinmoene/gsl-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/gsl-lite"><img src="https://ci.appveyor.com/api/projects/status/1ha3wnxtam547m8p?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/gsl-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fgsl-lite.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/gsl-lite/master/include/gsl/gsl-lite.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/martinmoene/nonstd-lite/gsl-lite%3Anonstd-lite/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/fKCm0ERwPgFTH72I"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it on wandbox" /></a> <a href="https://godbolt.org/g/iEAxnY"><img src="https://img.shields.io/badge/on-godbolt-blue.svg" alt="Try it on godbolt online" /></a></p>
+<p>GSL Lite is based on the <a href="https://github.com/microsoft/gsl">Microsoft Guidelines Support Library (GSL)</a>.</p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation-and-use">Installation and use</a> - <a href="#synopsis">Synopsis</a> - <a href="#features">Features</a> - <a href="#deprecation">Deprecation</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-the-tests">Building the tests</a> - <a href="#other-gsl-implementations">Other GSL implementations</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;gsl/gsl-lite.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> gsl;
+
+<span class="dt">int</span> * use( not_null&lt;<span class="dt">int</span> *&gt; p ) 
+{
+    <span class="co">// use p knowing it&#39;s not nullptr, NULL or 0.</span>
+    
+    <span class="cf">return</span> p;
+}
+
+<span class="kw">struct</span> Widget
+{
+    Widget() : owned_ptr( <span class="kw">new</span> <span class="dt">int</span>(<span class="dv">42</span>) ) {}
+    ~Widget() { <span class="kw">delete</span> owned_ptr; }
+
+    <span class="dt">void</span> work() { non_owned_ptr = use( owned_ptr ); }
+    
+    owner&lt;<span class="dt">int</span> *&gt; owned_ptr; <span class="co">// if alias template support</span>
+<span class="co">//  Owner(int *) owned_ptr; // C++98 up</span>
+    <span class="dt">int</span> * non_owned_ptr;
+};
+
+<span class="dt">int</span> main()
+{
+    Widget w;
+    w.work();
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt;g++ -std=c++03 -Wall -I../include -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>gsl-lite</strong> is a single-file header-only variant of Microsoft's implementation of the <a href="https://github.com/Microsoft/GSL">Guidelines Support Library (GSL)</a> adapted for C++98, C++03. It should also work when compiled as C++11, C++14, C++17.</p>
+<p>The Guidelines Support Library (GSL) contains functions and types that are suggested for use by the <a href="https://github.com/isocpp/CppCoreGuidelines">C++ Core Guidelines</a> maintained by the <a href="https://isocpp.org/">Standard C++ Foundation</a>. The library includes types like <code>owner&lt;&gt;</code>, <code>not_null&lt;&gt;</code>, <code>span&lt;&gt;</code>, <code>string_span</code> and <a href="#features">others</a>.</p>
+<p><em>gsl-lite</em> recognizes when it is compiled for the CUDA platform and decorates functions (methods) with <code>__host__</code> and <code>__device__</code>. See also section <a href="#api-macro">API macro</a>.</p>
+<h2 id="license">License</h2>
+<p><em>gsl-lite</em> uses the <a href="LICENSE">MIT</a> license.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>gsl-lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation-and-use">Installation and use</h2>
+<p><em>gsl-lite</em> is a single-file header-only library. There are various ways to use it in your project.</p>
+<p><strong>Contents</strong><br />
+- <a href="#as-copied-header">As copied header</a> - <a href="#as-external-git-project">As external Git project</a> - <a href="#as-cmake-package">As CMake package</a> - <a href="#as-conan-package">As Conan package</a></p>
+<h3 id="as-copied-header">As copied header</h3>
+<p>Put a copy of <a href="include/gsl/gsl-lite.hpp"><code>gsl-lite.hpp</code></a> located in folder <a href="include/gsl" class="uri">include/gsl</a> directly into the project source tree or somewhere reachable from your project, for example in <em>project-root</em>/include/gsl. If you like to refer to gsl-lite as <code>gsl</code>, also copy the file <a href="include/gsl/gsl"><code>gsl</code></a>. A minimal CMake setup using this header might look as follows.</p>
+<p>In project root folder:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>( <span class="ot">VERSION</span> 3.5 <span class="ot">FATAL_ERROR</span> )
+
+<span class="kw">project</span>( use-gsl-lite <span class="ot">LANGUAGES</span> CXX )
+
+<span class="co"># Provide #include access to gsl-lite as &#39;gsl/gsl&#39; and as &#39;gsl/gsl-lite.hpp&#39;: </span>
+
+<span class="kw">set</span>( GSL_LITE_INCLUDE_DIR include )  <span class="co"># adapt as necessary</span>
+<span class="kw">add_library</span>( gsl <span class="ot">INTERFACE</span> )
+<span class="kw">target_include_directories</span>( gsl <span class="ot">INTERFACE</span> <span class="va">${GSL_LITE_INCLUDE_DIR}</span> )
+
+<span class="co"># Build program from src:</span>
+
+<span class="kw">add_subdirectory</span>( src ) </code></pre></div>
+<p>In folder src:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>( <span class="ot">VERSION</span> 3.5 <span class="ot">FATAL_ERROR</span> )
+
+<span class="kw">project</span>( program-using-gsl-lite <span class="ot">LANGUAGES</span> CXX )
+
+<span class="co"># Make program executable:</span>
+
+<span class="kw">set</span>( <span class="ot">SOURCES</span> main.cpp)
+<span class="kw">add_executable</span>( program <span class="va">${SOURCES}</span> )
+<span class="kw">target_link_libraries</span>( program <span class="ot">PRIVATE</span> gsl )</code></pre></div>
+<h3 id="as-external-git-project">As external Git project</h3>
+<p>Another approach is to automatically fetch the entire <em>gsl-lite</em> repository from github and configure it as an external project.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>( <span class="ot">VERSION</span> 3.5 <span class="ot">FATAL_ERROR</span> )
+
+<span class="kw">project</span>( use-gsl-lite <span class="ot">LANGUAGES</span> CXX )
+
+<span class="co"># Set default ExternalProject root directory and add gsl-lite:</span>
+
+<span class="kw">set</span>( GSL_LITE_URL https://github.com/martinmoene/gsl-lite.git )
+
+<span class="kw">include</span>( ExternalProject )
+<span class="kw">find_package</span>( Git <span class="ot">REQUIRED</span> )
+
+<span class="kw">set_directory_properties</span>( <span class="ot">PROPERTIES</span> EP_PREFIX <span class="va">${CMAKE_BINARY_DIR}</span>/3rd_party )
+
+<span class="fu">ExternalProject_Add</span>(
+    gsl-extern
+    GIT_REPOSITORY <span class="va">${GSL_LITE_URL}</span>
+    TIMEOUT 10
+    UPDATE_COMMAND <span class="va">${GIT_EXECUTABLE}</span> pull
+    CONFIGURE_COMMAND <span class="st">&quot;&quot;</span>
+    BUILD_COMMAND <span class="st">&quot;&quot;</span>
+    INSTALL_COMMAND <span class="st">&quot;&quot;</span>
+    LOG_DOWNLOAD ON
+   )
+
+<span class="co"># Provide #include access to gsl-lite as &#39;gsl/gsl&#39; and as &#39;gsl/gsl-lite.hpp&#39;: </span>
+
+<span class="fu">ExternalProject_Get_Property</span>( gsl-extern SOURCE_DIR )
+<span class="kw">set</span>( GSL_LITE_INCLUDE_DIR <span class="va">${SOURCE_DIR}</span>/include <span class="ot">CACHE</span> <span class="ot">INTERNAL</span> <span class="st">&quot;Include folder for gsl-lite&quot;</span>)
+
+<span class="kw">add_library</span>( gsl <span class="ot">INTERFACE</span> )
+<span class="kw">target_include_directories</span>( gsl <span class="ot">INTERFACE</span> <span class="va">${GSL_LITE_INCLUDE_DIR}</span> )
+
+<span class="co"># Build program from src:</span>
+
+<span class="kw">add_subdirectory</span>( src ) </code></pre></div>
+<p>In folder src:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>( <span class="ot">VERSION</span> 3.5 <span class="ot">FATAL_ERROR</span> )
+
+<span class="kw">project</span>( program-using-gsl-lite <span class="ot">LANGUAGES</span> CXX )
+
+<span class="co"># Make program executable:</span>
+
+<span class="kw">set</span>( <span class="ot">SOURCES</span> main.cpp)
+<span class="kw">add_executable</span>( program <span class="va">${SOURCES}</span> )
+<span class="kw">target_link_libraries</span>( program <span class="ot">PRIVATE</span> gsl )</code></pre></div>
+<p>This setup brings in more than you need, but also makes it easy to update <em>gsl-lite</em> to the latest version. See <a href="example/cmake-extern" class="uri">example/cmake-extern</a> for a complete example.</p>
+<h3 id="as-cmake-package">As CMake package</h3>
+<ol style="list-style-type: decimal">
+<li><p>First install the <em>gsl-lite</em> CMake package from its source, for example:</p>
+<pre><code>cd ./gsl-lite
+cmake -H. -B../_build -G&quot;Unix Makefiles&quot; -DCMAKE_INSTALL_PREFIX=&quot;~/dev/native/gsl-lite/gsl-lite-0.29.0&quot;
+cmake --build ../_build --target install</code></pre>
+<p>See also <a href="script/install-gsl-pkg.py" class="uri">script/install-gsl-pkg.py</a> that can perform these steps for you. It also lets you control compiler and build configuration.</p></li>
+<li><p>Next, you can use the <em>gsl-lite</em> CMake package, for example:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>( <span class="ot">VERSION</span> 3.5 <span class="ot">FATAL_ERROR</span> )
+
+<span class="kw">find_package</span>( gsl-lite <span class="st">&quot;0.29&quot;</span> <span class="ot">REQUIRED</span> )
+
+<span class="kw">project</span>( program-using-gsl-lite <span class="ot">LANGUAGES</span> CXX )
+
+<span class="kw">add_executable</span>(        program main.cpp )
+<span class="kw">target_link_libraries</span>( program <span class="ot">PRIVATE</span> gsl-lite::gsl-lite )</code></pre></div>
+<p>Configure and build:</p>
+<pre><code>cd ./gsl-lite/example/cmake-pkg
+cmake -H. -B../_build -G&quot;Unix Makefiles&quot; -DCMAKE_INSTALL_PREFIX=_stage -Dgsl-lite_DIR=&quot;~/dev/native/gsl-lite/gsl-lite-0.29.0/lib/cmake/gsl-lite&quot;
+cmake --build ../_build</code></pre>
+<p>Here, variable <code>gsl-lite_DIR</code> lets you specify the path to the CMake Package Configuration file of <em>gsl-lite</em>. See <a href="example/cmake-pkg" class="uri">example/cmake-pkg</a> for a complete example.</p></li>
+</ol>
+<h3 id="as-conan-package">As Conan package</h3>
+<p>For the <a href="https://www.conan.io/">conan package manager</a>, follow these steps:</p>
+<ol style="list-style-type: decimal">
+<li><p>Add <em>nonstd-lite</em> to the conan remotes:</p>
+<pre><code>conan remote add nonstd-lite https://api.bintray.com/conan/agauniyal/nonstd-lite</code></pre></li>
+<li><p>Add a reference to <em>gsl-lite</em> to the <em>requires</em> section of your project's <code>conanfile.txt</code> file:</p>
+<pre><code>[requires]
+gsl-lite/0.26.0@nonstd-lite/stable</code></pre></li>
+<li><p>Run conan's install command:</p>
+<pre><code>conan install</code></pre></li>
+</ol>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#api-macro">API macro</a> - <a href="#standard-selection-macro">Standard selection macro</a> - <a href="#feature-selection-macros">Feature selection macros</a> - <a href="#contract-violation-response-macros">Contract violation response macros</a> - <a href="#microsoft-gsl-compatibility-macros">Microsoft GSL compatibility macros</a> - <a href="#other-configuration-macros">Other configuration macros</a></p>
+<h3 id="api-macro">API macro</h3>
+<p>-D<b>gsl_api</b>=&quot;&quot;<br />
+Functions (methods) are decorated with <code>gsl_api</code>. At default <code>gsl_api</code> is defined empty for non-CUDA platforms and <code>__host__ __device__</code> for the CUDA platform. Define this macro to specify your own function decoration.</p>
+<h3 id="standard-selection-macro">Standard selection macro</h3>
+<p>-D<b>gsl_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, if your compiler does not set the <code>__cpluplus</code> macro correctly.</p>
+<h3 id="feature-selection-macros">Feature selection macros</h3>
+<p>-D<b>gsl_FEATURE_WITH_CONTAINER_TO_STD</b>=99<br />
+Define this to the highest C++ standard (98, 3, 11, 14, 17, 20) you want to include tagged-construction via <code>with_container</code>. Default is 99 for inclusion with any standard.</p>
+<p>-D<b>gsl_FEATURE_MAKE_SPAN_TO_STD</b>=99<br />
+Define this to the highest C++ standard (98, 3, 11, 14, 17, 20) you want to include <code>make_span()</code> creator functions. Default is 99 for inclusion with any standard.</p>
+<p>-D<b>gsl_FEATURE_BYTE_SPAN_TO_STD</b>=99<br />
+Define this to the highest C++ standard (98, 3, 11, 14, 17, 20) you want to include <code>byte_span()</code> creator functions. Default is 99 for inclusion with any standard.</p>
+<p>-D<b>gsl_FEATURE_HAVE_IMPLICIT_MACRO</b>=1<br />
+Define this macro to 0 to omit the <code>implicit</code> macro. Default is 1.</p>
+<p>-D<b>gsl_FEATURE_HAVE_OWNER_MACRO</b>=1<br />
+At default macro <code>Owner()</code> is defined for all C++ versions. This may be useful to transition from a compiler that doesn't provide alias templates to one that does. Define this macro to 0 to omit the <code>Owner()</code> macro. Default is 1.</p>
+<p>-D<b>gsl_FEATURE_EXPERIMENTAL_RETURN_GUARD</b>=0<br />
+Provide experimental types <code>final_action_return</code> and <code>final_action_error</code> and convenience functions <code>on_return()</code> and <code>on_error()</code>. Default is 0.</p>
+<h3 id="contract-violation-response-macros">Contract violation response macros</h3>
+<p><em>gsl-lite</em> provides contract violation response control as suggested in proposal <a href="http://wg21.link/n4415">N4415</a>.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_LEVEL_ON</b><br />
+Define this macro to include both <code>Expects</code> and <code>Ensures</code> in the code. This is the default case.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_LEVEL_OFF</b><br />
+Define this macro to exclude both <code>Expects</code> and <code>Ensures</code> from the code.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_LEVEL_EXPECTS_ONLY</b><br />
+Define this macro to include <code>Expects</code> in the code and exclude <code>Ensures</code> from the code.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_LEVEL_ENSURES_ONLY</b><br />
+Define this macro to exclude <code>Expects</code> from the code and include <code>Ensures</code> in the code.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_VIOLATION_TERMINATES</b><br />
+Define this macro to call <code>std::terminate()</code> on a GSL contract violation in <code>Expects</code>, <code>Ensures</code> and <code>narrow</code>. This is the default case.</p>
+<p>-D<b>gsl_CONFIG_CONTRACT_VIOLATION_THROWS</b><br />
+Define this macro to throw a std::runtime_exception-derived exception <code>gsl::fail_fast</code> instead of calling <code>std::terminate()</code> on a GSL contract violation in <code>Expects</code>, <code>Ensures</code> and throw a std::exception-derived exception <code>narrowing_error</code> on discarding information in <code>narrow</code>.</p>
+<h3 id="microsoft-gsl-compatibility-macros">Microsoft GSL compatibility macros</h3>
+<p>-D<b>GSL_UNENFORCED_ON_CONTRACT_VIOLATION</b><br />
+Equivalent to -Dgsl_CONFIG_CONTRACT_LEVEL_OFF.</p>
+<p>-D<b>GSL_THROW_ON_CONTRACT_VIOLATION</b><br />
+Equivalent to -Dgsl_CONFIG_CONTRACT_VIOLATION_THROWS.</p>
+<p>-D<b>GSL_TERMINATE_ON_CONTRACT_VIOLATION</b><br />
+Equivalent to -Dgsl_CONFIG_CONTRACT_VIOLATION_TERMINATES.</p>
+<h3 id="other-configuration-macros">Other configuration macros</h3>
+<p>-D<b>gsl_CONFIG_DEPRECATE_TO_LEVEL</b>=0<br />
+Define this to and including the level you want deprecation; see table <a href="#deprecation">Deprecation</a> below. Default is 0 for no deprecation.</p>
+<p>-D<b>gsl_CONFIG_SPAN_INDEX_TYPE</b>=size_t<br />
+Define this macro to the type to use for indices in <code>span</code> and <code>basic_string_span</code>. Microsoft's GSL uses <code>std::ptrdiff_t</code>. Default for <em>gsl lite</em> is <code>size_t</code>.</p>
+<p>-D<b>gsl_CONFIG_NOT_NULL_EXPLICIT_CTOR</b>=0<br />
+Define this macro to 1 to make <code>not_null</code>'s constructor explicit. Default is 0. Note that in Microsoft's GSL the constructor is explicit. For implicit construction you can also use the <em>gsl lite</em>-specific <code>not_null</code>-derived class <code>not_null_ic</code>.</p>
+<p>-D<b>gsl_CONFIG_NOT_NULL_GET_BY_CONST_REF</b>=0<br />
+Define this macro to 1 to have <code>not_null&lt;&gt;::get()</code> and relatives return by <code>T const &amp;</code> instead of <code>T</code>. This may improve performance with types that have an expensive copy-constructor. Default is 0 for <code>T</code>.</p>
+<p>-D<b>gsl_CONFIG_ALLOWS_NONSTRICT_SPAN_COMPARISON</b>=1<br />
+Define this macro to 0 to omit the ability to compare spans of different types, e.g. of different const-volatile-ness. To be able to compare a string_span with a cstring_span, non-strict span comparison must be available. Default is 1.</p>
+<p>-D<b>gsl_CONFIG_ALLOWS_UNCONSTRAINED_SPAN_CONTAINER_CTOR</b>=0<br />
+Define this macro to 1 to add the unconstrained span constructor for containers for pre-C++11 compilers that cannot constrain the constructor. This constructor may prove too greedy and interfere with other constructors. Default is 0.</p>
+<p>Note: an alternative is to use the constructor tagged <code>with_container</code>: span&lt;<em>value_type</em>&gt; <em>s</em>(with_container, <em>cont</em>).</p>
+<p>-D<b>gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS</b>=0<br />
+Define this macro to 1 to experience the by-design compile-time errors of the GSL components in the test suite. Default is 0.</p>
+<h2 id="features">Features</h2>
+<p>See also section <a href="https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#S-gsl">GSL: Guidelines Support Library</a> of the C++ Core Guidelines [9].</p>
+<table style="width:93%;">
+<colgroup>
+<col width="40%" />
+<col width="13%" />
+<col width="13%" />
+<col width="13%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature / library</th>
+<th align="center">GSL</th>
+<th align="center">M-GSL</th>
+<th align="center">GSL-Lite</th>
+<th align="left">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1.Lifetime safety</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td><strong>1.1 Indirection</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="odd">
+<td>not_null&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Wrap any indirection and enforce non-null,<br>see also <a href="#other-configuration-macros">Other configuration macros</a></td>
+</tr>
+<tr class="even">
+<td>not_null_ic&lt;&gt;</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="left">not_null with implicit constructor, allowing <a href="https://en.cppreference.com/w/cpp/language/copy_initialization">copy-initialization</a></td>
+</tr>
+<tr class="odd">
+<td><strong>1.2 Ownership</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td>owner&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Owned raw pointers</td>
+</tr>
+<tr class="odd">
+<td>Owner()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="left">Macro for pre-C++11;<br>see also <a href="#feature-selection-macros">Feature selection macros</a></td>
+</tr>
+<tr class="even">
+<td>unique_ptr&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">std::unique_ptr&lt;&gt;</td>
+</tr>
+<tr class="odd">
+<td>unique_ptr&lt;&gt;</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">VC10, VC11</td>
+</tr>
+<tr class="even">
+<td>shared_ptr&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">std::shared_ptr&lt;&gt;</td>
+</tr>
+<tr class="odd">
+<td>shared_ptr&lt;&gt;</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">VC10, VC11<br>see also <a href="#a1-extract-boost-smart-pointers">Extract Boost smart pointers</a></td>
+</tr>
+<tr class="even">
+<td>stack_array&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="left">A stack-allocated array, fixed size</td>
+</tr>
+<tr class="odd">
+<td>dyn_array&lt;&gt;</td>
+<td align="center">?</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="left">A heap-allocated array, fixed size</td>
+</tr>
+<tr class="even">
+<td><strong>2.Bounds safety</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="odd">
+<td><strong>2.1 Tag Types</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td>zstring</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">a char* (C-style string)</td>
+</tr>
+<tr class="odd">
+<td>wzstring</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">a wchar_t* (C-style string)</td>
+</tr>
+<tr class="even">
+<td>czstring</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">a const char* (C-style string)</td>
+</tr>
+<tr class="odd">
+<td>cwzstring</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">a const wchar_t* (C-style string)</td>
+</tr>
+<tr class="even">
+<td><strong>2.2 Views</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="odd">
+<td>span&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">1D views</td>
+<td align="left">A view of contiguous T's, replace (*,len),<br>see also proposal <a href="http://wg21.link/p0122">p0122</a></td>
+</tr>
+<tr class="even">
+<td>span_p&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="left">A view of contiguous T's that ends at the first element for which predicate(*p) is true</td>
+</tr>
+<tr class="odd">
+<td>make_span()</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Create a span</td>
+</tr>
+<tr class="even">
+<td>byte_span()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="left">Create a span of bytes from a single object</td>
+</tr>
+<tr class="odd">
+<td>as_bytes()</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">A span as bytes</td>
+</tr>
+<tr class="even">
+<td>as_writeable_bytes</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">A span as writeable bytes</td>
+</tr>
+<tr class="odd">
+<td>basic_string_span&lt;&gt;</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">See also proposal <a href="http://wg21.link/p0123">p0123</a></td>
+</tr>
+<tr class="even">
+<td>string_span</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">basic_string_span&lt;char&gt;</td>
+</tr>
+<tr class="odd">
+<td>wstring_span</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">basic_string_span&lt;wchar_t &gt;</td>
+</tr>
+<tr class="even">
+<td>cstring_span</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">basic_string_span&lt;const char&gt;</td>
+</tr>
+<tr class="odd">
+<td>cwstring_span</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">basic_string_span&lt;const wchar_t &gt;</td>
+</tr>
+<tr class="even">
+<td>ensure_z()</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Create a cstring_span or cwstring_span</td>
+</tr>
+<tr class="odd">
+<td>to_string()</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Convert a string_span to std::string or std::wstring</td>
+</tr>
+<tr class="even">
+<td><strong>2.3 Indexing</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="odd">
+<td>at()</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Bounds-checked way of accessing<br>static arrays, std::array, std::vector</td>
+</tr>
+<tr class="even">
+<td>at()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">static arrays, std::vector<br>std::array : VC11</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Assertions</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td>Expects()</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Precondition assertion</td>
+</tr>
+<tr class="odd">
+<td>Ensures()</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Postcondition assertion</td>
+</tr>
+<tr class="even">
+<td><strong>4. Utilities</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="odd">
+<td>index</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">type for container indexes, subscripts, sizes,<br>see <a href="#other-configuration-macros">Other configuration macros</a></td>
+</tr>
+<tr class="even">
+<td>byte</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">byte type, see also proposal <a href="http://wg21.link/p0298">p0298</a></td>
+</tr>
+<tr class="odd">
+<td>final_action&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Action at the end of a scope</td>
+</tr>
+<tr class="even">
+<td>final_action</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Currently only void(*)()</td>
+</tr>
+<tr class="odd">
+<td>finally()</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Make a final_action&lt;&gt;</td>
+</tr>
+<tr class="even">
+<td>finally()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Make a final_action</td>
+</tr>
+<tr class="odd">
+<td>final_action_return</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Currently only void(*)(), <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="even">
+<td>on_return()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Make a final_action_return&lt;&gt;, <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="odd">
+<td>on_return()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Make a final_action_return, <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="even">
+<td>final_action_error</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Currently only void(*)(), <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="odd">
+<td>on_error()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&gt;=C++11</td>
+<td align="left">Make a final_action_error&lt;&gt;, <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="even">
+<td>on_error()</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">&lt; C++11</td>
+<td align="left">Make a final_action_error, <a href="#feature-selection-macros">experimental</a></td>
+</tr>
+<tr class="odd">
+<td>narrow_cast&lt;&gt;</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Searchable narrowing casts of values</td>
+</tr>
+<tr class="even">
+<td>narrow()</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="left">Checked version of narrow_cast()</td>
+</tr>
+<tr class="odd">
+<td>implicit</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">✓</td>
+<td align="left">Symmetric with explicit</td>
+</tr>
+<tr class="even">
+<td>move_owner</td>
+<td align="center">?</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="left">...</td>
+</tr>
+<tr class="odd">
+<td><strong>5. Algorithms</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td>copy()</td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left">Copy from source span to destination span</td>
+</tr>
+<tr class="odd">
+<td>size()</td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left">Size of span, unsigned</td>
+</tr>
+<tr class="even">
+<td>ssize()</td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left">Size of span, signed</td>
+</tr>
+<tr class="odd">
+<td><strong>6. Concepts</strong></td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+<tr class="even">
+<td>...</td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="left"> </td>
+</tr>
+</tbody>
+</table>
+<p>Note: GSL Lite treats VC12 (VS2013) and VC14 (VS2015) as C++11 (gsl_CPP11_OR_GREATER: 1).</p>
+<h2 id="deprecation">Deprecation</h2>
+<p>The following features are deprecated since the indicated version. See macro <a href="#other-configuration-macros"><code>gsl_CONFIG_DEPRECATE_TO_LEVEL</code></a> on how to control deprecation using the indicated level.</p>
+<table style="width:49%;">
+<colgroup>
+<col width="12%" />
+<col width="11%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">Version</th>
+<th align="center">Level</th>
+<th align="left">Feature / Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.31.0</td>
+<td align="center">5</td>
+<td align="left">span( std::nullptr_t, index_type )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">span( pointer, index_type ) is used</td>
+</tr>
+<tr class="odd">
+<td align="right">0.31.0</td>
+<td align="center">5</td>
+<td align="left">span( U *, index_type size )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">span( pointer, index_type ) is used</td>
+</tr>
+<tr class="odd">
+<td align="right">0.31.0</td>
+<td align="center">5</td>
+<td align="left">span( U (&amp;arr)[N] )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">span( element_type (&amp;arr)[N] ) is used</td>
+</tr>
+<tr class="odd">
+<td align="right">0.31.0</td>
+<td align="center">5</td>
+<td align="left">span( std::array&lt; U, N &gt; [const] &amp; arr )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">span( std::array&lt; value_type, N &gt; [const] &amp; arr ) is used</td>
+</tr>
+<tr class="odd">
+<td align="right">0.29.0</td>
+<td align="center">4</td>
+<td align="left">span::span( std::shared_ptr<T> const &amp; p )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">Use span( p.get(), p.get() ? 1 : 0 ) or equivalent</td>
+</tr>
+<tr class="odd">
+<td align="right">0.29.0</td>
+<td align="center">4</td>
+<td align="left">span::span( std::unique_ptr<T> const &amp; p )</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">Use Use span( p.get(), p.get() ? 1 : 0 ) or equivalent</td>
+</tr>
+<tr class="odd">
+<td align="right">0.29.0</td>
+<td align="center">3</td>
+<td align="left">span::length()</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">Use span::size()</td>
+</tr>
+<tr class="odd">
+<td align="right">0.29.0</td>
+<td align="center">3</td>
+<td align="left">span::length_bytes()</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">Use span::size_bytes()</td>
+</tr>
+<tr class="odd">
+<td align="right">0.17.0</td>
+<td align="center">2</td>
+<td align="left">member span::as_bytes(), span::as_writeable_bytes()</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">—</td>
+</tr>
+<tr class="odd">
+<td align="right">0.7.0</td>
+<td align="center">1</td>
+<td align="left">gsl_CONFIG_ALLOWS_SPAN_CONTAINER_CTOR</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="center"> </td>
+<td align="left">Use gsl_CONFIG_ALLOWS_UNCONSTRAINED_SPAN_CONTAINER_CTOR,<br>or consider span(with_container, cont).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the compiler versions <em>gsl-lite</em> is reported to work with.</p>
+<table style="width:65%;">
+<colgroup>
+<col width="19%" />
+<col width="18%" />
+<col width="12%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">OS</th>
+<th align="left">Compiler</th>
+<th align="right">Where</th>
+<th>Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right"><strong>GNU/Linux</strong></td>
+<td align="left">Clang/LLVM</td>
+<td align="right">Travis</td>
+<td>3.4, 3.4, 3.6, 3.7, 3.8, 3.9, 4.0, 5.0</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="right">Travis</td>
+<td>5.4.1, 6.3.0, 7.2.0</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>OS X</strong></td>
+<td align="left">?</td>
+<td align="right"> </td>
+<td>?</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Windows</strong></td>
+<td align="left">Clang/LLVM</td>
+<td align="right"> </td>
+<td>?</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="right">Local</td>
+<td>4.8.4, 4.9.2, 5.2.0, 7.2.0</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">Visual C++<br>(Visual Studio)</td>
+<td align="right">Local<br>Local<br>AppVeyor</td>
+<td>6 (6) via header <a href="include/gsl/gsl-lite-vc6.hpp">gsl-lite-vc6.hpp</a> (not up to date)<br>8 (2005),<br> 10 (2010), 11 (2012), 12 (2013), 14 (2015), 15 (2017)</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>DOSBox</strong></td>
+<td align="left">DJGPP</td>
+<td align="right">Local</td>
+<td>DJGPP for GCC 7.2.0</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>FreeDOS</strong></td>
+<td align="left">DJGPP</td>
+<td align="right">Local</td>
+<td>DJGPP for GCC 7.2.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>To build the tests you need:</p>
+<ul>
+<li><a href="http://cmake.org">CMake</a>, version 3.0 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/gsl-lite">GSL Lite source code</a> has been cloned into a directory named <code>c:\gsl-lite</code>.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture.<br />
+Here we use c:-lite-win-x86-vc10.</p>
+<pre><code>cd c:\gsl-lite
+md build-win-x86-vc10
+cd build-win-x86-vc10</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>cmake -G &quot;Visual Studio 10 2010&quot; ..</code></pre></li>
+<li><p>Build the test suite in the Debug configuration (alternatively use Release).</p>
+<pre><code>cmake --build . --config Debug</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>ctest -V -C Debug</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>gsl-lite</em>. See the table with <a href="#features">supported types and functions</a>.</p>
+<h2 id="other-gsl-implementations">Other GSL implementations</h2>
+<ul>
+<li>Microsoft. <a href="https://github.com/microsoft/gsl">Guidelines Support Library (GSL)</a>.</li>
+<li>Vicente J. Botet Escriba. <a href="https://github.com/viboes/GSL">Guidelines Support Library (GSL)</a>.</li>
+<li>Mattia Basaglia. CxxMiscLib <a href="https://github.com/mbasaglia/Cxx-MiscLib/blob/master/include/misclib/gsl.hpp">gsl.hpp</a>, <a href="https://github.com/mbasaglia/Cxx-MiscLib/blob/master/test/gsl.cpp">tests</a>.</li>
+</ul>
+<h2 id="notes-and-references">Notes and references</h2>
+<h3 id="proposals-specification">Proposals, specification</h3>
+<p>[1] [span on cppreference](http://en.cppreference.com/w/cpp/string/span).<br />
+[2] [span in C++20 Working Draft](http://eel.is/c++draft/views).<br />
+[3] [p0091 - Template argument deduction for class templates](http://wg21.link/p0091).<br />
+[4] [p0122 - span: bounds-safe views for sequences of objects](http://wg21.link/p0122).<br />
+[5] [p0123 - string_span: bounds-safe views for sequences of characters ](http://wg21.link/p0123).<br />
+[6] [p0298 - A byte type definition](http://wg21.link/p0298).<br />
+[7] [p0805 - Comparing Containers](http://wg21.link/p0805).</p>
+<h3 id="articles">Articles</h3>
+<p>[8] [Standard C++ Foundation](https://isocpp.org/).<br />
+[9] Standard C++ Foundation. <a href="https://github.com/isocpp/CppCoreGuidelines">C++ Core Guidelines</a>.<br />
+[10] Microsoft. <a href="https://github.com/microsoft/gsl">Guidelines Support Library (GSL)</a>.<br />
+[11] Bjarne Stroustrup. <a href="https://github.com/isocpp/CppCoreGuidelines/raw/master/talks/Stroustrup%20-%20CppCon%202015%20keynote.pdf">Writing good C++14 (PDF)</a> — <a href="https://www.youtube.com/watch?t=9&amp;v=1OEu9C51K2A">Video</a>. CppCon 2015.<br />
+[12] Herb Sutter. <a href="https://github.com/isocpp/CppCoreGuidelines/raw/master/talks/Sutter%20-%20CppCon%202015%20day%202%20plenary%20.pdf">Writing good C++14… By default (PDF)</a> — <a href="https://www.youtube.com/watch?v=hEx5DNLWGgA">Video</a>. CppCon 2015.<br />
+[13] Gabriel Dos Reis. <a href="https://github.com/isocpp/CppCoreGuidelines/raw/master/talks/Contracts-for-Dependable-C%2B%2B.pdf">Contracts for Dependable C++ (PDF)</a> — Video. CppCon 2015.<br />
+[14] Bjarne Stroustrup et al. <a href="https://github.com/isocpp/CppCoreGuidelines/raw/master/docs/Introduction%20to%20type%20and%20resource%20safety.pdf">A brief introduction to C++’s model for type- and resource-safety</a>.<br />
+[15] Herb Sutter and Neil MacIntosh. <a href="https://github.com/isocpp/CppCoreGuidelines/raw/master/docs/Lifetimes%20I%20and%20II%20-%20v0.9.1.pdf">Lifetime Safety: Preventing Leaks and Dangling</a>. 21 Sep 2015.</p>
+<h3 id="compiler-feature-testing">Compiler feature testing</h3>
+<p>[16] cppreference.com. <a href="http://en.cppreference.com/w/cpp/experimental/feature_test">Feature Test Recommendations</a>.<br />
+[17] cppreference.com. <a href="http://en.cppreference.com/w/User:D41D8CD98F/feature_testing_macros">Feature testing macros</a>.</p>
+<h3 id="c-features-in-various-visual-c-compilers">C++ features in various Visual C++ compilers</h3>
+<p>[18] Visual CPP Team. <a href="http://blogs.msdn.com/b/vcblog/archive/2010/04/06/c-0x-core-language-features-in-vc10-the-table.aspx">C++0x Core Language Features In VC10: The Table</a>. Microsoft. 6 April 2010.<br />
+[19] Visual CPP Team. <a href="http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx">C++11 Features in Visual C++ 11</a>. Microsoft. 12 September 2011.<br />
+[20] Joel Coehoorn. <a href="http://stackoverflow.com/a/7422058/437272">C++11 features in Visual Studio 2012</a>. StackOverflow. 14 September 2011.<br />
+[21] Stephan T. Lavavej. <a href="http://blogs.msdn.com/b/vcblog/archive/2014/08/21/c-11-14-features-in-visual-studio-14-ctp3.aspx">C++11/14 Features In Visual Studio 14 CTP3</a>. Microsoft. 21 August 2014.<br />
+[22] Stephan T. Lavavej. <a href="http://blogs.msdn.com/b/vcblog/archive/2015/06/19/c-11-14-17-features-in-vs-2015-rtm.aspx">C++11/14/17 Features In VS 2015 RTM</a>. Microsoft. 19 June 2015.</p>
+<h2 id="appendix">Appendix</h2>
+<p><strong>Contents</strong><br />
+- <a href="#a1">A.1 Extract Boost smart pointers</a> - <a href="#a2">A.2 Compile-time information</a> - <a href="#a3">A.3 GSL Lite test specification</a></p>
+<p><a id="a1"></a> ### A.1 Extract Boost smart pointers</p>
+<p>To obtain a subset of Boost only containing the smart pointers, use the <a href="http://www.boost.org/doc/libs/1_59_0/tools/bcp/doc/html/index.html">bcp command</a> like:</p>
+<pre><code>C:\Libraries\boost\boost_1_51&gt;bin\bcp scoped_ptr.hpp shared_ptr.hpp weak_ptr.hpp make_shared.hpp C:\Libraries\boost-shared_ptr</code></pre>
+<p>The smart pointers of Boost 1.51 can be used with VC6.</p>
+<p><a id="a2"></a> ### A.2 Compile-time information</p>
+<p>The version of <em>gsl lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<p><a id="a3"></a> ### A.3 GSL Lite test specification</p>
+<pre><code>Expects(): Allows a true expression
+Ensures(): Allows a true expression
+Expects(): Terminates on a false expression
+Ensures(): Terminates on a false expression
+at(): Terminates access to non-existing C-array elements
+at(): Terminates access to non-existing std::array elements (C++11)
+at(): Terminates access to non-existing std::vector elements
+at(): Terminates access to non-existing std::initializer_list elements (C++11)
+at(): Terminates access to non-existing gsl::span elements
+at(): Allows to access existing C-array elements
+at(): Allows to access existing std::array elements (C++11)
+at(): Allows to access existing std::vector elements
+at(): Allows to access std::initializer_list elements (C++11)
+at(): Allows to access gsl::span elements
+byte: Allows to construct from integral via static cast (C++17)
+byte: Allows to construct from integral via byte() (C++17)
+byte: Allows to construct from integral via to_byte()
+byte: Allows to convert to integral via to_integer()
+byte: Allows comparison operations
+byte: Allows bitwise or operation
+byte: Allows bitwise and operation
+byte: Allows bitwise x-or operation
+byte: Allows bitwise or assignment
+byte: Allows bitwise and assignment
+byte: Allows bitwise x-or assignment
+byte: Allows shift-left operation
+byte: Allows shift-right operation
+byte: Allows shift-left assignment
+byte: Allows shift-right assignment
+byte: Provides constexpr non-assignment operations (C++11)
+byte: Provides constexpr assignment operations (C++14)
+byte: Provides hash support (C++11)
+not_null&lt;&gt;: Disallows default construction (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+not_null&lt;&gt;: Disallows construction from nullptr_t, NULL or 0 (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+not_null&lt;&gt;: Disallows construction from a unique pointer to underlying type (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+not_null&lt;&gt;: Disallows assignment from unrelated pointers (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+not_null&lt;&gt;: Terminates construction from a null pointer value
+not_null&lt;&gt;: Terminates construction from related pointer types for null pointer value
+not_null&lt;&gt;: Terminates assignment from a null pointer value
+not_null&lt;&gt;: Terminates assignment from related pointer types for null pointer value
+not_null&lt;&gt;: Allows to construct from a non-null underlying pointer
+not_null&lt;&gt;: Allows to construct from a non-null user-defined ref-counted type
+not_null&lt;&gt;: Allows to construct from a non-null related pointer
+not_null&lt;&gt;: Allows to construct from a not_null related pointer type
+not_null&lt;&gt;: Allows assignment from a not_null related pointer type
+not_null&lt;&gt;: Allows assignment from a non-null bare recast pointer
+not_null&lt;&gt;: Allows implicit conversion to underlying type
+not_null&lt;&gt;: Allows indirect member access
+not_null&lt;&gt;: Allows dereferencing
+not_null&lt;&gt;: Allows to compare equal to another not_null of the same type
+not_null&lt;&gt;: Allows to compare unequal to another not_null of the same type
+not_null&lt;&gt;: Allows to compare less than another not_null of the same type
+not_null&lt;&gt;: Allows to compare less than or equal to another not_null of the same type
+not_null&lt;&gt;: Allows to compare greater than another not_null of the same type
+not_null&lt;&gt;: Allows to compare greater than or equal to another not_null of the same type
+not_null&lt;&gt;: Allows to compare equal to a raw pointer of the same type
+not_null&lt;&gt;: Allows to compare unequal to a raw pointer of the same type
+not_null&lt;&gt;: Allows to compare less than a raw pointer of the same type
+not_null&lt;&gt;: Allows to compare less than or equal to a raw pointer of the same type
+not_null&lt;&gt;: Allows to compare greater than a raw pointer of the same type
+not_null&lt;&gt;: Allows to compare greater than or equal to a raw pointer of the same type
+owner&lt;&gt;: Disallows construction from a non-pointer type (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+owner&lt;&gt;: Allows its use as the (pointer) type it stands for
+Owner(): Allows its use as the (pointer) type it stands for
+span&lt;&gt;: Disallows construction from a temporary value (C++11) (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+span&lt;&gt;: Disallows construction from a C-array of incompatible type (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+span&lt;&gt;: Disallows construction from a std::array of incompatible type (C++11) (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+span&lt;&gt;: Terminates construction from a nullptr and a non-zero size (C++11)
+span&lt;&gt;: Terminates construction from two pointers in the wrong order
+span&lt;&gt;: Terminates construction from a null pointer and a non-zero size
+span&lt;&gt;: Terminates creation of a sub span of the first n elements for n exceeding the span
+span&lt;&gt;: Terminates creation of a sub span of the last n elements for n exceeding the span
+span&lt;&gt;: Terminates creation of a sub span outside the span
+span&lt;&gt;: Terminates access outside the span
+span&lt;&gt;: Allows to default-construct
+span&lt;&gt;: Allows to construct from a nullptr and a zero size (C++11)
+span&lt;&gt;: Allows to construct from a single object (C++11)
+span&lt;&gt;: Allows to construct from a const single object (C++11)
+span&lt;&gt;: Allows to construct from two pointers
+span&lt;&gt;: Allows to construct from two pointers to const
+span&lt;&gt;: Allows to construct from a non-null pointer and a size
+span&lt;&gt;: Allows to construct from a non-null pointer to const and a size
+span&lt;&gt;: Allows to construct from a temporary pointer and a size
+span&lt;&gt;: Allows to construct from a temporary pointer to const and a size
+span&lt;&gt;: Allows to construct from any pointer and a zero size
+span&lt;&gt;: Allows to construct from a C-array
+span&lt;&gt;: Allows to construct from a const C-array
+span&lt;&gt;: Allows to construct from a C-array with size via decay to pointer (potentially dangerous)
+span&lt;&gt;: Allows to construct from a const C-array with size via decay to pointer (potentially dangerous)
+span&lt;&gt;: Allows to construct from a std::array&lt;&gt; (C++11)
+span&lt;&gt;: Allows to construct from a std::array&lt;&gt; with const data (C++11) [deprecated-5]
+span&lt;&gt;: Allows to construct from a container (std::vector&lt;&gt;)
+span&lt;&gt;: Allows to construct from a temporary container (potentially dangerous)
+span&lt;&gt;: Allows to tag-construct from a container (std::vector&lt;&gt;)
+span&lt;&gt;: Allows to tag-construct from a temporary container (potentially dangerous)
+span&lt;&gt;: Allows to construct from an empty gsl::shared_ptr (C++11) [deprecated-4]
+span&lt;&gt;: Allows to construct from an empty gsl::unique_ptr (C++11) [deprecated-4]
+span&lt;&gt;: Allows to construct from an empty gsl::unique_ptr (array, C++11) [deprecated-4]
+span&lt;&gt;: Allows to construct from a non-empty gsl::shared_ptr (C++11) [deprecated-4]
+span&lt;&gt;: Allows to construct from a non-empty gsl::unique_ptr (C++11) [deprecated-4]
+span&lt;&gt;: Allows to construct from a non-empty gsl::unique_ptr (array, C++11) [deprecated-4]
+span&lt;&gt;: Allows to copy-construct from another span of the same type
+span&lt;&gt;: Allows to copy-construct from another span of a compatible type
+span&lt;&gt;: Allows to move-construct from another span of the same type (C++11)
+span&lt;&gt;: Allows to copy-assign from another span of the same type
+span&lt;&gt;: Allows to move-assign from another span of the same type (C++11)
+span&lt;&gt;: Allows to create a sub span of the first n elements
+span&lt;&gt;: Allows to create a sub span of the last n elements
+span&lt;&gt;: Allows to create a sub span starting at a given offset
+span&lt;&gt;: Allows to create a sub span starting at a given offset with a given length
+span&lt;&gt;: Allows to create an empty sub span at full offset
+span&lt;&gt;: Allows to create an empty sub span at full offset with zero length
+span&lt;&gt;: Allows forward iteration
+span&lt;&gt;: Allows const forward iteration
+span&lt;&gt;: Allows reverse iteration
+span&lt;&gt;: Allows const reverse iteration
+span&lt;&gt;: Allows to observe an element via array indexing
+span&lt;&gt;: Allows to observe an element via call indexing
+span&lt;&gt;: Allows to observe an element via at()
+span&lt;&gt;: Allows to observe an element via data()
+span&lt;&gt;: Allows to change an element via array indexing
+span&lt;&gt;: Allows to change an element via call indexing
+span&lt;&gt;: Allows to change an element via at()
+span&lt;&gt;: Allows to change an element via data()
+span&lt;&gt;: Allows to compare equal to another span of the same type
+span&lt;&gt;: Allows to compare unequal to another span of the same type
+span&lt;&gt;: Allows to compare less than another span of the same type
+span&lt;&gt;: Allows to compare less than or equal to another span of the same type
+span&lt;&gt;: Allows to compare greater than another span of the same type
+span&lt;&gt;: Allows to compare greater than or equal to another span of the same type
+span&lt;&gt;: Allows to compare to another span of the same type and different cv-ness (non-standard)
+span&lt;&gt;: Allows to compare empty spans as equal
+span&lt;&gt;: Allows to test for empty span via empty(), empty case
+span&lt;&gt;: Allows to test for empty span via empty(), non-empty case
+span&lt;&gt;: Allows to obtain the number of elements via size(), as configured
+span&lt;&gt;: Allows to obtain the number of elements via ssize(), signed
+span&lt;&gt;: Allows to obtain the number of elements via length() [deprecated-3]
+span&lt;&gt;: Allows to obtain the number of bytes via size_bytes()
+span&lt;&gt;: Allows to obtain the number of bytes via length_bytes() [deprecated-3]
+span&lt;&gt;: Allows to swap with another span of the same type
+span&lt;&gt;: Allows to view the elements as read-only bytes [deprecated-2 as member]
+span&lt;&gt;: Allows to view and change the elements as writable bytes [deprecated-2 as member]
+span&lt;&gt;: Allows to view the elements as a span of another type
+span&lt;&gt;: Allows to change the elements from a span of another type
+copy(): Allows to copy a span to another span of the same element type
+copy(): Allows to copy a span to another span of a different element type
+size(): Allows to obtain the number of elements in span via size(span), unsigned
+ssize(): Allows to obtain the number of elements in span via ssize(span), signed
+make_span(): (gsl_FEATURE_MAKE_SPAN=1)
+make_span(): Allows to build from two pointers
+make_span(): Allows to build from two const pointers
+make_span(): Allows to build from a non-null pointer and a size
+make_span(): Allows to build from a non-null const pointer and a size
+make_span(): Allows to build from a C-array
+make_span(): Allows to build from a const C-array
+make_span(): Allows to build from a std::array&lt;&gt; (C++11)
+make_span(): Allows to build from a const std::array&lt;&gt; (C++11)
+make_span(): Allows to build from a container (std::vector&lt;&gt;)
+make_span(): Allows to build from a const container (std::vector&lt;&gt;)
+make_span(): Allows to build from a temporary container (potentially dangerous)
+make_span(): Allows to tag-build from a container (std::vector&lt;&gt;)
+make_span(): Allows to tag-build from a temporary container (potentially dangerous)
+make_span(): Allows to build from an empty gsl::shared_ptr (C++11) [deprecated-4]
+make_span(): Allows to build from an empty gsl::unique_ptr (C++11) [deprecated-4]
+make_span(): Allows to build from an empty gsl::unique_ptr (array, C++11) [deprecated-4]
+make_span(): Allows to build from a non-empty gsl::shared_ptr (C++11) [deprecated-4]
+make_span(): Allows to build from a non-empty gsl::unique_ptr (C++11) [deprecated-4]
+make_span(): Allows to build from a non-empty gsl::unique_ptr (array, C++11) [deprecated-4]
+byte_span() (gsl_FEATURE_BYTE_SPAN=1)
+byte_span(): Allows to build a span of gsl::byte from a single object
+byte_span(): Allows to build a span of const gsl::byte from a single const object
+string_span: Disallows construction of a string_span from a cstring_span (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+string_span: Disallows construction of a string_span from a const std::string (define gsl_CONFIG_CONFIRMS_COMPILATION_ERRORS)
+string_span: Allows to default-construct
+string_span: Allows to construct from a nullptr (C++11)
+string_span: Allows to construct a cstring_span from a const C-string
+string_span: Allows to construct a string_span from a non-const C-string and size
+string_span: Allows to construct a string_span from a non-const C-string begin and end pointer
+string_span: Allows to construct a string_span from a non-const C-array
+string_span: Allows to construct a string_span from a non-const std::string
+string_span: Allows to construct a string_span from a non-const std::array (C++11)
+string_span: Allows to construct a string_span from a non-const container (std::vector)
+string_span: Allows to construct a string_span from a non-const container, via a tag (std::vector)
+string_span: Allows to construct a cstring_span from a non-const C-string and size
+string_span: Allows to construct a cstring_span from a non-const C-string begin and end pointer
+string_span: Allows to construct a cstring_span from a non-const C-array
+string_span: Allows to construct a cstring_span from a non-const std::string
+string_span: Allows to construct a cstring_span from a non-const std::array (C++11)
+string_span: Allows to construct a cstring_span from a non-const container (std::vector)
+string_span: Allows to construct a cstring_span from a non-const container, via a tag (std::vector)
+string_span: Allows to construct a cstring_span from a const C-string and size
+string_span: Allows to construct a cstring_span from a non-const C-string begin and end pointer
+string_span: Allows to construct a cstring_span from a const C-array
+string_span: Allows to construct a cstring_span from a const std::string
+string_span: Allows to construct a cstring_span from a const std::array (C++11)
+string_span: Allows to construct a cstring_span from a const container (std::vector)
+string_span: Allows to construct a cstring_span from a const container, via a tag (std::vector)
+string_span: Allows to construct a wstring_span from a non-const C-string and size
+string_span: Allows to construct a wstring_span from a non-const C-string begin and end pointer
+string_span: Allows to construct a wstring_span from a non-const C-array
+string_span: Allows to construct a wstring_span from a non-const std::wstring
+string_span: Allows to construct a wstring_span from a non-const std::array (C++11)
+string_span: Allows to construct a wstring_span from a non-const container (std::vector)
+string_span: Allows to construct a wstring_span from a non-const container, via a tag (std::vector)
+string_span: Allows to construct a cwstring_span from a non-const C-string and size
+string_span: Allows to construct a cwstring_span from a non-const C-string begin and end pointer
+string_span: Allows to construct a cwstring_span from a non-const C-array
+string_span: Allows to construct a cwstring_span from a non-const std::wstring
+string_span: Allows to construct a cwstring_span from a non-const std::array (C++11)
+string_span: Allows to construct a cwstring_span from a non-const container (std::vector)
+string_span: Allows to construct a cwstring_span from a non-const container, via a tag (std::vector)
+string_span: Allows to construct a cwstring_span from a const C-string and size
+string_span: Allows to construct a cwstring_span from a const C-string begin and end pointer
+string_span: Allows to construct a cwstring_span from a const C-array
+string_span: Allows to construct a cwstring_span from a const std::wstring
+string_span: Allows to construct a cwstring_span from a const std::array (C++11)
+string_span: Allows to construct a cwstring_span from a const container (std::vector)
+string_span: Allows to construct a cwstring_span from a const container, via a tag (std::vector)
+string_span: Allows to copy-construct from another span of the same type
+string_span: Allows to copy-construct from another span of a compatible type
+string_span: Allows to move-construct from another span of the same type (C++11)
+string_span: Allows to copy-assign from another span of the same type
+string_span: Allows to move-assign from another span of the same type (C++11)
+string_span: Allows to create a sub span of the first n elements
+string_span: Allows to create a sub span of the last n elements
+string_span: Allows to create a sub span starting at a given offset
+string_span: Allows to create a sub span starting at a given offset with a given length
+string_span: Allows to create an empty sub span at full offset
+string_span: Allows to create an empty sub span at full offset with zero length
+string_span: Allows forward iteration
+string_span: Allows const forward iteration
+string_span: Allows reverse iteration
+string_span: Allows const reverse iteration
+string_span: Allows to observe an element via array indexing
+string_span: Allows to observe an element via call indexing
+string_span: Allows to observe an element via data()
+string_span: Allows to change an element via array indexing
+string_span: Allows to change an element via call indexing
+string_span: Allows to change an element via data()
+string_span: Allows to compare a string_span with another string_span
+string_span: Allows to compare empty span to non-empty span
+string_span: Allows to compare a string_span with a cstring_span
+string_span: Allows to compare with types convertible to string_span
+string_span: Allows to test for empty span via empty(), empty case
+string_span: Allows to test for empty span via empty(), non-empty case
+string_span: Allows to obtain the number of elements via length()
+string_span: Allows to obtain the number of elements via size()
+string_span: Allows to obtain the number of bytes via length_bytes()
+string_span: Allows to obtain the number of bytes via size_bytes()
+string_span: Allows to view the elements as read-only bytes
+to_string(): Allows to explicitly convert from string_span to std::string
+to_string(): Allows to explicitly convert from cstring_span to std::string
+to_string(): Allows to explicitly convert from wstring_span to std::wstring
+to_string(): Allows to explicitly convert from cwstring_span to std::wstring
+ensure_z(): Disallows to build a string_span from a const C-string
+ensure_z(): Disallows to build a wstring_span from a const wide C-string
+ensure_z(): Allows to build a string_span from a non-const C-string
+ensure_z(): Allows to build a cstring_span from a non-const C-string
+ensure_z(): Allows to build a cstring_span from a const C-string
+ensure_z(): Allows to build a wstring_span from a non-const wide C-string
+ensure_z(): Allows to build a cwstring_span from a non-const wide C-string
+ensure_z(): Allows to build a cwstring_span from a const wide C-string
+ensure_z(): Allows to specify ultimate location of the sentinel and ensure its presence
+operator&lt;&lt;: Allows printing a string_span to an output stream
+operator&lt;&lt;: Allows printing a cstring_span to an output stream
+operator&lt;&lt;: Allows printing a wstring_span to an output stream
+operator&lt;&lt;: Allows printing a cwstring_span to an output stream
+finally: Allows to run lambda on leaving scope
+finally: Allows to run function (bind) on leaving scope
+finally: Allows to run function (pointer) on leaving scope
+finally: Allows to move final_action
+on_return: Allows to perform action on leaving scope without exception (gsl_FEATURE_EXPERIMENTAL_RETURN_GUARD)
+on_error: Allows to perform action on leaving scope via an exception (gsl_FEATURE_EXPERIMENTAL_RETURN_GUARD)
+narrow_cast&lt;&gt;: Allows narrowing without value loss
+narrow_cast&lt;&gt;: Allows narrowing with value loss
+narrow&lt;&gt;(): Allows narrowing without value loss
+narrow&lt;&gt;(): Terminates when narrowing with value loss
+narrow&lt;&gt;(): Terminates when narrowing with sign loss</code></pre>

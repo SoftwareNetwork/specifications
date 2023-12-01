@@ -1,0 +1,36 @@
+<h1 id="try_signal">try_signal</h1>
+<p><a href="https://travis-ci.org/arvidn/try_signal"><img src="https://travis-ci.org/arvidn/try_signal.svg?branch=master" alt="image" /></a></p>
+<p><a href="https://ci.appveyor.com/project/arvidn/try-signal/branch/master"><img src="https://ci.appveyor.com/api/projects/status/le8jjroaai8081f1?svg=true" alt="image" /></a></p>
+<p>The <code>try_signal</code> library provide a way to turn signals into C++ exceptions. This is especially useful when performing disk I/O via memory mapped files, where I/O errors are reported as <code>SIGBUS</code> and <code>SIGSEGV</code> or as structured exceptions on windows.</p>
+<p>The function <code>try_signal</code> takes a function object that will be executed once. If the function causes a signal (or structured exception) to be raised, it will throw a C++ exception. Note that RAII may not be relied upon within this function. It may not rely on destructors being called. Stick to simple operations like memcopy.</p>
+<p>Example:</p>
+<pre><code>#include &lt;stdexcept&gt;
+#include &lt;vector&gt;
+#include &lt;numeric&gt;
+#include &quot;try_signal.hpp&quot;
+#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/mman.h&gt;
+
+int main() try
+{
+    int fd = open(&quot;test_file&quot;, O_RDWR);
+    void* map = mmap(nullptr, 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    std::vector&lt;char&gt; buf(1024);
+    std::iota(buf.begin(), buf.end(), 0);
+
+    // disk full or access after EOF are reported as exceptions
+    sig::try_signal([&amp;]{
+        std::memcpy(map, buf.data(), buf.size());
+    });
+
+    munmap(map, 1024);
+    close(fd);
+    return 0;
+}
+catch (std::exception const&amp; e)
+{
+    fprintf(stderr, &quot;exited with exception: %s\n&quot;, e.what());
+    return 1;
+}</code></pre>

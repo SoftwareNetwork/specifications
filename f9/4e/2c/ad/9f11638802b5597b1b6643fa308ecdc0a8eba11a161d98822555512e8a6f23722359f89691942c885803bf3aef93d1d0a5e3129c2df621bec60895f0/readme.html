@@ -1,0 +1,64 @@
+<h1 id="scope_guard">scope_guard</h1>
+<p><a href="https://travis-ci.org/ricab/scope_guard"><img src="https://img.shields.io/travis/ricab/scope_guard.svg" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/ricab/scope-guard/branch/master"><img src="https://img.shields.io/appveyor/ci/ricab/scope-guard.svg" alt="Build status" /></a> <a href="https://codecov.io/gh/ricab/scope_guard"><img src="https://img.shields.io/codecov/c/github/ricab/scope_guard.svg" alt="codecov" /></a></p>
+<p><a href="https://github.com/ricab/scope_guard/releases"><img src="https://img.shields.io/github/release/ricab/scope_guard/all.svg" alt="GitHub release" /></a> <a href="https://semver.org/spec/v2.0.0.html"><img src="https://img.shields.io/badge/semver-2.0.0-blue.svg" alt="semver" /></a> <a href="https://github.com/ricab/scope_guard/blob/master/LICENSE"><img src="https://img.shields.io/github/license/ricab/scope_guard.svg" alt="GitHub license" /></a></p>
+<p><a href="https://github.com/ricab/scope_guard"><img src="https://img.shields.io/github/stars/ricab/scope_guard.svg?style=social&amp;label=Stars" alt="GitHub stars" /></a></p>
+<p>A public, general, simple, and fast C++11 scope guard that defends against implicitly ignored returns and optionally enforces <code>noexcept</code> at compile time (in C++17), all in a SFINAE-friendly maner.</p>
+<h5 id="tldr">TLDR</h5>
+<p>Get it <a href="scope_guard.hpp">here</a>. Usage is simple:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;scope_guard.hpp&quot;</span>
+...
+{
+  ...
+  <span class="kw">auto</span> guard = sg::make_scope_guard(my_callback);
+  ...
+} <span class="co">// my_callback is invoked at this point</span></code></pre></div>
+<h2 id="introduction">Introduction</h2>
+<p>A scope guard is an object that employs RAII to execute a provided callback when leaving scope, be it through a <em>fall-through</em>, a return, or an exception. That callback can be a function, a function pointer, a functor, a lambda, a bind result, a std::function, a reference to any of these, or any other callable, as long as it respects a few <a href="docs/precond.md">preconditions</a> – most of which are enforced during compilation, the rest being hopefully intuitive.</p>
+<p>All necessary code is provided in a <a href="scope_guard.hpp">single header</a> (the remaining files are only for testing and documentation).</p>
+<h4 id="acknowledgments">Acknowledgments</h4>
+<p>The concept of &quot;scope guard&quot; was <a href="http://drdobbs.com/184403758">proposed</a> by Andrei Alexandrescu and Petru Marginean and it is well known in the C++ community. It has been proposed for standardization (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4189.pdf">N4189</a>) but is still not part of the standard library, as of March 2018.</p>
+<h4 id="why">Why</h4>
+<p>While there are several implementations available, I did not find any with all the characteristics I aimed for here - safe, tested, documented, public domain, thin wrapping, general, standalone, simple interface... (see feature list below).</p>
+<h2 id="features">Features</h2>
+<h4 id="main-features">Main features</h4>
+<ul>
+<li>[x] ≥ C++11</li>
+<li>[x] Reduced interface</li>
+<li>[x] Thin callback wrapping: no added <code>std::function</code> or virtual table penalties</li>
+<li>[x] General: accepts any callable that respects a few <a href="docs/precond.md">preconditions</a></li>
+<li>[x] No implicitly ignored return (details <a href="docs/precond.md#void-return">here</a>)</li>
+<li>[x] Option to enforce <code>noexcept</code> in C++17 (details <a href="docs/interface.md#compilation-option-sg_require_noexcept_in_cpp17">here</a>)</li>
+<li>[x] Modern exception specifications (<code>noexcept</code> with conditions when necessary)</li>
+<li>[x] SFINAE friendliness (see <a href="docs/design.md#sfinae-friendliness">here</a>)</li>
+</ul>
+<h4 id="other-characteristics">Other characteristics</h4>
+<ul>
+<li>[x] No dependencies to use (besides ≥C++11 compiler and standard library)</li>
+<li>[x] No macros to make guard – just write explicit lambda or bind or what have you</li>
+<li>[x] Extensively tested, with both <a href="compile_time_tests.cpp">compile time tests</a> and <a href="catch_tests.cpp">runtime-tests</a></li>
+<li>[x] Carefully documented (adhering to <a href="https://tools.ietf.org/html/rfc2119">RFC2119</a>)</li>
+<li>[x] Standalone header that can be directly dumped into any project</li>
+<li>[x] Unlicense'd</li>
+<li>[x] <code>snake_case</code> style</li>
+</ul>
+<h4 id="notes">Notes</h4>
+<p><sup><em>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;REQUIRED&quot;, &quot;SHALL&quot;, &quot;SHALL NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, &quot;RECOMMENDED&quot;, &quot;MAY&quot;, and &quot;OPTIONAL&quot; in this document are to be interpreted as described in RFC 2119.</em></sup></p>
+<h4 id="issues">Issues</h4>
+<p>Bug reports and suggestions are welcome. If you find that something is incorrect or could be improved, feel free to open an issue.</p>
+<h2 id="setup">Setup</h2>
+<p>Setup consists merely of making the <a href="scope_guard.hpp">header file</a> available to the compiler. That can be achieved by any of the following options:</p>
+<ul>
+<li>placing it directly in the client project's include path</li>
+<li>placing it in a central include path that is known to the compiler</li>
+<li>placing it in an arbitrary path and configuring the compiler to include that path</li>
+</ul>
+<p>The preprocessor definition <code>SG_REQUIRE_NOEXCEPT_IN_CPP17</code> MAY be provided to the compiler. The effect of this option is explained <a href="docs/interface.md#compilation-option-sg_require_noexcept_in_cpp17">here</a>.</p>
+<h2 id="further-documentation">Further documentation</h2>
+<h4 id="client-interface">Client interface</h4>
+<p>The client interface is documented in detail <a href="docs/interface.md">here</a>.</p>
+<h4 id="preconditions-in-detail">Preconditions in detail</h4>
+<p>Callback preconditions are explained <a href="docs/precond.md">here</a>.</p>
+<h4 id="design-choices-and-concepts">Design choices and concepts</h4>
+<p>Design choices and concepts are discussed <a href="docs/design.md">here</a>.</p>
+<h4 id="tests">Tests</h4>
+<p>Instructions on how to run the tests are <a href="docs/tests.md">here</a>.</p>

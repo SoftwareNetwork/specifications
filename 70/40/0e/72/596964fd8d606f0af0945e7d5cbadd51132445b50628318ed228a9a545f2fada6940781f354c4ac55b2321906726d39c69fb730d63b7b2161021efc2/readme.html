@@ -1,0 +1,181 @@
+<h1 id="mapbox-variant">Mapbox Variant</h1>
+<p>An header-only alternative to <code>boost::variant</code> for C++11 and C++14</p>
+<p><a href="https://travis-ci.org/mapbox/variant"><img src="https://secure.travis-ci.org/mapbox/variant.svg" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Mapbox/variant"><img src="https://ci.appveyor.com/api/projects/status/v9tatx21j1k0fcgy" alt="Build status" /></a> <a href="https://coveralls.io/r/mapbox/variant?branch=master"><img src="https://coveralls.io/repos/mapbox/variant/badge.svg?branch=master&amp;service=github" alt="Coverage Status" /></a></p>
+<h2 id="introduction">Introduction</h2>
+<p>Variant's basic building blocks are:</p>
+<ul>
+<li><code>variant&lt;Ts...&gt;</code> - a type-safe representation for sum-types / discriminated unions</li>
+<li><code>recursive_wrapper&lt;T&gt;</code> - a helper type to represent recursive &quot;tree-like&quot; variants</li>
+<li><code>apply_visitor(visitor, myVariant)</code> - to invoke a custom visitor on the variant's underlying type</li>
+<li><code>get&lt;T&gt;()</code> - a function to directly unwrap a variant's underlying type</li>
+<li><code>.match([](Type){})</code> - a variant convenience member function taking an arbitrary number of lambdas creating a visitor behind the scenes and applying it to the variant</li>
+</ul>
+<h3 id="basic-usage---http-api-example">Basic Usage - HTTP API Example</h3>
+<p>Suppose you want to represent a HTTP API response which is either a JSON result or an error:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Result {
+  Json object;
+};
+
+<span class="kw">struct</span> Error {
+  <span class="dt">int32_t</span> code;
+  string message;
+};</code></pre></div>
+<p>You can represent this at type level using a variant which is either an <code>Error</code> or a <code>Result</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> Response = variant&lt;Error, Result&gt;;
+
+Response makeRequest() {
+  <span class="cf">return</span> Error{<span class="dv">501</span>, <span class="st">&quot;Not Implemented&quot;</span>};
+}
+
+Response ret = makeRequest();</code></pre></div>
+<p>To see which type the <code>Response</code> holds you pattern match on the variant unwrapping the underlying value:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">ret.match([] (Result r) { print(r.object); },
+          [] (Error e)  { print(e.message); });</code></pre></div>
+<p>Instead of using the variant's convenience <code>.match</code> pattern matching function you can create a type visitor functor and use <code>apply_visitor</code> manually:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> ResponseVisitor {
+  <span class="dt">void</span> <span class="kw">operator</span>()(Result r) <span class="at">const</span> {
+    print(r.object);
+  }
+
+  <span class="dt">void</span> <span class="kw">operator</span>()(Error e) <span class="at">const</span> {
+    print(e.message);
+  }
+};
+
+ResponseVisitor visitor;
+apply_visitor(visitor, ret);</code></pre></div>
+<p>In both cases the compiler makes sure you handle all types the variant can represent at compile.</p>
+<h3 id="recursive-variants---json-example">Recursive Variants - JSON Example</h3>
+<p><a href="http://www.json.org/">JSON</a> consists of types <code>String</code>, <code>Number</code>, <code>True</code>, <code>False</code>, <code>Null</code>, <code>Array</code> and <code>Object</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> String { string value; };
+<span class="kw">struct</span> Number { <span class="dt">double</span> value; };
+<span class="kw">struct</span> True   { };
+<span class="kw">struct</span> False  { };
+<span class="kw">struct</span> Null   { };
+<span class="kw">struct</span> Array  { vector&lt;?&gt; values; };
+<span class="kw">struct</span> Object { unordered_map&lt;string, ?&gt; values; };</code></pre></div>
+<p>This works for primitive types but how do we represent recursive types such as <code>Array</code> which can hold multiple elements and <code>Array</code> itself, too?</p>
+<p>For these use cases Variant provides a <code>recursive_wrapper</code> helper type which lets you express recursive Variants.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> String { string value; };
+<span class="kw">struct</span> Number { <span class="dt">double</span> value; };
+<span class="kw">struct</span> True   { };
+<span class="kw">struct</span> False  { };
+<span class="kw">struct</span> Null   { };
+
+<span class="co">// Forward declarations only</span>
+<span class="kw">struct</span> Array;
+<span class="kw">struct</span> Object;
+
+<span class="kw">using</span> Value = variant&lt;String, Number, True, False, Null, recursive_wrapper&lt;Array&gt;, recursive_wrapper&lt;Object&gt;&gt;;
+
+<span class="kw">struct</span> Array {
+  vector&lt;Value&gt; values;
+};
+
+<span class="kw">struct</span> Object {
+  unordered_map&lt;string, Value&gt; values;
+};</code></pre></div>
+<p>For walking the JSON representation you can again either create a <code>JSONVisitor</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> JSONVisitor {
+
+  <span class="dt">void</span> <span class="kw">operator</span>()(Null) <span class="at">const</span> {
+    print(<span class="st">&quot;null&quot;</span>);
+  }
+
+  <span class="co">// same for all other JSON types</span>
+};
+
+JSONVisitor visitor;
+apply_visitor(visitor, json);</code></pre></div>
+<p>Or use the convenience <code>.match</code> pattern matching function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">json.match([] (Null) { print(<span class="st">&quot;null&quot;</span>); },
+           ...);</code></pre></div>
+<p>To summarize: use <code>recursive_wrapper</code> to represent recursive &quot;tree-like&quot; representations:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Empty { };
+<span class="kw">struct</span> Node;
+
+<span class="kw">using</span> Tree = variant&lt;Empty, recursive_wrapper&lt;Node&gt;&gt;;
+
+<span class="kw">struct</span> Node {
+  <span class="dt">uint64_t</span> value;
+}</code></pre></div>
+<h3 id="advanced-usage-tips">Advanced Usage Tips</h3>
+<p>Creating type aliases for variants is a great way to reduce repetition. Keep in mind those type aliases are not checked at type level, though. We recommend creating a new type for all but basic variant usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// the compiler can&#39;t tell the following two apart</span>
+<span class="kw">using</span> APIResult = variant&lt;Error, Result&gt;;
+<span class="kw">using</span> FilesystemResult = variant&lt;Error, Result&gt;;
+
+<span class="co">// new type</span>
+<span class="kw">struct</span> APIResult : variant&lt;Error, Result&gt; {
+  <span class="kw">using</span> Base = variant&lt;Error, Result&gt;;
+  <span class="kw">using</span> Base::Base;
+}</code></pre></div>
+<h2 id="why-use-mapbox-variant">Why use Mapbox Variant?</h2>
+<p>Mapbox variant has the same speedy performance of <code>boost::variant</code> but is faster to compile, results in smaller binaries, and has no dependencies.</p>
+<p>For example on OS X 10.9 with clang++ and libc++:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Test</th>
+<th>Mapbox Variant</th>
+<th>Boost Variant</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Size of pre-compiled header (release / debug)</td>
+<td>2.8/2.8 MB</td>
+<td>12/15 MB</td>
+</tr>
+<tr class="even">
+<td>Size of simple program linking variant (release / debug)</td>
+<td>8/24 K</td>
+<td>12/40 K</td>
+</tr>
+<tr class="odd">
+<td>Time to compile header</td>
+<td>185 ms</td>
+<td>675 ms</td>
+</tr>
+</tbody>
+</table>
+<p>(Numbers from an older version of Mapbox variant.)</p>
+<h2 id="goals">Goals</h2>
+<p>Mapbox <code>variant</code> has been a very valuable, lightweight alternative for apps that can use c++11 or c++14 but that do not want a boost dependency. Mapbox <code>variant</code> has also been useful in apps that do depend on boost, like mapnik, to help (slightly) with compile times and to majorly lessen dependence on boost in core headers. The original goal and near term goal is to maintain external API compatibility with <code>boost::variant</code> such that Mapbox <code>variant</code> can be a &quot;drop in&quot;. At the same time the goal is to stay minimal: Only implement the features that are actually needed in existing software. So being an &quot;incomplete&quot; implementation is just fine.</p>
+<p>Currently Mapbox variant doesn't try to be API compatible with the upcoming variant standard, because the standard is not finished and it would be too much work. But we'll revisit this decision in the future if needed.</p>
+<p>If Mapbox variant is not for you, have a look at <a href="doc/other_implementations.md">these other implementations</a>.</p>
+<p>Want to know more about the upcoming standard? Have a look at our <a href="doc/standards_effort.md">overview</a>.</p>
+<p>Most modern high-level languages provide ways to express sum types directly. If you're curious have a look at Haskell's pattern matching or Rust's and Swift's enums.</p>
+<h2 id="depends">Depends</h2>
+<ul>
+<li>Compiler supporting <code>-std=c++11</code> or <code>-std=c++14</code></li>
+</ul>
+<p>Tested with:</p>
+<ul>
+<li>g++-4.7</li>
+<li>g++-4.8</li>
+<li>g++-4.9</li>
+<li>g++-5.2</li>
+<li>clang++-3.5</li>
+<li>clang++-3.6</li>
+<li>clang++-3.7</li>
+<li>clang++-3.8</li>
+<li>clang++-3.9</li>
+<li>Visual Studio 2015</li>
+</ul>
+<h2 id="unit-tests">Unit Tests</h2>
+<p>On Unix systems compile and run the unit tests with <code>make test</code>.</p>
+<p>On Windows run <code>scripts/build-local.bat</code>.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The <code>variant</code> can not hold references (something like <code>variant&lt;int&amp;&gt;</code> is not possible). You might want to try <code>std::reference_wrapper</code> instead.</li>
+</ul>
+<h2 id="deprecations">Deprecations</h2>
+<ul>
+<li>The included implementation of <code>optional</code> is deprecated and will be removed in a future version. See <a href="https://github.com/mapbox/variant/issues/64">issue #64</a>.</li>
+<li>Old versions of the code needed visitors to derive from <code>static_visitor</code>. This is not needed any more and marked as deprecated. The <code>static_visitor</code> class will be removed in future versions.</li>
+</ul>
+<h2 id="benchmarks">Benchmarks</h2>
+<pre><code>make bench</code></pre>
+<h2 id="check-object-sizes">Check object sizes</h2>
+<pre><code>make sizes /path/to/boost/variant.hpp</code></pre>

@@ -1,0 +1,75 @@
+<h1 id="seastar">Seastar</h1>
+<p><a href="https://circleci.com/gh/scylladb/seastar"><img src="https://circleci.com/gh/scylladb/seastar.svg?style=svg" alt="CircleCI" /></a> <a href="https://github.com/scylladb/seastar/releases"><img src="https://img.shields.io/github/tag/scylladb/seastar.svg?label=version&amp;colorB=green" alt="Version" /></a> <a href="https://github.com/scylladb/seastar/blob/master/LICENSE"><img src="https://img.shields.io/github/license/scylladb/seastar.svg" alt="License: Apache2" /></a> <a href="https://github.com/scylladb/seastar/labels/n00b"><img src="https://img.shields.io/github/issues/scylladb/seastar/n00b.svg?colorB=green" alt="n00b issues" /></a></p>
+<h2 id="introduction">Introduction</h2>
+<p>SeaStar is an event-driven framework allowing you to write non-blocking, asynchronous code in a relatively straightforward manner (once understood). It is based on <a href="http://en.wikipedia.org/wiki/Futures_and_promises">futures</a>.</p>
+<h2 id="building-seastar">Building Seastar</h2>
+<p>For more details and alternative work-flows, read <a href="./HACKING.md">HACKING.md</a>.</p>
+<p>Assuming that you would like to use system packages (RPMs or DEBs) for Seastar's dependencies, first install them:</p>
+<pre><code>$ sudo ./install-dependencies.sh</code></pre>
+<p>then configure (in &quot;release&quot; mode):</p>
+<pre><code>$ ./configure.py --mode=release</code></pre>
+<p>then compile:</p>
+<pre><code>$ ninja -C build/release</code></pre>
+<p>If you're missing a dependency of Seastar, then it is possible to have the configuration process fetch a version of the dependency locally for development.</p>
+<p>For example, to fetch <code>fmt</code> locally, configure Seastar like this:</p>
+<pre><code>$ ./configure.py --mode=dev --cook fmt</code></pre>
+<p><code>--cook</code> can be repeated many times for selecting multiple dependencies.</p>
+<h2 id="build-modes">Build modes</h2>
+<p>The configure.py script is a wrapper around cmake. The --mode argument maps to CMAKE_BUILD_TYPE, and supports the following modes</p>
+<pre><code>      | CMake mode        | Debug info | Optimizations  | Sanitizers   | Allocator | Checks   | Use for                                |</code></pre>
+<p>---------+-------------------+------------+----------------+--------------+-----------+----------+----------------------------------------| debug | Debug | Yes | -O0 | ASAN, UBSAN | System | All | gdb | release | RelWithDebInfo | Yes | -O3 | None | Seastar | Asserts | production | dev | Dev (Custom) | No | -O1 | None | Seastar | Asserts | build and test cycle | sanitize | Sanitize (Custom) | Yes | -Os | ASAN, UBSAN | System | All | second level of tests, track down bugs |</p>
+<p>Note that seastar is more sensitive to allocators and optimizations than usual. A quick rule of the thumb of the relative performances is that release is 2 times faster than dev, 150 times faster than sanitize and 300 times faster than debug.</p>
+<h2 id="using-seastar-from-its-build-directory-without-installation">Using Seastar from its build directory (without installation)</h2>
+<p>It's possible to consume Seastar directly from its build directory with CMake or <code>pkg-config</code>.</p>
+<p>We'll assume that the Seastar repository is located in a directory at <code>$seastar_dir</code>.</p>
+<p>Via <code>pkg-config</code>:</p>
+<pre><code>$ g++ my_app.cc $(pkg-config --libs --cflags --static $seastar_dir/build/release/seastar.pc) -o my_app</code></pre>
+<p>and with CMake using the <code>Seastar</code> package:</p>
+<p><code>CMakeLists.txt</code> for <code>my_app</code>:</p>
+<pre><code>find_package (Seastar REQUIRED)
+
+add_executable (my_app
+  my_app.cc)
+  
+target_link_libraries (my_app
+  Seastar::seastar)</code></pre>
+<pre><code>$ mkdir $my_app_dir/build
+$ cd $my_app_dir/build
+$ cmake -DCMAKE_PREFIX_PATH=&quot;$seastar_dir/build/release;$seastar_dir/build/release/_cooking/installed&quot; -DCMAKE_MODULE_PATH=$seastar_dir/cmake $my_app_dir</code></pre>
+<p>The <code>CMAKE_PREFIX_PATH</code> values ensure that CMake can locate Seastar and its compiled submodules. The <code>CMAKE_MODULE_PATH</code> value ensures that CMake can uses Seastar's CMake scripts for locating its dependencies.</p>
+<h2 id="using-an-installed-seastar">Using an installed Seastar</h2>
+<p>You can also consume Seastar after it has been installed to the file-system.</p>
+<p><strong>Important:</strong></p>
+<ul>
+<li>Seastar works with a customized version of DPDK, so by default builds and installs the DPDK submodule to <code>$build_dir/_cooking/installed</code></li>
+</ul>
+<p>First, configure the installation path:</p>
+<pre><code>$ ./configure.py --mode=release --prefix=/usr/local</code></pre>
+<p>then run the <code>install</code> target:</p>
+<pre><code>$ ninja -C build/release install</code></pre>
+<p>then consume it from <code>pkg-config</code>:</p>
+<pre><code>$ g++ my_app.cc $(pkg-config --libs --cflags --static seastar) -o my_app</code></pre>
+<p>or consume it with the same <code>CMakeLists.txt</code> as before but with a simpler CMake invocation:</p>
+<pre><code>$ cmake ..</code></pre>
+<p>(If Seastar has not been installed to a &quot;standard&quot; location like <code>/usr</code> or <code>/usr/local</code>, then you can invoke CMake with <code>-DCMAKE_PREFIX_PATH=$my_install_root</code>.)</p>
+<p>There are also instructions for building on any host that supports <a href="doc/building-docker.md">Docker</a>.</p>
+<p>Use of the <a href="http://dpdk.org">DPDK</a> is <a href="doc/building-dpdk.md">optional</a>.</p>
+<h4 id="seastars-c-dialect-c14-or-c17">Seastar's C++ dialect: C++14 or C++17</h4>
+<p>Seastar supports both C++14, and C++17. Some newer features and optimizations may only be available to C++17, so users are encouraged to use C++17 when possible. By default Seastar builds with the C++17 dialect, but a C++14 compilation can be requested with a <code>./configure.py --c++-dialect=gnu++14</code> or, if using CMake directly, by setting on the <code>Seastar_CXX_DIALECT</code> CMake variable to <code>&quot;gnu++14&quot;</code>.</p>
+<p>However, by default Seastar uses C++14-compatible types such as <code>std::experimental::optional&lt;&gt;</code>, <code>boost::variant</code> and <code>std::experimental::string_view</code>, both internally and in its public API, thus forcing them on C++17 projects. To fix this, Seastar respects the value of the preprocessor variable <code>SEASTAR_USE_STD_OPTIONAL_VARIANT_STRINGVIEW</code>, which changes those types to their <code>stdlib</code> incarnation, and allows seemless use of C++17. Usage of this option requires an updated compiler, such as GCC 8.1.1-5 on Fedora.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>There is a <a href="doc/mini-tutorial.md">mini tutorial</a> and a <a href="doc/tutorial.md">more comprehensive one</a>.</p>
+<p>The documentation is available on the <a href="http://docs.seastar.io/master/index.html">web</a>.</p>
+<h2 id="resources">Resources</h2>
+<p>Ask questions and post patches on the development mailing list. Subscription information and archives are available <a href="https://groups.google.com/forum/#!forum/seastar-dev">here</a>, or just send an email to seastar-dev@googlegroups.com.</p>
+<p>Information can be found on the main <a href="http://seastar.io">project website</a>.</p>
+<p>File bug reports on the project <a href="https://github.com/scylladb/seastar/issues">issue tracker</a>.</p>
+<h2 id="the-native-tcpip-stack">The Native TCP/IP Stack</h2>
+<p>Seastar comes with its own <a href="doc/native-stack.md">userspace TCP/IP stack</a> for better performance.</p>
+<h2 id="recommended-hardware-configuration-for-seastar">Recommended hardware configuration for SeaStar</h2>
+<ul>
+<li>CPUs - As much as you need. SeaStar is highly friendly for multi-core and NUMA</li>
+<li>NICs - As fast as possible, we recommend 10G or 40G cards. It's possible to use 1G too but you may be limited by their capacity. In addition, the more hardware queue per cpu the better for SeaStar. Otherwise we have to emulate that in software.</li>
+<li>Disks - Fast SSDs with high number of IOPS.</li>
+<li>Client machines - Usually a single client machine can't load our servers. Both memaslap (memcached) and WRK (httpd) cannot over load their matching server counter parts. We recommend running the client on different machine than the servers and use several of them.</li>
+</ul>

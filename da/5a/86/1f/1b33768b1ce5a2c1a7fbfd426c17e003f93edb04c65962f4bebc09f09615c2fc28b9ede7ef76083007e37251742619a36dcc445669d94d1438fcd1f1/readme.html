@@ -1,0 +1,108 @@
+<h1 id="readme-for-mbed-tls">README for Mbed TLS</h1>
+<h2 id="configuration">Configuration</h2>
+<p>Mbed TLS should build out of the box on most systems. Some platform specific options are available in the fully documented configuration file <code>include/mbedtls/config.h</code>, which is also the place where features can be selected. This file can be edited manually, or in a more programmatic way using the Perl script <code>scripts/config.pl</code> (use <code>--help</code> for usage instructions).</p>
+<p>Compiler options can be set using conventional environment variables such as <code>CC</code> and <code>CFLAGS</code> when using the Make and CMake build system (see below).</p>
+<h2 id="compiling">Compiling</h2>
+<p>There are currently three active build systems used within Mbed TLS releases:</p>
+<ul>
+<li>GNU Make</li>
+<li>CMake</li>
+<li>Microsoft Visual Studio (Microsoft Visual Studio 2010 or later)</li>
+</ul>
+<p>The main systems used for development are CMake and GNU Make. Those systems are always complete and up-to-date. The others should reflect all changes present in the CMake and Make build system, although features may not be ported there automatically.</p>
+<p>The Make and CMake build systems create three libraries: libmbedcrypto, libmbedx509, and libmbedtls. Note that libmbedtls depends on libmbedx509 and libmbedcrypto, and libmbedx509 depends on libmbedcrypto. As a result, some linkers will expect flags to be in a specific order, for example the GNU linker wants <code>-lmbedtls -lmbedx509 -lmbedcrypto</code>. Also, when loading shared libraries using dlopen(), you'll need to load libmbedcrypto first, then libmbedx509, before you can load libmbedtls.</p>
+<h3 id="make">Make</h3>
+<p>We require GNU Make. To build the library and the sample programs, GNU Make and a C compiler are sufficient. Some of the more advanced build targets require some Unix/Linux tools.</p>
+<p>We intentionally only use a minimum of functionality in the makefiles in order to keep them as simple and independent of different toolchains as possible, to allow users to more easily move between different platforms. Users who need more features are recommended to use CMake.</p>
+<p>In order to build from the source code using GNU Make, just enter at the command line:</p>
+<pre><code>make</code></pre>
+<p>In order to run the tests, enter:</p>
+<pre><code>make check</code></pre>
+<p>The tests need Perl to be built and run. If you don't have Perl installed, you can skip building the tests with:</p>
+<pre><code>make no_test</code></pre>
+<p>You'll still be able to run a much smaller set of tests with:</p>
+<pre><code>programs/test/selftest</code></pre>
+<p>In order to build for a Windows platform, you should use <code>WINDOWS_BUILD=1</code> if the target is Windows but the build environment is Unix-like (for instance when cross-compiling, or compiling from an MSYS shell), and <code>WINDOWS=1</code> if the build environment is a Windows shell (for instance using mingw32-make) (in that case some targets will not be available).</p>
+<p>Setting the variable <code>SHARED</code> in your environment will build shared libraries in addition to the static libraries. Setting <code>DEBUG</code> gives you a debug build. You can override <code>CFLAGS</code> and <code>LDFLAGS</code> by setting them in your environment or on the make command line; compiler warning options may be overridden separately using <code>WARNING_CFLAGS</code>. Some directory-specific options (for example, <code>-I</code> directives) are still preserved.</p>
+<p>Please note that setting <code>CFLAGS</code> overrides its default value of <code>-O2</code> and setting <code>WARNING_CFLAGS</code> overrides its default value (starting with <code>-Wall -W</code>), so if you just want to add some warning options to the default ones, you can do so by setting <code>CFLAGS=-O2 -Werror</code> for example. Setting <code>WARNING_CFLAGS</code> is useful when you want to get rid of its default content (for example because your compiler doesn't accept <code>-Wall</code> as an option). Directory-specific options cannot be overriden from the command line.</p>
+<p>Depending on your platform, you might run into some issues. Please check the Makefiles in <code>library/</code>, <code>programs/</code> and <code>tests/</code> for options to manually add or remove for specific platforms. You can also check <a href="https://tls.mbed.org/kb">the Mbed TLS Knowledge Base</a> for articles on your platform or issue.</p>
+<p>In case you find that you need to do something else as well, please let us know what, so we can add it to the <a href="https://tls.mbed.org/kb">Mbed TLS Knowledge Base</a>.</p>
+<h3 id="cmake">CMake</h3>
+<p>In order to build the source using CMake in a separate directory (recommended), just enter at the command line:</p>
+<pre><code>mkdir /path/to/build_dir &amp;&amp; cd /path/to/build_dir
+cmake /path/to/mbedtls_source
+make</code></pre>
+<p>In order to run the tests, enter:</p>
+<pre><code>make test</code></pre>
+<p>The test suites need Perl to be built. If you don't have Perl installed, you'll want to disable the test suites with:</p>
+<pre><code>cmake -DENABLE_TESTING=Off /path/to/mbedtls_source</code></pre>
+<p>If you disabled the test suites, but kept the programs enabled, you can still run a much smaller set of tests with:</p>
+<pre><code>programs/test/selftest</code></pre>
+<p>To configure CMake for building shared libraries, use:</p>
+<pre><code>cmake -DUSE_SHARED_MBEDTLS_LIBRARY=On /path/to/mbedtls_source</code></pre>
+<p>There are many different build modes available within the CMake buildsystem. Most of them are available for gcc and clang, though some are compiler-specific:</p>
+<ul>
+<li><code>Release</code>. This generates the default code without any unnecessary information in the binary files.</li>
+<li><code>Debug</code>. This generates debug information and disables optimization of the code.</li>
+<li><code>Coverage</code>. This generates code coverage information in addition to debug information.</li>
+<li><code>ASan</code>. This instruments the code with AddressSanitizer to check for memory errors. (This includes LeakSanitizer, with recent version of gcc and clang.) (With recent version of clang, this mode also instruments the code with UndefinedSanitizer to check for undefined behaviour.)</li>
+<li><code>ASanDbg</code>. Same as ASan but slower, with debug information and better stack traces.</li>
+<li><code>MemSan</code>. This instruments the code with MemorySanitizer to check for uninitialised memory reads. Experimental, needs recent clang on Linux/x86_64.</li>
+<li><code>MemSanDbg</code>. Same as MemSan but slower, with debug information, better stack traces and origin tracking.</li>
+<li><code>Check</code>. This activates the compiler warnings that depend on optimization and treats all warnings as errors.</li>
+</ul>
+<p>Switching build modes in CMake is simple. For debug mode, enter at the command line:</p>
+<pre><code>cmake -D CMAKE_BUILD_TYPE=Debug /path/to/mbedtls_source</code></pre>
+<p>To list other available CMake options, use:</p>
+<pre><code>cmake -LH</code></pre>
+<p>Note that, with CMake, you can't adjust the compiler or its flags after the initial invocation of cmake. This means that <code>CC=your_cc make</code> and <code>make CC=your_cc</code> will <em>not</em> work (similarly with <code>CFLAGS</code> and other variables). These variables need to be adjusted when invoking cmake for the first time, for example:</p>
+<pre><code>CC=your_cc cmake /path/to/mbedtls_source</code></pre>
+<p>If you already invoked cmake and want to change those settings, you need to remove the build directory and create it again.</p>
+<p>Note that it is possible to build in-place; this will however overwrite the provided Makefiles (see <code>scripts/tmp_ignore_makefiles.sh</code> if you want to prevent <code>git status</code> from showing them as modified). In order to do so, from the Mbed TLS source directory, use:</p>
+<pre><code>cmake .
+make</code></pre>
+<p>If you want to change <code>CC</code> or <code>CFLAGS</code> afterwards, you will need to remove the CMake cache. This can be done with the following command using GNU find:</p>
+<pre><code>find . -iname &#39;*cmake*&#39; -not -name CMakeLists.txt -exec rm -rf {} +</code></pre>
+<p>You can now make the desired change:</p>
+<pre><code>CC=your_cc cmake .
+make</code></pre>
+<p>Regarding variables, also note that if you set CFLAGS when invoking cmake, your value of CFLAGS doesn't override the content provided by cmake (depending on the build mode as seen above), it's merely prepended to it.</p>
+<h3 id="microsoft-visual-studio">Microsoft Visual Studio</h3>
+<p>The build files for Microsoft Visual Studio are generated for Visual Studio 2010.</p>
+<p>The solution file <code>mbedTLS.sln</code> contains all the basic projects needed to build the library and all the programs. The files in tests are not generated and compiled, as these need a perl environment as well. However, the selftest program in <code>programs/test/</code> is still available.</p>
+<h2 id="example-programs">Example programs</h2>
+<p>We've included example programs for a lot of different features and uses in <a href="programs/README.md"><code>programs/</code></a>. Most programs only focus on a single feature or usage scenario, so keep that in mind when copying parts of the code.</p>
+<h2 id="tests">Tests</h2>
+<p>Mbed TLS includes an elaborate test suite in <code>tests/</code> that initially requires Perl to generate the tests files (e.g. <code>test\_suite\_mpi.c</code>). These files are generated from a <code>function file</code> (e.g. <code>suites/test\_suite\_mpi.function</code>) and a <code>data file</code> (e.g. <code>suites/test\_suite\_mpi.data</code>). The <code>function file</code> contains the test functions. The <code>data file</code> contains the test cases, specified as parameters that will be passed to the test function.</p>
+<p>For machines with a Unix shell and OpenSSL (and optionally GnuTLS) installed, additional test scripts are available:</p>
+<ul>
+<li><code>tests/ssl-opt.sh</code> runs integration tests for various TLS options (renegotiation, resumption, etc.) and tests interoperability of these options with other implementations.</li>
+<li><code>tests/compat.sh</code> tests interoperability of every ciphersuite with other implementations.</li>
+<li><code>tests/scripts/test-ref-configs.pl</code> test builds in various reduced configurations.</li>
+<li><code>tests/scripts/key-exchanges.pl</code> test builds in configurations with a single key exchange enabled</li>
+<li><code>tests/scripts/all.sh</code> runs a combination of the above tests, plus some more, with various build options (such as ASan, full <code>config.h</code>, etc).</li>
+</ul>
+<h2 id="configurations">Configurations</h2>
+<p>We provide some non-standard configurations focused on specific use cases in the <code>configs/</code> directory. You can read more about those in <code>configs/README.txt</code></p>
+<h2 id="porting-mbed-tls">Porting Mbed TLS</h2>
+<p>Mbed TLS can be ported to many different architectures, OS's and platforms. Before starting a port, you may find the following Knowledge Base articles useful:</p>
+<ul>
+<li><a href="https://tls.mbed.org/kb/how-to/how-do-i-port-mbed-tls-to-a-new-environment-OS">Porting Mbed TLS to a new environment or OS</a></li>
+<li><a href="https://tls.mbed.org/kb/development/what-external-dependencies-does-mbedtls-rely-on">What external dependencies does Mbed TLS rely on?</a></li>
+<li><a href="https://tls.mbed.org/kb/compiling-and-building/how-do-i-configure-mbedtls">How do I configure Mbed TLS</a></li>
+</ul>
+<h2 id="contributing">Contributing</h2>
+<p>We gratefully accept bug reports and contributions from the community. There are some requirements we need to fulfill in order to be able to integrate contributions:</p>
+<ul>
+<li>All contributions, whether large or small require a Contributor's License Agreement (CLA) to be accepted. This is because source code can possibly fall under copyright law and we need your consent to share in the ownership of the copyright.</li>
+<li>We would ask that contributions conform to <a href="https://tls.mbed.org/kb/development/mbedtls-coding-standards">our coding standards</a>, and that contributions should be fully tested before submission.</li>
+<li>As with any open source project, contributions will be reviewed by the project team and community and may need some modifications to be accepted.</li>
+</ul>
+<p>To accept the Contributor’s Licence Agreement (CLA), individual contributors can do this by creating an Mbed account and <a href="https://os.mbed.com/contributor_agreement/">accepting the online agreement here with a click through</a>. Alternatively, for contributions from corporations, or those that do not wish to create an Mbed account, a slightly different agreement can be found <a href="https://www.mbed.com/en/about-mbed/contributor-license-agreements/">here</a>. This agreement should be signed and returned to Arm as described in the instructions given.</p>
+<h3 id="making-a-contribution">Making a Contribution</h3>
+<ol style="list-style-type: decimal">
+<li><a href="https://github.com/ARMmbed/mbedtls/issues">Check for open issues</a> or <a href="https://forums.mbed.com/c/mbed-tls">start a discussion</a> around a feature idea or a bug.</li>
+<li>Fork the <a href="https://github.com/ARMmbed/mbedtls">Mbed TLS repository on GitHub</a> to start making your changes. As a general rule, you should use the &quot;development&quot; branch as a basis.</li>
+<li>Write a test which shows that the bug was fixed or that the feature works as expected.</li>
+<li>Send a pull request and bug us until it gets merged and published. Contributions may need some modifications, so work with us to get your change accepted. We will include your name in the ChangeLog :)</li>
+</ol>

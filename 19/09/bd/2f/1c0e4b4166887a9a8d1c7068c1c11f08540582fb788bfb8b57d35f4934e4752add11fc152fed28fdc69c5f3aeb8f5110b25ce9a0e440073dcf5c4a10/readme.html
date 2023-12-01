@@ -1,0 +1,113 @@
+<h2 id="aws-c-compression">AWS C Compression</h2>
+<p>This is a cross-platform C99 implementation of compression algorithms such as gzip, and huffman encoding/decoding. Currently only huffman is implemented.</p>
+<h2 id="license">License</h2>
+<p>This library is licensed under the Apache 2.0 License.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="building">Building</h3>
+<p>Note that aws-c-compression has a dependency on aws-c-common:</p>
+<pre><code>git clone git@github.com:awslabs/aws-c-common.git
+cmake -DCMAKE_PREFIX_PATH=&lt;install-path&gt; -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -S aws-c-common -B aws-c-common/build
+cmake --build aws-c-common/build --target install
+
+git clone git@github.com:awslabs/aws-c-compression.git
+cmake -DCMAKE_PREFIX_PATH=&lt;install-path&gt; -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -S aws-c-compression -B aws-c-compression/build
+cmake --build aws-c-compression/build --target install</code></pre>
+<h3 id="huffman">Huffman</h3>
+<p>The Huffman implemention in this library is designed around the concept of a generic “symbol coder” object, which defines how each symbol (value between 0 and 255) is encoded and decoded. This object looks like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> aws_huffman_code <span class="op">(*</span>aws_huffman_symbol_encoder<span class="op">)(</span><span class="dt">uint8_t</span> symbol<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="dt">uint8_t</span> <span class="op">(*</span>aws_huffman_symbol_decoder<span class="op">)(</span><span class="dt">uint32_t</span> bits<span class="op">,</span> <span class="dt">uint8_t</span> <span class="op">*</span>symbol<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> aws_huffman_symbol_coder <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    aws_huffman_symbol_encoder encode<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    aws_huffman_symbol_decoder decode<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>These callbacks may be implemented manually, or you may use the included Huffman coder generator to generate one from a table definition file. The generator expects to be called with the following arguments:</p>
+<pre class="shell"><code>$ aws-c-compression-huffman-generator path/to/table.def path/to/generated.c coder_name</code></pre>
+<p>The table definition file should be in the following format:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/*           sym               bits   code len */</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>HUFFMAN_CODE<span class="op">(</span>  <span class="dv">0</span><span class="op">,</span>      <span class="st">&quot;1100101110&quot;</span><span class="op">,</span> <span class="bn">0x32e</span><span class="op">,</span> <span class="dv">10</span><span class="op">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>HUFFMAN_CODE<span class="op">(</span>  <span class="dv">1</span><span class="op">,</span>      <span class="st">&quot;1100101111&quot;</span><span class="op">,</span> <span class="bn">0x32f</span><span class="op">,</span> <span class="dv">10</span><span class="op">)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">/* ... */</span></span></code></pre></div>
+<p>The HUFFMAN_CODE macro expects 4 arguments: * sym: the symbol value [0-255] * bits: the bits representing the symbol in string form * code: the bits representing the symbol in numeric form * len: the number of bits used to represent the symbol</p>
+<blockquote>
+<h4 id="note">Note</h4>
+<p>This file may also be <code>#include</code>d in the following way to generate a static list of codes:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Provides the HUFFMAN_CODE macro */</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;aws/testing/compression/huffman.h&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="kw">struct</span> huffman_test_code_point code_points<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;test_huffman_static_table.def&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</blockquote>
+<p>This will emit a c file which exports a function with the following signiture:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> aws_huffman_symbol_coder <span class="op">*{</span>coder_name<span class="op">}</span>_get_coder<span class="op">();</span></span></code></pre></div>
+<p>Note that this function does not allocate, but maintains a static instance of the coder.</p>
+<p>An example implementation of this file is provided in <code>tests/test_huffman_static_table.def</code>.</p>
+<p>To use the coder, forward declare that function, and pass the result as the second argument to <code>aws_huffman_encoder_init</code> and <code>aws_huffman_decoder_init</code>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> aws_huffman_encoder encoder<span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>aws_huffman_encoder_init<span class="op">(&amp;</span>encoder<span class="op">,</span> <span class="op">{</span>coder_name<span class="op">}</span>_get_coder<span class="op">());</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> aws_huffman_decoder decoder<span class="op">;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>aws_huffman_decoder_init<span class="op">(&amp;</span>decoder<span class="op">,</span> <span class="op">{</span>coder_name<span class="op">}</span>_get_coder<span class="op">())</span></span></code></pre></div>
+<h4 id="encoding">Encoding</h4>
+<div class="sourceCode" id="cb8"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Encode a symbol buffer into the output buffer.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">encoder</span><span class="co">         The encoder object to use</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">to_encode</span><span class="co">       The symbol buffer to encode</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in,out]</span><span class="co">   </span><span class="cv">length</span><span class="co">          In: The length of to_decode. Out: The number of bytes read from to_encode</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">output</span><span class="co">          The buffer to write encoded bytes to</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in,out]</span><span class="co">   </span><span class="cv">output_size</span><span class="co">     In: The size of output. Out: The number of bytes written to output</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\return</span><span class="co"> AWS_OP_SUCCESS if encoding is successful, AWS_OP_ERR the code for the error that occured</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_huffman_encode<span class="op">(</span><span class="kw">struct</span> aws_huffman_encoder <span class="op">*</span>encoder<span class="op">,</span> <span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>to_encode<span class="op">,</span> <span class="dt">size_t</span> <span class="op">*</span>length<span class="op">,</span> <span class="dt">uint8_t</span> <span class="op">*</span>output<span class="op">,</span> <span class="dt">size_t</span> <span class="op">*</span>output_size<span class="op">);</span></span></code></pre></div>
+<p>The encoder is built to support partial encoding. This means that if there isn’t enough space in <code>output</code>, the encoder will encode as much as possible, update <code>length</code> to indicate how much was consumed, <code>output_size</code> won’t change, and <code>AWS_ERROR_SHORT_BUFFER</code> will be raised. <code>aws_huffman_encode</code> may then be called again like the following pseudo-code:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> encode_and_send<span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>to_encode<span class="op">,</span> <span class="dt">size_t</span> size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>size <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint8_t</span> output<span class="op">[</span>some_chunk_size<span class="op">];</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size_t</span> output_size <span class="op">=</span> <span class="kw">sizeof</span><span class="op">(</span>output<span class="op">);</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size_t</span> bytes_read <span class="op">=</span> size<span class="op">;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        aws_huffman_encode<span class="op">(</span>encoder<span class="op">,</span> to_encode<span class="op">,</span> <span class="op">&amp;</span>bytes_read<span class="op">,</span> output<span class="op">,</span> <span class="op">&amp;</span>output_size<span class="op">);</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">/* AWS_ERROR_SHORT_BUFFER was raised... */</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        send_output_to_someone_else<span class="op">(</span>output<span class="op">,</span> output_size<span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        to_encode <span class="op">+=</span> bytes_read<span class="op">;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        size <span class="op">-=</span> bytes_read<span class="op">;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Be sure to reset the encoder after use */</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    aws_huffman_encoder_reset<span class="op">(</span>encoder<span class="op">);</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>aws_huffman_encoder</code> also has a <code>uint8_t</code> field called <code>eos_padding</code> that defines how any unwritten bits in the last byte of output are filled. The most significant bits will used. For example, if the last byte contains only 3 bits and <code>eos_padding</code> is <code>0b01010101</code>, <code>01010</code> will be appended to the byte.</p>
+<h4 id="decoding">Decoding</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Decodes a byte buffer into the provided symbol array.</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">decoder</span><span class="co">         The decoder object to use</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">to_decode</span><span class="co">       The encoded byte buffer to read from</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in,out]</span><span class="co">   </span><span class="cv">length</span><span class="co">          In: The length of to_decode. Out: The number of bytes read from to_decode</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in]</span><span class="co">       </span><span class="cv">output</span><span class="co">          The buffer to write decoded symbols to</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\param[in,out]</span><span class="co">   </span><span class="cv">output_size</span><span class="co">     In: The size of output. Out: The number of bytes written to output</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">\return</span><span class="co"> AWS_OP_SUCCESS if encoding is successful, AWS_OP_ERR the code for the error that occured</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_huffman_decode<span class="op">(</span><span class="kw">struct</span> aws_huffman_decoder <span class="op">*</span>decoder<span class="op">,</span> <span class="dt">const</span> <span class="dt">uint8_t</span> <span class="op">*</span>to_decode<span class="op">,</span> <span class="dt">size_t</span> <span class="op">*</span>length<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>output<span class="op">,</span> <span class="dt">size_t</span> <span class="op">*</span>output_size<span class="op">);</span></span></code></pre></div>
+<p>The decoder is built to support partial encoding. This means that if there isn’t enough space in <code>output</code>, the decoder will decode as much as possible, update <code>length</code> to indicate how much was consumed, <code>output_size</code> won’t change, and <code>AWS_ERROR_SHORT_BUFFER</code> will be raised. <code>aws_huffman_decode</code> may then be called again like the following pseudo-code:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> decode_and_send<span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>to_decode<span class="op">,</span> <span class="dt">size_t</span> size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>size <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint8_t</span> output<span class="op">[</span>some_chunk_size<span class="op">];</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size_t</span> output_size <span class="op">=</span> <span class="kw">sizeof</span><span class="op">(</span>output<span class="op">);</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size_t</span> bytes_read <span class="op">=</span> size<span class="op">;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        aws_huffman_decode<span class="op">(</span>decoder<span class="op">,</span> to_decode<span class="op">,</span> <span class="op">&amp;</span>bytes_read<span class="op">,</span> output<span class="op">,</span> <span class="op">&amp;</span>output_size<span class="op">);</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">/* AWS_ERROR_SHORT_BUFFER was raised... */</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        send_output_to_someone_else<span class="op">(</span>output<span class="op">,</span> output_size<span class="op">);</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        to_decode <span class="op">+=</span> bytes_read<span class="op">;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        size <span class="op">-=</span> bytes_read<span class="op">;</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Be sure to reset the decoder after use */</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    aws_huffman_decoder_reset<span class="op">(</span>decoder<span class="op">);</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Upon completion of a decode, the most significant bits of <code>decoder-&gt;working_bits</code> will contain the final bits of <code>to_decode</code> that could not match a symbol. This is useful for verifying the padding bits of a stream. For example, to validate that a stream ends in all 1’s (like HPACK requires), you could do the following:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>AWS_ASSERT<span class="op">(</span>decoder<span class="op">-&gt;</span>working_bits <span class="op">==</span> UINT64_MAX <span class="op">&lt;&lt;</span> <span class="op">(</span><span class="dv">64</span> <span class="op">-</span> decoder<span class="op">-&gt;</span>num_bits<span class="op">));</span></span></code></pre></div>

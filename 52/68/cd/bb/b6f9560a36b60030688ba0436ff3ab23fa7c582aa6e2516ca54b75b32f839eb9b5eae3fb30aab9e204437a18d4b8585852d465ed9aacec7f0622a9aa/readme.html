@@ -1,0 +1,123 @@
+<h2 id="libzippp">libzippp</h2>
+<p>libzippp is a simple basic C++ wrapper around the libzip library. It is meant to be a portable and easy-to-use library for ZIP handling.</p>
+<p>Compilation has been tested with: - GCC 4.9.3 (GNU/Linux Gentoo) - GCC 6.2.1 (GNU/Linux Debian) - GCC 6.3.0 (GNU/Linux Debian) - GCC 7.2.0 (GNU/Linux Debian) - MS Visual Studio 2012 (Windows 7)</p>
+<p>Underlying libraries: - <a href="http://zlib.net">ZLib</a> 1.2.11 - <a href="http://www.nih.at/libzip">libzip</a> 1.5.1</p>
+<h1 id="compilation">Compilation</h1>
+<h3 id="linux">LINUX</h3>
+<ol start="0" style="list-style-type: decimal">
+<li>Make sure you have the following commands: <code>g++</code> <code>make</code> <code>tar</code> <code>wget</code></li>
+<li>Download and compile the libraries (zlib and libzip) with the command: <code>make libraries</code></li>
+<li>Then create the static and shared libraries of libzippp: <code>make</code></li>
+<li>You may want to run the tests (optional): <code>make tests</code></li>
+<li>Now you just have to include the src folder in your include path and link against <em>libzippp.a</em> or <em>libzippp.so</em> (do not forget to also link against libzip libraries in <em>lib/libzip-1.5.1/lib/.libs/</em>). An example of compilation with g++:</li>
+</ol>
+<pre class="shell"><code>g++ -I./lib/libzip-1.5.1/lib -I./src \
+    main.cpp libzippp.a \
+    lib/libzip-1.5.1/lib/.libs/libzip.a \
+    lib/zlib-1.2.11/libz.a</code></pre>
+<h4 id="encryption">Encryption</h4>
+<p>Since version 1.5, libzip uses an underlying cryptographic library (OpenSSL, GNUTLS or CommonCrypto) that is necessary for static compilation. By default, libzippp will use <code>-lssl -lcrypto</code> (OpenSSL) as default flags to compile the tests. This can be changed by using <code>make CRYPTO_FLAGS=-lsome_lib tests</code></p>
+<p>See <a href="https://github.com/nih-at/libzip/blob/master/INSTALL.md">here</a> for more information.</p>
+<h3 id="windows">WINDOWS</h3>
+<h4 id="from-stage-1---use-prepared-environment">From Stage 1 - Use prepared environment</h4>
+<ol start="0" style="list-style-type: decimal">
+<li><p>Make sure you have cmake 3.10 (<em>cmake.exe</em> must be in the PATH) and MS Visual Studio 2012. The dev command prompt path (defined in <em>compile.bat</em>) should be: <code>&lt;MSVS11&gt;\Common7\Tools\VsDevCmd.bat</code></p></li>
+<li><p>Download the <em>libzip-&lt;version&gt;-windows-ready_to_compile.zip</em> file from the release and extract it somewhere on your system. This will create a prepared structure, so <em>libzippp</em> can be compiled along with the needed libraries.</p></li>
+<li><p>Simply execute the <em>compile.bat</em> file. This will compile <em>zlib</em>, <em>libzip</em> and finally <em>libzippp</em>.</p></li>
+<li><p>You'll have a <em>dist</em> folder containing the <em>release</em> and <em>debug</em> folders where you can now execute the libzippp tests.</p></li>
+</ol>
+<h4 id="from-stage-0---diy">From Stage 0 - DIY</h4>
+<ol start="0" style="list-style-type: decimal">
+<li><p>Make sure you have cmake 3.10 (<em>cmake.exe</em> must be in the PATH) and MS Visual Studio 2012. The dev command prompt path (defined in <em>compile.bat</em>) should be: <code>&lt;MSVS11&gt;\Common7\Tools\VsDevCmd.bat</code></p></li>
+<li><p>Download <a href="http://www.nih.at/libzip/libzip-1.5.1.tar.gz">libzip</a> and <a href="http://zlib.net/zlib1211.zip">zlib</a> sources and extract them in the 'lib' folder. You should end up with the following structure: <code>libzippp/compile.bat   libzippp/lib/zlib-1.2.11   libzippp/lib/libzip-1.5.1</code></p></li>
+<li><p>Execute the <em>compile.bat</em> (simply double-click on it). The compilation should go without error.</p></li>
+<li><p>You'll have a <em>dist</em> folder containing the <em>release</em> and <em>debug</em> folders where you can now execute the libzippp tests.</p></li>
+<li><p>You can either use <em>libzippp.dll</em> and <em>libzippp.lib</em> to link dynamically the library or simply use <em>libzippp_static.lib</em> to link it statically. Unless you also link zlib and libzippp statically, you'll need the dll packaged with your executable.</p></li>
+</ol>
+<h1 id="usage">Usage</h1>
+<p>The API is meant to be very straight forward. Some french explanations can be found <a href="http://www.astorm.ch/blog">here</a>.</p>
+<p>How to list and read files in an archive:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;libzippp.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> libzippp;
+
+ZipArchive zf(<span class="st">&quot;archive.zip&quot;</span>);
+zf.open(ZipArchive::READ_ONLY);
+
+vector&lt;ZipEntry&gt; entries = zf.getEntries();
+vector&lt;ZipEntry&gt;::iterator it;
+<span class="cf">for</span>(it=entries.begin() ; it!=entries.end(); ++it) {
+  ZipEntry entry = *it;
+  string name = entry.getName();
+  <span class="dt">int</span> size = entry.getSize();
+
+  <span class="co">//the length of binaryData will be size</span>
+  <span class="dt">void</span>* binaryData = entry.readAsBinary();
+
+  <span class="co">//the length of textData will be size</span>
+  string textData = entry.readAsText();
+
+  <span class="co">//...</span>
+}
+
+zf.close();</code></pre></div>
+<p>How to read a specific entry from an archive:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;libzippp.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> libzippp;
+
+ZipArchive zf(<span class="st">&quot;archive.zip&quot;</span>);
+zf.open(ZipArchive::READ_ONLY);
+
+<span class="co">//raw access</span>
+<span class="dt">char</span>* data = (<span class="dt">char</span>*)zf.readEntry(<span class="st">&quot;myFile.txt&quot;</span>, <span class="kw">true</span>);
+ZipEntry entry1 = zf.getEntry(<span class="st">&quot;myFile.txt&quot;</span>);
+string str1(data, entry1.getSize());
+
+<span class="co">//text access</span>
+ZipEntry entry2 = zf.getEntry(<span class="st">&quot;myFile.txt&quot;</span>);
+string str2 = entry2.readAsText();
+
+zf.close();</code></pre></div>
+<p>How to read a large entry from an archive:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;libzippp.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> libzippp;
+
+ZipArchive zf(<span class="st">&quot;archive.zip&quot;</span>);
+zf.open(ZipArchive::READ_ONLY);
+
+ZipEntry largeEntry = z1.getEntry(<span class="st">&quot;largeentry&quot;</span>);
+<span class="bu">std::</span>ofstream ofUnzippedFile(<span class="st">&quot;largeFileContent.data&quot;</span>);
+largeEntry.readContent(ofUnzippedFile);
+ofUnzippedFile.close();
+
+zf.close();</code></pre></div>
+<p>How to add data to an archive:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;libzippp.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> libzippp;
+
+ZipArchive zf(<span class="st">&quot;archive.zip&quot;</span>);
+zf.open(ZipArchive::WRITE);
+zf.addEntry(<span class="st">&quot;folder/subdir/&quot;</span>);
+
+<span class="at">const</span> <span class="dt">char</span>* textData = <span class="st">&quot;Hello,World!&quot;</span>;
+zf.addData(<span class="st">&quot;helloworld.txt&quot;</span>, textData, <span class="dv">12</span>);
+
+zf.close();</code></pre></div>
+<p>How to remove data from an archive:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;libzippp.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> libzippp;
+
+ZipArchive zf(<span class="st">&quot;archive.zip&quot;</span>);
+zf.open(ZipArchive::WRITE);
+zf.deleteEntry(<span class="st">&quot;myFile.txt&quot;</span>);
+zf.deleteEntry(<span class="st">&quot;myDir/subDir/&quot;</span>);
+zf.close();</code></pre></div>
+<h1 id="issues">Issues</h1>
+<h3 id="linux-1">LINUX</h3>
+<p>You might already have libzip compiled elsewhere on your system. Hence, you don't need to run 'make libzip'. Instead, just put the libzip location when you compile libzipp:</p>
+<pre class="shell"><code>make LIBZIP=path/to/libzip</code></pre>
+<p>Under Debian, you'll have to install the package <em>zlib1g-dev</em> in order to compile if you don't want to install zlib manually.</p>
+<h3 id="windows-1">WINDOWS</h3>
+<p>By default, MS Visual Studio 2012 is installed under the following path:</p>
+<pre><code>C:\Program Files (x86)\Microsoft Visual Studio 11.0\</code></pre>
+<p>Be aware that non-virtual-only classes are shared within the DLL of libzippp. Hence you'll need to use the same compiler for libzippp and the pieces of code that will use it. To avoid this issue, you'll have to link the library statically.</p>
+<p>More information <a href="http://www.codeproject.com/Articles/28969/HowTo-Export-C-classes-from-a-DLL">here</a>.</p>

@@ -1,0 +1,125 @@
+<p><a href="https://github.com/emcrisostomo/fswatch/blob/master/COPYING"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat" alt="License" /></a> <a href="https://travis-ci.org/emcrisostomo/fswatch"><img src="https://travis-ci.org/emcrisostomo/fswatch.svg?branch=master" alt="Build Status" /></a></p>
+<h1 id="readme">README</h1>
+<p><code>fswatch</code> is a file change monitor that receives notifications when the contents of the specified files or directories are modified. <code>fswatch</code> implements several monitors:</p>
+<ul>
+<li>A monitor based on the <em>File System Events API</em> of Apple OS X.</li>
+<li>A monitor based on <em>kqueue</em>, a notification interface introduced in FreeBSD 4.1 (and supported on most *BSD systems, including OS X).</li>
+<li>A monitor based on the <em>File Events Notification</em> API of the Solaris kernel and its derivatives.</li>
+<li>A monitor based on <em>inotify</em>, a Linux kernel subsystem that reports file system changes to applications.</li>
+<li>A monitor based on <em>ReadDirectoryChangesW</em>, a Microsoft Windows API that reports changes to a directory.</li>
+<li>A monitor which periodically stats the file system, saves file modification times in memory, and manually calculates file system changes (which works anywhere <code>stat (2)</code> can be used).</li>
+</ul>
+<p><code>fswatch</code> should build and work correctly on any system shipping either of the aforementioned APIs.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#libfswatch">libfswatch</a></li>
+<li><a href="#features">Features</a></li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#getting-fswatch">Getting fswatch</a></li>
+<li><a href="#building-from-source">Building from Source</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#localization">Localization</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#bug-reports">Bug Reports</a></li>
+</ul>
+<h2 id="libfswatch">libfswatch</h2>
+<p><code>fswatch</code> is a frontend of <code>libfswatch</code>, a library with C and C++ binding. More information on <code>libfswatch</code> can be found <a href="README.libfswatch.md">here</a>.</p>
+<h2 id="features">Features</h2>
+<p><code>fswatch</code> main features are:</p>
+<ul>
+<li>Support for many OS-specific APIs such as kevent, inotify, and FSEvents.</li>
+<li>Recursive directory monitoring.</li>
+<li>Path filtering using including and excluding regular expressions.</li>
+<li>Customizable record format.</li>
+<li>Support for periodic idle events.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<p>The limitations of <code>fswatch</code> depend largely on the monitor being used:</p>
+<ul>
+<li><p>The <strong>FSEvents</strong> monitor, available only on OS X, has no known limitations, and scales very well with the number of files being observed.</p></li>
+<li><p>The <strong>File Events Notification</strong> monitor, available on Solaris kernels and its derivatives, has no known limitations.</p></li>
+<li><p>The <strong>kqueue</strong> monitor, available on any *BSD system featuring kqueue, requires a file descriptor to be opened for every file being watched. As a result, this monitor scales badly with the number of files being observed, and may begin to misbehave as soon as the <code>fswatch</code> process runs out of file descriptors. In this case, <code>fswatch</code> dumps one error on standard error for every file that cannot be opened.</p></li>
+<li><p>The <strong>inotify</strong> monitor, available on Linux since kernel 2.6.13, may suffer a queue overflow if events are generated faster than they are read from the queue. In any case, the application is guaranteed to receive an overflow notification which can be handled to gracefully recover. <code>fswatch</code> currently throws an exception if a queue overflow occurs. Future versions will handle the overflow by emitting proper notifications.</p></li>
+<li><p>The <strong>Windows</strong> monitor can only establish a watch <em>directories</em>, not files. To watch a file, its parent directory must be watched in order to receive change events for all the directory's children, <em>recursively</em> at any depth. Optionally, change events can be filtered to include only changes to the desired file.</p></li>
+<li><p>The <strong>poll</strong> monitor, available on any platform, only relies on available CPU and memory to perform its task. The performance of this monitor degrades linearly with the number of files being watched.</p></li>
+</ul>
+<p>Usage recommendations are as follows:</p>
+<ul>
+<li><p>On OS X, use only the <code>FSEvents</code> monitor (which is the default behaviour).</p></li>
+<li><p>On Solaris and its derivatives use the <em>File Events Notification</em> monitor.</p></li>
+<li><p>On Linux, use the <code>inotify</code> monitor (which is the default behaviour).</p></li>
+<li><p>If the number of files to observe is sufficiently small, use the <code>kqueue</code> monitor. Beware that on some systems the maximum number of file descriptors that can be opened by a process is set to a very low value (values as low as 256 are not uncommon), even if the operating system may allow a much larger value. In this case, check your OS documentation to raise this limit on either a per process or a system-wide basis.</p></li>
+<li><p>If feasible, watch directories instead of files. Properly crafting the receiving side of the events to deal with directories may sensibly reduce the monitor resource consumption.</p></li>
+<li><p>On Windows, use the <code>windows</code> monitor.</p></li>
+<li><p>If none of the above applies, use the poll monitor. The authors' experience indicates that <code>fswatch</code> requires approximately 150 MB of RAM memory to observe a hierarchy of 500.000 files with a minimum path length of 32 characters. A common bottleneck of the poll monitor is disk access, since <code>stat()</code>-ing a great number of files may take a huge amount of time. In this case, the latency should be set to a sufficiently large value in order to reduce the performance degradation that may result from frequent disk access.</p></li>
+</ul>
+<h2 id="getting-fswatch">Getting fswatch</h2>
+<p>A regular user may be able to fetch <code>fswatch</code> from the package manager of your OS or a third-party one. If you are looking for <code>fswatch</code> for OS X, you can install it using either <a href="https://www.macports.org">MacPorts</a> or <a href="http://brew.sh">Homebrew</a>:</p>
+<pre><code># MacPorts
+$ port install fswatch
+
+# Homebrew
+$ brew install fswatch</code></pre>
+<p>Check your favourite package manager and let us know if <code>fswatch</code> is missing there.</p>
+<h2 id="building-from-source">Building from Source</h2>
+<p>A user who wishes to build <code>fswatch</code> should get a <a href="https://github.com/emcrisostomo/fswatch/releases">release tarball</a>. A release tarball contains everything a user needs to build <code>fswatch</code> on their system, following the instructions detailed in the Installation section below and the <code>INSTALL</code> file.</p>
+<p>A developer who wishes to modify <code>fswatch</code> should get the sources (either from a source tarball or cloning the repository) and have the GNU Build System installed on their machine. Please read <code>README.gnu-build-system</code> to get further details about how to bootstrap <code>fswatch</code> from sources on your machine.</p>
+<p>Getting a copy of the source repository is not recommended unless you are a developer, you have the GNU Build System installed on your machine, and you know how to bootstrap it on the sources.</p>
+<h2 id="installation">Installation</h2>
+<p>See the <code>INSTALL</code> file for detailed information about how to configure and install <code>fswatch</code>. Since the <code>fswatch</code> builds and uses dynamic libraries, in some platforms you may need to perform additional tasks before you can use <code>fswatch</code>:</p>
+<ul>
+<li>Make sure the installation directory of dynamic libraries (<code>$PREFIX/lib</code>) is included in the lookup paths of the dynamic linker of your operating system. The default path, <code>/usr/local/lib</code>, will work in nearly every operating system.</li>
+<li><p>Refreshing the links and cache to the dynamic libraries may be required. In GNU/Linux systems you may need to run <code>ldconfig</code>:</p>
+<pre><code>$ ldconfig</code></pre></li>
+</ul>
+<p><code>fswatch</code> is a C++ program and a C++ compiler compliant with the C++11 standard is required to compile it. Check your OS documentation for information about how to install the C++ toolchain and the C++ runtime.</p>
+<p>No other software packages or dependencies are required to configure and install <code>fswatch</code> but the aforementioned APIs used by the file system monitors.</p>
+<h2 id="documentation">Documentation</h2>
+<p><code>fswatch</code> provides the following <a href="http://emcrisostomo.github.io/fswatch/doc">documentation</a>:</p>
+<ul>
+<li>Texinfo documentation, included with the distribution.</li>
+<li>HTML documentation.</li>
+<li>PDF documentation.</li>
+<li>A <a href="https://github.com/emcrisostomo/fswatch/wiki">wiki</a> page.</li>
+<li>A man page.</li>
+</ul>
+<p><code>fswatch</code> official documentation is provided in Texinfo format. This is the most comprehensive source of information about <code>fswatch</code> and the only authoritative one. The man page, in particular, is a stub that suggests the user to use the info page instead.</p>
+<p>If you are installing <code>fswatch</code> using a package manager and you would like the PDF manual to be bundled into the package, please send a feature request to the package maintainer.</p>
+<h2 id="localization">Localization</h2>
+<p><code>fswatch</code> is localizable and internally uses GNU <code>gettext</code> to decouple localizable string from their translation. The currently available locales are:</p>
+<ul>
+<li>English (<code>en</code>).</li>
+<li>Italian (<code>it</code>).</li>
+<li>Spanish (<code>es</code>).</li>
+</ul>
+<p>To build <code>fswatch</code> with localization support, you need to have <code>gettext</code> installed on your system. If <code>configure</code> cannot find <code>&lt;libintl.h&gt;</code> or the linker cannot find <code>libintl</code>, then you may need to manually provide their location to <code>configure</code>, usually using the <code>CPPFLAGS</code> and the <code>LDFLAGS</code> variables. See <code>README.osx</code> for an example.</p>
+<p>If <code>gettext</code> is not available on your system, <code>fswatch</code> shall build correctly, but it will lack localization support and the only available locale will be English.</p>
+<h2 id="usage">Usage</h2>
+<p><code>fswatch</code> accepts a list of paths for which change events should be received:</p>
+<pre><code>$ fswatch [options] ... path-0 ... path-n</code></pre>
+<p>The event stream is created even if any of the paths do not exist yet. If they are created after <code>fswatch</code> is launched, change events will be properly received. Depending on the watcher being used, newly created paths will be monitored after the amount of configured latency has elapsed.</p>
+<p>The output of <code>fswatch</code> can be piped to other program in order to process it further:</p>
+<pre><code>$ fswatch -0 path | while read -d &quot;&quot; event \
+  do \
+    // do something with ${event}
+  done</code></pre>
+<p>To run a command when a set of change events is printed to standard output but no event details are required, then the following command can be used:</p>
+<pre><code>$ fswatch -o path | xargs -n1 -I{} program</code></pre>
+<p>The behaviour is consistent with earlier versions of <code>fswatch</code> (v. 0.x). Please, read the <em>Compatibility Issues with fswatch v. 0.x</em> section for further information.</p>
+<p>By default <code>fswatch</code> chooses the best monitor available on the current platform, in terms of performance and resource consumption. If the user wishes to specify a different monitor, the <code>-m</code> option can be used to specify the monitor by name:</p>
+<pre><code>$ fswatch -m kqueue_monitor path</code></pre>
+<p>The list of available monitors can be obtained with the <code>-h</code> option.</p>
+<p>For more information, refer to the <code>fswatch</code> documentation.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Everybody is welcome to contribute to <code>fswatch</code>. Please, see <a href="CONTRIBUTING.md"><code>CONTRIBUTING</code></a> for further information.</p>
+<h2 id="bug-reports">Bug Reports</h2>
+<p>Bug reports can be sent directly to the authors.</p>
+<h2 id="contact-the-authors">Contact the Authors</h2>
+<p>The author can be contacted on IRC, using the Freenode <code>#fswatch</code> channel.</p>
+<hr />
+<p>Copyright (c) 2013-2018 Enrico M. Crisostomo</p>
+<p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3, or (at your option) any later version.</p>
+<p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License along with this program. If not, see <a href="http://www.gnu.org/licenses/" class="uri">http://www.gnu.org/licenses/</a>.</p>

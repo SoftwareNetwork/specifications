@@ -1,0 +1,114 @@
+<p>This is not an official Google product.</p>
+<h1 id="overview">Overview</h1>
+<p>CCTZ contains two libraries that cooperate with <code>&lt;chrono&gt;</code> to give C++ programmers all the necessary tools for computing with dates, times, and time zones in a simple and correct manner. The libraries in CCTZ are:</p>
+<ul>
+<li><strong>The Civil-Time Library</strong> — This is a header-only library that supports computing with human-scale time, such as dates (which are represented by the <code>cctz::civil_day</code> class). This library is declared in <a href="https://github.com/google/cctz/blob/master/include/cctz/civil_time.h"><code>include/cctz/civil_time.h</code></a>.</li>
+<li><strong>The Time-Zone Library</strong> — This library uses the IANA time zone database that is installed on the system to convert between <em>absolute time</em> and <em>civil time</em>. This library is declared in <a href="https://github.com/google/cctz/blob/master/include/cctz/time_zone.h"><code>include/cctz/time_zone.h</code></a>.</li>
+</ul>
+<p>These libraries are currently known to work on <strong>Linux</strong>, <strong>Mac OS X</strong>, and <strong>Android</strong>.</p>
+<p>They will also work on <strong>Windows</strong> if you install the zoneinfo files. We are interested, though, in an implementation of the cctz::TimeZoneIf interface that calls the Windows time APIs instead. Please contact us if you're interested in contributing.</p>
+<h1 id="getting-started">Getting Started</h1>
+<p>CCTZ is best built and tested using the <a href="https://bazel.io">Bazel</a> build system and the <a href="https://github.com/google/googletest">Google Test</a> framework. (There is also a simple <a href="https://github.com/google/cctz/blob/master/Makefile"><code>Makefile</code></a> and a <a href="https://github.com/google/cctz/blob/master/CMakeLists.txt"><code>CMakeLists.txt</code></a> that should work if you're unable to use Bazel.)</p>
+<ol style="list-style-type: decimal">
+<li>Download/install <a href="https://docs.bazel.build/versions/master/install.html">Bazel</a></li>
+<li>Get the cctz source: <code>git clone https://github.com/google/cctz.git</code> then <code>cd cctz</code></li>
+<li>Build cctz and run the tests: <code>bazel test :all</code></li>
+</ol>
+<p>With CMake:</p>
+<ol style="list-style-type: decimal">
+<li>Make sure you have CMake &gt;= 2.8.12 installed.</li>
+<li>Get the cctz source: <code>git clone https://github.com/google/cctz.git</code> then <code>cd cctz</code>.</li>
+<li><p>Build cctz so that is can be used by shared libraries and run the tests (use <code>-DBUILD_TESTING=OFF</code> to skip the tests):</p>
+<pre><code>mkdir mybuild
+cd mybuild
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
+cmake --build . --config Release
+ctest
+cmake --build . --config Release --target install</code></pre></li>
+<li><p>Use in your CMake-based project with:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(cctz <span class="ot">REQUIRED</span>)
+<span class="kw">add_executable</span>(mytarget file.cc)
+<span class="kw">target_link_libraries</span>(mytarget cctz::cctz)</code></pre></div></li>
+</ol>
+<p>Note: When using CCTZ in your own project, you might find it easiest to compile the sources using your existing build system.</p>
+<p>Next Steps:</p>
+<ol style="list-style-type: decimal">
+<li>See the documentation for the libraries in CCTZ:
+<ul>
+<li>Civil Time: <a href="https://github.com/google/cctz/blob/master/include/cctz/civil_time.h"><code>include/cctz/civil_time.h</code></a></li>
+<li>Time Zone: <a href="https://github.com/google/cctz/blob/master/include/cctz/time_zone.h"><code>include/cctz/time_zone.h</code></a></li>
+</ul></li>
+<li>Look at the examples in https://github.com/google/cctz/tree/master/examples</li>
+<li>Join our mailing list to ask questions and keep informed of changes:
+<ul>
+<li>https://groups.google.com/forum/#!forum/cctz</li>
+</ul></li>
+</ol>
+<h1 id="fundamental-concepts">Fundamental Concepts</h1>
+<p><em>[The concepts presented here describe general truths about the problem domain and are library and language agnostic. An understanding of these concepts helps the programmer correctly reason about even the most-complicated time-programming challenges and produce the simplest possible solutions.]</em></p>
+<p>There are two main ways to think about time in a computer program: as <em>absolute time</em>, and as <em>civil time</em>. Both have their uses and it is important to understand when each is appropriate. Absolute and civil times may be converted back and forth using a <em>time zone</em> — this is the only way to correctly convert between them. Let us now look more deeply at the three main concepts of time programming: Absolute Time, Civil Time, and Time Zone.</p>
+<p><em>Absolute time</em> uniquely and universally represents a specific instant in time. It has no notion of calendars, or dates, or times of day. Instead, it is a measure of the passage of real time, typically as a simple count of ticks since some epoch. Absolute times are independent of all time zones and do not suffer from human-imposed complexities such as daylight-saving time (DST). Many C++ types exist to represent absolute times, classically <code>time_t</code> and more recently <code>std::chrono::time_point</code>.</p>
+<p><em>Civil time</em> is the legally recognized representation of time for ordinary affairs (cf. https://www.merriam-webster.com/dictionary/civil). It is a human-scale representation of time that consists of the six fields — year, month, day, hour, minute, and second (sometimes shortened to &quot;YMDHMS&quot;) — and it follows the rules of the Proleptic Gregorian Calendar, with 24-hour days divided into 60-minute hours and 60-second minutes. Like absolute times, civil times are also independent of all time zones and their related complexities (e.g., DST). While <code>std::tm</code> contains the six civil-time fields (YMDHMS), plus a few more, it does not have behavior to enforce the rules of civil time.</p>
+<p><em>Time zones</em> are geo-political regions within which human-defined rules are shared to convert between the absolute-time and civil-time domains. A time zone's rules include things like the region's offset from the UTC time standard, daylight-saving adjustments, and short abbreviation strings. Time zones often have a history of disparate rules that apply only for certain periods, because the rules may change at the whim of a region's local government. For this reason, time-zone rules are usually compiled into data snapshots that are used at runtime to perform conversions between absolute and civil times. There is currently no C++ standard library supporting arbitrary time zones.</p>
+<p>In order for programmers to reason about and program applications that correctly deal with these concepts, they must have a library that correctly implements the above concepts. CCTZ adds to the existing C++11 <code>&lt;chrono&gt;</code> library to fully implement the above concepts.</p>
+<ul>
+<li>Absolute time — This is implemented by the existing C++11 <a href="https://en.cppreference.com/w/cpp/chrono"><code>&lt;chrono&gt;</code></a> library without modification. For example, an absolute point in time is represented by a <code>std::chrono::time_point</code>.</li>
+<li>Civil time — This is implemented by the <a href="https://github.com/google/cctz/blob/master/include/cctz/civil_time.h"><code>include/cctz/civil_time.h</code></a> library that is provided as part of CCTZ. For example, a &quot;date&quot; is represented by a <code>cctz::civil_day</code>.</li>
+<li>Time zone — This is implemented by the <a href="https://github.com/google/cctz/blob/master/include/cctz/time_zone.h"><code>include/cctz/time_zone.h</code></a> library that is provided as part of CCTZ. For example, a time zone is represented by an instance of the class <code>cctz::time_zone</code>.</li>
+</ul>
+<h1 id="examples">Examples</h1>
+<h2 id="hello-february-2016">Hello February 2016</h2>
+<p>This &quot;hello world&quot; example uses a for-loop to iterate the days from the first of February until the month of March. Each day is streamed to output, and if the day happens to be the 29th, we also output the day of the week.</p>
+<pre><code>#include &lt;iostream&gt;
+#include &quot;cctz/civil_time.h&quot;
+
+int main() {
+  for (cctz::civil_day d(2016, 2, 1); d &lt; cctz::civil_month(2016, 3); ++d) {
+    std::cout &lt;&lt; &quot;Hello &quot; &lt;&lt; d;
+    if (d.day() == 29) {
+      std::cout &lt;&lt; &quot; &lt;- leap day is a &quot; &lt;&lt; cctz::get_weekday(d);
+    }
+    std::cout &lt;&lt; &quot;\n&quot;;
+  }
+}</code></pre>
+<p>The output of the above program is</p>
+<pre><code>Hello 2016-02-01
+Hello 2016-02-02
+Hello 2016-02-03
+[...]
+Hello 2016-02-27
+Hello 2016-02-28
+Hello 2016-02-29 &lt;- leap day is a Monday</code></pre>
+<h2 id="one-giant-leap">One giant leap</h2>
+<p>This example shows how to use all three libraries (<code>&lt;chrono&gt;</code>, civil time, and time zone) together. In this example, we know that viewers in New York watched Neil Armstrong's first walk on the moon on July 20, 1969 at 10:56 PM. But we'd like to see what time it was for our friend watching in Sydney, Australia.</p>
+<pre><code>#include &lt;iostream&gt;
+#include &quot;cctz/civil_time.h&quot;
+#include &quot;cctz/time_zone.h&quot;
+
+int main() {
+  cctz::time_zone nyc;
+  cctz::load_time_zone(&quot;America/New_York&quot;, &amp;nyc);
+
+  // Converts the input civil time in NYC to an absolute time.
+  const auto moon_walk =
+    cctz::convert(cctz::civil_second(1969, 7, 20, 22, 56, 0), nyc);
+
+  std::cout &lt;&lt; &quot;Moon walk in NYC: &quot;
+            &lt;&lt; cctz::format(&quot;%Y-%m-%d %H:%M:%S %Ez\n&quot;, moon_walk, nyc);
+
+  cctz::time_zone syd;
+  if (!cctz::load_time_zone(&quot;Australia/Sydney&quot;, &amp;syd)) return -1;
+  std::cout &lt;&lt; &quot;Moon walk in SYD: &quot;
+            &lt;&lt; cctz::format(&quot;%Y-%m-%d %H:%M:%S %Ez\n&quot;, moon_walk, syd);
+}</code></pre>
+<p>The output of the above program is</p>
+<pre><code>Moon walk in NYC: 1969-07-20 22:56:00 -04:00
+Moon walk in SYD: 1969-07-21 12:56:00 +10:00</code></pre>
+<p>This example shows that the absolute time (the <code>std::chrono::time_point</code>) of the first walk on the moon is the same no matter the time zone of the viewer (the same time point is used in both calls to <code>format()</code>). The only difference is the time zone in which the <code>moon_walk</code> time point is rendered. And in this case we can see that our friend in Sydney was probably eating lunch while watching that historic event.</p>
+<h1 id="references">References</h1>
+<ul>
+<li>CCTZ <a href="https://github.com/google/cctz/wiki/FAQ">FAQ</a></li>
+<li>See also the <a href="https://youtu.be/2rnIHsqABfM">Time Programming Fundamentals</a> talk from CppCon 2015 (<a href="https://goo.gl/ofof4N">slides available here</a>). This talk mostly describes the older CCTZ v1 API, but the <em>concepts</em> are the same.</li>
+<li>ISO C++ proposal to standardize the Civil-Time Library: https://github.com/devjgm/papers/blob/master/d0215r1.md</li>
+<li>ISO C++ proposal to standardize the Time-Zone Library: https://github.com/devjgm/papers/blob/master/d0216r1.md</li>
+</ul>

@@ -1,0 +1,200 @@
+<p><a href="https://travis-ci.org/Tessil/ordered-map"><img src="https://travis-ci.org/Tessil/ordered-map.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Tessil/ordered-map/branch/master"><img src="https://ci.appveyor.com/api/projects/status/7fug7piv59d0in36/branch/master?svg=true" alt="Build status" /></a></p>
+<h2 id="c-hash-map-and-hash-set-which-preserves-the-order-of-insertion">C++ hash map and hash set which preserves the order of insertion</h2>
+<p>The ordered-map library provides a hash map and a hash set which preserve the order of insertion in a way similar to Python's <a href="https://docs.python.org/3/library/collections.html#collections.OrderedDict">OrderedDict</a>. When iterating over the map, the values will be returned in the same order as they were inserted.</p>
+<p>The values are stored contiguously in an underlying structure, no holes in-between values even after an erase operation. By default a <code>std::deque</code> is used for this structure, but it's also possible to use a <code>std::vector</code>. This structure is directly accessible through the <code>values_container()</code> method and if the structure is a <code>std::vector</code>, a <code>data()</code> method is also provided to easily interact with C APIs.</p>
+<p>To resolve collisions on hashes, the library uses linear robin hood probing with backward shift deletion.</p>
+<p>The library provides a behaviour similar to a <code>std::deque/std::vector</code> with unique values but with an average time complexity of O(1) for lookups and an amortised time complexity of O(1) for insertions. This comes at the price of a little higher memory footprint (8 bytes per bucket by default).</p>
+<p>Two classes are provided: <code>tsl::ordered_map</code> and <code>tsl::ordered_set</code>.</p>
+<p><strong>Note</strong>: The library uses a power of two for the size of its buckets array to take advantage of the <a href="https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues">fast modulo</a>. For good performances, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check your hash function.</p>
+<h3 id="key-features">Key features</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a> directory to your include path and you are ready to go. If you use CMake, you can also use the <code>tsl::ordered_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a>.</li>
+<li>Values are stored in the same order as the insertion order. The library provides a direct access to the underlying structure which stores the values.</li>
+<li>O(1) average time complexity for lookups with performances similar to <code>std::unordered_map</code> but with faster insertions and reduced memory usage (see <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">benchmark</a> for details).</li>
+<li>Provide random access iterators and also reverse iterators.</li>
+<li>Support for heterogeneous lookups allowing the usage of <code>find</code> with a type different than <code>Key</code> (e.g. if you have a map that uses <code>std::unique_ptr&lt;foo&gt;</code> as key, you can use a <code>foo*</code> or a <code>std::uintptr_t</code> as key parameter to <code>find</code> without constructing a <code>std::unique_ptr&lt;foo&gt;</code>, see <a href="#heterogeneous-lookups">example</a>).</li>
+<li>If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see <code>precalculated_hash</code> parameter in <a href="https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a7fcde27edc6697a0b127f4b1aefa8a7d">API</a>).</li>
+<li>The library can be used with exceptions disabled (through <code>-fno-exceptions</code> option on Clang and GCC, without an <code>/EH</code> option on MSVC or simply by defining <code>TSL_NO_EXCEPTIONS</code>). <code>std::terminate</code> is used in replacement of the <code>throw</code> instruction when exceptions are disabled.</li>
+<li>API closely similar to <code>std::unordered_map</code> and <code>std::unordered_set</code>.</li>
+</ul>
+<h3 id="differences-compare-to-stdunordered_map">Differences compare to <code>std::unordered_map</code></h3>
+<p><code>tsl::ordered_map</code> tries to have an interface similar to <code>std::unordered_map</code>, but some differences exist. - The iterators are <code>RandomAccessIterator</code>. - Iterator invalidation behaves in a way closer to <code>std::vector</code> and <code>std::deque</code> (see <a href="https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details">API</a> for details). If you use <code>std::vector</code> as <code>ValueTypeContainer</code>, you can use <code>reserve()</code> to preallocate some space and avoid the invalidation of the iterators on insert. - Slow <code>erase()</code> operation, it has a complexity of O(n). A faster O(1) version <code>unordered_erase()</code> exists, but it breaks the insertion order (see <a href="https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#a9f94a7889fa7fa92eea41ca63b3f98a4">API</a> for details). An O(1) <code>pop_back()</code> is also available. - The equality oprators <code>operator==</code> and <code>operator!=</code> are order dependent. Two <code>tsl::ordered_map</code> with the same values but inserted in a different order don't compare equal. - For iterators, <code>operator*()</code> and <code>operator-&gt;()</code> return a reference and a pointer to <code>const std::pair&lt;Key, T&gt;</code> instead of <code>std::pair&lt;const Key, T&gt;</code> making the value <code>T</code> not modifiable. To modify the value you have to call the <code>value()</code> method of the iterator to get a mutable reference. Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tsl::ordered_map&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; map = {{<span class="dv">1</span>, <span class="dv">1</span>}, {<span class="dv">2</span>, <span class="dv">1</span>}, {<span class="dv">3</span>, <span class="dv">1</span>}};
+<span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+    <span class="co">//it-&gt;second = 2; // Illegal</span>
+    it.value() = <span class="dv">2</span>; <span class="co">// Ok</span>
+}</code></pre></div>
+<ul>
+<li>By default the map can only hold up to 2<sup>32</sup> - 1 values, that is 4 294 967 295 values. This can be raised through the <code>IndexType</code> class template parameter, check the <a href="https://tessil.github.io/ordered-map/classtsl_1_1ordered__map.html#details">API</a> for details.</li>
+<li>No support for some bucket related methods (like <code>bucket_size</code>, <code>bucket</code>, ...).</li>
+</ul>
+<p>Thread-safety guarantee is the same as <code>std::unordered_map</code> (i.e. possible to have multiple concurrent readers with no writer).</p>
+<p>Concerning the strong exception guarantee, it holds only if <code>ValueContainer::emplace_back</code> has the strong exception guarantee (which is true for <code>std::vector</code> and <code>std::deque</code> as long as the type <code>T</code> is not a move-only type with a move constructor that may throw an exception, see <a href="http://en.cppreference.com/w/cpp/container/vector/emplace_back#Exceptions">details</a>).</p>
+<p>These differences also apply between <code>std::unordered_set</code> and <code>tsl::ordered_set</code>.</p>
+<h3 id="installation">Installation</h3>
+<p>To use ordered-map, just add the <a href="include/">include</a> directory to your include path. It is a <strong>header-only</strong> library.</p>
+<p>If you use CMake, you can also use the <code>tsl::ordered_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a> with <code>target_link_libraries</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># Example where the ordered-map project is stored in a third-party directory</span>
+<span class="kw">add_subdirectory</span>(third-party/ordered-map)
+<span class="kw">target_link_libraries</span>(your_target <span class="ot">PRIVATE</span> tsl::ordered_map)  </code></pre></div>
+<p>If the project has been installed through <code>make install</code>, you can also use <code>find_package(tsl-ordered-map REQUIRED)</code> instead of <code>add_subdirectory</code>.</p>
+<p>The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Tessil/ordered-map.git
+<span class="bu">cd</span> ordered-map/tests
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build .
+<span class="ex">./tsl_ordered_map_tests</span> </code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a href="https://tessil.github.io/ordered-map/">here</a>.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdlib&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/ordered_map.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/ordered_set.h&gt;</span>
+
+<span class="dt">int</span> main() {
+    tsl::ordered_map&lt;<span class="dt">char</span>, <span class="dt">int</span>&gt; map = {{<span class="st">&#39;d&#39;</span>, <span class="dv">1</span>}, {<span class="st">&#39;a&#39;</span>, <span class="dv">2</span>}, {<span class="st">&#39;g&#39;</span>, <span class="dv">3</span>}};
+    map.insert({<span class="st">&#39;b&#39;</span>, <span class="dv">4</span>});
+    map[<span class="st">&#39;h&#39;</span>] = <span class="dv">5</span>;
+    map[<span class="st">&#39;e&#39;</span>] = <span class="dv">6</span>;
+    
+    map.erase(<span class="st">&#39;a&#39;</span>);
+    
+    
+    <span class="co">// {d, 1} {g, 3} {b, 4} {h, 5} {e, 6}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key_value : map) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_value.first &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; key_value.second &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    map.unordered_erase(<span class="st">&#39;b&#39;</span>);
+    
+    <span class="co">// Break order: {d, 1} {g, 3} {e, 6} {h, 5}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key_value : map) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_value.first &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; key_value.second &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="co">//it-&gt;second += 2; // Not valid.</span>
+        it.value() += <span class="dv">2</span>;
+    }
+    
+    
+    <span class="cf">if</span>(map.find(<span class="st">&#39;d&#39;</span>) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found &#39;d&#39;.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="at">const</span> <span class="bu">std::</span>size_t precalculated_hash = <span class="bu">std::</span>hash&lt;<span class="dt">char</span>&gt;()(<span class="st">&#39;d&#39;</span>);
+    <span class="co">// If we already know the hash beforehand, we can pass it as argument to speed-up the lookup.</span>
+    <span class="cf">if</span>(map.find(<span class="st">&#39;d&#39;</span>, precalculated_hash) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found &#39;d&#39; with hash &quot;</span> &lt;&lt; precalculated_hash &lt;&lt; <span class="st">&quot;.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    tsl::ordered_set&lt;<span class="dt">char</span>, <span class="bu">std::</span>hash&lt;<span class="dt">char</span>&gt;, <span class="bu">std::</span>equal_to&lt;<span class="dt">char</span>&gt;,
+                     <span class="bu">std::</span>allocator&lt;<span class="dt">char</span>&gt;, <span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt;&gt; set;
+    set.reserve(<span class="dv">6</span>);
+    
+    set = {<span class="st">&#39;3&#39;</span>, <span class="st">&#39;4&#39;</span>, <span class="st">&#39;9&#39;</span>, <span class="st">&#39;2&#39;</span>};
+    set.erase(<span class="st">&#39;2&#39;</span>);
+    set.insert(<span class="st">&#39;1&#39;</span>);
+    set.insert(<span class="st">&#39;</span><span class="sc">\0</span><span class="st">&#39;</span>);
+    
+    set.pop_back();
+    set.insert({<span class="st">&#39;0&#39;</span>, <span class="st">&#39;</span><span class="sc">\0</span><span class="st">&#39;</span>});
+    
+    <span class="co">// Get raw buffer for C API: 34910</span>
+    <span class="bu">std::</span>cout &lt;&lt; atoi(set.data()) &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<h4 id="heterogeneous-lookup">Heterogeneous lookup</h4>
+<p>Heterogeneous overloads allow the usage of other types than <code>Key</code> for lookup and erase operations as long as the used types are hashable and comparable to <code>Key</code>.</p>
+<p>To activate the heterogeneous overloads in <code>tsl::ordered_map/set</code>, the qualified-id <code>KeyEqual::is_transparent</code> must be valid. It works the same way as for <a href="http://en.cppreference.com/w/cpp/container/map/find"><code>std::map::find</code></a>. You can either use <a href="http://en.cppreference.com/w/cpp/utility/functional/equal_to_void"><code>std::equal_to&lt;&gt;</code></a> or define your own function object.</p>
+<p>Both <code>KeyEqual</code> and <code>Hash</code> will need to be able to deal with the different types.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;functional&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/ordered_map.h&gt;</span>
+
+
+
+<span class="kw">struct</span> employee {
+    employee(<span class="dt">int</span> id, <span class="bu">std::</span>string name) : <span class="va">m_id</span>(id), <span class="va">m_name</span>(<span class="bu">std::</span>move(name)) {
+    }
+    
+    <span class="co">// Either we include the comparators in the class and we use `std::equal_to&lt;&gt;`...</span>
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+    
+    
+    <span class="dt">int</span> <span class="va">m_id</span>;
+    <span class="bu">std::</span>string <span class="va">m_name</span>;
+};
+
+<span class="co">// ... or we implement a separate class to compare employees.</span>
+<span class="kw">struct</span> equal_employee {
+    <span class="kw">using</span> is_transparent = <span class="dt">void</span>;
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) <span class="at">const</span> {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) <span class="at">const</span> {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+};
+
+<span class="kw">struct</span> hash_employee {
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(empl.<span class="va">m_id</span>);
+    }
+    
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="dt">int</span> id) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(id);
+    }
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="co">// Use std::equal_to&lt;&gt; which will automatically deduce and forward the parameters</span>
+    tsl::ordered_map&lt;employee, <span class="dt">int</span>, hash_employee, <span class="bu">std::</span>equal_to&lt;&gt;&gt; map; 
+    map.insert({employee(<span class="dv">1</span>, <span class="st">&quot;John Doe&quot;</span>), <span class="dv">2001</span>});
+    map.insert({employee(<span class="dv">2</span>, <span class="st">&quot;Jane Doe&quot;</span>), <span class="dv">2002</span>});
+    map.insert({employee(<span class="dv">3</span>, <span class="st">&quot;John Smith&quot;</span>), <span class="dv">2003</span>});
+
+    <span class="co">// John Smith 2003</span>
+    <span class="kw">auto</span> it = map.find(<span class="dv">3</span>);
+    <span class="cf">if</span>(it != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; it-&gt;first.<span class="va">m_name</span> &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; it-&gt;second &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+    map.erase(<span class="dv">1</span>);
+
+
+
+    <span class="co">// Use a custom KeyEqual which has an is_transparent member type</span>
+    tsl::ordered_map&lt;employee, <span class="dt">int</span>, hash_employee, equal_employee&gt; map2;
+    map2.insert({employee(<span class="dv">4</span>, <span class="st">&quot;Johnny Doe&quot;</span>), <span class="dv">2004</span>});
+
+    <span class="co">// 2004</span>
+    <span class="bu">std::</span>cout &lt;&lt; map2.at(<span class="dv">4</span>) &lt;&lt; <span class="bu">std::</span>endl;
+} </code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a href="LICENSE">LICENSE file</a> for details.</p>

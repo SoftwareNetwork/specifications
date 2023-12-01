@@ -1,0 +1,730 @@
+<h1 id="cpp-taskflow">Cpp-Taskflow <img align="right" width="10%" src="image/cpp-taskflow_logo.png"></h1>
+<p><a href="https://app.codacy.com/app/tsung-wei-huang/cpp-taskflow?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cpp-taskflow/cpp-taskflow&amp;utm_campaign=Badge_Grade_Dashboard"><img src="https://api.codacy.com/project/badge/Grade/bb04cb8e4aca401b8206c054e79fd5e3" alt="Codacy Badge" /></a> <a href="https://travis-ci.com/cpp-taskflow/cpp-taskflow"><img src="https://travis-ci.com/cpp-taskflow/cpp-taskflow.svg?branch=master" alt="Linux Build Status" /></a> <a href="https://ci.appveyor.com/project/TsungWeiHuang/cpp-taskflow"><img src="https://ci.appveyor.com/api/projects/status/te9bjp4yfhq7f8hq?svg=true" alt="Windows Build status" /></a> <a href="https://cpp-taskflow.github.io/cpp-taskflow/index.html"><img src="image/api-doc.svg" alt="Wiki" /></a> <a href="doxygen/reference/ipdps19.pdf"><img src="image/cite-ipdps.svg" alt="Cite" /></a></p>
+<p>A header-only C++ library to help you quickly write parallel and heterogeneous programs using task models</p>
+<h1 id="why-cpp-taskflow">Why Cpp-Taskflow?</h1>
+<p>Cpp-Taskflow is by far faster, more expressive, and easier for drop-in integration than existing task programming libraries such as <a href="https://www.openmp.org/spec-html/5.0/openmpsu99.html">OpenMP Tasking</a> and <a href="https://www.threadingbuildingblocks.org/tutorial-intel-tbb-flow-graph">Intel TBB FlowGraph</a> in handling complex parallel workloads.</p>
+<div class="figure">
+<img src="image/performance.jpg" />
+
+</div>
+<p>Cpp-Taskflow lets you quickly implement task decomposition strategies that incorporate both regular and irregular compute patterns, together with an efficient <em>work-stealing</em> scheduler to optimize your multithreaded performance.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Without Cpp-Taskflow</th>
+<th>With Cpp-Taskflow</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img src="image/profile_without_taskflow.gif" /></td>
+<td><img src="image/profile_with_taskflow.gif" /></td>
+</tr>
+</tbody>
+</table>
+<p>Cpp-Taskflow has a unified interface for both <em>static</em> tasking and <em>dynamic</em> tasking, allowing users to quickly master our parallel task programming model in a natural idiom.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><a href="#get-started-with-cpp-taskflow">Static Tasking</a></th>
+<th align="center"><a href="#dynamic-tasking">Dynamic Tasking</a></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><img src="image/static_graph.svg" /></td>
+<td align="center"><img align="right" src="image/dynamic_graph.svg" width="100%"></td>
+</tr>
+</tbody>
+</table>
+<p>Cpp-Taskflow supports conditional tasking for you to implement cyclic and dynamic control flows that are otherwise difficult to do with existing task programming frameworks.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><a href="#conditional-tasking">Conditional Tasking</a></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><img src="image/condition.svg" /></td>
+</tr>
+</tbody>
+</table>
+<p>Cpp-Taskflow is composable. You can create large parallel graphs through composition of modular and reusable blocks that are easier to optimize at an individual scope.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><a href="#composable-tasking">Taskflow Composition</a></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><img src="image/framework.svg" /></td>
+</tr>
+</tbody>
+</table>
+<p>Cpp-Taskflow supports heterogeneous tasking for you to accelerate a wide range of scientific computing applications by harnessing the power of CPU-GPU collaborative computing.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><a href="#concurrent-cpu-gpu-tasking">Concurrent CPU-GPU Tasking</a></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><img src="image/cudaflow.svg" /></td>
+</tr>
+</tbody>
+</table>
+<p>We are committed to support trustworthy developments for both academic and industrial research projects in parallel computing. Check out <a href="#who-is-using-cpp-taskflow">Who is Using Cpp-Taskflow</a> and what our users say:</p>
+<ul>
+<li><em>&quot;Cpp-Taskflow is the cleanest Task API I've ever seen.&quot; <a href="https://github.com/damienhocking">damienhocking</a></em></li>
+<li><em>&quot;Cpp-Taskflow has a very simple and elegant tasking interface. The performance also scales very well.&quot; <a href="https://github.com/totalgee">totalgee</a></em></li>
+<li><em>&quot;Cpp-Taskflow lets me handle parallel processing in a smart way.&quot; <a href="https://cpp-learning.com/cpp-taskflow/">Hayabusa</a></em></li>
+<li><em>&quot;Best poster award for open-source parallel programming library.&quot; <a href="https://github.com/CppCon/CppCon2018">Cpp Conference 2018</a></em></li>
+<li><em>&quot;Second Prize of Open-source Software Competition.&quot; <a href="https://tsung-wei-huang.github.io/img/mm19-ossc-award.jpg">ACM Multimedia Conference 2019</a></em></li>
+</ul>
+<p>See a quick <a href="https://cpp-taskflow.github.io/">presentation</a> and visit the <a href="https://cpp-taskflow.github.io/cpp-taskflow/index.html">documentation</a> to learn more about Cpp-Taskflow. Technical details can be referred to our <a href="https://tsung-wei-huang.github.io/papers/ipdps19.pdf">IEEE IPDPS19 paper</a>.</p>
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul>
+<li><a href="#get-started-with-cpp-taskflow">Get Started with Cpp-Taskflow</a></li>
+<li><a href="#create-a-taskflow-application">Create a Taskflow Application</a></li>
+<li><a href="#step-1-create-a-taskflow">Step 1: Create a Taskflow</a></li>
+<li><a href="#step-2-define-task-dependencies">Step 2: Define Task Dependencies</a></li>
+<li><a href="#step-3-execute-a-taskflow">Step 3: Execute a Taskflow</a></li>
+<li><a href="#dynamic-tasking">Dynamic Tasking</a></li>
+<li><a href="#conditional-tasking">Conditional Tasking</a></li>
+<li><a href="#step-1-create-a-condition-task">Step 1: Create a Condition Task</a></li>
+<li><a href="#step-2-scheduling-rules-for-condition-tasks">Step 2: Scheduling Rules for Condition Tasks</a></li>
+<li><a href="#composable-tasking">Composable Tasking</a></li>
+<li><a href="#concurrent-cpu-gpu-tasking">Concurrent CPU-GPU Tasking</a></li>
+<li><a href="#step-1-create-a-cudaflow">Step 1: Create a cudaFlow</a></li>
+<li><a href="#step-2-compile-and-execute-a-cudaflow">Step 2: Compile and Execute a cudaFlow</a></li>
+<li><a href="#visualize-a-taskflow-graph">Visualize a Taskflow Graph</a></li>
+<li><a href="#monitor-thread-activities">Monitor Thread Activities</a></li>
+<li><a href="#api-reference">API Reference</a></li>
+<li><a href="#system-requirements">System Requirements</a></li>
+<li><a href="#compile-unit-tests-examples-and-benchmarks">Compile Unit Tests, Examples, and Benchmarks</a></li>
+<li><a href="#who-is-using-cpp-taskflow">Who is Using Cpp-Taskflow?</a></li>
+</ul>
+<h1 id="get-started-with-cpp-taskflow">Get Started with Cpp-Taskflow</h1>
+<p>The following example <a href="./examples/simple.cpp">simple.cpp</a> shows the basic Cpp-Taskflow API you need in most applications.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;taskflow/taskflow.hpp&gt;</span><span class="pp">  </span><span class="co">// Cpp-Taskflow is header-only</span>
+
+<span class="dt">int</span> main(){
+  
+  tf::Executor executor;
+  tf::Taskflow taskflow;
+
+  <span class="kw">auto</span> [A, B, C, D] = taskflow.emplace(
+    [] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;TaskA</span><span class="sc">\n</span><span class="st">&quot;</span>; },               <span class="co">//  task dependency graph</span>
+    [] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;TaskB</span><span class="sc">\n</span><span class="st">&quot;</span>; },               <span class="co">// </span>
+    [] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;TaskC</span><span class="sc">\n</span><span class="st">&quot;</span>; },               <span class="co">//          +---+          </span>
+    [] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;TaskD</span><span class="sc">\n</span><span class="st">&quot;</span>; }                <span class="co">//    +----&gt;| B |-----+   </span>
+  );                                                 <span class="co">//    |     +---+     |</span>
+                                                     <span class="co">//  +---+           +-v-+ </span>
+  A.precede(B);  <span class="co">// A runs before B                  //  | A |           | D | </span>
+  A.precede(C);  <span class="co">// A runs before C                  //  +---+           +-^-+ </span>
+  B.precede(D);  <span class="co">// B runs before D                  //    |     +---+     |    </span>
+  C.precede(D);  <span class="co">// C runs before D                  //    +----&gt;| C |-----+    </span>
+                                                     <span class="co">//          +---+          </span>
+  executor.run(taskflow).wait();
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>Compile and run the code with the following commands:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">~</span>$ <span class="ex">g++</span> simple.cpp -I path/to/include/taskflow/ -std=c++17 -O2 -lpthread -o simple
+<span class="ex">~</span>$ <span class="ex">./simple</span>
+<span class="ex">TaskA</span>
+<span class="ex">TaskC</span>  <span class="op">&lt;</span>-- concurrent with TaskB
+<span class="ex">TaskB</span>  <span class="op">&lt;</span>-- concurrent with TaskC
+<span class="ex">TaskD</span></code></pre></div>
+<h1 id="create-a-taskflow-application">Create a Taskflow Application</h1>
+<p>Cpp-Taskflow defines a very expressive API to create task dependency graphs. Most applications are developed through the following three steps.</p>
+<h2 id="step-1-create-a-taskflow">Step 1: Create a Taskflow</h2>
+<p>Create a taskflow object to build a task dependency graph:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Taskflow taskflow;</code></pre></div>
+<p>A task is a callable object for which <a href="https://en.cppreference.com/w/cpp/utility/functional/invoke">std::invoke</a> is applicable. Use the method <code>emplace</code> to create a task:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Task A = taskflow.emplace([](){ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task A</span><span class="sc">\n</span><span class="st">&quot;</span>; });</code></pre></div>
+<h2 id="step-2-define-task-dependencies">Step 2: Define Task Dependencies</h2>
+<p>You can add dependency links between tasks to enforce one task to run before or after another.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">A.precede(B);  <span class="co">// A runs before B.</span></code></pre></div>
+<h2 id="step-3-execute-a-taskflow">Step 3: Execute a Taskflow</h2>
+<p>To execute a taskflow, you need to create an <em>executor</em>. An executor manages a set of worker threads to execute a taskflow through an efficient <em>work-stealing</em> algorithm.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Executor executor;</code></pre></div>
+<p>The executor provides a rich set of methods to run a taskflow. You can run a taskflow multiple times, or until a stopping criteria is met. These methods are non-blocking with a <a href="https://en.cppreference.com/w/cpp/thread/future">std::future</a> return to let you query the execution status. Executor is <em>thread-safe</em>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">executor.run(taskflow);       <span class="co">// runs the taskflow once</span>
+executor.run_n(taskflow, <span class="dv">4</span>);  <span class="co">// runs the taskflow four times</span>
+
+<span class="co">// keeps running the taskflow until the predicate becomes true</span>
+executor.run_until(taskflow, [counter=<span class="dv">4</span>](){ <span class="cf">return</span> --counter == <span class="dv">0</span>; } );</code></pre></div>
+<p>You can call <code>wait_for_all</code> to block the executor until all associated taskflows complete.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">executor.wait_for_all();  <span class="co">// block until all associated tasks finish</span></code></pre></div>
+<p>Notice that the executor does not own any taskflow. It is your responsibility to keep a taskflow alive during its execution, or it can result in undefined behavior. In most applications, you need only one executor to run multiple taskflows each representing a specific part of your parallel decomposition.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="dynamic-tasking">Dynamic Tasking</h1>
+<p>Another powerful feature of Taskflow is <em>dynamic</em> tasking. Dynamic tasks are those tasks created during the execution of a taskflow. These tasks are spawned by a parent task and are grouped together to a <em>subflow</em> graph. To create a subflow for dynamic tasking, emplace a callable with one argument of type <code>tf::Subflow</code>.</p>
+<p><img align="right" src="image/subflow_join.svg" width="30%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// create three regular tasks</span>
+tf::Task A = tf.emplace([](){}).name(<span class="st">&quot;A&quot;</span>);
+tf::Task C = tf.emplace([](){}).name(<span class="st">&quot;C&quot;</span>);
+tf::Task D = tf.emplace([](){}).name(<span class="st">&quot;D&quot;</span>);
+
+<span class="co">// create a subflow graph (dynamic tasking)</span>
+tf::Task B = tf.emplace([] (tf::Subflow&amp; subflow) {
+  tf::Task B1 = subflow.emplace([](){}).name(<span class="st">&quot;B1&quot;</span>);
+  tf::Task B2 = subflow.emplace([](){}).name(<span class="st">&quot;B2&quot;</span>);
+  tf::Task B3 = subflow.emplace([](){}).name(<span class="st">&quot;B3&quot;</span>);
+  B1.precede(B3);
+  B2.precede(B3);
+}).name(<span class="st">&quot;B&quot;</span>);
+            
+A.precede(B);  <span class="co">// B runs after A </span>
+A.precede(C);  <span class="co">// C runs after A </span>
+B.precede(D);  <span class="co">// D runs after B </span>
+C.precede(D);  <span class="co">// D runs after C </span></code></pre></div>
+<p>By default, a subflow graph joins its parent node. This ensures a subflow graph finishes before the successors of its parent task. You can disable this feature by calling <code>subflow.detach()</code>. For example, detaching the above subflow will result in the following execution flow:</p>
+<p><img align="right" src="image/subflow_detach.svg" width="35%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// create a &quot;detached&quot; subflow graph (dynamic tasking)</span>
+tf::Task B = tf.emplace([] (tf::Subflow&amp; subflow) {
+  tf::Task B1 = subflow.emplace([](){}).name(<span class="st">&quot;B1&quot;</span>);
+  tf::Task B2 = subflow.emplace([](){}).name(<span class="st">&quot;B2&quot;</span>);
+  tf::Task B3 = subflow.emplace([](){}).name(<span class="st">&quot;B3&quot;</span>);
+
+  B1.precede(B3);
+  B2.precede(B3);
+
+  <span class="co">// detach the subflow to form a parallel execution line</span>
+  subflow.detach();
+}).name(<span class="st">&quot;B&quot;</span>);</code></pre></div>
+<p>A subflow can be nested or recursive. You can create another subflow from the execution of a subflow and so on.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="conditional-tasking">Conditional Tasking</h1>
+<p>Taskflow supports <em>conditional tasking</em> for users to implement <em>dynamic</em> and <em>cyclic</em> control flows. You can create highly versatile and efficient parallel patterns through condition tasks.</p>
+<h2 id="step-1-create-a-condition-task">Step 1: Create a Condition Task</h2>
+<p>A <em>condition task</em> evalutes a set of instructions and returns an integer index of the next immediate successor to execute. The index is defined with respect to the order of its successor construction.</p>
+<p><img align="right" src="image/condition-2.svg" width="20%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Task init = tf.emplace([](){ }).name(<span class="st">&quot;init&quot;</span>);
+tf::Task stop = tf.emplace([](){ }).name(<span class="st">&quot;stop&quot;</span>);
+
+<span class="co">// creates a condition task that returns 0 or 1</span>
+tf::Task cond = tf.emplace([](){
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;flipping a coin</span><span class="sc">\n</span><span class="st">&quot;</span>;
+  <span class="cf">return</span> rand() % <span class="dv">2</span>;
+}).name(<span class="st">&quot;cond&quot;</span>);
+
+<span class="co">// creates a feedback loop</span>
+init.precede(cond);
+cond.precede(cond, stop);  <span class="co">// cond--0--&gt;cond, cond--1--&gt;stop</span>
+
+executor.run(tf).wait();</code></pre></div>
+<p>If the return value from <code>cond</code> is 0, it loops back to itself, or otherwise to <code>stop</code>. Cpp-Taskflow terms the preceding link from a condition task a <em>weak dependency</em> (dashed lines above). Others are <em>strong depedency</em> (solid lines above).</p>
+<h2 id="step-2-scheduling-rules-for-condition-tasks">Step 2: Scheduling Rules for Condition Tasks</h2>
+<p>When you submit a taskflow to an executor, the scheduler starts with tasks of <em>zero dependency</em> (both weak and strong dependencies) and continues to execute successive tasks whenever <em>strong dependencies</em> are met. However, the scheduler skips this rule for a condition task and jumps directly to its successor indexed by the return value.</p>
+<div class="figure">
+<img src="image/conditional-tasking-rules.svg" />
+
+</div>
+<p>It is users' responsibility to ensure a taskflow is properly conditioned. Top things to avoid include no source tasks to start with and task race. The figure shows common pitfalls and their remedies. In the risky scenario, task X may not be raced if P and M is exclusively branching to X.</p>
+<div class="figure">
+<img src="image/conditional-tasking-pitfalls.svg" />
+
+</div>
+<p>A good practice for avoiding mistakes of conditional tasking is to infer the execution flow of your graphs based on our scheduling rules. Make sure there is no task race.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="composable-tasking">Composable Tasking</h1>
+<p>A powerful feature of <code>tf::Taskflow</code> is composability. You can create multiple task graphs from different parts of your workload and use them to compose a large graph through the <code>composed_of</code> method.</p>
+<p><img align="right" src="image/composition.svg" width="50%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Taskflow f1, f2;
+
+<span class="kw">auto</span> [f1A, f1B] = f1.emplace( 
+  []() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task f1A</span><span class="sc">\n</span><span class="st">&quot;</span>; },
+  []() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task f1B</span><span class="sc">\n</span><span class="st">&quot;</span>; }
+);
+<span class="kw">auto</span> [f2A, f2B, f2C] = f2.emplace( 
+  []() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task f2A</span><span class="sc">\n</span><span class="st">&quot;</span>; },
+  []() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task f2B</span><span class="sc">\n</span><span class="st">&quot;</span>; },
+  []() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Task f2C</span><span class="sc">\n</span><span class="st">&quot;</span>; }
+);
+<span class="kw">auto</span> f1_module_task = f2.composed_of(f1);
+
+f1_module_task.succeed(f2A, f2B)
+              .precede(f2C);</code></pre></div>
+<p>Similarly, <code>composed_of</code> returns a task handle and you can use <code>precede</code> to create dependencies. You can compose a taskflow from multiple taskflows and use the result to compose a larger taskflow and so on.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="concurrent-cpu-gpu-tasking">Concurrent CPU-GPU Tasking</h1>
+<p>Cpp-Taskflow enables concurrent CPU-GPU tasking by leveraging <a href="https://developer.nvidia.com/cuda-toolkit">Nvidia CUDA Toolkit</a>. You can harness the power of CPU-GPU collaborative computing to implement heterogeneous decomposition algorithms.</p>
+<h2 id="step-1-create-a-cudaflow">Step 1: Create a cudaFlow</h2>
+<p>A <code>tf::cudaFlow</code> is a graph object created at runtime similar to dynamic tasking. It manages a task node in a taskflow and associates it with a <a href="https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__GRAPH.html">CUDA Graph</a>. To create a cudaFlow, emplace a callable with an argument of type <code>tf::cudaFlow</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Taskflow taskflow;
+tf::Executor executor;
+
+<span class="at">const</span> <span class="dt">unsigned</span> N = <span class="dv">1</span>&lt;&lt;<span class="dv">20</span>;                            <span class="co">// size of the vector</span>
+<span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt; hx(N, <span class="fl">1.0f</span>), hy(N, <span class="fl">2.0f</span>);         <span class="co">// x and y vectors at host</span>
+<span class="dt">float</span> *dx{<span class="kw">nullptr</span>}, *dy{<span class="kw">nullptr</span>};                    <span class="co">// x and y vectors at device</span>
+
+tf::Task allocate_x = taskflow.emplace([&amp;](){ cudaMalloc(&amp;dx, N*<span class="kw">sizeof</span>(<span class="dt">float</span>));});
+tf::Task allocate_y = taskflow.emplace([&amp;](){ cudaMalloc(&amp;dy, N*<span class="kw">sizeof</span>(<span class="dt">float</span>));});
+tf::Task cudaflow = taskflow.emplace([&amp;](tf::cudaFlow&amp; cf) {
+  tf::cudaTask h2d_x = cf.copy(dx, hx.data(), N);    <span class="co">// host-to-device x data transfer</span>
+  tf::cudaTask h2d_y = cf.copy(dy, hy.data(), N);    <span class="co">// host-to-device y data transfer</span>
+  tf::cudaTask d2h_x = cf.copy(hx.data(), dx, N);    <span class="co">// device-to-host x data transfer</span>
+  tf::cudaTask d2h_y = cf.copy(hy.data(), dy, N);    <span class="co">// device-to-host y data transfer</span>
+  <span class="co">// launch saxpy&lt;&lt;&lt;(N+255)/256, 256, 0&gt;&gt;&gt;(N, 2.0f, dx, dy)</span>
+  tf::cudaTask kernel = cf.kernel((N<span class="dv">+255</span>)/<span class="dv">256</span>, <span class="dv">256</span>, <span class="dv">0</span>, saxpy, N, <span class="fl">2.0f</span>, dx, dy);
+  kernel.succeed(h2d_x, h2d_y)
+        .precede(d2h_x, d2h_y);
+});
+cudaflow.succeed(allocate_x, allocate_y);            <span class="co">// overlap data allocations</span>
+
+executor.run(taskflow).wait();</code></pre></div>
+<p>Assume our kernel implements the canonical saxpy operation (single-precision A·X Plus Y) using the CUDA syntax.</p>
+<p><img align="right" src="image/saxpy.svg" width="50%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// saxpy (single-precision A·X Plus Y) kernel</span>
+__global__ <span class="dt">void</span> saxpy(
+  <span class="dt">int</span> n, <span class="dt">float</span> a, <span class="dt">float</span> *x, <span class="dt">float</span> *y
+) {
+  <span class="co">// get the thread index</span>
+  <span class="dt">int</span> i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  <span class="cf">if</span> (i &lt; n) {
+    y[i] = a*x[i] + y[i];
+  }
+}</code></pre></div>
+<h2 id="step-2-compile-and-execute-a-cudaflow">Step 2: Compile and Execute a cudaFlow</h2>
+<p>Name you source with the extension <code>.cu</code>, let's say <code>saxpy.cu</code>, and compile it through <a href="https://developer.nvidia.com/cuda-llvm-compiler">nvcc</a>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">~</span>$ <span class="ex">nvcc</span> saxpy.cu -I path/to/include/taskflow -O2 -o saxpy
+<span class="ex">~</span>$ <span class="ex">./saxpy</span></code></pre></div>
+<p>Our source autonomously enables cudaFlow for compilers that support CUDA.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="visualize-a-taskflow-graph">Visualize a Taskflow Graph</h1>
+<p>You can dump a taskflow through a <code>std::ostream</code> in <a href="https://www.graphviz.org/">GraphViz</a> format using the method <code>dump</code>. There are a number of free <a href="https://dreampuf.github.io/GraphvizOnline/">GraphViz tools</a> you could find online to visualize your Taskflow graph.</p>
+<p><img align="right" src="image/graphviz.svg" width="25%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Taskflow taskflow;
+tf::Task A = taskflow.emplace([] () {}).name(<span class="st">&quot;A&quot;</span>);
+tf::Task B = taskflow.emplace([] () {}).name(<span class="st">&quot;B&quot;</span>);
+tf::Task C = taskflow.emplace([] () {}).name(<span class="st">&quot;C&quot;</span>);
+tf::Task D = taskflow.emplace([] () {}).name(<span class="st">&quot;D&quot;</span>);
+tf::Task E = taskflow.emplace([] () {}).name(<span class="st">&quot;E&quot;</span>);
+A.precede(B, C, E); 
+C.precede(D);
+B.precede(D, E); 
+
+taskflow.dump(<span class="bu">std::</span>cout);  <span class="co">// dump the graph in DOT to std::cout</span></code></pre></div>
+<p>When you have tasks that are created at runtime (e.g., subflow, cudaFlow), you need to execute the graph first to spawn these tasks and dump the entire graph.</p>
+<p><img align="right" src="image/debug_subflow.svg" width="25%"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Executor executor;
+tf::Taskflow taskflow;
+
+tf::Task A = taskflow.emplace([](){}).name(<span class="st">&quot;A&quot;</span>);
+
+<span class="co">// create a subflow of two tasks B1-&gt;B2</span>
+tf::Task B = taskflow.emplace([] (tf::Subflow&amp; subflow) {
+  tf::Task B1 = subflow.emplace([](){}).name(<span class="st">&quot;B1&quot;</span>);
+  tf::Task B2 = subflow.emplace([](){}).name(<span class="st">&quot;B2&quot;</span>);
+  B1.precede(B2);
+}).name(<span class="st">&quot;B&quot;</span>);
+
+A.precede(B);
+
+executor.run(tf).wait();  <span class="co">// run the taskflow to spawn subflows</span>
+tf.dump(<span class="bu">std::</span>cout);       <span class="co">// dump the graph including dynamic tasks</span></code></pre></div>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="monitor-thread-activities">Monitor Thread Activities</h1>
+<p>Understanding thread activities is very important for performance analysis. Cpp-Taskflow provides a default <em>observer</em> of type <code>tf::ExecutorObserver</code> that lets users observe when a thread starts or stops participating in task scheduling.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> observer = executor.make_observer&lt;tf::ExecutorObserver&gt;();</code></pre></div>
+<p>When you are running a task dependency graph, the observer will automatically record the start and end timestamps of each executed task. You can dump the entire execution timelines into a JSON file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">executor.run(taskflow1);               <span class="co">// run a task dependency graph 1</span>
+executor.run(taskflow2);               <span class="co">// run a task dependency graph 2</span>
+executor.wait_for_all();               <span class="co">// block until all tasks finish</span>
+
+<span class="bu">std::</span>ofstream ofs(<span class="st">&quot;timestamps.json&quot;</span>);
+observer-&gt;dump(ofs);                   <span class="co">// dump the timeline to a JSON file</span></code></pre></div>
+<p>You can open the chrome browser to visualize the execution timelines through the <a href="https://www.chromium.org/developers/how-tos/trace-event-profiling-tool">chrome://tracing</a> developer tool. In the tracing view, click the <code>Load</code> button to read the JSON file. You shall see the tracing graph.</p>
+<div class="figure">
+<img src="image/timeline.png" />
+
+</div>
+<p>Each task is given a name of <code>i_j</code> where <code>i</code> is the thread id and <code>j</code> is the task number. You can pan or zoom in/out the timeline to get into a detailed view.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="api-reference">API Reference</h1>
+<p>The official <a href="https://cpp-taskflow.github.io/cpp-taskflow/index.html">documentation</a> explains a complete list of Cpp-Taskflow API. Here, we highlight commonly used methods.</p>
+<h2 id="taskflow-api">Taskflow API</h2>
+<p>The class <code>tf::Taskflow</code> is the main place to create a task dependency graph. The table below summarizes a list of commonly used methods.</p>
+<table style="width:54%;">
+<colgroup>
+<col width="12%" />
+<col width="13%" />
+<col width="11%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Argument</th>
+<th>Return</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>emplace</td>
+<td>callables</td>
+<td>tasks</td>
+<td>creates a task with a given callable(s)</td>
+</tr>
+<tr class="even">
+<td>placeholder</td>
+<td>none</td>
+<td>task</td>
+<td>inserts a node without any work; work can be assigned later</td>
+</tr>
+<tr class="odd">
+<td>parallel_for</td>
+<td>beg, end, callable, chunk</td>
+<td>task pair</td>
+<td>concurrently applies the callable chunk by chunk to the result of dereferencing every iterator in the range</td>
+</tr>
+<tr class="even">
+<td>parallel_for</td>
+<td>beg, end, step, callable, chunk</td>
+<td>task pair</td>
+<td>concurrently applies the callable chunk by chunk to an index-based range with a step size</td>
+</tr>
+<tr class="odd">
+<td>num_workers</td>
+<td>none</td>
+<td>size</td>
+<td>queries the number of working threads in the pool</td>
+</tr>
+<tr class="even">
+<td>dump</td>
+<td>ostream</td>
+<td>none</td>
+<td>dumps the taskflow to an output stream in GraphViz format</td>
+</tr>
+</tbody>
+</table>
+<h3 id="emplaceplaceholder"><em>emplace/placeholder</em></h3>
+<p>You can use <code>emplace</code> to create a task from a target callable.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Task task = tf.emplace([] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;my task</span><span class="sc">\n</span><span class="st">&quot;</span>; });</code></pre></div>
+<p>When a task cannot be determined beforehand, you can create a placeholder and assign the callable later.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Task A = tf.emplace([](){});
+tf::Task B = tf.placeholder();
+A.precede(B);
+B.work([](){ <span class="co">/* do something */</span> });</code></pre></div>
+<h3 id="parallel_for"><em>parallel_for</em></h3>
+<p>The method <code>parallel_for</code> creates a subgraph that applies the callable to each item in the given range of a container.</p>
+<p><img align="right" width="35%" src="image/parallel_for.svg"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> v = {<span class="st">&#39;A&#39;</span>, <span class="st">&#39;B&#39;</span>, <span class="st">&#39;C&#39;</span>, <span class="st">&#39;D&#39;</span>};
+<span class="kw">auto</span> [S, T] = tf.parallel_for(
+  v.begin(),    <span class="co">// iterator to the beginning</span>
+  v.end(),      <span class="co">// iterator to the end</span>
+  [] (<span class="dt">int</span> i) { 
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;parallel &quot;</span> &lt;&lt; i &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+  }
+);
+<span class="co">// add dependencies via S and T.</span></code></pre></div>
+<p>You can specify a <em>chunk</em> size (default one) in the last argument to force a task to include a certain number of items.</p>
+<p><img align="right" width="18%" src="image/parallel_for_2.svg"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> v = {<span class="st">&#39;A&#39;</span>, <span class="st">&#39;B&#39;</span>, <span class="st">&#39;C&#39;</span>, <span class="st">&#39;D&#39;</span>};
+<span class="kw">auto</span> [S, T] = tf.parallel_for(
+  v.begin(),    <span class="co">// iterator to the beginning</span>
+  v.end(),      <span class="co">// iterator to the end</span>
+  [] (<span class="dt">int</span> i) { 
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;AB and CD run in parallel&quot;</span> &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+  },
+  <span class="dv">2</span>  <span class="co">// at least two items at a time</span>
+);</code></pre></div>
+<p>In addition to iterator-based construction, <code>parallel_for</code> has another overload of index-based loop. The first three argument of this overload indicates starting index, ending index (exclusive), and step size.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// [0, 11) with a step size of 2</span>
+<span class="kw">auto</span> [S, T] = tf.parallel_for(
+  <span class="dv">0</span>, <span class="dv">11</span>, <span class="dv">2</span>, 
+  [] (<span class="dt">int</span> i) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;parallel_for on index &quot;</span> &lt;&lt; i &lt;&lt; <span class="bu">std::</span>endl;
+  }, 
+  <span class="dv">2</span>  <span class="co">// at least two items at a time</span>
+);
+<span class="co">// will print 0, 2, 4, 6, 8, 10 (three partitions, {0, 2}, {4, 6}, {8, 10})</span></code></pre></div>
+<h2 id="task-api">Task API</h2>
+<p>Each time you create a task, the taskflow object adds a node to the present task dependency graph and return a <em>task handle</em> to you. A task handle is a lightweight object that defines a set of methods for users to access and modify the attributes of the associated task. The table below summarizes a list of commonly used methods.</p>
+<table style="width:64%;">
+<colgroup>
+<col width="20%" />
+<col width="16%" />
+<col width="9%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Argument</th>
+<th>Return</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>name</td>
+<td>string</td>
+<td>self</td>
+<td>assigns a human-readable name to the task</td>
+</tr>
+<tr class="even">
+<td>work</td>
+<td>callable</td>
+<td>self</td>
+<td>assigns a work of a callable object to the task</td>
+</tr>
+<tr class="odd">
+<td>precede</td>
+<td>task list</td>
+<td>self</td>
+<td>enables this task to run <em>before</em> the given tasks</td>
+</tr>
+<tr class="even">
+<td>succeed</td>
+<td>task list</td>
+<td>self</td>
+<td>enables this task to run <em>after</em> the given tasks</td>
+</tr>
+<tr class="odd">
+<td>num_dependents</td>
+<td>none</td>
+<td>size</td>
+<td>returns the number of dependents (inputs) of this task</td>
+</tr>
+<tr class="even">
+<td>num_successors</td>
+<td>none</td>
+<td>size</td>
+<td>returns the number of successors (outputs) of this task</td>
+</tr>
+<tr class="odd">
+<td>empty</td>
+<td>none</td>
+<td>bool</td>
+<td>returns true if the task points to a graph node or false otherwise</td>
+</tr>
+<tr class="even">
+<td>has_work</td>
+<td>none</td>
+<td>bool</td>
+<td>returns true if the task points to a graph node with a callable assigned</td>
+</tr>
+</tbody>
+</table>
+<h3 id="name"><em>name</em></h3>
+<p>The method <code>name</code> lets you assign a human-readable string to a task.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">A.name(<span class="st">&quot;my name is A&quot;</span>);</code></pre></div>
+<h3 id="work"><em>work</em></h3>
+<p>The method <code>work</code> lets you assign a callable to a task.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">A.work([] () { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;hello world!&quot;</span>; });</code></pre></div>
+<h3 id="precede"><em>precede</em></h3>
+<p>The method <code>precede</code> lets you add a preceding link from self to other tasks.</p>
+<p><img align="right" width="30%" src="image/broadcast.svg"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// A runs before B, C, D, and E</span>
+A.precede(B, C, D, E);</code></pre></div>
+<h3 id="succeed"><em>succeed</em></h3>
+<p>The method <code>succeed</code> lets you add a preceding link from other tasks to self.</p>
+<p><img align="right" width="30%" src="image/gather.svg"></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// A runs after B, C, D, and E</span>
+A.succeed(B, C, D, E);</code></pre></div>
+<h3 id="emptyhas_work"><em>empty/has_work</em></h3>
+<p>A task is empty is it is not associated with any graphs.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Task task;  <span class="co">// assert(task.empty());</span></code></pre></div>
+<p>A placeholder task is associated with a graph node but has no work assigned yet.</p>
+<pre><code>tf::Task task = taskflow.placeholder();  // assert(!task.has_work());</code></pre>
+<h2 id="executor-api">Executor API</h2>
+<p>The class <code>tf::Executor</code> is used for execution of one or multiple taskflow objects. The table below summarizes a list of commonly used methods.</p>
+<table style="width:89%;">
+<colgroup>
+<col width="13%" />
+<col width="20%" />
+<col width="19%" />
+<col width="34%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Argument</th>
+<th>Return</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Executor</td>
+<td>N</td>
+<td>none</td>
+<td>constructs an executor with N worker threads</td>
+</tr>
+<tr class="even">
+<td>run</td>
+<td>taskflow</td>
+<td>future</td>
+<td>runs the taskflow once</td>
+</tr>
+<tr class="odd">
+<td>run_n</td>
+<td>taskflow, N</td>
+<td>future</td>
+<td>runs the taskflow N times</td>
+</tr>
+<tr class="even">
+<td>run_until</td>
+<td>taskflow, binary predicate</td>
+<td>future</td>
+<td>keeps running the taskflow until the predicate becomes true</td>
+</tr>
+<tr class="odd">
+<td>wait_for_all</td>
+<td>none</td>
+<td>none</td>
+<td>blocks until all running tasks finish</td>
+</tr>
+<tr class="even">
+<td>make_observer</td>
+<td>arguments to forward to user-derived constructor</td>
+<td>pointer to the observer</td>
+<td>creates an observer to monitor the thread activities of the executor</td>
+</tr>
+</tbody>
+</table>
+<h3 id="executor"><em>Executor</em></h3>
+<p>The constructor of <code>tf::Executor</code> takes an unsigned <em>non-zero</em> integer to initialize the executor with <code>N</code> worker threads.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tf::Executor executor(<span class="dv">8</span>);  <span class="co">// create an executor of 8 worker threads</span></code></pre></div>
+<p>The default value uses <code>std::thread::hardware_concurrency</code> to decide the number of worker threads.</p>
+<h3 id="runrun_nrun_until"><em>run/run_n/run_until</em></h3>
+<p>The run series are non-blocking call to execute a taskflow graph. Issuing multiple runs on the same taskflow will automatically synchronize to a sequential chain of executions.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">executor.run(taskflow);                 <span class="co">// runs a graph once</span>
+executor.run_n(taskflow, <span class="dv">5</span>);            <span class="co">// runs a graph five times</span>
+executor.run_until(taskflow, my_pred);  <span class="co">// keeps running until the my_pred becomes true</span>
+executor.wait_for_all();                <span class="co">// blocks until all tasks finish</span></code></pre></div>
+The first run finishes before the second run, and the second run finishes before the third run.
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="system-requirements">System Requirements</h1>
+<p>To use the latest <a href="https://github.com/cpp-taskflow/cpp-taskflow/archive/master.zip">Cpp-Taskflow</a>, you only need a <a href="https://en.wikipedia.org/wiki/C%2B%2B14">C++14</a> compiler.</p>
+<ul>
+<li>GNU C++ Compiler at least v5.0 with -std=c++14</li>
+<li>Clang C++ Compiler at least v4.0 with -std=c++14</li>
+<li>Microsoft Visual Studio at least v15.7 (MSVC++ 19.14); see <a href="https://github.com/cpp-taskflow/cpp-taskflow/issues/143">vcpkg guide</a></li>
+<li>AppleClang Xode Version at least v8</li>
+<li>Nvidia CUDA Toolkit and Compiler (<a href="https://developer.nvidia.com/cuda-llvm-compiler">nvcc</a>) at least v10.0 with -std=c++14</li>
+</ul>
+<p>See the <a href="https://en.cppreference.com/w/cpp/compiler_support">C++ compiler support</a> status.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="compile-unit-tests-examples-and-benchmarks">Compile Unit Tests, Examples, and Benchmarks</h1>
+<p>Cpp-Taskflow uses <a href="https://cmake.org/">CMake</a> to build examples and unit tests. We recommend using out-of-source build.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">~</span>$ <span class="fu">cmake</span> --version   # must be at least 3.9 or higher
+<span class="ex">~</span>$ <span class="fu">mkdir</span> build
+<span class="ex">~</span>$ <span class="bu">cd</span> build
+<span class="ex">~</span>$ <span class="fu">cmake</span> ../ 
+<span class="ex">~</span>$ <span class="fu">make</span> <span class="kw">&amp;</span> <span class="fu">make</span> test  # run all unit tests</code></pre></div>
+<h2 id="examples">Examples</h2>
+<p>The folder <code>examples/</code> contains several examples and is a great place to learn to use Cpp-Taskflow.</p>
+<table style="width:28%;">
+<colgroup>
+<col width="11%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="./examples/simple.cpp">simple.cpp</a></td>
+<td>uses basic task building blocks to create a trivial taskflow graph</td>
+</tr>
+<tr class="even">
+<td><a href="./examples/debug.cpp">debug.cpp</a></td>
+<td>inspects a taskflow through the dump method</td>
+</tr>
+<tr class="odd">
+<td><a href="./examples/parallel_for.cpp">parallel_for.cpp</a></td>
+<td>parallelizes a for loop with unbalanced workload</td>
+</tr>
+<tr class="even">
+<td><a href="./examples/subflow.cpp">subflow.cpp</a></td>
+<td>demonstrates how to create a subflow graph that spawns three dynamic tasks</td>
+</tr>
+<tr class="odd">
+<td><a href="./examples/run_variants.cpp">run_variants.cpp</a></td>
+<td>shows multiple ways to run a taskflow graph</td>
+</tr>
+<tr class="even">
+<td><a href="./examples/composition.cpp">composition.cpp</a></td>
+<td>demonstrates the decomposable interface of taskflow</td>
+</tr>
+<tr class="odd">
+<td><a href="./examples/observer.cpp">observer.cpp</a></td>
+<td>demonstrates how to monitor the thread activities in scheduling and running tasks</td>
+</tr>
+<tr class="even">
+<td><a href="./examples/condition.cpp">condition.cpp</a></td>
+<td>creates a conditional tasking graph with a feedback loop control flow</td>
+</tr>
+</tbody>
+</table>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Please visit <a href="benchmarks/benchmarks.md">benchmarks</a> to learn to compile the benchmarks.</p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="who-is-using-cpp-taskflow">Who is Using Cpp-Taskflow?</h1>
+<p>Cpp-Taskflow is being used in both industry and academic projects to scale up existing workloads that incorporate complex task dependencies.</p>
+<ul>
+<li><a href="https://github.com/OpenTimer/OpenTimer">OpenTimer</a>: A High-performance Timing Analysis Tool for Very Large Scale Integration (VLSI) Systems</li>
+<li><a href="https://github.com/tsung-wei-huang/DtCraft">DtCraft</a>: A General-purpose Distributed Programming Systems using Data-parallel Streams</li>
+<li><a href="https://github.com/ForgeMistress/Firestorm">Firestorm</a>: Fighting Game Engine with Asynchronous Resource Loaders (developed by <a href="https://github.com/ForgeMistress">ForgeMistress</a>)</li>
+<li><a href="https://shiva.gitbook.io/project/shiva">Shiva</a>: An extensible engine via an entity component system through scripts, DLLs, and header-only (C++)</li>
+<li><a href="http://pid.lirmm.net/pid-framework/index.html">PID Framework</a>: A Global Development Methodology Supported by a CMake API and Dedicated C++ Projects</li>
+<li><a href="https://github.com/novuscore/NovusCore">NovusCore</a>: An emulating project for World of Warraft (Wrath of the Lich King 3.3.5a 12340 client build)</li>
+<li><a href="https://github.com/choltz95/SA-PCB">SA-PCB</a>: Annealing-based Printed Circuit Board (PCB) Placement Tool</li>
+<li><a href="https://github.com/LPMP/LPMP">LPMP</a>: A C++ framework for developing scalable Lagrangian decomposition solvers for discrete optimization problems</li>
+<li><a href="https://github.com/Heteroflow/Heteroflow">Heteroflow</a>: A Modern C++ Parallel CPU-GPU Task Programming Library</li>
+<li><a href="https://github.com/The-OpenROAD-Project/OpenPhySyn">OpenPhySyn</a>: A plugin-based physical synthesis optimization kit as part of the OpenRoad flow</li>
+</ul>
+<p><a href="https://github.com/search?q=cpp-taskflow&amp;type=Code">More...</a></p>
+<div align="right">
+<b><a href="#table-of-contents">[↑]</a></b>
+</div>
+<h1 id="contributors">Contributors</h1>
+<p>Cpp-Taskflow is being actively developed and contributed by the <a href="https://github.com/cpp-taskflow/cpp-taskflow/graphs/contributors">these people</a>. Meanwhile, we appreciate the support from many organizations for our developments.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center"><a href="https://www.utah.edu/"><img src="image/utah.png" width="100px"></a></th>
+<th align="center"><a href="https://illinois.edu/"><img src="image/uiuc.png" width="100px"></a></th>
+<th align="center"><a href="https://csl.illinois.edu/"><img src="image/csl.png" width="100px"></a></th>
+<th align="center"><a href="https://www.nsf.gov/"><img src="image/nsf.png" width="100px"></a></th>
+<th align="center"><a href="https://www.darpa.mil/news-events/2017-09-13"><img src="image/darpa.png" width="100px"></a></th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+<h1 id="license">License</h1>
+<p>Cpp-Taskflow is licensed under the <a href="./LICENSE">MIT License</a>.</p>
+<hr />

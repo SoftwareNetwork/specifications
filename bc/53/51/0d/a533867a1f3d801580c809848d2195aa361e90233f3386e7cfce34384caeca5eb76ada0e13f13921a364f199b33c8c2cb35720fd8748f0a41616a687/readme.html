@@ -1,0 +1,219 @@
+<h1 id="spdlog">spdlog</h1>
+<p>Very fast, header-only/compiled, C++ logging library. <a href="https://travis-ci.com/gabime/spdlog"><img src="https://travis-ci.com/gabime/spdlog.svg?branch=v1.x" alt="Build Status" /></a>  <a href="https://ci.appveyor.com/project/gabime/spdlog"><img src="https://ci.appveyor.com/api/projects/status/d2jnxclg20vd0o50?svg=true" alt="Build status" /></a> <a href="https://github.com/gabime/spdlog/releases/latest"><img src="https://img.shields.io/github/release/gabime/spdlog.svg" alt="Release" /></a></p>
+<h2 id="install">Install</h2>
+<h4 id="header-only-version">Header only version</h4>
+<p>Copy the source <a href="https://github.com/gabime/spdlog/tree/v1.x/include/spdlog">folder</a> to your build tree and use a C++11 compiler.</p>
+<h4 id="static-lib-version-recommended---much-faster-compile-times">Static lib version (recommended - much faster compile times)</h4>
+<pre class="console"><code>$ git clone https://github.com/gabime/spdlog.git
+$ cd spdlog &amp;&amp; mkdir build &amp;&amp; cd build
+$ cmake .. &amp;&amp; make -j</code></pre>
+<p>see example <a href="https://github.com/gabime/spdlog/blob/v1.x/example/CMakeLists.txt">CMakeLists.txt</a> on how to use.</p>
+<h2 id="platforms">Platforms</h2>
+<ul>
+<li>Linux, FreeBSD, OpenBSD, Solaris, AIX</li>
+<li>Windows (msvc 2013+, cygwin)</li>
+<li>macOS (clang 3.5+)</li>
+<li>Android</li>
+</ul>
+<h2 id="package-managers">Package managers:</h2>
+<ul>
+<li>Homebrew: <code>brew install spdlog</code></li>
+<li>MacPorts: <code>sudo port install spdlog</code></li>
+<li>FreeBSD: <code>cd /usr/ports/devel/spdlog/ &amp;&amp; make install clean</code></li>
+<li>Fedora: <code>dnf install spdlog</code></li>
+<li>Gentoo: <code>emerge dev-libs/spdlog</code></li>
+<li>Arch Linux: <code>pacman -S spdlog</code></li>
+<li>vcpkg: <code>vcpkg install spdlog</code></li>
+<li>conan: <code>spdlog/[&gt;=1.4.1]</code></li>
+<li>conda: <code>conda install -c conda-forge spdlog</code></li>
+<li>build2: <code>depends: spdlog ^1.8.2</code></li>
+</ul>
+<h2 id="features">Features</h2>
+<ul>
+<li>Very fast (see <a href="#benchmarks">benchmarks</a> below).</li>
+<li>Headers only or compiled</li>
+<li>Feature rich formatting, using the excellent <a href="https://github.com/fmtlib/fmt">fmt</a> library.</li>
+<li>Asynchronous mode (optional)</li>
+<li><a href="https://github.com/gabime/spdlog/wiki/3.-Custom-formatting">Custom</a> formatting.</li>
+<li>Multi/Single threaded loggers.</li>
+<li>Various log targets:
+<ul>
+<li>Rotating log files.</li>
+<li>Daily log files.</li>
+<li>Console logging (colors supported).</li>
+<li>syslog.</li>
+<li>Windows event log.</li>
+<li>Windows debugger (<code>OutputDebugString(..)</code>).</li>
+<li>Easily <a href="https://github.com/gabime/spdlog/wiki/4.-Sinks#implementing-your-own-sink">extendable</a> with custom log targets.</li>
+</ul></li>
+<li>Log filtering - log levels can be modified in runtime as well as in compile time.</li>
+<li>Support for loading log levels from argv or from environment var.</li>
+<li><a href="#backtrace-support">Backtrace</a> support - store debug messages in a ring buffer and display later on demand.</li>
+</ul>
+<h2 id="usage-samples">Usage samples</h2>
+<h4 id="basic-usage">Basic usage</h4>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/spdlog.h&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="dt">int</span> main() </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>{</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>    spdlog::info(<span class="st">&quot;Welcome to spdlog!&quot;</span>);</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>    spdlog::error(<span class="st">&quot;Some error message with arg: </span><span class="sc">{}</span><span class="st">&quot;</span>, <span class="dv">1</span>);</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>    spdlog::warn(<span class="st">&quot;Easy padding in numbers like </span><span class="sc">{:08d}</span><span class="st">&quot;</span>, <span class="dv">12</span>);</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>    spdlog::critical(<span class="st">&quot;Support for int: </span><span class="sc">{0:d}</span><span class="st">;  hex: </span><span class="sc">{0:x}</span><span class="st">;  oct: </span><span class="sc">{0:o}</span><span class="st">; bin: </span><span class="sc">{0:b}</span><span class="st">&quot;</span>, <span class="dv">42</span>);</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>    spdlog::info(<span class="st">&quot;Support for floats </span><span class="sc">{:03.2f}</span><span class="st">&quot;</span>, <span class="fl">1.23456</span>);</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>    spdlog::info(<span class="st">&quot;Positional args are </span><span class="sc">{1}</span><span class="st"> </span><span class="sc">{0}</span><span class="st">..&quot;</span>, <span class="st">&quot;too&quot;</span>, <span class="st">&quot;supported&quot;</span>);</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>    spdlog::info(<span class="st">&quot;</span><span class="sc">{:&lt;30}</span><span class="st">&quot;</span>, <span class="st">&quot;left aligned&quot;</span>);</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>    </span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>    spdlog::set_level(spdlog::level::debug); <span class="co">// Set global log level to debug</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>    spdlog::debug(<span class="st">&quot;This message should be displayed..&quot;</span>);    </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>    </span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a>    <span class="co">// change log pattern</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>    spdlog::set_pattern(<span class="st">&quot;[%H:%M:%S %z] [</span><span class="sc">%n</span><span class="st">] [%^---%L---%$] [thread %t] %v&quot;</span>);</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>    </span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>    <span class="co">// Compile time log levels</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>    <span class="co">// define SPDLOG_ACTIVE_LEVEL to desired level</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>    SPDLOG_TRACE(<span class="st">&quot;Some trace message with param </span><span class="sc">{}</span><span class="st">&quot;</span>, <span class="dv">42</span>);</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a>    SPDLOG_DEBUG(<span class="st">&quot;Some debug message&quot;</span>);</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="basic-file-logger">Basic file logger</h4>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="dt">void</span> basic_logfile_example()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>{</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>    <span class="cf">try</span> </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>    {</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>        <span class="kw">auto</span> logger = spdlog::basic_logger_mt(<span class="st">&quot;basic_logger&quot;</span>, <span class="st">&quot;logs/basic-log.txt&quot;</span>);</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>    }</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    <span class="cf">catch</span> (<span class="at">const</span> spdlog::spdlog_ex &amp;ex)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>    {</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Log init failed: &quot;</span> &lt;&lt; ex.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>    }</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="daily-files">Daily files</h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/daily_file_sink.h&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="dt">void</span> daily_example()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>{</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>    <span class="co">// Create a daily logger - a new file is created every day on 2:30am</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>    <span class="kw">auto</span> logger = spdlog::daily_logger_mt(<span class="st">&quot;daily_logger&quot;</span>, <span class="st">&quot;logs/daily.txt&quot;</span>, <span class="dv">2</span>, <span class="dv">30</span>);</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="periodic-flush">Periodic flush</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">// periodically flush all *registered* loggers every 3 seconds:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="co">// warning: only use if all your loggers are thread safe (&quot;_mt&quot; loggers)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>spdlog::flush_every(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">3</span>));</span></code></pre></div>
+<h4 id="log-binary-data-in-hex">Log binary data in hex</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="co">// many types of std::container&lt;char&gt; types can be used.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="co">// ranges are supported too.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="co">// format flags:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="co">// {:X} - print in uppercase.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="co">// {:s} - don&#39;t separate each byte with space.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a><span class="co">// {:p} - don&#39;t print the position on each line start.</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="co">// {:n} - don&#39;t split the output to lines.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a><span class="co">// {:a} - show ASCII if :n is not set.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/fmt/bin_to_hex.h&quot;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a><span class="dt">void</span> binary_example()</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>{</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>    <span class="kw">auto</span> console = spdlog::get(<span class="st">&quot;console&quot;</span>);</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>    <span class="bu">std::</span>array&lt;<span class="dt">char</span>, <span class="dv">80</span>&gt; buf;</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>    console-&gt;info(<span class="st">&quot;Binary example: </span><span class="sc">{}</span><span class="st">&quot;</span>, spdlog::to_hex(buf));</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>    console-&gt;info(<span class="st">&quot;Another binary example:{:n}&quot;</span>, spdlog::to_hex(<span class="bu">std::</span>begin(buf), <span class="bu">std::</span>begin(buf) + <span class="dv">10</span>));</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>    <span class="co">// more examples:</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>    <span class="co">// logger-&gt;info(&quot;uppercase: {:X}&quot;, spdlog::to_hex(buf));</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a>    <span class="co">// logger-&gt;info(&quot;uppercase, no delimiters: {:Xs}&quot;, spdlog::to_hex(buf));</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>    <span class="co">// logger-&gt;info(&quot;uppercase, no delimiters, no position info: {:Xsp}&quot;, spdlog::to_hex(buf));</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="asynchronous-logging">Asynchronous logging</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/async.h&quot;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="dt">void</span> async_example()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>{</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    <span class="co">// default thread pool settings can be modified *before* creating the async logger:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>    <span class="co">// spdlog::init_thread_pool(8192, 1); // queue with 8k items and 1 backing thread.</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>    <span class="kw">auto</span> async_file = spdlog::basic_logger_mt&lt;spdlog::async_factory&gt;(<span class="st">&quot;async_file_logger&quot;</span>, <span class="st">&quot;logs/async_log.txt&quot;</span>);</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>    <span class="co">// alternatively:</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>    <span class="co">// auto async_file = spdlog::create_async&lt;spdlog::sinks::basic_file_sink_mt&gt;(&quot;async_file_logger&quot;, &quot;logs/async_log.txt&quot;);   </span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="user-defined-types">User defined types</h4>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co">// user defined types logging by implementing operator&lt;&lt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/fmt/ostr.h&quot;</span><span class="pp"> </span><span class="co">// must be included</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="kw">struct</span> <span class="dt">my_type</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>{</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>    <span class="dt">int</span> i;</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>    <span class="kw">template</span>&lt;<span class="kw">typename</span> OStream&gt;</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    <span class="kw">friend</span> OStream &amp;<span class="kw">operator</span>&lt;&lt;(OStream &amp;os, <span class="at">const</span> <span class="dt">my_type</span> &amp;c)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>    {</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>        <span class="cf">return</span> os &lt;&lt; <span class="st">&quot;[my_type i=&quot;</span> &lt;&lt; c.i &lt;&lt; <span class="st">&quot;]&quot;</span>;</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    }</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>};</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a><span class="dt">void</span> user_defined_example()</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>{</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>    spdlog::get(<span class="st">&quot;console&quot;</span>)-&gt;info(<span class="st">&quot;user defined type: </span><span class="sc">{}</span><span class="st">&quot;</span>, <span class="dt">my_type</span>{<span class="dv">14</span>});</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="custom-error-handler">Custom error handler</h4>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="dt">void</span> err_handler_example()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>{</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>    <span class="co">// can be set globally or per logger(logger-&gt;set_error_handler(..))</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>    spdlog::set_error_handler([](<span class="at">const</span> <span class="bu">std::</span>string &amp;msg) { spdlog::get(<span class="st">&quot;console&quot;</span>)-&gt;error(<span class="st">&quot;*** LOGGER ERROR ***: </span><span class="sc">{}</span><span class="st">&quot;</span>, msg); });</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>    spdlog::get(<span class="st">&quot;console&quot;</span>)-&gt;info(<span class="st">&quot;some invalid message to trigger an error </span><span class="sc">{}{}{}{}</span><span class="st">&quot;</span>, <span class="dv">3</span>);</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="android-example">Android example</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/android_sink.h&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="dt">void</span> android_example()</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a>{</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>    <span class="bu">std::</span>string tag = <span class="st">&quot;spdlog-android&quot;</span>;</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>    <span class="kw">auto</span> android_logger = spdlog::android_logger_mt(<span class="st">&quot;android&quot;</span>, tag);</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>    android_logger-&gt;critical(<span class="st">&quot;Use </span><span class="sc">\&quot;</span><span class="st">adb shell logcat</span><span class="sc">\&quot;</span><span class="st"> to view this message.&quot;</span>);</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a>}</span></code></pre></div>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Below are some <a href="https://github.com/gabime/spdlog/blob/v1.x/bench/bench.cpp">benchmarks</a> done in Ubuntu 64 bit, Intel i7-4770 CPU @ 3.40GHz</p>
+<h4 id="synchronous-mode">Synchronous mode</h4>
+<pre><code>[info] **************************************************************
+[info] Single thread, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_st         Elapsed: 0.17 secs        5,777,626/sec
+[info] rotating_st      Elapsed: 0.18 secs        5,475,894/sec
+[info] daily_st         Elapsed: 0.20 secs        5,062,659/sec
+[info] empty_logger     Elapsed: 0.07 secs       14,127,300/sec
+[info] **************************************************************
+[info] C-string (400 bytes). Single thread, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_st         Elapsed: 0.41 secs        2,412,483/sec
+[info] rotating_st      Elapsed: 0.72 secs        1,389,196/sec
+[info] daily_st         Elapsed: 0.42 secs        2,393,298/sec
+[info] null_st          Elapsed: 0.04 secs       27,446,957/sec
+[info] **************************************************************
+[info] 10 threads, competing over the same logger object, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_mt         Elapsed: 0.60 secs        1,659,613/sec
+[info] rotating_mt      Elapsed: 0.62 secs        1,612,493/sec
+[info] daily_mt         Elapsed: 0.61 secs        1,638,305/sec
+[info] null_mt          Elapsed: 0.16 secs        6,272,758/sec</code></pre>
+<h4 id="asynchronous-mode">Asynchronous mode</h4>
+<pre><code>[info] -------------------------------------------------
+[info] Messages     : 1,000,000
+[info] Threads      : 10
+[info] Queue        : 8,192 slots
+[info] Queue memory : 8,192 x 272 = 2,176 KB 
+[info] -------------------------------------------------
+[info] 
+[info] *********************************
+[info] Queue Overflow Policy: block
+[info] *********************************
+[info] Elapsed: 1.70784 secs     585,535/sec
+[info] Elapsed: 1.69805 secs     588,910/sec
+[info] Elapsed: 1.7026 secs      587,337/sec
+[info] 
+[info] *********************************
+[info] Queue Overflow Policy: overrun
+[info] *********************************
+[info] Elapsed: 0.372816 secs    2,682,285/sec
+[info] Elapsed: 0.379758 secs    2,633,255/sec
+[info] Elapsed: 0.373532 secs    2,677,147/sec
+</code></pre>
+<h2 id="documentation">Documentation</h2>
+<p>Documentation can be found in the <a href="https://github.com/gabime/spdlog/wiki/1.-QuickStart">wiki</a> pages.</p>
+<hr />
+<p>Thanks to <a href="https://www.jetbrains.com/?from=spdlog">JetBrains</a> for donating product licenses to help develop <strong>spdlog</strong> <a href="https://www.jetbrains.com/?from=spdlog"><img src="logos/jetbrains-variant-4.svg" width="94" align="center" /></a></p>

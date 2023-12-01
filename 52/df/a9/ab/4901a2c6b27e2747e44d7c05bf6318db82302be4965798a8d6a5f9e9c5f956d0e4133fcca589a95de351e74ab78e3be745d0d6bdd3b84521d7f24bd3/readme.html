@@ -1,0 +1,373 @@
+<p align="center">
+<img src="https://strcpy.net/libevent3.png" alt="libevent logo"/>
+</p>
+<p><a href="https://ci.appveyor.com/project/libevent/libevent"><img src="https://ci.appveyor.com/api/projects/status/ng3jg0uhy44mp7ik?svg=true" alt="Appveyor Win32 Build Status" /></a> <a href="https://travis-ci.org/libevent/libevent"><img src="https://travis-ci.org/libevent/libevent.svg?branch=master" alt="Travis Build Status" /></a> <a href="https://coveralls.io/github/libevent/libevent"><img src="https://coveralls.io/repos/github/libevent/libevent/badge.svg" alt="Coverage Status" /></a> <a href="https://gitter.im/libevent/libevent?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/libevent/libevent.svg" alt="Join the chat at https://gitter.im/libevent/libevent" /></a></p>
+<h1 id="building-and-installation-briefly">0. BUILDING AND INSTALLATION (Briefly)</h1>
+<h2 id="autoconf">Autoconf</h2>
+<pre><code> $ ./configure
+ $ make
+ $ make verify   # (optional)
+ $ sudo make install</code></pre>
+<h2 id="cmake-general">CMake (General)</h2>
+<p>The following Libevent specific CMake variables are as follows (the values being the default).</p>
+<pre><code># Type of the library to build (SHARED or STATIC)
+# Default is: SHARED for MSVC, otherwise BOTH
+EVENT__LIBRARY_TYPE:STRING=DEFAULT
+
+# Installation directory for CMake files
+EVENT_INSTALL_CMAKE_DIR:PATH=lib/cmake/libevent
+
+# Enable running gcov to get a test coverage report (only works with
+# GCC/CLang). Make sure to enable -DCMAKE_BUILD_TYPE=Debug as well.
+EVENT__COVERAGE:BOOL=OFF
+
+# Defines if Libevent should build without the benchmark executables
+EVENT__DISABLE_BENCHMARK:BOOL=OFF
+
+# Define if Libevent should build without support for a debug mode
+EVENT__DISABLE_DEBUG_MODE:BOOL=OFF
+
+# Define if Libevent should not allow replacing the mm functions
+EVENT__DISABLE_MM_REPLACEMENT:BOOL=OFF
+
+# Define if Libevent should build without support for OpenSSL encryption
+EVENT__DISABLE_OPENSSL:BOOL=OFF
+
+# Disable the regress tests
+EVENT__DISABLE_REGRESS:BOOL=OFF
+
+# Disable sample files
+EVENT__DISABLE_SAMPLES:BOOL=OFF
+
+# If tests should be compiled or not
+EVENT__DISABLE_TESTS:BOOL=OFF
+
+# Define if Libevent should not be compiled with thread support
+EVENT__DISABLE_THREAD_SUPPORT:BOOL=OFF
+
+# Enables verbose debugging
+EVENT__ENABLE_VERBOSE_DEBUG:BOOL=OFF
+
+# When cross compiling, forces running a test program that verifies that Kqueue
+# works with pipes. Note that this requires you to manually run the test program
+# on the the cross compilation target to verify that it works. See CMake
+# documentation for try_run for more details
+EVENT__FORCE_KQUEUE_CHECK:BOOL=OFF</code></pre>
+<p><strong>More variables can be found by running <code>cmake -LAH &lt;sourcedir_path&gt;</code></strong></p>
+<h2 id="cmake-windows">CMake (Windows)</h2>
+<p>Install CMake: <a href="https://www.cmake.org" class="uri">https://www.cmake.org</a></p>
+<pre><code> $ md build &amp;&amp; cd build
+ $ cmake -G &quot;Visual Studio 10&quot; ..   # Or whatever generator you want to use cmake --help for a list.
+ $ start libevent.sln</code></pre>
+<h2 id="cmake-unix">CMake (Unix)</h2>
+<pre><code> $ mkdir build &amp;&amp; cd build
+ $ cmake ..     # Default to Unix Makefiles.
+ $ make
+ $ make verify  # (optional)</code></pre>
+<h1 id="building-and-installation-in-depth">1. BUILDING AND INSTALLATION (In Depth)</h1>
+<h2 id="autoconf-1">Autoconf</h2>
+<p>To build Libevent, type</p>
+<pre><code> $ ./configure &amp;&amp; make</code></pre>
+<p>(If you got Libevent from the git repository, you will first need to run the included &quot;autogen.sh&quot; script in order to generate the configure script.)</p>
+<p>You can run the regression tests by running</p>
+<pre><code> $ make verify</code></pre>
+<p>Install as root via</p>
+<pre><code> $ make install</code></pre>
+<p>Before reporting any problems, please run the regression tests.</p>
+<p>To enable low-level tracing, build the library as:</p>
+<pre><code> $ CFLAGS=-DUSE_DEBUG ./configure [...]</code></pre>
+<p>Standard configure flags should work. In particular, see:</p>
+<pre><code> --disable-shared          Only build static libraries.
+ --prefix                  Install all files relative to this directory.</code></pre>
+<p>The configure script also supports the following flags:</p>
+<pre><code> --enable-gcc-warnings     Enable extra compiler checking with GCC.
+ --disable-malloc-replacement
+                           Don&#39;t let applications replace our memory
+                           management functions.
+ --disable-openssl         Disable support for OpenSSL encryption.
+ --disable-thread-support  Don&#39;t support multithreaded environments.</code></pre>
+<h2 id="cmake-windows-1">CMake (Windows)</h2>
+<p>(Note that autoconf is currently the most mature and supported build environment for Libevent; the CMake instructions here are new and experimental, though they <em>should</em> be solid. We hope that CMake will still be supported in future versions of Libevent, and will try to make sure that happens.)</p>
+<p>First of all install <a href="https://www.cmake.org" class="uri">https://www.cmake.org</a>.</p>
+<p>To build Libevent using Microsoft Visual studio open the &quot;Visual Studio Command prompt&quot; and type:</p>
+<pre><code>$ cd &lt;libevent source dir&gt;
+$ mkdir build &amp;&amp; cd build
+$ cmake -G &quot;Visual Studio 10&quot; ..   # Or whatever generator you want to use cmake --help for a list.
+$ start libevent.sln</code></pre>
+<p>In the above, the &quot;..&quot; refers to the dir containing the Libevent source code. You can build multiple versions (with different compile time settings) from the same source tree by creating other build directories.</p>
+<p>It is highly recommended to build &quot;out of source&quot; when using CMake instead of &quot;in source&quot; like the normal behaviour of autoconf for this reason.</p>
+<p>The &quot;NMake Makefiles&quot; CMake generator can be used to build entirely via the command line.</p>
+<p>To get a list of settings available for the project you can type:</p>
+<pre><code>$ cmake -LH ..</code></pre>
+<h3 id="gui">GUI</h3>
+<p>CMake also provides a GUI that lets you specify the source directory and output (binary) directory that the build should be placed in.</p>
+<h1 id="useful-links">2. USEFUL LINKS:</h1>
+<p>For the latest released version of Libevent, see the official website at <a href="http://libevent.org/" class="uri">http://libevent.org/</a> .</p>
+<p>There's a pretty good work-in-progress manual up at <a href="http://www.wangafu.net/~nickm/libevent-book/" class="uri">http://www.wangafu.net/~nickm/libevent-book/</a> .</p>
+<p>For the latest development versions of Libevent, access our Git repository via</p>
+<pre><code>$ git clone https://github.com/libevent/libevent.git</code></pre>
+<p>You can browse the git repository online at:</p>
+<p><a href="https://github.com/libevent/libevent" class="uri">https://github.com/libevent/libevent</a></p>
+<p>To report bugs, issues, or ask for new features:</p>
+<p><strong>Patches</strong>: https://github.com/libevent/libevent/pulls &gt; OK, those are not really <em>patches</em>. You fork, modify, and hit the &quot;Create Pull Request&quot; button. &gt; You can still submit normal git patches via the mailing list.</p>
+<p><strong>Bugs, Features [RFC], and Issues</strong>: https://github.com/libevent/libevent/issues &gt; Or you can do it via the mailing list.</p>
+<p>There's also a libevent-users mailing list for talking about Libevent use and development:</p>
+<p><a href="http://archives.seul.org/libevent/users/" class="uri">http://archives.seul.org/libevent/users/</a></p>
+<h1 id="acknowledgments">3. ACKNOWLEDGMENTS</h1>
+<p>The following people have helped with suggestions, ideas, code or fixing bugs:</p>
+<ul>
+<li>Samy Al Bahra</li>
+<li>Antony Antony</li>
+<li>Jacob Appelbaum</li>
+<li>Arno Bakker</li>
+<li>Weston Andros Adamson</li>
+<li>William Ahern</li>
+<li>Ivan Andropov</li>
+<li>Sergey Avseyev</li>
+<li>Avi Bab</li>
+<li>Joachim Bauch</li>
+<li>Andrey Belobrov</li>
+<li>Gilad Benjamini</li>
+<li>Stas Bekman</li>
+<li>Denis Bilenko</li>
+<li>Julien Blache</li>
+<li>Kevin Bowling</li>
+<li>Tomash Brechko</li>
+<li>Kelly Brock</li>
+<li>Ralph Castain</li>
+<li>Adrian Chadd</li>
+<li>Lawnstein Chan</li>
+<li>Shuo Chen</li>
+<li>Ka-Hing Cheung</li>
+<li>Andrew Cox</li>
+<li>Paul Croome</li>
+<li>George Danchev</li>
+<li>Andrew Danforth</li>
+<li>Ed Day</li>
+<li>Christopher Davis</li>
+<li>Mike Davis</li>
+<li>Frank Denis</li>
+<li>Antony Dovgal</li>
+<li>Mihai Draghicioiu</li>
+<li>Alexander Drozdov</li>
+<li>Mark Ellzey</li>
+<li>Shie Erlich</li>
+<li>Leonid Evdokimov</li>
+<li>Juan Pablo Fernandez</li>
+<li>Christophe Fillot</li>
+<li>Mike Frysinger</li>
+<li>Remi Gacogne</li>
+<li>Artem Germanov</li>
+<li>Alexander von Gernler</li>
+<li>Diego Giagio</li>
+<li>Artur Grabowski</li>
+<li>Diwaker Gupta</li>
+<li>Kuldeep Gupta</li>
+<li>Sebastian Hahn</li>
+<li>Dave Hart</li>
+<li>Greg Hazel</li>
+<li>Nicholas Heath</li>
+<li>Michael Herf</li>
+<li>Savg He</li>
+<li>Mark Heily</li>
+<li>Maxime Henrion</li>
+<li>Michael Herf</li>
+<li>Greg Hewgill</li>
+<li>Andrew Hochhaus</li>
+<li>Aaron Hopkins</li>
+<li>Tani Hosokawa</li>
+<li>Jamie Iles</li>
+<li>Xiuqiang Jiang</li>
+<li>Claudio Jeker</li>
+<li>Evan Jones</li>
+<li>Marcin Juszkiewicz</li>
+<li>George Kadianakis</li>
+<li>Makoto Kato</li>
+<li>Phua Keat</li>
+<li>Azat Khuzhin</li>
+<li>Alexander Klauer</li>
+<li>Kevin Ko</li>
+<li>Brian Koehmstedt</li>
+<li>Marko Kreen</li>
+<li>Ondřej Kuzník</li>
+<li>Valery Kyholodov</li>
+<li>Ross Lagerwall</li>
+<li>Scott Lamb</li>
+<li>Christopher Layne</li>
+<li>Adam Langley</li>
+<li>Graham Leggett</li>
+<li>Volker Lendecke</li>
+<li>Philip Lewis</li>
+<li>Zhou Li</li>
+<li>David Libenzi</li>
+<li>Yan Lin</li>
+<li>Moshe Litvin</li>
+<li>Simon Liu</li>
+<li>Mitchell Livingston</li>
+<li>Hagne Mahre</li>
+<li>Lubomir Marinov</li>
+<li>Abilio Marques</li>
+<li>Nicolas Martyanoff</li>
+<li>Abel Mathew</li>
+<li>Nick Mathewson</li>
+<li>James Mansion</li>
+<li>Nicholas Marriott</li>
+<li>Andrey Matveev</li>
+<li>Caitlin Mercer</li>
+<li>Dagobert Michelsen</li>
+<li>Andrea Montefusco</li>
+<li>Mansour Moufid</li>
+<li>Mina Naguib</li>
+<li>Felix Nawothnig</li>
+<li>Trond Norbye</li>
+<li>Linus Nordberg</li>
+<li>Richard Nyberg</li>
+<li>Jon Oberheide</li>
+<li>John Ohl</li>
+<li>Phil Oleson</li>
+<li>Alexey Ozeritsky</li>
+<li>Dave Pacheco</li>
+<li>Derrick Pallas</li>
+<li>Tassilo von Parseval</li>
+<li>Catalin Patulea</li>
+<li>Patrick Pelletier</li>
+<li>Simon Perreault</li>
+<li>Dan Petro</li>
+<li>Pierre Phaneuf</li>
+<li>Amarin Phaosawasdi</li>
+<li>Ryan Phillips</li>
+<li>Dimitre Piskyulev</li>
+<li>Pavel Plesov</li>
+<li>Jon Poland</li>
+<li>Roman Puls</li>
+<li>Nate R</li>
+<li>Robert Ransom</li>
+<li>Balint Reczey</li>
+<li>Bert JW Regeer</li>
+<li>Nate Rosenblum</li>
+<li>Peter Rosin</li>
+<li>Maseeb Abdul Qadir</li>
+<li>Wang Qin</li>
+<li>Alex S</li>
+<li>Gyepi Sam</li>
+<li>Hanna Schroeter</li>
+<li>Ralf Schmitt</li>
+<li>Mike Smellie</li>
+<li>Steve Snyder</li>
+<li>Nir Soffer</li>
+<li>Dug Song</li>
+<li>Dongsheng Song</li>
+<li>Hannes Sowa</li>
+<li>Joakim Soderberg</li>
+<li>Joseph Spadavecchia</li>
+<li>Kevin Springborn</li>
+<li>Harlan Stenn</li>
+<li>Andrew Sweeney</li>
+<li>Ferenc Szalai</li>
+<li>Brodie Thiesfield</li>
+<li>Jason Toffaletti</li>
+<li>Brian Utterback</li>
+<li>Gisle Vanem</li>
+<li>Bas Verhoeven</li>
+<li>Constantine Verutin</li>
+<li>Colin Watt</li>
+<li>Zack Weinberg</li>
+<li>Jardel Weyrich</li>
+<li>Jay R. Wren</li>
+<li>Zack Weinberg</li>
+<li>Mobai Zhang</li>
+<li>Alejo</li>
+<li>Alex</li>
+<li>Taral</li>
+<li>propanbutan</li>
+<li>masksqwe</li>
+<li>mmadia</li>
+<li>yangacer</li>
+<li>Andrey Skriabin</li>
+<li>basavesh.as</li>
+<li>billsegall</li>
+<li>Bill Vaughan</li>
+<li>Christopher Wiley</li>
+<li>David Paschich</li>
+<li>Ed Schouten</li>
+<li>Eduardo Panisset</li>
+<li>Jan Heylen</li>
+<li>jer-gentoo</li>
+<li>Joakim Söderberg</li>
+<li>kirillDanshin</li>
+<li>lzmths</li>
+<li>Marcus Sundberg</li>
+<li>Mark Mentovai</li>
+<li>Mattes D</li>
+<li>Matyas Dolak</li>
+<li>Neeraj Badlani</li>
+<li>Nick Mathewson</li>
+<li>Rainer Keller</li>
+<li>Seungmo Koo</li>
+<li>Thomas Bernard</li>
+<li>Xiao Bao Clark</li>
+<li>zeliard</li>
+<li>Zonr Chang</li>
+<li>Kurt Roeckx</li>
+<li>Seven</li>
+<li>Simone Basso</li>
+<li>Vlad Shcherban</li>
+<li>Tim Hentenaar</li>
+<li>Breaker</li>
+<li>johnsonlee</li>
+<li>Philip Prindeville</li>
+<li>Vis Virial</li>
+<li>Andreas Gustafsson</li>
+<li>Andrey Okoshkin</li>
+<li>an-tao</li>
+<li>baixiangcpp</li>
+<li>Bernard Spil</li>
+<li>Bogdan Harjoc</li>
+<li>Carlo Marcelo Arenas Belón</li>
+<li>David Benjamin</li>
+<li>David Disseldorp</li>
+<li>Dmitry Alimov</li>
+<li>Dominic Chen</li>
+<li>dpayne</li>
+<li>ejurgensen</li>
+<li>Fredrik Strupe</li>
+<li>Gonçalo Ribeiro</li>
+<li>James Synge</li>
+<li>Jan Beich</li>
+<li>Jesse Fang</li>
+<li>Jiri Luznicky</li>
+<li>José Luis Millán</li>
+<li>Kiyoshi Aman</li>
+<li>Leo Zhang</li>
+<li>lightningkay</li>
+<li>Luke Dashjr</li>
+<li>Marcin Szewczyk</li>
+<li>Maximilian Brunner</li>
+<li>Maya Rashish</li>
+<li>Murat Demirten</li>
+<li>Nathan French</li>
+<li>Nikolay Edigaryev</li>
+<li>Philip Herron</li>
+<li>Redfoxmoon</li>
+<li>stenn</li>
+<li>SuckShit</li>
+<li>The Gitter Badger</li>
+<li>tim-le</li>
+<li>Vincent JARDIN</li>
+<li>Xiang Zhang</li>
+<li>Xiaozhou Liu</li>
+<li>yongqing.jiao</li>
+<li>Enji Cooper</li>
+<li>linxiaohui</li>
+<li>Seong-Joong Kim</li>
+<li>Tobias Stoeckmann</li>
+<li>Yury Korzhetsky</li>
+<li>zhuizhuhaomeng</li>
+<li>Pierce Lopez</li>
+<li>yuangongji</li>
+<li>Keith Smiley</li>
+<li>jeremyerb</li>
+<li>Fabrice Fontaine</li>
+<li>wenyg</li>
+</ul>
+<p>If we have forgotten your name, please contact us.</p>

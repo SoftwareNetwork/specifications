@@ -1,0 +1,241 @@
+<h1 id="metal-versionsemver-travis.badgetravis.metal-appveyor.badgeappveyor.metal-gitter.badgegitter.metal-godbolt.badgegodbolt.metal">Metal <a href="http://semver.org"><img src="http://badge.fury.io/gh/brunocodutra%2Fmetal.svg" alt="version" /></a> <a href="http://travis-ci.org/brunocodutra/metal"><img src="http://travis-ci.org/brunocodutra/metal.svg?branch=master" alt="travis.badge" /></a> <a href="http://ci.appveyor.com/project/brunocodutra/metal"><img src="http://ci.appveyor.com/api/projects/status/85pk8n05n4r5x103/branch/master?svg=true" alt="appveyor.badge" /></a> <a href="http://gitter.im/brunocodutra/metal?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge"><img src="http://badges.gitter.im/brunocodutra/metal.svg" alt="gitter.badge" /></a> <a href="http://godbolt.org/g/RFwvic"><img src="http://img.shields.io/badge/try%20it-on%20godbolt-222266.svg" alt="godbolt.badge" /></a></h1>
+<p>Metal is a single header C++11 library designed to make you love template metaprogramming.</p>
+<h2 id="overview">Overview</h2>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;metal.hpp&gt;</span>
+
+<span class="co">// First we need some Values</span>
+<span class="kw">union</span> x { <span class="dt">char</span> payload[<span class="dv">10</span>]; };
+<span class="kw">class</span> y { <span class="kw">public</span>: <span class="dt">char</span> c; };
+<span class="kw">struct</span> z { <span class="dt">char</span> c; <span class="dt">int</span> i; };
+
+<span class="co">// ... from which we construct some Lists</span>
+<span class="kw">using</span> l0 = metal::list&lt;&gt;;
+<span class="kw">using</span> l1 = metal::prepend&lt;l0, x&gt;;
+<span class="kw">using</span> l2 = metal::append&lt;l1, z&gt;;
+<span class="kw">using</span> l3 = metal::insert&lt;l2, metal::number&lt;<span class="dv">1</span>&gt;, y&gt;;
+
+<span class="kw">static_assert</span>(metal::same&lt;l1, metal::list&lt;x&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;l2, metal::list&lt;x, z&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;l3, metal::list&lt;x, y, z&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// Lists are versatile, we can check their sizes...</span>
+<span class="kw">static_assert</span>(metal::size&lt;l0&gt;::value == <span class="dv">0</span>, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::size&lt;l1&gt;::value == <span class="dv">1</span>, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::size&lt;l2&gt;::value == <span class="dv">2</span>, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::size&lt;l3&gt;::value == <span class="dv">3</span>, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// retrieve their elements...</span>
+<span class="kw">static_assert</span>(metal::same&lt;metal::front&lt;l3&gt;, x&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;metal::back&lt;l3&gt;, z&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;metal::at&lt;l3, metal::number&lt;<span class="dv">1</span>&gt;&gt;, y&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// count those that satisfy a predicate...</span>
+<span class="kw">static_assert</span>(metal::count_if&lt;l3, metal::trait&lt;<span class="bu">std::</span>is_class&gt;&gt;::value == <span class="dv">2</span>, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::count_if&lt;l3, metal::trait&lt;<span class="bu">std::</span>is_union&gt;&gt;::value == <span class="dv">1</span>, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// We can create new Lists by removing elements...</span>
+<span class="kw">using</span> <span class="va">l0_</span> = metal::drop&lt;l3, metal::number&lt;<span class="dv">3</span>&gt;&gt;;
+<span class="kw">using</span> <span class="va">l1_</span> = metal::take&lt;l3, metal::number&lt;<span class="dv">1</span>&gt;&gt;;
+<span class="kw">using</span> <span class="va">l2_</span> = metal::erase&lt;l3, metal::number&lt;<span class="dv">1</span>&gt;&gt;;
+
+<span class="kw">static_assert</span>(metal::same&lt;l0, <span class="va">l0_</span>&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;l1, <span class="va">l1_</span>&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;l2, <span class="va">l2_</span>&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// by reversing the order of elements...</span>
+<span class="kw">static_assert</span>(metal::same&lt;metal::reverse&lt;l0&gt;, metal::list&lt;&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;metal::reverse&lt;l1&gt;, metal::list&lt;x&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;metal::reverse&lt;l2&gt;, metal::list&lt;z, x&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;metal::reverse&lt;l3&gt;, metal::list&lt;z, y, x&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// by transforming the elements...</span>
+<span class="kw">using</span> l2ptrs = metal::transform&lt;metal::lazy&lt;<span class="bu">std::</span>add_pointer&gt;, l2&gt;;
+<span class="kw">using</span> l3refs = metal::transform&lt;metal::lazy&lt;<span class="bu">std::</span>add_lvalue_reference&gt;, l3&gt;;
+
+<span class="kw">static_assert</span>(metal::same&lt;l2ptrs, metal::list&lt;x*, z*&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+<span class="kw">static_assert</span>(metal::same&lt;l3refs, metal::list&lt;x&amp;, y&amp;, z&amp;&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// even by sorting them...</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> x, <span class="kw">typename</span> y&gt;
+<span class="kw">using</span> smaller = metal::number&lt;(<span class="kw">sizeof</span>(x) &lt; <span class="kw">sizeof</span>(y))&gt;;
+
+<span class="kw">using</span> sorted = metal::sort&lt;l3, metal::lambda&lt;smaller&gt;&gt;;
+
+<span class="kw">static_assert</span>(metal::same&lt;sorted, metal::list&lt;y, z, x&gt;&gt;::value, <span class="st">&quot;&quot;</span>);
+
+<span class="co">// that and much more!</span></code></pre></div>
+<h2 id="quick-start">Quick Start</h2>
+<ol style="list-style-type: decimal">
+<li>Download <a href="http://github.com/brunocodutra/metal/releases">metal.hpp</a></li>
+<li><code># include &lt;/path/to/metal.hpp&gt;</code></li>
+<li>Love template metaprogramming</li>
+</ol>
+<h2 id="blazing-fast">Blazing Fast</h2>
+<p>You don't have to just take my word for it, see for yourself at <a href="http://metaben.ch/">metaben.ch</a>.</p>
+<h2 id="portable">Portable</h2>
+<p>The following compilers are continuously tested at <a href="http://travis-ci.org/brunocodutra/metal">Travis CI</a> and <a href="http://ci.appveyor.com/project/brunocodutra/metal">Appveyor CI</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Compiler</th>
+<th>Version</th>
+<th>Operating System</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>GCC</td>
+<td>4.7</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>GCC</td>
+<td>4.8</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>GCC</td>
+<td>4.9</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>GCC</td>
+<td>5</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>GCC</td>
+<td>6</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>GCC</td>
+<td>7</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>GCC</td>
+<td>8</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>Clang</td>
+<td>3.4</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>Clang</td>
+<td>3.5</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>Clang</td>
+<td>3.6</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>Clang</td>
+<td>3.7</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>Clang</td>
+<td>3.8</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>Clang</td>
+<td>3.9</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>Clang</td>
+<td>4.0</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>Clang</td>
+<td>5.0</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="even">
+<td>Clang</td>
+<td>6.0</td>
+<td>Ubuntu 14.04 LTS</td>
+</tr>
+<tr class="odd">
+<td>Xcode</td>
+<td>6.4</td>
+<td>OS X 10.10</td>
+</tr>
+<tr class="even">
+<td>Xcode</td>
+<td>7.3</td>
+<td>OS X 10.11</td>
+</tr>
+<tr class="odd">
+<td>Xcode</td>
+<td>8.0</td>
+<td>OS X 10.11</td>
+</tr>
+<tr class="even">
+<td>Xcode</td>
+<td>8.1</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="odd">
+<td>Xcode</td>
+<td>8.2</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="even">
+<td>Xcode</td>
+<td>8.3</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="odd">
+<td>Xcode</td>
+<td>9.0</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="even">
+<td>Xcode</td>
+<td>9.1</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="odd">
+<td>Xcode</td>
+<td>9.2</td>
+<td>OS X 10.12</td>
+</tr>
+<tr class="even">
+<td>Xcode</td>
+<td>9.3</td>
+<td>OS X 10.13</td>
+</tr>
+<tr class="odd">
+<td>MinGW-w64</td>
+<td>5</td>
+<td>Windows Server 2012</td>
+</tr>
+<tr class="even">
+<td>MinGW-w64</td>
+<td>6</td>
+<td>Windows Server 2012</td>
+</tr>
+<tr class="odd">
+<td>Visual Studio</td>
+<td>14 (2015)</td>
+<td>Windows Server 2012</td>
+</tr>
+<tr class="even">
+<td>Visual Studio</td>
+<td>15 (2017)</td>
+<td>Windows Server 2016</td>
+</tr>
+</tbody>
+</table>
+<h2 id="documentation">Documentation</h2>
+<p>The complete up to date documentation is available <a href="http://brunocodutra.github.io/metal">online</a>.</p>
+<h2 id="license">License</h2>
+<p>This project is licensed under the <a href="https://github.com/brunocodutra/metal/blob/master/LICENSE">MIT</a>.</p>

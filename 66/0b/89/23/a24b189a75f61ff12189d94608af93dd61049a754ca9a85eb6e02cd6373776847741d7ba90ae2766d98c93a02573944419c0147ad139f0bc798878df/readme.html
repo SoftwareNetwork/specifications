@@ -1,0 +1,97 @@
+<h1 id="boost.hana-versionbadge.version-travis-statusbadge.travis-appveyor-statusbadge.appveyor-try-it-onlinebadge.wandbox-gitter-chatbadge.gitter">Boost.Hana <a target="_blank" href="http://semver.org"><img src="https://badge.fury.io/gh/boostorg%2Fhana.svg" alt="Version" /></a> <a target="_blank" href="https://travis-ci.org/boostorg/hana"><img src="https://travis-ci.org/boostorg/hana.svg?branch=master" alt="Travis status" /></a> <a target="_blank" href="https://ci.appveyor.com/project/ldionne/hana"><img src="https://ci.appveyor.com/api/projects/status/github/boostorg/hana?svg=true&amp;branch=master" alt="Appveyor status" /></a> <a target="_blank" href="http://melpon.org/wandbox/permlink/g4ozIK33ITDtyGa3"><img src="https://img.shields.io/badge/try%20it-online-blue.svg" alt="Try it online" /></a> <a target="_blank" href="https://gitter.im/boostorg/hana"><img src="https://img.shields.io/badge/gitter-join%20chat-blue.svg" alt="Gitter Chat" /></a></h1>
+<blockquote>
+<p>Your standard library for metaprogramming</p>
+</blockquote>
+<h2 id="overview">Overview</h2>
+<!-- Important: keep this in sync with example/overview.cpp -->
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;boost/hana.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="kw">namespace</span> hana = <span class="ex">boost::</span>hana;
+<span class="kw">using</span> <span class="kw">namespace</span> hana::literals;
+
+<span class="kw">struct</span> Fish { <span class="bu">std::</span>string name; };
+<span class="kw">struct</span> Cat  { <span class="bu">std::</span>string name; };
+<span class="kw">struct</span> Dog  { <span class="bu">std::</span>string name; };
+
+<span class="dt">int</span> main() {
+  <span class="co">// Sequences capable of holding heterogeneous objects, and algorithms</span>
+  <span class="co">// to manipulate them.</span>
+  <span class="kw">auto</span> animals = hana::make_tuple(Fish{<span class="st">&quot;Nemo&quot;</span>}, Cat{<span class="st">&quot;Garfield&quot;</span>}, Dog{<span class="st">&quot;Snoopy&quot;</span>});
+  <span class="kw">auto</span> names = hana::transform(animals, [](<span class="kw">auto</span> a) {
+    <span class="cf">return</span> a.name;
+  });
+  assert(hana::reverse(names) == hana::make_tuple(<span class="st">&quot;Snoopy&quot;</span>, <span class="st">&quot;Garfield&quot;</span>, <span class="st">&quot;Nemo&quot;</span>));
+
+  <span class="co">// No compile-time information is lost: even if `animals` can&#39;t be a</span>
+  <span class="co">// constant expression because it contains strings, its length is constexpr.</span>
+  <span class="kw">static_assert</span>(hana::length(animals) == <span class="dv">3u</span>, <span class="st">&quot;&quot;</span>);
+
+  <span class="co">// Computations on types can be performed with the same syntax as that of</span>
+  <span class="co">// normal C++. Believe it or not, everything is done at compile-time.</span>
+  <span class="kw">auto</span> animal_types = hana::make_tuple(hana::type_c&lt;Fish*&gt;, hana::type_c&lt;Cat&amp;&gt;, hana::type_c&lt;Dog*&gt;);
+  <span class="kw">auto</span> animal_ptrs = hana::filter(animal_types, [](<span class="kw">auto</span> a) {
+    <span class="cf">return</span> hana::traits::is_pointer(a);
+  });
+  <span class="kw">static_assert</span>(animal_ptrs == hana::make_tuple(hana::type_c&lt;Fish*&gt;, hana::type_c&lt;Dog*&gt;), <span class="st">&quot;&quot;</span>);
+
+  <span class="co">// And many other goodies to make your life easier, including:</span>
+  <span class="co">// 1. Access to elements in a tuple with a sane syntax.</span>
+  <span class="kw">static_assert</span>(animal_ptrs[<span class="dv">0_c</span>] == hana::type_c&lt;Fish*&gt;, <span class="st">&quot;&quot;</span>);
+  <span class="kw">static_assert</span>(animal_ptrs[<span class="dv">1_c</span>] == hana::type_c&lt;Dog*&gt;, <span class="st">&quot;&quot;</span>);
+
+  <span class="co">// 2. Unroll loops at compile-time without hassle.</span>
+  <span class="bu">std::</span>string s;
+  hana::int_c&lt;<span class="dv">10</span>&gt;.times([&amp;]{ s += <span class="st">&quot;x&quot;</span>; });
+  <span class="co">// equivalent to s += &quot;x&quot;; s += &quot;x&quot;; ... s += &quot;x&quot;;</span>
+
+  <span class="co">// 3. Easily check whether an expression is valid.</span>
+  <span class="co">//    This is usually achieved with complex SFINAE-based tricks.</span>
+  <span class="kw">auto</span> has_name = hana::is_valid([](<span class="kw">auto</span>&amp;&amp; x) -&gt; <span class="kw">decltype</span>((<span class="dt">void</span>)x.name) { });
+  <span class="kw">static_assert</span>(has_name(animals[<span class="dv">0_c</span>]), <span class="st">&quot;&quot;</span>);
+  <span class="kw">static_assert</span>(!has_name(<span class="dv">1</span>), <span class="st">&quot;&quot;</span>);
+}</code></pre></div>
+<h2 id="documentation">Documentation</h2>
+<p>You can browse the documentation online at http://boostorg.github.io/hana. The documentation covers everything you should need including installing the library, a tutorial explaining what Hana is and how to use it, and an extensive reference section with examples. The remainder of this README is mostly for people that wish to work on the library itself, not for its users.</p>
+<p>An offline copy of the documentation can be obtained by checking out the <code>gh-pages</code> branch. To avoid overwriting the current directory, you can clone the <code>gh-pages</code> branch into a subdirectory like <code>doc/html</code>:</p>
+<pre class="shell"><code>git clone http://github.com/boostorg/hana --branch=gh-pages --depth=1 doc/html</code></pre>
+<p>After issuing this, <code>doc/html</code> will contain exactly the same static website that is <a href="http://boostorg.github.io/hana">available online</a>. Note that <code>doc/html</code> is automatically ignored by Git so updating the documentation won't pollute your index.</p>
+<h2 id="hacking-on-hana">Hacking on Hana</h2>
+<p>Setting yourself up to work on Hana is easy. First, you will need an installation of <a href="http://www.cmake.org">CMake</a>. Once this is done, you can <code>cd</code> to the root of the project and setup the build directory:</p>
+<pre class="shell"><code>mkdir build
+cd build
+cmake ..</code></pre>
+<p>Usually, you'll want to specify a custom compiler because the system's compiler is too old:</p>
+<pre class="shell"><code>cmake .. -DCMAKE_CXX_COMPILER=/path/to/compiler</code></pre>
+<p>Usually, this will work just fine. However, on some systems, the standard library and/or compiler provided by default does not support C++14. If this is your case, the <a href="https://github.com/boostorg/hana/wiki">wiki</a> has more information about setting you up on different systems.</p>
+<p>Normally, Hana tries to find Boost headers if you have them on your system. It's also fine if you don't have them; a few tests requiring the Boost headers will be disabled in that case. However, if you'd like Hana to use a custom installation of Boost, you can specify the path to this custom installation:</p>
+<pre class="shell"><code>cmake .. -DCMAKE_CXX_COMPILER=/path/to/compiler -DBOOST_ROOT=/path/to/boost</code></pre>
+<p>You can now build and run the unit tests and the examples:</p>
+<pre class="shell"><code>cmake --build . --target check</code></pre>
+<p>You should be aware that compiling the unit tests is pretty time and RAM consuming, especially the tests for external adapters. This is due to the fact that Hana's unit tests are very thorough, and also that heterogeneous sequences in other libraries tend to have horrible compile-time performance.</p>
+<p>There are also optional targets which are enabled only when the required software is available on your computer. For example, generating the documentation requires <a href="http://www.doxygen.org">Doxygen</a> to be installed. An informative message will be printed during the CMake generation step whenever an optional target is disabled. You can install any missing software and then re-run the CMake generation to update the list of available targets.</p>
+<blockquote>
+<h4 id="tip">Tip</h4>
+<p>You can use the <code>help</code> target to get a list of all the available targets.</p>
+</blockquote>
+<p>If you want to add unit tests or examples, just add a source file in <code>test/</code> or <code>example/</code> and then re-run the CMake generation step so the new source file is known to the build system. Let's suppose the relative path from the root of the project to the new source file is <code>path/to/file.cpp</code>. When you re-run the CMake generation step, a new target named <code>path.to.file</code> will be created, and a test of the same name will also be created. Hence,</p>
+<pre class="shell"><code>cd build # Go back to the build directory
+cmake --build . --target path.to.file # Builds the program associated to path/to/file.cpp
+ctest -R path.to.file # Runs the program as a test</code></pre>
+<blockquote>
+<h4 id="tip-for-sublime-text-users">Tip for Sublime Text users</h4>
+<p>If you use the provided <a href="hana.sublime-project" class="uri">hana.sublime-project</a> file, you can select the &quot;[Hana] Build current file&quot; build system. When viewing a file to which a target is associated (like a test or an example), you can then compile it by pressing ⌘B, or compile and then run it using ⇧⌘B.</p>
+</blockquote>
+<h2 id="project-organization">Project organization</h2>
+<p>The project is organized in a couple of subdirectories. - The <a href="benchmark" class="uri">benchmark</a> directory contains compile-time and runtime benchmarks to make sure the library is as fast as advertised. The benchmark code is written mostly in the form of <a href="http://en.wikipedia.org/wiki/ERuby">eRuby</a> templates. The templates are used to generate C++ files which are then compiled while gathering compilation and execution statistics. - The <a href="cmake" class="uri">cmake</a> directory contains various CMake modules and other scripts needed by the build system. - The <a href="doc" class="uri">doc</a> directory contains configuration files needed to generate the documentation. The <code>doc/html</code> subdirectory is automatically ignored by Git; you can conveniently store a local copy of the documentation by cloning the <code>gh-pages</code> branch into that directory, as explained above. - The <a href="example" class="uri">example</a> directory contains the source code for all the examples of both the tutorial and the reference documentation. - The <a href="include" class="uri">include</a> directory contains the library itself, which is header only. - The <a href="test" class="uri">test</a> directory contains the source code for all the unit tests.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Please see <a href="CONTRIBUTING.md" class="uri">CONTRIBUTING.md</a>.</p>
+<h2 id="license">License</h2>
+<p>Please see <a href="LICENSE.md" class="uri">LICENSE.md</a>.</p>
+<h2 id="releasing">Releasing</h2>
+<p>This section acts as a reminder of the few simple steps required to release a new version of the library. This is only relevant to Hana's developers. To release a new version of the library, make sure the current version in <code>include/boost/hana/version.hpp</code> matches the release you're about to publish. Then, create an annotated tag with:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> tag -a --file=- v<span class="op">&lt;</span>version<span class="op">&gt;</span> <span class="op">&lt;&lt;EOM</span>
+...your message here...
+EOM</code></pre></div>
+<p>Then, push the tag and create a new GitHub release pointing to that tag. Make sure to include the release notes in <code>RELEASE_NOTES.md</code> in that GitHub release. Once that is done, bump the version number in <code>include/boost/hana/version.hpp</code> so that it matches the next <em>planned</em> release. Finally, do not forget to update the <a href="https://github.com/Homebrew/homebrew-core/blob/master/Formula/hana.rb">Homebrew formula</a> to point to the latest version.</p>
+<!-- Links -->

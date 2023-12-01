@@ -1,0 +1,128 @@
+<h1 id="highfive---hdf5-header-only-c-library">HighFive - HDF5 header-only C++ Library</h1>
+<p><a href="https://travis-ci.org/BlueBrain/HighFive"><img src="https://travis-ci.org/BlueBrain/HighFive.svg?branch=master" alt="Build Status" /></a></p>
+<p><a href="https://scan.coverity.com/projects/highfive"><img src="https://scan.coverity.com/projects/13635/badge.svg" alt="Coverity Statys" /></a></p>
+<h2 id="brief">Brief</h2>
+<p>HighFive is a modern C++/C++11 friendly interface for libhdf5.</p>
+<p>HighFive supports STL vector/string, Boost::UBLAS and Boost::Multi-array. It handles C++ from/to HDF5 automatic type mapping. HighFive does not require an additional library and supports both HDF5 thread safety and Parallel HDF5 (contrary to the official hdf5 cpp)</p>
+<h3 id="design">Design</h3>
+<ul>
+<li>Simple C++-ish minimalist interface</li>
+<li>No other dependency than libhdf5</li>
+<li>Zero overhead</li>
+<li>Support C++11 ( compatible with C++98 )</li>
+</ul>
+<h3 id="dependencies">Dependencies</h3>
+<ul>
+<li>libhdf5</li>
+<li>(optional) boost &gt;= 1.41</li>
+</ul>
+<h3 id="cmake-integration">CMake integration</h3>
+<p>HighFive can easily be used by other C++ CMake projects. Below is a very simple <em>foo</em> project creating a <em>bar</em> C++ program using HighFive library:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.0 <span class="ot">FATAL_ERROR</span>)
+<span class="kw">project</span>(foo)
+<span class="kw">set</span>(<span class="va">CMAKE_CXX_STANDARD</span> 11)
+
+<span class="kw">find_package</span>(HighFive 2.0 <span class="ot">REQUIRED</span>)
+<span class="kw">add_executable</span>(bar bar.cpp)
+<span class="kw">target_include_directories</span>(
+  bar
+  <span class="ot">PUBLIC</span> <span class="ot">$&lt;</span><span class="kw">TARGET_PROPERTY</span><span class="ot">:HighFive,INTERFACE_INCLUDE_DIRECTORIES&gt;</span>)
+<span class="kw">target_link_libraries</span>(
+  bar
+  <span class="ot">PUBLIC</span> <span class="ot">$&lt;</span><span class="kw">TARGET_PROPERTY</span><span class="ot">:HighFive,INTERFACE_LINK_LIBRARIES&gt;</span>)</code></pre></div>
+<h3 id="usage">Usage</h3>
+<h4 id="write-a-stdvector-to-1d-hdf5-dataset-and-read-it-back">Write a std::vector<int> to 1D HDF5 dataset and read it back</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> HighFive;
+<span class="co">// we create a new hdf5 file</span>
+File file(<span class="st">&quot;/tmp/new_file.h5&quot;</span>, File::ReadWrite | File::Create | File::Truncate);
+
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; data(<span class="dv">50</span>, <span class="dv">1</span>);
+
+<span class="co">// let&#39;s create a dataset of native integer with the size of the vector &#39;data&#39;</span>
+DataSet dataset = file.createDataSet&lt;<span class="dt">int</span>&gt;(<span class="st">&quot;/dataset_one&quot;</span>,  DataSpace::From(data));
+
+<span class="co">// let&#39;s write our vector of int to the HDF5 dataset</span>
+dataset.write(data);
+
+<span class="co">// read back</span>
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; result;
+dataset.read(result);</code></pre></div>
+<blockquote>
+<p>Note: if you can use <code>DataSpace::From</code> on your data, you can combine the create and write into one statement:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">DataSet dataset = file.createDataSet(<span class="st">&quot;/dataset_one&quot;</span>,  data);</code></pre></div>
+<p>This works with <code>createAttribute</code>, as well.</p>
+</blockquote>
+<h4 id="write-a-2-dimensional-c-double-float-array-to-a-2d-hdf5-dataset">Write a 2 dimensional C double float array to a 2D HDF5 dataset</h4>
+<p>See <a href="src/examples/create_dataset_double.cpp">create_dataset_double.cpp</a></p>
+<h4 id="write-and-read-a-matrix-of-double-float-boostublas-to-a-2d-hdf5-dataset">Write and read a matrix of double float (boost::ublas) to a 2D HDF5 dataset</h4>
+<p>See <a href="src/examples/boost_ublas_double.cpp">boost_ublas_double.cpp</a></p>
+<h4 id="write-and-read-a-subset-of-a-2d-double-dataset">Write and read a subset of a 2D double dataset</h4>
+<p>See <a href="src/examples/select_partial_dataset_cpp11.cpp">select_partial_dataset_cpp11.cpp</a></p>
+<h4 id="create-write-and-list-hdf5-attributes">Create, write and list HDF5 attributes</h4>
+<p>See <a href="src/examples/create_attribute_string_integer.cpp">create_attribute_string_integer.cpp</a></p>
+<h4 id="and-others">And others</h4>
+<p>See <a href="src/examples/" class="uri">src/examples/</a> subdirectory for more info.</p>
+<h3 id="compile-with-highfive">Compile with HighFive</h3>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">c++</span> -o program -I/path/to/highfive/include source.cpp  -lhdf5</code></pre></div>
+<h4 id="h5easy">H5Easy</h4>
+<p>For several 'standard' use cases the <a href="include/HighFive/H5Easy.hpp">HighFive/H5Easy.hpp</a> interface is available. It allows:</p>
+<ul>
+<li><p>Reading/writing in a single line of:</p>
+<ul>
+<li>scalars (to/from an extendible DataSet),</li>
+<li>strings,</li>
+<li>vectors (of standard types),</li>
+<li><a href="http://eigen.tuxfamily.org">Eigen::Matrix</a> (optional, enable CMake option <code>USE_EIGEN</code>),</li>
+<li><a href="https://github.com/QuantStack/xtensor">xt::xarray</a> and <a href="https://github.com/QuantStack/xtensor">xt::xtensor</a> (optional, enable CMake option <code>USE_XTENSOR</code>).</li>
+</ul></li>
+<li><p>Getting in a single line:</p>
+<ul>
+<li>the size of a DataSet,</li>
+<li>the shape of a DataSet.</li>
+</ul></li>
+</ul>
+<p>The general idea is to</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;HighFive/H5Easy.hpp&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    H5Easy::File file(<span class="st">&quot;example.h5&quot;</span>, H5Easy::File::Overwrite);
+
+    <span class="dt">int</span> A = ...;
+
+    H5Easy::dump(file, <span class="st">&quot;/path/to/A&quot;</span>, A);
+
+    A = H5Easy::load&lt;<span class="dt">int</span>&gt;(file, <span class="st">&quot;/path/to/A&quot;</span>);
+}</code></pre></div>
+<p>whereby the <code>int</code> type of this example can be replaced by any of the above types. See <a href="src/examples/easy_load_dump.cpp">easy_load_dump.cpp</a> for more details.</p>
+<blockquote>
+<p>Note that classes such as <code>H5Easy::File</code> are just short for the regular <code>HighFive</code> classes (in this case <code>HighFive::File</code>). They can thus be used interchangeably.</p>
+</blockquote>
+<h3 id="test-compilation">Test Compilation</h3>
+<p>Remember: Compilation is not required. Used only for unit test and examples</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> build<span class="kw">;</span> <span class="bu">pushd</span> build
+<span class="fu">cmake</span> ../
+<span class="fu">make</span>
+<span class="fu">make</span> test</code></pre></div>
+<h3 id="feature-support">Feature support</h3>
+<ul>
+<li>create/read/write file, dataset, group, dataspace.</li>
+<li>automatic memory management / ref counting</li>
+<li>automatic conversion of <code>std::vector</code> and nested <code>std::vector</code> from/to any dataset with basic types</li>
+<li>automatic conversion of <code>std::string</code> to/from variable length string dataset</li>
+<li>selection() / slice support</li>
+<li>parallel Read/Write operations from several nodes with Parallel HDF5</li>
+<li>support HDF5 attributes</li>
+</ul>
+<h3 id="contributors">Contributors</h3>
+<ul>
+<li>Adrien Devresse <a href="mailto:adrien.devresse@epfl.ch">adrien.devresse@epfl.ch</a> - Blue Brain Project</li>
+<li>Ali Can Demiralp <a href="mailto:demiralpali@gmail.com">demiralpali@gmail.com</a> -</li>
+<li>Fernando Pereira <a href="mailto:fernando.pereira@epfl.ch">fernando.pereira@epfl.ch</a> - Blue Brain Project</li>
+<li>Stefan Eilemann <a href="mailto:stefan.eilemann@epfl.ch">stefan.eilemann@epfl.ch</a> - Blue Brain Project</li>
+<li>Tristan Carel <a href="mailto:tristan.carel@epfl.ch">tristan.carel@epfl.ch</a> - Blue Brain Project</li>
+<li>Wolf Vollprecht <a href="mailto:w.vollprecht@gmail.com">w.vollprecht@gmail.com</a> - QuantStack</li>
+<li>Tom de Geus <a href="mailto:tom@geus.me">tom@geus.me</a> - EPFL</li>
+</ul>
+<h3 id="license">License</h3>
+<p>Boost Software License 1.0</p>

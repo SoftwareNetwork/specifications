@@ -1,0 +1,224 @@
+<p>This repository for examples of articles</p>
+<h2 id="how-to-make-any-object-thread-safe-with-the-speed-of-lock-free-algorithms">How to make any object thread-safe with the speed of lock-free algorithms</h2>
+<p><code>safe_ptr.h</code> contains C++ code of:</p>
+<ul>
+<li><p><code>safe_ptr&lt;&gt;</code> - make any your custom object thread-safe, even when passed to a function</p></li>
+<li><p><code>contention_free_shared_mutex&lt;&gt;</code> - 10 X times faster than <code>std::shared_mutex</code></p></li>
+<li><p><code>contfree_safe_ptr&lt;&gt;</code> - make any your custom object thread-safe with the speed of lock-free algorithms</p></li>
+</ul>
+<hr />
+<h3 id="additional-contents-for-articles">Additional contents for articles</h3>
+<p><strong>There are examples:</strong></p>
+<ul>
+<li><strong>any_object_threadsafe</strong> - how to use <code>safe_ptr&lt;&gt;</code> - Article 1: https://www.codeproject.com/Articles/1183379/We-make-any-object-thread-safe</li>
+<li><strong>contfree_shared_mutex</strong> - how to use <code>contention_free_shared_mutex&lt;&gt;</code> - Article 2: https://www.codeproject.com/Articles/1183423/We-make-a-std-shared-mutex-times-faster</li>
+<li><strong>examples</strong> - all examples from online compilers in articles</li>
+</ul>
+<p><strong>There are benchmarks:</strong></p>
+<ul>
+<li><p><strong>bench_contfree</strong> - Benchmark contention free shared mutex - Article 2: https://www.codeproject.com/Articles/1183423/We-make-a-std-shared-mutex-times-faster</p></li>
+<li><p><strong>benchmark</strong> - Benchmark contention free shared mutex (extended) - Article 3: https://www.codeproject.com/Articles/1183446/Thread-safe-std-map-with-the-speed-of-lock-free-ma</p></li>
+<li><p><strong>CDS_test</strong> - Benchmark lock-free lib-CDS and <code>std::map</code> guarded by contention free shared mutex - Article 3: https://www.codeproject.com/Articles/1183446/Thread-safe-std-map-with-the-speed-of-lock-free-ma</p></li>
+<li><p><strong>Real_app_bench</strong> - Benchmark lock-free lib-CDS and <code>std::map</code> guarded by contention free shared mutex</p></li>
+</ul>
+<p>(Simulates real application - added 20 usec delay between each inter-thread data exchange) - Article 3: https://www.codeproject.com/Articles/1183446/Thread-safe-std-map-with-the-speed-of-lock-free-ma</p>
+<hr />
+<p>For your Pull Requests use a separate branch: https://github.com/AlexeyAB/object_threadsafe/tree/for_pull_requests</p>
+<p>Before Pull Requests - please run all necessary benchmarks, preferably on a server CPU, such as in folders: CDS_test, Real_app_bench or benchmark - and insert images of the results charts.</p>
+<hr />
+<ol style="list-style-type: decimal">
+<li>How to use <code>safe_ptr&lt;&gt;</code> - in the same way as <code>std::shared_ptr&lt;&gt;</code>: http://coliru.stacked-crooked.com/a/ccf634f1a5e7f991</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;thread&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;map&gt;</span>
+
+<span class="pp">#include </span><span class="im">&quot;safe_ptr.h&quot;</span>
+
+
+<span class="dt">int</span> main() { 
+    sf::safe_ptr&lt; <span class="bu">std::</span>map&lt; <span class="bu">std::</span>string, <span class="dt">int</span> &gt; &gt; safe_map_string_int;
+
+    <span class="bu">std::</span>thread t1([&amp;]() { safe_map_string_int-&gt;emplace(<span class="st">&quot;apple&quot;</span>, <span class="dv">1</span>); }); 
+    <span class="bu">std::</span>thread t2([&amp;]() { safe_map_string_int-&gt;emplace(<span class="st">&quot;potato&quot;</span>, <span class="dv">2</span>); }); 
+    t1.join(); t2.join();
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;apple = &quot;</span> &lt;&lt; (*safe_map_string_int)[<span class="st">&quot;apple&quot;</span>] &lt;&lt; 
+        <span class="st">&quot;, potato = &quot;</span> &lt;&lt; (*safe_map_string_int)[<span class="st">&quot;potato&quot;</span>] &lt;&lt; <span class="bu">std::</span>endl;    
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<hr />
+<ol start="2" style="list-style-type: decimal">
+<li>How to use <code>sf::contention_free_shared_mutex</code> - in the same way as <code>std::shared_mutex</code>: http://coliru.stacked-crooked.com/a/11c191b06aeb5fb6</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;thread&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+
+<span class="pp">#include </span><span class="im">&quot;safe_ptr.h&quot;</span>
+
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+<span class="dt">void</span> func(T &amp;<span class="va">s_m</span>, <span class="dt">int</span> &amp;a, <span class="dt">int</span> &amp;b)
+{
+    <span class="cf">for</span> (<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; <span class="dv">100000</span>; ++i)
+    {
+        <span class="co">// x-lock for modification</span>
+        {
+            <span class="va">s_m</span>.lock();
+            a++; 
+            b++;
+            <span class="va">s_m</span>.unlock();
+        }
+
+        <span class="co">// s-lock for reading</span>
+        {
+            <span class="va">s_m</span>.lock_shared();
+            assert(a == b);     <span class="co">// will never happen</span>
+            <span class="va">s_m</span>.unlock_shared();
+        }
+    }
+}
+
+<span class="dt">int</span> main() {
+
+    <span class="dt">int</span> a = <span class="dv">0</span>;
+    <span class="dt">int</span> b = <span class="dv">0</span>;
+    sf::contention_free_shared_mutex&lt; &gt; <span class="va">s_m</span>;
+    
+    <span class="co">// 20 threads</span>
+    <span class="bu">std::</span>vector&lt; <span class="bu">std::</span>thread &gt; vec_thread(<span class="dv">20</span>);
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i = <span class="bu">std::</span>move(<span class="bu">std::</span>thread([&amp;]() { func(<span class="va">s_m</span>, a, b); }));
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i.join();
+    
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;a = &quot;</span> &lt;&lt; a &lt;&lt; <span class="st">&quot;, b = &quot;</span> &lt;&lt; b &lt;&lt; <span class="bu">std::</span>endl;
+    getchar();
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<hr />
+<p>2.1. How to use <code>contfree_safe_ptr&lt; std::map &gt;</code>: http://coliru.stacked-crooked.com/a/b78467b7a3885e5b</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;safe_ptr.h&quot;</span>
+
+sf::contfree_safe_ptr&lt; <span class="bu">std::</span>map&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt; &gt; safe_map_strings_global;   <span class="co">// cont-free shared-mutex</span>
+
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="dt">void</span> func(sf::contfree_safe_ptr&lt;T&gt; safe_map_strings)
+{
+    <span class="co">// read-only (shared lock during access)</span>
+    sf::contfree_safe_ptr&lt;T&gt; <span class="at">const</span> &amp;readonly_safe_map_string = safe_map_strings;
+
+    <span class="cf">for</span> (<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; <span class="dv">100000</span>; ++i)
+    {
+        <span class="co">// two Shared locks (recursive)</span>
+        assert(readonly_safe_map_string-&gt;at(<span class="st">&quot;apple&quot;</span>) == readonly_safe_map_string-&gt;at(<span class="st">&quot;potato&quot;</span>));    
+
+        <span class="bu">std::</span>lock_guard&lt;<span class="kw">decltype</span>(safe_map_strings)&gt; lock(safe_map_strings); <span class="co">// 1-st eXclusive lock</span>
+        safe_map_strings-&gt;at(<span class="st">&quot;apple&quot;</span>) += <span class="dv">1</span>;                                 <span class="co">// 2-nd recursive eXclusive lock</span>
+        safe_map_strings-&gt;find(<span class="st">&quot;potato&quot;</span>)-&gt;second += <span class="dv">1</span>;                      <span class="co">// 3-rd recursive eXclusive lock</span>
+    }
+}
+
+<span class="dt">int</span> main() {
+
+    (*safe_map_strings_global)[<span class="st">&quot;apple&quot;</span>] = <span class="dv">0</span>;
+    (*safe_map_strings_global)[<span class="st">&quot;potato&quot;</span>] = <span class="dv">0</span>;
+
+    <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>thread&gt; vec_thread(<span class="dv">10</span>);
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i = <span class="bu">std::</span>move(<span class="bu">std::</span>thread([&amp;]() { func(safe_map_strings_global); }));
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i.join();
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;END: potato is &quot;</span> &lt;&lt; safe_map_strings_global-&gt;at(<span class="st">&quot;potato&quot;</span>) &lt;&lt;
+        <span class="st">&quot;, apple is &quot;</span> &lt;&lt; safe_map_strings_global-&gt;at(<span class="st">&quot;apple&quot;</span>) &lt;&lt; <span class="bu">std::</span>endl;
+
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<hr />
+<ol start="3" style="list-style-type: decimal">
+<li>High-performance usage of <code>contfree_safe_ptr&lt; std::map &gt;</code> and <code>safe_obj&lt;&gt;</code>: http://coliru.stacked-crooked.com/a/f7079aa1acc00a78</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;safe_ptr.h&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> sf;
+
+<span class="kw">struct</span> <span class="dt">field_t</span> { <span class="dt">int</span> money, time; <span class="dt">field_t</span>(<span class="dt">int</span> m, <span class="dt">int</span> t) : money(m), time(t) {} <span class="dt">field_t</span>() : money(<span class="dv">0</span>), time(<span class="dv">0</span>) {} };
+<span class="kw">typedef</span> safe_obj&lt;<span class="dt">field_t</span>, <span class="dt">spinlock_t</span>&gt; <span class="dt">safe_obj_field_t</span>;
+
+
+contfree_safe_ptr&lt; <span class="bu">std::</span>map&lt;<span class="dt">int</span>, <span class="dt">safe_obj_field_t</span>&gt; &gt; safe_map_contfree_rowlock_global;
+
+
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="dt">void</span> benchmark_safe_ptr_rowlock(T safe_map, <span class="dt">size_t</span> <span class="at">const</span> iterations_count, <span class="dt">size_t</span> <span class="at">const</span> container_size)
+{
+    <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> seed = (<span class="dt">unsigned</span>)<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>now().time_since_epoch().count();
+    <span class="bu">std::</span>default_random_engine generator(seed);
+    <span class="bu">std::</span>uniform_int_distribution&lt;<span class="dt">size_t</span>&gt; index_distribution(<span class="dv">0</span>, container_size);
+                
+    <span class="kw">enum</span> { insert_op, delete_op, update_op, read_op };
+    <span class="bu">std::</span>uniform_int_distribution&lt;<span class="dt">size_t</span>&gt; operation_distribution(insert_op, read_op);    <span class="co">// 0 - 4</span>
+
+    <span class="cf">for</span> (<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; iterations_count; ++i) 
+    {
+        <span class="dt">int</span> <span class="at">const</span> rnd_index = index_distribution(generator);    <span class="co">// 0 - container_size</span>
+        <span class="dt">int</span> <span class="at">const</span> num_op = operation_distribution(generator);   <span class="co">// insert_op, update_op, delete_op, read_op</span>
+
+        <span class="cf">switch</span> (num_op) {
+        <span class="cf">case</span> insert_op: {
+            slock_safe_ptr(safe_map)-&gt;find(rnd_index);  <span class="co">// find for pre-cache to L1 with temprorary S-lock</span>
+            
+            safe_map-&gt;emplace(rnd_index, (<span class="dt">field_t</span>(rnd_index, rnd_index)));  <span class="co">// insert with X-lock on Table</span>
+            <span class="cf">break</span>;
+        }
+        <span class="cf">case</span> delete_op: {
+            slock_safe_ptr(safe_map)-&gt;find(rnd_index);  <span class="co">// find for pre-cache to L1 with temprorary S-lock</span>
+            
+            <span class="dt">size_t</span> erased_elements = safe_map-&gt;erase(rnd_index);    <span class="co">// erase with X-lock on Table</span>
+        }
+            <span class="cf">break</span>;
+        <span class="cf">case</span> update_op: {
+            <span class="kw">auto</span> <span class="va">s_safe_map</span> = slock_safe_ptr(safe_map); <span class="co">// S-lock on Table</span>
+            <span class="kw">auto</span> it = <span class="va">s_safe_map</span>-&gt;find(rnd_index);
+            <span class="cf">if</span> (it != <span class="va">s_safe_map</span>-&gt;cend()) {
+                <span class="kw">auto</span> x_field = xlock_safe_ptr(it-&gt;second);
+                x_field-&gt;money += rnd_index;   <span class="co">// X-lock on field, still S-lock on Table (must necessarily be)</span>
+            }
+        }
+            <span class="cf">break</span>;
+        <span class="cf">case</span> read_op: {
+            <span class="kw">auto</span> <span class="va">s_safe_map</span> = slock_safe_ptr(safe_map); <span class="co">// S-lock on Table</span>
+            <span class="kw">auto</span> it = <span class="va">s_safe_map</span>-&gt;find(rnd_index);
+            <span class="cf">if</span> (it != <span class="va">s_safe_map</span>-&gt;cend()) {
+                <span class="kw">auto</span> <span class="va">s_field</span> = slock_safe_ptr(it-&gt;second);
+                <span class="at">volatile</span> <span class="dt">int</span> money = <span class="va">s_field</span>-&gt;money;   <span class="co">// S-lock on field, still S-lock on Table (must be)</span>
+                <span class="co">// volatile here only to avoid optimization for unused money-variable</span>
+            }
+        }
+            <span class="cf">break</span>;
+        <span class="cf">default</span>: <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st"> wrong way! </span><span class="sc">\n</span><span class="st">&quot;</span>;  <span class="cf">break</span>;
+        }
+    }
+}
+
+
+<span class="dt">int</span> main() {
+
+    <span class="at">const</span> <span class="dt">size_t</span> iterations_count = <span class="dv">100000</span>;     <span class="co">// operations of data exchange between threads</span>
+    <span class="at">const</span> <span class="dt">size_t</span> container_size = <span class="dv">100000</span>;       <span class="co">// elements in container</span>
+    <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>thread&gt; vec_thread(<span class="dv">8</span>);     <span class="co">// threads number</span>
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Threads: &quot;</span> &lt;&lt; vec_thread.size() &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Testing safe&lt;map,contf&gt;rowlock... </span><span class="sc">\n</span><span class="st">&quot;</span>; 
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i = <span class="bu">std::</span>move(<span class="bu">std::</span>thread([&amp;]() {
+        benchmark_safe_ptr_rowlock(safe_map_contfree_rowlock_global, iterations_count, container_size);
+    }));
+    <span class="cf">for</span> (<span class="kw">auto</span> &amp;i : vec_thread) i.join();
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Successfully completed.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>

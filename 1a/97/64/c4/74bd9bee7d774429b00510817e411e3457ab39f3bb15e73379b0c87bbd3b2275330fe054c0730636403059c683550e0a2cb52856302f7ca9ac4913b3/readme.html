@@ -1,0 +1,210 @@
+<div class="figure">
+<img src="https://user-images.githubusercontent.com/1812216/46069406-c977a600-c17b-11e8-9a47-9bba6f412c57.png" alt="uvw - libuv wrapper in modern C++" />
+<p class="caption">uvw - libuv wrapper in modern C++</p>
+</div>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<p><a href="https://travis-ci.org/skypjack/uvw"><img src="https://travis-ci.org/skypjack/uvw.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/skypjack/uvw"><img src="https://ci.appveyor.com/api/projects/status/m5ndm8gnu8isg2to?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/github/skypjack/uvw?branch=master"><img src="https://coveralls.io/repos/github/skypjack/uvw/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://bintray.com/skypjack/conan/uvw%3Askypjack/_latestVersion"><img src="https://api.bintray.com/packages/skypjack/conan/uvw%3Askypjack/images/download.svg" alt="Download" /></a> <a href="https://gitter.im/skypjack/uvw"><img src="https://badges.gitter.im/skypjack/uvw.png" alt="Gitter chat" /></a> <a href="https://www.paypal.me/skypjack"><img src="https://img.shields.io/badge/Donate-PayPal-green.svg" alt="Donate" /></a></p>
+<p>Do you have a <strong>question</strong> that doesn't require you to open an issue? Join the <a href="https://gitter.im/skypjack/uvw">gitter channel</a>.<br/> If you use <code>uvw</code> and you want to <strong>say thanks</strong> or <strong>support</strong> the project, please <strong>consider becoming a patron</strong>:</p>
+<p><a href="https://www.patreon.com/bePatron?c=1772573"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Patreon" /></a></p>
+<p><a href="https://skypjack.github.io/patreon/">Many thanks</a> to those who supported me and still support me today.</p>
+<!--
+@endcond TURN_OFF_DOXYGEN
+-->
+<h1 id="introduction">Introduction</h1>
+<p><code>uvw</code> is a header-only, event based, tiny and easy to use <a href="https://github.com/libuv/libuv"><code>libuv</code></a> wrapper in modern C++.<br/> The basic idea is to hide completely the <em>C-ish</em> interface of <code>libuv</code> behind a graceful C++ API. Currently, no <code>uv_*_t</code> data structure is actually exposed by the library.<br/> Note that <code>uvw</code> stays true to the API of <code>libuv</code> and it doesn't add anything to its interface. For the same reasons, users of the library must follow the same rules who are used to follow with <code>libuv</code>.<br/> As an example, a <em>handle</em> should be initialized before any other operation and closed once it is no longer in use.</p>
+<h2 id="code-example">Code Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;uvw.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;memory&gt;</span>
+
+<span class="dt">void</span> listen(uvw::Loop &amp;loop) {
+    <span class="bu">std::</span>shared_ptr&lt;uvw::TCPHandle&gt; tcp = loop.resource&lt;uvw::TCPHandle&gt;();
+
+    tcp-&gt;once&lt;uvw::ListenEvent&gt;([](<span class="at">const</span> uvw::ListenEvent &amp;, uvw::TCPHandle &amp;srv) {
+        <span class="bu">std::</span>shared_ptr&lt;uvw::TCPHandle&gt; client = srv.loop().resource&lt;uvw::TCPHandle&gt;();
+
+        client-&gt;on&lt;uvw::CloseEvent&gt;([ptr = srv.shared_from_this()](<span class="at">const</span> uvw::CloseEvent &amp;, uvw::TCPHandle &amp;) { ptr-&gt;close(); });
+        client-&gt;on&lt;uvw::EndEvent&gt;([](<span class="at">const</span> uvw::EndEvent &amp;, uvw::TCPHandle &amp;client) { client.close(); });
+
+        srv.accept(*client);
+        client-&gt;read();
+    });
+
+    tcp-&gt;bind(<span class="st">&quot;127.0.0.1&quot;</span>, <span class="dv">4242</span>);
+    tcp-&gt;listen();
+}
+
+<span class="dt">void</span> conn(uvw::Loop &amp;loop) {
+    <span class="kw">auto</span> tcp = loop.resource&lt;uvw::TCPHandle&gt;();
+
+    tcp-&gt;on&lt;uvw::ErrorEvent&gt;([](<span class="at">const</span> uvw::ErrorEvent &amp;, uvw::TCPHandle &amp;) { <span class="co">/* handle errors */</span> });
+
+    tcp-&gt;once&lt;uvw::ConnectEvent&gt;([](<span class="at">const</span> uvw::ConnectEvent &amp;, uvw::TCPHandle &amp;tcp) {
+        <span class="kw">auto</span> dataWrite = <span class="bu">std::</span>unique_ptr&lt;<span class="dt">char</span>[]&gt;(<span class="kw">new</span> <span class="dt">char</span>[<span class="dv">2</span>]{ <span class="st">&#39;b&#39;</span>, <span class="st">&#39;c&#39;</span> });
+        tcp.write(<span class="bu">std::</span>move(dataWrite), <span class="dv">2</span>);
+        tcp.close();
+    });
+
+    tcp-&gt;<span class="fu">connect</span>(<span class="bu">std::</span>string{<span class="st">&quot;127.0.0.1&quot;</span>}, <span class="dv">4242</span>);
+}
+
+<span class="dt">int</span> main() {
+    <span class="kw">auto</span> loop = uvw::Loop::getDefault();
+    listen(*loop);
+    conn(*loop);
+    loop-&gt;run();
+}</code></pre></div>
+<h2 id="motivation">Motivation</h2>
+<p>The main reason for which <code>uvw</code> has been written is the fact that it does not exist a valid <code>libuv</code> wrapper in C++. That's all.</p>
+<h1 id="build-instructions">Build Instructions</h1>
+<h2 id="requirements">Requirements</h2>
+<p>To be able to use <code>uvw</code>, users must provide the following system-wide tools:</p>
+<ul>
+<li>A full-featured compiler that supports at least C++17.</li>
+<li><code>libuv</code> (which version depends on the tag of <code>uvw</code> in use).</li>
+</ul>
+<p>The requirements below are mandatory to compile the tests and to extract the documentation:</p>
+<ul>
+<li>CMake version 3.2 or later.</li>
+<li>Doxygen version 1.8 or later.</li>
+</ul>
+<p>Note that <code>libuv</code> is part of the dependencies of the project and it will be cloned by <code>cmake</code> (see below for further details).<br/> Because of that, users have not to install it to compile and execute the tests.</p>
+<h2 id="library">Library</h2>
+<p><code>uvw</code> is a header-only library.<br/> This means that including the <code>uvw.hpp</code> header or one of the other <code>uvw/*.hpp</code> headers is enough to use it.<br/> It's a matter of adding the following line at the top of a file:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;uvw.hpp&gt;</span></code></pre></div>
+<p>Then pass the proper <code>-I</code> argument to the compiler to add the <code>src</code> directory to the include paths.<br/> Note that users are demanded to correctly setup include directories and libraries search paths for <code>libuv</code>.</p>
+<h2 id="versioning">Versioning</h2>
+<p>Starting with tag <em>v1.12.0</em> of <code>libuv</code>, <code>uvw</code> follows the <a href="http://semver.org/">semantic versioning</a> scheme.<br/> The problem is that any version of <code>uvw</code> also requires to track explicitly the version of <code>libuv</code> to which it is bound.<br/> Because of that, the latter wil be appended to the version of <code>uvw</code>. As an example:</p>
+<pre><code>vU.V.W_libuv-vX.Y</code></pre>
+<p>In particular, the following applies:</p>
+<ul>
+<li><em>U.V.W</em> are major, minor and patch versions of <code>uvw</code>.</li>
+<li><em>X.Y</em> is the version of <code>libuv</code> to which to refer (where any patch version is valid).</li>
+</ul>
+<p>In other terms, tags will look like this from now on:</p>
+<pre><code>v1.0.0_libuv-v1.12</code></pre>
+<p>Branch <code>master</code> of <code>uvw</code> will be a work in progress branch that follows branch <em>v1.x</em> of <code>libuv</code> (at least as long as it remains their <em>master</em> branch).<br/></p>
+<h2 id="documentation">Documentation</h2>
+<p>The documentation is based on <a href="http://www.stack.nl/~dimitri/doxygen/"><code>doxygen</code></a>. To build it:</p>
+<ul>
+<li><code>$ cd build</code></li>
+<li><code>$ cmake ..</code></li>
+<li><code>$ make docs</code></li>
+</ul>
+<p>The API reference will be created in HTML format within the directory <code>build/docs/html</code>.<br/> To navigate it with your favorite browser:</p>
+<ul>
+<li><code>$ cd build</code></li>
+<li><code>$ your_favorite_browser docs/html/index.html</code></li>
+</ul>
+<p>The API reference is also available <a href="https://skypjack.github.io/uvw/">online</a> for the latest version.</p>
+<h3 id="note">Note</h3>
+<p>The documentation is mostly inspired by the official <a href="http://docs.libuv.org/en/v1.x/">libuv API documentation</a> for obvious reasons.</p>
+<h2 id="tests">Tests</h2>
+<p>To compile and run the tests, <code>uvw</code> requires <code>libuv</code> and <code>googletest</code>.<br/> <code>cmake</code> will download and compile both the libraries before to compile anything else.</p>
+<p>To build the tests:</p>
+<ul>
+<li><code>$ cd build</code></li>
+<li><code>$ cmake .. -DBUILD_TESTING=ON</code></li>
+<li><code>$ make</code></li>
+<li><code>$ ctest -j4 -R uvw</code></li>
+</ul>
+<p>Omit <code>-R uvw</code> if you also want to test <code>libuv</code> and other dependencies.</p>
+<h1 id="crash-course">Crash Course</h1>
+<h2 id="vademecum">Vademecum</h2>
+<p>There is only one rule when using <code>uvw</code>: always initialize the resources and terminate them.</p>
+<p>Resources belong mainly to two families: <em>handles</em> and <em>requests</em>.<br/> Handles represent long-lived objects capable of performing certain operations while active.<br/> Requests represent (typically) short-lived operations performed either over a handle or standalone.</p>
+<p>The following sections will explain in short what it means to initialize and terminate these kinds of resources.<br/> For more details, please refer to the <a href="https://skypjack.github.io/uvw/">online documentation</a>.</p>
+<h2 id="handles">Handles</h2>
+<p>Initialization is usually performed under the hood and can be even passed over, as far as handles are created using the <code>Loop::resource</code> member function.<br/> On the other side, handles keep themselves alive until one explicitly closes them. Because of that, memory usage will grow up if users simply forget about a handle.<br/> Therefore the rule quickly becomes <em>always close your handles</em>. It's as simple as calling the <code>close</code> member function on them.</p>
+<h2 id="requests">Requests</h2>
+<p>Usually initializing a request object is not required. Anyway, the recommended way to create a request is still through the <code>Loop::resource</code> member function.<br/> Requests will keep themselves alive as long as they are bound to unfinished underlying activities. This means that users have not to discard explicitly a request.<br/> Therefore the rule quickly becomes <em>feel free to make a request and forget about it</em>. It's as simple as calling a member function on them.</p>
+<h2 id="the-loop-and-the-resource">The Loop and the Resource</h2>
+<p>The first thing to do to use <code>uvw</code> is to create a loop. In case the default one is enough, it's easy as doing this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> loop = uvw::Loop::getDefault();</code></pre></div>
+<p>Note that loop objects don't require to be closed explicitly, even if they offer the <code>close</code> member function in case an user wants to do that.<br/> Loops can be started using the <code>run</code> member function. The two calls below are equivalent:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">loop-&gt;run();
+loop-&gt;run&lt;uvw::Loop::Mode::DEFAULT&gt;();</code></pre></div>
+<p>Available modes are: <code>DEFAULT</code>, <code>ONCE</code>, <code>NOWAIT</code>. Please refer to the documentation of <code>libuv</code> for further details.</p>
+<p>In order to create a resource and to bind it to the given loop, just do the following:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> tcp = loop.resource&lt;uvw::TCPHandle&gt;();</code></pre></div>
+<p>The line above will create and initialize a tcp handle, then a shared pointer to that resource will be returned.<br/> Users should check if pointers have been correctly initialized: in case of errors, they won't be.<br/> Another way to create a resource is:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> tcp = TCPHandle::create(loop);
+tcp-&gt;init();</code></pre></div>
+<p>Pretty annoying indeed. Using a loop is the recommended approach.</p>
+<p>The resources also accept arbitrary user-data that won't be touched in any case.<br/> Users can set and get them through the <code>data</code> member function as it follows:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">resource-&gt;data(<span class="bu">std::</span>make_shared&lt;<span class="dt">int</span>&gt;(<span class="dv">42</span>));
+<span class="bu">std::</span>shared_ptr&lt;<span class="dt">void</span>&gt; data = resource-&gt;data();</code></pre></div>
+<p>Resources expect a <code>std::shared_pointer&lt;void&gt;</code> and return it, therefore any kind of data is welcome.<br/> Users can explicitly specify a type other than <code>void</code> when calling the <code>data</code> member function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>shared_ptr&lt;<span class="dt">int</span>&gt; data = resource-&gt;data&lt;<span class="dt">int</span>&gt;();</code></pre></div>
+<p>Remember from the previous section that a handle will keep itself alive until one invokes the <code>close</code> member function on it.<br/> To know what are the handles that are still alive and bound to a given loop, just do the following:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">loop.walk([](uvw::BaseHandle &amp;){ <span class="co">/* application code here */</span> });</code></pre></div>
+<p><code>BaseHandle</code> exposes a few methods and cannot be promoted to the original type of the handle (even though <code>type</code> and <code>category</code> member functions fill the gap somehow).<br/> Anyway, it can be used to close the handle that originated from it. As an example, all the pending handles can be closed easily as it follows:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">loop.walk([](uvw::BaseHandle &amp;h){ h.close(); });</code></pre></div>
+<p>No need to keep track of them.</p>
+<p>To know what are the available resources' types, please refer the API reference.</p>
+<h2 id="the-event-based-approach">The event-based approach</h2>
+<p>For <code>uvw</code> offers an event-based approach, resources are small event emitters to which listeners can be attached.<br/> Attaching a listener to a resource is the recommended way to be notified about changes.<br/> Listeners must be callable objects of type <code>void(EventType &amp;, ResourceType &amp;)</code>, where:</p>
+<ul>
+<li><code>EventType</code> is the type of the event for which they have been designed.</li>
+<li><code>ResourceType</code> is the type of the resource that has originated the event.</li>
+</ul>
+<p>It means that the following function types are all valid:</p>
+<ul>
+<li><code>void(EventType &amp;, ResourceType &amp;)</code></li>
+<li><code>void(const EventType &amp;, ResourceType &amp;)</code></li>
+<li><code>void(EventType &amp;, const ResourceType &amp;)</code></li>
+<li><code>void(const EventType &amp;, const ResourceType &amp;)</code></li>
+</ul>
+<p>Once more, please note that there is no need to keep around references to the resources: they will pass themselves as an argument whenever an event is published.</p>
+<p>There exist two methods to attach an event to a resource:</p>
+<ul>
+<li><code>resource.once&lt;EventType&gt;(listener)</code>: the listener will be automatically removed after the first event of the given type.</li>
+<li><code>resource.on&lt;EventType&gt;(listener)</code>: to be used for long-running listeners.</li>
+</ul>
+<p>Both of them return an object of type <code>ResourceType::Connection</code> (as an example, <code>TCPHandle::Connection</code>).<br/> A connection object can be used later as an argument to the <code>erase</code> member function of the resource to remove the listener.<br/> There exists also the <code>clear</code> member function to drop all the listeners at once.</p>
+<p>Almost all the resources use to emit <code>ErrorEvent</code> events in case of errors.<br/> All the other events are specific for the given resource and documented in the API reference.</p>
+<p>The code below shows how to create a simple tcp server using <code>uvw</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> loop = uvw::Loop::getDefault();
+<span class="kw">auto</span> tcp = loop.resource&lt;uvw::TCPHandle&gt;();
+
+tcp-&gt;on&lt;uvw::ErrorEvent&gt;([](<span class="at">const</span> uvw::ErrorEvent &amp;, uvw::TCPHandle &amp;) { <span class="co">/* something went wrong */</span> });
+
+tcp-&gt;on&lt;uvw::ListenEvent&gt;([](<span class="at">const</span> uvw::ListenEvent &amp;, uvw::TCPHandle &amp;srv) {
+    <span class="bu">std::</span>shared_ptr&lt;uvw::TCPHandle&gt; client = srv.loop().resource&lt;uvw::TCPHandle&gt;();
+    client-&gt;once&lt;uvw::EndEvent&gt;([](<span class="at">const</span> uvw::EndEvent &amp;, uvw::TCPHandle &amp;client) { client.close(); });
+    client-&gt;on&lt;uvw::DataEvent&gt;([](<span class="at">const</span> uvw::DataEvent &amp;, uvw::TCPHandle &amp;) { <span class="co">/* data received */</span> });
+    srv.accept(*client);
+    client-&gt;read();
+});
+
+tcp-&gt;bind(<span class="st">&quot;127.0.0.1&quot;</span>, <span class="dv">4242</span>);
+tcp-&gt;listen();</code></pre></div>
+<p>Note also that <code>uvw::TCPHandle</code> already supports <em>IPv6</em> out-of-the-box. The statement above is equivalent to <code>tcp-&gt;bind&lt;uvw::IPv4&gt;(&quot;127.0.0.1&quot;, 4242)</code>.<br/> It's suffice to explicitly specify <code>uvw::IPv6</code> as the underlying protocol to use it.</p>
+<p>The API reference is the recommended documentation for further details about resources and their methods.</p>
+<h2 id="going-raw">Going raw</h2>
+<p>In case users need to use functionalities not wrapped yet by <code>uvw</code> or if they want to get the underlying data structures as defined by <code>libuv</code> for some other reasons, almost all the classes in <code>uvw</code> give direct access to them.<br/> Please, note that this functions should not be used directly unless users know exactly what they are doing and what are the risks. Going raw is dangerous, mainly because the lifetime management of a loop, a handle or a request is completely in charge to the library and working around it could quickly break things.</p>
+<p>That being said, <em>going raw</em> is a matter of using the <code>raw</code> member functions:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> loop = uvw::Loop::getDefault();
+<span class="kw">auto</span> tcp = loop.resource&lt;uvw::TCPHandle&gt;();
+
+<span class="dt">uv_loop_t</span> *raw = loop-&gt;raw();
+<span class="dt">uv_tcp_t</span> *handle = tcp-&gt;raw();</code></pre></div>
+<p>Go the raw way at your own risk, but do not expect any support in case of bugs.</p>
+<h1 id="contributors">Contributors</h1>
+<p>If you want to contribute, please send patches as pull requests against the branch master.<br/> Check the <a href="https://github.com/skypjack/uvw/blob/master/AUTHORS">contributors list</a> to see who has partecipated so far.</p>
+<h1 id="license">License</h1>
+<p>Code and documentation Copyright (c) 2016-2019 Michele Caini.<br/> Logo Copyright (c) 2018-2019 Richard Caseres.</p>
+<p>Code released under <a href="https://github.com/skypjack/uvw/blob/master/LICENSE">the MIT license</a>. Documentation released under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.<br/> Logo released under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<h1 id="support">Support</h1>
+<h2 id="patreon">Patreon</h2>
+<p>Become a <a href="https://www.patreon.com/bePatron?c=1772573">patron</a> and get access to extra content, help me spend more time on the projects you love and create new ones for you. Your support will help me to continue the work done so far and make it more professional and feature-rich every day.<br/> It takes very little to <a href="https://www.patreon.com/bePatron?c=1772573">become a patron</a> and thus help the software you use every day. Don't miss the chance.</p>
+<h2 id="donation">Donation</h2>
+<p>Developing and maintaining <code>uvw</code> takes some time and lots of coffee. It still lacks a proper test suite, documentation is partially incomplete and not all functionalities have been fully implemented yet.<br/> If you want to support this project, you can offer me an espresso. I'm from Italy, we're used to turning the best coffee ever in code. If you find that it's not enough, feel free to support me the way you prefer.<br/> Take a look at the donation button at the top of the page for more details or just click <a href="https://www.paypal.me/skypjack">here</a>.</p>
+<h2 id="hire-me">Hire me</h2>
+<p>If you start using <code>uvw</code> and need help, if you want a new feature and want me to give it the highest priority, if you have any other reason to contact me: do not hesitate. I'm available for hiring.<br/> Feel free to take a look at my <a href="https://github.com/skypjack">profile</a> and contact me by mail. <!--
+@endcond TURN_OFF_DOXYGEN
+--></p>

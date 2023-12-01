@@ -1,0 +1,1048 @@
+<p><a href="https://travis-ci.org/Tessil/hat-trie"><img src="https://travis-ci.org/Tessil/hat-trie.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Tessil/hat-trie/branch/master"><img src="https://ci.appveyor.com/api/projects/status/ieafyj08ewb7dfa7/branch/master?svg=true" alt="Build status" /></a> ## A C++ implementation of a fast and memory efficient HAT-trie</p>
+<p>Trie implementation based on the &quot;HAT-trie: A Cache-conscious Trie-based Data Structure for Strings.&quot; (Askitis Nikolas and Sinha Ranjan, 2007) paper. For now, only the pure HAT-trie has been implemented, the hybrid version may arrive later. Details regarding the HAT-trie data structure can be found <a href="https://tessil.github.io/2017/06/22/hat-trie.html">here</a>.</p>
+<p>The library provides an efficient and compact way to store a set or a map of strings by compressing the common prefixes. It also allows to search for keys that match a prefix. Note though that the default parameters of the structure are geared toward optimizing exact searches, if you do a lot of prefix searches you may want to reduce the burst threshold through the <code>burst_threshold</code> method.</p>
+<p>It's a well adapted structure to store a large number of strings.</p>
+<p align="center">
+<img src="https://tessil.github.io/images/hat-trie.png" width="600px" />
+</p>
+<p>For the array hash part, the <a href="https://github.com/Tessil/array-hash">array-hash</a> project is used and included in the repository.</p>
+<p>The library provides two classes: <code>tsl::htrie_map</code> and <code>tsl::htrie_set</code>.</p>
+<h3 id="overview">Overview</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a> directory to your include path and you are ready to go. If you use CMake, you can also use the <code>tsl::hat_trie</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a>.</li>
+<li>Low memory usage while keeping reasonable performances (see <a href="#benchmark">benchmark</a>).</li>
+<li>Support prefix searches through <code>equal_prefix_range</code> (usefull for autocompletion for example) and prefix erasures through <code>erase_prefix</code>.</li>
+<li>Support longest matching prefix searches through <code>longest_prefix</code>.</li>
+<li>Support for efficient serialization and deserialization (see <a href="#serialization">example</a> and the <code>serialize/deserialize</code> methods in the <a href="https://tessil.github.io/hat-trie/doc/html/classtsl_1_1htrie__map.html">API</a> for details).</li>
+<li>Keys are not ordered as they are partially stored in a hash map.</li>
+<li>All operations modifying the data structure (insert, emplace, erase, ...) invalidate the iterators.</li>
+<li>Support null characters in the key (you can thus store binary data in the trie).</li>
+<li>Support for any type of value as long at it's either copy-constructible or both nothrow move constructible and nothrow move assignable.</li>
+<li>The balance between speed and memory usage can be modified through the <code>max_load_factor</code> method. A lower max load factor will increase the speed, a higher one will reduce the memory usage. Its default value is set to 8.0.</li>
+<li>The default burst threshold, which is the maximum size of an array hash node before a burst occurs, is set to 16 384 which provides good performances for exact searches. If you mainly use prefix searches, you may want to reduce it to something like 1024 or lower for faster iteration on the results through the <code>burst_threshold</code> method.</li>
+<li>By default the maximum allowed size for a key is set to 65 535. This can be raised through the <code>KeySizeT</code> template parameter.</li>
+</ul>
+<p>Thread-safety and exception guarantees are similar to the STL containers.</p>
+<h3 id="hash-function">Hash function</h3>
+<p>The default hash function used by the structure depends on the presence of <code>std::string_view</code>. If it is available, <code>std::hash&lt;std::string_view&gt;</code> is used, otherwise a simple <a href="https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV-1a_hash">FNV-1a</a> hash function is used to avoid any dependency.</p>
+<p>If you can't use C++17 or later, we recommend to replace the hash function with something like <a href="https://github.com/google/cityhash">CityHash</a>, MurmurHash, <a href="https://github.com/google/farmhash">FarmHash</a>, ... for better performances. On the tests we did, CityHash64 offers a ~20% improvement on reads compared to FNV-1a.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;city.h&gt;</span>
+
+<span class="kw">struct</span> str_hash {
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char</span>* key, <span class="bu">std::</span>size_t key_size) <span class="at">const</span> {
+        <span class="cf">return</span> CityHash64(key, key_size);
+    }
+};
+
+tsl::htrie_map&lt;<span class="dt">char</span>, <span class="dt">int</span>, str_hash&gt; map;</code></pre></div>
+<p>The <code>std::hash&lt;std::string&gt;</code> can't be used efficiently as the structure doesn't store any <code>std::string</code> object. Any time a hash would be needed, a temporary <code>std::string</code> would have to be created.</p>
+<h3 id="benchmark">Benchmark</h3>
+<h4 id="wikipedia-dataset">Wikipedia dataset</h4>
+<p>The benchmark consists in inserting all the titles from the main namespace of the Wikipedia archive into the data structure, check the used memory space after the insert (including potential memory fragmentation) and search for all the titles again in the data structure. The peak memory usage during the insert process is also measured with <a href="https://linux.die.net/man/1/time">time(1)</a>.</p>
+<ul>
+<li>Dataset: <a href="https://dumps.wikimedia.org/enwiki/20170320/">enwiki-20170320-all-titles-in-ns0.gz</a></li>
+<li>Size: 262.7 MiB</li>
+<li>Number of keys: 13 099 148</li>
+<li>Average key length: 19.90</li>
+<li>Median key length: 17</li>
+<li>Max key length: 251</li>
+</ul>
+<p>Each title is associated with an int (32 bits). All the hash based structures use <a href="https://github.com/google/cityhash">CityHash64</a> as hash function. For the tests marked <em>with reserve</em>, the <code>reserve</code> function is called beforehand to avoid any rehash.</p>
+<p>Note that <code>tsl::hopscotch_map</code>, <code>std::unordered_map</code>, <code>google::dense_hash_map</code> and <code>spp::sparse_hash_map</code> use <code>std::string</code> as key which imposes a minimum size of 32 bytes (on x64) even if the key is only one character long. Other structures may be able to store one-character keys with 1 byte + 8 bytes for a pointer (on x64).</p>
+<p>The benchmark was compiled with GCC 6.3 and ran on Debian Stretch x64 with an Intel i5-5200u and 8Go of RAM. Best of 20 runs was taken.</p>
+<p>The code of the benchmark can be found on <a href="https://gist.github.com/Tessil/72e11891fc155f5b2eb53de22cbc4053">Gist</a>.</p>
+<h5 id="unsorted">Unsorted</h5>
+<p>The <em>enwiki-20170320-all-titles-in-ns0.gz</em> dataset is alphabetically sorted. For this benchmark, we first shuffle the dataset through <a href="https://linux.die.net/man/1/shuf">shuf(1)</a> to avoid a biased sorted dataset.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="10%" />
+<col width="17%" />
+<col width="20%" />
+<col width="15%" />
+<col width="18%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Data structure</th>
+<th align="right">Peak memory (MiB)</th>
+<th align="right">Memory (MiB)</th>
+<th align="right">Insert (ns/key)</th>
+<th align="right">Read (ns/key)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a></td>
+<td>HAT-trie</td>
+<td align="right"><strong>405.22</strong></td>
+<td align="right"><strong>402.25</strong></td>
+<td align="right">643.10</td>
+<td align="right">250.87</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=4</td>
+<td>HAT-trie</td>
+<td align="right">471.85</td>
+<td align="right">468.50</td>
+<td align="right">638.66</td>
+<td align="right">212.90</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=2</td>
+<td>HAT-trie</td>
+<td align="right">569.76</td>
+<td align="right">566.52</td>
+<td align="right">630.61</td>
+<td align="right">201.10</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=1</td>
+<td>HAT-trie</td>
+<td align="right">713.44</td>
+<td align="right">709.81</td>
+<td align="right">645.76</td>
+<td align="right">190.87</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array trie</td>
+<td align="right">1269.68</td>
+<td align="right">1254.41</td>
+<td align="right">1102.93</td>
+<td align="right">557.20</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array trie</td>
+<td align="right">1269.80</td>
+<td align="right">1254.41</td>
+<td align="right">1089.78</td>
+<td align="right">570.13</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array reduced trie</td>
+<td align="right">1183.07</td>
+<td align="right">1167.79</td>
+<td align="right">1076.68</td>
+<td align="right">645.79</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array reduced trie</td>
+<td align="right">1183.14</td>
+<td align="right">1167.85</td>
+<td align="right">1065.43</td>
+<td align="right">641.98</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array prefix trie</td>
+<td align="right">498.69</td>
+<td align="right">496.54</td>
+<td align="right">1096.90</td>
+<td align="right">628.01</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array prefix trie</td>
+<td align="right">498.65</td>
+<td align="right">496.60</td>
+<td align="right">1048.40</td>
+<td align="right">628.94</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/dcjones/hat-trie">hat-trie</a><sup>1</sup> (C)</td>
+<td>HAT-trie</td>
+<td align="right">504.07</td>
+<td align="right">501.50</td>
+<td align="right">917.49</td>
+<td align="right">261.00</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/fanf2/qp">qp trie</a> (C)</td>
+<td>QP trie</td>
+<td align="right">941.23</td>
+<td align="right">938.17</td>
+<td align="right">1349.25</td>
+<td align="right">1281.46</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/fanf2/qp">crit-bit trie</a> (C)</td>
+<td>Crit-bit trie</td>
+<td align="right">1074.96</td>
+<td align="right">1071.98</td>
+<td align="right">2930.42</td>
+<td align="right">2869.74</td>
+</tr>
+<tr class="even">
+<td><a href="http://judy.sourceforge.net/">JudySL</a> (C)</td>
+<td>Judy array</td>
+<td align="right">631.09</td>
+<td align="right">628.37</td>
+<td align="right">884.29</td>
+<td align="right">803.58</td>
+</tr>
+<tr class="odd">
+<td><a href="http://judy.sourceforge.net/">JudyHS</a> (C)</td>
+<td>Judy array</td>
+<td align="right">723.44</td>
+<td align="right">719.47</td>
+<td align="right">476.79</td>
+<td align="right">417.15</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a></td>
+<td>Array hash table</td>
+<td align="right">823.54</td>
+<td align="right">678.73</td>
+<td align="right">603.94</td>
+<td align="right">138.24</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a> <br>with reserve</td>
+<td>Array hash table</td>
+<td align="right">564.26</td>
+<td align="right">555.91</td>
+<td align="right">249.52</td>
+<td align="right">128.28</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a></td>
+<td>Hash table</td>
+<td align="right">1325.83</td>
+<td align="right">1077.99</td>
+<td align="right">368.26</td>
+<td align="right"><strong>119.49</strong></td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1080.51</td>
+<td align="right">1077.98</td>
+<td align="right"><strong>240.58</strong></td>
+<td align="right">119.91</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a></td>
+<td>Hash table</td>
+<td align="right">2319.40</td>
+<td align="right">1677.11</td>
+<td align="right">466.60</td>
+<td align="right">138.87</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1592.51</td>
+<td align="right">1589.99</td>
+<td align="right">259.56</td>
+<td align="right">120.40</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a></td>
+<td>Sparse hash table</td>
+<td align="right">918.67</td>
+<td align="right">917.10</td>
+<td align="right">769.00</td>
+<td align="right">175.59</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a> <br>with reserve</td>
+<td>Sparse hash table</td>
+<td align="right">913.35</td>
+<td align="right">910.65</td>
+<td align="right">427.22</td>
+<td align="right">159.08</td>
+</tr>
+<tr class="even">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a></td>
+<td>Hash table</td>
+<td align="right">1249.05</td>
+<td align="right">1246.60</td>
+<td align="right">590.88</td>
+<td align="right">173.58</td>
+</tr>
+<tr class="odd">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1212.23</td>
+<td align="right">1209.71</td>
+<td align="right">350.33</td>
+<td align="right">178.70</td>
+</tr>
+</tbody>
+</table>
+<ol style="list-style-type: decimal">
+<li>As the hash function can't be passed in parameter, the code of the library itself is modified to use CityHash64.</li>
+</ol>
+<h5 id="sorted">Sorted</h5>
+<p>The key are inserted and read in alphabetical order.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="10%" />
+<col width="17%" />
+<col width="20%" />
+<col width="15%" />
+<col width="18%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Data structure</th>
+<th align="right">Peak memory (MiB)</th>
+<th align="right">Memory (MiB)</th>
+<th align="right">Insert (ns/key)</th>
+<th align="right">Read (ns/key)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a></td>
+<td>HAT-trie</td>
+<td align="right"><strong>396.10</strong></td>
+<td align="right"><strong>393.22</strong></td>
+<td align="right">255.76</td>
+<td align="right">68.08</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=4</td>
+<td>HAT-trie</td>
+<td align="right">465.02</td>
+<td align="right">461.80</td>
+<td align="right">248.88</td>
+<td align="right">59.23</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=2</td>
+<td>HAT-trie</td>
+<td align="right">543.99</td>
+<td align="right">541.21</td>
+<td align="right">230.13</td>
+<td align="right">53.50</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=1</td>
+<td>HAT-trie</td>
+<td align="right">692.29</td>
+<td align="right">689.70</td>
+<td align="right">243.84</td>
+<td align="right"><strong>49.22</strong></td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array trie</td>
+<td align="right">1269.58</td>
+<td align="right">1254.41</td>
+<td align="right">278.51</td>
+<td align="right">54.72</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array trie</td>
+<td align="right">1269.66</td>
+<td align="right">1254.41</td>
+<td align="right">264.43</td>
+<td align="right">56.02</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array reduced trie</td>
+<td align="right">1183.01</td>
+<td align="right">1167.78</td>
+<td align="right">254.60</td>
+<td align="right">69.18</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array reduced trie</td>
+<td align="right">1183.03</td>
+<td align="right">1167.78</td>
+<td align="right">241.45</td>
+<td align="right">69.67</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array prefix trie</td>
+<td align="right">621.59</td>
+<td align="right">619.38</td>
+<td align="right">246.88</td>
+<td align="right">57.83</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array prefix trie</td>
+<td align="right">621.59</td>
+<td align="right">619.38</td>
+<td align="right"><strong>187.98</strong></td>
+<td align="right">58.56</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/dcjones/hat-trie">hat-trie</a><sup>2</sup> (C)</td>
+<td>HAT-trie</td>
+<td align="right">521.25</td>
+<td align="right">518.52</td>
+<td align="right">503.01</td>
+<td align="right">86.40</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/fanf2/qp">qp trie</a> (C)</td>
+<td>QP trie</td>
+<td align="right">940.65</td>
+<td align="right">937.66</td>
+<td align="right">392.86</td>
+<td align="right">190.19</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/fanf2/qp">crit-bit trie</a> (C)</td>
+<td>Crit-bit trie</td>
+<td align="right">1074.87</td>
+<td align="right">1071.98</td>
+<td align="right">430.04</td>
+<td align="right">347.60</td>
+</tr>
+<tr class="even">
+<td><a href="http://judy.sourceforge.net/">JudySL</a> (C)</td>
+<td>Judy array</td>
+<td align="right">616.95</td>
+<td align="right">614.27</td>
+<td align="right">279.07</td>
+<td align="right">114.47</td>
+</tr>
+<tr class="odd">
+<td><a href="http://judy.sourceforge.net/">JudyHS</a> (C)</td>
+<td>Judy array</td>
+<td align="right">722.29</td>
+<td align="right">719.47</td>
+<td align="right">439.66</td>
+<td align="right">372.25</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a></td>
+<td>Array hash table</td>
+<td align="right">826.98</td>
+<td align="right">682.99</td>
+<td align="right">612.31</td>
+<td align="right">139.16</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a> <br>with reserve</td>
+<td>Array hash table</td>
+<td align="right">565.37</td>
+<td align="right">555.35</td>
+<td align="right">246.55</td>
+<td align="right">126.32</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a></td>
+<td>Hash table</td>
+<td align="right">1331.87</td>
+<td align="right">1078.02</td>
+<td align="right">375.19</td>
+<td align="right">118.08</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1080.51</td>
+<td align="right">1077.97</td>
+<td align="right">238.93</td>
+<td align="right">117.20</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a></td>
+<td>Hash table</td>
+<td align="right">2325.27</td>
+<td align="right">1683.07</td>
+<td align="right">483.95</td>
+<td align="right">137.09</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1592.54</td>
+<td align="right">1589.99</td>
+<td align="right">257.22</td>
+<td align="right">113.71</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a></td>
+<td>Sparse hash table</td>
+<td align="right">920.96</td>
+<td align="right">918.70</td>
+<td align="right">772.03</td>
+<td align="right">176.64</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a> <br>with reserve</td>
+<td>Sparse hash table</td>
+<td align="right">914.84</td>
+<td align="right">912.47</td>
+<td align="right">422.85</td>
+<td align="right">158.73</td>
+</tr>
+<tr class="even">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a></td>
+<td>Hash table</td>
+<td align="right">1249.09</td>
+<td align="right">1246.65</td>
+<td align="right">594.85</td>
+<td align="right">173.54</td>
+</tr>
+<tr class="odd">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1212.21</td>
+<td align="right">1209.71</td>
+<td align="right">347.40</td>
+<td align="right">176.49</td>
+</tr>
+</tbody>
+</table>
+<ol start="2" style="list-style-type: decimal">
+<li>As the hash function can't be passed in parameter, the code of the library itself is modified to use CityHash64.</li>
+</ol>
+<h4 id="dr.-askitis-dataset">Dr. Askitis dataset</h4>
+<p>The benchmark consists in inserting all the words from the &quot;Distinct Strings&quot; dataset of Dr. Askitis into the data structure, check the used memory space and search for all the words from the &quot;Skew String Set 1&quot; dataset (where a string can be present multiple times) in the data structure. Note that the strings in this dataset have a quite short average and median key length (which may not be a realistic use case compared to the Wikipedia dataset used above). It's similar to the one on the <a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar</a> homepage.</p>
+<ul>
+<li>Dataset: <a href="http://web.archive.org/web/20120206015921/http://www.naskitis.com/">distinct_1</a> (write) / <a href="http://web.archive.org/web/20120206015921/http://www.naskitis.com/">skew1_1</a> (read)</li>
+<li>Size: 290.45 MiB / 1 029.46 MiB</li>
+<li>Number of keys: 28 772 169 / 177 999 203</li>
+<li>Average key length: 9.59 / 5.06</li>
+<li>Median key length: 8 / 4</li>
+<li>Max key length: 126 / 62</li>
+</ul>
+<p>The benchmark protocol is the same as for the <a href="https://github.com/Tessil/hat-trie#wikipedia-dataset">Wikipedia dataset</a>.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="10%" />
+<col width="17%" />
+<col width="20%" />
+<col width="15%" />
+<col width="18%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Data structure</th>
+<th align="right">Peak memory (MiB)</th>
+<th align="right">Memory (MiB)</th>
+<th align="right">Insert (ns/key)</th>
+<th align="right">Read (ns/key)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a></td>
+<td>HAT-trie</td>
+<td align="right"><strong>604.76</strong></td>
+<td align="right"><strong>601.79</strong></td>
+<td align="right">485.45</td>
+<td align="right">77.80</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=4</td>
+<td>HAT-trie</td>
+<td align="right">768.10</td>
+<td align="right">764.98</td>
+<td align="right">491.78</td>
+<td align="right">75.48</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=2</td>
+<td>HAT-trie</td>
+<td align="right">1002.42</td>
+<td align="right">999.34</td>
+<td align="right">496.78</td>
+<td align="right">72.53</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hat-trie">tsl::htrie_map</a> <br/> max_load_factor=1</td>
+<td>HAT-trie</td>
+<td align="right">1344.98</td>
+<td align="right">1341.97</td>
+<td align="right">520.66</td>
+<td align="right">72.45</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array trie</td>
+<td align="right">1105.45</td>
+<td align="right">1100.05</td>
+<td align="right">682.25</td>
+<td align="right">71.98</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array trie</td>
+<td align="right">1105.47</td>
+<td align="right">1100.05</td>
+<td align="right">668.75</td>
+<td align="right">71.95</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array reduced trie</td>
+<td align="right">941.16</td>
+<td align="right">926.04</td>
+<td align="right">684.38</td>
+<td align="right">79.11</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array reduced trie</td>
+<td align="right">941.16</td>
+<td align="right">925.98</td>
+<td align="right">672.14</td>
+<td align="right">79.02</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a></td>
+<td>Double-array prefix trie</td>
+<td align="right">714.58</td>
+<td align="right">712.59</td>
+<td align="right">831.71</td>
+<td align="right">75.83</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.tkl.iis.u-tokyo.ac.jp/~ynaga/cedar/">cedar::da</a> ORDERED=false</td>
+<td>Double-array prefix trie</td>
+<td align="right">714.66</td>
+<td align="right">712.31</td>
+<td align="right">786.93</td>
+<td align="right">75.89</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/dcjones/hat-trie">hat-trie</a><sup>3</sup> (C)</td>
+<td>HAT-trie</td>
+<td align="right">786.93</td>
+<td align="right">784.32</td>
+<td align="right">743.34</td>
+<td align="right">93.58</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/fanf2/qp">qp trie</a> (C)</td>
+<td>QP trie</td>
+<td align="right">1800.02</td>
+<td align="right">1797.21</td>
+<td align="right">987.95</td>
+<td align="right">428.51</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/fanf2/qp">crit-bit trie</a> (C)</td>
+<td>Crit-bit trie</td>
+<td align="right">2210.52</td>
+<td align="right">2207.64</td>
+<td align="right">1986.19</td>
+<td align="right">1109.88</td>
+</tr>
+<tr class="even">
+<td><a href="http://judy.sourceforge.net/">JudySL</a> (C)</td>
+<td>Judy array</td>
+<td align="right">1025.59</td>
+<td align="right">1023.11</td>
+<td align="right">535.02</td>
+<td align="right">202.36</td>
+</tr>
+<tr class="odd">
+<td><a href="http://judy.sourceforge.net/">JudyHS</a> (C)</td>
+<td>Judy array</td>
+<td align="right">1002.50</td>
+<td align="right">999.97</td>
+<td align="right">456.09</td>
+<td align="right">148.36</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a></td>
+<td>Array hash table</td>
+<td align="right">1308.08</td>
+<td align="right">1031.67</td>
+<td align="right">545.82</td>
+<td align="right">46.41</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/array-hash">tsl::array_map</a> <br>with reserve</td>
+<td>Array hash table</td>
+<td align="right">979.44</td>
+<td align="right">921.363</td>
+<td align="right">244.19</td>
+<td align="right">45.74</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a></td>
+<td>Hash table</td>
+<td align="right">2336.39</td>
+<td align="right">1611.54</td>
+<td align="right">288.70</td>
+<td align="right">47.05</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/Tessil/hopscotch-map">tsl::hopscotch_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">1614.22</td>
+<td align="right">1611.64</td>
+<td align="right"><strong>220.67</strong></td>
+<td align="right">46.39</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a></td>
+<td>Hash table</td>
+<td align="right">3913.64</td>
+<td align="right">2636.31</td>
+<td align="right">317.66</td>
+<td align="right">43.62</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/sparsehash/sparsehash">google::dense_hash_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">2638.19</td>
+<td align="right">2635.68</td>
+<td align="right">227.58</td>
+<td align="right"><strong>43.09</strong></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a></td>
+<td>Sparse hash table</td>
+<td align="right">1419.69</td>
+<td align="right">1417.61</td>
+<td align="right">586.26</td>
+<td align="right">56.00</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/greg7mdp/sparsepp">spp::sparse_hash_map</a> <br>with reserve</td>
+<td>Sparse hash table</td>
+<td align="right">1424.21</td>
+<td align="right">1421.69</td>
+<td align="right">392.76</td>
+<td align="right">55.73</td>
+</tr>
+<tr class="even">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a></td>
+<td>Hash table</td>
+<td align="right">2112.66</td>
+<td align="right">2110.19</td>
+<td align="right">554.02</td>
+<td align="right">105.05</td>
+</tr>
+<tr class="odd">
+<td><a href="http://en.cppreference.com/w/cpp/container/unordered_map">std::unordered_map</a> <br>with reserve</td>
+<td>Hash table</td>
+<td align="right">2053.95</td>
+<td align="right">2051.67</td>
+<td align="right">309.06</td>
+<td align="right">109.89</td>
+</tr>
+</tbody>
+</table>
+<ol start="3" style="list-style-type: decimal">
+<li>As the hash function can't be passed in parameter, the code of the library itself is modified to use CityHash64.</li>
+</ol>
+<h3 id="installation">Installation</h3>
+<p>To use the library, just add the <a href="include/">include</a> directory to your include path. It is a <strong>header-only</strong> library.</p>
+<p>If you use CMake, you can also use the <code>tsl::hat_trie</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a> with <code>target_link_libraries</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># Example where the hat-trie project is stored in a third-party directory</span>
+<span class="kw">add_subdirectory</span>(third-party/hat-trie)
+<span class="kw">target_link_libraries</span>(your_target <span class="ot">PRIVATE</span> tsl::hat_trie)  </code></pre></div>
+<p>The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Tessil/hat-trie.git
+<span class="bu">cd</span> hat-trie/tests
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build .
+<span class="ex">./tsl_hat_trie_tests</span></code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a href="https://tessil.github.io/hat-trie/doc_without_string_view/html">here</a>. If <code>std::string_view</code> is available, the API changes slightly and can be found <a href="https://tessil.github.io/hat-trie/doc/html/">here</a>.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/htrie_map.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/htrie_set.h&gt;</span>
+
+
+<span class="dt">int</span> main() {
+    <span class="co">/*</span>
+<span class="co">     * Map of strings to int having char as character type. </span>
+<span class="co">     * There is no support for wchar_t, char16_t or char32_t yet, </span>
+<span class="co">     * but UTF-8 strings will work fine.</span>
+<span class="co">     */</span>
+    tsl::htrie_map&lt;<span class="dt">char</span>, <span class="dt">int</span>&gt; map = {{<span class="st">&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;two&quot;</span>, <span class="dv">2</span>}};
+    map[<span class="st">&quot;three&quot;</span>] = <span class="dv">3</span>;
+    map[<span class="st">&quot;four&quot;</span>] = <span class="dv">4</span>;
+    
+    map.insert(<span class="st">&quot;five&quot;</span>, <span class="dv">5</span>);
+    map.insert_ks(<span class="st">&quot;six_with_extra_chars_we_ignore&quot;</span>, <span class="dv">3</span>, <span class="dv">6</span>);
+    
+    map.erase(<span class="st">&quot;two&quot;</span>);
+    
+    <span class="co">/*</span>
+<span class="co">     * Due to the compression on the common prefixes, the letters of the string </span>
+<span class="co">     * are not always stored contiguously. When we retrieve the key, we have to </span>
+<span class="co">     * construct it.</span>
+<span class="co">     * </span>
+<span class="co">     * To avoid a heap-allocation at each iteration (when SSO doesn&#39;t occur), </span>
+<span class="co">     * we reuse the key_buffer to construct the key.</span>
+<span class="co">     */</span>
+    <span class="bu">std::</span>string key_buffer;
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        it.key(key_buffer);
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_buffer &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; it.value() &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">/*</span>
+<span class="co">     * If you don&#39;t care about the allocation.</span>
+<span class="co">     */</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key() &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; *it &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    
+    
+    tsl::htrie_map&lt;<span class="dt">char</span>, <span class="dt">int</span>&gt; map2 = {{<span class="st">&quot;apple&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;mango&quot;</span>, <span class="dv">2</span>}, {<span class="st">&quot;apricot&quot;</span>, <span class="dv">3</span>},
+                                      {<span class="st">&quot;mandarin&quot;</span>, <span class="dv">4</span>}, {<span class="st">&quot;melon&quot;</span>, <span class="dv">5</span>}, {<span class="st">&quot;macadamia&quot;</span>, <span class="dv">6</span>}};
+    
+    <span class="co">// Prefix search</span>
+    <span class="kw">auto</span> prefix_range = map2.equal_prefix_range(<span class="st">&quot;ma&quot;</span>);
+    
+    <span class="co">// {mandarin, 4} {mango, 2} {macadamia, 6}</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = prefix_range.first; it != prefix_range.second; ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key() &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; *it &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">// Find longest match prefix.</span>
+    <span class="kw">auto</span> longest_prefix = map2.longest_prefix(<span class="st">&quot;apple juice&quot;</span>);
+    <span class="cf">if</span>(longest_prefix != map2.end()) {
+        <span class="co">// {apple, 1}</span>
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; longest_prefix.key() &lt;&lt; <span class="st">&quot;, &quot;</span> 
+                  &lt;&lt; *longest_prefix &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">// Prefix erase</span>
+    map2.erase_prefix(<span class="st">&quot;ma&quot;</span>);
+    
+    <span class="co">// {apricot, 3} {melon, 5} {apple, 1}</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map2.begin(); it != map2.end(); ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key() &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; *it &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    
+    
+    tsl::htrie_set&lt;<span class="dt">char</span>&gt; set = {<span class="st">&quot;one&quot;</span>, <span class="st">&quot;two&quot;</span>, <span class="st">&quot;three&quot;</span>};
+    set.insert({<span class="st">&quot;four&quot;</span>, <span class="st">&quot;five&quot;</span>});
+    
+    <span class="co">// {one} {two} {five} {four} {three}</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = set.begin(); it != set.end(); ++it) {
+        it.key(key_buffer);
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_buffer &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+} </code></pre></div>
+<h4 id="serialization">Serialization</h4>
+<p>The library provides an efficient way to serialize and deserialize a map or a set so that it can be saved to a file or send through the network. To do so, it requires the user to provide a function object for both serialization and deserialization.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> serializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float and T if a map is used.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> U&amp; value);
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> CharT* value, <span class="bu">std::</span>size_t value_size);
+};</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> deserializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float and T if a map is used.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    U <span class="kw">operator</span>()();
+    <span class="dt">void</span> <span class="kw">operator</span>()(CharT* value_out, <span class="bu">std::</span>size_t value_size);
+};</code></pre></div>
+<p>Note that the implementation leaves binary compatibilty (endianness, float binary representation, size of int, ...) of the types it serializes/deserializes in the hands of the provided function objects if compatibilty is required.</p>
+<p>More details regarding the <code>serialize</code> and <code>deserialize</code> methods can be found in the <a href="https://tessil.github.io/hat-trie/doc/html/classtsl_1_1htrie__map.html">API</a>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;type_traits&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/htrie_map.h&gt;</span>
+
+
+<span class="kw">class</span> serializer {
+<span class="kw">public</span>:
+    serializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_ostream</span>.exceptions(<span class="va">m_ostream</span>.badbit | <span class="va">m_ostream</span>.failbit);
+        <span class="va">m_ostream</span>.open(file_name);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> T&amp; value) {
+        <span class="va">m_ostream</span>.write(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+    }
+    
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char</span>* value, <span class="bu">std::</span>size_t value_size) {
+        <span class="va">m_ostream</span>.write(value, value_size);
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ofstream <span class="va">m_ostream</span>;
+};
+
+<span class="kw">class</span> deserializer {
+<span class="kw">public</span>:
+    deserializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_istream</span>.exceptions(<span class="va">m_istream</span>.badbit | <span class="va">m_istream</span>.failbit | <span class="va">m_istream</span>.eofbit);
+        <span class="va">m_istream</span>.open(file_name);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    T <span class="kw">operator</span>()() {
+        T value;
+        <span class="va">m_istream</span>.read(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+        
+        <span class="cf">return</span> value;
+    }
+    
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="dt">char</span>* value_out, <span class="bu">std::</span>size_t value_size) {
+        <span class="va">m_istream</span>.read(value_out, value_size);
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ifstream <span class="va">m_istream</span>;
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="at">const</span> tsl::htrie_map&lt;<span class="dt">char</span>, <span class="bu">std::</span>int64_t&gt; map = {{<span class="st">&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;two&quot;</span>, <span class="dv">2</span>}, 
+                                                    {<span class="st">&quot;three&quot;</span>, <span class="dv">3</span>}, {<span class="st">&quot;four&quot;</span>, <span class="dv">4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;htrie_map.data&quot;</span>;
+    {
+        serializer serial(file_name);
+        map.serialize(serial);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        <span class="kw">auto</span> map_deserialized = tsl::htrie_map&lt;<span class="dt">char</span>, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial);
+        
+        assert(map == map_deserialized);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        
+        <span class="co">/**</span>
+<span class="co">         * If the serialized and deserialized map are hash compatibles (see conditions in API), </span>
+<span class="co">         * setting the argument to true speed-up the deserialization process as we don&#39;t have </span>
+<span class="co">         * to recalculate the hash of each key. We also know how much space each bucket needs.</span>
+<span class="co">         */</span>
+        <span class="at">const</span> <span class="dt">bool</span> hash_compatible = <span class="kw">true</span>;
+        <span class="kw">auto</span> map_deserialized = 
+            tsl::htrie_map&lt;<span class="dt">char</span>, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial, hash_compatible);
+        
+        assert(map == map_deserialized);
+    }
+}</code></pre></div>
+<h5 id="serialization-with-boost-serialization-and-compression-with-zlib">Serialization with Boost Serialization and compression with zlib</h5>
+<p>It's possible to use a serialization library to avoid some of the boilerplate if the types to serialize are more complex.</p>
+<p>The following example uses Boost Serialization with the Boost zlib compression stream to reduce the size of the resulting serialized file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;boost/archive/binary_iarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/archive/binary_oarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filter/zlib.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filtering_stream.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/split_free.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/utility.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/htrie_map.h&gt;</span>
+
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> Archive&gt;
+<span class="kw">struct</span> serializer {
+    Archive&amp; ar;
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> T&amp; val) { ar &amp; val; }
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> CharT&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> CharT* val, <span class="bu">std::</span>size_t val_size) {
+        ar.save_binary(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">void</span>*&gt;(val), val_size*<span class="kw">sizeof</span>(CharT));
+    }   
+};
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> Archive&gt;
+<span class="kw">struct</span> deserializer {
+    Archive&amp; ar;
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    T <span class="kw">operator</span>()() { T val; ar &amp; val; <span class="cf">return</span> val; }
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> CharT&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(CharT* val_out, <span class="bu">std::</span>size_t val_size) {
+        ar.load_binary(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">void</span>*&gt;(val_out), val_size*<span class="kw">sizeof</span>(CharT));
+    }  
+};
+
+<span class="kw">namespace</span> boost { <span class="kw">namespace</span> serialization {
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> serialize(Archive &amp; ar, tsl::htrie_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    split_free(ar, map, version); 
+}
+
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> save(Archive &amp; ar, <span class="at">const</span> tsl::htrie_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    serializer&lt;Archive&gt; serial{ar};
+    map.serialize(serial);
+}
+
+
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> load(Archive &amp; ar, tsl::htrie_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    deserializer&lt;Archive&gt; deserial{ar};
+    map = tsl::htrie_map&lt;CharT, T&gt;::deserialize(deserial);
+}
+}}
+
+
+<span class="dt">int</span> main() {
+    <span class="at">const</span> tsl::htrie_map&lt;<span class="dt">char</span>, <span class="bu">std::</span>int64_t&gt; map = {{<span class="st">&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;two&quot;</span>, <span class="dv">2</span>}, 
+                                                    {<span class="st">&quot;three&quot;</span>, <span class="dv">3</span>}, {<span class="st">&quot;four&quot;</span>, <span class="dv">4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;htrie_map.data&quot;</span>;
+    {
+        <span class="bu">std::</span>ofstream ofs;
+        ofs.exceptions(ofs.badbit | ofs.failbit);
+        ofs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_ostream fo;
+        fo.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_compressor());
+        fo.push(ofs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_oarchive oa(fo);
+        
+        oa &lt;&lt; map;
+    }
+    
+    {
+        <span class="bu">std::</span>ifstream ifs;
+        ifs.exceptions(ifs.badbit | ifs.failbit | ifs.eofbit);
+        ifs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_istream fi;
+        fi.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_decompressor());
+        fi.push(ifs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_iarchive ia(fi);
+     
+        tsl::htrie_map&lt;<span class="dt">char</span>, <span class="bu">std::</span>int64_t&gt; map_deserialized;   
+        ia &gt;&gt; map_deserialized;
+        
+        assert(map == map_deserialized);
+    }
+}</code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a href="LICENSE">LICENSE file</a> for details.</p>

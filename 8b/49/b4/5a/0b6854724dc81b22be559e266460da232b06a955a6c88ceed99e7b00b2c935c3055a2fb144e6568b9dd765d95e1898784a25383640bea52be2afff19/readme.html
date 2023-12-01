@@ -1,0 +1,64 @@
+<h1 id="pipet">Pipet</h1>
+<p><a href="https://travis-ci.org/kenavolic/pipet"><img src="https://travis-ci.org/kenavolic/pipet.svg?branch=master" alt="Build Status" /></a></p>
+<p>Pipet is a lightweight c++17 headers-only library than can be used to build simple processing pipelines at compile time.</p>
+<h1 id="features">Features</h1>
+<ul>
+<li>Compile-time pipeline building from a set of user-defined filters</li>
+<li>Compile-time or runtime pipeline execution</li>
+<li>Creation of reversible pipelines (if all filters in the pipeline are reversible)</li>
+<li>Creation of branches (handling of multiple input filters)</li>
+</ul>
+<h1 id="supported-platforms">Supported Platforms</h1>
+<p>Tests have been performed on the following platforms:</p>
+<ul>
+<li>g++-7 on linux (ci)</li>
+<li>clang++-7 (ci)</li>
+</ul>
+<h1 id="install">Install</h1>
+<ul>
+<li><p>Clone project <sub>~</sub> &gt; git clone https://github.com/kenavolic/pipet.git <sub>~</sub></p></li>
+<li><p>Generate build system <sub>~</sub> &gt; mkdir pipet_build &gt; cd pipet_build &gt; cmake -DCMAKE_INSTALL_PREFIX=$path_to_pipet_install_dir -DPIPET_BUILD_EXAMPLES=[ON|OFF] -DPIPET_BUILD_TESTS=[ON|OFF] ../pipet <sub>~</sub></p></li>
+<li>Compilation <sub>~</sub> &gt; make &gt; make install <sub>~</sub>
+<ul>
+<li>/! On windows, open generated solution and build solution and install target</li>
+</ul></li>
+</ul>
+<h1 id="usage">Usage</h1>
+<h2 id="examples">Examples</h2>
+<p>The projet include the following examples:</p>
+<ul>
+<li>AES ciphering at compile time</li>
+<li>String obfuscation at compile time</li>
+<li>Mask generation at compile time</li>
+</ul>
+<h2 id="import-pipet-to-your-project">Import pipet to your project</h2>
+<ul>
+<li><p>In your CMakeLists.txt, import pipet <sub>~</sub> find_package(pipet REQUIRED) ... target_link_libraries(my_proj pipet::pipet) <sub>~</sub></p></li>
+<li><p>Configure your project to find pipet package <sub>~</sub> &gt; cmake -DCMAKE_PREFIX_PATH=$path_to_pipet_install_dir/cmake $path_to_your_proj_source_dir <sub>~</sub></p></li>
+</ul>
+<h2 id="implement-a-pipeline">Implement a pipeline</h2>
+<p>The example directory provide two examples of pipet usage. Basically, all you need to do is:</p>
+<ul>
+<li><p>Create your filters with a static process and optionnaly static reverse function <sub>~</sub><br />
+struct filter { static constexpr out_type process(in_type my_param) { // do processing return my_result; }</p>
+<pre><code>static constexpr in_type reverse(out_type my_param)
+{
+    // do processing
+    return my_result;
+}</code></pre>
+<p>}; <sub>~</sub></p></li>
+<li><p>Build your pipeline <sub>~</sub> using my_processing_pipe = pipet::pipe<filter1, filter2, filter3>; <sub>~</sub></p></li>
+<li><p>Run it <sub>~</sub> constexpr auto res = my_processing_pipe::process(); // if filter 1 is a data generator (no input type) constexpr auto res = my_processing_pipe::process(var); // if filter 1 is processing filter <sub>~</sub></p></li>
+<li><p>Create branches <sub>~</sub> struct f1_proc_ct { static constexpr auto process(int a) { return a; } };</p></li>
+</ul>
+<p>// compute a<em>a struct f_square_ct { static constexpr auto process(int a) { return a </em> a; } };</p>
+<p>// compute a<em>a</em>a struct f_cube_ct { static constexpr auto process(int a) { return a * a * a; } };</p>
+<p>// add 3 different inputs struct f_add3_ct { static constexpr auto process(int a, int b, int c) { return a + b + c; } };</p>
+<p>using branch1_t = pipet::pipe<f1_proc_ct, f_square_ct>; using branch2_t = pipet::pipe<f_cube_ct, f1_proc_ct>;</p>
+<p>// y = x<em>x + x</em>x + x<em>x</em>x using pipe_with_branches_t = pipet::pipe<f1_proc_ct, pipet::branches<branch1_t, branch1_t, branch2_t>, f_add3_ct&gt;;</p>
+<p>static_assert(pipe_with_branches_t::process(2) == 16, &quot;[-][pipet_test] pipe processing failed&quot;); <sub>~</sub></p>
+<ul>
+<li>Create branches with a direct connection <sub>~</sub> ... (see previous sample)</li>
+</ul>
+<p>// y = x + x<em>x + x</em>x*x using pipe_with_direct_branches_t = pipet::pipe&lt; f1_proc_ct, pipet::branches<pipet::placeholders::self, branch1_t, branch2_t>, f_add3_ct&gt;; static_assert(pipe_with_direct_branches_t::process(2) == 14, &quot;[-][pipet_test] pipe processing failed&quot;);</p>
+<p><sub>~</sub></p>

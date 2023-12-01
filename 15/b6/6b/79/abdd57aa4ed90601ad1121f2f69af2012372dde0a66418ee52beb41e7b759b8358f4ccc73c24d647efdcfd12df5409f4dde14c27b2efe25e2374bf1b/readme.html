@@ -1,0 +1,110 @@
+<div align="center">
+<pre><code>&lt;a href=&quot;https://travis-ci.org/boyerjohn/rapidstring&quot;&gt;&lt;img src=&quot;https://travis-ci.org/boyerjohn/rapidstring.svg?branch=master&quot; alt=&quot;Linux Build Status&quot; /&gt;&lt;/a&gt;
+&lt;a href=&quot;https://ci.appveyor.com/project/boyerjohn/rapidstring&quot;&gt;&lt;img src=&quot;https://ci.appveyor.com/api/projects/status/494kxn36lpqaxonc?svg=true&quot; alt=&quot;Windows Build Status&quot; /&gt;&lt;/a&gt;
+&lt;a href=&quot;https://www.codacy.com/app/boyerjohn/rapidstring&quot;&gt;&lt;img src=&quot;https://api.codacy.com/project/badge/Grade/1867313274704419904810314f038c84&quot; alt=&quot;Codacy Badge&quot; /&gt;&lt;/a&gt;
+&lt;a href=&#39;https://coveralls.io/github/boyerjohn/rapidstring?branch=master&#39;&gt;&lt;img src=&#39;https://coveralls.io/repos/github/boyerjohn/rapidstring/badge.svg?branch=master&#39; alt=&#39;Coverage Status&#39; /&gt;&lt;/a&gt;
+&lt;a href=&quot;https://github.com/boyerjohn/rapidstring/blob/master/LICENSE&quot;&gt;&lt;img src=&quot;https://img.shields.io/badge/license-MIT-blue.svg&quot; alt=&quot;License&quot; /&gt;&lt;/a&gt;</code></pre>
+</div>
+<h2 id="rapidstring">rapidstring</h2>
+<p><code>rapidstring</code> is maybe the fastest string library ever written in ANSI C. Here are some of the features:</p>
+<ul>
+<li><p><strong>Highly performant</strong>. Every aspect of the library was first considered from a performance perspective, and it shows. The <a href="https://github.com/boyerjohn/rapidstring/tree/master/benchmark">current benchmarks</a> outperform the standard string implementations of GCC, Clang, MSVC and ICC by a factor of two or more in most tests.</p></li>
+<li><p><strong>Trivial integration</strong>. The entire library consists of a <a href="https://github.com/boyerjohn/rapidstring/blob/master/include/rapidstring.h">single header file</a>. The code is written in vanilla ANSI C that has been tested on all current compilers. Furthermore, the code is entirely C++ compatible.</p></li>
+<li><p><strong>Minimalist design</strong>. Out of the ~1,500 lines of code, only 200 are used to implement the library functions, the rest being documentation. The library has the sole purpose of providing an efficient and reliable string library.</p></li>
+<li><p><strong>Extensive documentation</strong>. All functions are <a href="https://boyerjohn.github.io/rapidstring/">thoroughly documented</a> with information on its parameters, the complexity, whether it allocates, when it allocates and more.</p></li>
+<li><p><strong>Configurable</strong>. The internal implementation of <code>rapidstring</code> is very open. All internal functions and macros are documented to allow the utmost leeway to the user. Any internal macros such as the allocations functions, the stack capacity, the growth multiplier or the inling settings may be redefined by the user.</p></li>
+<li><p><strong>Rigorous testing</strong>. The library has 100% unit test coverage with valgrind memory leak checks. All tests are ran on GCC, Clang and MSVC in the continous integration builds to ensure the library is always up to par.</p></li>
+</ul>
+<h2 id="why-maybe">Why maybe?</h2>
+<p>All of the <a href="https://github.com/boyerjohn/rapidstring/tree/master/benchmark">current benchmarks</a> in this repository outperform the standard string implementations typically by a factor of two or more. However, these implementations are subject to change at any moment, the benchmarks may be inaccurate, certain factors might not be considered, etc.</p>
+<p>If you believe a benchmark is incorrect or misleading, by all means I encourage you to create an issue/pull request. I am continuously striving to improve <code>rapidstring</code>'s performance and I will do my best to ensure the benchmarks accurately represent its efficiency as a library.</p>
+<h2 id="examples">Examples</h2>
+<p>All strings must be freed with <code>rs_free()</code>. This was excluded from the examples for brevity.</p>
+<h3 id="construction">Construction</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s1, s2, s3, s4;
+
+<span class="co">/* Empty string. */</span>
+rs_init(&amp;s1);
+
+<span class="co">/* Initialize with a value. */</span>
+rs_init_w(&amp;s2, <span class="st">&quot;Hello World!&quot;</span>);
+
+<span class="co">/* Specify the length to speed it up. */</span>
+rs_init_w_n(&amp;s3, <span class="st">&quot;Hello World!&quot;</span>, <span class="dv">12</span>);
+
+<span class="co">/* Initialize with another string. */</span>
+rs_init_w_rs(&amp;s4, &amp;s3);
+
+puts(rs_data(&amp;s4)); <span class="co">/* Hello World! */</span>
+printf(<span class="st">&quot;%zu&quot;</span>, rs_len(&amp;s4)); <span class="co">/* 12 */</span></code></pre></div>
+<p>A common pattern in this library is the use of the <code>_n</code> suffix. This specifies that the function takes the size of the <code>const char*</code> provided, which avoids an unnecessary call to <code>strlen()</code>. As for the <code>_w</code> suffix, this simply means &quot;with&quot;.</p>
+<h3 id="assignment">Assignment</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s1, s2;
+rs_init(&amp;s1);
+rs_init(&amp;s2);
+
+rs_cpy(&amp;s1, <span class="st">&quot;Blimey!&quot;</span>);
+
+puts(rs_data(&amp;s1)); <span class="co">/* Blimey! */</span>
+
+rs_cpy_n(&amp;s1, <span class="st">&quot;Jiminy Cricket!&quot;</span>, <span class="dv">15</span>);
+rs_cpy_rs(&amp;s2, &amp;s1);
+
+puts(rs_data(&amp;s2)); <span class="co">/* Jiminy Cricket! */</span></code></pre></div>
+<p>It is important to note that all strings must be initialized before any functions such as <code>rs_cpy()</code> are called. Failing to do so will result in undefined behavior (or assertion failures when <code>NDEBUG</code> is not defined).</p>
+<h3 id="concatenation">Concatenation</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s1, s2;
+rs_init(&amp;s1);
+rs_init(&amp;s2);
+
+rs_cat(&amp;s1, <span class="st">&quot;Hello &quot;</span>);
+rs_cat_n(&amp;s2, <span class="st">&quot;World!&quot;</span>, <span class="dv">6</span>);
+rs_cat_rs(&amp;s1, &amp;s2);
+
+puts(rs_data(&amp;s1)); <span class="co">/* Hello World! */</span></code></pre></div>
+<p>It is unnecessary to call <code>rs_free()</code> if you are sure the string length will always remain under <code>RS_STACK_CAPACITY</code>. This macro may be redefined to suit your application's needs.</p>
+<h3 id="resizing">Resizing</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s;
+rs_init_w(&amp;s, <span class="st">&quot;long $MU&quot;</span>);
+
+printf(<span class="st">&quot;%zu&quot;</span>, rs_len(&amp;s)); <span class="co">/* 8 */</span>
+
+<span class="co">/* Resize with &#39;a&#39; as a filler character. */</span>
+rs_resize_w(&amp;s, <span class="dv">15</span>, <span class="ch">&#39;a&#39;</span>);
+
+printf(<span class="st">&quot;%zu&quot;</span>, rs_len(&amp;s)); <span class="co">/* 15 */</span>
+puts(rs_data(&amp;s)); <span class="co">/* long $MUaaaaaaa */</span></code></pre></div>
+<p>If you wish to resize a string without a filler character, you may do so with <code>rs_resize</code> which is considerably faster but it leaves garbage in the place of the new characters.</p>
+<h3 id="capacity">Capacity</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s;
+rs_init_w_cap(&amp;s, <span class="dv">100</span>);
+
+printf(<span class="st">&quot;%zu&quot;</span>, rs_cap(&amp;s)); <span class="co">/* 100 */</span>
+printf(<span class="st">&quot;%zu&quot;</span>, rs_len(&amp;s)); <span class="co">/* 0 */</span>
+printf(<span class="st">&quot;%zu&quot;</span>, rs_is_heap(&amp;s)); <span class="co">/* 1 */</span>
+
+rs_shrink_to_fit(&amp;s);
+printf(<span class="st">&quot;%zu&quot;</span>, rs_cap(&amp;s)); <span class="co">/* 0 */</span>
+
+rs_reserve(&amp;s, <span class="dv">50</span>);
+printf(<span class="st">&quot;%zu&quot;</span>, rs_cap(&amp;s)); <span class="co">/* 50 */</span></code></pre></div>
+<p>In order to allow the string's capacity to grow at a faster rate, the macro <code>RS_GROWTH_FACTOR</code> may be redefined. The default is <code>2</code>, meaning the capacity is doubled every time the string runs out of space.</p>
+<h3 id="erasing">Erasing</h3>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">rapidstring s;
+rs_init_w(&amp;s, <span class="st">&quot;Blasphemy!&quot;</span>);
+
+rs_erase(&amp;s, <span class="dv">0</span>, <span class="dv">2</span>);
+puts(rs_data(&amp;s)); <span class="co">/* asphemy! */</span>
+
+rs_clear(&amp;s);
+printf(<span class="st">&quot;%zu&quot;</span>, rs_len(&amp;s)); <span class="co">/* 0 */</span></code></pre></div>
+<p>Erasing from the first element with the length of the string is identicle to calling <code>rs_clear()</code>, but the latter is marginally faster.</p>
+<h2 id="build">Build</h2>
+<p>To build the project, the following must be run:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone --recurse-submodules https://github.com/boyerjohn/rapidstring
+<span class="bu">cd</span> rapidstring
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> .. -DBUILD_TESTING=1
+<span class="fu">cmake</span> --build .</code></pre></div>
+<p>The build will default to debug mode. To compile in release mode, pass this flag <code>-DCMAKE_BUILD_TYPE=Release</code> to the cmake generation command. The test and benchmark executables will be in their respective folders.</p>

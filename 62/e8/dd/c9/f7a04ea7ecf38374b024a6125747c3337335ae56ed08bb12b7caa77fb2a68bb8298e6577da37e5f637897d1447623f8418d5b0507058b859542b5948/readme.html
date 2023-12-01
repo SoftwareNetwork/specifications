@@ -1,0 +1,210 @@
+<div class="figure">
+<img src="https://user-images.githubusercontent.com/9919222/84740976-2ecc8580-af63-11ea-963e-c5da3be54101.png" alt="flecs" />
+<p class="caption">flecs</p>
+</div>
+<p><a href="https://discord.gg/MRSAZqb"><img src="https://img.shields.io/discord/633826290415435777.svg" alt="Discord Chat" /></a> <img src="https://github.com/SanderMertens/flecs/workflows/CI/badge.svg" alt="CI build" /> <a href="https://travis-ci.org/SanderMertens/flecs"><img src="https://travis-ci.org/SanderMertens/flecs.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/gh/SanderMertens/flecs"><img src="https://codecov.io/gh/SanderMertens/flecs/branch/master/graph/badge.svg" alt="codecov" /></a></p>
+<p>Flecs is a fast and lightweight <a href="#what-is-an-entity-component-system">Entity Component System</a> for C89 / C99 / C++11 that packs a lot of punch in a small footprint:</p>
+<ul>
+<li>Blazing fast iteration speeds with direct access to raw C arrays across multiple components</li>
+<li>Built-in support for entity hierarchies, prefabs, nested prefabs and prefab variants</li>
+<li>An efficient lock-free architecture allows for modifying entities across multiple threads</li>
+<li>Expressive entity queries with support for and, or, not and optional operators</li>
+<li>Systems that are time triggered, rate triggered, run every frame or run only when needed</li>
+<li>A customizable core that lets you include only the features you need</li>
+</ul>
+<p>This is Flecs v2, which is a breaking change from v1. For the last v1 release, see: https://github.com/SanderMertens/flecs/releases/tag/v1.3</p>
+<h2 id="what-is-an-entity-component-system">What is an Entity Component System?</h2>
+<p>ECS (Entity Component System) is a design pattern often found in gaming and simulation which produces code that is fast and reusable. Dynamic omposition is a first-class citizen in ECS, and there is a strict separation between data and behavior. A framework is an Entity Component System if it:</p>
+<ul>
+<li>Has <em>entities</em> that are unique identifiers</li>
+<li>Has <em>components</em> that are plain data types</li>
+<li>Has <em>systems</em> which are behavior matched with entities based on their components</li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<ul>
+<li><a href="docs/Quickstart.md">Quickstart</a></li>
+<li><a href="docs/Manual.md">Manual</a></li>
+<li><a href="docs/MigrationGuide.md">Migration guide</a></li>
+<li><a href="https://github.com/SanderMertens/ecs-faq">ECS FAQ</a></li>
+<li><a href="examples/c">C examples</a></li>
+<li><a href="examples/cpp">C++ examples</a></li>
+</ul>
+<h2 id="example">Example</h2>
+<p>This is a simple flecs example in the C++11 API:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Position {
+    <span class="dt">float</span> x;
+    <span class="dt">float</span> y;
+};
+
+<span class="kw">struct</span> Speed {
+    <span class="dt">float</span> value;
+};
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {
+    flecs::world world;
+
+    flecs::component&lt;Position&gt;(world, <span class="st">&quot;Position&quot;</span>);
+    flecs::component&lt;Speed&gt;(world, <span class="st">&quot;Speed&quot;</span>);
+
+    flecs::system&lt;Position, Speed&gt;(world)
+        .each([](flecs::entity e, Position&amp; p, Speed&amp; s) {
+            p.x += s.value * e.delta_time();
+            p.y += s.value * e.delta_time();
+        });
+
+    flecs::entity(world, <span class="st">&quot;MyEntity&quot;</span>)
+        .set&lt;Position&gt;({<span class="dv">0</span>, <span class="dv">0</span>})
+        .set&lt;Speed&gt;({<span class="dv">1</span>});
+
+    <span class="cf">while</span> (world.progress()) { }
+}</code></pre></div>
+<h2 id="building">Building</h2>
+<p>The easiest way to add Flecs to a project is to add <a href="https://github.com/flecs/master/flecs.c">flecs.c</a> and <a href="https://github.com/flecs/master/flecs.h">flecs.h</a> to your source code. These files can be added to both C and C++ projects (the C++ API is embedded in flecs.h). Alternatively you can also build Flecs as a library by using the cmake, meson, bazel or bake buildfiles.</p>
+<h3 id="custom-builds">Custom builds</h3>
+<p>Whether you're looking for a minimal ECS library or a full-fledged system runtime, customizable builds let you remove Flecs features you don't need. By default all features are included. To customize a build, follow these steps:</p>
+<ul>
+<li>define <code>FLECS_CUSTOM_BUILD</code>. This removes all optional features from the build.</li>
+<li>define constants for the features you want to include (see below)</li>
+<li>remove the files of the features you don't need</li>
+</ul>
+<p>Features are split up in addons and modules. Addons implement a specific Flecs feature, like snapshots. Modules are like addons but register their own components and systems, and therefore need to be imported.</p>
+<h4 id="addons">Addons</h4>
+<p>Addons are located in the <code>src/addons</code> and <code>include/addons</code> folders. The following addons are available:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Addon</th>
+<th>Description</th>
+<th>Constant</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bulk</td>
+<td>Efficient operations that run on many entities</td>
+<td>FLECS_BULK</td>
+</tr>
+<tr class="even">
+<td>Dbg</td>
+<td>Debug API for inspection of internals</td>
+<td>FLECS_DBG</td>
+</tr>
+<tr class="odd">
+<td>Module</td>
+<td>Organize components and systems in modules</td>
+<td>FLECS_MODULE</td>
+</tr>
+<tr class="even">
+<td>Queue</td>
+<td>A queue data structure</td>
+<td>FLECS_QUEUE</td>
+</tr>
+<tr class="odd">
+<td>Reader_writer</td>
+<td>Serialize components to series of bytes</td>
+<td>FLECS_READER_WRITER</td>
+</tr>
+<tr class="even">
+<td>Snapshot</td>
+<td>Take a snapshot that can be restored afterwards</td>
+<td>FLECS_SNAPSHOT</td>
+</tr>
+</tbody>
+</table>
+<h4 id="builtin-modules">Builtin modules</h4>
+<p>Modules are located in the <code>src/modules</code> and <code>include/modules</code> folders. The following modules are available:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Module</th>
+<th>Description</th>
+<th>Constant</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>System</td>
+<td>Support for systems, monitors and triggers</td>
+<td>FLECS_SYSTEM</td>
+</tr>
+<tr class="even">
+<td>Pipeline</td>
+<td>Run systems each frame and/or multithreaded</td>
+<td>FLECS_PIPELINE</td>
+</tr>
+<tr class="odd">
+<td>Timer</td>
+<td>Run systems at intervals, timeouts or fixed rate</td>
+<td>FLECS_TIMER</td>
+</tr>
+<tr class="even">
+<td>Stats</td>
+<td>Collect statistics on entities and systems</td>
+<td>FLECS_STATS</td>
+</tr>
+</tbody>
+</table>
+<h2 id="modules">Modules</h2>
+<p>The following modules are available in <a href="https://github.com/flecs-hub">flecs-hub</a> and are compatible with v2:</p>
+<table style="width:44%;">
+<colgroup>
+<col width="18%" />
+<col width="26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Module</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-meta">flecs.meta</a></td>
+<td>Reflection for Flecs components</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-json">flecs.json</a></td>
+<td>JSON serializer for Flecs components</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-rest">flecs.rest</a></td>
+<td>A REST interface for introspecting &amp; editing entities</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-player">flecs.player</a></td>
+<td>Play, stop and pause simulations</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-dash">flecs.dash</a></td>
+<td>Web-frontend for remote monitoring and debugging of Flecs apps</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-geometry">flecs.components.geometry</a></td>
+<td>Components that describe geometry</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-graphics">flecs.components.graphics</a></td>
+<td>Components used for computer graphics</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-gui">flecs.components.gui</a></td>
+<td>Components used to describe GUI components</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-http">flecs.components.http</a></td>
+<td>Components describing an HTTP server</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-input">flecs.components.input</a></td>
+<td>Components that describe keyboard and mouse input</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-physics">flecs.components.physics</a></td>
+<td>Components that describe physics and movement</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-systems-civetweb">flecs.systems.civetweb</a></td>
+<td>A civetweb-based implementation of flecs.components.http</td>
+</tr>
+</tbody>
+</table>

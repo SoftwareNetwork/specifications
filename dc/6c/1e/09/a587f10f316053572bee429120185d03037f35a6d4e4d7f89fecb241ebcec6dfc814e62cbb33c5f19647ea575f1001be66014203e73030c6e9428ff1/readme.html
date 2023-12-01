@@ -1,0 +1,148 @@
+<p><img src="https://www.libressl.org/images/libressl.jpg" alt="LibreSSL image" /> ## Official portable version of <a href="https://www.libressl.org">LibreSSL</a> ##</p>
+<p><a href="https://travis-ci.org/libressl-portable/portable"><img src="https://travis-ci.org/libressl-portable/portable.svg?branch=master" alt="Build Status" /></a> <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&amp;can=1&amp;q=proj:libressl"><img src="https://oss-fuzz-build-logs.storage.googleapis.com/badges/libressl.svg" alt="Fuzzing Status" /></a></p>
+<p>LibreSSL is a fork of <a href="https://www.openssl.org">OpenSSL</a> 1.0.1g developed by the <a href="https://www.openbsd.org">OpenBSD</a> project. Our goal is to modernize the codebase, improve security, and apply best practice development processes from OpenBSD.</p>
+<h2 id="compatibility-with-openssl">Compatibility with OpenSSL:</h2>
+<p>LibreSSL is API compatible with OpenSSL 1.0.1, but does not yet include all new APIs from OpenSSL 1.0.2 and later. LibreSSL also includes APIs not yet present in OpenSSL. The current common API subset is OpenSSL 1.0.1.</p>
+<p>LibreSSL is not ABI compatible with any release of OpenSSL, or necessarily earlier releases of LibreSSL. You will need to relink your programs to LibreSSL in order to use it, just as in moving between major versions of OpenSSL. LibreSSL's installed library version numbers are incremented to account for ABI and API changes.</p>
+<h2 id="compatibility-with-other-operating-systems">Compatibility with other operating systems:</h2>
+<p>While primarily developed on and taking advantage of APIs available on OpenBSD, the LibreSSL portable project attempts to provide working alternatives for other operating systems, and assists with improving OS-native implementations where possible.</p>
+<p>At the time of this writing, LibreSSL is know to build and work on:</p>
+<ul>
+<li>Linux (kernel 3.17 or later recommended)</li>
+<li>FreeBSD (tested with 9.2 and later)</li>
+<li>NetBSD (7.0 or later recommended)</li>
+<li>HP-UX (11i)</li>
+<li>Solaris (11 and later preferred)</li>
+<li>Mac OS X (tested with 10.8 and later)</li>
+<li>AIX (5.3 and later)</li>
+</ul>
+<p>LibreSSL also supports the following Windows environments: * Microsoft Windows (Vista or higher, x86 and x64) * Wine (32-bit and 64-bit) * Builds with Mingw-w64, Cygwin, and Visual Studio</p>
+<p>Official release tarballs are available at your friendly neighborhood OpenBSD mirror in directory <a href="https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/">LibreSSL</a>, although we suggest that you use a <a href="https://www.openbsd.org/ftp.html">mirror</a>.</p>
+<p>The LibreSSL portable build framework is also <a href="https://github.com/libressl-portable/portable">mirrored</a> in Github.</p>
+<p>Please report bugs either to the public libressl@openbsd.org mailing list, or to the github <a href="https://github.com/libressl-portable/portable/issues">issue tracker</a></p>
+<p>Severe vulnerabilities or bugs requiring coordination with OpenSSL can be sent to the core team at libressl-security@openbsd.org.</p>
+<h1 id="building-libressl">Building LibreSSL</h1>
+<h2 id="prerequisites-when-building-from-a-git-checkout">Prerequisites when building from a Git checkout</h2>
+<p>If you have checked this source using Git, or have downloaded a source tarball from Github, follow these initial steps to prepare the source tree for building. <em>Note: Your build will fail if you do not follow these instructions! If you cannot follow these instructions (e.g. Windows system using CMake) or cannot meet these prerequistes, please download an official release distribution from https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/ instead. Using official releases is strongly advised if you are not a developer.</em></p>
+<ol style="list-style-type: decimal">
+<li>Ensure you have the following packages installed: automake, autoconf, git, libtool, perl</li>
+<li>Run <code>./autogen.sh</code> to prepare the source tree for building or run <code>./dist.sh</code> to prepare a tarball.</li>
+</ol>
+<h2 id="steps-that-apply-to-all-builds">Steps that apply to all builds</h2>
+<p>Once you have a source tree, either by downloaded using git and having run the <code>autogen.sh</code> script above, or by downloading a release distribution from an OpenBSD mirror, run these commands to build and install the package on most systems:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">./configure</span>   # see ./configure --help for configuration options
+<span class="fu">make</span> check    # runs builtin unit tests
+<span class="fu">make</span> install  # set DESTDIR= to install to an alternate location</code></pre></div>
+<p>If you wish to use the CMake build system, use these commands:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">make</span>
+<span class="fu">make</span> test</code></pre></div>
+<p>For faster builds, you can use Ninja as well:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">mkdir</span> build-ninja
+<span class="bu">cd</span> build-ninja
+<span class="fu">cmake</span> -G<span class="st">&quot;Ninja&quot;</span> ..
+<span class="ex">ninja</span>
+<span class="ex">ninja</span> test</code></pre></div>
+<h3 id="os-specific-build-information">OS specific build information:</h3>
+<h4 id="hp-ux-11i">HP-UX (11i)</h4>
+<p>Set the UNIX_STD environment variable to <code>2003</code> before running <code>configure</code> in order to build with the HP C/aC++ compiler. See the &quot;standards(5)&quot; man page for more details.</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="bu">export</span> <span class="va">UNIX_STD=</span>2003
+<span class="ex">./configure</span>
+<span class="fu">make</span></code></pre></div>
+<h4 id="windows---mingw-w64">Windows - Mingw-w64</h4>
+<p>LibreSSL builds against relatively recent versions of Mingw-w64, not to be confused with the original mingw.org project. Mingw-w64 3.2 or later should work. See README.windows for more information</p>
+<h4 id="windows---visual-studio">Windows - Visual Studio</h4>
+<p>LibreSSL builds using the CMake target &quot;Visual Studio 12 2013&quot; and newer. To generate a Visual Studio project, install CMake, enter the LibreSSL source directory and run:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"> <span class="fu">mkdir</span> build-vs2013
+ <span class="bu">cd</span> build-vs2013
+ <span class="fu">cmake</span> -G<span class="st">&quot;Visual Studio 12 2013&quot;</span> ..</code></pre></div>
+<p>Replace &quot;Visual Studion 12 2013&quot; with whatever version of Visual Studio you have installed. This will generate a LibreSSL.sln file that you can incorporate into other projects or build by itself.</p>
+<h4 id="cmake---additional-options">Cmake - Additional Options</h4>
+<table style="width:38%;">
+<colgroup>
+<col width="18%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Option Name</th>
+<th align="right">Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LIBRESSL_SKIP_INSTALL</td>
+<td align="right">OFF</td>
+<td>allows skipping install() rules. Can be specified from command line using <br><code>-DLIBRESSL_SKIP_INSTALL=ON</code></td>
+</tr>
+<tr class="even">
+<td>LIBRESSL_APPS</td>
+<td align="right">ON</td>
+<td>allows skipping application builds. Apps are required to run tests</td>
+</tr>
+<tr class="odd">
+<td>LIBRESSL_TESTS</td>
+<td align="right">ON</td>
+<td>allows skipping of tests. Tests are only available in static builds</td>
+</tr>
+<tr class="even">
+<td>BUILD_SHARED_LIBS</td>
+<td align="right">OFF</td>
+<td>CMake option for building shared libraries.</td>
+</tr>
+<tr class="odd">
+<td>ENABLE_ASM</td>
+<td align="right">ON</td>
+<td>builds assembly optimized rules.</td>
+</tr>
+<tr class="even">
+<td>ENABLE_EXTRATESTS</td>
+<td align="right">OFF</td>
+<td>Enable extra tests that may be unreliable on some platforms</td>
+</tr>
+<tr class="odd">
+<td>ENABLE_NC</td>
+<td align="right">OFF</td>
+<td>Enable installing TLS-enabled nc(1)</td>
+</tr>
+<tr class="even">
+<td>OPENSSLDIR</td>
+<td align="right">Blank</td>
+<td>Set the default openssl directory. Can be specified from command line using <br><code>-DOPENSSLDIR=&lt;dirname&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h1 id="using-libressl">Using LibreSSL</h1>
+<h2 id="cmake">CMake</h2>
+<p>Make a new folder in your project root (where your main CMakeLists.txt file is located) called CMake. Copy the FindLibreSSL.cmake file to that folder, and add the following line to your main CMakeLists.txt:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">set</span>(<span class="va">CMAKE_MODULE_PATH</span> <span class="st">&quot;</span><span class="va">${CMAKE_CURRENT_SOURCE_DIR}</span><span class="st">/CMake;</span><span class="va">${CMAKE_MODULE_PATH}</span><span class="st">&quot;</span>)</code></pre></div>
+<p>After your <strong>add_executable</strong> or <strong>add_library</strong> line in your CMakeLists.txt file add the following:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(LibreSSL <span class="ot">REQUIRED</span>)</code></pre></div>
+<p>It will tell CMake to find LibreSSL and if found will let you use the following 3 interfaces in your CMakeLists.txt file:</p>
+<ul>
+<li>LibreSSL::Crypto</li>
+<li>LibreSSL::SSL</li>
+<li>LibreSSL::TLS</li>
+</ul>
+<p>If you for example want to use the LibreSSL TLS library in your test program, include it like so (SSL and Cryto are required by TLS and included automatically too):</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">target_link_libraries</span>(test LibreSSL::TLS)</code></pre></div>
+<p>Full example:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.10.0)
+
+<span class="kw">set</span>(<span class="va">CMAKE_MODULE_PATH</span> <span class="st">&quot;</span><span class="va">${CMAKE_CURRENT_SOURCE_DIR}</span><span class="st">/CMake;</span><span class="va">${CMAKE_MODULE_PATH}</span><span class="st">&quot;</span>)
+
+<span class="kw">project</span>(test)
+
+<span class="kw">add_executable</span>(test Main.cpp)
+
+<span class="kw">find_package</span>(LibreSSL <span class="ot">REQUIRED</span>)
+
+<span class="kw">target_link_libraries</span>(test LibreSSL::TLS)</code></pre></div>
+<h4 id="linux">Linux</h4>
+<p>Following the guide in the sections above to compile LibreSSL using make and running &quot;sudo make install&quot; will install LibreSSL to the /usr/local/ folder, and will found automatically by find_package. If your system installs it to another location or you have placed them yourself in a different location, you can set the CMake variable LIBRESSL_ROOT_DIR to the correct path, to help CMake find the library.</p>
+<h4 id="windows">Windows</h4>
+<p>Placing the library files in C:/Program Files/LibreSSL/lib and the include files in C:/Program Files/LibreSSL/include should let CMake find them automatically, but it is recommended that you use CMake-GUI to set the paths. It is more convenient as you can have the files in any folder you choose.</p>

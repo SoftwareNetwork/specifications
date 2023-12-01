@@ -1,0 +1,61 @@
+<p>A <strong>strong type</strong> is a type used in place of another type to carry specific <strong>meaning</strong> through its <strong>name</strong>.</p>
+<p>This project experiments with strong types in C++. All components are in the namespace <code>fluent</code>. You can find a collection of blog posts explaining the rationale of the library and usages for strong types on <a href="https://www.fluentcpp.com/2016/12/08/strong-types-for-strong-interfaces/">Fluent C++</a>.</p>
+<h2 id="basic-usage">Basic usage</h2>
+<p>It central piece is the templated class NamedType, which can be used to declare a strong type with a typedef-like syntax:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> Width = NamedType&lt;<span class="dt">double</span>, <span class="kw">struct</span> WidthTag&gt;;
+<span class="kw">using</span> Height = NamedType&lt;<span class="dt">double</span>, <span class="kw">struct</span> HeightTag&gt;;</code></pre></div>
+<p>which can be used to make interfaces more expressive and more robust. Note how the below constructor shows in which order it expects its parameters:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Rectangle
+{
+<span class="kw">public</span>:
+    Rectangle(Width width, Height height) : <span class="va">width_</span>(width.get()), <span class="va">height_</span>(height.get()) {}
+    <span class="dt">double</span> getWidth() <span class="at">const</span> { <span class="cf">return</span> <span class="va">width_</span>; }
+    <span class="dt">double</span> getHeight() <span class="at">const</span> { <span class="cf">return</span> <span class="va">height_</span>; }
+
+<span class="kw">private</span>:
+    <span class="dt">double</span> <span class="va">width_</span>;
+    <span class="dt">double</span> <span class="va">height_</span>;
+};</code></pre></div>
+<p><strong>Strong types are about better expressing your intentions, both to the compiler and to other human developers.</strong></p>
+<h2 id="strong-typing-over-generic-types">Strong typing over generic types</h2>
+<p>This implementation of strong types can be used to add strong typing over generic or unknown types such as lambdas:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> Function&gt;
+<span class="kw">using</span> Comparator = NamedType&lt;Function, <span class="kw">struct</span> ComparatorTag&gt;;
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> Function&gt;
+<span class="dt">void</span> performAction(Comparator&lt;Function&gt; comp)
+{
+    comp.get()();
+}
+
+performAction(make_named&lt;Comparator&gt;([](){ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;compare</span><span class="sc">\n</span><span class="st">&quot;</span>; }));</code></pre></div>
+<h2 id="strong-typing-over-references">Strong typing over references</h2>
+<p>The NamedType class is designed so that the following usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> FamilyNameRef = NamedType&lt;std:string&amp;, <span class="kw">struct</span> FamilyNameRefTag&gt;;</code></pre></div>
+<p>behaves like a reference on an std::string, strongly typed.</p>
+<h2 id="inheriting-the-underlying-type-functionalities">Inheriting the underlying type functionalities</h2>
+<p>You can declare which functionalities should be inherited from the underlying type. So far, only basic operators are taken into account. For instance, to inherit from operator+ and operator&lt;&lt;, you can declare the strong type:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> Meter = NamedType&lt;<span class="dt">double</span>, MeterTag, Addable, Printable&gt;</code></pre></div>
+<p>There is one special skill, <code>FunctionCallable</code>, that lets the strong type be converted in the underlying type. This has the effect of removing the need to call .get() to get the underlying value. And <code>MethodCallable</code> enables <code>operator-&gt;</code> on the strong type to invoke methods on the underlying type.</p>
+<p>The skill <code>Callable</code> is the union of <code>FunctionCallable</code> and <code>MethodCallable</code>.</p>
+<h2 id="named-arguments">Named arguments</h2>
+<p>By their nature strong types can play the role of named parameters:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> FirstName = NamedType&lt;<span class="bu">std::</span>string, <span class="kw">struct</span> FirstNameTag&gt;;
+<span class="kw">using</span> LastName = NamedType&lt;<span class="bu">std::</span>string, <span class="kw">struct</span> LastNameTag&gt;;
+
+<span class="dt">void</span> displayName(FirstName <span class="at">const</span>&amp; theFirstName, LastName <span class="at">const</span>&amp; theLastName);
+
+<span class="co">// Call site</span>
+displayName(FirstName(<span class="st">&quot;John&quot;</span>), LastName(<span class="st">&quot;Doe&quot;</span>));</code></pre></div>
+<p>But the nested type <code>argument</code> allows to emulate a named argument syntax:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> FirstName = NamedType&lt;<span class="bu">std::</span>string, <span class="kw">struct</span> FirstNameTag&gt;;
+<span class="kw">using</span> LastName = NamedType&lt;<span class="bu">std::</span>string, <span class="kw">struct</span> LastNameTag&gt;;
+
+<span class="at">static</span> <span class="at">const</span> FirstName::argument firstName;
+<span class="at">static</span> <span class="at">const</span> LastName::argument lastName;
+
+<span class="dt">void</span> displayName(FirstName <span class="at">const</span>&amp; theFirstName, LastName <span class="at">const</span>&amp; theLastName);
+
+<span class="co">// Call site</span>
+displayName(firstName = <span class="st">&quot;John&quot;</span>, lastName = <span class="st">&quot;Doe&quot;</span>);</code></pre></div>
+<p>You can have a look at main.cpp for usage examples.</p>

@@ -1,0 +1,40 @@
+<h1 id="simdxorshift">SIMDxorshift</h1>
+<p>Xorshift are a family of pseudo-random number generators (RNG) invented by Marsaglia.</p>
+<p>https://en.wikipedia.org/wiki/Xorshift</p>
+<p>We present a vectorized version of xorshift128+, a popular random-number generator part of this family. It is written in C. The implementation uses Intel's SIMD instructions and is based on Vigna's original (pure C) implementation.</p>
+<p>As a random number generator, xorshift128+ is not very strong. <a href="https://lemire.me/blog/2017/09/08/the-xorshift128-random-number-generator-fails-bigcrush/">It fails statistical tests such as BigCrush</a>. It should never be used alone in applications where the quality of the random numbers matters a great deal. However, when you just want fast and &quot;good enough&quot; random numbers, it should do well.</p>
+<p>Since speed is the primary benefit of xorshift128+, then it is tempting to accelerate it further using vector instructions.</p>
+<h2 id="prerequisite">Prerequisite</h2>
+<p>You should have a recent Intel processor (Haswell or better). If you bought your PC before everyone on Earth had a smartphone, it is probably too old a PC. Please upgrade.</p>
+<p>Your compiler supports C99, right? C99 stands for 1999. That was almost 20 years ago.</p>
+<h2 id="code-sample">Code sample</h2>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;simdxorshift128plus.h&quot;</span>
+
+<span class="co">// create a new key</span>
+avx_xorshift128plus_key_t mykey;
+avx_xorshift128plus_init(<span class="dv">324</span>,<span class="dv">4444</span>,&amp;mykey); <span class="co">// values 324, 4444 are arbitrary, must be non-zero</span>
+
+<span class="co">// generate 32 random bytes, do this as many times as you want</span>
+__m256i randomstuff =  avx_xorshift128plus(&amp;mykey);</code></pre></div>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">make</span>
+$ <span class="ex">./fillarray</span>
+<span class="ex">Generating</span> 5000 32-bit random numbers
+<span class="ex">Time</span> reported in number of cycles per array element.
+<span class="ex">We</span> store values to an array of size = 19 kB.
+
+<span class="ex">We</span> just generate the random numbers:
+<span class="ex">populateRandom_xorshift128plus</span>(prec, size)<span class="bu">:</span>  3.63 cycles per operation
+<span class="ex">populateRandom_avx_xorshift128plus</span>(prec, size)<span class="bu">:</span>  2.21 cycles per operation
+<span class="ex">populateRandom_avx_xorshift128plus_two</span>(prec, size)<span class="bu">:</span>  1.88 cycles per operation
+<span class="ex">populateRandom_avx512_xorshift128plus_two</span>(prec, size)<span class="bu">:</span>  1.47 cycles per operation</code></pre></div>
+<p>(Tests on a Skylake-X processor.)</p>
+<h2 id="shallow-analysis">Shallow analysis</h2>
+<p>SIMD random-number generation is something like twice as fast as plain C random number generation. However on algorithms such as random shuffling, the benefits of faster random number generation are lesser because other bottlenecks arise.</p>
+<p>For the most part however, the application of SIMD instructions for random number generation is &quot;free&quot; if the CPU supports it.</p>
+<h2 id="related-work">Related work</h2>
+<ul>
+<li><a href="https://github.com/lemire/simdpcg">Vectorized version of the PCG random number generator</a></li>
+</ul>
+<h2 id="reference">Reference</h2>
+<p>Vigna's xorshift128+ implementation http://xorshift.di.unimi.it/xorshift128plus.c</p>

@@ -1,0 +1,82 @@
+<h1 id="libpqxx">libpqxx</h1>
+<p>Welcome to libpqxx, the C++ API to the PostgreSQL database management system.</p>
+<p>Home page: http://pqxx.org/development/libpqxx/</p>
+<p>Find libpqxx on Github: https://github.com/jtv/libpqxx</p>
+<p>Documentation on Read The Docs: https://readthedocs.org/projects/libpqxx/</p>
+<p>Compiling this package requires PostgreSQL to be installed – or at least the C headers and library for client development. The library builds on top of PostgreSQL’s standard C API, libpq, though your code won’t notice.</p>
+<p>If you’re getting the code straight from the Git repo, the <code>master</code> branch contains the current <em>development version.</em> To get a released version, check out the revision that’s tagged for that version. For example, to get version 7.1.1:</p>
+<pre><code>git checkout 7.1.1</code></pre>
+<h3 id="upgrade-notes">Upgrade notes</h3>
+<p><strong>The 7.x versions require C++17.</strong> Make sure your compiler is up to date. For libpqxx 8.x you will need C++20.</p>
+<p>Also, <strong>7.0 makes some breaking changes in rarely used APIs:</strong> * There is just a single <code>connection</code> class. It connects immediately. * Custom <code>connection</code> classes are no longer supported. * It’s no longer possible to reactivate a connection once it’s been closed. * The API for defining string conversions has changed.</p>
+<p>If you’re defining your own type conversions, <strong>7.1 requires one additional field in your <code>nullness</code> traits.</strong></p>
+<h2 id="building-libpqxx">Building libpqxx</h2>
+<p>There are two different ways of building libpqxx from the command line: 1. Using CMake, on any system which supports it. 2. On Unix-like systems, using a <code>configure</code> script.</p>
+<p>“Unix-like” systems include GNU/Linux, Apple macOS and the BSD family, AIX, HP-UX, Irix, Solaris, etc. Even on Microsoft Windows, a Unix-like environment such as WSL, Cygwin, or MinGW should work.</p>
+<p>You’ll find detailed build and install instructions in <code>BUILDING-configure.md</code> and <code>BUILDING-cmake.md</code>, respectively.</p>
+<p>And if you’re working with Microsoft Visual Studio, have a look at Gordon Elliott’s <em>Easy-PQXX Build for Windows Visual Studio</em> project:</p>
+<pre><code>https://github.com/GordonLElliott/Easy-PQXX-Build-for-Windows-Visual-Studio</code></pre>
+<p>At the time of writing, June 2020, this is still in development and in need of testers and feedback.</p>
+<h2 id="documentation">Documentation</h2>
+<p>Building the library, if you have the right tools installed, generates HTML documentation in the <code>doc/</code> directory. It is based on the headers in <code>include/pqxx/</code> and text in <code>include/pqxx/doc/</code>. The documentation is also available online at readthedocs.org.</p>
+<h2 id="programming-with-libpqxx">Programming with libpqxx</h2>
+<p>Your first program will involve the libpqxx classes “connection” (see the <code>pqxx/connection.hxx</code> header), and <code>work</code> (a convenience alias for <code>transaction&lt;&gt;</code> which conforms to the interface defined in <code>pqxx/transaction_base.hxx</code>).</p>
+<p>These <code>*.hxx</code> headers are not the ones you include in your program. Instead, include the versions without filename suffix (e.g. <code>pqxx/connection</code>). Those will include the actual .hxx files for you. This was done so that includes are in standard C++ style (as in <code>&lt;iostream&gt;</code> etc.), but an editor will still recognize them as files containing C++ code.</p>
+<p>Continuing the list of classes, you will most likely also need the result class (<code>pqxx/result.hxx</code>). In a nutshell, you create a <code>connection</code> based on a Postgres connection string (see below), create a <code>work</code> in the context of that connection, and run one or more queries on the work which return <code>result</code> objects. The results are containers of rows of data, each of which you can treat as an array of strings: one for each field in the row. It’s that simple.</p>
+<p>Here is a simple example program to get you going, with full error handling:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;pqxx/pqxx&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Connect to the database.</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        pqxx<span class="op">::</span>connection C<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Connected to &quot;</span> <span class="op">&lt;&lt;</span> C<span class="op">.</span>dbname<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Start a transaction.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        pqxx<span class="op">::</span>work W<span class="op">{</span>C<span class="op">};</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Perform a query and retrieve all results.</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        pqxx<span class="op">::</span>result R<span class="op">{</span>W<span class="op">.</span>exec<span class="op">(</span><span class="st">&quot;SELECT name FROM employee&quot;</span><span class="op">)};</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Iterate over results.</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> R<span class="op">.</span>size<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;employees:</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span> row<span class="op">:</span> R<span class="op">)</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> row<span class="op">[</span><span class="dv">0</span><span class="op">].</span>c_str<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Perform a query and check that it returns no result.</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Doubling all employees&#39; salaries...</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        W<span class="op">.</span>exec0<span class="op">(</span><span class="st">&quot;UPDATE employee SET salary = salary*2&quot;</span><span class="op">);</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Commit the transaction.</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Making changes definite: &quot;</span><span class="op">;</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>        W<span class="op">.</span>commit<span class="op">();</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;OK.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">catch</span> <span class="op">(</span><span class="bu">std::</span>exception<span class="op"> </span><span class="at">const</span> <span class="op">&amp;</span>e<span class="op">)</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cerr<span class="op"> &lt;&lt;</span> e<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="connection-strings">Connection strings</h2>
+<p>Postgres connection strings state which database server you wish to connect to, under which username, using which password, and so on. Their format is defined in the documentation for libpq, the C client interface for PostgreSQL. Alternatively, these values may be defined by setting certain environment variables as documented in e.g. the manual for psql, the command line interface to PostgreSQL. Again the definitions are the same for libpqxx-based programs.</p>
+<p>The connection strings and variables are not fully and definitively documented here; this document will tell you just enough to get going. Check the PostgreSQL documentation for authoritative information.</p>
+<p>The connection string consists of attribute=value pairs separated by spaces, e.g. “user=john password=1x2y3z4”. The valid attributes include:</p>
+<ul>
+<li><p><code>host</code> Name of server to connect to, or the full file path (beginning with a slash) to a Unix-domain socket on the local machine. Defaults to “/tmp”. Equivalent to (but overrides) environment variable PGHOST.</p></li>
+<li><p><code>hostaddr</code> IP address of a server to connect to; mutually exclusive with “host”.</p></li>
+<li><p><code>port</code> Port number at the server host to connect to, or socket file name extension for Unix-domain connections. Equivalent to (but overrides) environment variable PGPORT.</p></li>
+<li><p><code>dbname</code> Name of the database to connect to. A single server may host multiple databases. Defaults to the same name as the current user’s name. Equivalent to (but overrides) environment variable PGDATABASE.</p></li>
+<li><p><code>user</code> User name to connect under. This defaults to the name of the current user, although PostgreSQL users are not necessarily the same thing as system users.</p></li>
+<li><p><code>requiressl</code> If set to 1, demands an encrypted SSL connection (and fails if no SSL connection can be created).</p></li>
+</ul>
+<p>Settings in the connection strings override the environment variables, which in turn override the default, on a variable-by-variable basis. You only need to define those variables that require non-default values.</p>
+<h2 id="linking-with-libpqxx">Linking with libpqxx</h2>
+<p>To link your final program, make sure you link to both the C-level libpq library and the actual C++ library, libpqxx. With most Unix-style compilers, you’d do this using the options</p>
+<pre><code>    -lpqxx -lpq</code></pre>
+<p>while linking. Both libraries must be in your link path, so the linker knows where to find them. Any dynamic libraries you use must also be in a place where the loader can find them when loading your program at runtime.</p>
+<p>Some users have reported problems using the above syntax, however, particularly when multiple versions of libpqxx are partially or incorrectly installed on the system. If you get massive link errors, try removing the “-lpqxx” argument from the command line and replacing it with the name of the libpqxx library binary instead. That’s typically libpqxx.a, but you’ll have to add the path to its location as well, e.g. /usr/local/pqxx/lib/libpqxx.a. This will ensure that the linker will use that exact version of the library rather than one found elsewhere on the system, and eliminate worries about the exact right version of the library being installed with your program..</p>

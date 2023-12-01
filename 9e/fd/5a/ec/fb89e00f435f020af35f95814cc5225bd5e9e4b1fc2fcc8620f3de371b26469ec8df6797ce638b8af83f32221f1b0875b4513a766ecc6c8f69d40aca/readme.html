@@ -1,0 +1,880 @@
+<p><a href="https://travis-ci.com/dkormalev/asynqro"><img src="https://travis-ci.com/dkormalev/asynqro.svg?branch=develop" alt="Travis-CI Build Status" /></a> <a href="https://ci.appveyor.com/project/dkormalev/asynqro"><img src="https://ci.appveyor.com/api/projects/status/github/dkormalev/asynqro?svg=true&amp;branch=develop" alt="Appveyor Build Status" /></a> <a href="https://codecov.io/gh/dkormalev/asynqro"><img src="https://codecov.io/gh/dkormalev/asynqro/branch/master/graph/badge.svg" alt="Code Coverage" /></a> <a href="https://github.com/dkormalev/asynqro/releases/latest"><img src="https://img.shields.io/github/release/dkormalev/asynqro.svg" alt="Release" /></a> <a href="https://opensource.org/licenses/BSD-3-Clause"><img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg" alt="License" /></a></p>
+<h1 id="asynqro">Asynqro</h1>
+<p>Asynqro is a small library with purpose to make C++ programming easier by giving developers rich monadic Future API (mostly inspired by Future API in Scala language). This library is another implementation of ideas in https://github.com/opensoft/proofseed (now moved to asynqro usage, for historic purposes check tags before 02/25/19), but has much cleaner API, refined task scheduling logic and is not tied to any framework.</p>
+<h3 id="dependencies">Dependencies</h3>
+<ul>
+<li><strong>C++17</strong>: tested with Clang7 (travis), GCC8 (travis) and MSVC17 (appveyor)</li>
+<li><strong>CMake</strong> <code>&gt;= 3.12.0</code></li>
+<li><strong>GoogleTest</strong>. Will be automatically downloaded during cmake phase</li>
+<li><strong>lcov</strong>. 1.13 from github or 1.13-4 from debian is not enough. Should contain <a href="https://github.com/linux-test-project/lcov/commit/1e0df571198229b4701100ce5f596cf1658ede4b">1e0df57</a> commit. Used for code coverage calculation, not needed for regular build</li>
+<li><strong>Qt5</strong> <code>&gt;= 5.6</code>. It is not required though and by default asynqro is built without Qt support. There is no Qt dependency in library itself, but enabling it brings support for Qt containers and <code>Future::wait()</code> becomes guithread-aware.</li>
+</ul>
+<p>Asynqro has two main parts: - Future/Promise - Tasks scheduling</p>
+<h2 id="futurepromise">Future/Promise</h2>
+<p>There are already a lot of implementations of Future mechanism in C++: - <code>std::future</code> - no API at all, except very basic operations like retrieve value and wait for it. There is a Concurrency TS with <code>.then</code>, but it is still not in the standard. - <code>boost::future</code> - almost the same as <code>std::future</code>. - <code>QFuture</code> - Mostly unusable outside of QtConcurrent without Qt private headers because there is no way to fill it from user code. - <code>Folly</code> - Folly futures are also inspired by Scala ones (but different ones, from Twitter framework) and have good API but are a part of huge framework which is too hard to use partially. - <code>ProofSeed</code> - this one is also a part of rather big framework and mostly unusable outside of it due to reasons like non-portable Failure type. Now is ported to asynqro usage. - Many others not mentioned here</p>
+<p>So why not to create another one?</p>
+<p>Future-related part of asynqro contains next classes: - <code>Promise</code> - <code>Future</code> - <code>CancelableFuture</code></p>
+<p>All classes are reentrant and thread-safe.</p>
+<p>All higher-order methods are exception-safe. If any exception happens inside function passed to such method, then Future will fail (or task will gracefully stop if it is <code>runAndForget</code>).</p>
+<p>It is possible to use Future with movable-only classes (except <code>sequence()</code>). In this case <code>resultRef()</code> should be used instead of <code>result()</code>.</p>
+<p>Asynqro is intended to be used by including <code>asynqro/asynqro</code> header that includes <code>asynqro/future.h</code> and <code>asynqro/tasks.h</code>. It is also possible to include only <code>asynqro/futures.h</code> if task scheduling is not needed. <code>simplefuture.h</code> provides simple wrapper with std::any as failure type. All other headers except these three are considered as implementation and should not be included directly.</p>
+<p>Good example of customizing Future to specific needs can be found in https://github.com/opensoft/proofseed/blob/develop/include/proofseed/asynqro_extra.h .</p>
+<h3 id="promise">Promise</h3>
+<p>There is not a lot of methods in this class and its main usage is to generate Future object which later will be filled by this Promise at most one time. All subsequent fills will be ignored.</p>
+<h3 id="future">Future</h3>
+<p>This class shouldn't be instantiated directly in users code, but rather is obtained either from Promise or from tasks scheduling part. Also new Future object is returned from all transformation Future methods. It complies with functor and monad laws from FP and provides all operators required by them (<code>successful</code>/<code>failed</code>, <code>map</code>, <code>flatMap</code>).</p>
+<p>Future is also sort of left-biased EitherT with result type as left side and failure type as right value (to provide failure reason). Sides were chosen non-canonical way (typical Either usually has right side as result and left as error) for compatibility purposes: std::expected type in C++ is sided the same way.</p>
+<p>Almost all Future methods returns Future object, so they can be effectively chained. Futures are almost immutable. <em>Almost</em> because they will change there state at most one time when they are filled. Adding callbacks doesn't change behavior of other already applied callbacks (i.e. it will not change state of Future and/or its value).</p>
+<p>if higher-order method is called on already filled Future it will be called (in case of matching status) immediately in the same thread. If it is not yet filled, it will be put to queue, which will be called (in non-specified order) on Future filling in thread that filled the Future.</p>
+<h4 id="future-api">Future API</h4>
+<ul>
+<li><code>successful</code> - <code>T-&gt;Future&lt;T, FailureType&gt;</code> creates new Future object filled as successful with provided value</li>
+<li><code>failed</code> - <code>FailureType-&gt;Future&lt;T, FailureType&gt;</code> creates new Future object filled as failed with provided reason</li>
+<li><code>wait</code> - waits for Future to be filled (either as successful or as failed) if it is not yet filled with optional timeout</li>
+<li><code>isCompleted</code>/<code>isFailed</code>/<code>isSucceeded</code> - returns current state of Future</li>
+<li><code>result</code>/<code>resultRef</code>/<code>failureReason</code> - returns result of Future or failure reason. Will wait for Future to be filled if it isn't already.</li>
+<li><code>onSuccess</code> - <code>(T-&gt;void)-&gt;Future&lt;T, FailureType&gt;</code> adds a callback for successful case.</li>
+<li><code>onFailure</code> - <code>(FailureType-&gt;void)-&gt;Future&lt;T, FailureType&gt;</code> adds a callback for failure case.</li>
+<li><code>filter</code> - <code>(T-&gt;bool, FailureType)-&gt;Future&lt;T, FailureType&gt;</code> fails Future if function returns false for filled value.</li>
+<li><code>map</code> - <code>(T-&gt;U)-&gt;Future&lt;U, FailureType&gt;</code> transforms Future inner type.</li>
+<li><code>mapFailure</code> - <code>(FailureType-&gt;OtherFailureType)-&gt;Future&lt;T, OtherFailureType&gt;</code> transforms Future failure type.</li>
+<li><code>flatMap</code> - <code>(T-&gt;Future&lt;U, FailureType&gt;)-&gt;Future&lt;U, FailureType&gt;</code> transforms Future inner type.</li>
+<li><code>andThen</code> - <code>(void-&gt;Future&lt;U, FailureType&gt;)-&gt;Future&lt;U, FailureType&gt;</code> shortcut for flatMap if value of previous Future doesn't matter.</li>
+<li><code>andThenValue</code> - <code>U-&gt;Future&lt;U, FailureType&gt;</code> shortcut for andThen if all we need is to replace value of successful Future with some already known value.</li>
+<li><code>innerReduce</code>/<code>innerMap</code>/<code>innerFilter</code>/<code>innerFlatten</code> - applicable only for Future with sequence inner type. Allows to modify sequence by reducing, mapping, filtering or flattening it.</li>
+<li><code>recover</code> - <code>(FailureType-&gt;T)-&gt;Future&lt;T, FailureType&gt;</code> transform failed Future to successful</li>
+<li><code>recoverWith</code> - <code>(FailureType-&gt;Future&lt;T, FailureType&gt;)-&gt;Future&lt;T, FailureType&gt;</code> the same as recover, but allows to return Future in callback</li>
+<li><code>recoverValue</code> - <code>T-&gt;Future&lt;T, FailureType&gt;</code> shortcut for recover when we just need to replace with some already known value</li>
+<li><code>zip</code> - <code>(Future&lt;U, FailureType&gt;, ...) -&gt; Future&lt;std::tuple&lt;T, U, ...&gt;, FailureType&gt;</code> combines values from different Futures. If any of the Futures already have tuple as inner type, then U will be list of types from this std::tuple (so resulting tuple will be a flattened one). Zipping futures with different failure types is not available yet.</li>
+<li><code>zipValue</code> - <code>U-&gt;Future&lt;std::tuple&lt;T, U&gt;, FailureType&gt;</code> - shortcut for zip with already known value.</li>
+<li><code>sequence</code> - <code>Sequence&lt;Future&lt;T, FailureType&gt;&gt; -&gt; Future&lt;Sequence&lt;T&gt;, FailureType&gt;</code> transformation from sequence of Futures to single Future.</li>
+</ul>
+<h3 id="cancelablefuture">CancelableFuture</h3>
+<p>API of this class is the same as Future API plus <code>cancel</code> method, that immediately fills this Future. CancelableFuture can be created only from Promise so it is up to providing side to decide if return value should be cancelable or not. Returning CancelableFuture however doesn't bind to follow cancelation as order, it can be considered as a hint. For example, Network API can return CancelableFuture and cancelation will be provided only for requests that are still in queue.</p>
+<p>Providing side can check if Future was canceled by checking if Promise was already filled.</p>
+<p>All CancelableFuture methods return simple Future to prevent possible cancelation of original Promise somewhere in downstream.</p>
+<h3 id="withfailure">WithFailure</h3>
+<p>It is possible to fail any transformation by using <code>WithFailure</code> helper struct.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Future&lt;<span class="dt">int</span>, <span class="bu">std::</span>string&gt; f = <span class="co">/*...*/</span>;
+f.flatMap([](<span class="dt">int</span> x) -&gt; Future&lt;<span class="dt">int</span>&gt; {
+  <span class="cf">if</span> (shouldNotPass(x))
+    <span class="cf">return</span> WithFailure&lt;<span class="bu">std::</span>string&gt;(<span class="st">&quot;You shall not pass!&quot;</span>);
+  <span class="cf">else</span>
+    <span class="cf">return</span> asyncCalculation(x);
+})
+.map([](<span class="dt">int</span> x) -&gt; <span class="dt">int</span> {
+  <span class="cf">if</span> (mayItPass(x))
+    <span class="cf">return</span> <span class="dv">42</span>;
+  <span class="cf">return</span> WithFailure&lt;<span class="bu">std::</span>string&gt;(<span class="st">&quot;You shall not pass!&quot;</span>);
+})
+.recover([](<span class="at">const</span> <span class="bu">std::</span>string &amp;reason) -&gt; <span class="dt">int</span> {
+  <span class="cf">if</span> (reason.empty())
+    <span class="cf">return</span> <span class="dv">-1</span>;
+  <span class="cf">return</span> WithFailure&lt;<span class="bu">std::</span>string&gt;(<span class="st">&quot;You shall not pass, I said.&quot;</span>);
+});</code></pre></div>
+<p>This structure <strong>SHOULD NOT</strong> be saved anyhow and should be used only as a helper to return failure. Implicit casting operator will move from stored failure.</p>
+<h2 id="tasks-scheduling">Tasks scheduling</h2>
+<p>The same as with futures, there are lots of implementations of task scheduling: - <code>Boost.Asio</code> - Asio is much bigger than just scheduling, but it also provides thread pool with some API for running jobs in it - <code>QtConcurrent</code> - part of Qt that uses QFuture and provides <code>run()</code> for scheduling task somewhere in QThreadPool. - <code>Thread-Pool-Cpp</code> - most simplest possible implementation of thread pool that is extremely fast. It is as basic as it can be though - round-robin on threads with ability to pass queued jobs between them. - <code>Folly</code> - Folly task scheduling using two different executors and MPMC queue is, again as Futures, an awesome solution, but it is a huge framework and can't be easily added only for task scheduling. - many others not listed here.</p>
+<p>Asynqro's task scheduling provides next functionality: - <strong>Priorities</strong>. Tasks can be prioritized or de-prioritized to control when they should be executed - <strong>Subpools</strong>. By default all tasks are running in subpool named <code>Intensive</code>, it is non-configurable and depends on number of cores in current system. It is, however, only a subpool of whole threads pool available in asynqro and it is possible to create <code>Custom</code> subpools with specified size to schedule other tasks (like IO or other mostly waiting operations). - <strong>Thread binding</strong>. It is possible to assign subset of jobs to specific thread so they could use some shared resource that is not thread-safe (like QSqlDatabase for example). - <strong>Future as return type</strong>. by default task scheduling returns CancelableFuture object that can be used for further work on task result. It also provides ability to cancel task if it is not yet started. It is also possible to specify what failure type should be in this Future by passing TaskRunner specialization to <code>run</code> (example can be found in https://github.com/opensoft/proofseed/blob/develop/include/proofseed/asynqro_extra.h). - <strong>Sequence scheduling</strong>. Asynqro allows to run the same task on sequence of data in specified subpool. - <strong>Clustering</strong>. Similar to sequence scheduling, but doesn't run each task in new thread. Instead of that divides sequence in clusters and iterates through each cluster in its own thread. - <strong>Task continuation</strong>. It is possible to return <code>Future&lt;T&gt;</code> from task. It will still give <code>Future&lt;T&gt;</code> as scheduling result but will fulfill it only when inner Future is filled (without keeping thread occupied of course). - <strong>Fine tuning</strong>. Some scheduling parameters can be tuned: - <code>Idle amount</code> - specifies how much empty loops worker should do in case of no tasks available for it before going to wait mode. More idle loops uses more CPU after tasks are done (so it is not really efficient in case of rare tasks) but in case when tasks are scheduled frequently it can be feasible to use bigger idle amount to not let workers sleep. 1024 by default. - <code>Pool capacity</code> - <code>qMax(64, INTENSIVE_CAPACITY * 8)</code> by default. - <code>Thread binding amount</code> - max amount of threads to be used for thread bound tasks. 1/4 of total pool size by default. - <code>Preheating</code> - it is possible to <em>preheat</em> (i.e. create worker threads) pool in advance. Either whole pool can be preheated or fraction of it.</p>
+<h2 id="task-scheduling-performance">Task scheduling performance</h2>
+<p>Task scheduling engine should be not only rich in its API but also has good performance in scheduling itself. <code>benchmarks</code> directory contains 4 synthetic benchmarks that can show at least some hints about how big the overhead of Asynqro is.</p>
+<p>Tests were run few times for each solution on i7 with 4 cores+HT. Smallest one was chosen for each case.</p>
+<p>Intensive and ThreadBound mean what type of scheduling was used in this suite. In ThreadBound tasks were assigned to amount of cores not bigger than number of logic cores. All asynqro benchmarks in this section use <code>runAndForget</code> function because we don't really need resulting Future. For Future usage overhead please see <strong>Futures usage overhead</strong> section below.</p>
+<p>These benchmarks are synthetical and it is not an easy thing to properly benchmark such thing as task scheduling especially due to non-exclusive owning of CPU, non-deterministic nature of spinlocks and other stuff, but at least it can be used to say with some approximation how big overhead is gonna be under different amount of load.</p>
+<p>Benchmarks listed above were collected with 0.1.0 version (QVariant-based one), but numbers are pretty the same for current generic version (probably a bit better for futures usage if some small failure types are used).</p>
+<h3 id="empty-avalanche">empty-avalanche</h3>
+<p>Big for loop that sends a lot of tasks without any payload (except filling current time of execution) to thread pool. It produces only one result - how many time it took to go through whole list.</p>
+<table>
+<thead>
+<tr class="header">
+<th>System/Jobs</th>
+<th>10000</th>
+<th>100000</th>
+<th>1000000</th>
+<th>10000000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>asynqro (idle=1000)</td>
+<td>12.6493</td>
+<td>105.028</td>
+<td>1002.89</td>
+<td>10114.7</td>
+</tr>
+<tr class="even">
+<td>boostasio</td>
+<td>33.7501</td>
+<td>318.911</td>
+<td>2955.63</td>
+<td>30074.4</td>
+</tr>
+<tr class="odd">
+<td>qtconcurrent</td>
+<td>131.674</td>
+<td>1339.33</td>
+<td>13335.3</td>
+<td>133160</td>
+</tr>
+<tr class="even">
+<td>threadpoolcpp</td>
+<td>1.2125</td>
+<td>4.50206</td>
+<td>47.2289</td>
+<td>472.346</td>
+</tr>
+</tbody>
+</table>
+<h3 id="timed-avalanche">timed-avalanche</h3>
+<p>The same as empty-avalanche, but in this case tasks are with some payload that tracks time. Each task should be <code>~0.1ms</code> of payload. Result in this benchmark is difference between total time and summary of payload time divided by number of cores.</p>
+<table>
+<thead>
+<tr class="header">
+<th>System/Jobs</th>
+<th>10000</th>
+<th>100000</th>
+<th>1000000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>asynqro (idle=1000)</td>
+<td>5.97616</td>
+<td>74.2673</td>
+<td>1732.07</td>
+</tr>
+<tr class="even">
+<td>boostasio</td>
+<td>0.920996</td>
+<td>9.22965</td>
+<td>105.14</td>
+</tr>
+<tr class="odd">
+<td>qtconcurrent</td>
+<td>5.66463</td>
+<td>102.161</td>
+<td>2437.86</td>
+</tr>
+<tr class="even">
+<td>threadpoolcpp</td>
+<td>2.7514</td>
+<td>7.54758</td>
+<td>18.915</td>
+</tr>
+</tbody>
+</table>
+<h3 id="empty-repost">empty-repost</h3>
+<p>This benchmark was originally taken from thread-pool-cpp and adapted to qtconcurrent and asynqro usage. It starts C tasks, each of them counts how many times it was sent and if not enough yet (1kk) - sends itself again. Otherwise it reports time spent. It produces C different results. For each run we take highest one as a result (which actually means how much time it took to run all of them).</p>
+<table style="width:82%;">
+<colgroup>
+<col width="45%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>System/Concurrency</th>
+<th>1</th>
+<th>2</th>
+<th>4</th>
+<th>6</th>
+<th>8</th>
+<th>10</th>
+<th>12</th>
+<th>14</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>asynqro (idle=1, Intensive)</td>
+<td>5353.89</td>
+<td>5763.91</td>
+<td>9888.5</td>
+<td>12130.2</td>
+<td>16577.1</td>
+<td>24114.1</td>
+<td>28217.3</td>
+<td>32611.3</td>
+<td>38594.7</td>
+<td>76699.8</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100, Intensive)</td>
+<td>1370.49</td>
+<td>2460.94</td>
+<td>5010.37</td>
+<td>12003.2</td>
+<td>18423.1</td>
+<td>23533.1</td>
+<td>28593.2</td>
+<td>34074.2</td>
+<td>38433</td>
+<td>78832.8</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100000, Intensive)</td>
+<td>1193.05</td>
+<td>2096.02</td>
+<td>5143.41</td>
+<td>12687.8</td>
+<td>18437.9</td>
+<td>23464.5</td>
+<td>28962.2</td>
+<td>34065.5</td>
+<td>36348.8</td>
+<td>83769.1</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=1, ThreadBound)</td>
+<td>336.57</td>
+<td>758.194</td>
+<td>2341.35</td>
+<td>4735.5</td>
+<td>6820.04</td>
+<td>7415.41</td>
+<td>8516.27</td>
+<td>9944.06</td>
+<td>9728.54</td>
+<td>23180.2</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100, ThreadBound)</td>
+<td>346.104</td>
+<td>744.536</td>
+<td>2234.7</td>
+<td>4839.15</td>
+<td>8156.63</td>
+<td>7937.88</td>
+<td>8004.71</td>
+<td>10105.1</td>
+<td>11659.9</td>
+<td>21744.1</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100000, ThreadBound)</td>
+<td>336.549</td>
+<td>757.518</td>
+<td>2302.28</td>
+<td>4799.63</td>
+<td>7830.33</td>
+<td>7776.51</td>
+<td>7814.05</td>
+<td>8958.35</td>
+<td>11464.2</td>
+<td>22830.4</td>
+</tr>
+<tr class="odd">
+<td>boostasio</td>
+<td>1493.45</td>
+<td>1890.09</td>
+<td>1874.66</td>
+<td>1809.04</td>
+<td>2166.56</td>
+<td>2777.52</td>
+<td>3393.07</td>
+<td>3998.14</td>
+<td>4754.33</td>
+<td>9756.77</td>
+</tr>
+<tr class="even">
+<td>qtconcurrent</td>
+<td>8233.54</td>
+<td>26872.4</td>
+<td>48353.2</td>
+<td>54523.5</td>
+<td>59111.9</td>
+<td>74712.8</td>
+<td>90037.1</td>
+<td>105077</td>
+<td>118219</td>
+<td>237817</td>
+</tr>
+<tr class="odd">
+<td>threadpoolcpp</td>
+<td>32.8009</td>
+<td>33.2034</td>
+<td>34.945</td>
+<td>46.963</td>
+<td>56.2666</td>
+<td>81.753</td>
+<td>86.2359</td>
+<td>99.6014</td>
+<td>110.815</td>
+<td>221.312</td>
+</tr>
+</tbody>
+</table>
+<h3 id="timed-repost">timed-repost</h3>
+<p>Almost the same as empty-repost, but tasks are filled with payload (the same way as timed-avalanche). Number of task runs for each task is reduced to 100k. Result of benchmark is again difference between total time and summary of payload time divided by number of cores.</p>
+<h4 id="payload-of-0.1ms">payload of <code>~0.1ms</code></h4>
+<table style="width:82%;">
+<colgroup>
+<col width="45%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>System/Concurrency</th>
+<th>1</th>
+<th>2</th>
+<th>4</th>
+<th>6</th>
+<th>8</th>
+<th>10</th>
+<th>12</th>
+<th>14</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>asynqro (idle=1, Intensive)</td>
+<td>537.301</td>
+<td>557.748</td>
+<td>959.085</td>
+<td>745.207</td>
+<td>155.604</td>
+<td>249.539</td>
+<td>293.496</td>
+<td>342.494</td>
+<td>307.886</td>
+<td>592.885</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100, Intensive)</td>
+<td>531.53</td>
+<td>558.306</td>
+<td>679.251</td>
+<td>525.038</td>
+<td>159.378</td>
+<td>253.372</td>
+<td>289.485</td>
+<td>343.119</td>
+<td>301.704</td>
+<td>609.566</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100000, Intensive)</td>
+<td>133.554</td>
+<td>154.672</td>
+<td>184.165</td>
+<td>202.536</td>
+<td>156.459</td>
+<td>244.286</td>
+<td>297.066</td>
+<td>340.463</td>
+<td>296.144</td>
+<td>591.354</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=1, ThreadBound)</td>
+<td>39.3806</td>
+<td>43.4934</td>
+<td>52.3768</td>
+<td>67.5977</td>
+<td>101.586</td>
+<td>7630.54</td>
+<td>5110.64</td>
+<td>2648.81</td>
+<td>155.436</td>
+<td>333.36</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100, ThreadBound)</td>
+<td>38.3216</td>
+<td>44.1283</td>
+<td>53.2152</td>
+<td>64.5184</td>
+<td>98.2639</td>
+<td>7625.08</td>
+<td>5130.63</td>
+<td>2657.44</td>
+<td>166.556</td>
+<td>320.163</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100000, ThreadBound)</td>
+<td>38.4546</td>
+<td>46.1561</td>
+<td>49.886</td>
+<td>64.4978</td>
+<td>87.2628</td>
+<td>7624.41</td>
+<td>5131.11</td>
+<td>2655.14</td>
+<td>176.926</td>
+<td>325.915</td>
+</tr>
+<tr class="odd">
+<td>boostasio</td>
+<td>178.826</td>
+<td>195.186</td>
+<td>216.133</td>
+<td>225.054</td>
+<td>40.7238</td>
+<td>75.1923</td>
+<td>70.2192</td>
+<td>73.9517</td>
+<td>89.3711</td>
+<td>187.989</td>
+</tr>
+<tr class="even">
+<td>qtconcurrent</td>
+<td>327.731</td>
+<td>345.655</td>
+<td>392.61</td>
+<td>526.27</td>
+<td>271.911</td>
+<td>379.417</td>
+<td>408.333</td>
+<td>521.243</td>
+<td>482.723</td>
+<td>1131.03</td>
+</tr>
+<tr class="odd">
+<td>threadpoolcpp</td>
+<td>10.3491</td>
+<td>11.3457</td>
+<td>11.9767</td>
+<td>13.9743</td>
+<td>23.2465</td>
+<td>4996.5</td>
+<td>4394.37</td>
+<td>2216.7</td>
+<td>35.1778</td>
+<td>59.5406</td>
+</tr>
+</tbody>
+</table>
+<h4 id="payload-of-1ms">payload of <code>~1ms</code></h4>
+<table style="width:82%;">
+<colgroup>
+<col width="45%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="2%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>System/Concurrency</th>
+<th>1</th>
+<th>2</th>
+<th>4</th>
+<th>6</th>
+<th>8</th>
+<th>10</th>
+<th>12</th>
+<th>14</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>asynqro (idle=1, Intensive)</td>
+<td>568.14</td>
+<td>1208.6</td>
+<td>987.005</td>
+<td>758.494</td>
+<td>174.452</td>
+<td>262.535</td>
+<td>308.387</td>
+<td>363.442</td>
+<td>325.008</td>
+<td>649.104</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100, Intensive)</td>
+<td>520.039</td>
+<td>612.489</td>
+<td>719.955</td>
+<td>577.964</td>
+<td>190.635</td>
+<td>267.656</td>
+<td>307.134</td>
+<td>346.274</td>
+<td>318.082</td>
+<td>641.526</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100000, Intensive)</td>
+<td>179.514</td>
+<td>183.64</td>
+<td>213.76</td>
+<td>239.221</td>
+<td>177.692</td>
+<td>255.913</td>
+<td>292.44</td>
+<td>347.046</td>
+<td>310.695</td>
+<td>634.352</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=1, ThreadBound)</td>
+<td>43.1422</td>
+<td>47.8293</td>
+<td>56.1412</td>
+<td>70.7591</td>
+<td>117.237</td>
+<td>75167.2</td>
+<td>50152.3</td>
+<td>25211.7</td>
+<td>192.027</td>
+<td>398.606</td>
+</tr>
+<tr class="odd">
+<td>asynqro (idle=100, ThreadBound)</td>
+<td>43.3436</td>
+<td>47.8513</td>
+<td>54.5134</td>
+<td>69.915</td>
+<td>121.487</td>
+<td>75132.2</td>
+<td>50175</td>
+<td>25160.5</td>
+<td>224.238</td>
+<td>407.352</td>
+</tr>
+<tr class="even">
+<td>asynqro (idle=100000, ThreadBound)</td>
+<td>42.7681</td>
+<td>47.9518</td>
+<td>56.9241</td>
+<td>71.9153</td>
+<td>109.301</td>
+<td>75137.1</td>
+<td>50145.2</td>
+<td>25199.9</td>
+<td>228.498</td>
+<td>392.165</td>
+</tr>
+<tr class="odd">
+<td>boostasio</td>
+<td>151.232</td>
+<td>165.312</td>
+<td>213.826</td>
+<td>234.668</td>
+<td>66.3717</td>
+<td>56.8949</td>
+<td>65.7925</td>
+<td>73.4958</td>
+<td>75.0968</td>
+<td>137.803</td>
+</tr>
+<tr class="even">
+<td>qtconcurrent</td>
+<td>275.124</td>
+<td>295.076</td>
+<td>382.866</td>
+<td>464.971</td>
+<td>249.251</td>
+<td>347.116</td>
+<td>525.848</td>
+<td>593.964</td>
+<td>476.755</td>
+<td>926.302</td>
+</tr>
+<tr class="odd">
+<td>threadpoolcpp</td>
+<td>17.4312</td>
+<td>18.4445</td>
+<td>20.1527</td>
+<td>19.9876</td>
+<td>47.1506</td>
+<td>49977.7</td>
+<td>43778.4</td>
+<td>23450</td>
+<td>57.6971</td>
+<td>88.9992</td>
+</tr>
+</tbody>
+</table>
+<h2 id="futures-usage-overhead">Futures usage overhead</h2>
+<p>We can also measure overhead of using futures in task scheduling by running the same benchmarks for asynqro with <code>run</code> and <code>runAndForget</code> and compare them. Idle amount is 1000 in all tests.</p>
+<h3 id="empty-avalanche-1">empty-avalanche</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Jobs</th>
+<th>100000</th>
+<th>1000000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>106.635</td>
+<td>1056.49</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>195.451</td>
+<td>1943.28</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>94.9389</td>
+<td>931.258</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>181.489</td>
+<td>1869.79</td>
+</tr>
+</tbody>
+</table>
+<h3 id="timed-avalanche-with-0.1ms">timed-avalanche with 0.1ms</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Jobs</th>
+<th>10000</th>
+<th>100000</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>11.8109</td>
+<td>64.3695</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>14.7544</td>
+<td>298.561</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>2.95714</td>
+<td>20.1497</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>5.2423</td>
+<td>37.5535</td>
+</tr>
+</tbody>
+</table>
+<h3 id="empty-repost-with-100k-tasks">empty-repost with 100k tasks</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Concurrency</th>
+<th>1</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>122.806</td>
+<td>526.092</td>
+<td>1671.87</td>
+<td>3414.7</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>302.854</td>
+<td>545.561</td>
+<td>1705.33</td>
+<td>3650.32</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>32.0795</td>
+<td>196.733</td>
+<td>780.659</td>
+<td>974.038</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>64.0556</td>
+<td>171.66</td>
+<td>520.588</td>
+<td>768.036</td>
+</tr>
+</tbody>
+</table>
+<h3 id="empty-repost-with-1kk-tasks">empty-repost with 1kk tasks</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Concurrency</th>
+<th>1</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>1195.36</td>
+<td>5246.65</td>
+<td>17682.6</td>
+<td>33589</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>2816.33</td>
+<td>5351.31</td>
+<td>17028.6</td>
+<td>36146.4</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>317.3</td>
+<td>1968.22</td>
+<td>6861.81</td>
+<td>9625.58</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>664.155</td>
+<td>1779.41</td>
+<td>5361.86</td>
+<td>8048.08</td>
+</tr>
+</tbody>
+</table>
+<h3 id="timed-repost-with-10k-tasks-of-0.1ms-each">timed-repost with 10k tasks of 0.1ms each</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Concurrency</th>
+<th>1</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>24.5251</td>
+<td>24.6166</td>
+<td>20.0933</td>
+<td>37.4036</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>33.1252</td>
+<td>39.9258</td>
+<td>29.6381</td>
+<td>51.7628</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>4.03977</td>
+<td>5.34057</td>
+<td>16.3515</td>
+<td>23.1206</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>7.89128</td>
+<td>10.787</td>
+<td>18.1974</td>
+<td>32.0577</td>
+</tr>
+</tbody>
+</table>
+<h3 id="timed-repost-with-100k-tasks-of-0.1ms-each">timed-repost with 100k tasks of 0.1ms each</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Flavor/Concurrency</th>
+<th>1</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intensive, no futures</td>
+<td>247.519</td>
+<td>243.835</td>
+<td>167.819</td>
+<td>301.238</td>
+</tr>
+<tr class="even">
+<td>Intensive, with futures</td>
+<td>345.05</td>
+<td>366.752</td>
+<td>238.314</td>
+<td>453.048</td>
+</tr>
+<tr class="odd">
+<td>ThreadBound, no futures</td>
+<td>39.0278</td>
+<td>52.2347</td>
+<td>103.544</td>
+<td>179.148</td>
+</tr>
+<tr class="even">
+<td>ThreadBound, with futures</td>
+<td>76.5194</td>
+<td>93.4037</td>
+<td>164.959</td>
+<td>305.991</td>
+</tr>
+</tbody>
+</table>
+<h2 id="examples">Examples</h2>
+<h3 id="student-in-library">Student in library</h3>
+<p>Let's say we need to authenticate student in library system, and after that fetch list of books she loaned with extra info about each of them. We also will need to fetch personalized suggestions and show them with list of books to return. However we know that there is a bug in suggestions and sometimes it can return book with age restriction higher than users age, so we need to filter them out.</p>
+<p>We already have library system API designed as class that returns Future for each request.</p>
+<p>We need to emit a signal loanedBooksFetched with loaned books list and suggestionsFetched with suggestions list. We can't, however send list of Book objects directly to QML, we need to transform it to QVariantList using static Book method.</p>
+<p>We need to return resulting <code>Future&lt;bool&gt;</code> to know when everything is loaded or if any error occurred.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Future&lt;<span class="dt">bool</span>, MyFailure&gt; Worker::fetchData(<span class="ex">QString</span> username, <span class="ex">QString</span> password)
+{
+  <span class="cf">return</span> api-&gt;authenticate(username, password).flatMap([<span class="kw">this</span>](<span class="at">const</span> User &amp;userInfo) {
+    <span class="kw">auto</span> taken = api-&gt;fetchTakenBooks().flatMap([<span class="kw">this</span>](<span class="at">const</span> <span class="ex">QVector</span>&lt;<span class="ex">QString</span>&gt; &amp;bookIds) {
+      <span class="ex">QVector</span>&lt;Future&lt;Book&gt;&gt; result;
+      result.reserve(bookIds.count());
+      <span class="cf">for</span> (<span class="at">const</span> <span class="ex">QString</span> &amp;id : bookIds)
+        result &lt;&lt; api-&gt;fetchBook(id);
+      <span class="cf">return</span> Future&lt;Book&gt;::sequence(result);
+    })
+    .map([<span class="kw">this</span>](<span class="at">const</span> <span class="ex">QVector</span>&lt;Book&gt; &amp;books) { <span class="cf">return</span> Book::qmled(books); })
+    .onSuccess([<span class="kw">this</span>](<span class="at">const</span> QVariantList &amp;books) { <span class="ex">emit</span> loanedBooksFetched(books); });
+
+    <span class="kw">auto</span> suggestions = api-&gt;fetchSuggestions().innerFilter([userInfo](<span class="at">const</span> Book &amp;book) {
+      <span class="cf">return</span> book-&gt;ageRestriction &lt; userInfo.age;
+    })
+    .map([](<span class="at">const</span> <span class="ex">QVector</span>&lt;Book&gt; &amp;books) { <span class="cf">return</span> Book::qmled(books); })
+    .onSuccess([<span class="kw">this</span>](<span class="at">const</span> QVariantList &amp;books) { <span class="ex">emit</span> suggestionsFetched(books); });
+
+    <span class="cf">return</span> taken.zip(suggestions).andThenValue(<span class="kw">true</span>);
+  });
+}</code></pre></div>

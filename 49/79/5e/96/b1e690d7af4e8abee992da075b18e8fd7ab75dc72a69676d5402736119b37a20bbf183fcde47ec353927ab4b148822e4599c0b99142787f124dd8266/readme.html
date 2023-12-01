@@ -1,0 +1,613 @@
+<p><a href="https://travis-ci.com/cyb70289/utf8"><img src="https://travis-ci.com/cyb70289/utf8.svg?branch=master" alt="Build Status" /></a></p>
+<h1 id="fast-utf-8-validation-with-range-algorithm-neonsse4avx2">Fast UTF-8 validation with Range algorithm (NEON+SSE4+AVX2)</h1>
+<p>This is a brand new algorithm to leverage SIMD for fast UTF-8 string validation. Both <strong>NEON</strong>(armv8a) and <strong>SSE4</strong> versions are implemented. <strong>AVX2</strong> implementation contributed by <a href="https://github.com/ioioioio">ioioioio</a>.</p>
+<p>Four UTF-8 validation methods are compared on both x86 and Arm platforms. Benchmark result shows range base algorithm is the best solution on Arm, and achieves same performance as <a href="https://lemire.me/blog/2018/05/16/validating-utf-8-strings-using-as-little-as-0-7-cycles-per-byte/">Lemire’s approach</a> on x86.</p>
+<ul>
+<li>Range based algorithm
+<ul>
+<li>range-neon.c: NEON version</li>
+<li>range-sse.c: SSE4 version</li>
+<li>range-avx2.c: AVX2 version</li>
+<li>range2-neon.c, range2-sse.c: Process two blocks in one iteration</li>
+</ul></li>
+<li><a href="https://github.com/lemire/fastvalidate-utf-8">Lemire’s SIMD implementation</a>
+<ul>
+<li>lemire-sse.c: SSE4 version</li>
+<li>lemire-avx2.c: AVX2 version</li>
+<li>lemire-neon.c: NEON porting</li>
+</ul></li>
+<li>naive.c: Naive UTF-8 validation byte by byte</li>
+<li>lookup.c: <a href="http://bjoern.hoehrmann.de/utf-8/decoder/dfa/">Lookup-table method</a></li>
+</ul>
+<h2 id="about-the-code">About the code</h2>
+<ul>
+<li>Run “make” to build. Built and tested with gcc-7.3.</li>
+<li>Run “./utf8” to see all command line options.</li>
+<li>Benchmark
+<ul>
+<li>Run “./utf8 bench” to bechmark all algorithms with <a href="https://raw.githubusercontent.com/cyb70289/utf8/master/UTF-8-demo.txt">default test file</a>.</li>
+<li>Run “./utf8 bench size NUM” to benchmark specified string size.</li>
+</ul></li>
+<li>Run “./utf8 test” to test all algorithms with positive and negative test cases.</li>
+<li>To benchmark or test specific algorithm, run something like “./utf8 bench range”.</li>
+</ul>
+<h2 id="benchmark-result-mbs">Benchmark result (MB/s)</h2>
+<h3 id="method">Method</h3>
+<ol type="1">
+<li>Generate UTF-8 test buffer per <a href="https://raw.githubusercontent.com/cyb70289/utf8/master/UTF-8-demo.txt">test file</a> or buffer size.</li>
+<li>Call validation sub-routines in a loop until 1G bytes are checked.</li>
+<li>Calculate speed(MB/s) of validating UTF-8 strings.</li>
+</ol>
+<h3 id="neonarmv8a">NEON(armv8a)</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Test case</th>
+<th style="text-align: left;">naive</th>
+<th style="text-align: left;">lookup</th>
+<th style="text-align: left;">lemire</th>
+<th style="text-align: left;">range</th>
+<th style="text-align: left;">range2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><a href="https://raw.githubusercontent.com/cyb70289/utf8/master/UTF-8-demo.txt">UTF-demo.txt</a></td>
+<td style="text-align: left;">562.25</td>
+<td style="text-align: left;">412.84</td>
+<td style="text-align: left;">1198.50</td>
+<td style="text-align: left;">1411.72</td>
+<td style="text-align: left;"><strong>1579.85</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">651.55</td>
+<td style="text-align: left;">441.70</td>
+<td style="text-align: left;">891.38</td>
+<td style="text-align: left;">1003.95</td>
+<td style="text-align: left;"><strong>1043.58</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">33 bytes</td>
+<td style="text-align: left;">660.00</td>
+<td style="text-align: left;">446.78</td>
+<td style="text-align: left;">588.77</td>
+<td style="text-align: left;">1009.31</td>
+<td style="text-align: left;"><strong>1048.12</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">129 bytes</td>
+<td style="text-align: left;">771.89</td>
+<td style="text-align: left;">402.55</td>
+<td style="text-align: left;">938.07</td>
+<td style="text-align: left;">1283.77</td>
+<td style="text-align: left;"><strong>1401.76</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">1K bytes</td>
+<td style="text-align: left;">811.92</td>
+<td style="text-align: left;">411.58</td>
+<td style="text-align: left;">1188.96</td>
+<td style="text-align: left;">1398.15</td>
+<td style="text-align: left;"><strong>1560.23</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8K bytes</td>
+<td style="text-align: left;">812.25</td>
+<td style="text-align: left;">412.74</td>
+<td style="text-align: left;">1198.90</td>
+<td style="text-align: left;">1412.18</td>
+<td style="text-align: left;"><strong>1580.65</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">64K bytes</td>
+<td style="text-align: left;">817.35</td>
+<td style="text-align: left;">412.24</td>
+<td style="text-align: left;">1200.20</td>
+<td style="text-align: left;">1415.11</td>
+<td style="text-align: left;"><strong>1583.86</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1M bytes</td>
+<td style="text-align: left;">815.70</td>
+<td style="text-align: left;">411.93</td>
+<td style="text-align: left;">1200.93</td>
+<td style="text-align: left;">1415.65</td>
+<td style="text-align: left;"><strong>1585.40</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sse4e5-2650">SSE4(E5-2650)</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Test case</th>
+<th style="text-align: left;">naive</th>
+<th style="text-align: left;">lookup</th>
+<th style="text-align: left;">lemire</th>
+<th style="text-align: left;">range</th>
+<th style="text-align: left;">range2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><a href="https://raw.githubusercontent.com/cyb70289/utf8/master/UTF-8-demo.txt">UTF-demo.txt</a></td>
+<td style="text-align: left;">753.70</td>
+<td style="text-align: left;">310.41</td>
+<td style="text-align: left;">3954.74</td>
+<td style="text-align: left;">3945.60</td>
+<td style="text-align: left;"><strong>3986.13</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">1135.76</td>
+<td style="text-align: left;">364.07</td>
+<td style="text-align: left;"><strong>2890.52</strong></td>
+<td style="text-align: left;">2351.81</td>
+<td style="text-align: left;">2173.02</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">33 bytes</td>
+<td style="text-align: left;">1161.85</td>
+<td style="text-align: left;">376.29</td>
+<td style="text-align: left;">1352.95</td>
+<td style="text-align: left;"><strong>2239.55</strong></td>
+<td style="text-align: left;">2041.43</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">129 bytes</td>
+<td style="text-align: left;">1161.22</td>
+<td style="text-align: left;">322.47</td>
+<td style="text-align: left;">2742.49</td>
+<td style="text-align: left;"><strong>3315.33</strong></td>
+<td style="text-align: left;">3249.35</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">1K bytes</td>
+<td style="text-align: left;">1310.95</td>
+<td style="text-align: left;">310.72</td>
+<td style="text-align: left;">3755.88</td>
+<td style="text-align: left;">3781.23</td>
+<td style="text-align: left;"><strong>3874.17</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8K bytes</td>
+<td style="text-align: left;">1348.32</td>
+<td style="text-align: left;">307.93</td>
+<td style="text-align: left;">3860.71</td>
+<td style="text-align: left;">3922.81</td>
+<td style="text-align: left;"><strong>3968.93</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">64K bytes</td>
+<td style="text-align: left;">1301.34</td>
+<td style="text-align: left;">308.39</td>
+<td style="text-align: left;">3935.15</td>
+<td style="text-align: left;">3973.50</td>
+<td style="text-align: left;"><strong>3983.44</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1M bytes</td>
+<td style="text-align: left;">1279.78</td>
+<td style="text-align: left;">309.06</td>
+<td style="text-align: left;">3923.51</td>
+<td style="text-align: left;">3953.00</td>
+<td style="text-align: left;"><strong>3960.49</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="range-algorithm-analysis">Range algorithm analysis</h2>
+<p>Basic idea: * Load 16 bytes * Leverage SIMD to calculate value range for each byte efficiently * Validate 16 bytes at once</p>
+<h3 id="utf-8-coding-format">UTF-8 coding format</h3>
+<p>http://www.unicode.org/versions/Unicode6.0.0/ch03.pdf, page 94</p>
+<p>Table 3-7. Well-Formed UTF-8 Byte Sequences</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Code Points</th>
+<th style="text-align: left;">First Byte</th>
+<th style="text-align: left;">Second Byte</th>
+<th style="text-align: left;">Third Byte</th>
+<th style="text-align: left;">Fourth Byte</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">U+0000..U+007F</td>
+<td style="text-align: left;">00..7F</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">U+0080..U+07FF</td>
+<td style="text-align: left;">C2..DF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">U+0800..U+0FFF</td>
+<td style="text-align: left;">E0</td>
+<td style="text-align: left;"><strong><em>A0</em></strong>..BF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">U+1000..U+CFFF</td>
+<td style="text-align: left;">E1..EC</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">U+D000..U+D7FF</td>
+<td style="text-align: left;">ED</td>
+<td style="text-align: left;">80..<strong><em>9F</em></strong></td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">U+E000..U+FFFF</td>
+<td style="text-align: left;">EE..EF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">U+10000..U+3FFFF</td>
+<td style="text-align: left;">F0</td>
+<td style="text-align: left;"><strong><em>90</em></strong>..BF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">U+40000..U+FFFFF</td>
+<td style="text-align: left;">F1..F3</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">U+100000..U+10FFFF</td>
+<td style="text-align: left;">F4</td>
+<td style="text-align: left;">80..<strong><em>8F</em></strong></td>
+<td style="text-align: left;">80..BF</td>
+<td style="text-align: left;">80..BF</td>
+</tr>
+</tbody>
+</table>
+<p>To summarise UTF-8 encoding: * Depending on First Byte, one legal character can be 1, 2, 3, 4 bytes * For First Byte within C0..DF, character length = 2 * For First Byte within E0..EF, character length = 3 * For First Byte within F0..F4, character length = 4 * C0, C1, F5..FF are not allowed * Second,Third,Fourth Bytes must lie in 80..BF. * There are four <strong>special cases</strong> for Second Byte, shown <strong><em>bold italic</em></strong> in above table.</p>
+<h3 id="range-table">Range table</h3>
+<p>Range table maps range index 0 ~ 15 to minimal and maximum values allowed. Our task is to observe input string, find the pattern and set correct range index for each byte, then validate input string.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Index</th>
+<th style="text-align: left;">Min</th>
+<th style="text-align: left;">Max</th>
+<th style="text-align: left;">Byte type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">00</td>
+<td style="text-align: left;">7F</td>
+<td style="text-align: left;">First Byte, ASCII</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1,2,3</td>
+<td style="text-align: left;">80</td>
+<td style="text-align: left;">BF</td>
+<td style="text-align: left;">Second, Third, Fourth Bytes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">A0</td>
+<td style="text-align: left;">BF</td>
+<td style="text-align: left;">Second Byte after E0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">80</td>
+<td style="text-align: left;">9F</td>
+<td style="text-align: left;">Second Byte after ED</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">90</td>
+<td style="text-align: left;">BF</td>
+<td style="text-align: left;">Second Byte after F0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">80</td>
+<td style="text-align: left;">8F</td>
+<td style="text-align: left;">Second Byte after F4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">C2</td>
+<td style="text-align: left;">F4</td>
+<td style="text-align: left;">First Byte, non-ASCII</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">9..15(NEON)</td>
+<td style="text-align: left;">FF</td>
+<td style="text-align: left;">00</td>
+<td style="text-align: left;">Illegal: unsigned char &gt;= 255 &amp;&amp; unsigned char &lt;= 0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">9..15(SSE)</td>
+<td style="text-align: left;">7F</td>
+<td style="text-align: left;">80</td>
+<td style="text-align: left;">Illegal: signed char &gt;= 127 &amp;&amp; signed char &lt;= -128</td>
+</tr>
+</tbody>
+</table>
+<h3 id="calculate-byte-ranges-ignore-special-cases">Calculate byte ranges (ignore special cases)</h3>
+<p>Ignoring the four special cases(E0,ED,F0,F4), how should we set range index for each byte?</p>
+<ul>
+<li>Set range index to 0(00..7F) for all bytes by default</li>
+<li>Find non-ASCII First Byte (C0..FF), set their range index to 8(C2..F4)</li>
+<li>For First Byte within C0..DF, set next byte’s range index to 1(80..BF)</li>
+<li>For First Byte within E0..EF, set next two byte’s range index to 2,1(80..BF) in sequence</li>
+<li>For First Byte within F0..FF, set next three byte’s range index to 3,2,1(80..BF) in sequence</li>
+</ul>
+<p>To implement above operations efficiently with SIMD: * For 16 input bytes, use lookup table to map C0..DF to 1, E0..EF to 2, F0..FF to 3, others to 0. Save to first_len. * Map C0..FF to 8, we get range indices for First Byte. * Shift first_len one byte, we get range indices for Second Byte. * Saturate substract first_len by one(3-&gt;2, 2-&gt;1, 1-&gt;0, 0-&gt;0), then shift two bytes, we get range indices for Third Byte. * Saturate substract first_len by two(3-&gt;1, 2-&gt;0, 1-&gt;0, 0-&gt;0), then shift three bytes, we get range indices for Fourth Byte.</p>
+<p>Example(assume no previous data)</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Input</th>
+<th style="text-align: left;">F1</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">C2</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">…</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><em>first_len</em></td>
+<td style="text-align: left;"><em>3</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>1</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>…</em></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">First Byte</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">…</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Second Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">…</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Third Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">…</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fourth Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">…</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Range index</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">…</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Range_index <span class="op">=</span> First_Byte <span class="op">|</span> Second_Byte <span class="op">|</span> Third_Byte <span class="op">|</span> Fourth_Byte</span></code></pre></div>
+<h4 id="error-handling">Error handling</h4>
+<ul>
+<li>C0,C1,F5..FF are not included in range table and will always be detected.</li>
+<li>Illegal 80..BF will have range index 0(00..7F) and be detected.</li>
+<li>Based on First Byte, according Second, Third and Fourth Bytes will have range index 1/2/3, to make sure they must lie in 80..BF.</li>
+<li>If non-ASCII First Byte overlaps, above algorithm will set range index of the latter First Byte to 9,10,11, which are illegal ranges. E.g, Input = F1 80 C2 90 –&gt; Range index = 8 3 10 1, where 10 indicates error. See table below.</li>
+</ul>
+<p>Overlapped non-ASCII First Byte</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Input</th>
+<th style="text-align: left;">F1</th>
+<th style="text-align: left;">80</th>
+<th style="text-align: left;">C2</th>
+<th style="text-align: left;">90</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><em>first_len</em></td>
+<td style="text-align: left;"><em>3</em></td>
+<td style="text-align: left;"><em>0</em></td>
+<td style="text-align: left;"><em>1</em></td>
+<td style="text-align: left;"><em>0</em></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">First Byte</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Second Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Third Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fourth Byte</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Range index</td>
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;"><strong><em>10</em></strong></td>
+<td style="text-align: left;">1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adjust-second-byte-range-for-special-cases">Adjust Second Byte range for special cases</h3>
+<p>Range index adjustment for four special cases</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">First Byte</th>
+<th style="text-align: left;">Second Byte</th>
+<th style="text-align: left;">Before adjustment</th>
+<th style="text-align: left;">Correct index</th>
+<th style="text-align: left;">Adjustment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">E0</td>
+<td style="text-align: left;">A0..BF</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;"><strong>2</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ED</td>
+<td style="text-align: left;">80..9F</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">5</td>
+<td style="text-align: left;"><strong>3</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">F0</td>
+<td style="text-align: left;">90..BF</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;"><strong>3</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">F4</td>
+<td style="text-align: left;">80..8F</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">7</td>
+<td style="text-align: left;"><strong>4</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Range index adjustment can be reduced to below problem:</p>
+<p><strong><em>Given 16 bytes, replace E0 with 2, ED with 3, F0 with 3, F4 with 4, others with 0.</em></strong></p>
+<p>A naive SIMD approach: 1. Compare 16 bytes with E0, get the mask for eacy byte (FF if equal, 00 otherwise) 1. And the mask with 2 to get adjustment for E0 1. Repeat step 1,2 for ED,F0,F4</p>
+<p>At least <strong>eight</strong> operations are required for naive approach.</p>
+<p>Observing special bytes(E0,ED,F0,F4) are close to each other, we can do much better using lookup table.</p>
+<h4 id="neon">NEON</h4>
+<p>NEON <code>tbl</code> instruction is very convenient for table lookup: * Table can be up to 16x4 bytes in size * Return zero if index is out of range</p>
+<p>Leverage these features, we can solve the problem with as few as <strong>two</strong> operations: * Precreate a 16x2 lookup table, where table[0]=2, table[13]=3, table[16]=3, table[20]=4, table[others]=0. * Substract input bytes with E0 (E0 -&gt; 0, ED -&gt; 13, F0 -&gt; 16, F4 -&gt; 20). * Use the substracted byte as index of lookup table and get range adjustment directly. * For indices less than 32, we get zero or required adjustment value per input byte * For out of bound indices, we get zero per <code>tbl</code> behaviour</p>
+<h4 id="sse">SSE</h4>
+<p>SSE <code>pshufb</code> instruction is not as friendly as NEON <code>tbl</code> in this case: * Table can only be 16 bytes in size * Out of bound indices are handled this way: * If 7-th bit of index is 0, least four bits are used as index (E.g, index 0x73 returns 3rd element) * If 7-th bit of index is 1, return 0 (E.g, index 0x83 returns 0)</p>
+<p>We can still leverage these features to solve the problem in <strong>five</strong> operations: * Precreate two tables: * table_df[1] = 2, table_df[14] = 3, table_df[others] = 0 * table_ef[1] = 3, table_ef[5] = 4, table_ef[others] = 0 * Substract input bytes with EF (E0 -&gt; 241, ED -&gt; 254, F0 -&gt; 1, F4 -&gt; 5) to get the temporary indices * Get range index for E0,ED * Saturate substract temporary indices with 240 (E0 -&gt; 1, ED -&gt; 14, all values below 240 becomes 0) * Use substracted indices to look up table_df, get the correct adjustment * Get range index for F0,F4 * Saturate add temporary indices with 112(0x70) (F0 -&gt; 0x71, F4 -&gt; 0x75, all values above 16 will be larger than 128(7-th bit set)) * Use added indices to look up table_ef, get the correct adjustment (index 0x71,0x75 returns 1st,5th elements, per <code>pshufb</code> behaviour)</p>
+<h4 id="error-handling-1">Error handling</h4>
+<ul>
+<li>For overlapped non-ASCII First Byte, range index before adjustment is 9,10,11. After adjustment (adds 2,3,4 or 0), the range index will be 9 to 15, which is still illegal in range table. So the error will be detected.</li>
+</ul>
+<h3 id="handling-remaining-bytes">Handling remaining bytes</h3>
+<p>For remaining input less than 16 bytes, we will fallback to naive byte by byte approach to validate them, which is actually faster than SIMD processing. * Look back last 16 bytes buffer to find First Byte. At most three bytes need to look back. Otherwise we either happen to be at character boundray, or there are some errors we already detected. * Validate string byte by byte starting from the First Byte.</p>
+<h2 id="tests">Tests</h2>
+<p>It’s necessary to design test cases to cover corner cases as more as possible.</p>
+<h3 id="positive-cases">Positive cases</h3>
+<ol type="1">
+<li>Prepare correct characters</li>
+<li>Validate correct characters</li>
+<li>Validate long strings
+<ul>
+<li>Round concatenate characters starting from first character to 1024 bytes</li>
+<li>Validate 1024 bytes string</li>
+<li>Shift 1 byte, validate 1025 bytes string</li>
+<li>Shift 2 bytes, Validate 1026 bytes string</li>
+<li>…</li>
+<li>Shift 16 bytes, validate 1040 bytes string</li>
+</ul></li>
+<li>Repeat step3, test buffer starting from second character</li>
+<li>Repeat step3, test buffer starting from third character</li>
+<li>…</li>
+</ol>
+<h3 id="negative-cases">Negative cases</h3>
+<ol type="1">
+<li>Prepare bad characters and bad strings
+<ul>
+<li>Bad character</li>
+<li>Bad character cross 16 bytes boundary</li>
+<li>Bad character cross last 16 bytes and remaining bytes boundary</li>
+</ul></li>
+<li>Test long strings
+<ul>
+<li>Prepare correct long strings same as positive cases</li>
+<li>Append bad characters</li>
+<li>Shift one byte for each iteration</li>
+<li>Validate each shift</li>
+</ul></li>
+</ol>
+<h2 id="code-breakdown">Code breakdown</h2>
+<p>Below table shows how 16 bytes input are processed step by step. See <a href="range-neon.c">range-neon.c</a> for according code.</p>
+<figure>
+<img src="https://raw.githubusercontent.com/cyb70289/utf8/master/range.png" alt="Range based UTF-8 validation algorithm" /><figcaption aria-hidden="true">Range based UTF-8 validation algorithm</figcaption>
+</figure>

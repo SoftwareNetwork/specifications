@@ -1,0 +1,122 @@
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/c%2B%2B-14/17/20-blue.svg" alt="Standard" /></a> <a href="http://www.boost.org/LICENSE_1_0.txt"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/tcbrindle/NanoRange"><img src="https://travis-ci.org/tcbrindle/NanoRange.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/tcbrindle/nanorange/branch/master"><img src="https://ci.appveyor.com/api/projects/status/6vciaaskslg34pux/branch/master?svg=true" alt="Build status" /></a> <a href="https://github.com/tcbrindle/NanoRange/raw/master/single_include/nanorange.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://godbolt.org/g/Dbi77j"><img src="https://img.shields.io/badge/on-godbolt-blue.svg" alt="Try it on godbolt online" /></a></p>
+<h1 id="nanorange">NanoRange</h1>
+<p>NanoRange is a C++14 implementation of the C++20 Ranges proposals (formerly the Ranges TS). It provides SFINAE-based implementations of all the proposed Concepts, and constrained and range-based versions the algorithms in the <code>&lt;algorithm&gt;</code> standard library header.</p>
+<p>It is intended for users who want range-based goodness in their C++, but don't want to (or can't) use the full-blown <a href="https://github.com/ericniebler/range-v3/">Range-V3</a>. It also aims to provide an easy upgrade path to standard ranges when they arrive.</p>
+<p>NanoRange is compatible with all three major C++ compilers, including the latest version of Microsoft Visual C++.</p>
+<h2 id="usage">Usage</h2>
+<p>The easiest way to use NanoRange is to simply download the <a href="https://github.com/tcbrindle/NanoRange/raw/master/single_include/nanorange.hpp">latest, automatically-generated single-header version</a> and include it in your own sources like any other header. This is currently the recommended way to use the library.</p>
+<p>Alternatively, you can clone this repository and use the individual headers in the <code>include/nanorange</code> directory. This may give a slight boost to compile times, although there doesn't seem to be <a href="https://github.com/tcbrindle/NanoRange/wiki/Compile-times">too much difference</a> at present. (In any case, the single-header version is similar to what you'll get when you <code>#include &lt;algorithm&gt;</code> in C++20).</p>
+<p>Finally, if you use <a href="https://github.com/Microsoft/vcpkg">vcpkg</a>, you can install the latest version of NanoRange from master using</p>
+<pre><code>vcpkg install nanorange --head</code></pre>
+<h2 id="compatibility">Compatibility</h2>
+<p>NanoRange requires a conforming C++14 compiler, and is <a href="https://travis-ci.org/tcbrindle/nanorange">tested</a> with GCC 5.4 and Clang 3.8 and newer. Older versions may work in some cases, but this is not guaranteed.</p>
+<p>In addition, NanoRange works with MSVC 2017 version 15.9. Note that the <code>/permissive-</code> switch is required for correct two-phase lookup.</p>
+<h2 id="documentation">Documentation</h2>
+<p>There is currently no reference documentation for NanoRange itself, but the Ranges TS on which it is based is partially documented <a href="http://en.cppreference.com/w/cpp/experimental/ranges">on cppreference</a>.</p>
+<h2 id="what-it-provides">What it provides</h2>
+<h3 id="concepts">Concepts</h3>
+<p>NanoRange provides all of the concepts from the ranges papers in the form of <code>constexpr bool</code> variable templates. You can use these to constrain your own templates via <code>std::enable_if</code>, or in <code>if constexpr</code> statements in C++17. For example</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> Rng&gt;
+<span class="dt">void</span> foo(Rng&amp;&amp; rng) {
+    <span class="cf">if</span> <span class="kw">constexpr</span> (nano::RandomAccessRange&lt;Rng&gt;) {
+         <span class="co">// do something</span>
+    } <span class="cf">else</span> <span class="cf">if</span> <span class="kw">constexpr</span> (nano::BidirectionalRange&lt;Rng&gt;&gt;) {
+        <span class="co">// do something else</span>
+    } <span class="cf">else</span> <span class="cf">if</span> <span class="kw">constexpr</span> (nano::ForwardRange&lt;Rng&gt;) {
+        <span class="co">// do a third thing</span>
+    }
+}</code></pre></div>
+<h3 id="iterator-adaptors">Iterator adaptors</h3>
+<p>The One Ranges proposal <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896</a> adds two new iterator adaptors to the standard library, namely <code>common_iterator</code> and <code>counted_iterator</code>, which are both implemented in NanoRange.</p>
+<p>Additionally, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896</a> modifies the existing iterator adaptors for compatibility with the new concepts. NanoRange therefore provides drop-in replacements for these, specifically:</p>
+<ul>
+<li><code>reverse_iterator</code></li>
+<li><code>front_insert_iterator</code></li>
+<li><code>back_insert_iterator</code></li>
+<li><code>insert_iterator</code></li>
+<li><code>istream_iterator</code></li>
+<li><code>ostream_iterator</code></li>
+<li><code>istreambuf_iterator</code></li>
+<li><code>ostreambuf_iterator</code></li>
+</ul>
+<p>Lastly, NanoRange provides an implementation of <code>subrange</code> from <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896</a>. This can be used to turn an iterator/sentinel pair into in range, or as a <code>span</code>-like view of a subset of another range.</p>
+<h3 id="algorithms">Algorithms</h3>
+<h4 id="range-based-overloads">Range-based overloads</h4>
+<p>NanoRange provides range-based overloads of all the algorithms in <code>&lt;algorithm&gt;</code>. This means that you can finally say</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; vec{<span class="dv">5</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>};
+nano::sort(vec);</code></pre></div>
+<p>and it will Just Work.</p>
+<h4 id="constraint-checking">Constraint checking</h4>
+<p>In the existing STL, the algorithm calls are <em>unconstrained</em>. This means that if you pass an argument which doesn't meet the requirements of the function, the compiler will go ahead and try to instantiate the template anyway, usually resulting in pages of error messages with template backtraces for which C++ is infamous.</p>
+<p>For example, the following program has an error: a <code>std::list</code> iterator is not random-access, and so doesn't meet the requirements of <code>std::sort()</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> main()
+{
+    <span class="bu">std::</span>list&lt;<span class="dt">int</span>&gt; list{<span class="dv">5</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>};
+    <span class="bu">std::</span>sort(list.begin(), list.end());
+}</code></pre></div>
+<p>Compiling this two-line example with Clang 6.0 results in over <a href="https://gist.github.com/tcbrindle/13c23fc5c1a46db12665ee509bf8265f">350 lines of error messages</a>!</p>
+<p>Calling <code>nano::sort()</code> instead of <code>std::sort()</code> on the other hand means that constraints are checked before the template is instantated. This time, the entire error output is:</p>
+<pre><code>example.cpp:9:5: error: no matching function for call to object of type &#39;const nano::ranges::detail::sort_fn&#39;
+    nano::sort(list.begin(), list.end());
+    ^~~~~~~~~~
+include/nanorange/algorithm/stl/sort.hpp:26:5: note: candidate template ignored: requirement &#39;RandomAccessIterator&lt;std::__1::__list_iterator&lt;int, void *&gt; &gt;&#39; was not satisfied [with I = std::__1::__list_iterator&lt;int, void *&gt;, Comp = nano::ranges::less&lt;void&gt;]
+    operator()(I first, I last, Comp comp = Comp{}) const
+    ^
+include/nanorange/algorithm/stl/sort.hpp:37:5: note: candidate template ignored: substitution failure [with Rng = std::__1::__list_iterator&lt;int, void *&gt;, Comp = std::__1::__list_iterator&lt;int, void *&gt;]: no matching function for call to object of type &#39;const nano::ranges::detail::begin_::fn&#39;
+    operator()(Rng&amp;&amp; rng, Comp comp = Comp{}) const
+    ^
+1 error generated.</code></pre>
+<p>which makes it clear that the first overload was rejected because <code>list::iterator</code> doesn't meet the requirements of <code>RandomAccessIterator</code>, and the second overload was rejected because <code>list::iterator</code> is not a range (you can't call <code>nano::begin()</code> on it). Much better.</p>
+<h4 id="function-objects">Function objects</h4>
+<p>The algorithms in NanoRange are implemented as non-template function objects with templated function call operators. This means that you can pass them around without needing to specify template arguments or wrap them in lambdas. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt; vec_of_vecs = ...
+
+nano::for_each(vec_of_vecs, nano::sort); <span class="co">// sorts each inner vector</span></code></pre></div>
+<h4 id="projections">Projections</h4>
+<p>The fully reimplemented algorithms (see below) offer support for <em>projections</em>. A projection is a unary callable which modifies (<em>&quot;projects&quot;</em>) the view of the data that the algorithm sees. Because projections are routed through (an implementation of) <code>std::invoke()</code>, it's possible to use pointers to member functions and pointers to member data as projections. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> S {
+    <span class="dt">int</span> i;
+    <span class="dt">float</span> f;
+};
+
+<span class="bu">std::</span>vector&lt;S&gt; vec = ...
+
+<span class="kw">auto</span> iter = nano::find(vec, <span class="dv">10</span>, &amp;S::i);
+<span class="co">// iter points to the first member of vec for which i == 10</span></code></pre></div>
+<h4 id="constexpr-support"><code>constexpr</code> support</h4>
+<p>In <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896</a>, almost all the algorithms are marked as <code>constexpr</code> (the exceptions being those which can potentially allocate temporary storage). NanoRange fully supports this, meaning the vast majority of algorithms can be called at compile-time. For example</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> sort_copy = [](<span class="kw">auto</span> rng) {
+    nano::sort(rng);
+    <span class="cf">return</span> rng;
+};
+
+<span class="dt">int</span> main()
+{
+    <span class="kw">constexpr</span> <span class="bu">std::</span>array a{<span class="dv">5</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>};
+    <span class="kw">constexpr</span> <span class="kw">auto</span> b = sort_copy(a);
+
+    <span class="kw">static_assert</span>(nano::is_sorted(b));
+}</code></pre></div>
+<h2 id="whats-missing">What's missing</h2>
+<p>NanoRange is a new library, and certain features haven't been implemented yet.</p>
+<p>In particular, NanoRange doesn't yet provide any of the Views from <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896</a>. These will be added as the library evolves.</p>
+<h2 id="ranges-papers">Ranges papers</h2>
+<p>The Ranges proposals have been consolidated into two main papers:</p>
+<ul>
+<li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0898r3.pdf">P0898R3</a> <em>Standard library concepts</em></li>
+<li><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0896r2.pdf">P0896R2</a> <em>The One Ranges Proposal</em></li>
+</ul>
+<p>NanoRange fully implements the first, and implements most of the second (except for Views).</p>
+<h2 id="stability">Stability</h2>
+<p>NanoRange aims to track the various C++20 ranges proposals, and will be updated as new papers are published. As such, there are no API stability guarantees at this time.</p>
+<h2 id="licence">Licence</h2>
+<p>NanoRange is provided under the Boost licence. See LICENSE_1_0.txt for details.</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>Many thanks to the following:</p>
+<ul>
+<li><p>Eric Niebler and Casey Carter for the Ranges TS, Range-V3 and CMCSTL2. You guys are awesome.</p></li>
+<li><p>Orson Peters for <a href="https://github.com/orlp/pdqsort">pdqsort</a></p></li>
+<li><p>Phil Nash for the fantastic Catch testing framework</p></li>
+<li><p>The editors of <a href="https://cppreference.com">cppreference.com</a> for painstakingly detailing the existing requirements of standard library algorithms, and more generally for maintaining the C++ programmer's bible.</p></li>
+</ul>
+<!-- References -->

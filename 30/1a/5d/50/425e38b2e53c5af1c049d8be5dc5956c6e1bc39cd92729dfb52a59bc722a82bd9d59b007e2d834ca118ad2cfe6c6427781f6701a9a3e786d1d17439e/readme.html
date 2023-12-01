@@ -1,0 +1,150 @@
+<h1 id="cpu_features-build-status-build-status">cpu_features <a href="https://travis-ci.org/google/cpu_features"><img src="https://travis-ci.org/google/cpu_features.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/gchatelet/cpu-features/branch/master"><img src="https://ci.appveyor.com/api/projects/status/46d1owsj7n8dsylq/branch/master?svg=true" alt="Build status" /></a></h1>
+<p>A cross-platform C library to retrieve CPU features (such as available instructions) at runtime.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#rationale">Design Rationale</a></li>
+<li><a href="#codesample">Code samples</a></li>
+<li><a href="#usagesample">Running sample code</a></li>
+<li><a href="#support">What's supported</a></li>
+<li><a href="#ndk">Android NDK's drop in replacement</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#cmake">Build with cmake</a></li>
+</ul>
+<p><a name="rationale"></a> ## Design Rationale</p>
+<ul>
+<li><strong>Simple to use.</strong> See the snippets below for examples.</li>
+<li><strong>Extensible.</strong> Easy to add missing features or architectures.</li>
+<li><strong>Compatible with old compilers</strong> and available on many architectures so it can be used widely. To ensure that cpu_features works on as many platforms as possible, we implemented it in a highly portable version of C: C99.</li>
+<li><strong>Sandbox-compatible.</strong> The library uses a variety of strategies to cope with sandboxed environments or when <code>cpuid</code> is unavailable. This is useful when running integration tests in hermetic environments.</li>
+<li><strong>Thread safe, no memory allocation, and raises no exceptions.</strong> cpu_features is suitable for implementing fundamental libc functions like <code>malloc</code>, <code>memcpy</code>, and <code>memcmp</code>.</li>
+<li><strong>Unit tested.</strong></li>
+</ul>
+<p><a name="codesample"></a> ### Checking features at runtime</p>
+<p>Here's a simple example that executes a codepath if the CPU supports both the AES and the SSE4.2 instruction sets:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;cpuinfo_x86.h&quot;</span>
+
+<span class="dt">static</span> <span class="dt">const</span> X86Features features = GetX86Info().features;
+
+<span class="dt">void</span> Compute(<span class="dt">void</span>) {
+  <span class="cf">if</span> (features.aes &amp;&amp; features.sse4_2) {
+    <span class="co">// Run optimized code.</span>
+  } <span class="cf">else</span> {
+    <span class="co">// Run standard code.</span>
+  }
+}</code></pre></div>
+<h3 id="caching-for-faster-evaluation-of-complex-checks">Caching for faster evaluation of complex checks</h3>
+<p>If you wish, you can read all the features at once into a global variable, and then query for the specific features you care about. Below, we store all the ARM features and then check whether AES and NEON are supported.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&lt;stdbool.h&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;cpuinfo_arm.h&quot;</span>
+
+<span class="dt">static</span> <span class="dt">const</span> ArmFeatures features = GetArmInfo().features;
+<span class="dt">static</span> <span class="dt">const</span> bool has_aes_and_neon = features.aes &amp;&amp; features.neon;
+
+<span class="co">// use has_aes_and_neon.</span></code></pre></div>
+<p>This is a good approach to take if you're checking for combinations of features when using a compiler that is slow to extract individual bits from bit-packed structures.</p>
+<h3 id="checking-compile-time-flags">Checking compile time flags</h3>
+<p>The following code determines whether the compiler was told to use the AVX instruction set (e.g., <code>g++ -mavx</code>) and sets <code>has_avx</code> accordingly.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&lt;stdbool.h&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;cpuinfo_x86.h&quot;</span>
+
+<span class="dt">static</span> <span class="dt">const</span> X86Features features = GetX86Info().features;
+<span class="dt">static</span> <span class="dt">const</span> bool has_avx = CPU_FEATURES_COMPILED_X86_AVX || features.avx;
+
+<span class="co">// use has_avx.</span></code></pre></div>
+<p><code>CPU_FEATURES_COMPILED_X86_AVX</code> is set to 1 if the compiler was instructed to use AVX and 0 otherwise, combining compile time and runtime knowledge.</p>
+<h3 id="rejecting-poor-hardware-implementations-based-on-microarchitecture">Rejecting poor hardware implementations based on microarchitecture</h3>
+<p>On x86, the first incarnation of a feature in a microarchitecture might not be the most efficient (e.g. AVX on Sandy Bridge). We provide a function to retrieve the underlying microarchitecture so you can decide whether to use it.</p>
+<p>Below, <code>has_fast_avx</code> is set to 1 if the CPU supports the AVX instruction set—but only if it's not Sandy Bridge.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&lt;stdbool.h&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;cpuinfo_x86.h&quot;</span>
+
+<span class="dt">static</span> <span class="dt">const</span> X86Info info = GetX86Info();
+<span class="dt">static</span> <span class="dt">const</span> X86Microarchitecture uarch = GetX86Microarchitecture(&amp;info);
+<span class="dt">static</span> <span class="dt">const</span> bool has_fast_avx = info.features.avx &amp;&amp; uarch != INTEL_SNB;
+
+<span class="co">// use has_fast_avx.</span></code></pre></div>
+<p>This feature is currently available only for x86 microarchitectures.</p>
+<p><a name="usagesample"></a> ### Running sample code</p>
+<p>Building <code>cpu_features</code> brings a small executable to test the library.</p>
+<pre class="shell"><code> % ./build/list_cpu_features
+arch            : x86
+brand           :        Intel(R) Xeon(R) CPU E5-1650 0 @ 3.20GHz
+family          :   6 (0x06)
+model           :  45 (0x2D)
+stepping        :   7 (0x07)
+uarch           : INTEL_SNB
+flags           : aes,avx,cx16,smx,sse4_1,sse4_2,ssse3</code></pre>
+<pre class="shell"><code>% ./build/list_cpu_features --json
+{&quot;arch&quot;:&quot;x86&quot;,&quot;brand&quot;:&quot;       Intel(R) Xeon(R) CPU E5-1650 0 @ 3.20GHz&quot;,&quot;family&quot;:6,&quot;model&quot;:45,&quot;stepping&quot;:7,&quot;uarch&quot;:&quot;INTEL_SNB&quot;,&quot;flags&quot;:[&quot;aes&quot;,&quot;avx&quot;,&quot;cx16&quot;,&quot;smx&quot;,&quot;sse4_1&quot;,&quot;sse4_2&quot;,&quot;ssse3&quot;]}</code></pre>
+<p><a name="support"></a> ## What's supported</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="center">x86³</th>
+<th align="center">ARM</th>
+<th align="center">AArch64</th>
+<th align="center">MIPS⁴</th>
+<th align="center">POWER</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Android</td>
+<td align="center">yes²</td>
+<td align="center">yes¹</td>
+<td align="center">yes¹</td>
+<td align="center">yes¹</td>
+<td align="center">N/A</td>
+</tr>
+<tr class="even">
+<td>iOS</td>
+<td align="center">N/A</td>
+<td align="center">not yet</td>
+<td align="center">not yet</td>
+<td align="center">N/A</td>
+<td align="center">N/A</td>
+</tr>
+<tr class="odd">
+<td>Linux</td>
+<td align="center">yes²</td>
+<td align="center">yes¹</td>
+<td align="center">yes¹</td>
+<td align="center">yes¹</td>
+<td align="center">yes¹</td>
+</tr>
+<tr class="even">
+<td>MacOs</td>
+<td align="center">yes²</td>
+<td align="center">N/A</td>
+<td align="center">not yet</td>
+<td align="center">N/A</td>
+<td align="center">no</td>
+</tr>
+<tr class="odd">
+<td>Windows</td>
+<td align="center">yes²</td>
+<td align="center">not yet</td>
+<td align="center">not yet</td>
+<td align="center">N/A</td>
+<td align="center">N/A</td>
+</tr>
+</tbody>
+</table>
+<ol style="list-style-type: decimal">
+<li><strong>Features revealed from Linux.</strong> We gather data from several sources depending on availability:
+<ul>
+<li>from glibc's <a href="https://www.gnu.org/software/libc/manual/html_node/Auxiliary-Vector.html">getauxval</a></li>
+<li>by parsing <code>/proc/self/auxv</code></li>
+<li>by parsing <code>/proc/cpuinfo</code></li>
+</ul></li>
+<li><strong>Features revealed from CPU.</strong> features are retrieved by using the <code>cpuid</code> instruction.</li>
+<li><strong>Microarchitecture detection.</strong> On x86 some features are not always implemented efficiently in hardware (e.g. AVX on Sandybridge). Exposing the microarchitecture allows the client to reject particular microarchitectures.</li>
+<li>All flavors of Mips are supported, little and big endian as well as 32/64 bits.</li>
+</ol>
+<p><a name="ndk"></a> ## Android NDK's drop in replacement</p>
+<p><a href="https://github.com/google/cpu_features">cpu_features</a> is now officially supporting Android and offers a drop in replacement of for the NDK's <a href="https://android.googlesource.com/platform/ndk/+/master/sources/android/cpufeatures/cpu-features.h">cpu-features.h</a> , see <a href="ndk_compat" class="uri">ndk_compat</a> folder for details.</p>
+<p><a name="license"></a> ## License</p>
+<p>The cpu_features library is licensed under the terms of the Apache license. See <a href="LICENSE" class="uri">LICENSE</a> for more information.</p>
+<p><a name="cmake"></a> ## Build with CMake</p>
+<p>Please check the <a href="cmake/README.md">CMake build instructions</a>.</p>

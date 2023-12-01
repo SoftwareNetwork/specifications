@@ -1,0 +1,428 @@
+<h1 id="string_view-lite-a-single-file-header-only-version-of-a-c17-like-string_view-for-c98-c11-and-later">string_view lite: A single-file header-only version of a C++17-like string_view for C++98, C++11 and later</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-98/11/14/17-blue.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/string-view-lite"><img src="https://travis-ci.org/martinmoene/string-view-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/string-view-lite"><img src="https://ci.appveyor.com/api/projects/status/1ha3wnxtam547m8p?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/string-view-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fstring-view-lite.svg" alt="Version" /></a> <a href="https://github.com/martinmoene/string-view-lite/blob/master/include/nonstd/string_view.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/agauniyal/nonstd-lite/"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/w2vUu56NVdVNyOiv"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it on wandbox" /></a> <a href="http://bit.ly/mm-string-view-lite-godbolt"><img src="https://img.shields.io/badge/on-godbolt-blue.svg" alt="Try it on godbolt online" /></a></p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-the-tests">Building the tests</a> - <a href="#other-implementations-of-string_view">Other implementations of string_view</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;nonstd/string_view.hpp&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>literals;
+<span class="kw">using</span> <span class="kw">namespace</span> nonstd::literals;
+<span class="kw">using</span> <span class="kw">namespace</span> nonstd;
+    
+<span class="dt">void</span> write( string_view sv )
+{
+    <span class="bu">std::</span>cout &lt;&lt; sv;
+}
+
+<span class="dt">int</span> main()
+{
+    write( <span class="st">&quot;hello&quot;</span>     );   <span class="co">// C-string</span>
+    write( <span class="st">&quot;, &quot;</span>s       );   <span class="co">// std::string</span>
+    write( <span class="st">&quot;world!&quot;_sv</span> );   <span class="co">// nonstd::string_view</span>
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt; g++ -Wall -std=c++14 -I../include/ -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe
+hello, world!</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>string-view lite</strong> is a single-file header-only library to provide a non-owning reference to a string. The library provides a <a href="http://en.cppreference.com/w/cpp/string/basic_string_view">C++17-like string_view</a> for use with C++98 and later. If available, <code>std::string_view</code> is used, unless <a href="#configuration">configured otherwise</a>.</p>
+<p><strong>Features and properties of string-view lite</strong> are ease of installation (single header), freedom of dependencies other than the standard library. To mimic C++17-like cooperation with <code>std::string</code>, <code>nonstd::string_view</code> provides several non-standard conversion functions. These functions may be <a href="#configuration">omitted via configuration</a>.</p>
+<h2 id="license">License</h2>
+<p><em>string-view lite</em> is distributed under the <a href="LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>string-view lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>string-view lite</em> is a single-file header-only library. Put <code>string_view.hpp</code> in the <a href="include" class="uri">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<p>Or, if you use the <a href="https://www.conan.io/">conan package manager</a>, follow these steps:</p>
+<ol style="list-style-type: decimal">
+<li><p>Add <em>nonstd-lite</em> to the conan remotes:</p>
+<pre><code>conan remote add nonstd-lite https://api.bintray.com/conan/martinmoene/nonstd-lite</code></pre></li>
+<li><p>Add a reference to <em>string-view-lite</em> to the <em>requires</em> section of your project's <code>conanfile.txt</code> file:</p>
+<pre><code>[requires]
+string-view-lite/[~=1]@nonstd-lite/testing</code></pre></li>
+<li><p>Run conan's install command:</p>
+<pre><code>conan install</code></pre></li>
+</ol>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+<a href="#stdstring_view">Documentation of <code>std::string_view</code></a><br />
+<a href="#c20-extensions">C++20 extensions</a><br />
+<a href="#non-standard-extensions">Non-standard extensions</a><br />
+<a href="#configuration">Configuration</a></p>
+<h2 id="documentation-of-stdstring_view">Documentation of <code>std::string_view</code></h2>
+<p>Depending on the compiler and C++-standard used, <code>nonstd::string_view</code> behaves less or more like <code>std::string_view</code>. To get an idea of the capabilities of <code>nonstd::string_view</code> with your configuration, look at the output of the <a href="test/string_view.t.cpp">tests</a>, issuing <code>string-view-lite.t --pass @</code>. For <code>std::string_view</code>, see its <a href="http://en.cppreference.com/w/cpp/string/basic_string_view">documentation at cppreference</a>.</p>
+<h2 id="c20-extensions">C++20 extensions</h2>
+<p><em>string_view-lite</em> provides the following C++20 <em>extensions</em>.</p>
+<ul>
+<li><em>[[nodiscard]]</em> constexpr bool <strong>empty</strong>() const noexcept;</li>
+<li>constexpr bool <strong><em>starts_with</em></strong>( basic_string_view v ) const noexcept; // (1)</li>
+<li>constexpr bool <strong><em>starts_with</em></strong>( CharT c ) const noexcept; // (2)</li>
+<li>constexpr bool <strong><em>starts_with</em></strong>( CharT const * s ) const; // (3)</li>
+<li>constexpr bool <strong><em>ends_with</em></strong>( basic_string_view v ) const noexcept; // (1)</li>
+<li>constexpr bool <strong><em>ends_with</em></strong>( CharT c ) const noexcept; // (2)</li>
+<li>constexpr bool <strong><em>ends_with</em></strong>( CharT const * s ) const; // (3)</li>
+</ul>
+<p>Note: [[nodiscard]], constexpr and noexcept if available.</p>
+<h2 id="non-standard-extensions">Non-standard extensions</h2>
+<h3 id="string_view-literals-sv-and-_sv"><code>string_view</code> literals <code>sv</code> and <code>_sv</code></h3>
+<p>clang compilers do not allow to write <code>auto sv = &quot;...&quot;sv</code> with <em>string-view lite</em> under C++11. To still provide a literal operator that can be used in that case, <em>string-view lite</em> also provides <code>_sv</code>. See section <a href="#configuration">Configuration</a> for how to control the presence of these operators.</p>
+<p>The literal operators are declared in the namespace <code>nonstd::literals::string_view_literals</code>, where both <code>literals</code> and <code>string_view_literals</code> are inline namespaces, if supported. Access to these operators can be gained with using namespace <code>nonstd::literals</code>, using namespace <code>nonstd::string_view_literals</code>, and using namespace <code>nonstd::literals::string_view_literals</code>. If inline namespaces are not supported by the compiler, only the latter form is available.</p>
+<h3 id="cooperation-between-stdstring-and-nonstdstring_view">Cooperation between <code>std::string</code> and <code>nonstd::string_view</code></h3>
+<p><em>string-view lite</em> can provide several methods and free functions to mimic the cooperation between <code>std::string</code> and <code>nonstd::string_view</code> that exists in C++17. See the table below. Several macros allow you to control the presence of these functions, see section <a href="#configuration">Configuration</a>.</p>
+<table style="width:74%;">
+<colgroup>
+<col width="33%" />
+<col width="11%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Std</th>
+<th>Function or method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Free functions</strong></td>
+<td> </td>
+<td>macro <code>nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS</code></td>
+</tr>
+<tr class="even">
+<td><strong><code>std::string_view</code></strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>to_string()</td>
+<td>&gt;=C++17</td>
+<td>template&lt; class CharT, class Traits, class Allocator=std::allocator&lt;CharT&gt; &gt;<br>std::basic_string&lt;CharT, Traits, Allocator&gt;<br><strong>to_string</strong>( std::basic_string_view&lt;CharT, Traits&gt; v, Allocator const &amp; a=Allocator() );</td>
+</tr>
+<tr class="even">
+<td>to_string_view()</td>
+<td>&gt;=C++17</td>
+<td>template&lt; class CharT, class Traits, class Allocator &gt;<br>std::basic_string_view&lt;CharT, Traits&gt;<br><strong>to_string_view</strong>( std::basic_string&lt;CharT, Traits, Allocator&gt; const &amp; s );</td>
+</tr>
+<tr class="odd">
+<td><strong><code>nonstd::string_view</code></strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>to_string()<br> <br><em>non-msvc14 (vs2015)</em></td>
+<td>&gt;=C++11</td>
+<td>template&lt; class CharT, class Traits, class Allocator = std::allocator&lt;CharT&gt; &gt;<br>std::basic_string&lt;CharT, Traits, Allocator&gt;<br><strong>to_string</strong>( basic_string_view&lt;CharT, Traits&gt; v, Allocator const &amp; a = Allocator() );</td>
+</tr>
+<tr class="odd">
+<td>to_string()<br> <br><em>msvc14 (vs2015)</em></td>
+<td><C++11|template&lt; class CharT, class Traits ><br>std::basic_string&lt;CharT, Traits&gt;<br><strong>to_string</strong>( basic_string_view&lt;CharT, Traits&gt; v );</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>to_string()<br> <br><em>msvc14 (vs2015)</em></td>
+<td><C++11|template&lt; class CharT, class Traits, class Allocator ><br>std::basic_string&lt;CharT, Traits, Allocator&gt;<br><strong>to_string</strong>( basic_string_view&lt;CharT, Traits&gt; v, Allocator const &amp; a );</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>to_string_view()</td>
+<td>&gt;=C++98</td>
+<td>template&lt; class CharT, class Traits, class Allocator &gt;<br>basic_string_view&lt;CharT, Traits&gt;<br><strong>to_string_view</strong>( std::basic_string&lt;CharT, Traits, Allocator&gt; const &amp; s );</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td><strong>Class methods</strong></td>
+<td> </td>
+<td>macro <code>nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS</code></td>
+</tr>
+<tr class="even">
+<td><strong><code>nonstd::basic_string_view</code></strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Constructor</td>
+<td>&gt;=C++98</td>
+<td>template&lt; class Allocator &gt;<br><strong>basic_string_view</strong>( std::basic_string&lt;CharT, Traits, Allocator&gt; const &amp; s ) nssv_noexcept;</td>
+</tr>
+<tr class="even">
+<td>Converting operator</td>
+<td>&gt;=C++11</td>
+<td>template&lt; class Allocator &gt;<br>explicit <strong>operator std::basic_string</strong>&lt;CharT, Traits, Allocator&gt;() const;</td>
+</tr>
+<tr class="odd">
+<td>to_string()</td>
+<td>&gt;=C++11</td>
+<td>template&lt; class Allocator = std::allocator&lt;CharT&gt; &gt;<br>std::basic_string&lt;CharT, Traits, Allocator&gt;<br><strong>to_string</strong>( Allocator const &amp; a = Allocator() ) const;</td>
+</tr>
+<tr class="even">
+<td>to_string()</td>
+<td><C++11 | std::basic_string&lt;CharT, Traits><br><strong>to_string</strong>() const;</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>to_string()</td>
+<td><C++11 | template&lt; class Allocator ><br>std::basic_string&lt;CharT, Traits, Allocator&gt;<br><strong>to_string</strong>( Allocator const &amp; a ) const;</td>
+<td></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td><strong>Literal operator <code>sv</code></strong></td>
+<td>&gt;=C++11</td>
+<td>macro <code>nssv_CONFIG_STD_SV_OPERATOR</code></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td>constexpr string_view operator &quot;&quot; <strong>sv</strong>( const char* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td> </td>
+<td>constexpr u16string_view operator &quot;&quot; <strong>sv</strong>( const char16_t* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td>constexpr u32string_view operator &quot;&quot; <strong>sv</strong>( const char32_t* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td> </td>
+<td>constexpr wstring_view operator &quot;&quot; <strong>sv</strong>( const wchar_t* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td><strong>Literal operator <code>_sv</code></strong></td>
+<td>&gt;=C++11</td>
+<td>macro <code>nssv_CONFIG_USR_SV_OPERATOR</code></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td>constexpr string_view operator &quot;&quot; **_sv**( const char* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td> </td>
+<td>constexpr u16string_view operator &quot;&quot; **_sv**( const char16_t* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td>constexpr u32string_view operator &quot;&quot; **_sv**( const char32_t* str, size_t len ) noexcept;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td> </td>
+<td>constexpr wstring_view operator &quot;&quot; **_sv**( const wchar_t* str, size_t len ) noexcept;</td>
+</tr>
+</tbody>
+</table>
+<h2 id="configuration">Configuration</h2>
+<h3 id="standard-selection-macro">Standard selection macro</h3>
+<p>-D<b>nssv_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, if your compiler does not set the <code>__cpluplus</code> macro correctly.</p>
+<h3 id="select-stdstring_view-or-nonstdstring_view">Select <code>std::string_view</code> or <code>nonstd::string_view</code></h3>
+<p>At default, <em>string-view lite</em> uses <code>std::string_view</code> if it is available and lets you use it via namespace <code>nonstd</code>. You can however override this default and explicitly request to use <code>std::string_view</code> as <code>nonstd::string_view</code> or use string-view lite's <code>nonstd::string_view</code> via the following macros.</p>
+<p>-D<b>nssv_CONFIG_SELECT_STRING_VIEW</b>=nssv_STRING_VIEW_DEFAULT<br />
+Define this to <code>nssv_STRING_VIEW_STD</code> to select <code>std::string_view</code> as <code>nonstd::string_view</code>. Define this to <code>nssv_STRING_VIEW_NONSTD</code> to select <code>nonstd::string_view</code> as <code>nonstd::string_view</code>. Default is undefined, which has the same effect as defining to <code>nssv_STRING_VIEW_DEFAULT</code>.</p>
+<p>Note: <b>nssv_CONFIG_SELECT_STD_STRING_VIEW</b> and <b>nssv_CONFIG_SELECT_NONSTD_STRING_VIEW</b> are deprecated and have been removed.</p>
+<h3 id="disable-exceptions">Disable exceptions</h3>
+<p>-D<b>nssv_CONFIG_NO_EXCEPTIONS</b>=0 Define this to 1 if you want to compile without exceptions. If not defined, the header tries and detect if exceptions have been disabled (e.g. via <code>-fno-exceptions</code>). Default is undefined.</p>
+<h3 id="add-or-omit-literal-operators-sv-and-_sv">Add or omit literal operators <code>sv</code> and <code>_sv</code></h3>
+<p>-D<b>nssv_CONFIG_STD_SV_OPERATOR</b>=1<br />
+Define this to 1 to provide literal operator <code>sv</code> to create a <code>string_view</code> from a literal string. Default is 0. Note that literal operators without leading underscore are reserved for the C++ standard.</p>
+<p>-D<b>nssv_CONFIG_USR_SV_OPERATOR</b>=0<br />
+Define this to 0 to omit literal operator <code>_sv</code> to create a <code>string_view</code> from a literal string. Default is 1.</p>
+<h3 id="omit-cooperation-between-stdstringnonstdstring_view">Omit cooperation between <code>std::string</code>–<code>nonstd::string_view</code></h3>
+<p>At default, <em>string-view lite</em> provides several methods and free functions to mimic the cooperation between <code>std::string</code> and <code>nonstd::string_view</code> (or <code>std::string_view</code>) that exists in C++17. See section <a href="#non-standard-extensions">Non-standard extensions</a>. The following macros allow you to control the presence of these functions.</p>
+<p>-D<b>nssv_CONFIG_CONVERSION_STD_STRING</b>=1<br />
+Define this to 1 to provide <code>std::string</code>– <code>nonstd::string_view</code> interoperability via methods of <code>nonstd::basic_string_view</code> and free functions, define it to 0 to omit all said methods and functions. Default is undefined.</p>
+<p>-D<b>nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS</b>=1<br />
+Define this to 1 to provide <code>std::string</code>– <code>nonstd::string_view</code> interoperability via methods of <code>nonstd::basic_string_view</code>, define it to 0 to omit all said methods. Default is undefined.</p>
+<p>-D<b>nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS</b>=1<br />
+Define this to 1 to provide <code>std::string</code>– <code>nonstd::string_view</code> interoperability via free functions, define it to 0 to omit all said functions. This also controls the presence of these function if <code>std::string_view</code> is used. Default is undefined.</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the compiler versions <em>string-view lite</em> is reported to work with.</p>
+<table style="width:49%;">
+<colgroup>
+<col width="15%" />
+<col width="18%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">OS</th>
+<th align="left">Compiler</th>
+<th align="left">Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">Windows</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">7.2.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">Visual C++<br>(Visual Studio)</td>
+<td align="left">8 (2005), 9 (2008), 10 (2010), 11 (2012),<br>12 (2013), 14 (2015), 15 (2017)</td>
+</tr>
+<tr class="even">
+<td align="right">GNU/Linux</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">3.5 - 6.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">4.8 - 8</td>
+</tr>
+<tr class="even">
+<td align="right">OS X</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">Xcode 6, Xcode 7, Xcode 8, Xcode 9</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>To build the tests you need:</p>
+<ul>
+<li><a href="http://cmake.org">CMake</a>, version 3.0 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/string-view-lite"><em>string-view lite</em> source code</a> has been cloned into a directory named <code>c:\string-view-lite</code>.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture. Here we use c:-view-lite-win-x86-vc10.</p>
+<pre><code>cd c:\string-view-lite
+md build-win-x86-vc10
+cd build-win-x86-vc10</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>cmake -G &quot;Visual Studio 10 2010&quot; -DSTRINGVIEW_LITE_OPT_BUILD_TESTS=ON ..</code></pre></li>
+<li><p>Build the test suite in the Debug configuration (alternatively use Release).</p>
+<pre><code>cmake --build . --config Debug</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>ctest -V -C Debug</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>string-view lite</em>.</p>
+<h2 id="other-implementations-of-string_view">Other implementations of string_view</h2>
+<ul>
+<li>Marshall Clow. <a href="https://github.com/mclow/string_view">string_view implementation for libc++</a>. GitHub.</li>
+<li>LLVM libc++. <a href="https://llvm.org/svn/llvm-project/libcxx/trunk/include/string_view">string_view</a>. GitHub.</li>
+<li>Matthew Rodusek's, <span class="citation">@bitwizeshift</span>. <a href="https://github.com/bitwizeshift/string_view-standalone">string_view Standalone</a>. GitHub.</li>
+<li><ol class="example" style="list-style-type: decimal">
+<li><a href="https://github.com/satoren/string_view">string_view for C++03 C++11 C++14</a>. GitHub.</li>
+</ol></li>
+<li>Google Abseil <a href="https://github.com/abseil/abseil-cpp/tree/master/absl/strings">string_view</a> (non-templated).</li>
+<li><a href="https://github.com/search?l=C%2B%2B&amp;q=string+view+c%2B%2B&amp;type=Repositories&amp;utf8=%E2%9C%93">Search <em>string view c++</em> on GitHub</a>.</li>
+</ul>
+<h2 id="notes-and-references">Notes and references</h2>
+<p><em>Interface and specification</em> - <a href="http://en.cppreference.com/w/cpp/string/basic_string_view">string_view on cppreference</a>. - <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4659.pdf#page=780">n4659 - C++17 Working Draft: string_view</a>.</p>
+<p><em>Presentations</em> - Marshall Clow. <a href="https://cppcon2015.sched.com/event/3vch/stringview-when-to-use-it-and-when-not?iframe=yes&amp;w=700&amp;sidebar=yes&amp;bg=no#">string_view - when to use it, and when not</a>. CppCon 2015. <a href="https://youtu.be/H9gAaNRoon4">video</a>, <a href="https://github.com/CppCon/CppCon2015/blob/master/Presentations/string_view/string_view%20-%20Marshall%20Clow%20-%20CppCon%202015.pdf">slides</a>. - Neil MacIntosh. <a href="https://cppcon2015.sched.com/event/3vbQ/a-few-good-types-evolving-arrayview-and-stringview-for-safe-c-code">A few good types: Evolving array_view and string_view for safe C++ code</a>. CppCon 2015. <a href="https://youtu.be/C4Z3c4Sv52U">video</a>, <a href="https://github.com/CppCon/CppCon2015/blob/master/Presentations/A%20Few%20Good%20Types/A%20Few%20Good%20Types%20-%20Neil%20MacIntosh%20-%20CppCon%202015.pdf">slides</a>.</p>
+<p><em>Proposals</em> - Jeffrey Yasskin. <a href="https://wg21.link/n3334">n3334 - Proposing array_ref<T> and string_ref</a>. 2012. - Jeffrey Yasskin. <a href="http://wg21.link/n3921">n3921 - string_view: a non-owning reference to a string, revision 7</a>. <strong>Adopted 2014-02</strong>. - Alisdair Meredith. <a href="http://wg21.link/n4288">n4288 - Strike string_view::clear from Library Fundamentals</a>. <strong>Adopted 2014-11</strong>. - Neil MacIntosh. <a href="http://wg21.link/p0123">p0123 - Unifying the interfaces of string_view and array_view</a>. 2015. - Beman Dawes, Alisdair Meredith. <a href="https://wg21.link/p0220r1">p0220 - Adopt Library Fundamentals V1 TS Components for C++17 (R1)</a>. 2016. - Marshall Clow. <a href="http://wg21.link/p0254">p0254 - Integrating std::string_view and std::string</a>. <strong>Adopted 2016-06</strong>. - Nicolai Josuttis. <a href="https://wg21.link/p0392r0">p0392 - Adapting string_view by filesystem paths</a>. 2016. - Marshall Clow. <a href="http://wg21.link/p0403">p0403 - Literal suffixes for basic_string_view</a>. 2016. - Peter Sommerlad. <a href="http://wg21.link/p0506">p0506 - use string_view for library function parameters instead of const string &amp;/const char *</a>. 2017. - Daniel Krugler. <a href="https://wg21.link/lwg2946">wg2946 - LWG 2758's resolution missed further corrections</a>. 2017.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a.1-compile-time-information">A.1 Compile-time information</h3>
+<p>The version of <em>string-view lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<h3 id="a.2-string-view-lite-test-specification">A.2 string-view lite test specification</h3>
+<pre><code>string_view: Allows to default construct an empty string_view
+string_view: Allows to construct from pointer and size
+string_view: Allows to construct from C-string
+string_view: Allows to copy-construct from empty string_view
+string_view: Allows to copy-construct from non-empty string_view
+string_view: Allows to copy-assign from empty string_view
+string_view: Allows to copy-assign from non-empty string_view
+string_view: Allows forward iteration
+string_view: Allows const forward iteration
+string_view: Allows reverse iteration
+string_view: Allows const reverse iteration
+string_view: Allows to obtain the size of the view via size()
+string_view: Allows to obtain the size of the view via length()
+string_view: Allows to obtain the maximum size a view can be via max_size()
+string_view: Allows to check for an empty string_view via empty()
+string_view: Allows to observe an element via array indexing
+string_view: Allows to observe an element via at()
+string_view: Throws at observing an element via at() with an index of size() or larger
+string_view: Allows to observe elements via data()
+string_view: Yields nullptr (or NULL) with data() for an empty string_view
+string_view: Allows to remove a prefix of n elements
+string_view: Allows to remove a suffix of n elements
+string_view: Allows to swap with other string_view
+string_view: Allows to copy a substring of length n, starting at position pos (default: 0) via copy()
+string_view: Throws if requested position of copy() exceeds string_view&#39;s size()
+string_view: Allow to obtain a sub string, starting at position pos (default: 0) and of length n (default full), via substr()
+string_view: Throws if requested position of substr() exceeds string_view&#39;s size()
+string_view: Allows to lexically compare to another string_view via compare(), (1)
+string_view: Allows to compare empty string_views as equal via compare(), (1)
+string_view: Allows to compare a sub string to another string_view via compare(), (2)
+string_view: Allows to compare a sub string to another string_view sub string via compare(), (3)
+string_view: Allows to compare to a C-string via compare(), (4)
+string_view: Allows to compare a sub string to a C-string via compare(), (5)
+string_view: Allows to compare a sub string to a C-string prefix via compare(), (6)
+string_view: Allows to check for a prefix string_view via starts_with(), (1)
+string_view: Allows to check for a prefix character via starts_with(), (2)
+string_view: Allows to check for a prefix C-string via starts_with(), (3)
+string_view: Allows to check for a suffix string_view via ends_with(), (1)
+string_view: Allows to check for a suffix character via ends_with(), (2)
+string_view: Allows to check for a suffix C-string via ends_with(), (3)
+string_view: Allows to search for a string_view substring, starting at position pos (default: 0) via find(), (1)
+string_view: Allows to search for a character, starting at position pos (default: 0) via find(), (2)
+string_view: Allows to search for a C-string substring, starting at position pos and of length n via find(), (3)
+string_view: Allows to search for a C-string substring, starting at position pos (default: 0) via find(), (4)
+string_view: Allows to search backwards for a string_view substring, starting at position pos (default: npos) via rfind(), (1)
+string_view: Allows to search backwards for a character, starting at position pos (default: npos) via rfind(), (2)
+string_view: Allows to search backwards for a C-string substring, starting at position pos and of length n via rfind(), (3)
+string_view: Allows to search backwards for a C-string substring, starting at position pos (default: 0) via rfind(), (4)
+string_view: Allows to search for the first occurrence of any of the characters specified in a string view, starting at position pos (default: 0) via find_first_of(), (1)
+string_view: Allows to search for a character, starting at position pos (default: 0) via find_first_of(), (2)
+string_view: Allows to search for the first occurrence of any of the characters specified in a C-string, starting at position pos and of length n via find_first_of(), (3)
+string_view: Allows to search for the first occurrence of any of the characters specified in a C-string, starting at position pos via find_first_of(), (4)
+string_view: Allows to search backwards for the last occurrence of any of the characters specified in a string view, starting at position pos (default: npos) via find_last_of(), (1)
+string_view: Allows to search backwards for a character, starting at position pos (default: 0) via find_last_of(), (2)
+string_view: Allows to search backwards for the first occurrence of any of the characters specified in a C-string, starting at position pos and of length n via find_last_of(), (3)
+string_view: Allows to search backwards for the first occurrence of any of the characters specified in a C-string, starting at position pos via find_last_of(), (4)
+string_view: Allows to search for the first character not specified in a string view, starting at position pos (default: 0) via find_first_not_of(), (1)
+string_view: Allows to search for the first character not equal to the specified character, starting at position pos (default: 0) via find_first_not_of(), (2)
+string_view: Allows to search for  the first character not equal to any of the characters specified in a C-string, starting at position pos and of length n via find_first_not_of(), (3)
+string_view: Allows to search for  the first character not equal to any of the characters specified in a C-string, starting at position pos via find_first_not_of(), (4)
+string_view: Allows to search backwards for the first character not specified in a string view, starting at position pos (default: npos) via find_last_not_of(), (1)
+string_view: Allows to search backwards for the first character not equal to the specified character, starting at position pos (default: npos) via find_last_not_of(), (2)
+string_view: Allows to search backwards for  the first character not equal to any of the characters specified in a C-string, starting at position pos and of length n via find_last_not_of(), (3)
+string_view: Allows to search backwards for  the first character not equal to any of the characters specified in a C-string, starting at position pos via find_last_not_of(), (4)
+string_view: Allows to create a string_view, wstring_view, u16string_view, u32string_view via literal &quot;sv&quot;
+string_view: Allows to create a string_view via literal &quot;sv&quot;, using namespace nonstd::literals::string_view_literals
+string_view: Allows to create a string_view via literal &quot;sv&quot;, using namespace nonstd::string_view_literals
+string_view: Allows to create a string_view via literal &quot;sv&quot;, using namespace nonstd::literals
+string_view: Allows to create a string_view, wstring_view, u16string_view, u32string_view via literal &quot;_sv&quot;
+string_view: Allows to create a string_view via literal &quot;_sv&quot;, using namespace nonstd::literals::string_view_literals
+string_view: Allows to create a string_view via literal &quot;_sv&quot;, using namespace nonstd::string_view_literals
+string_view: Allows to create a string_view via literal &quot;_sv&quot;, using namespace nonstd::literals
+string_view: Allows to compare a string_view with another string_view
+string_view: Allows to compare empty string_view-s as equal
+operator&lt;&lt;: Allows printing a string_view to an output stream
+std::hash&lt;&gt;: Hash value of string_view equals hash value of corresponding string object
+std::hash&lt;&gt;: Hash value of wstring_view equals hash value of corresponding string object
+std::hash&lt;&gt;: Hash value of u16string_view equals hash value of corresponding string object
+std::hash&lt;&gt;: Hash value of u32string_view equals hash value of corresponding string object
+string_view: construct from std::string [extension]
+string_view: convert to std::string via explicit operator [extension]
+string_view: convert to std::string via to_string() [extension]
+to_string(): convert to std::string via to_string() [extension]
+to_string_view(): convert from std::string via to_string_view() [extension]</code></pre>

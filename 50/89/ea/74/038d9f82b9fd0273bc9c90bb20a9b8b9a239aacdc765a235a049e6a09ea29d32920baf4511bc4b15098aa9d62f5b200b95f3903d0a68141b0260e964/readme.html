@@ -1,0 +1,70 @@
+<pre><code>What is yescrypt?</code></pre>
+<p>yescrypt is a password-based key derivation function (KDF) and password hashing scheme. It builds upon Colin Percival's scrypt. This implementation is able to compute native yescrypt hashes as well as classic scrypt.</p>
+<pre><code>Why yescrypt?</code></pre>
+<p>Like it or not, password authentication remains relevant (including as one of several authentication factors), password hash database leaks happen, the leaks are not always detected and fully dealt with right away, and even once they are many users' same or similar passwords reused elsewhere remain exposed. To mitigate these risks (as well as those present in other scenarios where password-based key derivation or password hashing is relevant), computationally expensive (bcrypt, PBKDF2, etc.) and more recently also memory-hard (scrypt, Argon2, etc.) password hashing schemes have been introduced. Unfortunately, at high target throughput and/or low target latency their memory usage is unreasonably low, up to the point where they're not obviously better than the much older bcrypt (considering attackers with pre-existing hardware). This is a primary drawback that yescrypt addresses.</p>
+<p>Most notable for large-scale deployments is yescrypt's optional initialization and reuse of a large lookup table, typically occupying at least tens of gigabytes of RAM and essentially forming a site-specific ROM. This limits attackers' use of pre-existing hardware such as botnet nodes.</p>
+<p>yescrypt's other changes from scrypt additionally slow down GPUs and to a lesser extent FPGAs and ASICs even when its memory usage is low and even when there's no ROM, and provide extra knobs and built-in features.</p>
+<p>Technically, yescrypt is the most scalable password hashing scheme so far, providing near-optimal security from offline password cracking across the whole range from kilobytes to terabytes and beyond. However, the price for this is complexity, and we recognize that complexity is a major drawback of any software. Thus, at this time we focus on large-scale deployments, where the added complexity is relatively small compared to the total complexity of the authentication service setup. For smaller deployments, bcrypt with its simplicity and existing library support is a reasonable short-term choice (although we're making progress towards more efficient FPGA attacks on bcrypt under a separate project). We might introduce a cut-down yescrypt-lite later or/and yescrypt might become part of standard or popular libraries, making it more suitable for smaller deployments as well.</p>
+<pre><code>Parameter selection.</code></pre>
+<p>Please refer to PARAMETERS for guidelines on parameter selection and the currently recommended parameter sets by use case (password hashing with or without a ROM, and KDF).</p>
+<pre><code>Performance.</code></pre>
+<p>Please refer to PERFORMANCE for example setup and benchmarks relevant to the mass user authentication use case.</p>
+<p>The test system is a server (kindly provided by Packet.net) with dual Xeon Gold 5120 CPUs (2.2 GHz, turbo to up to 3.2 GHz) and 384 GiB RAM (12x DDR4-2400 ECC Reg). These CPUs have 14 cores and 6 memory channels each, for a total of 28 physical cores, 56 logical CPUs (HT is enabled), and 12 memory channels.</p>
+<p>Some highlights: initialization of a 368 GiB ROM takes 22 seconds (to be done on server bootup), and while using the ROM we're able to compute over 21k, over 10k, or around 1200 hashes per second with per-hash RAM usage of 1.4375 MiB, 2.875 MiB, or 23 MiB, respectively.</p>
+<p>When not using a ROM, we're able to compute over 21k, over 10k, or around 1200 hashes per second with per-hash RAM usage of 2 MiB, 4 MiB, or 32 MiB, respectively.</p>
+<pre><code>Comparison to scrypt and Argon2.</code></pre>
+<p>yescrypt's advantages:</p>
+<ul>
+<li>Greater resistance to offline attacks</li>
+<li>Extra optional built-in features</li>
+<li>Cryptographic security provided by NIST-approved primitives</li>
+<li>SHA-256, HMAC, PBKDF2, and scrypt are usable from the same codebase</li>
+</ul>
+<p>yescrypt's drawbacks:</p>
+<ul>
+<li>Complex</li>
+<li>Cache-timing unsafe</li>
+<li>Not the PHC winner</li>
+<li>Not available in third-party libraries yet</li>
+</ul>
+<p>Please refer to COMPARISON for a lot more detail and other observations.</p>
+<pre><code>A note on cryptocurrencies.</code></pre>
+<p>For historical reasons, multiple CPU mining focused cryptocurrencies use yescrypt 0.5'ish as their proof-of-work (PoW) scheme. We currently have a separate project for the PoW use case: yespower. Thus, rather than misuse yescrypt 1.0+ for PoW, those and other projects are advised to use yespower 1.0+ instead. The yespower homepage is:</p>
+<pre><code>https://www.openwall.com/yespower/
+
+
+How to test yescrypt for proper operation.</code></pre>
+<p>On a Unix-like system, invoke &quot;make check&quot;. This will build and run a program called &quot;tests&quot;, and check its output against the supplied file TESTS-OK. It will also build a program called &quot;phc-test&quot;, and if a file called PHC-TEST-OK-SHA256 is present will run that program and check its output against that file's contents. If everything matches, each of these two sets of tests prints one word &quot;PASSED&quot;, so there will be two such lines among &quot;make check&quot; output, one of them being the final line of output.</p>
+<p>We do most of our testing on Linux systems with gcc. The supplied Makefile assumes that you use gcc.</p>
+<pre><code>ROM in SysV shared memory demo and benchmark.</code></pre>
+<p>Also included with this version of yescrypt are &quot;initrom&quot; and &quot;userom&quot; demo programs. They're built by simply typing &quot;make&quot;. Please refer to PERFORMANCE for their usage.</p>
+<pre><code>Alternate code versions and make targets.</code></pre>
+<p>Two implementations of yescrypt are included: reference and optimized. By default, the optimized implementation is built. Internally, the optimized implementation uses conditional compilation to choose between usage of various SIMD instruction sets where supported and scalar code.</p>
+<p>The reference implementation is unoptimized and is very slow, but it has simpler and shorter source code. Its purpose is to provide a simple human- and machine-readable specification that implementations intended for actual use should be tested against. It is deliberately mostly not optimized, and it is not meant to be used in production.</p>
+<p>Similarly to &quot;make check&quot;, there's &quot;make check-ref&quot; to build and test the reference implementation. There's also &quot;make ref&quot; to build the reference implementation and have the &quot;initrom&quot; and &quot;userom&quot; programs use it.</p>
+<p>&quot;make clean&quot; may need to be run between making different builds.</p>
+<pre><code>Development status.</code></pre>
+<p>This yescrypt distribution is a work-in-progress. Its interfaces other than crypto_scrypt() are subject to change in future revisions, however no incompatible changes to the yescrypt algorithm are expected.</p>
+<pre><code>Credits.</code></pre>
+<p>scrypt has been designed by Colin Percival. yescrypt has been designed by Solar Designer building upon scrypt.</p>
+<p>The following other people and projects have also indirectly helped make yescrypt what it is:</p>
+<ul>
+<li>Bill Cox</li>
+<li>Rich Felker</li>
+<li>Anthony Ferrara</li>
+<li>Christian Forler</li>
+<li>Taylor Hornby</li>
+<li>Dmitry Khovratovich</li>
+<li>Samuel Neves</li>
+<li>Marcos Simplicio</li>
+<li>Ken T Takusagawa</li>
+<li>Jakob Wenzel</li>
+<li><p>Christian Winnerlein</p></li>
+<li>DARPA Cyber Fast Track</li>
+<li><p>Password Hashing Competition</p>
+<p>Contact info.</p></li>
+</ul>
+<p>First, please check the yescrypt homepage for new versions, etc.:</p>
+<pre><code>https://www.openwall.com/yescrypt/</code></pre>
+<p>If you have anything valuable to add or a non-trivial question to ask, you may join and post to the yescrypt mailing list (referenced on the yescrypt homepage above) or contact the maintainer of yescrypt at:</p>
+<pre><code>Solar Designer &lt;solar at openwall.com&gt;</code></pre>

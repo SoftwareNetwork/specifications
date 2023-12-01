@@ -1,0 +1,685 @@
+<h1 id="benchmark">Benchmark</h1>
+<p><a href="https://travis-ci.org/google/benchmark"><img src="https://travis-ci.org/google/benchmark.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/google/benchmark/branch/master"><img src="https://ci.appveyor.com/api/projects/status/u0qsyp7t1tk7cpxs/branch/master?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/r/google/benchmark"><img src="https://coveralls.io/repos/google/benchmark/badge.svg" alt="Coverage Status" /></a> <a href="https://slackin-iqtfqnpzxd.now.sh/"><img src="https://slackin-iqtfqnpzxd.now.sh/badge.svg" alt="slackin" /></a></p>
+<p>A library to benchmark code snippets, similar to unit tests. Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;benchmark/benchmark.h&gt;</span>
+
+<span class="at">static</span> <span class="dt">void</span> BM_SomeFunction(benchmark::State&amp; state) {
+  <span class="co">// Perform setup here</span>
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="co">// This code gets timed</span>
+    SomeFunction();
+  }
+}
+<span class="co">// Register the function as a benchmark</span>
+BENCHMARK(BM_SomeFunction);
+<span class="co">// Run the benchmark</span>
+BENCHMARK_MAIN();</code></pre></div>
+<p>To get started, see <a href="#requirements">Requirements</a> and <a href="#installation">Installation</a>. See <a href="#usage">Usage</a> for a full example and the <a href="#user-guide">User Guide</a> for a more comprehensive feature overview.</p>
+<p>It may also help to read the <a href="https://github.com/google/googletest/blob/master/googletest/docs/primer.md">Google Test documentation</a> as some of the structural aspects of the APIs are similar.</p>
+<h3 id="resources">Resources</h3>
+<p><a href="https://groups.google.com/d/forum/benchmark-discuss">Discussion group</a></p>
+<p>IRC channel: <a href="https://freenode.net">freenode</a> #googlebenchmark</p>
+<p><a href="docs/tools.md">Additional Tooling Documentation</a></p>
+<p><a href="docs/AssemblyTests.md">Assembly Testing Documentation</a></p>
+<h2 id="requirements">Requirements</h2>
+<p>The library can be used with C++03. However, it requires C++11 to build, including compiler and standard library support.</p>
+<p>The following minimum versions are required to build the library:</p>
+<ul>
+<li>GCC 4.8</li>
+<li>Clang 3.4</li>
+<li>Visual Studio 2013</li>
+<li>Intel 2015 Update 1</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>This describes the installation process using cmake. As pre-requisites, you'll need git and cmake installed.</p>
+<p><em>See <a href="dependencies.md" class="uri">dependencies.md</a> for more details regarding supported versions of build tools.</em></p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># Check out the library.</span>
+$ <span class="fu">git</span> clone https://github.com/google/benchmark.git
+<span class="co"># Benchmark requires Google Test as a dependency. Add the source tree as a subdirectory.</span>
+$ <span class="fu">git</span> clone https://github.com/google/googletest.git benchmark/googletest
+<span class="co"># Make a build directory to place the build output.</span>
+$ <span class="fu">mkdir</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build
+<span class="co"># Generate a Makefile with cmake.</span>
+<span class="co"># Use cmake -G &lt;generator&gt; to generate a different file type.</span>
+$ <span class="fu">cmake</span> ../benchmark
+<span class="co"># Build the library.</span>
+$ <span class="fu">make</span></code></pre></div>
+<p>This builds the <code>benchmark</code> and <code>benchmark_main</code> libraries and tests. On a unix system, the build directory should now look something like this:</p>
+<pre><code>/benchmark
+/build
+  /src
+    /libbenchmark.a
+    /libbenchmark_main.a
+  /test
+    ...</code></pre>
+<p>Next, you can run the tests to check the build.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">make</span> test</code></pre></div>
+<p>If you want to install the library globally, also run:</p>
+<pre><code>sudo make install</code></pre>
+<p>Note that Google Benchmark requires Google Test to build and run the tests. This dependency can be provided two ways:</p>
+<ul>
+<li>Checkout the Google Test sources into <code>benchmark/googletest</code> as above.</li>
+<li>Otherwise, if <code>-DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON</code> is specified during configuration, the library will automatically download and build any required dependencies.</li>
+</ul>
+<p>If you do not wish to build and run the tests, add <code>-DBENCHMARK_ENABLE_GTEST_TESTS=OFF</code> to <code>CMAKE_ARGS</code>.</p>
+<h3 id="debug-vs-release">Debug vs Release</h3>
+<p>By default, benchmark builds as a debug library. You will see a warning in the output when this is the case. To build it as a release library instead, use:</p>
+<pre><code>cmake -DCMAKE_BUILD_TYPE=Release</code></pre>
+<p>To enable link-time optimisation, use</p>
+<pre><code>cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_ENABLE_LTO=true</code></pre>
+<p>If you are using gcc, you might need to set <code>GCC_AR</code> and <code>GCC_RANLIB</code> cmake cache variables, if autodetection fails.</p>
+<p>If you are using clang, you may need to set <code>LLVMAR_EXECUTABLE</code>, <code>LLVMNM_EXECUTABLE</code> and <code>LLVMRANLIB_EXECUTABLE</code> cmake cache variables.</p>
+<h3 id="stable-and-experimental-library-versions">Stable and Experimental Library Versions</h3>
+<p>The main branch contains the latest stable version of the benchmarking library; the API of which can be considered largely stable, with source breaking changes being made only upon the release of a new major version.</p>
+<p>Newer, experimental, features are implemented and tested on the <a href="https://github.com/google/benchmark/tree/v2"><code>v2</code> branch</a>. Users who wish to use, test, and provide feedback on the new features are encouraged to try this branch. However, this branch provides no stability guarantees and reserves the right to change and break the API at any time.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="basic-usage">Basic usage</h3>
+<p>Define a function that executes the code to measure, register it as a benchmark function using the <code>BENCHMARK</code> macro, and ensure an appropriate <code>main</code> function is available:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;benchmark/benchmark.h&gt;</span>
+
+<span class="at">static</span> <span class="dt">void</span> BM_StringCreation(benchmark::State&amp; state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state)
+    <span class="bu">std::</span>string empty_string;
+}
+<span class="co">// Register the function as a benchmark</span>
+BENCHMARK(BM_StringCreation);
+
+<span class="co">// Define another benchmark</span>
+<span class="at">static</span> <span class="dt">void</span> BM_StringCopy(benchmark::State&amp; state) {
+  <span class="bu">std::</span>string x = <span class="st">&quot;hello&quot;</span>;
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state)
+    <span class="bu">std::</span>string copy(x);
+}
+BENCHMARK(BM_StringCopy);
+
+BENCHMARK_MAIN();</code></pre></div>
+<p>To run the benchmark, compile and link against the <code>benchmark</code> library (libbenchmark.a/.so). If you followed the build steps above, this library will be under the build directory you created.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># Example on linux after running the build steps above. Assumes the</span>
+<span class="co"># `benchmark` and `build` directories are under the current directory.</span>
+$ <span class="ex">g++</span> -std=c++11 -isystem benchmark/include -Lbuild/src -lpthread \
+  -lbenchmark mybenchmark.cc -o mybenchmark</code></pre></div>
+<p>Alternatively, link against the <code>benchmark_main</code> library and remove <code>BENCHMARK_MAIN();</code> above to get the same behavior.</p>
+<p>The compiled executable will run all benchmarks by default. Pass the <code>--help</code> flag for option information or see the guide below.</p>
+<h3 id="platform-specific-instructions">Platform-specific instructions</h3>
+<p>When the library is built using GCC it is necessary to link with the pthread library due to how GCC implements <code>std::thread</code>. Failing to link to pthread will lead to runtime exceptions (unless you're using libc++), not linker errors. See <a href="https://github.com/google/benchmark/issues/67">issue #67</a> for more details. You can link to pthread by adding <code>-pthread</code> to your linker command. Note, you can also use <code>-lpthread</code>, but there are potential issues with ordering of command line parameters if you use that.</p>
+<p>If you're running benchmarks on Windows, the shlwapi library (<code>-lshlwapi</code>) is also required.</p>
+<p>If you're running benchmarks on solaris, you'll want the kstat library linked in too (<code>-lkstat</code>).</p>
+<h2 id="user-guide">User Guide</h2>
+<h3 id="command-line">Command Line</h3>
+<p><a href="#output-formats">Output Formats</a></p>
+<p><a href="#output-files">Output Files</a></p>
+<p><a href="#running-a-subset-of-benchmarks">Running a Subset of Benchmarks</a></p>
+<p><a href="#result-comparison">Result Comparison</a></p>
+<h3 id="library">Library</h3>
+<p><a href="#runtime-and-reporting-considerations">Runtime and Reporting Considerations</a></p>
+<p><a href="#passing-arguments">Passing Arguments</a></p>
+<p><a href="#asymptotic-complexity">Calculating Asymptotic Complexity</a></p>
+<p><a href="#templated-benchmarks">Templated Benchmarks</a></p>
+<p><a href="#fixtures">Fixtures</a></p>
+<p><a href="#custom-counters">Custom Counters</a></p>
+<p><a href="#multithreaded-benchmarks">Multithreaded Benchmarks</a></p>
+<p><a href="#cpu-timers">CPU Timers</a></p>
+<p><a href="#manual-timing">Manual Timing</a></p>
+<p><a href="#setting-the-time-unit">Setting the Time Unit</a></p>
+<p><a href="#preventing-optimization">Preventing Optimization</a></p>
+<p><a href="#reporting-statistics">Reporting Statistics</a></p>
+<p><a href="#custom-statistics">Custom Statistics</a></p>
+<p><a href="#using-register-benchmark">Using RegisterBenchmark</a></p>
+<p><a href="#exiting-with-an-error">Exiting with an Error</a></p>
+<p><a href="#a-faster-keep-running-loop">A Faster KeepRunning Loop</a></p>
+<p><a href="#disabling-cpu-frequency-scaling">Disabling CPU Frequency Scaling</a></p>
+<p><a name="output-formats" /></p>
+<h3 id="output-formats">Output Formats</h3>
+<p>The library supports multiple output formats. Use the <code>--benchmark_format=&lt;console|json|csv&gt;</code> flag to set the format type. <code>console</code> is the default format.</p>
+<p>The Console format is intended to be a human readable format. By default the format generates color output. Context is output on stderr and the tabular data on stdout. Example tabular output looks like:</p>
+<pre><code>Benchmark                               Time(ns)    CPU(ns) Iterations
+----------------------------------------------------------------------
+BM_SetInsert/1024/1                        28928      29349      23853  133.097kB/s   33.2742k items/s
+BM_SetInsert/1024/8                        32065      32913      21375  949.487kB/s   237.372k items/s
+BM_SetInsert/1024/10                       33157      33648      21431  1.13369MB/s   290.225k items/s</code></pre>
+<p>The JSON format outputs human readable json split into two top level attributes. The <code>context</code> attribute contains information about the run in general, including information about the CPU and the date. The <code>benchmarks</code> attribute contains a list of every benchmark run. Example json output looks like:</p>
+<div class="sourceCode"><pre class="sourceCode json"><code class="sourceCode json"><span class="fu">{</span>
+  <span class="dt">&quot;context&quot;</span><span class="fu">:</span> <span class="fu">{</span>
+    <span class="dt">&quot;date&quot;</span><span class="fu">:</span> <span class="st">&quot;2015/03/17-18:40:25&quot;</span><span class="fu">,</span>
+    <span class="dt">&quot;num_cpus&quot;</span><span class="fu">:</span> <span class="dv">40</span><span class="fu">,</span>
+    <span class="dt">&quot;mhz_per_cpu&quot;</span><span class="fu">:</span> <span class="dv">2801</span><span class="fu">,</span>
+    <span class="dt">&quot;cpu_scaling_enabled&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span>
+    <span class="dt">&quot;build_type&quot;</span><span class="fu">:</span> <span class="st">&quot;debug&quot;</span>
+  <span class="fu">},</span>
+  <span class="dt">&quot;benchmarks&quot;</span><span class="fu">:</span> <span class="ot">[</span>
+    <span class="fu">{</span>
+      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;BM_SetInsert/1024/1&quot;</span><span class="fu">,</span>
+      <span class="dt">&quot;iterations&quot;</span><span class="fu">:</span> <span class="dv">94877</span><span class="fu">,</span>
+      <span class="dt">&quot;real_time&quot;</span><span class="fu">:</span> <span class="dv">29275</span><span class="fu">,</span>
+      <span class="dt">&quot;cpu_time&quot;</span><span class="fu">:</span> <span class="dv">29836</span><span class="fu">,</span>
+      <span class="dt">&quot;bytes_per_second&quot;</span><span class="fu">:</span> <span class="dv">134066</span><span class="fu">,</span>
+      <span class="dt">&quot;items_per_second&quot;</span><span class="fu">:</span> <span class="dv">33516</span>
+    <span class="fu">}</span><span class="ot">,</span>
+    <span class="fu">{</span>
+      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;BM_SetInsert/1024/8&quot;</span><span class="fu">,</span>
+      <span class="dt">&quot;iterations&quot;</span><span class="fu">:</span> <span class="dv">21609</span><span class="fu">,</span>
+      <span class="dt">&quot;real_time&quot;</span><span class="fu">:</span> <span class="dv">32317</span><span class="fu">,</span>
+      <span class="dt">&quot;cpu_time&quot;</span><span class="fu">:</span> <span class="dv">32429</span><span class="fu">,</span>
+      <span class="dt">&quot;bytes_per_second&quot;</span><span class="fu">:</span> <span class="dv">986770</span><span class="fu">,</span>
+      <span class="dt">&quot;items_per_second&quot;</span><span class="fu">:</span> <span class="dv">246693</span>
+    <span class="fu">}</span><span class="ot">,</span>
+    <span class="fu">{</span>
+      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;BM_SetInsert/1024/10&quot;</span><span class="fu">,</span>
+      <span class="dt">&quot;iterations&quot;</span><span class="fu">:</span> <span class="dv">21393</span><span class="fu">,</span>
+      <span class="dt">&quot;real_time&quot;</span><span class="fu">:</span> <span class="dv">32724</span><span class="fu">,</span>
+      <span class="dt">&quot;cpu_time&quot;</span><span class="fu">:</span> <span class="dv">33355</span><span class="fu">,</span>
+      <span class="dt">&quot;bytes_per_second&quot;</span><span class="fu">:</span> <span class="dv">1199226</span><span class="fu">,</span>
+      <span class="dt">&quot;items_per_second&quot;</span><span class="fu">:</span> <span class="dv">299807</span>
+    <span class="fu">}</span>
+  <span class="ot">]</span>
+<span class="fu">}</span></code></pre></div>
+<p>The CSV format outputs comma-separated values. The <code>context</code> is output on stderr and the CSV itself on stdout. Example CSV output looks like:</p>
+<pre><code>name,iterations,real_time,cpu_time,bytes_per_second,items_per_second,label
+&quot;BM_SetInsert/1024/1&quot;,65465,17890.7,8407.45,475768,118942,
+&quot;BM_SetInsert/1024/8&quot;,116606,18810.1,9766.64,3.27646e+06,819115,
+&quot;BM_SetInsert/1024/10&quot;,106365,17238.4,8421.53,4.74973e+06,1.18743e+06,</code></pre>
+<p><a name="output-files" /></p>
+<h3 id="output-files">Output Files</h3>
+<p>Write benchmark results to a file with the <code>--benchmark_out=&lt;filename&gt;</code> option. Specify the output format with <code>--benchmark_out_format={json|console|csv}</code>. Note that Specifying <code>--benchmark_out</code> does not suppress the console output.</p>
+<p><a name="running-a-subset-of-benchmarks" /></p>
+<h3 id="running-a-subset-of-benchmarks">Running a Subset of Benchmarks</h3>
+<p>The <code>--benchmark_filter=&lt;regex&gt;</code> option can be used to only run the benchmarks which match the specified <code>&lt;regex&gt;</code>. For example:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./run_benchmarks.x</span> --benchmark_filter=BM_memcpy/32
+<span class="ex">Run</span> on (1 X 2300 MHz CPU )
+<span class="ex">2016-06-25</span> 19:34:24
+<span class="ex">Benchmark</span>              Time           CPU Iterations
+<span class="ex">----------------------------------------------------</span>
+<span class="ex">BM_memcpy/32</span>          11 ns         11 ns   79545455
+<span class="ex">BM_memcpy/32k</span>       2181 ns       2185 ns     324074
+<span class="ex">BM_memcpy/32</span>          12 ns         12 ns   54687500
+<span class="ex">BM_memcpy/32k</span>       1834 ns       1837 ns     357143</code></pre></div>
+<p><a name="result-comparison" /></p>
+<h3 id="result-comparison">Result comparison</h3>
+<p>It is possible to compare the benchmarking results. See <a href="docs/tools.md">Additional Tooling Documentation</a></p>
+<p><a name="runtime-and-reporting-considerations" /></p>
+<h3 id="runtime-and-reporting-considerations">Runtime and Reporting Considerations</h3>
+<p>When the benchmark binary is executed, each benchmark function is run serially. The number of iterations to run is determined dynamically by running the benchmark a few times and measuring the time taken and ensuring that the ultimate result will be statistically stable. As such, faster benchmark functions will be run for more iterations than slower benchmark functions, and the number of iterations is thus reported.</p>
+<p>In all cases, the number of iterations for which the benchmark is run is governed by the amount of time the benchmark takes. Concretely, the number of iterations is at least one, not more than 1e9, until CPU time is greater than the minimum time, or the wallclock time is 5x minimum time. The minimum time is set per benchmark by calling <code>MinTime</code> on the registered benchmark object.</p>
+<p>Average timings are then reported over the iterations run. If multiple repetitions are requested using the <code>--benchmark_repetitions</code> command-line option, or at registration time, the benchmark function will be run several times and statistical results across these repetitions will also be reported.</p>
+<p>As well as the per-benchmark entries, a preamble in the report will include information about the machine on which the benchmarks are run.</p>
+<p><a name="passing-arguments" /></p>
+<h3 id="passing-arguments">Passing Arguments</h3>
+<p>Sometimes a family of benchmarks can be implemented with just one routine that takes an extra argument to specify which one of the family of benchmarks to run. For example, the following code defines a family of benchmarks for measuring the speed of <code>memcpy()</code> calls of different lengths:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_memcpy(benchmark::State&amp; state) {
+  <span class="dt">char</span>* src = <span class="kw">new</span> <span class="dt">char</span>[state.range(<span class="dv">0</span>)];
+  <span class="dt">char</span>* dst = <span class="kw">new</span> <span class="dt">char</span>[state.range(<span class="dv">0</span>)];
+  memset(src, <span class="st">&#39;x&#39;</span>, state.range(<span class="dv">0</span>));
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state)
+    memcpy(dst, src, state.range(<span class="dv">0</span>));
+  state.SetBytesProcessed(<span class="dt">int64_t</span>(state.iterations()) *
+                          <span class="dt">int64_t</span>(state.range(<span class="dv">0</span>)));
+  <span class="kw">delete</span>[] src;
+  <span class="kw">delete</span>[] dst;
+}
+BENCHMARK(BM_memcpy)-&gt;Arg(<span class="dv">8</span>)-&gt;Arg(<span class="dv">64</span>)-&gt;Arg(<span class="dv">512</span>)-&gt;Arg(<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>)-&gt;Arg(<span class="dv">8</span>&lt;&lt;<span class="dv">10</span>);</code></pre></div>
+<p>The preceding code is quite repetitive, and can be replaced with the following short-hand. The following invocation will pick a few appropriate arguments in the specified range and will generate a benchmark for each such argument.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_memcpy)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>);</code></pre></div>
+<p>By default the arguments in the range are generated in multiples of eight and the command above selects [ 8, 64, 512, 4k, 8k ]. In the following code the range multiplier is changed to multiples of two.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_memcpy)-&gt;RangeMultiplier(<span class="dv">2</span>)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>);</code></pre></div>
+<p>Now arguments generated are [ 8, 16, 32, 64, 128, 256, 512, 1024, 2k, 4k, 8k ].</p>
+<p>You might have a benchmark that depends on two or more inputs. For example, the following code defines a family of benchmarks for measuring the speed of set insertion.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_SetInsert(benchmark::State&amp; state) {
+  <span class="bu">std::</span>set&lt;<span class="dt">int</span>&gt; data;
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    state.PauseTiming();
+    data = ConstructRandomSet(state.range(<span class="dv">0</span>));
+    state.ResumeTiming();
+    <span class="cf">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; state.range(<span class="dv">1</span>); ++j)
+      data.insert(RandomNumber());
+  }
+}
+BENCHMARK(BM_SetInsert)
+    -&gt;Args({<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">128</span>})
+    -&gt;Args({<span class="dv">2</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">128</span>})
+    -&gt;Args({<span class="dv">4</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">128</span>})
+    -&gt;Args({<span class="dv">8</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">128</span>})
+    -&gt;Args({<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">512</span>})
+    -&gt;Args({<span class="dv">2</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">512</span>})
+    -&gt;Args({<span class="dv">4</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">512</span>})
+    -&gt;Args({<span class="dv">8</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">512</span>});</code></pre></div>
+<p>The preceding code is quite repetitive, and can be replaced with the following short-hand. The following macro will pick a few appropriate arguments in the product of the two specified ranges and will generate a benchmark for each such pair.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_SetInsert)-&gt;Ranges({{<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>}, {<span class="dv">128</span>, <span class="dv">512</span>}});</code></pre></div>
+<p>For more complex patterns of inputs, passing a custom function to <code>Apply</code> allows programmatic specification of an arbitrary set of arguments on which to run the benchmark. The following example enumerates a dense range on one parameter, and a sparse range on the second.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> CustomArguments(benchmark::internal::Benchmark* b) {
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt;= <span class="dv">10</span>; ++i)
+    <span class="cf">for</span> (<span class="dt">int</span> j = <span class="dv">32</span>; j &lt;= <span class="dv">1024</span>*<span class="dv">1024</span>; j *= <span class="dv">8</span>)
+      b-&gt;Args({i, j});
+}
+BENCHMARK(BM_SetInsert)-&gt;Apply(CustomArguments);</code></pre></div>
+<h4 id="passing-arbitrary-arguments-to-a-benchmark">Passing Arbitrary Arguments to a Benchmark</h4>
+<p>In C++11 it is possible to define a benchmark that takes an arbitrary number of extra arguments. The <code>BENCHMARK_CAPTURE(func, test_case_name, ...args)</code> macro creates a benchmark that invokes <code>func</code> with the <code>benchmark::State</code> as the first argument followed by the specified <code>args...</code>. The <code>test_case_name</code> is appended to the name of the benchmark and should describe the values passed.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span> ...ExtraArgs&gt;
+<span class="dt">void</span> BM_takes_args(benchmark::State&amp; state, ExtraArgs&amp;&amp;... extra_args) {
+  [...]
+}
+<span class="co">// Registers a benchmark named &quot;BM_takes_args/int_string_test&quot; that passes</span>
+<span class="co">// the specified values to `extra_args`.</span>
+BENCHMARK_CAPTURE(BM_takes_args, int_string_test, <span class="dv">42</span>, <span class="bu">std::</span>string(<span class="st">&quot;abc&quot;</span>));</code></pre></div>
+<p>Note that elements of <code>...args</code> may refer to global variables. Users should avoid modifying global state inside of a benchmark.</p>
+<p><a name="asymptotic-complexity" /></p>
+<h3 id="calculating-asymptotic-complexity-big-o">Calculating Asymptotic Complexity (Big O)</h3>
+<p>Asymptotic complexity might be calculated for a family of benchmarks. The following code will calculate the coefficient for the high-order term in the running time and the normalized root-mean square error of string comparison.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_StringCompare(benchmark::State&amp; state) {
+  <span class="bu">std::</span>string s1(state.range(<span class="dv">0</span>), <span class="st">&#39;-&#39;</span>);
+  <span class="bu">std::</span>string s2(state.range(<span class="dv">0</span>), <span class="st">&#39;-&#39;</span>);
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    benchmark::DoNotOptimize(s1.compare(s2));
+  }
+  state.SetComplexityN(state.range(<span class="dv">0</span>));
+}
+BENCHMARK(BM_StringCompare)
+    -&gt;RangeMultiplier(<span class="dv">2</span>)-&gt;Range(<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">1</span>&lt;&lt;<span class="dv">18</span>)-&gt;Complexity(benchmark::oN);</code></pre></div>
+<p>As shown in the following invocation, asymptotic complexity might also be calculated automatically.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_StringCompare)
+    -&gt;RangeMultiplier(<span class="dv">2</span>)-&gt;Range(<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">1</span>&lt;&lt;<span class="dv">18</span>)-&gt;Complexity();</code></pre></div>
+<p>The following code will specify asymptotic complexity with a lambda function, that might be used to customize high-order term calculation.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_StringCompare)-&gt;RangeMultiplier(<span class="dv">2</span>)
+    -&gt;Range(<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">1</span>&lt;&lt;<span class="dv">18</span>)-&gt;Complexity([](<span class="dt">int64_t</span> n)-&gt;<span class="dt">double</span>{<span class="cf">return</span> n; });</code></pre></div>
+<p><a name="templated-benchmarks" /></p>
+<h3 id="templated-benchmarks">Templated Benchmarks</h3>
+<p>This example produces and consumes messages of size <code>sizeof(v)</code> <code>range_x</code> times. It also outputs throughput in the absence of multiprogramming.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span> Q&gt; <span class="dt">void</span> BM_Sequential(benchmark::State&amp; state) {
+  Q q;
+  <span class="kw">typename</span> Q::<span class="dt">value_type</span> v;
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="cf">for</span> (<span class="dt">int</span> i = state.range(<span class="dv">0</span>); i--; )
+      q.push(v);
+    <span class="cf">for</span> (<span class="dt">int</span> e = state.range(<span class="dv">0</span>); e--; )
+      q.Wait(&amp;v);
+  }
+  <span class="co">// actually messages, not bytes:</span>
+  state.SetBytesProcessed(
+      <span class="kw">static_cast</span>&lt;<span class="dt">int64_t</span>&gt;(state.iterations())*state.range(<span class="dv">0</span>));
+}
+BENCHMARK_TEMPLATE(BM_Sequential, WaitQueue&lt;<span class="dt">int</span>&gt;)-&gt;Range(<span class="dv">1</span>&lt;&lt;<span class="dv">0</span>, <span class="dv">1</span>&lt;&lt;<span class="dv">10</span>);</code></pre></div>
+<p>Three macros are provided for adding benchmark templates.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#ifdef BENCHMARK_HAS_CXX11</span>
+<span class="pp">#define BENCHMARK_TEMPLATE(func, ...) </span><span class="co">// Takes any number of parameters.</span>
+<span class="pp">#else </span><span class="co">// C++ &lt; C++11</span>
+<span class="pp">#define BENCHMARK_TEMPLATE(func, arg1)</span>
+<span class="pp">#endif</span>
+<span class="pp">#define BENCHMARK_TEMPLATE1(func, arg1)</span>
+<span class="pp">#define BENCHMARK_TEMPLATE2(func, arg1, arg2)</span></code></pre></div>
+<p><a name="fixtures" /></p>
+<h3 id="fixtures">Fixtures</h3>
+<p>Fixture tests are created by first defining a type that derives from <code>::benchmark::Fixture</code> and then creating/registering the tests using the following macros:</p>
+<ul>
+<li><code>BENCHMARK_F(ClassName, Method)</code></li>
+<li><code>BENCHMARK_DEFINE_F(ClassName, Method)</code></li>
+<li><code>BENCHMARK_REGISTER_F(ClassName, Method)</code></li>
+</ul>
+<p>For Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> MyFixture : <span class="kw">public</span> benchmark::Fixture {
+<span class="kw">public</span>:
+  <span class="dt">void</span> SetUp(<span class="at">const</span> ::benchmark::State&amp; state) {
+  }
+
+  <span class="dt">void</span> TearDown(<span class="at">const</span> ::benchmark::State&amp; state) {
+  }
+};
+
+BENCHMARK_F(MyFixture, FooTest)(benchmark::State&amp; st) {
+   <span class="cf">for</span> (<span class="kw">auto</span> _ : st) {
+     ...
+  }
+}
+
+BENCHMARK_DEFINE_F(MyFixture, BarTest)(benchmark::State&amp; st) {
+   <span class="cf">for</span> (<span class="kw">auto</span> _ : st) {
+     ...
+  }
+}
+<span class="co">/* BarTest is NOT registered */</span>
+BENCHMARK_REGISTER_F(MyFixture, BarTest)-&gt;Threads(<span class="dv">2</span>);
+<span class="co">/* BarTest is now registered */</span></code></pre></div>
+<h4 id="templated-fixtures">Templated Fixtures</h4>
+<p>Also you can create templated fixture by using the following macros:</p>
+<ul>
+<li><code>BENCHMARK_TEMPLATE_F(ClassName, Method, ...)</code></li>
+<li><code>BENCHMARK_TEMPLATE_DEFINE_F(ClassName, Method, ...)</code></li>
+</ul>
+<p>For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> MyFixture : <span class="kw">public</span> benchmark::Fixture {};
+
+BENCHMARK_TEMPLATE_F(MyFixture, IntTest, <span class="dt">int</span>)(benchmark::State&amp; st) {
+   <span class="cf">for</span> (<span class="kw">auto</span> _ : st) {
+     ...
+  }
+}
+
+BENCHMARK_TEMPLATE_DEFINE_F(MyFixture, DoubleTest, <span class="dt">double</span>)(benchmark::State&amp; st) {
+   <span class="cf">for</span> (<span class="kw">auto</span> _ : st) {
+     ...
+  }
+}
+
+BENCHMARK_REGISTER_F(MyFixture, DoubleTest)-&gt;Threads(<span class="dv">2</span>);</code></pre></div>
+<p><a name="custom-counters" /></p>
+<h3 id="custom-counters">Custom Counters</h3>
+<p>You can add your own counters with user-defined names. The example below will add columns &quot;Foo&quot;, &quot;Bar&quot; and &quot;Baz&quot; in its output:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> UserCountersExample1(benchmark::State&amp; state) {
+  <span class="dt">double</span> numFoos = <span class="dv">0</span>, numBars = <span class="dv">0</span>, numBazs = <span class="dv">0</span>;
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="co">// ... count Foo,Bar,Baz events</span>
+  }
+  state.counters[<span class="st">&quot;Foo&quot;</span>] = numFoos;
+  state.counters[<span class="st">&quot;Bar&quot;</span>] = numBars;
+  state.counters[<span class="st">&quot;Baz&quot;</span>] = numBazs;
+}</code></pre></div>
+<p>The <code>state.counters</code> object is a <code>std::map</code> with <code>std::string</code> keys and <code>Counter</code> values. The latter is a <code>double</code>-like class, via an implicit conversion to <code>double&amp;</code>. Thus you can use all of the standard arithmetic assignment operators (<code>=,+=,-=,*=,/=</code>) to change the value of each counter.</p>
+<p>In multithreaded benchmarks, each counter is set on the calling thread only. When the benchmark finishes, the counters from each thread will be summed; the resulting sum is the value which will be shown for the benchmark.</p>
+<p>The <code>Counter</code> constructor accepts three parameters: the value as a <code>double</code> ; a bit flag which allows you to show counters as rates, and/or as per-thread iteration, and/or as per-thread averages, and/or iteration invariants; and a flag specifying the 'unit' - i.e. is 1k a 1000 (default, <code>benchmark::Counter::OneK::kIs1000</code>), or 1024 (<code>benchmark::Counter::OneK::kIs1024</code>)?</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  <span class="co">// sets a simple counter</span>
+  state.counters[<span class="st">&quot;Foo&quot;</span>] = numFoos;
+
+  <span class="co">// Set the counter as a rate. It will be presented divided</span>
+  <span class="co">// by the duration of the benchmark.</span>
+  state.counters[<span class="st">&quot;FooRate&quot;</span>] = Counter(numFoos, benchmark::Counter::kIsRate);
+
+  <span class="co">// Set the counter as a thread-average quantity. It will</span>
+  <span class="co">// be presented divided by the number of threads.</span>
+  state.counters[<span class="st">&quot;FooAvg&quot;</span>] = Counter(numFoos, benchmark::Counter::kAvgThreads);
+
+  <span class="co">// There&#39;s also a combined flag:</span>
+  state.counters[<span class="st">&quot;FooAvgRate&quot;</span>] = Counter(numFoos,benchmark::Counter::kAvgThreadsRate);
+
+  <span class="co">// This says that we process with the rate of state.range(0) bytes every iteration:</span>
+  state.counters[<span class="st">&quot;BytesProcessed&quot;</span>] = Counter(state.range(<span class="dv">0</span>), benchmark::Counter::kIsIterationInvariantRate, benchmark::Counter::OneK::kIs1024);</code></pre></div>
+<p>When you're compiling in C++11 mode or later you can use <code>insert()</code> with <code>std::initializer_list</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  <span class="co">// With C++11, this can be done:</span>
+  state.counters.insert({{<span class="st">&quot;Foo&quot;</span>, numFoos}, {<span class="st">&quot;Bar&quot;</span>, numBars}, {<span class="st">&quot;Baz&quot;</span>, numBazs}});
+  <span class="co">// ... instead of:</span>
+  state.counters[<span class="st">&quot;Foo&quot;</span>] = numFoos;
+  state.counters[<span class="st">&quot;Bar&quot;</span>] = numBars;
+  state.counters[<span class="st">&quot;Baz&quot;</span>] = numBazs;</code></pre></div>
+<h4 id="counter-reporting">Counter Reporting</h4>
+<p>When using the console reporter, by default, user counters are are printed at the end after the table, the same way as <code>bytes_processed</code> and <code>items_processed</code>. This is best for cases in which there are few counters, or where there are only a couple of lines per benchmark. Here's an example of the default output:</p>
+<pre><code>------------------------------------------------------------------------------
+Benchmark                        Time           CPU Iterations UserCounters...
+------------------------------------------------------------------------------
+BM_UserCounter/threads:8      2248 ns      10277 ns      68808 Bar=16 Bat=40 Baz=24 Foo=8
+BM_UserCounter/threads:1      9797 ns       9788 ns      71523 Bar=2 Bat=5 Baz=3 Foo=1024m
+BM_UserCounter/threads:2      4924 ns       9842 ns      71036 Bar=4 Bat=10 Baz=6 Foo=2
+BM_UserCounter/threads:4      2589 ns      10284 ns      68012 Bar=8 Bat=20 Baz=12 Foo=4
+BM_UserCounter/threads:8      2212 ns      10287 ns      68040 Bar=16 Bat=40 Baz=24 Foo=8
+BM_UserCounter/threads:16     1782 ns      10278 ns      68144 Bar=32 Bat=80 Baz=48 Foo=16
+BM_UserCounter/threads:32     1291 ns      10296 ns      68256 Bar=64 Bat=160 Baz=96 Foo=32
+BM_UserCounter/threads:4      2615 ns      10307 ns      68040 Bar=8 Bat=20 Baz=12 Foo=4
+BM_Factorial                    26 ns         26 ns   26608979 40320
+BM_Factorial/real_time          26 ns         26 ns   26587936 40320
+BM_CalculatePiRange/1           16 ns         16 ns   45704255 0
+BM_CalculatePiRange/8           73 ns         73 ns    9520927 3.28374
+BM_CalculatePiRange/64         609 ns        609 ns    1140647 3.15746
+BM_CalculatePiRange/512       4900 ns       4901 ns     142696 3.14355</code></pre>
+<p>If this doesn't suit you, you can print each counter as a table column by passing the flag <code>--benchmark_counters_tabular=true</code> to the benchmark application. This is best for cases in which there are a lot of counters, or a lot of lines per individual benchmark. Note that this will trigger a reprinting of the table header any time the counter set changes between individual benchmarks. Here's an example of corresponding output when <code>--benchmark_counters_tabular=true</code> is passed:</p>
+<pre><code>---------------------------------------------------------------------------------------
+Benchmark                        Time           CPU Iterations    Bar   Bat   Baz   Foo
+---------------------------------------------------------------------------------------
+BM_UserCounter/threads:8      2198 ns       9953 ns      70688     16    40    24     8
+BM_UserCounter/threads:1      9504 ns       9504 ns      73787      2     5     3     1
+BM_UserCounter/threads:2      4775 ns       9550 ns      72606      4    10     6     2
+BM_UserCounter/threads:4      2508 ns       9951 ns      70332      8    20    12     4
+BM_UserCounter/threads:8      2055 ns       9933 ns      70344     16    40    24     8
+BM_UserCounter/threads:16     1610 ns       9946 ns      70720     32    80    48    16
+BM_UserCounter/threads:32     1192 ns       9948 ns      70496     64   160    96    32
+BM_UserCounter/threads:4      2506 ns       9949 ns      70332      8    20    12     4
+--------------------------------------------------------------
+Benchmark                        Time           CPU Iterations
+--------------------------------------------------------------
+BM_Factorial                    26 ns         26 ns   26392245 40320
+BM_Factorial/real_time          26 ns         26 ns   26494107 40320
+BM_CalculatePiRange/1           15 ns         15 ns   45571597 0
+BM_CalculatePiRange/8           74 ns         74 ns    9450212 3.28374
+BM_CalculatePiRange/64         595 ns        595 ns    1173901 3.15746
+BM_CalculatePiRange/512       4752 ns       4752 ns     147380 3.14355
+BM_CalculatePiRange/4k       37970 ns      37972 ns      18453 3.14184
+BM_CalculatePiRange/32k     303733 ns     303744 ns       2305 3.14162
+BM_CalculatePiRange/256k   2434095 ns    2434186 ns        288 3.1416
+BM_CalculatePiRange/1024k  9721140 ns    9721413 ns         71 3.14159
+BM_CalculatePi/threads:8      2255 ns       9943 ns      70936</code></pre>
+<p>Note above the additional header printed when the benchmark changes from <code>BM_UserCounter</code> to <code>BM_Factorial</code>. This is because <code>BM_Factorial</code> does not have the same counter set as <code>BM_UserCounter</code>.</p>
+<p><a name="multithreaded-benchmarks"/></p>
+<h3 id="multithreaded-benchmarks">Multithreaded Benchmarks</h3>
+<p>In a multithreaded test (benchmark invoked by multiple threads simultaneously), it is guaranteed that none of the threads will start until all have reached the start of the benchmark loop, and all will have finished before any thread exits the benchmark loop. (This behavior is also provided by the <code>KeepRunning()</code> API) As such, any global setup or teardown can be wrapped in a check against the thread index:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_MultiThreaded(benchmark::State&amp; state) {
+  <span class="cf">if</span> (state.thread_index == <span class="dv">0</span>) {
+    <span class="co">// Setup code here.</span>
+  }
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="co">// Run the test as normal.</span>
+  }
+  <span class="cf">if</span> (state.thread_index == <span class="dv">0</span>) {
+    <span class="co">// Teardown code here.</span>
+  }
+}
+BENCHMARK(BM_MultiThreaded)-&gt;Threads(<span class="dv">2</span>);</code></pre></div>
+<p>If the benchmarked code itself uses threads and you want to compare it to single-threaded code, you may want to use real-time (&quot;wallclock&quot;) measurements for latency comparisons:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_test)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>)-&gt;UseRealTime();</code></pre></div>
+<p>Without <code>UseRealTime</code>, CPU time is used by default.</p>
+<p><a name="cpu-timers" /></p>
+<h3 id="cpu-timers">CPU Timers</h3>
+<p>By default, the CPU timer only measures the time spent by the main thread. If the benchmark itself uses threads internally, this measurement may not be what you are looking for. Instead, there is a way to measure the total CPU usage of the process, by all the threads.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> callee(<span class="dt">int</span> i);
+
+<span class="at">static</span> <span class="dt">void</span> MyMain(<span class="dt">int</span> size) {
+<span class="pp">#pragma omp parallel for</span>
+  <span class="cf">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; size; i++)
+    callee(i);
+}
+
+<span class="at">static</span> <span class="dt">void</span> BM_OpenMP(benchmark::State&amp; state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state)
+    MyMain(state.range(<span class="dv">0</span>);
+}
+
+<span class="co">// Measure the time spent by the main thread, use it to decide for how long to</span>
+<span class="co">// run the benchmark loop. Depending on the internal implementation detail may</span>
+<span class="co">// measure to anywhere from near-zero (the overhead spent before/after work</span>
+<span class="co">// handoff to worker thread[s]) to the whole single-thread time.</span>
+BENCHMARK(BM_OpenMP)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>);
+
+<span class="co">// Measure the user-visible time, the wall clock (literally, the time that</span>
+<span class="co">// has passed on the clock on the wall), use it to decide for how long to</span>
+<span class="co">// run the benchmark loop. This will always be meaningful, an will match the</span>
+<span class="co">// time spent by the main thread in single-threaded case, in general decreasing</span>
+<span class="co">// with the number of internal threads doing the work.</span>
+BENCHMARK(BM_OpenMP)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>)-&gt;UseRealTime();
+
+<span class="co">// Measure the total CPU consumption, use it to decide for how long to</span>
+<span class="co">// run the benchmark loop. This will always measure to no less than the</span>
+<span class="co">// time spent by the main thread in single-threaded case.</span>
+BENCHMARK(BM_OpenMP)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>)-&gt;MeasureProcessCPUTime();
+
+<span class="co">// A mixture of the last two. Measure the total CPU consumption, but use the</span>
+<span class="co">// wall clock to decide for how long to run the benchmark loop.</span>
+BENCHMARK(BM_OpenMP)-&gt;Range(<span class="dv">8</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>)-&gt;MeasureProcessCPUTime()-&gt;UseRealTime();</code></pre></div>
+<h4 id="controlling-timers">Controlling Timers</h4>
+<p>Normally, the entire duration of the work loop (<code>for (auto _ : state) {}</code>) is measured. But sometimes, it is necessary to do some work inside of that loop, every iteration, but without counting that time to the benchmark time. That is possible, althought it is not recommended, since it has high overhead.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_SetInsert_With_Timer_Control(benchmark::State&amp; state) {
+  <span class="bu">std::</span>set&lt;<span class="dt">int</span>&gt; data;
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    state.PauseTiming(); <span class="co">// Stop timers. They will not count until they are resumed.</span>
+    data = ConstructRandomSet(state.range(<span class="dv">0</span>)); <span class="co">// Do something that should not be measured</span>
+    state.ResumeTiming(); <span class="co">// And resume timers. They are now counting again.</span>
+    <span class="co">// The rest will be measured.</span>
+    <span class="cf">for</span> (<span class="dt">int</span> j = <span class="dv">0</span>; j &lt; state.range(<span class="dv">1</span>); ++j)
+      data.insert(RandomNumber());
+  }
+}
+BENCHMARK(BM_SetInsert_With_Timer_Control)-&gt;Ranges({{<span class="dv">1</span>&lt;&lt;<span class="dv">10</span>, <span class="dv">8</span>&lt;&lt;<span class="dv">10</span>}, {<span class="dv">128</span>, <span class="dv">512</span>}});</code></pre></div>
+<p><a name="manual-timing" /></p>
+<h3 id="manual-timing">Manual Timing</h3>
+<p>For benchmarking something for which neither CPU time nor real-time are correct or accurate enough, completely manual timing is supported using the <code>UseManualTime</code> function.</p>
+<p>When <code>UseManualTime</code> is used, the benchmarked code must call <code>SetIterationTime</code> once per iteration of the benchmark loop to report the manually measured time.</p>
+<p>An example use case for this is benchmarking GPU execution (e.g. OpenCL or CUDA kernels, OpenGL or Vulkan or Direct3D draw calls), which cannot be accurately measured using CPU time or real-time. Instead, they can be measured accurately using a dedicated API, and these measurement results can be reported back with <code>SetIterationTime</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_ManualTiming(benchmark::State&amp; state) {
+  <span class="dt">int</span> microseconds = state.range(<span class="dv">0</span>);
+  <span class="bu">std::</span>chrono<span class="bu">::</span>duration&lt;<span class="dt">double</span>, <span class="bu">std::</span>micro&gt; sleep_duration {
+    <span class="kw">static_cast</span>&lt;<span class="dt">double</span>&gt;(microseconds)
+  };
+
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="kw">auto</span> start = <span class="bu">std::</span>chrono<span class="bu">::</span>high_resolution_clock<span class="bu">::</span>now();
+    <span class="co">// Simulate some useful workload with a sleep</span>
+    <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for(sleep_duration);
+    <span class="kw">auto</span> end   = <span class="bu">std::</span>chrono<span class="bu">::</span>high_resolution_clock<span class="bu">::</span>now();
+
+    <span class="kw">auto</span> elapsed_seconds =
+      <span class="bu">std::</span>chrono<span class="bu">::</span>duration_cast&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>duration&lt;<span class="dt">double</span>&gt;&gt;(
+        end - start);
+
+    state.SetIterationTime(elapsed_seconds.count());
+  }
+}
+BENCHMARK(BM_ManualTiming)-&gt;Range(<span class="dv">1</span>, <span class="dv">1</span>&lt;&lt;<span class="dv">17</span>)-&gt;UseManualTime();</code></pre></div>
+<p><a name="setting-the-time-unit" /></p>
+<h3 id="setting-the-time-unit">Setting the Time Unit</h3>
+<p>If a benchmark runs a few milliseconds it may be hard to visually compare the measured times, since the output data is given in nanoseconds per default. In order to manually set the time unit, you can specify it manually:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK(BM_test)-&gt;Unit(benchmark::kMillisecond);</code></pre></div>
+<p><a name="preventing-optimization" /></p>
+<h3 id="preventing-optimization">Preventing Optimization</h3>
+<p>To prevent a value or expression from being optimized away by the compiler the <code>benchmark::DoNotOptimize(...)</code> and <code>benchmark::ClobberMemory()</code> functions can be used.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_test(benchmark::State&amp; state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+      <span class="dt">int</span> x = <span class="dv">0</span>;
+      <span class="cf">for</span> (<span class="dt">int</span> i=<span class="dv">0</span>; i &lt; <span class="dv">64</span>; ++i) {
+        benchmark::DoNotOptimize(x += i);
+      }
+  }
+}</code></pre></div>
+<p><code>DoNotOptimize(&lt;expr&gt;)</code> forces the <em>result</em> of <code>&lt;expr&gt;</code> to be stored in either memory or a register. For GNU based compilers it acts as read/write barrier for global memory. More specifically it forces the compiler to flush pending writes to memory and reload any other values as necessary.</p>
+<p>Note that <code>DoNotOptimize(&lt;expr&gt;)</code> does not prevent optimizations on <code>&lt;expr&gt;</code> in any way. <code>&lt;expr&gt;</code> may even be removed entirely when the result is already known. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  <span class="co">/* Example 1: `&lt;expr&gt;` is removed entirely. */</span>
+  <span class="dt">int</span> foo(<span class="dt">int</span> x) { <span class="cf">return</span> x + <span class="dv">42</span>; }
+  <span class="cf">while</span> (...) DoNotOptimize(foo(<span class="dv">0</span>)); <span class="co">// Optimized to DoNotOptimize(42);</span>
+
+  <span class="co">/*  Example 2: Result of &#39;&lt;expr&gt;&#39; is only reused */</span>
+  <span class="dt">int</span> bar(<span class="dt">int</span>) <span class="ex">__attribute__((const))</span>;
+  <span class="cf">while</span> (...) DoNotOptimize(bar(<span class="dv">0</span>)); <span class="co">// Optimized to:</span>
+  <span class="co">// int __result__ = bar(0);</span>
+  <span class="co">// while (...) DoNotOptimize(__result__);</span></code></pre></div>
+<p>The second tool for preventing optimizations is <code>ClobberMemory()</code>. In essence <code>ClobberMemory()</code> forces the compiler to perform all pending writes to global memory. Memory managed by block scope objects must be &quot;escaped&quot; using <code>DoNotOptimize(...)</code> before it can be clobbered. In the below example <code>ClobberMemory()</code> prevents the call to <code>v.push_back(42)</code> from being optimized away.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_vector_push_back(benchmark::State&amp; state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; v;
+    v.reserve(<span class="dv">1</span>);
+    benchmark::DoNotOptimize(v.data()); <span class="co">// Allow v.data() to be clobbered.</span>
+    v.push_back(<span class="dv">42</span>);
+    benchmark::ClobberMemory(); <span class="co">// Force 42 to be written to memory.</span>
+  }
+}</code></pre></div>
+<p>Note that <code>ClobberMemory()</code> is only available for GNU or MSVC based compilers.</p>
+<p><a name="reporting-statistics" /></p>
+<h3 id="statistics-reporting-the-mean-median-and-standard-deviation-of-repeated-benchmarks">Statistics: Reporting the Mean, Median and Standard Deviation of Repeated Benchmarks</h3>
+<p>By default each benchmark is run once and that single result is reported. However benchmarks are often noisy and a single result may not be representative of the overall behavior. For this reason it's possible to repeatedly rerun the benchmark.</p>
+<p>The number of runs of each benchmark is specified globally by the <code>--benchmark_repetitions</code> flag or on a per benchmark basis by calling <code>Repetitions</code> on the registered benchmark object. When a benchmark is run more than once the mean, median and standard deviation of the runs will be reported.</p>
+<p>Additionally the <code>--benchmark_report_aggregates_only={true|false}</code>, <code>--benchmark_display_aggregates_only={true|false}</code> flags or <code>ReportAggregatesOnly(bool)</code>, <code>DisplayAggregatesOnly(bool)</code> functions can be used to change how repeated tests are reported. By default the result of each repeated run is reported. When <code>report aggregates only</code> option is <code>true</code>, only the aggregates (i.e. mean, median and standard deviation, maybe complexity measurements if they were requested) of the runs is reported, to both the reporters - standard output (console), and the file. However when only the <code>display aggregates only</code> option is <code>true</code>, only the aggregates are displayed in the standard output, while the file output still contains everything. Calling <code>ReportAggregatesOnly(bool)</code> / <code>DisplayAggregatesOnly(bool)</code> on a registered benchmark object overrides the value of the appropriate flag for that benchmark.</p>
+<p><a name="custom-statistics" /></p>
+<h3 id="custom-statistics">Custom Statistics</h3>
+<p>While having mean, median and standard deviation is nice, this may not be enough for everyone. For example you may want to know what the largest observation is, e.g. because you have some real-time constraints. This is easy. The following code will specify a custom statistic to be calculated, defined by a lambda function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> BM_spin_empty(benchmark::State&amp; state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    <span class="cf">for</span> (<span class="dt">int</span> x = <span class="dv">0</span>; x &lt; state.range(<span class="dv">0</span>); ++x) {
+      benchmark::DoNotOptimize(x);
+    }
+  }
+}
+
+BENCHMARK(BM_spin_empty)
+  -&gt;ComputeStatistics(<span class="st">&quot;max&quot;</span>, [](<span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;&amp; v) -&gt; <span class="dt">double</span> {
+    <span class="cf">return</span> *(<span class="bu">std::</span>max_element(<span class="bu">std::</span>begin(v), <span class="bu">std::</span>end(v)));
+  })
+  -&gt;Arg(<span class="dv">512</span>);</code></pre></div>
+<p><a name="using-register-benchmark" /></p>
+<h3 id="using-registerbenchmarkname-fn-args...">Using RegisterBenchmark(name, fn, args...)</h3>
+<p>The <code>RegisterBenchmark(name, func, args...)</code> function provides an alternative way to create and register benchmarks. <code>RegisterBenchmark(name, func, args...)</code> creates, registers, and returns a pointer to a new benchmark with the specified <code>name</code> that invokes <code>func(st, args...)</code> where <code>st</code> is a <code>benchmark::State</code> object.</p>
+<p>Unlike the <code>BENCHMARK</code> registration macros, which can only be used at the global scope, the <code>RegisterBenchmark</code> can be called anywhere. This allows for benchmark tests to be registered programmatically.</p>
+<p>Additionally <code>RegisterBenchmark</code> allows any callable object to be registered as a benchmark. Including capturing lambdas and function objects.</p>
+<p>For Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> BM_test = [](benchmark::State&amp; st, <span class="kw">auto</span> Inputs) { <span class="co">/* ... */</span> };
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {
+  <span class="cf">for</span> (<span class="kw">auto</span>&amp; test_input : { <span class="co">/* ... */</span> })
+      benchmark::RegisterBenchmark(test_input.name(), BM_test, test_input);
+  benchmark::Initialize(&amp;argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+}</code></pre></div>
+<p><a name="exiting-with-an-error" /></p>
+<h3 id="exiting-with-an-error">Exiting with an Error</h3>
+<p>When errors caused by external influences, such as file I/O and network communication, occur within a benchmark the <code>State::SkipWithError(const char* msg)</code> function can be used to skip that run of benchmark and report the error. Note that only future iterations of the <code>KeepRunning()</code> are skipped. For the ranged-for version of the benchmark loop Users must explicitly exit the loop, otherwise all iterations will be performed. Users may explicitly return to exit the benchmark immediately.</p>
+<p>The <code>SkipWithError(...)</code> function may be used at any point within the benchmark, including before and after the benchmark loop.</p>
+<p>For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_test(benchmark::State&amp; state) {
+  <span class="kw">auto</span> resource = GetResource();
+  <span class="cf">if</span> (!resource.good()) {
+      state.SkipWithError(<span class="st">&quot;Resource is not good!&quot;</span>);
+      <span class="co">// KeepRunning() loop will not be entered.</span>
+  }
+  <span class="cf">for</span> (state.KeepRunning()) {
+      <span class="kw">auto</span> data = resource.read_data();
+      <span class="cf">if</span> (!resource.good()) {
+        state.SkipWithError(<span class="st">&quot;Failed to read data!&quot;</span>);
+        <span class="cf">break</span>; <span class="co">// Needed to skip the rest of the iteration.</span>
+     }
+     do_stuff(data);
+  }
+}
+
+<span class="at">static</span> <span class="dt">void</span> BM_test_ranged_fo(benchmark::State &amp; state) {
+  state.SkipWithError(<span class="st">&quot;test will not be entered&quot;</span>);
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    state.SkipWithError(<span class="st">&quot;Failed!&quot;</span>);
+    <span class="cf">break</span>; <span class="co">// REQUIRED to prevent all further iterations.</span>
+  }
+}</code></pre></div>
+<p><a name="a-faster-keep-running-loop" /></p>
+<h3 id="a-faster-keeprunning-loop">A Faster KeepRunning Loop</h3>
+<p>In C++11 mode, a ranged-based for loop should be used in preference to the <code>KeepRunning</code> loop for running the benchmarks. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="dt">void</span> BM_Fast(benchmark::State &amp;state) {
+  <span class="cf">for</span> (<span class="kw">auto</span> _ : state) {
+    FastOperation();
+  }
+}
+BENCHMARK(BM_Fast);</code></pre></div>
+<p>The reason the ranged-for loop is faster than using <code>KeepRunning</code>, is because <code>KeepRunning</code> requires a memory load and store of the iteration count ever iteration, whereas the ranged-for variant is able to keep the iteration count in a register.</p>
+<p>For example, an empty inner loop of using the ranged-based for method looks like:</p>
+<div class="sourceCode"><pre class="sourceCode asm"><code class="sourceCode fasm"># <span class="bu">Loop</span> Init
+  <span class="bu">mov</span> <span class="kw">rbx</span>, <span class="dt">qword</span> <span class="dt">ptr</span> [<span class="kw">r14</span> + <span class="dv">104</span>]
+  <span class="bu">call</span> benchmark::State::StartKeepRunning()
+  <span class="bu">test</span> <span class="kw">rbx</span>, <span class="kw">rbx</span>
+  <span class="bu">je</span> .LoopEnd
+<span class="fu">.LoopHeader:</span> # =&gt;This Inner <span class="bu">Loop</span> Header: Depth=<span class="dv">1</span>
+  <span class="bu">add</span> <span class="kw">rbx</span>, <span class="dv">-1</span>
+  <span class="bu">jne</span> .LoopHeader
+<span class="fu">.LoopEnd:</span></code></pre></div>
+<p>Compared to an empty <code>KeepRunning</code> loop, which looks like:</p>
+<div class="sourceCode"><pre class="sourceCode asm"><code class="sourceCode fasm"><span class="fu">.LoopHeader:</span> # <span class="bu">in</span> <span class="bu">Loop</span>: Header=BB0_<span class="dv">3</span> Depth=<span class="dv">1</span>
+  <span class="bu">cmp</span> <span class="dt">byte</span> <span class="dt">ptr</span> [<span class="kw">rbx</span>], <span class="dv">1</span>
+  <span class="bu">jne</span> .LoopInit
+<span class="fu">.LoopBody:</span> # =&gt;This Inner <span class="bu">Loop</span> Header: Depth=<span class="dv">1</span>
+  <span class="bu">mov</span> <span class="kw">rax</span>, <span class="dt">qword</span> <span class="dt">ptr</span> [<span class="kw">rbx</span> + <span class="dv">8</span>]
+  <span class="bu">lea</span> <span class="kw">rcx</span>, [<span class="kw">rax</span> + <span class="dv">1</span>]
+  <span class="bu">mov</span> <span class="dt">qword</span> <span class="dt">ptr</span> [<span class="kw">rbx</span> + <span class="dv">8</span>], <span class="kw">rcx</span>
+  <span class="bu">cmp</span> <span class="kw">rax</span>, <span class="dt">qword</span> <span class="dt">ptr</span> [<span class="kw">rbx</span> + <span class="dv">104</span>]
+  <span class="bu">jb</span> .LoopHeader
+  <span class="bu">jmp</span> .LoopEnd
+<span class="fu">.LoopInit:</span>
+  <span class="bu">mov</span> <span class="kw">rdi</span>, <span class="kw">rbx</span>
+  <span class="bu">call</span> benchmark::State::StartKeepRunning()
+  <span class="bu">jmp</span> .LoopBody
+<span class="fu">.LoopEnd:</span></code></pre></div>
+<p>Unless C++03 compatibility is required, the ranged-for variant of writing the benchmark loop should be preferred.</p>
+<p><a name="disabling-cpu-frequency-scaling" /></p>
+<h3 id="disabling-cpu-frequency-scaling">Disabling CPU Frequency Scaling</h3>
+<p>If you see this error:</p>
+<pre><code>***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.</code></pre>
+<p>you might want to disable the CPU frequency scaling while running the benchmark:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">sudo</span> cpupower frequency-set --governor performance
+<span class="ex">./mybench</span>
+<span class="fu">sudo</span> cpupower frequency-set --governor powersave</code></pre></div>

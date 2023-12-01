@@ -1,0 +1,72 @@
+<h1 id="tinyrefl-pipeline-status">tinyrefl <a href="https://gitlab.com/Manu343726/tinyrefl/commits/master"><img src="https://gitlab.com/Manu343726/tinyrefl/badges/master/pipeline.svg" alt="pipeline status" /></a></h1>
+<p>A work in progress minimal C++ static reflection API and codegen tool.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>Reflection of classes and enums</strong>:
+<ul>
+<li>Class and enum names</li>
+<li>User declared constructors</li>
+<li>Public member functions</li>
+<li>Public Member variables</li>
+<li>Enumeration values</li>
+</ul></li>
+<li><strong>User defined attributes</strong> on all reflected entities</li>
+<li><strong>C++14 static reflection API</strong>: Convert enum values to strings, get the set of member functions of a class, check for attributes, visit object members...</li>
+</ul>
+<p>``` cpp // foo.h</p>
+<p>namespace mylib { class [[interesting]] Foo { std::string str; void f() {} int i;</p>
+<pre><code>   enum class Enum
+   {
+       A, B, C
+   };</code></pre>
+<p>}; }</p>
+<p>// main.cpp</p>
+<p>#include <tinyrefl/api.hpp> #include &quot;foo.h&quot; #include &quot;foo.h.tinyrefl&quot;</p>
+<p>int main() { static_assert(tinyrefl::has_attribute<mylib::Foo>(&quot;interesting&quot;), &quot;Wow, I thought your API was interesting...&quot;);</p>
+<pre><code>   static_assert(tinyrefl::metadata&lt;mylib::Foo::Enum&gt;().get_value(mylib::Foo::Enum::A).underlying_value() == 0,
+       &quot;Great, it seems to work&quot;);
+
+   static_assert(tinyrefl::metadata&lt;mylib::Foo::Enum&gt;().get_value(mylib::Foo::Enum::A).name() == &quot;A&quot;,
+       &quot;Once upon a time there was a proposal to make static_assert() accept constexpr strings as message&quot;);
+
+   mylib::Foo foo{&quot;hello&quot;, 42};
+
+   tinyrefl::visit_object(foo, [](const std::string&amp; name, auto depth, const auto&amp; member, CTTI_STATIC_VALUE(tinyrefl::entity::MEMBER_VARIABLE))
+   {
+       std::cout &lt;&lt; &quot;Foo::&quot; &lt;&lt; name &lt;&lt; &quot;: &quot; &lt;&lt; member &lt;&lt; &quot;\n&quot;;
+   });
+
+   using base_classes = typename tinyrefl::metadata&lt;mylib::Foo&gt;::base_classes;</code></pre>
+<p>} ```</p>
+<p>See <a href="https://gitlab.com/Manu343726/tinyrefl/blob/master/examples/api.cpp">the <code>api.cpp</code> example</a> for a full example of usage.</p>
+<ul>
+<li><strong>API agnostic code generation</strong>: The <code>tinyrefl-tool</code> codegen tool included in the project is completely independent from the reflection API, generating macro based C/C++ code to allow users to write their own reflection API:</li>
+</ul>
+<p>``` cpp #include <boost/fusion/adapted/struct/adapt_struct.hpp></p>
+<p>// Write boost-adapt-struct compatible API: #define TINYREFL_STRING(...) # <strong>VA_ARGS</strong> #define TINYREFL_VALUE(...) <strong>VA_ARGS</strong> #define TINYREFL_SEQUENCE(...) <strong>VA_ARGS</strong> #define TINYREFL_TYPE(name, fullname) fullname #define TINYREFL_MEMBER(name, fullname, type, pointer) ((typename std::result_of<decltype(pointer), type>::type), (pointer)) #define TINYREFL_REFLECT_CLASS(type, bases, members, classes, enums) BOOST_FUSION_ADAPT_STRUCT(type, members)</p>
+<p>#include &quot;foo.h&quot; #include &quot;foo.h.tinyrefl&quot; ```</p>
+<p>See <a href="https://gitlab.com/Manu343726/tinyrefl/tree/master/examples"><code>examples/</code></a> for more backend examples.</p>
+<ul>
+<li><strong>CMake integration</strong>: Both the provided reflection API and codegen tool can be integrated in CMake based projects. To enable reflection, the library provides the <code>tinyrefl_tool()</code> function:</li>
+</ul>
+<p>``` cmake</p>
+<p># Include tinyrefl and its tooling add_subdirectory(thirdparty/tinyrefl) include(${TINYREFL_SOURCE_DIR}/tool/driver.cmake)</p>
+<p># Declare your library add_library(mylib foo.h foo.cpp)</p>
+<p># Enable code generation for foo.h of your library # The tool will be built and run before building your library tinyrefl_tool(TARGET mylib HEADERS foo.h) ```</p>
+<ul>
+<li><strong>Cross compilation supported</strong>: The CMake setup of tinyrefl detects whether your proyect is being cross compiled with a custom CMake toolchain file, and configures itself accordingly. No changes are needed in the tool integration as shown in the previous example.</li>
+</ul>
+<h2 id="compiler-support">Compiler support</h2>
+<p>The library has been testes against GCC &gt;= 5.x and Clang &gt;= 5.x.y. MSVC is not supported, but I have plans to make it work in the future. See the <a href="https://gitlab.com/Manu343726/tinyrefl/blob/master/ci/matrix.yml">CI build matrix</a> for details.</p>
+<h2 id="documentation">Documentation</h2>
+<p>Docs available in the <a href="https://gitlab.com/Manu343726/tinyrefl/wikis/home">project wiki</a>.</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>Many thanks to:</p>
+<ul>
+<li><a href="https://foonathan.net/">Jonathan &quot;foonathan&quot; Müller</a>, for his awesome <a href="https://github.com/foonathan/cppast">cppast</a> library, feedback, and quick bugfixing.</li>
+<li>My team lead at Bytech, for letting me integrate this for Qt QML C++ models (More about this soon).</li>
+</ul>
+<h2 id="license">License</h2>
+<p>This project is released under the MIT license. See LICENSE file for details.</p>
+<h2 id="feedback-and-bug-reporting">Feedback and bug reporting</h2>
+<p>Feel free to <a href="https://gitlab.com/Manu343726/tinyrefl/issues">open an issue</a> in this repository. You can also send a mail to the project desk account <strong><em>incoming+Manu343726/tinyrefl@incoming.gitlab.com</em></strong>.</p>

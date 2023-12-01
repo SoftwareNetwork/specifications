@@ -1,0 +1,252 @@
+<h1 id="gcpp-deferred-and-unordered-destruction"><strong>gcpp</strong>: Deferred and unordered destruction</h1>
+<p>Herb Sutter -- Updated 2016-10-16</p>
+<h2 id="motivation-goals-and-disclaimers">Motivation, goals, and disclaimers</h2>
+<p>gcpp is a personal project to try an experiment: Can we take the deferred and unordered destruction patterns with custom reachability tracing logic that we find ourselves writing by hand today, and automate some parts of that work as a reusable C++ library that delivers it as a zero-overhead abstraction?</p>
+<p>This is a demo of a potential additional fallback option for the rare cases where <code>unique_ptr</code> and <code>shared_ptr</code> aren't quite enough, notably when you have objects that refer to each other in local owning cycles, or when you need to defer destructor execution to meet real-time deadlines or to bound destructor stack cost. The goal is to illustrate ideas that others can draw from, that you may find useful even if you never use types like the ones below but just continue to use existing smart pointers and write your destructor-deferral and tracing code by hand.</p>
+<p>Disclaimers: This is a demo, not a production quality library; bug reports are welcome. As of this writing, it works on Clang/libc++ 3.9 or later and Visual Studio 2015 Update 3 or later; if you have success with others, please report it by opening an Issue to update this README. See also the FAQ <a href="#q-so-deferred_heap-and-deferred_ptr-have-no-disadvantages">&quot;So deferred_heap and deferred_ptr have no disadvantages?&quot;</a>. And please see the <a href="#acknowledgments">Acknowledgments</a>.</p>
+<h2 id="overview">Overview</h2>
+<h3 id="deferred_heap">deferred_heap</h3>
+<p>A <code>deferred_heap</code> owns a region of memory containing objects that can be safely accessed via <code>deferred_ptr&lt;T&gt;</code> and that can point to each other arbitrarily within the same heap. It provides three main operations:</p>
+<ul>
+<li><p><code>.make&lt;T&gt;()</code> allocates and constructs a new <code>T</code> object and returns a <code>deferred_ptr&lt;T&gt;</code>. If <code>T</code> is not trivially destructible, it will also record the destructor to be eventually invoked.</p></li>
+<li><p><code>.collect()</code> is called explicitly by default and traces this local heap in isolation; it never traces outside this heap and its roots, including that it does not touch the memory owned by any other <code>deferred_heap</code>s or any other program data structures. Any unreachable objects will have their deferred destructors run before their memory is deallocated. Cycles of <code>deferred_ptr</code>s within the same heap are destroyed when the cycle is no longer reachable.</p></li>
+<li><p><code>~deferred_heap()</code> runs any remaining deferred destructors and resets any <code>deferred_ptr</code>s that outlive this heap to null, then releases its memory all at once <a href="#q-is-deferred_heap-equivalent-to-region-based-memory-management">like a region</a>.</p></li>
+</ul>
+<p>Because <code>.collect()</code> and the destructor are explicit, the program can choose when (at a convenient time) and where (e.g., on what thread or processor) to run destructors.</p>
+<p>Local small heaps are encouraged. This keeps tracing isolated and composable; combining libraries that each use <code>deferred_heap</code>s internally will not directly affect each other's performance.</p>
+<h3 id="deferred_ptr">deferred_ptr<T></h3>
+<p>A <code>deferred_ptr&lt;T&gt;</code> refers to a <code>T</code> object in a <code>deferred_heap</code>. You can construct a <code>deferred_ptr</code> from an existing one (including one returned by <code>deferred_heap::make</code>, the source of all non-null <code>deferred_ptr</code>s) or by default-constructing it to null.</p>
+<p>It has the same functions as any normal C++ smart pointer, including derived-to-base and const conversions. Here are the main additional features and semantics:</p>
+<ul>
+<li><p>A <code>deferred_ptr</code> member is null in a deferred destructor. This enables <strong>safe unordered destruction</strong> by enforcing known best practices long learned in other languages and environments, in particular:</p></li>
+<li><p>It enforces that the otherwise-normal deferred destructor cannot access another deferred-destruction object that could possibly be destroyed in the same collection cycle (since it might already have been destroyed). This eliminates the &quot;accessing a disposed/finalized object&quot; class of bugs that is possible in environments like Java, .NET, and Go, and eliminates the &quot;leaking cycles of objects that use finalizers&quot; class of bugs that is possible in Go.</p></li>
+<li><p>It enforces that a destructor cannot &quot;resurrect&quot; another deferred-lifetime object (or itself) by storing a <code>deferred_ptr</code> to it somewhere that would make that object reachable again. This eliminates the &quot;double dispose&quot; class of bugs that is possible in environments like Java, .NET, and Go. It also closes a second route to the &quot;accessing a disposed/finalized object&quot; class of bugs mentioned in the previous point.</p></li>
+<li><p>Like <code>shared_ptr</code>'s aliasing constructor, <code>deferred_ptr</code> supports creating a smart pointer to a data member subobject of a deferred object. However, I'm currently doing it in a different way from <code>shared_ptr</code>. Whereas <code>shared_ptr</code>'s aliasing constructor can accept any pointer value and so isn't type-safe or memory-safe, <code>deferred_ptr&lt;T&gt;</code> instead provides a <code>.ptr_to&lt;U&gt;(U T::*)</code> function that takes a pointer to member of <code>T</code> and so type- and memory-safely guarantees at compile time that you can only use it to form a <code>deferred_ptr&lt;U&gt;</code> to a valid <code>U</code> subobject of a deferred <code>T</code> object via a valid <code>deferred_ptr&lt;T&gt;</code>.</p></li>
+<li><p>Assigning a <code>deferred_ptr</code> is not allowed across heaps. The pointer must continue pointing into whichever heap it initially pointed into. A default-constructed pointer does not point into any heap, but once assigned to point into a given heap it must continue to point there; this is currently enforced in debug builds.</p></li>
+</ul>
+<h3 id="deferred_allocator">deferred_allocator</h3>
+<p>Finally, <code>deferred_allocator</code> is a C++11 STL allocator that you can use to have an STL container store its elements in a <code>deferred_heap</code>. This is especially useful when a deferred-lifetime object contains a container of <code>deferred_ptr</code>s to other objects in its heap; using <code>deferred_allocator</code> expresses that the container's <code>deferred_ptr</code>s are inside the heap so that any cycles they participate in can be automatically cleaned up, whereas not using <code>deferred_allocator</code> expresses that the container's <code>deferred_ptr</code>s are outside the heap (i.e., roots).</p>
+<p>Convenience aliases are provided; for example, <code>deferred_vector&lt;T&gt;</code> is an alias for <code>std::vector&lt;T, gcpp::deferred_allocator&lt;T&gt;&gt;</code>.</p>
+<p>See also <a href="#speculative-stl-iterator-safety">additional uses of deferred_allocator</a>.</p>
+<h2 id="example">Example</h2>
+<p>Here is a <code>Graph</code> type that has its own local heap shared by all <code>Graph</code> objects:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// possibly-cyclic N-ary Graph, one heap for all graph nodes</span>
+
+<span class="kw">class</span> Graph {
+    <span class="kw">struct</span> Node {
+        deferred_vector&lt;deferred_ptr&lt;Node&gt;&gt; outbound_edges{ my_heap };  <span class="co">// keeps all edges in the heap</span>
+        <span class="co">/*... data ...*/</span>
+    };
+
+    <span class="at">static</span> deferred_heap my_heap;
+    vector&lt;deferred_ptr&lt;Node&gt;&gt; roots;
+
+<span class="kw">public</span>:
+    <span class="dt">void</span> SampleFunction() {
+        roots.emplace_back(my_heap.make&lt;Node&gt;());
+    }
+
+    <span class="co">// ... etc.</span>
+};</code></pre></div>
+<p>Here is a variation where each <code>Graph</code> object has its own private local heap:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// possibly-cyclic N-ary Graph, one heap per graph object</span>
+
+<span class="kw">class</span> Graph {
+    <span class="kw">struct</span> Node {
+        <span class="co">/*... data ...*/</span>
+        deferred_vector&lt;deferred_ptr&lt;Node&gt;&gt; outbound_edges;  <span class="co">// keeps all edges in the heap</span>
+        Node(deferred_heap&amp; h) : outbound_edges{h} { }
+    };
+
+    deferred_heap my_heap;
+    vector&lt;deferred_ptr&lt;Node&gt;&gt; roots;
+
+<span class="kw">public</span>:
+    <span class="dt">void</span> SampleFunction() {
+        roots.emplace_back(my_heap.make&lt;Node&gt;(my_heap));
+    }
+
+    <span class="co">// ... etc.</span>
+};</code></pre></div>
+<p>Note that <code>deferred_allocator</code> requires C++11 allocator support for fancy pointers; see <a href="#deferred-allocator-notes">deferred_allocator implementation notes</a>.</p>
+<h2 id="target-use-cases">Target use cases</h2>
+<p>gcpp aims to address three main issues, and a speculative use case.</p>
+<h3 id="ownership-cycles-preventing-leaks">1. Ownership cycles, preventing leaks</h3>
+<p>The first target use case is automatic by-construction memory management for data structures with cycles, which cannot be expressed with fully automated lifetime using C++17 facilities only.</p>
+<ul>
+<li><p>Encapsulated example: A <code>Graph</code> type whose <code>Node</code>s point to each other but should stay alive as long as they are transitively reachable from the enclosing <code>Graph</code> object or from some object such as a <code>Graph::iterator</code> that is handed out by the <code>Graph</code> object.</p></li>
+<li><p>Unencapsulated example: A group of objects of different types that refer to each other in a potentially-cyclic way but should stay alive as long as they are transitively reachable from some root outside their <code>deferred_heap</code>.</p></li>
+<li><p>In C++17, both examples can be partly automated (e.g., having <code>Graph</code> contain a <code>vector&lt;unique_ptr&lt;Node&gt;&gt; my_nodes;</code> so that all nodes are guaranteed to be destroyed at least when the <code>Graph</code> is destroyed), but require at minimum manual liveness tracing today (e.g., traversal logic to discover unreachable <code>Node</code> objects, which essentially implements a custom tracing algorithm by hand for the nodes, and then <code>my_nodes.erase(unreachable_node);</code> to remove each unreachable node which is manual and morally equivalent to <code>delete unreachable_node;</code>).</p></li>
+</ul>
+<h3 id="real-time-systems-bounding-the-cost-of-pointer-assignment">2. Real time systems, bounding the cost of pointer assignment</h3>
+<p>Using <code>shared_ptr</code> can be problematic in real time systems code, because any simple <code>shared_ptr</code> pointer assignment or destruction could cause an arbitrary number of objects to be destroyed, and therefore have unbounded cost. This is a rare case of where prompt destruction, usually a wonderful property, is actually bad for performance. (Note: This is less of a problem with <code>unique_ptr</code> because <code>unique_ptr</code> assignment necessarily causes destruction and so tends to be treated more carefully, whereas <code>shared_ptr</code> assignment <em>might</em> cause destruction.)</p>
+<p>Today, deadline-driven code must either avoid manipulating <code>shared_ptr</code>s or take defensive measures:</p>
+<ul>
+<li><p>Banning <code>shared_ptr</code> assignment or destruction entirely in deadline-driven code, such as by deferring the pointer assignment until after the end of the critical code region, is not always an option because the code may need to change which object a pointer refers to while still inside the critical region.</p></li>
+<li><p>Bounding the number of objects reachable from a <code>shared_ptr</code> can make the assignment cost have an upper bound to fit within the deadline, but requires ongoing care during maintenance. Adding an additional object, or changing the cost of a destructor, can exceed the bound.</p></li>
+<li><p>Deferring destruction by storing additional strong references in a separate &quot;keepalive&quot; data structure allows tracing to be performed later, outside the critical code region, to identify and destroy those objects no longer referred to from outside the keepalive structure. However, this amounts to another form of manually implemented liveness tracing.</p></li>
+</ul>
+<p>By design, <code>deferred_ptr</code> assignment cost is bounded and unrelated to destructors, and <code>deferred_heap</code> gives full control over when and where <code>collect()</code> runs deferred destructors. This makes it a candidate for being appropriate for real-time code in situations where using <code>shared_ptr</code> may be problematic.</p>
+<h3 id="constrained-systems-bounding-stack-depth-of-destruction">3. Constrained systems, bounding stack depth of destruction</h3>
+<p>Using <code>unique_ptr</code> and <code>shared_ptr</code> can be problematic in systems with constrained stack space and deep ownership. Because destructors are always run nested (recursively), the thread that releases an object must have sufficient stack space for the call depth required to destroy the tree of objects being released. If the tree can be arbitrarily deep, an arbitrary amout of stack space may be needed.</p>
+<p>Today, systems with constrained stacks use similar techniques to those mentioned in #2 above, with similar limitations and tradeoffs.</p>
+<p>By design, <code>deferred_heap</code> runs deferred destructors iteratively, not recursively. Of course, an <em>individual</em> deferred object may still own a tree of resources that may use <code>shared_ptr</code>s and be freed recursively by default, but any two deferred objects are destroyed iteratively even if they referred to each other, and their destructors never nest. This makes it a candidate for being appropriate for real-time code in situations where using <code>shared_ptr</code> may be problematic.</p>
+<h3 id="speculative-stl-iterator-safety">(speculative) STL iterator safety</h3>
+<p>Besides being useful to have containers of <code>deferred_ptr</code>s whose pointers live in a <code>deferred_heap</code>, using just a <code>container&lt;T, deferred_allocator&lt;T&gt;&gt;</code> by itself without explicit <code>deferred_ptr</code>s may have some interesting properties that could be useful for safer use of STL in domains where allowing iterator dereference errors to have undefined behavior is not tolerable.</p>
+<ul>
+<li><p>When using a <code>container&lt;T, deferred_allocator&lt;T&gt;&gt;</code>, iterators can’t dangle (point to a destroyed or deallocated object) because iterators keep objects alive and destructors are deferred. This turns dereferencing an invalidated iterator from an undefined behavior problem into a stale data problem.</p></li>
+<li><p>See <a href="#implementation-notes">Implementation notes</a> for limitations on iterator navigation using invalidated iterators.</p></li>
+<li><p>Note: <code>deferred_allocator</code> relies on C++11's allocator extensions to support &quot;fancy&quot; user-defined pointer types. It does not work with pre-C++11 standard libraries, which required <code>allocator::pointer</code> to be a raw pointer type. If you are using Microsoft Visual C++ (the only compiler I've tried so far), the current implementation of gcpp requires Visual Studio 2015 Update 3 (or later); it does not work on Update 2 which did not yet have enough fancy pointer support.</p></li>
+</ul>
+<h2 id="object-lifetime-guidance">Object lifetime guidance</h2>
+<p>The following summarizes the best practices we should already teach for expressing object lifetimes in C++17, and at the end adds a potential new fallback option to consider something along these lines.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="26%" />
+<col width="25%" />
+<col width="16%" />
+<col width="32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Guidance / library</th>
+<th>What it automates</th>
+<th>Efficiency</th>
+<th>Clarity and correctness</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>[C++17] <strong>1. Where possible, prefer scoped lifetime</strong> by default (e.g., locals, members)</td>
+<td>Expressing that this object's lifetime is tied to some other lifetime that is already well defined, such as a block scope (<code>auto</code> storage duration) or another object (member lifetime)</td>
+<td>Zero additional lifetime management overhead for this object</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>[C++17] <strong>2. Else prefer <code>make_unique</code> and <code>unique_ptr</code></strong>, if the object must have its own lifetime (i.e., heap) and ownership can be unique without ownership cycles</td>
+<td>Single-ownership heap object lifetime</td>
+<td>Usually identical cost as correctly written <code>new</code>+<code>delete</code></td>
+<td>Clearer and more robust than explicit <code>delete</code> (declarative, uses are correct by construction)</td>
+</tr>
+<tr class="odd">
+<td>[C++17] <strong>3. Else prefer <code>make_shared</code> and <code>shared_ptr</code></strong>, if the object must have its own lifetime (i.e., heap) and shared ownership, without ownership cycles</td>
+<td>Acyclic shared heap object lifetime managed with reference counting</td>
+<td>Usually identical cost as correctly written manual reference counting</td>
+<td>Clearer and more robust than manual/custom reference count logic (declarative, uses are correct by construction)</td>
+</tr>
+<tr class="even">
+<td>[experimental] <strong>4. Else use similar techniques as <code>deferred_heap</code> and <code>deferred_ptr</code></strong>, if the object must have its own lifetime (i.e., heap) and there can be ownership cycles</td>
+<td>Potentially-cyclic shared heap object lifetime managed with liveness tracing<br><br>Real-time code with bounded pointer assignment cost requirements<br><br>Constrained stacks with bounded call depth requirements</td>
+<td>(conjecture) Usually identical cost as correctly written manual tracing</td>
+<td>(conjecture) Clearer and more robust than manual/custom tracing logic (declarative, uses are correct by construction)</td>
+</tr>
+</tbody>
+</table>
+<h1 id="faqs">FAQs</h1>
+<h2 id="q-is-this-garbage-collection">Q: &quot;Is this <a href="https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)">garbage collection</a>?&quot;</h2>
+<p>Of course, and remember that so is reference counting (e.g., <code>shared_ptr</code>).</p>
+<h2 id="q-i-meant-is-this-just-tracing-garbage-collection-tracing-gc">Q: &quot;I meant, is this just <a href="https://en.wikipedia.org/wiki/Tracing_garbage_collection">tracing garbage collection</a> (tracing GC)?&quot;</h2>
+<p>Not the tracing GC most people are familiar with.</p>
+<p>Most importantly, <strong><code>deferred_heap</code> collects objects, not garbage</strong>:</p>
+<ul>
+<li><p>Most mainstream tracing GC is about <em>managing raw memory</em>, which can turn into meaningless &quot;garbage&quot; bytes. Tearing down the real objects that live in that memory is at best a brittle afterthought not designed as an integrated part of the language runtime; see the restrictions on <a href="https://en.wikipedia.org/wiki/Finalizer">&quot;finalizers&quot;</a> in Java, C#, D, Go, etc. (translation note: remember that in C# what are called &quot;destructors&quot; are actually finalizers) -- all the major GC-based environments I know of that have more than 10 years' field experience with finalizers now recommend avoiding finalizers outright in released code (<a href="http://www.hboehm.info/gc/finalization.html">here's an example</a>), and all for the same reasons: finalizers are not guaranteed to be executed, they are fragile because a finalizer should not (but can) access other possibly-finalized objects, and they lead to unmanageable complications like <a href="https://en.wikipedia.org/wiki/Object_resurrection">object resurrection</a> (the worst case of which is making a finalized object reachable again).</p></li>
+<li><p><code>deferred_heap</code> is fundamentally about <em>managing objects</em>, and is focused on deferring real destructors. So although it does perform liveness tracing, the most important way it differs from the mainstream tracing GC designs is that it tracks and collects constructed objects, and accurately records and later runs their deferred destructors. And because of that emphasis on running real destructors safely, <code>deferred_heap</code> makes all of a collectable object's <code>deferred_ptr</code>s null before running its destructor, which entirely prevents accessing possibly-destroyed objects and object resurrection.</p>
+<ul>
+<li>Note: When I said gcpp is a demo for people to draw ideas from, that includes other languages' designers. <strong>Suggestion to other languages' designers:</strong> I would encourage other GC-based languages to consider just nulling object references <em>that point to other finalizable objects</em> before running a round of finalizers. That should nearly always turn a latent bug into a NullPointerException/NullReferenceException/nil-pointer-panic/etc. Although it could be a breaking change in behavior for some programs, it is very likely to &quot;break&quot; only code that is already living on the edge and doing things that you are already telling your programmers not to do. In C++, when we discuss changes that would break suspicious code, Bjarne Stroustrup likes to call it &quot;code that deserves to be broken.&quot; So please entertain this suggestion, and consider whether it makes sense to set your object references to null before running finalizers and &quot;break&quot; code deliberately in your language for this case. If you do decide to try it, even in internal test builds, send me mail at hsutter-microsoft and let me know how it goes; I'm actively interested in learning about your experience.</li>
+</ul></li>
+</ul>
+<p>The other important difference is that <strong><code>deferred_heap</code> meets C++'s zero-overhead principle by being opt-in and granular, not default and global</strong>:</p>
+<ul>
+<li><p>Most mainstream languages that assume GC make the garbage-collected allocator the primary or only way to create heap objects, and all parts of the program (including all libraries linked into the executable) end up sharing a single global heap. Performing something other than GC allocation requires fighting with, and avoiding large parts of, the language and its standard library; for example, by resorting to writing your own allocator by allocating a large array and using unsafe pointers, or by calling out to native code. Further, tracing collection performance (e.g., GC pause timing and duration) in one part of the program can depend on allocation done by an unrelated library linked into the program.</p></li>
+<li><p><code>deferred_heap</code> is intended to be used tactically as another fallback in situations where options like <code>unique_ptr</code> and <code>shared_ptr</code> are insufficient, and even then in a granular way with a distinct <code>deferred_heap</code> within a class (or at most module). You don't pay for what you don't use: If you never perform a deferred allocation then there is zero cost, and if you do perform some deferred allocation then the cost is always proportional to the amount of deferred allocation you do. Tracing is performed only within each individual <code>deferred_heap</code> bubble, and cycles of <code>deferred_ptr</code>s must stay within the same heap in order to be collected. (Yes, it's possible to instantiate and share a global <code>deferred_heap</code>, but that isn't the way I intend this to be used, and certainly the current demo implementation isn't intended to scale well to millions of pointers.)</p></li>
+</ul>
+<h2 id="q-is-this-relatedsimilar-to-the-boehm-collector">Q: &quot;Is this related/similar to the <a href="http://www.hboehm.info/gc/">Boehm collector</a>?&quot;</h2>
+<p>No. That is a fine collector, but with different aims:</p>
+<ul>
+<li><p>It doesn't run destructors; even for registered finalizers, cycles of finalizable objects are never finalized.</p></li>
+<li><p>Its tracing is <a href="http://stackoverflow.com/questions/7629446/conservative-garbage-collector">conservative</a> and more global (touches memory beyond the actual GC allocations and roots, such as to discover roots conservatively).</p></li>
+</ul>
+<p><code>deferred_heap</code> runs destructors, and the tracing is accurate (not conservative) and scoped to an individual granular heap.</p>
+<h2 id="q-is-deferred_heap-equivalent-to-region-based-memory-management">Q: &quot;Is deferred_heap equivalent to <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">region-based memory management</a>?&quot;</h2>
+<p>It's a strict superset of regions.</p>
+<p>The key idea of a region is to efficiently release the region's memory in one shot when the region is destroyed, with deallocate-at-once semantics. <code>deferred_heap</code> does that, but goes further in three ways:</p>
+<ul>
+<li><p>It adds optional <strong>collection</strong> via <code>.collect()</code> to reclaim unused parts of the region without waiting for the whole region to be destroyed. If you don't call <code>.collect()</code>, then when the heap is destroyed the heap's memory is released all at once, exactly like a region.</p></li>
+<li><p>It owns <strong>objects</strong>, not just raw memory, and always correctly destroys any pending destructors for objects that are still in the heap when it is destroyed (or, if <code>.collect()</code> is called, that are unreachable). If you allocate only trivially destructible objects, then this adds zero work -- when the heap is destroyed, no additional destructors need to be run.</p></li>
+<li><p>It knows its <strong>roots</strong>, and safely resets any outstanding <code>deferred_ptr</code>s that outlive the heap they point into. If you don't let any <code>deferred_ptr</code>s outlive the heap they point into, then this adds zero work -- when the heap is destroyed, no additional nulling needs to be performed.</p></li>
+</ul>
+<p>The only work performed in the <code>deferred_heap</code> destructor is to run pending destructors, null out any <code>deferred_ptr</code>s that outlive the heap, and release the heap's memory pages. So if you use a <code>deferred_heap</code> and never call <code>.collect()</code>, never allocate a non-trivially destructible object, and never let a <code>deferred_ptr</code> outlive the heap, then destroying the heap does exactly nothing beyond efficiently dropping any memory it owns with deallocate-at-once semantics -- and then, yes, it's a region. But, unlike a region, you <em>can</em> do any of those things, and if you do then they are safe.</p>
+<p>One way to view <code>deferred_heap</code> is as a candidate approach for unifying tracing GC and regions. And destructors, most importantly of all.</p>
+<h2 id="q-so-deferred_heap-and-deferred_ptr-have-no-disadvantages">Q: &quot;So deferred_heap and deferred_ptr have no disadvantages?&quot;</h2>
+<p>Of course there are disadvantages to this approach, especially in this demo implementation.</p>
+<ul>
+<li><p>It moves work to different places, and does more total work and therefore has more total overhead than <code>unique_ptr</code> or <code>shared_ptr</code>. Prefer <code>unique_ptr</code> or <code>shared_ptr</code> in that order where possible, as usual; see <a href="#object-lifetime-guidance">the guidance above</a>. You should be using them much more frequently than <code>deferred_ptr</code>.</p></li>
+<li><p>The current implementation is not production-quality. In particular, it's a pure library solution that requires no compiler support, it's single-threaded, it dynamically registers every <code>deferred_ptr</code>, and it doesn't try to optimize its marking algorithm. The GC literature and experience is full of ways to make this faster; for example, a compiler optimizer that is aware of <code>deferred_ptr</code> could optimize away all registration of stack-based <code>deferred_ptr</code>s by generating stack maps. The important thing is to provide a distinct <code>deferred_ptr</code> type so we know all the pointers to trace, and that permits a lot of implementation leeway and optimization. (GC experts, feel free to plug in your favorite real GC implementation under the <code>deferred_heap</code> interface and let us know how it goes. I've factored out the destructor tracking to keep it separate from the heap implementation, to make it easier to plug in just the GC memory and tracing management implementation.)</p></li>
+</ul>
+<h2 id="q-why-create-another-smart-pointer-another-allocator">Q: &quot;Why create another smart pointer? another allocator?&quot;</h2>
+<p>Because that's how we roll in C++.</p>
+<p>gcpp aims to continue C++'s long tradition of being a great language for building libraries, including for memory allocation and lifetime management.</p>
+<ul>
+<li><p>We already have <code>make_unique</code> and <code>unique_ptr</code> to automate managing the lifetime of a single uniquely owned heap object. Using them is as efficient as (and considerably easier and less brittle than) writing <code>new</code> and <code>delete</code> by hand. Prefer this first when putting an object in a local stack scope or as a data member of another object is not sufficient.</p></li>
+<li><p>Similarly, <code>make_shared</code> and <code>shared_ptr</code> automate managing the lifetime of a single shared heap object. Using them is usually as efficient as (and always easier and less brittle than) managing reference counts by hand. Prefer this next when <code>unique_ptr</code> is not sufficient.</p></li>
+<li><p>In gcpp, <code>deferred_heap</code> and <code>deferred_ptr</code> take a stab at how we might automate managing the lifetime of a <strong>group of related shared heap objects</strong> that (a) may contain cycles and/or (b) needs deterministic pointer manipulation space and time cost. The goal is that using them be usually as efficient as (and easier and more robust than) managing ownership and writing custom tracing logic by hand to discover and perform destruction of unreachable objects. Because reachability is a property of the whole group, not of a single object or subgroup, an abstraction that owns the whole group is needed. Consider this, or write similar logic by hand, when you have a situation where neither <code>unique_ptr</code> nor <code>shared_ptr</code> are sufficient.</p></li>
+</ul>
+<h2 id="q-would-gc_heap-and-gc_ptr-be-better-names">Q: &quot;Would gc_heap and gc_ptr be better names?&quot;</h2>
+<p>I don't think so.</p>
+<p>I used those names initially, but switched to &quot;deferred&quot; for two major reasons, and one minor reason:</p>
+<ol style="list-style-type: decimal">
+<li><p>&quot;Deferred&quot; emphasizes what I think is the most important property, namely that we're talking about real objects with real destructors, just the destructors are deferred; that's even more important than the tracing collection part.</p></li>
+<li><p>&quot;GC&quot; could create confusion with the mainstream notion of tracing GC. This is not like GC in other major languages, as I explained above.</p></li>
+<li><p>&quot;GC&quot; is slightly inaccurate technically, because this isn't really adding GC to C++ inasmuch as C++11 and later already has GC because reference counting is one of the major forms of GC.</p></li>
+</ol>
+<h2 id="q-are-there-other-potential-uses-where-this-would-be-better-than-current-smart-pointers">Q: &quot;Are there other potential uses where this would be better than current smart pointers?&quot;</h2>
+<p>Yes.</p>
+<p>In particular, a lock-free single-width-compare-and-swap <code>atomic_deferred_ptr&lt;T&gt;</code> should be easy to write. (Of course, before trying that we'd first make <code>deferred_heap</code> itself thread-safe as a baseline.) It's well known that tracing GC makes it easy to avoid <a href="https://en.wikipedia.org/wiki/ABA_problem">ABA problems</a> and traversing-while-erasing concurrency problems for lock-free data structures, without resorting to more complex approaches like <a href="https://en.wikipedia.org/wiki/Hazard_pointer">hazard pointers</a>. The <code>std::atomic_shared_ptr</code> that I <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4162.pdf">proposed</a> and was adopted in C++17 solves these problems too (see <a href="https://www.justsoftwaresolutions.co.uk/threading/why-do-we-need-atomic_shared_ptr.html">Anthony Williams' nice writeup</a>), but it has two limitations: first, like all <code>shared_ptr</code>s it doesn't deal with cyclic data structures; and second, the <a href="http://www.stdthread.co.uk/doc/headers/experimental_atomic/atomic_shared_ptr.html">only current lock-free implementation</a> (also by Anthony Williams; thanks again Anthony!) requires double-width compare-and-swap (DCAS), which is not available on all platform targets. An <code>atomic_deferred_ptr</code> should solve all four of these problems and limitations.</p>
+<p>Even the current implementation, which uses double-width pointers, can pretty easily be made atomic without DCAS as follows: The current implementation is double width because it stores a back pointer to the <code>deferred_heap</code>, specifically so that we can prevent changing the heap that a <code>deferred_ptr</code> points into -- which means that the <code>deferred_heap*</code> is <code>const</code> once it is set to non-null. [The only exception is that the current implementation resets the heap pointer to null when the heap goes away, but that's easy to change by leaving it alone or pointing to a sentinel value.] That means that the implementation of <code>atomic_deferred_ptr&lt;T&gt;::compare_exchange(that)</code> can simply do single atomic loads of <code>*this</code>’s and <code>that</code>’s <code>deferred_heap*</code>s to compare them and enforce that they’re pointing into the same heap, and if they’re the same then do a normal single-width <code>compare_exchange</code> on the <code>T*</code>. -- And <code>deferred_ptr</code> doesn't need to be double width, there are other implementation choices that would make it just a <code>T*</code> and trivially copyable.</p>
+<p>Even in the worst case of a naïve non-concurrent collector that stops the world while collecting, this should be sufficient to make using <code>deferred_ptr</code>s completely lock-free &quot;in epochs&quot; meaning in between collections, and each data structure can control when collection of its private mini-heap happens and therefore control the epoch boundaries. And I expect that a concurrent collector written by a real GC implementer (not me) could do better than the baseline &quot;lock-free in epochs.&quot;</p>
+<h1 id="implementation-notes">Implementation notes</h1>
+<h2 id="storing-destructors">Storing destructors</h2>
+<p><code>deferred_heap::make&lt;T&gt;</code> stores a single object's destructor as two raw pointers:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> destructor {
+    <span class="at">const</span> <span class="dt">void</span>* p;               <span class="co">// raw pointer to the object</span>
+    <span class="dt">void</span>(*destroy)(<span class="at">const</span> <span class="dt">void</span>*); <span class="co">// raw pointer to a type-erased destructor function</span>
+};</code></pre></div>
+<p>Later we can just invoke <code>d.destroy(d.p)</code> to correctly clean up the complete object, even if the last <code>deferred_ptr</code> to it is not a <code>deferred_ptr&lt;T&gt;</code> but a pointer to a subobject (<code>deferred_ptr&lt;BaseClassOfT&gt;</code> or <code>deferred_ptr&lt;DataMemberOfT&gt;</code>).</p>
+<p>The code conveniently gets a raw function pointer to the destructor by using a lambda:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Called indirectly from deferred_heap::make&lt;T&gt;.</span>
+<span class="co">// Here, t is a T&amp;.</span>
+dtors.push_back({
+    <span class="bu">std::</span>addressof(t),                                    <span class="co">// address of T object</span>
+    [](<span class="at">const</span> <span class="dt">void</span>* x) { <span class="kw">static_cast</span>&lt;<span class="at">const</span> T*&gt;(x)-&gt;~T(); } <span class="co">// T destructor to invoke</span>
+});</code></pre></div>
+<p>One line removes the type, and the other line adds it back. The lambda gives a handy way to do type erasure -- because we know <code>T</code> here, we just write a lambda that performs the correct cast back to invoke the correct <code>T</code> destructor.</p>
+<p>A non-capturing lambda has no state, so it can be used as a plain function. So for each distinct type <code>T</code> that this is instantiated with, compiling this code generates one <code>T</code>-specific function (on demand at compile time, globally unique) and we store that function's address. The function itself is efficient: Depending on the optimization level, the lambda is typically generated as either a one-instruction wrapper function (just a single <code>jmp</code> to the actual destructor) or as a copy of the destructor if the destructor is inlined (no run-time overhead at all, just another inline copy of the destructor in the binary if it's generally being inlined anyway).</p>
+<h2 id="deferred_allocator-notes">deferred_allocator notes</h2>
+<p><code>deferred_allocator</code> appears to work with unmodified C++11-conforming STL containers.</p>
+<ul>
+<li>It requires good support for C++11 fancy pointers.
+<ul>
+<li>On Microsoft VC++, it requires Visual Studio 2015 Update 3 or later. Update 2 in known to have inadequate fancy pointer support.</li>
+<li>On Clang/libc++, it requires version 3.9 or later. It might work on 3.7 or 3.8 which I didn't test, but 3.6 is known to have inadequate fancy pointer support (fails to call <code>construct()</code>).</li>
+<li>I haven't found a version of GCC that supports it yet.</li>
+</ul></li>
+<li><p><code>deallocate()</code> is a no-op, but performs checking in debug builds. It does not need to actually deallocate because memory-safe deallocation will happen at the next <code>.collect()</code> after the memory becomes unreachable.</p></li>
+<li><p><code>destroy()</code> is a no-op, but performs checking in debug builds. It does not need to remember the destructor because that was already correctly recorded when <code>construct()</code> was called; see next point. It does not need to call the destructor because the destructor will be called type-safely when the object is unreachable (or, for <code>vector</code> only, when the container in-place constructs a new object in the same location; see next subpoint).</p></li>
+<li><p>The in-place <code>construct()</code> function remembers the type-correct destructor -- if needed, which means only if the object has a nontrivial destructor.</p></li>
+<li><p><code>construct()</code> is available via <code>deferred_allocator</code> only, and adds special sauce for handling <code>vector::pop_back</code> followed by <code>push_back</code>: A pending destructor is also run before constructing an object in a location for which the destructor is pending. This is the only situation where a destructor runs sooner than at <code>.collect()</code> time, and only happens when using an in-place constructing container like <code>std::vector&lt;T, deferred_allocator&lt;T&gt;&gt;</code> or <code>std::deque&lt;T, deferred_allocator&lt;T&gt;&gt;</code>.</p></li>
+<li><p>Note: We have to assume that the container implementation is not malicious; as Bjarne Stroustrup famously puts it, we protect against Murphy, not Machiavelli. Having said that, to my knowledge, <code>deferred_allocator::construct()</code> is the only operation in gcpp that could be abused in a type-unsafe way, and then only via a buggy or malicious implementation of an STL container that performs in-place construction.</p></li>
+<li><p><code>container&lt;T, deferred_allocator&lt;T&gt;&gt;</code> iterators keep objects (not just memory) alive. This makes <strong>dereferencing</strong> an invalidated iterator type-safe, as well as memory-safe.</p></li>
+<li><p>The iterator stores <code>deferred_ptr</code>, which makes the iterator a strong owner. When dereferencing invalidated iterators, this turns an undefined behavior problem into &quot;just&quot; a stale data problem.</p></li>
+<li><p>For all containers, an invalidated iterator points to a valid object. Note that the object may have a different value than the (buggy) program expects, including that it may be in a moved-from state; also, reading the object via the invalidated iterator is not guaranteed to see changes made to the container, and vice versa.</p></li>
+<li><p>However, <strong>using navigation</strong> (e.g., incrementing) invalidated iterators is not much better than today.</p></li>
+<li><p>For all random access iterators that use pointer arithmetic, any use of an iterator to navigate beyond the end of the allocation that the iterator actually points into will fire an assert in debug builds.</p></li>
+<li><p>For a <code>vector</code>, an invalidated iterator will keep an outgrown-and-discarded <code>vector</code> buffer alive and can still be compared correctly with other iterators into the same actual buffer (i.e., iterators of the same vintage == when the container had the same capacity). In particular, an invalidated iterator obtained before the <code>vector</code>'s last expansion cannot be correctly compared to the <code>vector</code>'s current <code>.begin()</code> or <code>.end()</code>, and loops that do that with an invalidated iterator will fire an assert in debug builds (because they perform <code>deferred_ptr</code> checked pointer arithmetic).</p></li>
+<li><p>For a node-based container or <code>deque</code>, an invalidated iterator refers to a node whose pointers have been destroyed (not just reset). Incrementing an invalidated iterator to a node-based container is still undefined behavior, as today.</p></li>
+</ul>
+<h1 id="acknowledgments">Acknowledgments</h1>
+<p>This personal project would be considerably weaker without input from a number of gracious experts who have been willing to share their time and experience. I would like to particularly thank the following people for their help:</p>
+<ul>
+<li><p>Thanks to Casey Carter, Jonathan Caves, Gabriel Dos Reis, Howard Hinnant, Thomas Koeppe, Stephan T. Lavavej, and Neil MacIntosh for their feedback on the code and/or help with various detailed C++ language and standard library questions. These folks are world-class experts in the C++ language, the C++ standard (and soon-to-be standard) library, and/or the compile-time analysis of both.</p></li>
+<li><p>Thanks to Hans Boehm, Pavel Curtis, Daniel Frampton, Kathryn S McKinley, and Mads Torgersen for their review and suggestions regarding the tracing GC parts. These folks grok garbage collection of all varieties as well as programming language design, and their deep experience has been invaluable.</p></li>
+</ul>
+<p>Thanks, very much.</p>

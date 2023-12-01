@@ -1,0 +1,103 @@
+<h1 id="histogram">Histogram</h1>
+<p><strong>Fast multi-dimensional histogram with convenient interface for C++14</strong></p>
+<p>Coded with ❤. Powered by the <a href="https://www.boost.org">Boost community</a> and the <a href="http://scikit-hep.org">Scikit-HEP Project</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Branch</th>
+<th>Linux [1] and OSX [2]</th>
+<th>Windows [3]</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>develop</td>
+<td><a href="https://travis-ci.com/HDembinski/histogram?branch=develop"><img src="https://travis-ci.com/HDembinski/histogram.svg?branch=develop" alt="Build Status Travis" /></a></td>
+<td><a href="https://ci.appveyor.com/project/HDembinski/histogram/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/400lx25l3jdpk96b/branch/develop?svg=true" alt="Build status" /></a></td>
+<td><a href="https://codecov.io/gh/HDembinski/histogram/branch/develop"><img src="https://codecov.io/gh/HDembinski/histogram/branch/develop/graph/badge.svg" alt="codecov" /></a></td>
+</tr>
+<tr class="even">
+<td>master</td>
+<td><a href="https://travis-ci.com/HDembinski/histogram?branch=master"><img src="https://travis-ci.com/HDembinski/histogram.svg?branch=master" alt="Build Status Travis" /></a></td>
+<td><a href="https://ci.appveyor.com/project/HDembinski/histogram/branch/master"><img src="https://ci.appveyor.com/api/projects/status/400lx25l3jdpk96b/branch/master?svg=true" alt="Build status Appveyor" /></a></td>
+<td><a href="https://codecov.io/gh/HDembinski/histogram/branch/master"><img src="https://codecov.io/gh/HDembinski/histogram/branch/master/graph/badge.svg" alt="codecov" /></a></td>
+</tr>
+</tbody>
+</table>
+<ol style="list-style-type: decimal">
+<li>gcc-5.5.0, clang-5.0.0</li>
+<li>Xcode 9.4</li>
+<li>Visual Studio 15 2017</li>
+</ol>
+<p>This <strong>header-only</strong> open-source library provides an easy-to-use state-of-the-art multi-dimensional <a href="https://en.wikipedia.org/wiki/Histogram">histogram</a> class for the professional statistician and everyone who needs to count things. The histogram is easy to use for the casual user and yet very customizable. It does not restrict the power-user. The library offers a unique safety guarantee: cell counts <em>cannot overflow</em> or <em>be capped</em> in the standard configuration. And it can do more than counting. The histogram can be equipped with arbitrary accumulators to compute means, medians, and whatever you fancy in each cell. The library is very fast single-threaded (see benchmarks) and several parallelization options are provided for multi-threaded programming.</p>
+<p>The project has passed Boost review in September 2018 and is going to be first released with <a href="http://www.boost.org">Boost-1.70</a> in April. The source code is licensed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License</a>.</p>
+<p>Check out the <a href="https://www.boost.org/doc/libs/develop/libs/histogram/doc/html/index.html">full documentation</a>. <a href="https://github.com/hdembinski/histogram-python">Python bindings</a> to this library are available elsewhere.</p>
+<h2 id="code-example">Code example</h2>
+<p>The following stripped-down example was taken from the <a href="https://www.boost.org/doc/libs/develop/libs/histogram/doc/html/histogram/getting_started.html">Getting started</a> section in the documentation. Have a look into the docs to see the full version with comments and more examples.</p>
+<p>Example: Fill a 1d-histogram</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;boost/histogram.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/format.hpp&gt;</span><span class="pp"> </span><span class="co">// used here for printing</span>
+<span class="pp">#include </span><span class="im">&lt;functional&gt;</span><span class="pp"> </span><span class="co">// for std::ref</span>
+
+<span class="dt">int</span> main() {
+    <span class="kw">using</span> <span class="kw">namespace</span> <span class="ex">boost::</span>histogram;
+
+    <span class="kw">auto</span> h = make_histogram(
+      axis::regular&lt;&gt;(<span class="dv">6</span>, <span class="fl">-1.0</span>, <span class="fl">2.0</span>, <span class="st">&quot;x&quot;</span>)
+    );
+
+    <span class="co">// fill histogram</span>
+    <span class="kw">auto</span> data = { <span class="dv">-10</span>, <span class="fl">-0.4</span>, <span class="fl">1.1</span>, <span class="fl">0.3</span>, <span class="fl">1.3</span> };
+    <span class="bu">std::</span>for_each(data.begin(), data.end(), <span class="bu">std::</span>ref(h));
+
+    <span class="co">// iterate over bins</span>
+    <span class="cf">for</span> (<span class="kw">auto</span> x : indexed(h)) {
+      <span class="bu">std::</span>cout &lt;&lt; <span class="ex">boost::</span>format(<span class="st">&quot;bin </span><span class="sc">%2i</span><span class="st"> [</span><span class="sc">%4.1f</span><span class="st">, </span><span class="sc">%4.1f</span><span class="st">): </span><span class="sc">%i\n</span><span class="st">&quot;</span>)
+        % x.index() % x.bin().lower() % x.bin().upper() % *x;
+    }
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>flush;
+
+    <span class="co">/* program output:</span>
+
+<span class="co">    bin -1 [-inf, -1.0): 1</span>
+<span class="co">    bin  0 [-1.0, -0.5): 0</span>
+<span class="co">    bin  1 [-0.5, -0.0): 1</span>
+<span class="co">    bin  2 [-0.0,  0.5): 1</span>
+<span class="co">    bin  3 [ 0.5,  1.0): 0</span>
+<span class="co">    bin  4 [ 1.0,  1.5): 2</span>
+<span class="co">    bin  5 [ 1.5,  2.0): 0</span>
+<span class="co">    bin  6 [ 2.0,  inf): 0</span>
+<span class="co">    */</span>
+}</code></pre></div>
+<h2 id="features">Features</h2>
+<ul>
+<li>Extremely customisable multi-dimensional histogram</li>
+<li>Simple, convenient, STL and Boost-compatible interface</li>
+<li>Counters with high dynamic range, cannot overflow or be capped (1)</li>
+<li>Better performance than other libraries (see benchmarks for details)</li>
+<li>Efficient use of memory (1)</li>
+<li>Support for custom axis types: define how input values should map to indices</li>
+<li>Support for under-/overflow bins (can be disabled individually to reduce memory consumption)</li>
+<li>Support for axes that grow automatically with input values (2)</li>
+<li>Support for weighted increments</li>
+<li>Support for profiles and more generally, user-defined accumulators in cells (3)</li>
+<li>Support for completely stack-based histograms</li>
+<li>Support for adding and scaling histograms</li>
+<li>Support for custom allocators</li>
+<li>Support for programming with units (4)</li>
+<li>Optional serialization based on <a href="https://www.boost.org/doc/libs/release/libs/serialization/">Boost.Serialization</a></li>
+</ul>
+<ol style="list-style-type: decimal">
+<li>In the standard configuration, if you don't use weighted increments. The counter capacity is increased dynamically as the cell counts grow. When even the largest plain integral type would overflow, the storage switches to a multiprecision integer similar to those in <a href="https://www.boost.org/doc/libs/release/libs/multiprecision/">Boost.Multiprecision</a>, which is only limited by available memory.</li>
+<li>An axis can be configured to grow when a value is encountered that is outside of its range. It then grows new bins towards this value so that the value ends up in the new highest or lowest bin.</li>
+<li>The histogram can be configured to hold an arbitrary accumulator in each cell instead of a simple counter. Extra values can be passed to the histogram, for example, to compute the mean and variance of values which fall into the same cell. This can be used to compute variance estimates for each cell. These are useful when histograms are to be compared quantitatively and if a statistical model is fitted to the cell values.</li>
+<li>Builtin axis types can configured to only accept dimensional quantities, like those from <a href="https://www.boost.org/doc/libs/release/libs/units/">Boost.Units</a>. This means you get an error if you try to fill a length when the histogram axis expects a time, for example.</li>
+</ol>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Boost.Histogram is more flexible and faster than other C/C++ libraries. It was compared to: - <a href="https://www.gnu.org/software/gsl">GNU Scientific Library</a> - <a href="https://root.cern.ch">ROOT framework from CERN</a></p>
+<p>Details on the benchmark are given in the <a href="https://www.boost.org/doc/libs/develop/libs/histogram/doc/html/histogram/benchmarks.html">documentation</a>.</p>
+<h2 id="what-users-say">What users say</h2>
+<p><strong>John Buonagurio</strong> | Manager at <a href="www.exponent.com"><strong>E<sup><i>x</i></sup>ponent<sup>®</sup></strong></a></p>
+<p><em>&quot;I just wanted to say 'thanks' for your awesome Histogram library. I'm working on a software package for processing meteorology data and I'm using it to generate wind roses with the help of Qt and QwtPolar. Looks like you thought of just about everything here – the circular axis type was practically designed for this application, everything 'just worked'.&quot;</em></p>

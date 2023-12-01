@@ -1,0 +1,104 @@
+<p><strong>libbf</strong> is a C++11 library which implements <a href="http://matthias.vallentin.net/blog/2011/06/a-garden-variety-of-bloom-filters/">various Bloom filters</a>, including:</p>
+<ul>
+<li>Basic</li>
+<li>Counting</li>
+<li>Spectral MI</li>
+<li>Spectral RM</li>
+<li>Bitwise</li>
+<li>A^2</li>
+<li>Stable</li>
+</ul>
+<h1 id="synopsis">Synopsis</h1>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;bf.h&gt;
+
+int main()
+{
+  bf::basic_bloom_filter b(0.8, 100);
+
+  // Add two elements.
+  b.add(&quot;foo&quot;);
+  b.add(42);
+
+  // Test set membership
+  std::cout &lt;&lt; b.lookup(&quot;foo&quot;) &lt;&lt; std::endl;  // 1
+  std::cout &lt;&lt; b.lookup(&quot;bar&quot;) &lt;&lt; std::endl;  // 0
+  std::cout &lt;&lt; b.lookup(42) &lt;&lt; std::endl;     // 1
+
+  // Remove all elements.
+  b.clear();
+  std::cout &lt;&lt; b.lookup(&quot;foo&quot;) &lt;&lt; std::endl;  // 0
+  std::cout &lt;&lt; b.lookup(42) &lt;&lt; std::endl;     // 0
+
+  return 0;
+}</code></pre>
+<h1 id="requirements">Requirements</h1>
+<ul>
+<li>A C++11 compiler (GCC &gt;= 4.7 or Clang &gt;= 3.2)</li>
+<li>CMake (&gt;= 2.8)</li>
+</ul>
+<h1 id="installation">Installation</h1>
+<p>The build process uses CMake, wrapped in autotools-like scripts. The configure script honors the <code>CXX</code> environment variable to select a specific C++compiler. For example, the following steps compile libbf with Clang and install it under <code>PREFIX</code>:</p>
+<pre><code>CXX=clang++ ./configure --prefix=PREFIX
+make
+make test
+make install</code></pre>
+<h1 id="documentation">Documentation</h1>
+<p>The most recent version of the Doxygen API documentation exists at <a href="http://mavam.github.io/libbf/api" class="uri">http://mavam.github.io/libbf/api</a>. Alternatively, you can build the documentation locally via <code>make doc</code> and then browse to <code>doc/gh-pages/api/index.html</code>.</p>
+<h1 id="usage">Usage</h1>
+<p>After having installed libbf, you can use it in your application by including the header file <code>bf.h</code> and linking against the library. All data structures reside in the namespace <code>bf</code> and the following examples assume:</p>
+<pre><code>using namespace bf;</code></pre>
+<p>Each Bloom filter inherits from the abstract base class <code>bloom_filter</code>, which provides addition and lookup via the virtual functions <code>add</code> and <code>lookup</code>. These functions take an <em>object</em> as argument, which serves a light-weight view over sequential data for hashing.</p>
+<p>For example, if you can create a basic Bloom filter with a desired false-positive probability and capacity as follows:</p>
+<pre><code>// Construction.
+bloom_filter* bf = new basic_bloom_filter(0.8, 100);
+
+// Addition.
+bf-&gt;add(&quot;foo&quot;);
+bf-&gt;add(42);
+
+// Lookup.
+assert(bf-&gt;lookup(&quot;foo&quot;) == 1);
+assert(bf-&gt;lookup(42) == 1);
+
+// Remove all elements from the Bloom filter.
+bf-&gt;clear();</code></pre>
+<p>In this case, libbf computes the optimal number of hash functions needed to achieve the desired false-positive rate which holds until the capacity has been reached (80% and 100 distinct elements, in the above example). Alternatively, you can construct a basic Bloom filter by specifying the number of hash functions and the number of cells in the underlying bit vector:</p>
+<pre><code>bloom_filter* bf = new basic_bloom_filter(make_hasher(3), 1024);</code></pre>
+<p>Since not all Bloom filter implementations come with closed-form solutions based on false-positive probabilities, most constructors use this latter form of explicit resource provisioning.</p>
+<p>In the above example, the free function <code>make_hasher</code> constructs a <em>hasher</em>-an abstraction for hashing objects <em>k</em> times. There exist currently two different hasher, a <code>default_hasher</code> and a <a href="http://www.eecs.harvard.edu/~kirsch/pubs/bbbf/rsa.pdf"><code>double_hasher</code></a>. The latter uses a linear combination of two pairwise-independent, universal hash functions to produce the <em>k</em> digests, whereas the former merely hashes the object <em>k</em> times.</p>
+<h2 id="evaluation">Evaluation</h2>
+<p>libbf also ships with a small Bloom filter tool <code>bf</code> in the test directory. This program supports evaluation the accuracy of the different Bloom filter flavors with respect to their false-positive and false-negative rates. Have a look at the console help (<code>-h</code> or <code>--help</code>) for detailed usage instructions.</p>
+<p>The tool operates in two phases:</p>
+<ol style="list-style-type: decimal">
+<li>Read input from a file and insert it into a Bloom filter</li>
+<li>Query the Bloom filter and compare the result to the ground truth</li>
+</ol>
+<p>For example, consider the following input file:</p>
+<pre><code>foo
+bar
+baz
+baz
+foo</code></pre>
+<p>From this input file, you can generate the real ground truth file as follows:</p>
+<pre><code>sort input.txt | uniq -c | tee query.txt
+   1 bar
+   2 baz
+   2 foo</code></pre>
+<p>The tool <code>bf</code> will compute false-positive and false-negative counts for each element, based on the ground truth given. In the case of a simple counting Bloom filter, an invocation may look like this:</p>
+<pre><code>bf -t counting -m 2 -k 3 -i input.txt -q query.txt | column -t</code></pre>
+<p>Yielding the following output:</p>
+<pre><code>TN  TP  FP  FN  G  C  E
+0   1   0   0   1  1  bar
+0   1   0   1   2  1  baz
+0   1   0   2   2  1  foo</code></pre>
+<p>The column headings denote true negatives (<code>TN</code>), true positives (<code>TP</code>), false positives (<code>FP</code>), false negatives (<code>FN</code>), ground truth count (<code>G</code>), actual count (<code>C</code>), and the queried element. The counts are cumulative to support incremental evaluation.</p>
+<h1 id="versioning">Versioning</h1>
+<p>We follow <a href="http://semver.org/spec/v1.0.0.html">Semantic Versioning</a>. The version X.Y.Z indicates:</p>
+<ul>
+<li>X is the major version (backward-incompatible),</li>
+<li>Y is the minor version (backward-compatible), and</li>
+<li>Z is the patch version (backward-compatible bug fix).</li>
+</ul>
+<h1 id="license">License</h1>
+<p>libbf comes with a BSD-style license (see <a href="COPYING" class="uri">COPYING</a> for details).</p>

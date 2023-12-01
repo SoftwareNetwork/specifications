@@ -1,0 +1,201 @@
+<h1 id="matplotlib-cpp">matplotlib-cpp</h1>
+<p>Welcome to matplotlib-cpp, possibly the simplest C++ plotting library. It is built to resemble the plotting API used by Matlab and matplotlib.</p>
+<h2 id="usage">Usage</h2>
+<p>Complete minimal example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;matplotlibcpp.h&quot;</span>
+<span class="kw">namespace</span> plt = matplotlibcpp;
+<span class="dt">int</span> main() {
+    plt::plot({<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">4</span>});
+    plt::show();
+}</code></pre></div>
+<pre><code>g++ minimal.cpp -std=c++11 -I/usr/include/python2.7 -lpython2.7</code></pre>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/minimal.png" alt="Minimal example" />
+<p class="caption">Minimal example</p>
+</div>
+<p>A more comprehensive example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;matplotlibcpp.h&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;cmath&gt;</span>
+
+<span class="kw">namespace</span> plt = matplotlibcpp;
+
+<span class="dt">int</span> main() 
+{
+    <span class="co">// Prepare data.</span>
+    <span class="dt">int</span> n = <span class="dv">5000</span>;
+    <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; x(n), y(n), z(n), w(n,<span class="dv">2</span>);
+    <span class="cf">for</span>(<span class="dt">int</span> i=<span class="dv">0</span>; i&lt;n; ++i) {
+        x.at(i) = i*i;
+        y.at(i) = sin(<span class="dv">2</span>*M_PI*i/<span class="fl">360.0</span>);
+        z.at(i) = log(i);
+    }
+
+    <span class="co">// Set the size of output image to 1200x780 pixels</span>
+    plt::figure_size(<span class="dv">1200</span>, <span class="dv">780</span>);
+    <span class="co">// Plot line from given x and y data. Color is selected automatically.</span>
+    plt::plot(x, y);
+    <span class="co">// Plot a red dashed line from given x and y data.</span>
+    plt::plot(x, w,<span class="st">&quot;r--&quot;</span>);
+    <span class="co">// Plot a line whose name will show up as &quot;log(x)&quot; in the legend.</span>
+    plt::named_plot(<span class="st">&quot;log(x)&quot;</span>, x, z);
+    <span class="co">// Set x-axis to interval [0,1000000]</span>
+    plt::xlim(<span class="dv">0</span>, <span class="dv">1000</span>*<span class="dv">1000</span>);
+    <span class="co">// Add graph title</span>
+    plt::title(<span class="st">&quot;Sample figure&quot;</span>);
+    <span class="co">// Enable legend.</span>
+    plt::legend();
+    <span class="co">// Save the image (file format is determined by the extension)</span>
+    plt::save(<span class="st">&quot;./basic.png&quot;</span>);
+}</code></pre></div>
+<pre><code>g++ basic.cpp -I/usr/include/python2.7 -lpython2.7</code></pre>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/basic.png" alt="Basic example" />
+<p class="caption">Basic example</p>
+</div>
+<p>Alternatively, matplotlib-cpp also supports some C++11-powered syntactic sugar:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cmath&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;matplotlibcpp.h&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+<span class="kw">namespace</span> plt = matplotlibcpp;
+
+<span class="dt">int</span> main() 
+{    
+    <span class="co">// Prepare data.</span>
+    <span class="dt">int</span> n = <span class="dv">5000</span>; <span class="co">// number of data points</span>
+    vector&lt;<span class="dt">double</span>&gt; x(n),y(n); 
+    <span class="cf">for</span>(<span class="dt">int</span> i=<span class="dv">0</span>; i&lt;n; ++i) {
+        <span class="dt">double</span> t = <span class="dv">2</span>*M_PI*i/n;
+        x.at(i) = <span class="dv">16</span>*sin(t)*sin(t)*sin(t);
+        y.at(i) = <span class="dv">13</span>*cos(t) - <span class="dv">5</span>*cos(<span class="dv">2</span>*t) - <span class="dv">2</span>*cos(<span class="dv">3</span>*t) - cos(<span class="dv">4</span>*t);
+    }
+
+    <span class="co">// plot() takes an arbitrary number of (x,y,format)-triples. </span>
+    <span class="co">// x must be iterable (that is, anything providing begin(x) and end(x)),</span>
+    <span class="co">// y must either be callable (providing operator() const) or iterable. </span>
+    plt::plot(x, y, <span class="st">&quot;r-&quot;</span>, x, [](<span class="dt">double</span> d) { <span class="cf">return</span> <span class="fl">12.5</span>+abs(sin(d)); }, <span class="st">&quot;k-&quot;</span>);
+
+
+    <span class="co">// show plots</span>
+    plt::show();
+} </code></pre></div>
+<pre><code>g++ modern.cpp -std=c++11 -I/usr/include/python2.7 -lpython</code></pre>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/modern.png" alt="Modern example" />
+<p class="caption">Modern example</p>
+</div>
+<p>Or some <em>funny-looking xkcd-styled</em> example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;matplotlibcpp.h&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cmath&gt;</span>
+
+<span class="kw">namespace</span> plt = matplotlibcpp;
+
+<span class="dt">int</span> main() {
+    <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; t(<span class="dv">1000</span>);
+    <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; x(t.size());
+
+    <span class="cf">for</span>(<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; t.size(); i++) {
+        t[i] = i / <span class="fl">100.0</span>;
+        x[i] = sin(<span class="fl">2.0</span> * M_PI * <span class="fl">1.0</span> * t[i]);
+    }
+
+    plt::xkcd();
+    plt::plot(t, x);
+    plt::title(<span class="st">&quot;AN ORDINARY SIN WAVE&quot;</span>);
+    plt::save(<span class="st">&quot;xkcd.png&quot;</span>);
+}</code></pre></div>
+<pre><code>g++ xkcd.cpp -std=c++11 -I/usr/include/python2.7 -lpython2.7</code></pre>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/xkcd.png" alt="xkcd example" />
+<p class="caption">xkcd example</p>
+</div>
+<p>When working with vector fields, you might be interested in quiver plots:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../matplotlibcpp.h&quot;</span>
+
+<span class="kw">namespace</span> plt = matplotlibcpp;
+
+<span class="dt">int</span> main()
+{
+    <span class="co">// u and v are respectively the x and y components of the arrows we&#39;re plotting</span>
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; x, y, u, v;
+    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">-5</span>; i &lt;= <span class="dv">5</span>; i++) {
+        <span class="cf">for</span> (<span class="dt">int</span> j = <span class="dv">-5</span>; j &lt;= <span class="dv">5</span>; j++) {
+            x.push_back(i);
+            u.push_back(-i);
+            y.push_back(j);
+            v.push_back(-j);
+        }
+    }
+
+    plt::quiver(x, y, u, v);
+    plt::show();
+}</code></pre></div>
+<pre><code>g++ quiver.cpp -std=c++11 -I/usr/include/python2.7 -lpython2.7</code></pre>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/quiver.png" alt="quiver example" />
+<p class="caption">quiver example</p>
+</div>
+<p>When working with 3d functions, you might be interested in 3d plots:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../matplotlibcpp.h&quot;</span>
+
+<span class="kw">namespace</span> plt = matplotlibcpp;
+
+<span class="dt">int</span> main()
+{
+    <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;&gt; x, y, z;
+    <span class="cf">for</span> (<span class="dt">double</span> i = <span class="dv">-5</span>; i &lt;= <span class="dv">5</span>;  i += <span class="fl">0.25</span>) {
+        <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; x_row, y_row, z_row;
+        <span class="cf">for</span> (<span class="dt">double</span> j = <span class="dv">-5</span>; j &lt;= <span class="dv">5</span>; j += <span class="fl">0.25</span>) {
+            x_row.push_back(i);
+            y_row.push_back(j);
+            z_row.push_back(::<span class="bu">std::</span>sin(::<span class="bu">std::</span>hypot(i, j)));
+        }
+        x.push_back(x_row);
+        y.push_back(y_row);
+        z.push_back(z_row);
+    }
+
+    plt::plot_surface(x, y, z);
+    plt::show();
+}</code></pre></div>
+<p><strong>Result:</strong></p>
+<div class="figure">
+<img src="./examples/surface.png" alt="surface example" />
+<p class="caption">surface example</p>
+</div>
+<h2 id="installation">Installation</h2>
+<p>matplotlib-cpp works by wrapping the popular python plotting library matplotlib. (matplotlib.org) This means you have to have a working python installation, including development headers. On Ubuntu:</p>
+<pre><code>sudo apt-get install python-matplotlib python-numpy python2.7-dev</code></pre>
+<p>If, for some reason, you're unable to get a working installation of numpy on your system, you can add the define <code>WITHOUT_NUMPY</code> to erase this dependency.</p>
+<p>The C++-part of the library consists of the single header file <code>matplotlibcpp.h</code> which can be placed anywhere.</p>
+<p>Since a python interpreter is opened internally, it is necessary to link against <code>libpython2.7</code> in order to use matplotlib-cpp.</p>
+<h1 id="cmake">CMake</h1>
+<p>If you prefer to use CMake as build system, you will want to add something like this to your CMakeLists.txt:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(PythonLibs 2.7)
+<span class="kw">target_include_directories</span>(myproject <span class="ot">PRIVATE</span> <span class="va">${PYTHON_INCLUDE_DIRS}</span>)
+<span class="kw">target_link_libraries</span>(myproject <span class="va">${PYTHON_LIBRARIES}</span>)</code></pre></div>
+<h1 id="c11">C++11</h1>
+<p>Currently, c++11 is required to build matplotlib-cpp. The last working commit that did not have this requirement was <code>717e98e752260245407c5329846f5d62605eff08</code>.</p>
+<p>Note that support for c++98 was dropped more or less accidentally, so if you have to work with an ancient compiler and still want to enjoy the latest additional features, I'd probably merge a PR that restores support.</p>
+<h1 id="python-3">Python 3</h1>
+<p>This library supports both python2 and python3 (although the python3 support is probably far less tested, so it is recommended to prefer python2.7). To switch the used python version, simply change the compiler flags accordingly.</p>
+<pre><code>g++ example.cpp -I/usr/include/python3.6 -lpython3.6</code></pre>
+<p>The same technique can be used for linking against a custom build of python</p>
+<pre><code>g++ example.cpp -I/usr/local/include/fancy-python4 -L/usr/local/lib -lfancy-python4</code></pre>
+<h2 id="why">Why?</h2>
+<p>I initially started this library during my diploma thesis. The usual approach of writing data from the c++ algorithm to a file and afterwards parsing and plotting it in python using matplotlib proved insufficient: Keeping the algorithm and plotting code in sync requires a lot of effort when the C++ code frequently and substantially changes. Additionally, the python yaml parser was not able to cope with files that exceed a few hundred megabytes in size.</p>
+<p>Therefore, I was looking for a C++ plotting library that was extremely easy to use and to add into an existing codebase, preferably header-only. When I found none, I decided to write one myself, which is basically a C++ wrapper around matplotlib. As you can see from the above examples, plotting data and saving it to an image file can be done as few as two lines of code.</p>
+<p>The general approach of providing a simple C++ API for utilizing python code was later generalized and extracted into a separate, more powerful library in another project of mine, <a href="http://www.github.com/lava/wrappy">wrappy</a>.</p>
+<h2 id="todoissueswishlist">Todo/Issues/Wishlist</h2>
+<ul>
+<li><p>This library is not thread safe. Protect all concurrent access with a mutex. Sadly, this is not easy to fix since it is not caused by the library itself but by the python interpreter, which is itself not thread-safe.</p></li>
+<li><p>It would be nice to have a more object-oriented design with a Plot class which would allow multiple independent plots per program.</p></li>
+<li><p>Right now, only a small subset of matplotlibs functionality is exposed. Stuff like xlabel()/ylabel() etc. should be easy to add.</p></li>
+<li><p>If you use Anaconda on Windows, you might need to set PYTHONHOME to Anaconda home directory and QT_QPA_PLATFORM_PLUGIN_PATH to %PYTHONHOME%Library/plugins/platforms. The latter is for especially when you get the error which says 'This application failed to start because it could not find or load the Qt platform plugin &quot;windows&quot; in &quot;&quot;.'</p></li>
+</ul>

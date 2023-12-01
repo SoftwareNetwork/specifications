@@ -1,0 +1,262 @@
+<h1 id="tinyformat.h">tinyformat.h</h1>
+<h2 id="a-minimal-type-safe-printf-replacement">A minimal type safe printf() replacement</h2>
+<p><strong>tinyformat.h</strong> is a type safe printf replacement library in a single C++ header file. If you've ever wanted <code>printf(&quot;%s&quot;, s)</code> to just work regardless of the type of <code>s</code>, tinyformat might be for you. Design goals include:</p>
+<ul>
+<li>Type safety and extensibility for user defined types.</li>
+<li>C99 <code>printf()</code> compatibility, to the extent possible using <code>std::ostream</code></li>
+<li>Simplicity and minimalism. A single header file to include and distribute with your projects.</li>
+<li>Augment rather than replace the standard stream formatting mechanism</li>
+<li>C++98 support, with optional C++11 niceties</li>
+</ul>
+<p>Build status, master branch: <a href="https://travis-ci.org/c42f/tinyformat"><img src="https://travis-ci.org/c42f/tinyformat.svg?branch=master" alt="Linux/OSX build" /></a> <a href="https://ci.appveyor.com/project/c42f/tinyformat/branch/master"><img src="https://ci.appveyor.com/api/projects/status/rwxqhhy6v5m0p1aq/branch/master?svg=true" alt="Windows build" /></a></p>
+<h2 id="quickstart">Quickstart</h2>
+<p>To print a date to <code>std::cout</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="bu">std::</span>string weekday = <span class="st">&quot;Wednesday&quot;</span>;
+<span class="at">const</span> <span class="dt">char</span>* month = <span class="st">&quot;July&quot;</span>;
+<span class="dt">size_t</span> day = <span class="dv">27</span>;
+<span class="dt">long</span> hour = <span class="dv">14</span>;
+<span class="dt">int</span> min = <span class="dv">44</span>;
+
+tfm::printf(<span class="st">&quot;</span><span class="sc">%s</span><span class="st">, </span><span class="sc">%s</span><span class="st"> </span><span class="sc">%d</span><span class="st">, </span><span class="sc">%.2d</span><span class="st">:</span><span class="sc">%.2d\n</span><span class="st">&quot;</span>, weekday, month, day, hour, min);</code></pre></div>
+<p>The strange types here emphasize the type safety of the interface, for example it is possible to print a <code>std::string</code> using the <code>&quot;%s&quot;</code> conversion, and a <code>size_t</code> using the <code>&quot;%d&quot;</code> conversion. A similar result could be achieved using either of the <code>tfm::format()</code> functions. One prints on a user provided stream:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">tfm::format(<span class="bu">std::</span>cerr, <span class="st">&quot;</span><span class="sc">%s</span><span class="st">, </span><span class="sc">%s</span><span class="st"> </span><span class="sc">%d</span><span class="st">, </span><span class="sc">%.2d</span><span class="st">:</span><span class="sc">%.2d\n</span><span class="st">&quot;</span>,
+            weekday, month, day, hour, min);</code></pre></div>
+<p>The other returns a <code>std::string</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="bu">std::</span>string date = tfm::format(<span class="st">&quot;</span><span class="sc">%s</span><span class="st">, </span><span class="sc">%s</span><span class="st"> </span><span class="sc">%d</span><span class="st">, </span><span class="sc">%.2d</span><span class="st">:</span><span class="sc">%.2d\n</span><span class="st">&quot;</span>,
+                               weekday, month, day, hour, min);
+<span class="bu">std::</span>cout &lt;&lt; date;</code></pre></div>
+<p>It is safe to use tinyformat inside a template function. For any type which has the usual stream insertion <code>operator&lt;&lt;</code> defined, the following will work as desired:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="dt">void</span> myPrint(<span class="at">const</span> T&amp; value)
+{
+    tfm::printf(<span class="st">&quot;My value is &#39;</span><span class="sc">%s</span><span class="st">&#39;</span><span class="sc">\n</span><span class="st">&quot;</span>, value);
+}</code></pre></div>
+<p>(The above is a compile error for types <code>T</code> without a stream insertion operator.)</p>
+<h2 id="function-reference">Function reference</h2>
+<p>All user facing functions are defined in the namespace <code>tinyformat</code>. A namespace alias <code>tfm</code> is provided to encourage brevity, but can easily be disabled if desired.</p>
+<p>Three main interface functions are available: an iostreams-based <code>format()</code>, a string-based <code>format()</code> and a <code>printf()</code> replacement. These functions can be thought of as C++ replacements for C's <code>fprintf()</code>, <code>sprintf()</code> and <code>printf()</code> functions respectively. All the interface functions can take an unlimited number of input arguments if compiled with C++11 variadic templates support. In C++98 mode, the number of arguments must be limited to some fixed upper bound which is currently 16 as of version 1.3. Supporting more arguments is quite easy using the in-source code generator based on <a href="http://nedbatchelder.com/code/cog">cog.py</a> - see the source for details.</p>
+<p>The <code>format()</code> function which takes a stream as the first argument is the main part of the tinyformat interface. <code>stream</code> is the output stream, <code>formatString</code> is a format string in C99 <code>printf()</code> format, and the values to be formatted have arbitrary types:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span>... Args&gt;
+<span class="dt">void</span> format(<span class="bu">std::</span>ostream&amp; stream, <span class="at">const</span> <span class="dt">char</span>* formatString,
+            <span class="at">const</span> Args&amp;... args);</code></pre></div>
+<p>The second version of <code>format()</code> is a convenience function which returns a <code>std::string</code> rather than printing onto a stream. This function simply calls the main version of <code>format()</code> using a <code>std::ostringstream</code>, and returns the resulting string:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span>... Args&gt;
+<span class="bu">std::</span>string format(<span class="at">const</span> <span class="dt">char</span>* formatString, <span class="at">const</span> Args&amp;... args);</code></pre></div>
+<p>Finally, <code>printf()</code> and <code>printfln()</code> are convenience functions which call <code>format()</code> with <code>std::cout</code> as the first argument; both have the same signature:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span>... Args&gt;
+<span class="dt">void</span> printf(<span class="at">const</span> <span class="dt">char</span>* formatString, <span class="at">const</span> Args&amp;... args);</code></pre></div>
+<p><code>printfln()</code> is the same as <code>printf()</code> but appends an additional newline for convenience - a concession to the author's tendency to forget the newline when using the library for simple logging.</p>
+<h2 id="format-strings-and-type-safety">Format strings and type safety</h2>
+<p>Tinyformat parses C99 format strings to guide the formatting process --- please refer to any standard C99 printf documentation for format string syntax. In contrast to printf, tinyformat does not use the format string to decide on the type to be formatted so this does not compromise the type safety: <em>you may use any format specifier with any C++ type</em>. The author suggests standardising on the <code>%s</code> conversion unless formatting numeric types.</p>
+<p>Let's look at what happens when you execute the function call:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">tfm::format(outStream, <span class="st">&quot;</span><span class="sc">%+6.4f</span><span class="st">&quot;</span>, yourType);</code></pre></div>
+<p>First, the library parses the format string, and uses it to modify the state of <code>outStream</code>:</p>
+<ol style="list-style-type: decimal">
+<li>The <code>outStream</code> formatting flags are cleared and the width, precision and fill reset to the default.</li>
+<li>The flag <code>'+'</code> means to prefix positive numbers with a <code>'+'</code>; tinyformat executes <code>outStream.setf(std::ios::showpos)</code></li>
+<li>The number 6 gives the field width; execute <code>outStream.width(6)</code>.</li>
+<li>The number 4 gives the precision; execute <code>outStream.precision(4)</code>.</li>
+<li>The conversion specification character <code>'f'</code> means that floats should be formatted with a fixed number of digits; this corresponds to executing <code>outStream.setf(std::ios::fixed, std::ios::floatfield);</code></li>
+</ol>
+<p>After all these steps, tinyformat executes:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">outStream &lt;&lt; yourType;</code></pre></div>
+<p>and finally restores the stream flags, precision and fill.</p>
+<p>What happens if <code>yourType</code> isn't actually a floating point type? In this case the flags set above are probably irrelevant and will be ignored by the underlying <code>std::ostream</code> implementation. The field width of six may cause some padding in the output of <code>yourType</code>, but that's about it.</p>
+<h3 id="special-cases-for-p-c-and-s">Special cases for &quot;%p&quot;, &quot;%c&quot; and &quot;%s&quot;</h3>
+<p>Tinyformat normally uses <code>operator&lt;&lt;</code> to convert types to strings. However, the &quot;%p&quot; and &quot;%c&quot; conversions require special rules for robustness. Consider:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="dt">uint8_t</span>* pixels = get_pixels(<span class="co">/* ... */</span>);
+tfm::printf(<span class="st">&quot;%p&quot;</span>, pixels);</code></pre></div>
+<p>Clearly the intention here is to print a representation of the <em>pointer</em> to <code>pixels</code>, but since <code>uint8_t</code> is a character type the compiler would attempt to print it as a C string if we blindly fed it into <code>operator&lt;&lt;</code>. To counter this kind of madness, tinyformat tries to static_cast any type fed to the &quot;%p&quot; conversion into a <code>const void*</code> before printing. If this can't be done at compile time the library falls back to using <code>operator&lt;&lt;</code> as usual.</p>
+<p>The &quot;%c&quot; conversion has a similar problem: it signifies that the given integral type should be converted into a <code>char</code> before printing. The solution is identical: attempt to convert the provided type into a char using <code>static_cast</code> if possible, and if not fall back to using <code>operator&lt;&lt;</code>.</p>
+<p>The &quot;%s&quot; conversion sets the boolalpha flag on the formatting stream. This means that a <code>bool</code> variable printed with &quot;%s&quot; will come out as <code>true</code> or <code>false</code> rather than the <code>1</code> or <code>0</code> that you would otherwise get.</p>
+<h3 id="incompatibilities-with-c99-printf">Incompatibilities with C99 printf</h3>
+<p>Not all features of printf can be simulated simply using standard iostreams. Here's a list of known incompatibilities:</p>
+<ul>
+<li>The C99 <code>&quot;%a&quot;</code> and <code>&quot;%A&quot;</code> hexadecimal floating point conversions are not supported since the iostreams don't have the necessary flags. Using either of these flags will result in a call to <code>TINYFORMAT_ERROR</code>.</li>
+<li>The precision for integer conversions cannot be supported by the iostreams state independently of the field width. (Note: <strong>this is only a problem for certain obscure integer conversions</strong>; float conversions like <code>%6.4f</code> work correctly.) In tinyformat the field width takes precedence, so the 4 in <code>%6.4d</code> will be ignored. However, if the field width is not specified, the width used internally is set equal to the precision and padded with zeros on the left. That is, a conversion like <code>%.4d</code> effectively becomes <code>%04d</code> internally. This isn't correct for every case (eg, negative numbers end up with one less digit than desired) but it's about the closest simple solution within the iostream model.</li>
+<li>The <code>&quot;%n&quot;</code> query specifier isn't supported to keep things simple and will result in a call to <code>TINYFORMAT_ERROR</code>.</li>
+<li>The <code>&quot;%ls&quot;</code> conversion is not supported, and attempting to format a <code>wchar_t</code> array will cause a compile time error to minimise unexpected surprises. If you know the encoding of your wchar_t strings, you could write your own <code>std::ostream</code> insertion operator for them, and disable the compile time check by defining the macro <code>TINYFORMAT_ALLOW_WCHAR_STRINGS</code>. If you want to print the <em>address</em> of a wide character with the <code>&quot;%p&quot;</code> conversion, you should cast it to a <code>void*</code> before passing it to one of the formatting functions.</li>
+</ul>
+<h2 id="error-handling">Error handling</h2>
+<p>By default, tinyformat calls <code>assert()</code> if it encounters an error in the format string or number of arguments. This behaviour can be changed (for example, to throw an exception) by defining the <code>TINYFORMAT_ERROR</code> macro before including tinyformat.h, or editing the config section of the header.</p>
+<h2 id="formatting-user-defined-types">Formatting user defined types</h2>
+<p>User defined types with a stream insertion operator will be formatted using <code>operator&lt;&lt;(std::ostream&amp;, T)</code> by default. The <code>&quot;%s&quot;</code> format specifier is suggested for user defined types, unless the type is inherently numeric.</p>
+<p>For further customization, the user can override the <code>formatValue()</code> function to specify formatting independently of the stream insertion operator. If you override this function, the library will have already parsed the format specification and set the stream flags accordingly - see the source for details.</p>
+<h2 id="wrapping-tfmformat-inside-a-user-defined-format-function">Wrapping tfm::format() inside a user defined format function</h2>
+<p>Suppose you wanted to define your own function which wraps <code>tfm::format</code>. For example, consider an error function taking an error code, which in C++11 might be written simply as:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span>... Args&gt;
+<span class="dt">void</span> error(<span class="dt">int</span> code, <span class="at">const</span> <span class="dt">char</span>* fmt, <span class="at">const</span> Args&amp;... args)
+{
+    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;error (code &quot;</span> &lt;&lt; code &lt;&lt; <span class="st">&quot;)&quot;</span>;
+    tfm::format(<span class="bu">std::</span>cerr, fmt, args...);
+}</code></pre></div>
+<p>Simulating this functionality in C++98 is pretty painful since it requires writing out a version of <code>error()</code> for each desired number of arguments. To make this bearable tinyformat comes with a set of macros which are used internally to generate the API, but which may also be used in user code.</p>
+<p>The three macros <code>TINYFORMAT_ARGTYPES(n)</code>, <code>TINYFORMAT_VARARGS(n)</code> and <code>TINYFORMAT_PASSARGS(n)</code> will generate a list of <code>n</code> argument types, type/name pairs and argument names respectively when called with an integer <code>n</code> between 1 and 16. We can use these to define a macro which generates the desired user defined function with <code>n</code> arguments. This should be followed by a call to <code>TINYFORMAT_FOREACH_ARGNUM</code> to generate the set of functions for all supported <code>n</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#define MAKE_ERROR_FUNC(n)                                    </span>\
+<span class="pp">template&lt;TINYFORMAT_ARGTYPES(n)&gt;                              </span>\
+<span class="pp">void error(int code, const char* fmt, TINYFORMAT_VARARGS(n))  </span>\
+<span class="pp">{                                                             </span>\
+<span class="pp">    std::cerr &lt;&lt; &quot;error (code &quot; &lt;&lt; code &lt;&lt; &quot;)&quot;;               </span>\
+<span class="pp">    tfm::format(std::cerr, fmt, TINYFORMAT_PASSARGS(n));      </span>\
+<span class="pp">}</span>
+TINYFORMAT_FOREACH_ARGNUM(MAKE_ERROR_FUNC)</code></pre></div>
+<p>Sometimes it's useful to be able to pass a list of format arguments through to a non-template function. The <code>FormatList</code> class is provided as a way to do this by storing the argument list in a type-opaque way. For example:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span>... Args&gt;
+<span class="dt">void</span> error(<span class="dt">int</span> code, <span class="at">const</span> <span class="dt">char</span>* fmt, <span class="at">const</span> Args&amp;... args)
+{
+    tfm::FormatListRef formatList = tfm::makeFormatList(args...);
+    errorImpl(code, fmt, formatList);
+}</code></pre></div>
+<p>What's interesting here is that <code>errorImpl()</code> is a non-template function so it could be separately compiled if desired. The <code>FormatList</code> instance can be used via a call to the <code>vformat()</code> function (the name chosen for semantic similarity to <code>vprintf()</code>):</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="dt">void</span> errorImpl(<span class="dt">int</span> code, <span class="at">const</span> <span class="dt">char</span>* fmt, tfm::FormatListRef formatList)
+{
+    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;error (code &quot;</span> &lt;&lt; code &lt;&lt; <span class="st">&quot;)&quot;</span>;
+    tfm::vformat(<span class="bu">std::</span>cout, fmt, formatList);
+}</code></pre></div>
+<p>The construction of a <code>FormatList</code> instance is very lightweight - it defers all formatting and simply stores a couple of function pointers and a value pointer per argument. Since most of the actual work is done inside <code>vformat()</code>, any logic which causes an early exit of <code>errorImpl()</code> - filtering of verbose log messages based on error code for example - could be a useful optimization for programs using tinyformat. (A faster option would be to write any early bailout code inside <code>error()</code>, though this must be done in the header.)</p>
+<h2 id="benchmarks">Benchmarks</h2>
+<h3 id="compile-time-and-code-bloat">Compile time and code bloat</h3>
+<p>The script <code>bloat_test.sh</code> included in the repository tests whether tinyformat succeeds in avoiding compile time and code bloat for nontrivial projects. The idea is to include <code>tinyformat.h</code> into 100 translation units and use <code>printf()</code> five times in each to simulate a medium sized project. The resulting executable size and compile time (g++-4.8.2, linux ubuntu 14.04) is shown in the following tables, which can be regenerated using <code>make bloat_test</code>:</p>
+<p><strong>Non-optimized build</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>test name</th>
+<th>compiler wall time</th>
+<th>executable size (stripped)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>libc printf</td>
+<td>1.8s</td>
+<td>48K (36K)</td>
+</tr>
+<tr class="even">
+<td>std::ostream</td>
+<td>10.7s</td>
+<td>96K (76K)</td>
+</tr>
+<tr class="odd">
+<td>tinyformat, no inlines</td>
+<td>18.9s</td>
+<td>140K (104K)</td>
+</tr>
+<tr class="even">
+<td>tinyformat</td>
+<td>21.1s</td>
+<td>220K (180K)</td>
+</tr>
+<tr class="odd">
+<td>tinyformat, c++0x mode</td>
+<td>20.7s</td>
+<td>220K (176K)</td>
+</tr>
+<tr class="even">
+<td>boost::format</td>
+<td>70.1s</td>
+<td>844K (736K)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optimized build (-O3 -DNDEBUG)</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>test name</th>
+<th>compiler wall time</th>
+<th>executable size (stripped)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>libc printf</td>
+<td>2.3s</td>
+<td>40K (28K)</td>
+</tr>
+<tr class="even">
+<td>std::ostream</td>
+<td>11.8s</td>
+<td>104K (80K)</td>
+</tr>
+<tr class="odd">
+<td>tinyformat, no inlines</td>
+<td>23.0s</td>
+<td>128K (104K)</td>
+</tr>
+<tr class="even">
+<td>tinyformat</td>
+<td>32.9s</td>
+<td>128K (104K)</td>
+</tr>
+<tr class="odd">
+<td>tinyformat, c++0x mode</td>
+<td>34.0s</td>
+<td>128K (104K)</td>
+</tr>
+<tr class="even">
+<td>boost::format</td>
+<td>147.9s</td>
+<td>644K (600K)</td>
+</tr>
+</tbody>
+</table>
+<p>For large projects it's arguably worthwhile to do separate compilation of the non-templated parts of tinyformat, as shown in the rows labelled <em>tinyformat, no inlines</em>. These were generated by putting the implementation of <code>vformat</code> (<code>detail::formatImpl()</code> etc) it into a separate file, tinyformat.cpp. Note that the results above can vary considerably with different compilers. For example, the <code>-fipa-cp-clone</code> optimization pass in g++-4.6 resulted in excessively large binaries. On the other hand, the g++-4.8 results are quite similar to using clang++-3.4.</p>
+<h3 id="speed-tests">Speed tests</h3>
+<p>The following speed tests results were generated by building <code>tinyformat_speed_test.cpp</code> on an Intel core i7-2600K running Linux Ubuntu 14.04 with g++-4.8.2 using <code>-O3 -DNDEBUG</code>. In the test, the format string <code>&quot;%0.10f:%04d:%+g:%s:%p:%c:%%\n&quot;</code> is filled 2000000 times with output sent to <code>/dev/null</code>; for further details see the source and Makefile.</p>
+<table>
+<thead>
+<tr class="header">
+<th>test name</th>
+<th>run time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>libc printf</td>
+<td>1.20s</td>
+</tr>
+<tr class="even">
+<td>std::ostream</td>
+<td>1.82s</td>
+</tr>
+<tr class="odd">
+<td>tinyformat</td>
+<td>2.08s</td>
+</tr>
+<tr class="even">
+<td>boost::format</td>
+<td>9.04s</td>
+</tr>
+</tbody>
+</table>
+<p>It's likely that tinyformat has an advantage over boost.format because it tries reasonably hard to avoid formatting into temporary strings, preferring instead to send the results directly to the stream buffer. Tinyformat cannot be faster than the iostreams because it uses them internally, but it comes acceptably close.</p>
+<h2 id="rationale">Rationale</h2>
+<p>Or, why did I reinvent this particularly well studied wheel?</p>
+<p>Nearly every program needs text formatting in some form but in many cases such formatting is <em>incidental</em> to the main purpose of the program. In these cases, you really want a library which is simple to use but as lightweight as possible.</p>
+<p>The ultimate in lightweight dependencies are the solutions provided by the C++ and C libraries. However, both the C++ iostreams and C's printf() have well known usability problems: iostreams are hopelessly verbose for complicated formatting and printf() lacks extensibility and type safety. For example:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="co">// Verbose; hard to read, hard to type:</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setprecision(<span class="dv">2</span>) &lt;&lt; <span class="bu">std::</span>fixed &lt;&lt; <span class="fl">1.23456</span> &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="co">// The alternative using a format string is much easier on the eyes</span>
+tfm::printf(<span class="st">&quot;</span><span class="sc">%.2f\n</span><span class="st">&quot;</span>, <span class="fl">1.23456</span>);
+
+<span class="co">// Type mismatch between &quot;%s&quot; and int: will cause a segfault at runtime!</span>
+printf(<span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>, <span class="dv">1</span>);
+<span class="co">// The following is perfectly fine, and will result in &quot;1&quot; being printed.</span>
+tfm::printf(<span class="st">&quot;</span><span class="sc">%s</span><span class="st">&quot;</span>, <span class="dv">1</span>);</code></pre></div>
+<p>On the other hand, there are plenty of excellent and complete libraries which solve the formatting problem in great generality (boost.format and fastformat come to mind, but there are many others). Unfortunately these kind of libraries tend to be rather heavy dependencies, far too heavy for projects which need to do only a little formatting. Problems include</p>
+<ol style="list-style-type: decimal">
+<li>Having many large source files. This makes a heavy dependency unsuitable to bundle within other projects for convenience.</li>
+<li>Slow build times for every file using any sort of formatting (this is very noticeable with g++ and boost/format.hpp. I'm not sure about the various other alternatives.)</li>
+<li>Code bloat due to instantiating many templates</li>
+</ol>
+<p>Tinyformat tries to solve these problems while providing formatting which is sufficiently general and fast for incidental day to day uses.</p>
+<h2 id="license">License</h2>
+<p>For minimum license-related fuss, tinyformat.h is distributed under the boost software license, version 1.0. (Summary: you must keep the license text on all source copies, but don't have to mention tinyformat when distributing binaries.)</p>
+<h2 id="author-and-acknowledgements">Author and acknowledgements</h2>
+<p>Tinyformat was written by Chris Foster, with contributions from various people as recorded in the git repository. The implementation owes a lot to <code>boost::format</code> for showing that it's fairly easy to use stream based formatting to simulate most of the <code>printf()</code> syntax. Douglas Gregor's introduction to variadic templates --- see http://www.generic-programming.org/~dgregor/cpp/variadic-templates.html --- was also helpful, especially since it solves exactly the <code>printf()</code> problem for the case of trivial format strings.</p>
+<h2 id="bugs">Bugs</h2>
+<p>Here's a list of known bugs which are probably cumbersome to fix:</p>
+<ul>
+<li>Field padding won't work correctly with complicated user defined types. For general types, the only way to do this correctly seems to be format to a temporary string stream, check the length, and finally send to the output stream with padding if necessary. Doing this for all types would be quite inelegant because it implies extra allocations to make the temporary stream. A workaround is to add logic to <code>operator&lt;&lt;()</code> for composite user defined types so they are aware of the stream field width.</li>
+</ul>

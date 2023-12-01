@@ -1,0 +1,350 @@
+<p align="center">
+<img height="90" src="https://i.imgur.com/bEG2Udy.png" alt="pprint"/>
+</p>
+<h2 id="highlights">Highlights</h2>
+<ul>
+<li>Header-only library</li>
+<li>Fast, asynchronous, multi-threaded processing using:</li>
+<li><a href="https://github.com/cameron314/concurrentqueue">Lock-free Concurrent Queues</a></li>
+<li><a href="https://github.com/martinus/robin-hood-hashing">Robin hood Hashing</a></li>
+<li>Requires C++17</li>
+<li>MIT License</li>
+</ul>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#reading-csv-files">Reading CSV files</a></li>
+<li><a href="#dialects">Dialects</a>
+<ul>
+<li><a href="#configuring-custom-dialects">Configuring Custom Dialects</a></li>
+</ul></li>
+<li><a href="#multi-character-delimiters">Multi-character Delimiters</a></li>
+<li><a href="#ignoring-columns">Ignoring Columns</a></li>
+<li><a href="#no-header">No Header?</a></li>
+<li><a href="#dealing-with-empty-rows">Dealing with Empty Rows</a></li>
+<li><a href="#reading-first-n-rows">Reading first N rows</a></li>
+<li><a href="#performance-benchmark">Performance Benchmark</a></li>
+<li><a href="#writing-csv-files">Writing CSV files</a></li>
+<li><a href="#contribution">Contribution</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h2 id="reading-csv-files">Reading CSV files</h2>
+<p>Simply include reader.hpp and you're good to go.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;csv/reader.hpp&gt;</span></code></pre></div>
+<p>To start parsing CSV files, create a <code>csv::Reader</code> object and call <code>.read(filename)</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Reader foo;
+foo.read(<span class="st">&quot;test.csv&quot;</span>);</code></pre></div>
+<p>This <code>.read</code> method is non-blocking. The reader spawns multiple threads to tokenize the file stream and build a &quot;list of dictionaries&quot;. While the reader is doing it's thing, you can start post-processing the rows it has parsed so far using this iterator pattern:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">while</span>(foo.busy()) {
+  <span class="cf">if</span> (foo.has_row()) {
+    <span class="kw">auto</span> row = foo.next_row();  <span class="co">// Each row is a csv::unordered_flat_map (github.com/martinus/robin-hood-hashing)</span>
+    <span class="kw">auto</span> foo = row[<span class="st">&quot;foo&quot;</span>]       <span class="co">// You can use it just like an std::unordered_map</span>
+    <span class="kw">auto</span> bar = row[<span class="st">&quot;bar&quot;</span>];
+    <span class="co">// do something</span>
+  }
+}</code></pre></div>
+<p>If instead you'd like to wait for all the rows to get processed, you can call <code>.rows()</code> which is a convenience method that executes the above while loop</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> rows = foo.rows();           <span class="co">// blocks until the CSV is fully processed</span>
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row : rows) {          <span class="co">// Example: [{&quot;foo&quot;: &quot;1&quot;, &quot;bar&quot;: &quot;2&quot;}, {&quot;foo&quot;: &quot;3&quot;, &quot;bar&quot;: &quot;4&quot;}, ...] </span>
+  <span class="kw">auto</span> foo = row[<span class="st">&quot;foo&quot;</span>];
+  <span class="co">// do something</span>
+}</code></pre></div>
+<h2 id="dialects">Dialects</h2>
+<p>This csv library comes with three standard dialects:</p>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="92%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>excel</td>
+<td>The excel dialect defines the usual properties of an Excel-generated CSV file</td>
+</tr>
+<tr class="even">
+<td>excel_tab</td>
+<td>The excel_tab dialect defines the usual properties of an Excel-generated TAB-delimited file</td>
+</tr>
+<tr class="odd">
+<td>unix</td>
+<td>The unix dialect defines the usual properties of a CSV file generated on UNIX systems, i.e. using '' as line terminator and quoting all fields</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuring-custom-dialects">Configuring Custom Dialects</h3>
+<p>Custom dialects can be constructed with <code>.configure_dialect(...)</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Reader csv;
+csv.configure_dialect(<span class="st">&quot;my fancy dialect&quot;</span>)
+  .delimiter(<span class="st">&quot;&quot;</span>)
+  .quote_character(<span class="st">&#39;&quot;&#39;</span>)
+  .double_quote(<span class="kw">true</span>)
+  .skip_initial_space(<span class="kw">false</span>)
+  .trim_characters(<span class="st">&#39; &#39;</span>, <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span>)
+  .ignore_columns(<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>)
+  .header(<span class="kw">true</span>)
+  .skip_empty_rows(<span class="kw">true</span>);
+
+csv.read(<span class="st">&quot;foo.csv&quot;</span>);
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row : csv.rows()) {
+  <span class="co">// do something</span>
+}</code></pre></div>
+<table style="width:100%;">
+<colgroup>
+<col width="8%" />
+<col width="7%" />
+<col width="83%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Data Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>delimiter</td>
+<td><code>std::string</code></td>
+<td>specifies the character sequence which should separate fields (aka columns). Default = <code>&quot;,&quot;</code></td>
+</tr>
+<tr class="even">
+<td>quote_character</td>
+<td><code>char</code></td>
+<td>specifies a one-character string to use as the quoting character. Default = <code>'&quot;'</code></td>
+</tr>
+<tr class="odd">
+<td>double_quote</td>
+<td><code>bool</code></td>
+<td>controls the handling of quotes inside fields. If true, two consecutive quotes should be interpreted as one. Default = <code>true</code></td>
+</tr>
+<tr class="even">
+<td>skip_initial_space</td>
+<td><code>bool</code></td>
+<td>specifies how to interpret whitespace which immediately follows a delimiter; if false, it means that whitespace immediately after a delimiter should be treated as part of the following field. Default = <code>false</code></td>
+</tr>
+<tr class="odd">
+<td>trim_characters</td>
+<td><code>std::vector&lt;char&gt;</code></td>
+<td>specifies the list of characters to trim from every value in the CSV. Default = <code>{}</code> - nothing trimmed</td>
+</tr>
+<tr class="even">
+<td>ignore_columns</td>
+<td><code>std::vector&lt;std::string&gt;</code></td>
+<td>specifies the list of columns to ignore. These columns will be stripped during the parsing process. Default = <code>{}</code> - no column ignored</td>
+</tr>
+<tr class="odd">
+<td>header</td>
+<td><code>bool</code></td>
+<td>indicates whether the file includes a header row. If true the first row in the file is a header row, not data. Default = <code>true</code></td>
+</tr>
+<tr class="even">
+<td>column_names</td>
+<td><code>std::vector&lt;std::string&gt;</code></td>
+<td>specifies the list of column names. This is useful when the first row of the CSV isn't a header Default = <code>{}</code></td>
+</tr>
+<tr class="odd">
+<td>skip_empty_rows</td>
+<td><code>bool</code></td>
+<td>specifies how empty rows should be interpreted. If this is set to true, empty rows are skipped. Default = <code>false</code></td>
+</tr>
+</tbody>
+</table>
+<p>The line terminator is <code>'\n'</code> by default. I use std::getline and handle stripping out <code>'\r'</code> from line endings. So, for now, this is not configurable in custom dialects.</p>
+<h2 id="multi-character-delimiters">Multi-character Delimiters</h2>
+<p>Consider this strange, messed up log file:</p>
+<pre class="csv"><code>[Thread ID] :: [Log Level] :: [Log Message] :: {Timestamp}
+04 :: INFO :: Hello World ::             1555164718
+02        :: DEBUG :: Warning! Foo has happened                :: 1555463132</code></pre>
+<p>To parse this file, simply configure a new dialect that splits on &quot;::&quot; and trims whitespace, braces, and bracket characters.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::reader csv;
+csv.configure_dialect(<span class="st">&quot;my strange dialect&quot;</span>)
+  .delimiter(<span class="st">&quot;::&quot;</span>)
+  .trim_characters(<span class="st">&#39; &#39;</span>, <span class="st">&#39;[&#39;</span>, <span class="st">&#39;]&#39;</span>, <span class="st">&#39;{&#39;</span>, <span class="st">&#39;}&#39;</span>);   
+
+csv.read(<span class="st">&quot;test.csv&quot;</span>);
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row : csv.rows()) {
+  <span class="kw">auto</span> thread_id = row[<span class="st">&quot;Thread ID&quot;</span>];    <span class="co">// &quot;04&quot;</span>
+  <span class="kw">auto</span> log_level = row[<span class="st">&quot;Log Level&quot;</span>];    <span class="co">// &quot;INFO&quot;</span>
+  <span class="kw">auto</span> message = row[<span class="st">&quot;Log Message&quot;</span>];    <span class="co">// &quot;Hello World&quot;</span>
+  <span class="co">// do something</span>
+}</code></pre></div>
+<h2 id="ignoring-columns">Ignoring Columns</h2>
+<p>Consider the following CSV. Let's say you don't care about the columns <code>age</code> and <code>gender</code>. Here, you can use <code>.ignore_columns</code> and provide a list of columns to ignore.</p>
+<pre class="csv"><code>name, age, gender, email, department
+Mark Johnson, 50, M, mark.johnson@gmail.com, BA
+John Stevenson, 35, M, john.stevenson@gmail.com, IT
+Jane Barkley, 25, F, jane.barkley@gmail.com, MGT</code></pre>
+<p>You can configure the dialect to ignore these columns like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::reader csv;
+csv.configure_dialect(<span class="st">&quot;ignore meh and fez&quot;</span>)
+  .delimiter(<span class="st">&quot;, &quot;</span>)
+  .ignore_columns(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;gender&quot;</span>);
+
+csv.read(<span class="st">&quot;test.csv&quot;</span>);
+<span class="kw">auto</span> rows = csv.rows();
+<span class="co">// Your rows are:</span>
+<span class="co">// [{&quot;name&quot;: &quot;Mark Johnson&quot;, &quot;email&quot;: &quot;mark.johnson@gmail.com&quot;, &quot;department&quot;: &quot;BA&quot;},</span>
+<span class="co">//  {&quot;name&quot;: &quot;John Stevenson&quot;, &quot;email&quot;: &quot;john.stevenson@gmail.com&quot;, &quot;department&quot;: &quot;IT&quot;},</span>
+<span class="co">//  {&quot;name&quot;: &quot;Jane Barkley&quot;, &quot;email&quot;: &quot;jane.barkley@gmail.com&quot;, &quot;department&quot;: &quot;MGT&quot;}]</span></code></pre></div>
+<h2 id="no-header">No Header?</h2>
+<p>Sometimes you have CSV files with no header row:</p>
+<pre class="csv"><code>9 52 1
+52 91 0
+91 135 0
+135 174 0
+174 218 0
+218 260 0
+260 301 0
+301 341 0
+341 383 0
+...</code></pre>
+<p>If you want to prevent the reader from parsing the first row as a header, simply:</p>
+<ul>
+<li>Set <code>.header</code> to false</li>
+<li>Provide a list of column names with <code>.column_names(...)</code></li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv.configure_dialect(<span class="st">&quot;no headers&quot;</span>)
+  .header(<span class="kw">false</span>)
+  .column_names(<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>);</code></pre></div>
+<p>The CSV rows will now look like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">[{<span class="st">&quot;foo&quot;</span>: <span class="st">&quot;9&quot;</span>, <span class="st">&quot;bar&quot;</span>: <span class="st">&quot;52&quot;</span>, <span class="st">&quot;baz&quot;</span>: <span class="st">&quot;1&quot;</span>}, {<span class="st">&quot;foo&quot;</span>: <span class="st">&quot;52&quot;</span>, <span class="st">&quot;bar&quot;</span>: <span class="st">&quot;91&quot;</span>, <span class="st">&quot;baz&quot;</span>: <span class="st">&quot;0&quot;</span>}, ...]</code></pre></div>
+<p>If <code>.column_names</code> is not called, then the reader simply generates dictionary keys like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">[{<span class="st">&quot;0&quot;</span>: <span class="st">&quot;9&quot;</span>, <span class="st">&quot;1&quot;</span>: <span class="st">&quot;52&quot;</span>, <span class="st">&quot;2&quot;</span>: <span class="st">&quot;1&quot;</span>}, {<span class="st">&quot;0&quot;</span>: <span class="st">&quot;52&quot;</span>, <span class="st">&quot;1&quot;</span>: <span class="st">&quot;91&quot;</span>, <span class="st">&quot;2&quot;</span>: <span class="st">&quot;0&quot;</span>}, ...]</code></pre></div>
+<h2 id="dealing-with-empty-rows">Dealing with Empty Rows</h2>
+<p>Sometimes you have to deal with a CSV file that has empty lines; either in the middle or at the end of the file:</p>
+<pre class="csv"><code>a,b,c
+1,2,3
+
+4,5,6
+
+10,11,12
+
+
+</code></pre>
+<p>Here's how this get's parsed by default:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Reader csv;
+csv.read(<span class="st">&quot;inputs/empty_lines.csv&quot;</span>);
+<span class="kw">auto</span> rows = csv.rows();
+<span class="co">// [{&quot;a&quot;: 1, &quot;b&quot;: 2, &quot;c&quot;: 3}, {&quot;a&quot;: &quot;&quot;, &quot;b&quot;: &quot;&quot;, &quot;c&quot;: &quot;&quot;}, {&quot;a&quot;: &quot;4&quot;, &quot;b&quot;: &quot;5&quot;, &quot;c&quot;: &quot;6&quot;}, {&quot;a&quot;: &quot;&quot;, ...}]</span></code></pre></div>
+<p>If you don't care for these empty rows, simply call <code>.skip_empty_rows(true)</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Reader csv;
+csv.configure_dialect()
+  .skip_empty_rows(<span class="kw">true</span>);
+csv.read(<span class="st">&quot;inputs/empty_lines.csv&quot;</span>);
+<span class="kw">auto</span> rows = csv.rows();
+<span class="co">// [{&quot;a&quot;: 1, &quot;b&quot;: 2, &quot;c&quot;: 3}, {&quot;a&quot;: &quot;4&quot;, &quot;b&quot;: &quot;5&quot;, &quot;c&quot;: &quot;6&quot;}, {&quot;a&quot;: &quot;10&quot;, &quot;b&quot;: &quot;11&quot;, &quot;c&quot;: &quot;12&quot;}]</span></code></pre></div>
+<h2 id="reading-first-n-rows">Reading first N rows</h2>
+<p>If you know exactly how many rows to parse, you can help out the reader by using the <code>.read(filename, num_rows)</code> overloaded method. This saves the reader from trying to figure out the number of lines in the CSV file. You can use this method to parse the first N rows of the file instead of parsing all of it.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Reader foo;
+foo.read(<span class="st">&quot;bar.csv&quot;</span>, <span class="dv">1000</span>);
+<span class="kw">auto</span> rows = foo.rows();</code></pre></div>
+<p>Note: Do not provide num_rows greater than the actual number of rows in the file - The reader will loop forever till the end of time.</p>
+<h2 id="performance-benchmark">Performance Benchmark</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// benchmark.cpp</span>
+<span class="dt">void</span> parse(<span class="at">const</span> <span class="bu">std::</span>string&amp; filename) {
+  csv::Reader foo;
+  foo.read(filename);
+  <span class="bu">std::</span>vector&lt;csv::unordered_flat_map&lt;<span class="bu">std::</span>string_view, <span class="bu">std::</span>string&gt;&gt; rows;
+  <span class="cf">while</span> (foo.busy()) {
+    <span class="cf">if</span> (foo.ready()) {
+      <span class="kw">auto</span> row = foo.next_row();
+      rows.push_back(row);
+    }
+  }
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">g++</span> -pthread -std=c++17 -O3 -Iinclude/ -o test benchmark.cpp
+$ <span class="bu">time</span> ./test</code></pre></div>
+<p>Each test is run 30 times on an Intel(R) Core(TM) i7-6650-U @ 2.20 GHz CPU.</p>
+<p>Here are the average-case execution times:</p>
+<h3 id="section"></h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Dataset</th>
+<th align="right">File Size</th>
+<th align="right">Rows</th>
+<th align="right">Cols</th>
+<th align="right">Time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="https://catalog.data.gov/dataset/demographic-statistics-by-zip-code-acfc9">Demographic Statistics By Zip Code</a></td>
+<td align="right">27 KB</td>
+<td align="right">237</td>
+<td align="right">46</td>
+<td align="right">0.026s</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://drive.google.com/file/d/0B4y6Mj_UZoTEUUliZWhLRjNHS0k/edit">Simple 3-column CSV</a></td>
+<td align="right">14.1 MB</td>
+<td align="right">761,817</td>
+<td align="right">3</td>
+<td align="right">0.523s</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="https://blog.majestic.com/development/majestic-million-csv-daily/">Majestic Million</a></td>
+<td align="right">77.7 MB</td>
+<td align="right">1,000,000</td>
+<td align="right">12</td>
+<td align="right">1.972s</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="https://catalog.data.gov/dataset/crimes-2001-to-present-398a4">Crimes 2001 - Present</a></td>
+<td align="right">1.50 GB</td>
+<td align="right">6,846,406</td>
+<td align="right">22</td>
+<td align="right">32.411s</td>
+</tr>
+</tbody>
+</table>
+<h2 id="writing-csv-files">Writing CSV files</h2>
+<p>Simply include writer.hpp and you're good to go.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;csv/writer.hpp&gt;</span></code></pre></div>
+<p>To start writing CSV files, create a <code>csv::Writer</code> object and provide a filename:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Writer foo(<span class="st">&quot;test.csv&quot;</span>);</code></pre></div>
+<p>Constructing a writer spawns a worker thread that is ready to start writing rows. Using <code>.configure_dialect</code>, configure the dialect to be used by the writer. This is where you can specify the column names:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">foo.configure_dialect()
+  .delimiter(<span class="st">&quot;, &quot;</span>)
+  .column_names(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;c&quot;</span>);</code></pre></div>
+<p>Now it's time to write rows. You can do this in multiple ways:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">foo.write_row(<span class="st">&quot;1&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;3&quot;</span>);                                     <span class="co">// parameter packing</span>
+foo.write_row({<span class="st">&quot;4&quot;</span>, <span class="st">&quot;5&quot;</span>, <span class="st">&quot;6&quot;</span>});                                   <span class="co">// std::vector</span>
+foo.write_row(<span class="bu">std::</span>map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt;{                 <span class="co">// std::map</span>
+  {<span class="st">&quot;a&quot;</span>, <span class="st">&quot;7&quot;</span>}, {<span class="st">&quot;b&quot;</span>, <span class="st">&quot;8&quot;</span>}, {<span class="st">&quot;c&quot;</span>, <span class="st">&quot;9&quot;</span>} });
+foo.write_row(<span class="bu">std::</span>unordered_map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt;{       <span class="co">// std::unordered_map</span>
+  {<span class="st">&quot;a&quot;</span>, <span class="st">&quot;7&quot;</span>}, {<span class="st">&quot;b&quot;</span>, <span class="st">&quot;8&quot;</span>}, {<span class="st">&quot;c&quot;</span>, <span class="st">&quot;9&quot;</span>} });
+foo.write_row(csv::unordered_flat_map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt;{  <span class="co">// csv::unordered_flat_map</span>
+  {<span class="st">&quot;a&quot;</span>, <span class="st">&quot;7&quot;</span>}, {<span class="st">&quot;b&quot;</span>, <span class="st">&quot;8&quot;</span>}, {<span class="st">&quot;c&quot;</span>, <span class="st">&quot;9&quot;</span>} });</code></pre></div>
+<p>You can also omit one or more values dynamically when using maps:</p>
+<pre><code>foo.write_row(std::map&lt;std::string, std::string&gt;{                 // std::map
+  {&quot;a&quot;, &quot;7&quot;}, {&quot;c&quot;, &quot;9&quot;} });                                      // omitting &quot;b&quot;
+foo.write_row(std::unordered_map&lt;std::string, std::string&gt;{       // std::unordered_map
+  {&quot;b&quot;, &quot;8&quot;}, {&quot;c&quot;, &quot;9&quot;} });                                      // omitting &quot;a&quot;
+foo.write_row(csv::unordered_flat_map&lt;std::string, std::string&gt;{  // csv::unordered_flat_map
+  {&quot;a&quot;, &quot;7&quot;}, {&quot;b&quot;, &quot;8&quot;} });                                      // omitting &quot;c&quot;</code></pre>
+<p>Finally, once you're done writing rows, call <code>.close()</code> to stop the worker thread and close the file stream.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">foo.close();</code></pre></div>
+<p>Here's an example writing 3 million lines of CSV to a file:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">csv::Writer foo(<span class="st">&quot;test.csv&quot;</span>);
+foo.configure_dialect()
+  .delimiter(<span class="st">&quot;, &quot;</span>)
+  .column_names(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;c&quot;</span>);
+
+<span class="cf">for</span> (<span class="dt">long</span> i = <span class="dv">0</span>; i &lt; <span class="dv">3000000</span>; i++) {
+  <span class="kw">auto</span> x = <span class="bu">std::</span>to_string(i % <span class="dv">100</span>);
+  <span class="kw">auto</span> y = <span class="bu">std::</span>to_string((i + <span class="dv">1</span>) % <span class="dv">100</span>);
+  <span class="kw">auto</span> z = <span class="bu">std::</span>to_string((i + <span class="dv">2</span>) % <span class="dv">100</span>);
+  foo.write_row(x, y, z);
+}
+foo.close();</code></pre></div>
+<p>The above code takes about 1.8 seconds to execute on my Surface Pro 4.</p>
+<h2 id="contribution">Contribution</h2>
+<p>Contributions are welcome, have a look at the <a href="CONTRIBUTING.md" class="uri">CONTRIBUTING.md</a> document for more information.</p>
+<h2 id="license">License</h2>
+<p>The project is available under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.</p>

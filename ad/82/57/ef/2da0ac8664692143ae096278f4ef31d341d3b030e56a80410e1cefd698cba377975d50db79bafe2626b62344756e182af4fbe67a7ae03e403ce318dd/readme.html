@@ -1,0 +1,126 @@
+<h2 id="about">About</h2>
+<p>Parson is a lighweight <a href="http://json.org">json</a> library written in C.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Full JSON support</li>
+<li>Lightweight (only 2 files)</li>
+<li>Simple API</li>
+<li>Addressing json values with dot notation (similar to C structs or objects in most OO languages, e.g. &quot;objectA.objectB.value&quot;)</li>
+<li>C89 compatible</li>
+<li>Test suites</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>Run:</p>
+<pre><code>git clone https://github.com/kgabis/parson.git</code></pre>
+<p>and copy parson.h and parson.c to you source code tree.</p>
+<p>Run <code>make test</code> to compile and run tests.</p>
+<h2 id="examples">Examples</h2>
+<h3 id="parsing-json">Parsing JSON</h3>
+<p>Here is a function, which prints basic commit info (date, sha and author) from a github repository.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> print_commits_info(<span class="dt">const</span> <span class="dt">char</span> *username, <span class="dt">const</span> <span class="dt">char</span> *repo) {
+    JSON_Value *root_value;
+    JSON_Array *commits;
+    JSON_Object *commit;
+    <span class="dt">size_t</span> i;
+    
+    <span class="dt">char</span> curl_command[<span class="dv">512</span>];
+    <span class="dt">char</span> cleanup_command[<span class="dv">256</span>];
+    <span class="dt">char</span> output_filename[] = <span class="st">&quot;commits.json&quot;</span>;
+    
+    <span class="co">/* it ain&#39;t pretty, but it&#39;s not a libcurl tutorial */</span>
+    sprintf(curl_command, 
+        <span class="st">&quot;curl -s </span><span class="sc">\&quot;</span><span class="st">https://api.github.com/repos/%s/%s/commits</span><span class="sc">\&quot;</span><span class="st"> &gt; %s&quot;</span>,
+        username, repo, output_filename);
+    sprintf(cleanup_command, <span class="st">&quot;rm -f %s&quot;</span>, output_filename);
+    system(curl_command);
+    
+    <span class="co">/* parsing json and validating output */</span>
+    root_value = json_parse_file(output_filename);
+    <span class="cf">if</span> (json_value_get_type(root_value) != JSONArray) {
+        system(cleanup_command);
+        <span class="cf">return</span>;
+    }
+    
+    <span class="co">/* getting array from root value and printing commit info */</span>
+    commits = json_value_get_array(root_value);
+    printf(<span class="st">&quot;%-10.10s %-10.10s %s</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="st">&quot;Date&quot;</span>, <span class="st">&quot;SHA&quot;</span>, <span class="st">&quot;Author&quot;</span>);
+    <span class="cf">for</span> (i = <span class="dv">0</span>; i &lt; json_array_get_count(commits); i++) {
+        commit = json_array_get_object(commits, i);
+        printf(<span class="st">&quot;%.10s %.10s %s</span><span class="sc">\n</span><span class="st">&quot;</span>,
+               json_object_dotget_string(commit, <span class="st">&quot;commit.author.date&quot;</span>),
+               json_object_get_string(commit, <span class="st">&quot;sha&quot;</span>),
+               json_object_dotget_string(commit, <span class="st">&quot;commit.author.name&quot;</span>));
+    }
+    
+    <span class="co">/* cleanup code */</span>
+    json_value_free(root_value);
+    system(cleanup_command);
+}</code></pre></div>
+<p>Calling <code>print_commits_info(&quot;torvalds&quot;, &quot;linux&quot;);</code> prints:</p>
+<pre><code>Date       SHA        Author
+2012-10-15 dd8e8c4a2c David Rientjes
+2012-10-15 3ce9e53e78 Michal Marek
+2012-10-14 29bb4cc5e0 Randy Dunlap
+2012-10-15 325adeb55e Ralf Baechle
+2012-10-14 68687c842c Russell King
+2012-10-14 ddffeb8c4d Linus Torvalds
+...</code></pre>
+<h3 id="persistence">Persistence</h3>
+<p>In this example I'm using parson to save user information to a file and then load it and validate later.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> persistence_example(<span class="dt">void</span>) {
+    JSON_Value *schema = json_parse_string(<span class="st">&quot;{</span><span class="sc">\&quot;</span><span class="st">name</span><span class="sc">\&quot;</span><span class="st">:</span><span class="sc">\&quot;\&quot;</span><span class="st">}&quot;</span>);
+    JSON_Value *user_data = json_parse_file(<span class="st">&quot;user_data.json&quot;</span>);
+    <span class="dt">char</span> buf[<span class="dv">256</span>];
+    <span class="dt">const</span> <span class="dt">char</span> *name = NULL;
+    <span class="cf">if</span> (user_data == NULL || json_validate(schema, user_data) != JSONSuccess) {
+        puts(<span class="st">&quot;Enter your name:&quot;</span>);
+        scanf(<span class="st">&quot;%s&quot;</span>, buf);
+        user_data = json_value_init_object();
+        json_object_set_string(json_object(user_data), <span class="st">&quot;name&quot;</span>, buf);
+        json_serialize_to_file(user_data, <span class="st">&quot;user_data.json&quot;</span>);
+    }
+    name = json_object_get_string(json_object(user_data), <span class="st">&quot;name&quot;</span>);
+    printf(<span class="st">&quot;Hello, %s.&quot;</span>, name);
+    json_value_free(schema);
+    json_value_free(user_data);
+    <span class="cf">return</span>;
+}</code></pre></div>
+<h3 id="serialization">Serialization</h3>
+<p>Creating JSON values is very simple thanks to the dot notation. Object hierarchy is automatically created when addressing specific fields. In the following example I create a simple JSON value containing basic information about a person.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> serialization_example(<span class="dt">void</span>) {
+    JSON_Value *root_value = json_value_init_object();
+    JSON_Object *root_object = json_value_get_object(root_value);
+    <span class="dt">char</span> *serialized_string = NULL;
+    json_object_set_string(root_object, <span class="st">&quot;name&quot;</span>, <span class="st">&quot;John Smith&quot;</span>);
+    json_object_set_number(root_object, <span class="st">&quot;age&quot;</span>, <span class="dv">25</span>);
+    json_object_dotset_string(root_object, <span class="st">&quot;address.city&quot;</span>, <span class="st">&quot;Cupertino&quot;</span>);
+    json_object_dotset_value(root_object, <span class="st">&quot;contact.emails&quot;</span>, json_parse_string(<span class="st">&quot;[</span><span class="sc">\&quot;</span><span class="st">email@example.com</span><span class="sc">\&quot;</span><span class="st">,</span><span class="sc">\&quot;</span><span class="st">email2@example.com</span><span class="sc">\&quot;</span><span class="st">]&quot;</span>));
+    serialized_string = json_serialize_to_string_pretty(root_value);
+    puts(serialized_string);
+    json_free_serialized_string(serialized_string);
+    json_value_free(root_value);
+}</code></pre></div>
+<p>Output:</p>
+<pre><code>{
+    &quot;name&quot;: &quot;John Smith&quot;,
+    &quot;age&quot;: 25,
+    &quot;address&quot;: {
+        &quot;city&quot;: &quot;Cupertino&quot;
+    },
+    &quot;contact&quot;: {
+        &quot;emails&quot;: [
+            &quot;email@example.com&quot;,
+            &quot;email2@example.com&quot;
+        ]
+    }
+}</code></pre>
+<h2 id="contributing">Contributing</h2>
+<p>I will always merge <em>working</em> bug fixes. However, if you want to add something new to the API, please create an &quot;issue&quot; on github for this first so we can discuss if it should end up in the library before you start implementing it. Remember to follow parson's code style and write appropriate tests.</p>
+<h2 id="my-other-projects">My other projects</h2>
+<ul>
+<li><a href="https://github.com/kgabis/kgflags">kgflags</a> - easy to use command-line flag parsing library<br />
+</li>
+<li><a href="https://github.com/kgabis/agnes">agnes</a> - header-only NES emulation library</li>
+</ul>
+<h2 id="license">License</h2>
+<p><a href="http://opensource.org/licenses/mit-license.php">The MIT License (MIT)</a></p>

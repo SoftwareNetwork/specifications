@@ -1,0 +1,46 @@
+<h1 id="atomic_queue">atomic_queue</h1>
+<p>Multiple producer multiple consumer C++14 <em>lock-free</em> queues based on <code>std::atomic&lt;&gt;</code>.</p>
+<p>The main design idea these queues adhere to is <em>simplicity</em>: fixed size buffer, the bare minimum of atomic operations.</p>
+<p>These qualities are also limitations:</p>
+<ul>
+<li>The maximum queue size must be set at compile time (fastest) or construction time (slower).</li>
+<li>There are no blocking push/pop functions.</li>
+</ul>
+<p>Nevertheless, ultra-low-latency applications need just that and nothing more. The simplicity pays off, see the <a href="https://max0x7ba.github.io/atomic_queue/html/benchmarks.html">throughput and latency benchmarks</a>.</p>
+<p>Available containers are: * <code>AtomicQueue</code> - a fixed size ring-buffer for atomic elements. * <code>OptimistAtomicQueue</code> - a faster fixed size ring-buffer for atomic elements which busy-waits when empty or full. * <code>AtomicQueue2</code> - a fixed size ring-buffer for non-atomic elements. * <code>OptimistAtomicQueue2</code> - a faster fixed size ring-buffer for non-atomic elements which busy-waits when empty or full.</p>
+<p>These containers have corresponding <code>AtomicQueueB</code>, <code>OptimistAtomicQueueB</code>, <code>AtomicQueueB2</code>, <code>OptimistAtomicQueueB2</code> versions where the buffer size is specified as an argument to the constructor. The <code>B</code> versions are slower.</p>
+<p>A few well-known containers are used for reference in the benchmarks: * <code>boost::lockfree::spsc_queue</code> - a wait-free single producer single consumer queue from Boost library. This is the absolute best performer because it is wait-free, but it only supports single-producer-single-consumer scenario. * <code>boost::lockfree::queue</code> - a lock-free multiple producer multiple consumer queue from Boost library. * <code>pthread_spinlock</code> - a locked fixed size ring-buffer with <code>pthread_spinlock_t</code>. * <code>moodycamel::ConcurrentQueue</code> - a lock-free multiple producer multiple consumer queue used in non-blocking mode. * <code>tbb::spin_mutex</code> - a locked fixed size ring-buffer with <code>tbb::spin_mutex</code> from Intel Threading Building Blocks. * <code>tbb::speculative_spin_mutex</code> - a locked fixed size ring-buffer with <code>tbb::speculative_spin_mutex</code> from Intel Threading Building Blocks. * <code>tbb::concurrent_bounded_queue</code> - eponymous queue used in non-blocking mode from Intel Threading Building Blocks.</p>
+<h1 id="build-and-run-instructions">Build and run instructions</h1>
+<p>The containers provided are header-only class templates that require only <code>#include &lt;atomic_queue/atomic_queue.h&gt;</code>, no building/installing is necessary.</p>
+<p>Building is neccessary to run the tests and benchmarks.</p>
+<pre><code>git clone https://github.com/cameron314/concurrentqueue.git
+git clone https://github.com/max0x7ba/atomic_queue.git
+cd atomic_queue
+make -r -j4 run_tests
+make -r -j4 run_benchmarks</code></pre>
+<p>The benchmark also requires Intel TBB library to be available. It assumes that it is installed in <code>/usr/local/include</code> and <code>/usr/local/lib</code>. If it is installed elsewhere you may like to modify <code>cppflags.tbb</code> and <code>ldlibs.tbb</code> in <code>Makefile</code>.</p>
+<h1 id="api">API</h1>
+<p>The containers support the following APIs: * <code>try_push</code> - Appends an element to the end of the queue. Returns <code>false</code> when the queue is full. * <code>try_pop</code> - Removes an element from the front of the queue. Returns <code>false</code> when the queue is empty. * <code>push</code> - Appends an element to the end of the queue. Busy waits when the queue is full. Faster than <code>try_push</code> when the queue is not full. * <code>pop</code> - Removes an element from the front of the queue. Busy waits when the queue is empty. Faster than <code>try_pop</code> when the queue is not empty. * <code>was_empty</code> - Returns <code>true</code> if the container was empty during the call. The state may have changed by the time the return value is examined. * <code>was_full</code> - Returns <code>true</code> if the container was full during the call. The state may have changed by the time the return value is examined.</p>
+<h1 id="notes">Notes</h1>
+<p>The available queues here use a ring-buffer array for storing elements. The size of the queue is fixed at compile time.</p>
+<p>In a production multiple-producer-multiple-consumer scenario the ring-buffer size should be set to the maximum allowable queue size. When the buffer size is exhausted it means that the consumers cannot consume the elements fast enough, fixing which would require either of:</p>
+<ul>
+<li>increasing the buffer size to be able to handle temporary spikes of produced elements, or</li>
+<li>increasing the number of consumers to consume elements faster, or</li>
+<li>decreasing the number of producers to producer fewer elements.</li>
+</ul>
+<p>Using a power-of-2 ring-buffer array size allows a couple of optimizations:</p>
+<ul>
+<li>The writer and reader indexes get mapped into the ring-buffer array index using modulo <code>% SIZE</code> binary operator and using a power-of-2 size turns that modulo operator into one plain <code>and</code> instruction and that is as fast as it gets.</li>
+<li>The <em>element index within the cache line</em> gets swapped with the <em>cache line index</em> within the <em>ring-buffer array element index</em>, so that subsequent queue elements actually reside in different cache lines. This eliminates contention between producers and consumers on the ring-buffer cache lines. Instead of <code>N</code> producers together with <code>M</code> consumers competing on the same ring-buffer array cache line in the worst case, it is only one producer competing with one consumer.</li>
+</ul>
+<p>In other words, power-of-2 ring-buffer array size yields top performance.</p>
+<p>The containers use <code>unsigned</code> type for size and internal indexes. On x86-64 platform <code>unsigned</code> is 32-bit wide, whereas <code>size_t</code> is 64-bit wide. 64-bit instructions utilize an extra byte instruction prefix resulting in slightly more pressure on the CPU instruction cache and the front-end. Hence, 32-bit <code>unsigned</code> indexes are used to maximize performance. That limits the queue size to 4,294,967,295 elements, which seems to be a reasonable hard limit for many applications.</p>
+<h1 id="benchmarks">Benchmarks</h1>
+<p>I have access to few x86-64 machines. If you have access to different hardware feel free to submit the output file of <code>scripts/run-benchmarks.sh</code>, I will include your results in the benchmarks.</p>
+<p><a href="https://max0x7ba.github.io/atomic_queue/html/benchmarks.html">View throughput and latency benchmarks charts</a>.</p>
+<h2 id="throughput-and-scalability-benchmark">Throughput and scalability benchmark</h2>
+<p>N producer threads push a 4-byte integer into one queue, N consumer threads pop the integers from the queue. All producers posts 1,000,000 messages in total. Total time to send and receive all the messages is measured. The benchmark is run for from 1 producer and 1 consumer up to <code>(total-number-of-cpus / 2)</code> producers/consumers to measure the scalabilty of different queues. Different thread placements are tried to make sure the benchmark doesn't run into unexpected adverse scheduler or NUMA effects.</p>
+<h2 id="ping-pong-benchmark">Ping-pong benchmark</h2>
+<p>One thread posts an integer to another thread and waits for the reply using two queues. The benchmarks measures the total time of 100,000 ping-pongs, best of 10 runs. Contention is minimal here to be able to achieve and measure the lowest latency. Reports the average round-trip time.</p>
+<p>Copyright (c) 2019 Maxim Egorushkin. MIT License. See the full licence in file LICENSE.</p>

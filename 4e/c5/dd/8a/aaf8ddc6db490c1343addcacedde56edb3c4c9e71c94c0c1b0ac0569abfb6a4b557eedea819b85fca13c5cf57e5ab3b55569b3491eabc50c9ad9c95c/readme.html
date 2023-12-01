@@ -1,0 +1,90 @@
+<h1 id="foxy">Foxy</h1>
+<p><a href="https://travis-ci.org/LeonineKing1199/foxy"><img src="https://travis-ci.org/LeonineKing1199/foxy.svg?branch=master" alt="Build Status" /></a></p>
+<p>Session-based Beast/Asio wrapper</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>C++14</li>
+<li>CMake 3.13 and above</li>
+<li>Latest Boost (currently 1.69)</li>
+<li>OpenSSL</li>
+<li>Catch2 (for testing)</li>
+</ul>
+<p>We recommend <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> for dependency management.</p>
+<h2 id="supported-compilers">Supported Compilers</h2>
+<p>Latest <code>msvc</code>, <code>gcc-7</code> (Linux), <code>clang-6</code> (OS X)</p>
+<h2 id="high-level-overview">High-Level Overview</h2>
+<p>Foxy is built on top of Boost.Beast and Boost.Asio and requires some degree of familiarity for it to be used successfully. Foxy offers higher-level primitives than these libraries but still leans into the boons of each library's abstractions.</p>
+<p>Asio handles the raw TCP/IP portions of the application while Beast sits on top as the HTTP layer. Foxy steps in as a layer on top of Beast/Asio and simply makes idiomatic usage of Beast and Asio easier.</p>
+<p>Beast chooses to treat HTTP as the passing of <code>message</code>s. Foxy then makes it easier to facilitate a <em>conversation</em> between a server and a client. At its core, a conversation is nothing more than an exchange of messages between two or more parties.</p>
+<p>We choose to call this conversation a &quot;session&quot; or in this case, <code>basic_session&lt;Stream&gt;</code>. The <code>basic_session</code> is a class that offers up a high-level object-oriented interface to Beast's 4 core HTTP functions: <code>http::async_read</code>, <code>http::async_read_header</code>, <code>http::async_write</code>, <code>http::async_write_header</code>.</p>
+<p>We then offer up two higher-level primitives, a <code>client_session</code> and a <code>server_session</code>. The <code>server_session</code> acts more like a strong typedef than it does anything else but the <code>client_session</code> offers up client-friendly member functions: <code>async_connect</code> and <code>async_request</code>. See the corresponding <code>client_session.hpp</code> header file for documentation.</p>
+<p>While Foxy will happily handle establishing connections, it does little in the way of closing them. Users are expected to manually go through normal Asio semantics to properly teardown connections. See the Beast and Asio examples for how this should be done.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>timeouts for all <code>session</code> methods (<code>async_read</code>, <code>async_read_header</code>, ...)</li>
+<li>transparent support for encrypted/non-encrypted streams</li>
+<li>supports Asio's universal async model</li>
+</ul>
+<h2 id="example-usage">Example Usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">asio::io_context io;
+
+<span class="kw">auto</span> session_handle =
+  <span class="ex">boost::</span>make_unique&lt;foxy::client_session&gt;(io);
+
+<span class="kw">auto</span>&amp; session = *session_handle;
+
+<span class="co">// manually readjust the specified timeout for each asynchronous operation on</span>
+<span class="co">// the session</span>
+<span class="co">//</span>
+session.opts.timeout = <span class="bu">std::</span>chrono<span class="bu">::</span>seconds{<span class="dv">10</span>};
+
+<span class="kw">auto</span> valid_request = <span class="kw">false</span>;
+
+session.async_connect(
+  <span class="st">&quot;www.google.com&quot;</span>, <span class="st">&quot;http&quot;</span>,
+  [&amp;valid_request, &amp;session, sh = <span class="bu">std::</span>move(session_handle)]
+  (error_code ec, tcp::endpoint) <span class="at">mutable</span> -&gt; <span class="dt">void</span>
+  {
+    <span class="cf">if</span> (ec) {
+      session
+        .stream
+        .plain()
+        .shutdown(<span class="ex">boost::</span>asio<span class="ex">::</span>ip<span class="ex">::</span>tcp<span class="ex">::</span>socket<span class="ex">::</span>shutdown_send, ec);
+      <span class="cf">return</span>;
+    }
+
+    <span class="kw">auto</span> parser_handle  = <span class="ex">boost::</span>make_unique&lt;http::response_parser&lt;http::string_body&gt;&gt;();
+    <span class="kw">auto</span> request_handle =
+      <span class="ex">boost::</span>make_unique&lt;http::request&lt;http::empty_body&gt;&gt;(http::verb::get, <span class="st">&quot;/&quot;</span>, <span class="dv">11</span>);
+
+    <span class="kw">auto</span>&amp; parser  = *parser_handle;
+    <span class="kw">auto</span>&amp; request = *request_handle;
+
+    session.async_request(
+      request, parser,
+      [
+        &amp;valid_request, &amp;session, &amp;parser, &amp;request,
+        ph = <span class="bu">std::</span>move(parser_handle),
+        rh = <span class="bu">std::</span>move(request_handle),
+        sh = <span class="bu">std::</span>move(sh)
+      ](error_code ec) -&gt; <span class="dt">void</span>
+      {
+        <span class="kw">auto</span> response = parser.release();
+
+        <span class="kw">auto</span> is_valid_status = (response.result_int() == <span class="dv">200</span>);
+        <span class="kw">auto</span> is_valid_body   = (response.body().size() &gt; <span class="dv">0</span>);
+
+        valid_request = is_valid_body &amp;&amp; is_valid_status;
+
+        session
+          .stream
+          .plain()
+          .shutdown(<span class="ex">boost::</span>asio<span class="ex">::</span>ip<span class="ex">::</span>tcp<span class="ex">::</span>socket<span class="ex">::</span>shutdown_send, ec);
+      });
+  });
+
+io.run();
+REQUIRE(valid_request);</code></pre></div>
+<h2 id="current-status-and-roadmap">Current Status and Roadmap</h2>
+<p>Project is in its infantile settings but the <code>client_session</code> and <code>server_session</code> classes are usable.</p>
+<p>Initial minimum viable product is a proxy-aware HTTP client and a small proxy server implementation.</p>

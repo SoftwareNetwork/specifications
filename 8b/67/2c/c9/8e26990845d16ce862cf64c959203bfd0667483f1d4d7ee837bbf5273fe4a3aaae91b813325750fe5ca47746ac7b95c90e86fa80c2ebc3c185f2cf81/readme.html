@@ -1,0 +1,82 @@
+<h1 id="graphene">Graphene</h1>
+<h3 id="a-thin-layer-of-types-for-graphic-libraries">A thin layer of types for graphic libraries</h3>
+<p><a href="https://travis-ci.org/ebassi/graphene"><img src="https://travis-ci.org/ebassi/graphene.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/ebassi/graphene/branch/master"><img src="https://ci.appveyor.com/api/projects/status/pw7o5grgko1l06hd/branch/master?svg=true" alt="Build status" /></a></p>
+<p>When creating graphic libraries you most likely end up dealing with points and rectangles. If you're particularly unlucky, you may end up dealing with affine matrices and 2D transformations. If you're writing a graphic library with 3D transformations, though, you are going to hit the jackpot: 4x4 matrices, projections, transformations, vectors, and quaternions.</p>
+<p>Most of this stuff exists, in various forms, in other libraries, but it has the major drawback of coming along with the rest of those libraries, which may or may not be what you want. Those libraries are also available in various languages, as long as those languages are C++; again, it may or may not be something you want.</p>
+<p>For this reason, I decided to write the thinnest, smallest possible layer needed to write a canvas library; given its relative size, and the propensity for graphics libraries to have a pun in their name, I decided to call it Graphene.</p>
+<p>This library provides types and their relative API; it does not deal with windowing system surfaces, drawing, scene graphs, or input. You're supposed to do that yourself, in your own canvas implementation, which is the whole point of writing the library in the first place.</p>
+<h3 id="dependencies">Dependencies</h3>
+<p>Graphene has minimal dependencies.</p>
+<p>Graphene contains optimizations for speeding up vector operations; those optimizations are optional, and used only if both Graphene was compiled with support for them <em>and</em> if the system you're running on has them. Currently, Graphene supports the following platform-specific fast paths:</p>
+<ul>
+<li>Streaming SIMD Extensions (SSE) 2</li>
+<li>Optionally using SSE 4.1</li>
+<li>ARM NEON</li>
+<li>GCC vector extensions</li>
+</ul>
+<p>In the remote case in which none of these optimizations are available, Graphene will fall back to a naive scalar implementation.</p>
+<p>Graphene can, optionally, provide types for integrating with <a href="https://developer.gnome.org/gobject/stable/">GObject</a> properties and signals, as well as introspection information for its use with other languages through introspection-based bindings.</p>
+<h3 id="installation">Installation</h3>
+<p>In order to build and install Graphene you will need development tools and the headers of the dependencies. You will also need:</p>
+<ul>
+<li><a href="https://www.python.org">python3</a></li>
+<li><a href="http://mesonbuild.com">meson</a></li>
+<li><a href="https://ninja-build.org/">ninja</a></li>
+</ul>
+<p>First of all, clone the Git repository:</p>
+<pre><code>$ git clone https://github.com/ebassi/graphene
+$ cd graphene</code></pre>
+<p>Then run:</p>
+<pre><code>$ meson _build    # on Windows, it may be &quot;meson.py&quot;
+$ cd _build
+$ ninja test
+# ninja install</code></pre>
+<p>It is possible, when building Graphene, to disable specific optimizations by using configuration options:</p>
+<ul>
+<li><code>-Dsse2=false</code> - will disable the SSE2 fast paths</li>
+<li><code>-Darm_neon=false</code> - will disable the ARM NEON fast paths</li>
+<li><code>-Dgcc_vector=false</code> - will disable the GCC vector intrinsics</li>
+</ul>
+<p>If you don't plan on generating introspection data, use <code>-Dintrospection=false</code> when configuring Graphene; similarly, if you don't plan on using GObject with Graphene, use <code>-Dgobject_types=false</code>. Disabling GObject types will also automatically disable generating introspection data.</p>
+<p>You can explicitly disable building the test suite and the benchmark suite, using the <code>-Dtests=false</code> and <code>-Dbenchmarks=false</code> configuration switches respectively. The test and benchmark suites depend on <a href="https://gitlab.gnome.org/GNOME/glib">GLib</a>; if it is not available at configuration time, tests and benchmarks will be disabled automatically.</p>
+<h4 id="building-on-windows">Building on Windows</h4>
+<p>Graphene supports the Microsoft Visual C compiler 2017 and later versions.</p>
+<p>Graphene also supports the <a href="http://sourceforge.net/projects/msys2/">MSYS2 toolchain</a>.</p>
+<p>When using MSYS2, it's recommended to have an up to date installation; in order to build Graphene you will need to use the <code>pacman</code> command to install the necessary build dependencies first:</p>
+<pre><code>$ pacman -S base-devel
+$ pacman -S python3
+$ pacman -S mingw-w64-x86_64-meson  # only MINGW64 target
+$ pacman -S mingw-w64-i686-meson    # only MINGW32 target</code></pre>
+<p>For the optional support for testing, GObject introspection, and documentation, you will need to install additional dependencies:</p>
+<pre><code>$ pacman -S gtk-doc                 # optional
+$ pacman -S mingw-w64-x86_64-glib2  # optional, MINGW64 target only
+$ pacman -S mingw-w64-i686-glib2    # optional, MINGW32 target only
+$ pacman -S glib2 glib2-devel       # optional, MSYS target only</code></pre>
+<p>After installing all dependencies, you can now clone the Graphene repository locally, and follow the build instructions above.</p>
+<p>Please note that on some MSYS2 installations the Meson binary may be called <code>meson.py</code>.</p>
+<h2 id="documentation">Documentation</h2>
+<h3 id="release-notes">Release notes</h3>
+<p>The release notes are available on the Graphene <a href="https://github.com/ebassi/graphene/wiki/Release-Notes">wiki</a>.</p>
+<h3 id="available-types">Available types</h3>
+<p>Graphene provides common types needed to handle 3D transformations:</p>
+<ul>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Point.html">2D points</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Point3D.html">3D points</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Triangle.html">triangles</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Rectangle.html">rectangles</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Quad.html">quads</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Quaternion.html">quaternions</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Euler.html">euler angles</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Vectors.html">vectors</a> (2, 3, or 4-sized)</li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Matrix.html">matrices</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Plane.html">planes</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Box.html">axis aligned bounding boxes</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Sphere.html">spheres</a></li>
+<li><a href="http://ebassi.github.io/graphene/docs/graphene-Frustum.html">frustums</a></li>
+</ul>
+<p>Graphene also provides its low-level SIMD <a href="http://ebassi.github.io/graphene/docs/graphene-SIMD-vector.html">vector</a> and <a href="http://ebassi.github.io/graphene/docs/graphene-SIMD-matrix.html">matrix</a> types, which are used to implement the API above.</p>
+<p>All types can be placed on the stack, but provide allocation/free functions for working on the heap as well. The contents of all structure types, unless noted otherwise, should be considered private, and should never be accessed directly.</p>
+<p>The full API reference for Graphene is <a href="http://ebassi.github.io/graphene/docs/">available online</a>.</p>
+<h3 id="license">License</h3>
+<p>Graphene is released under the terms of the MIT/X11 license.</p>
+<p>See the <a href="./LICENSE">LICENSE</a> file for more details.</p>

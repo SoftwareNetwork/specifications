@@ -1,0 +1,78 @@
+<p><a href="https://travis-ci.com/TheLartians/Visitor"><img src="https://travis-ci.com/TheLartians/Visitor.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/gh/TheLartians/Visitor"><img src="https://codecov.io/gh/TheLartians/Visitor/branch/master/graph/badge.svg" alt="codecov" /></a> <a href="https://www.codacy.com/app/TheLartians/Visitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheLartians/Visitor&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/eb1f529643bd4e09a92c9dfc5b5920c4" alt="Codacy Badge" /></a></p>
+<h1 id="larsvisitor">lars::Visitor</h1>
+<p>A C++17 acyclic visitor template and inheritance-aware any and any-function class. Using lars::Visitor greatly reduces the boilerplate code required for implementing the <a href="https://en.wikipedia.org/wiki/Visitor_pattern">visitor pattern</a> in C++. It uses only <a href="https://github.com/Manu343726/ctti">compile time type information</a> and has better performance than solutions relying on run time type information such as <code>dynamic_cast</code>.</p>
+<h2 id="examples">Examples</h2>
+<p>See the <a href="https://github.com/TheLartians/Visitor/tree/master/examples">examples directory</a> for full examples.</p>
+<h3 id="larsvisitor-examples">lars::Visitor Examples</h3>
+<h4 id="simple-visitor">Simple Visitor</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;memory&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;lars/visitor.h&gt;</span>
+
+<span class="kw">struct</span> Base: <span class="kw">public</span> <span class="kw">virtual</span> lars::VisitableBase { };
+<span class="kw">struct</span> A: <span class="kw">public</span> Base, <span class="kw">public</span> lars::Visitable&lt;A&gt; { };
+<span class="kw">struct</span> B: <span class="kw">public</span> Base, <span class="kw">public</span> lars::Visitable&lt;B&gt; { };
+
+<span class="kw">struct</span> Visitor: <span class="kw">public</span> lars::Visitor&lt;A &amp;,B &amp;&gt; {
+  <span class="dt">void</span> visit(A &amp;){ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Visiting A&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; }
+  <span class="dt">void</span> visit(B &amp;){ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Visiting B&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; }
+};
+
+<span class="dt">int</span> main() {
+  <span class="bu">std::</span>shared_ptr&lt;Base&gt; a = <span class="bu">std::</span>make_shared&lt;A&gt;();
+  <span class="bu">std::</span>shared_ptr&lt;Base&gt; b = <span class="bu">std::</span>make_shared&lt;B&gt;();
+  
+  Visitor visitor;
+  a-&gt;accept(visitor); <span class="co">// -&gt; Visiting A</span>
+  b-&gt;accept(visitor); <span class="co">// -&gt; Visiting B</span>
+}</code></pre></div>
+<h4 id="derived-classes">Derived Classes</h4>
+<p>lars::Visitor also understands derived classes and classes with multiple visitable base classes. Virtual visitable base classes are also supported. When visiting a derived object, the first class matching the visitor is used (starting from parent classes). Multiple and virtual inheritance is fully supported.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// C is inherited from A (both can be visited)</span>
+<span class="kw">struct</span> C: <span class="kw">public</span> lars::DerivedVisitable&lt;C, A&gt; { };
+<span class="co">// D is inherited from A and B (A and B can be visited)</span>
+<span class="kw">struct</span> D: <span class="kw">public</span> lars::JoinVisitable&lt;A, B&gt; { };
+<span class="co">// E is virtually inherited from  A and B (E, A and B can be visited)</span>
+<span class="kw">struct</span> E: <span class="kw">public</span> lars::DerivedVisitable&lt;E, lars::VirtualVisitable&lt;A, B&gt;&gt; { };</code></pre></div>
+<h3 id="larsany-examples">lars::Any Examples</h3>
+<h4 id="implicit-casting">Implicit casting</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">lars::Any v;
+v = <span class="dv">42</span>;
+<span class="bu">std::</span>cout &lt;&lt; v.get&lt;<span class="dt">int</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span>
+<span class="bu">std::</span>cout &lt;&lt; v.get&lt;<span class="dt">double</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span>
+v = <span class="st">&quot;Hello Any!&quot;</span>;
+<span class="bu">std::</span>cout &lt;&lt; v.get&lt;<span class="bu">std::</span>string&gt;() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; Hello Any!</span></code></pre></div>
+<h4 id="reference-aware-casting">Reference aware casting</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> x = <span class="dv">42</span>;
+lars::Any a = <span class="bu">std::</span>reference_wrapper(x);
+<span class="bu">std::</span>cout &lt;&lt; a.get&lt;<span class="dt">double</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span>
+<span class="bu">std::</span>cout &lt;&lt; &amp;a.get&lt;<span class="dt">int</span>&amp;&gt;() == &amp;x &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 1</span></code></pre></div>
+<h4 id="inheritance-aware-casting">Inheritance aware casting</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// inheritance aware</span>
+<span class="kw">struct</span> MyClassBase{ <span class="dt">int</span> value; };
+<span class="kw">struct</span> MyClass: <span class="kw">public</span> MyClassBase{ MyClass(<span class="dt">int</span> value):MyClassBase{value}{ } };
+lars::Any v;
+v.setWithBases&lt;MyClass, MyClassBase&gt;(<span class="dv">42</span>);
+<span class="bu">std::</span>cout &lt;&lt; v.get&lt;MyClassBase &amp;&gt;().value &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span>
+<span class="bu">std::</span>cout &lt;&lt; v.get&lt;MyClass &amp;&gt;().value &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span></code></pre></div>
+<h3 id="larsanyfunction-examples">lars::AnyFunction Examples</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">lars::AnyFunction f;
+f = [](<span class="dt">int</span> x, <span class="dt">float</span> y){ <span class="cf">return</span> x + y; };
+<span class="bu">std::</span>cout &lt;&lt; f(<span class="dv">40</span>,<span class="dv">2</span>).get&lt;<span class="dt">int</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// -&gt; 42</span></code></pre></div>
+<h2 id="installation-and-usage">Installation and usage</h2>
+<p>With <a href="https://github.com/TheLartians/CPM">CPM</a>, lars::Visitor can be used in a CMake project simply by adding the following to the project's <code>CMakeLists.txt</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="fu">CPMAddPackage</span>(
+  NAME LarsVisitor
+  GIT_REPOSITORY https://github.com/TheLartians/Visitor.git
+  VERSION 1.7
+)
+
+<span class="kw">target_link_libraries</span>(myProject LarsVisitor)</code></pre></div>
+<p>Alternatively, the repository can be cloned locally and included it via <code>add_subdirectory</code>. Installing lars::Visitor will make it findable in CMake's <code>find_package</code>.</p>
+<h2 id="performance">Performance</h2>
+<p>lars::Visitor uses metaprogramming to determine the inheritance hierachy at compile-time for optimal performance. Compared to the traditional visitor pattern lars::Visitor requires an additional virtual calls (as the type of the visitor and the visitable object are unknown). With compiler optimizations enabled, these calls should not be noticable in real-world applications.</p>
+<p>There is an benchmark suite included in the repository that compares the pure cost of the different approaches.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/TheLartians/Visitor.git
+<span class="fu">cmake</span> -HVisitor/benchmark -BVisitor/build/benchmark -DCMAKE_BUILD_TYPE=Release
+<span class="fu">cmake</span> --build Visitor/build/benchmark -j
+<span class="ex">./Visitor/build/benchmark/LarsVisitorBenchmark</span></code></pre></div>

@@ -1,0 +1,90 @@
+<h1 id="precise-and-flat-reflection-ex-magic-get-ex-pods-flat-reflection">Precise and Flat Reflection (ex Magic Get, ex PODs Flat Reflection)</h1>
+<p>This C++14 library is meant for accessing structure elements by index and providing other std::tuple like methods for user defined types without any macro or boilerplate code.</p>
+<p><a href="http://apolukhin.github.com/magic_get/index.html">Latest documentation</a></p>
+<h3 id="test-results">Test results</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Branches</th>
+<th>Build</th>
+<th>Tests coverage</th>
+<th>More info</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Develop:</td>
+<td><a href="https://travis-ci.org/apolukhin/magic_get"><img src="https://travis-ci.org/apolukhin/magic_get.svg?branch=develop" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/apolukhin/magic-get/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/1edm74h5id8qpr2k/branch/develop?svg=true" alt="Build status" /></a></td>
+<td><a href="https://coveralls.io/github/apolukhin/magic_get?branch=develop"><img src="https://coveralls.io/repos/github/apolukhin/magic_get/badge.png?branch=develop" alt="Coverage Status" /></a></td>
+<td><!-- [details...](http://www.boost.org/development/tests/develop/developer/pfr.html)) --></td>
+</tr>
+<tr class="even">
+<td>Master:</td>
+<td><a href="https://travis-ci.org/apolukhin/magic_get"><img src="https://travis-ci.org/apolukhin/magic_get.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/apolukhin/magic-get/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1edm74h5id8qpr2k/branch/master?svg=true" alt="Build status" /></a></td>
+<td><a href="https://coveralls.io/github/apolukhin/magic_get?branch=master"><img src="https://coveralls.io/repos/github/apolukhin/magic_get/badge.png?branch=master" alt="Coverage Status" /></a></td>
+<td><!-- [details...](http://www.boost.org/development/tests/master/developer/pfr.html)) --></td>
+</tr>
+</tbody>
+</table>
+<h3 id="motivating-example-0">Motivating Example #0</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// requires: C++14</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;boost/pfr/precise.hpp&quot;</span>
+
+<span class="kw">struct</span> some_person {
+    <span class="bu">std::</span>string name;
+    <span class="dt">unsigned</span> birth_year;
+};
+
+<span class="dt">int</span> main() {
+    some_person val{<span class="st">&quot;Edgar Allan Poe&quot;</span>, <span class="dv">1809</span>};
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="ex">boost::</span>pfr<span class="ex">::</span>get&lt;<span class="dv">0</span>&gt;(val)                <span class="co">// No macro!</span>
+        &lt;&lt; <span class="st">&quot; was born in &quot;</span> &lt;&lt; <span class="ex">boost::</span>pfr<span class="ex">::</span>get&lt;<span class="dv">1</span>&gt;(val);  <span class="co">// Works with any aggregate initializables!</span>
+}</code></pre></div>
+<p>Outputs:</p>
+<pre><code>Edgar Allan Poe was born in 1809</code></pre>
+<h3 id="motivating-example-1">Motivating Example #1</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// requires: C++14</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;boost/pfr/precise.hpp&quot;</span>
+
+<span class="kw">struct</span> my_struct { <span class="co">// no ostream operator defined!</span>
+    <span class="dt">int</span> i;
+    <span class="dt">char</span> c;
+    <span class="dt">double</span> d;
+};
+
+<span class="dt">int</span> main() {
+    <span class="kw">using</span> <span class="kw">namespace</span> <span class="ex">boost::</span>pfr<span class="ex">::</span>ops; <span class="co">// out-of-the-box ostream operator for all PODs!</span>
+
+    my_struct s{<span class="dv">100</span>, <span class="st">&#39;H&#39;</span>, <span class="fl">3.141593</span>};
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;my_struct has &quot;</span> &lt;&lt; <span class="ex">boost::</span>pfr<span class="ex">::</span>tuple_size&lt;my_struct&gt;::value
+        &lt;&lt; <span class="st">&quot; fields: &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+}</code></pre></div>
+<p>Outputs:</p>
+<pre><code>my_struct has 3 fields: {100, H, 3.14159}</code></pre>
+<h3 id="motivating-example-2">Motivating Example #2</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// requires: C++14</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;boost/pfr/precise.hpp&quot;</span>
+
+<span class="kw">struct</span> my_struct { <span class="co">// no ostream operator defined!</span>
+    <span class="bu">std::</span>string s;
+    <span class="dt">int</span> i;
+};
+
+<span class="dt">int</span> main() {
+    <span class="kw">using</span> <span class="kw">namespace</span> <span class="ex">boost::</span>pfr<span class="ex">::</span>ops; <span class="co">// out-of-the-box ostream operators for aggregate initializables!</span>
+
+    my_struct s{{<span class="st">&quot;Das ist fantastisch!&quot;</span>}, <span class="dv">100</span>};
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;my_struct has &quot;</span> &lt;&lt; <span class="ex">boost::</span>pfr<span class="ex">::</span>tuple_size&lt;my_struct&gt;::value
+        &lt;&lt; <span class="st">&quot; fields: &quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+}</code></pre></div>
+<p>Outputs:</p>
+<pre><code>my_struct has 2 fields: {&quot;Das ist fantastisch!&quot;, 100}</code></pre>
+<h3 id="requirements-and-limitations">Requirements and Limitations</h3>
+<p>General: * C++14 compatible compiler (GCC-5.0+, Clang, Visual Studio 2017 with /std:c++latest or /std:c++17, ...) * Static variables are ignored * T must be constexpr aggregate initializable and must not contain references nor bitfields</p>
+<h3 id="license">License</h3>
+<p>Distributed under the <a href="http://boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</p>

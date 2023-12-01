@@ -1,0 +1,911 @@
+<h1 id="args">args</h1>
+<h4 id="note-that-this-library-is-essentially-in-maintenance-mode.-i-havent-had-the-time-to-work-on-it-or-give-it-the-love-that-it-deserves.-im-not-adding-new-features-but-i-will-fix-bugs.-i-will-also-very-gladly-accept-pull-requests.">Note that this library is essentially in maintenance mode. I haven’t had the time to work on it or give it the love that it deserves. I’m not adding new features, but I will fix bugs. I will also very gladly accept pull requests.</h4>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B11"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="Cpp Standard" /></a> <a href="https://travis-ci.org/Taywee/args"><img src="https://travis-ci.org/Taywee/args.svg?branch=master" alt="Travis status" /></a> <a href="https://ci.appveyor.com/project/Taywee/args"><img src="https://ci.appveyor.com/api/projects/status/nlnlmpttdjlndyc2?svg=true" alt="AppVeyor status" /></a> <a href="https://coveralls.io/github/Taywee/args?branch=master"><img src="https://coveralls.io/repos/github/Taywee/args/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://taywee.github.io/args"><img src="https://img.shields.io/readthedocs/pip.svg" alt="Read the Docs" /></a></p>
+<p>A simple, small, flexible, single-header C++11 argument parsing library.</p>
+<p>This is designed to appear somewhat similar to Python’s argparse, but in C++, with static type checking, and hopefully a lot faster (also allowing fully nestable group logic, where Python’s argparse does not).</p>
+<p>UTF-8 support is limited at best. No normalization is performed, so non-ascii characters are very best kept out of flags, and combined glyphs are probably going to mess up help output if you use them. Most UTF-8 necessary for internationalization should work for most cases, though heavily combinatory UTF alphabets may wreak havoc.</p>
+<p>This program is MIT-licensed, so you can use the header as-is with no restrictions. I’d appreciate attribution in a README, Man page, or something if you are feeling generous, but all that’s required is that you don’t remove the license and my name from the header of the args.hxx file in source redistributions (ie. don’t pretend that you wrote it). I do welcome additions and updates wherever you feel like contributing code.</p>
+<p>The API documentation can be found at https://taywee.github.io/args</p>
+<p>The code can be downloaded at https://github.com/Taywee/args</p>
+<p>There are also somewhat extensive examples below.</p>
+<p>You can find the complete test cases at https://github.com/Taywee/args/blob/master/test.cxx, which should very well describe the usage, as it’s built to push the boundaries.</p>
+<h1 id="what-does-it-do">What does it do?</h1>
+<p>It:</p>
+<ul>
+<li>Lets you handle flags, flag+value, and positional arguments simply and elegantly, with the full help of static typechecking.</li>
+<li>Allows you to use your own types in a pretty simple way.</li>
+<li>Lets you use count flags, and lists of all argument-accepting types.</li>
+<li>Allows full validation of groups of required arguments, though output isn’t pretty when something fails group validation. User validation functions are accepted. Groups are fully nestable.</li>
+<li>Generates pretty help for you, with some good tweakable parameters.</li>
+<li>Lets you customize all prefixes and most separators, allowing you to create an infinite number of different argument syntaxes.</li>
+<li>Lets you parse, by default, any type that has a stream extractor operator for it. If this doesn’t work for your uses, you can supply a function and parse the string yourself if you like.</li>
+<li>Lets you decide not to allow separate-argument value flags or joined ones (like disallowing <code>--foo bar</code>, requiring <code>--foo=bar</code>, or the inverse, or the same for short options).</li>
+<li>Allows you to create subparsers, to reuse arguments for multiple commands and to refactor your command’s logic to a function or lambda.</li>
+<li>Allows one value flag to take a specific number of values (like <code>--foo first   second</code>, where –foo slurps both arguments).</li>
+<li>Allows you to have value flags only optionally accept values.</li>
+<li>Provides autocompletion for bash.</li>
+</ul>
+<h1 id="what-does-it-not-do">What does it not do?</h1>
+<p>There are tons of things this library does not do!</p>
+<h2 id="it-will-not-ever">It will not ever:</h2>
+<ul>
+<li>Allow you to intermix multiple different prefix types (eg. <code>++foo</code> and <code>--foo</code> in the same parser), though shortopt and longopt prefixes can be different.</li>
+<li>Allow you to make flags sensitive to order (like gnu find), or make them sensitive to relative ordering with positionals. The only orderings that are order-sensitive are:
+<ul>
+<li>Positionals relative to one-another</li>
+<li>List positionals or flag values to each of their own respective items</li>
+</ul></li>
+<li>Allow you to use a positional list before any other positionals (the last argument list will slurp all subsequent positional arguments). The logic for allowing this would be a lot more code than I’d like, and would make static checking much more difficult, requiring us to sort std::string arguments and pair them to positional arguments before assigning them, rather than what we currently do, which is assiging them as we go for better simplicity and speed. The library doesn’t stop you from trying, but the first positional list will slurp in all following positionals</li>
+</ul>
+<h1 id="how-do-i-install-it">How do I install it?</h1>
+<pre class="shell"><code>sudo make install</code></pre>
+<p>Or, to install it somewhere special (default is <code>/usr/local</code>):</p>
+<pre class="shell"><code>sudo make install DESTDIR=/opt/mydir</code></pre>
+<p>You can also copy the file into your source tree, if you want to be absolutely sure you keep a stable API between projects.</p>
+<h2 id="i-also-want-man-pages.">I also want man pages.</h2>
+<pre class="shell"><code>make doc/man
+sudo make installman</code></pre>
+<p>This requires Doxygen</p>
+<h2 id="i-want-the-doxygen-documentation-locally">I want the doxygen documentation locally</h2>
+<pre class="shell"><code>doxygen Doxyfile</code></pre>
+<p>Your docs are now in doc/html</p>
+<h1 id="how-do-i-use-it">How do I use it?</h1>
+<p>Create an ArgumentParser, modify its attributes to fit your needs, add arguments through regular argument objects (or create your own), and match them with an args::Matcher object (check its construction details in the doxygen documentation.</p>
+<p>Then you can either call it with args::ArgumentParser::ParseCLI for the full command line with program name, or args::ArgumentParser::ParseArgs with just the arguments to be parsed. The argument and group variables can then be interpreted as a boolean to see if they’ve been matched.</p>
+<p>All variables can be pulled (including the boolean match status for regular args::Flag variables) with args::get.</p>
+<h1 id="group-validation-is-weird.-how-do-i-get-more-helpful-output-for-failed-validation">Group validation is weird. How do I get more helpful output for failed validation?</h1>
+<p>This is unfortunately not possible, given the power of the groups available. For instance, if you have a group validation that works like <code>(A &amp;&amp; B) || (C &amp;&amp; (D XOR E))</code>, how is this library going to be able to determine what exactly when wrong when it fails? It only knows that the entire expression evaluated false, not specifically what the user did wrong (and this is doubled over by the fact that validation operations are ordinary functions without any special meaning to the library). As you are the only one who understands the logic of your program, if you want useful group messages, you have to catch the ValidationError as a special case and check your own groups and spit out messages accordingly.</p>
+<h1 id="is-it-developed-with-regression-tests">Is it developed with regression tests?</h1>
+<p>Yes. tests.cxx in the git repository has a set of standard tests (which are still relatively small in number, but I would welcome some expansion here), and thanks to Travis CI and AppVeyor, these tests run with every single push:</p>
+<pre class="shell"><code>% make runtests
+g++ test.cxx -o test.o -I. -std=c++11 -O2 -c -MMD
+g++ -o test test.o -std=c++11 -O2
+./test
+===============================================================================
+All tests passed (74 assertions in 15 test cases)
+
+%</code></pre>
+<p>The testing library used is <a href="https://github.com/philsquared/Catch">Catch</a>.</p>
+<h1 id="examples">Examples</h1>
+<p>All the code examples here will be complete code examples, with some output.</p>
+<h2 id="simple-example">Simple example:</h2>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>{</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    args::HelpFlag help(parser, <span class="st">&quot;help&quot;</span>, <span class="st">&quot;Display this help menu&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>    args::CompletionFlag completion(parser, {<span class="st">&quot;complete&quot;</span>});</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>    {</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>    }</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>    <span class="cf">catch</span> (<span class="at">const</span> args::Completion&amp; e)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>    {</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; e.what();</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true"></a>    }</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true"></a>    <span class="cf">catch</span> (<span class="at">const</span> args::Help&amp;)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true"></a>    {</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true"></a>    }</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true"></a>    <span class="cf">catch</span> (<span class="at">const</span> args::ParseError&amp; e)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true"></a>    {</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true"></a>    }</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % ./test
+ % ./test -h
+  ./test {OPTIONS} 
+
+    This is a test program. 
+
+  OPTIONS:
+
+      -h, --help         Display this help menu 
+
+    This goes after the options. 
+ % </code></pre>
+<h2 id="boolean-flags-special-group-types-different-matcher-construction">Boolean flags, special group types, different matcher construction:</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>{</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>    args::Group group(parser, <span class="st">&quot;This group is all exclusive:&quot;</span>, args::Group::Validators::Xor);</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>    args::Flag foo(group, <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;The foo flag&quot;</span>, {<span class="ch">&#39;f&#39;</span>, <span class="st">&quot;foo&quot;</span>});</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>    args::Flag bar(group, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;The bar flag&quot;</span>, {<span class="ch">&#39;b&#39;</span>});</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>    args::Flag baz(group, <span class="st">&quot;baz&quot;</span>, <span class="st">&quot;The baz flag&quot;</span>, {<span class="st">&quot;baz&quot;</span>});</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>    {</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a>    }</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a>    {</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a>    }</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true"></a>    {</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true"></a>    }</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ValidationError e)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true"></a>    {</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true"></a>    }</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true"></a>    <span class="cf">if</span> (foo) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;foo&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true"></a>    <span class="cf">if</span> (bar) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;bar&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true"></a>    <span class="cf">if</span> (baz) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;baz&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % ./test   
+Group validation failed somewhere!
+  ./test {OPTIONS} 
+
+    This is a test program. 
+
+  OPTIONS:
+
+                         This group is all exclusive:
+        -f, --foo          The foo flag 
+        -b                 The bar flag 
+        --baz              The baz flag 
+
+    This goes after the options. 
+ % ./test -f
+foo
+ % ./test --foo
+foo
+ % ./test --foo -f
+foo
+ % ./test -b      
+bar
+ % ./test --baz
+baz
+ % ./test --baz -f
+Group validation failed somewhere!
+  ./test {OPTIONS} 
+
+    This is a test program. 
+...
+ % ./test --baz -fb
+Group validation failed somewhere!
+  ./test {OPTIONS} 
+...
+ % </code></pre>
+<h2 id="argument-flags-positional-arguments-lists">Argument flags, Positional arguments, lists</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a>{</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a>    args::HelpFlag help(parser, <span class="st">&quot;help&quot;</span>, <span class="st">&quot;Display this help menu&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="dt">int</span>&gt; integer(parser, <span class="st">&quot;integer&quot;</span>, <span class="st">&quot;The integer flag&quot;</span>, {<span class="ch">&#39;i&#39;</span>});</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>    args::ValueFlagList&lt;<span class="dt">char</span>&gt; characters(parser, <span class="st">&quot;characters&quot;</span>, <span class="st">&quot;The character flag&quot;</span>, {<span class="ch">&#39;c&#39;</span>});</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; foo(parser, <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;The foo position&quot;</span>);</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a>    args::PositionalList&lt;<span class="dt">double</span>&gt; numbers(parser, <span class="st">&quot;numbers&quot;</span>, <span class="st">&quot;The numbers position list&quot;</span>);</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a>    {</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true"></a>    }</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true"></a>    {</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true"></a>    }</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true"></a>    {</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true"></a>    }</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ValidationError e)</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true"></a>    {</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true"></a>    }</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true"></a>    <span class="cf">if</span> (integer) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;i: &quot;</span> &lt;&lt; args::get(integer) &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true"></a>    <span class="cf">if</span> (characters) { <span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span> ch: args::get(characters)) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;c: &quot;</span> &lt;&lt; ch &lt;&lt; <span class="bu">std::</span>endl; } }</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true"></a>    <span class="cf">if</span> (foo) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;f: &quot;</span> &lt;&lt; args::get(foo) &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true"></a>    <span class="cf">if</span> (numbers) { <span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span> nm: args::get(numbers)) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;n: &quot;</span> &lt;&lt; nm &lt;&lt; <span class="bu">std::</span>endl; } }</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code>% ./test -h
+  ./test {OPTIONS} [foo] [numbers...] 
+
+    This is a test program. 
+
+  OPTIONS:
+
+      -h, --help         Display this help menu 
+      -i integer         The integer flag 
+      -c characters      The character flag 
+      foo                The foo position 
+      numbers            The numbers position list 
+      &quot;--&quot; can be used to terminate flag options and force all following
+      arguments to be treated as positional options 
+
+    This goes after the options. 
+ % ./test -i 5
+i: 5
+ % ./test -i 5.2
+Argument &#39;integer&#39; received invalid value type &#39;5.2&#39;
+  ./test {OPTIONS} [foo] [numbers...] 
+ % ./test -c 1 -c 2 -c 3
+c: 1
+c: 2
+c: 3
+ % 
+ % ./test 1 2 3 4 5 6 7 8 9
+f: 1
+n: 2
+n: 3
+n: 4
+n: 5
+n: 6
+n: 7
+n: 8
+n: 9
+ % ./test 1 2 3 4 5 6 7 8 9 a
+Argument &#39;numbers&#39; received invalid value type &#39;a&#39;
+  ./test {OPTIONS} [foo] [numbers...] 
+
+    This is a test program. 
+...</code></pre>
+<h2 id="commands">Commands</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>{</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>    args::ArgumentParser p(<span class="st">&quot;git-like parser&quot;</span>);</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a>    args::Group commands(p, <span class="st">&quot;commands&quot;</span>);</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>    args::Command add(commands, <span class="st">&quot;add&quot;</span>, <span class="st">&quot;add file contents to the index&quot;</span>);</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a>    args::Command commit(commands, <span class="st">&quot;commit&quot;</span>, <span class="st">&quot;record changes to the repository&quot;</span>);</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>    args::Group arguments(p, <span class="st">&quot;arguments&quot;</span>, args::Group::Validators::DontCare, args::Options::Global);</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; gitdir(arguments, <span class="st">&quot;path&quot;</span>, <span class="st">&quot;&quot;</span>, {<span class="st">&quot;git-dir&quot;</span>});</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>    args::HelpFlag h(arguments, <span class="st">&quot;help&quot;</span>, <span class="st">&quot;help&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; pathsList(arguments, <span class="st">&quot;paths&quot;</span>, <span class="st">&quot;files to commit&quot;</span>);</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a>    {</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a>        p.ParseCLI(argc, argv);</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a>        <span class="cf">if</span> (add)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a>        {</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Add&quot;</span>;</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a>        }</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a>        <span class="cf">else</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a>        {</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Commit&quot;</span>;</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a>        }</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="kw">auto</span> &amp;&amp;path : pathsList)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true"></a>        {</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="ch">&#39; &#39;</span> &lt;&lt; path;</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true"></a>        }</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true"></a>    }</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true"></a>    {</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; p;</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true"></a>    }</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Error&amp; e)</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true"></a>    {</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl &lt;&lt; p;</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true"></a>    }</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code>% ./test -h
+  ./test COMMAND [paths...] {OPTIONS}
+
+    git-like parser
+
+  OPTIONS:
+
+      commands
+        add                               add file contents to the index
+        commit                            record changes to the repository
+      arguments
+        --git-dir=[path]
+        -h, --help                        help
+        paths...                          files
+      &quot;--&quot; can be used to terminate flag options and force all following
+      arguments to be treated as positional options
+
+% ./test add 1 2
+Add 1 2</code></pre>
+<h2 id="refactoring-commands">Refactoring commands</h2>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;args.hxx&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>args::Group arguments(<span class="st">&quot;arguments&quot;</span>);</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>args::ValueFlag&lt;<span class="bu">std::</span>string&gt; gitdir(arguments, <span class="st">&quot;path&quot;</span>, <span class="st">&quot;&quot;</span>, {<span class="st">&quot;git-dir&quot;</span>});</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a>args::HelpFlag h(arguments, <span class="st">&quot;help&quot;</span>, <span class="st">&quot;help&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true"></a>args::PositionalList&lt;<span class="bu">std::</span>string&gt; pathsList(arguments, <span class="st">&quot;paths&quot;</span>, <span class="st">&quot;files to commit&quot;</span>);</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true"></a><span class="dt">void</span> CommitCommand(args::Subparser &amp;parser)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true"></a>{</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; message(parser, <span class="st">&quot;MESSAGE&quot;</span>, <span class="st">&quot;commit message&quot;</span>, {<span class="ch">&#39;m&#39;</span>});</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true"></a>    parser.Parse();</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Commit&quot;</span>;</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true"></a>    <span class="cf">for</span> (<span class="kw">auto</span> &amp;&amp;path : pathsList)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true"></a>    {</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="ch">&#39; &#39;</span> &lt;&lt; path;</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true"></a>    }</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true"></a></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true"></a>    <span class="cf">if</span> (message)</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true"></a>    {</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;message: &quot;</span> &lt;&lt; args::get(message) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true"></a>    }</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true"></a>}</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true"></a></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span> **argv)</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true"></a>{</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true"></a>    args::ArgumentParser p(<span class="st">&quot;git-like parser&quot;</span>);</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true"></a>    args::Group commands(p, <span class="st">&quot;commands&quot;</span>);</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true"></a>    args::Command add(commands, <span class="st">&quot;add&quot;</span>, <span class="st">&quot;add file contents to the index&quot;</span>, [&amp;](args::Subparser &amp;parser)</span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true"></a>    {</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true"></a>        parser.Parse();</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Add&quot;</span>;</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="kw">auto</span> &amp;&amp;path : pathsList)</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true"></a>        {</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="ch">&#39; &#39;</span> &lt;&lt; path;</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true"></a>        }</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true"></a></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true"></a>    });</span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true"></a></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true"></a>    args::Command commit(commands, <span class="st">&quot;commit&quot;</span>, <span class="st">&quot;record changes to the repository&quot;</span>, &amp;CommitCommand);</span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true"></a>    args::GlobalOptions globals(p, arguments);</span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true"></a></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true"></a>    {</span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true"></a>        p.ParseCLI(argc, argv);</span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true"></a>    }</span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true"></a>    {</span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; p;</span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true"></a>    }</span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Error&amp; e)</span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true"></a>    {</span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl &lt;&lt; p;</span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true"></a>    }</span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code>% ./test -h
+  ./test COMMAND [paths...] {OPTIONS}
+
+    git-like parser
+
+  OPTIONS:
+
+      commands
+        add                               add file contents to the index
+        commit                            record changes to the repository
+      arguments
+        --git-dir=[path]
+        -h, --help                        help
+        paths...                          files
+      &quot;--&quot; can be used to terminate flag options and force all following
+      arguments to be treated as positional options
+
+% ./test add 1 2
+Add 1 2
+
+% ./test commit -m &quot;my commit message&quot; 1 2
+Commit 1 2
+message: my commit message</code></pre>
+<h1 id="custom-type-parsers-here-we-use-stdtuple">Custom type parsers (here we use std::tuple)</h1>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a><span class="bu">std::</span>istream&amp; <span class="kw">operator</span>&gt;&gt;(<span class="bu">std::</span>istream&amp; is, <span class="bu">std::</span>tuple&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt;&amp; ints)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a>{</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a>    is &gt;&gt; <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(ints);</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a>    is.get();</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a>    is &gt;&gt; <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(ints);</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a>    <span class="cf">return</span> is;</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true"></a>}</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true"></a><span class="kw">struct</span> DoublesReader</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true"></a>{</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true"></a>    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="bu">std::</span>string &amp;name, <span class="at">const</span> <span class="bu">std::</span>string &amp;value, <span class="bu">std::</span>tuple&lt;<span class="dt">double</span>, <span class="dt">double</span>&gt; &amp;destination)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true"></a>    {</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true"></a>        <span class="dt">size_t</span> commapos = <span class="dv">0</span>;</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true"></a>        <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(destination) = <span class="bu">std::</span>stod(value, &amp;commapos);</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true"></a>        <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(destination) = <span class="bu">std::</span>stod(<span class="bu">std::</span>string(value, commapos + <span class="dv">1</span>));</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true"></a>    }</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true"></a>};</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true"></a>{</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>);</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>tuple&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt;&gt; ints(parser, <span class="st">&quot;INTS&quot;</span>, <span class="st">&quot;This takes a pair of integers.&quot;</span>);</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>tuple&lt;<span class="dt">double</span>, <span class="dt">double</span>&gt;, DoublesReader&gt; doubles(parser, <span class="st">&quot;DOUBLES&quot;</span>, <span class="st">&quot;This takes a pair of doubles.&quot;</span>);</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true"></a>    {</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true"></a>    }</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true"></a>    {</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true"></a>    }</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true"></a>    {</span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true"></a>    }</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true"></a>    <span class="cf">if</span> (ints)</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true"></a>    {</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;ints found: &quot;</span> &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(args::get(ints)) &lt;&lt; <span class="st">&quot; and &quot;</span> &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(args::get(ints)) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true"></a>    }</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true"></a>    <span class="cf">if</span> (doubles)</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true"></a>    {</span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;doubles found: &quot;</span> &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(args::get(doubles)) &lt;&lt; <span class="st">&quot; and &quot;</span> &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(args::get(doubles)) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true"></a>    }</span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % ./test -h
+Argument could not be matched: &#39;h&#39;
+  ./test [INTS] [DOUBLES] 
+
+    This is a test program. 
+
+  OPTIONS:
+
+      INTS               This takes a pair of integers. 
+      DOUBLES            This takes a pair of doubles. 
+
+ % ./test 5
+ints found: 5 and 0
+ % ./test 5,8
+ints found: 5 and 8
+ % ./test 5,8 2.4,8
+ints found: 5 and 8
+doubles found: 2.4 and 8
+ % ./test 5,8 2.4, 
+terminate called after throwing an instance of &#39;std::invalid_argument&#39;
+  what():  stod
+zsh: abort      ./test 5,8 2.4,
+ % ./test 5,8 2.4 
+terminate called after throwing an instance of &#39;std::out_of_range&#39;
+  what():  basic_string::basic_string: __pos (which is 4) &gt; this-&gt;size() (which is 3)
+zsh: abort      ./test 5,8 2.4
+ % ./test 5,8 2.4-7
+ints found: 5 and 8
+doubles found: 2.4 and 7
+ % ./test 5,8 2.4,-7
+ints found: 5 and 8
+doubles found: 2.4 and -7</code></pre>
+<p>As you can see, with your own types, validation can get a little weird. Make sure to check and throw a parsing error (or whatever error you want to catch) if you can’t fully deduce your type. The built-in validator will only throw if there are unextracted characters left in the stream.</p>
+<h2 id="long-descriptions-and-proper-wrapping-and-listing">Long descriptions and proper wrapping and listing</h2>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true"></a>{</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program with a really long description that is probably going to have to be wrapped across multiple different lines.  This is a test to see how the line wrapping works&quot;</span>, <span class="st">&quot;This goes after the options.  This epilog is also long enough that it will have to be properly wrapped to display correctly on the screen&quot;</span>);</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a>    args::HelpFlag help(parser, <span class="st">&quot;HELP&quot;</span>, <span class="st">&quot;Show this help menu.&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; foo(parser, <span class="st">&quot;FOO&quot;</span>, <span class="st">&quot;The foo flag.&quot;</span>, {<span class="ch">&#39;a&#39;</span>, <span class="ch">&#39;b&#39;</span>, <span class="ch">&#39;c&#39;</span>, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;c&quot;</span>, <span class="st">&quot;the-foo-flag&quot;</span>});</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; bar(parser, <span class="st">&quot;BAR&quot;</span>, <span class="st">&quot;The bar flag.  This one has a lot of options, and will need wrapping in the description, along with its long flag list.&quot;</span>, {<span class="ch">&#39;d&#39;</span>, <span class="ch">&#39;e&#39;</span>, <span class="ch">&#39;f&#39;</span>, <span class="st">&quot;d&quot;</span>, <span class="st">&quot;e&quot;</span>, <span class="st">&quot;f&quot;</span>});</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; baz(parser, <span class="st">&quot;FOO&quot;</span>, <span class="st">&quot;The baz flag.  This one has a lot of options, and will need wrapping in the description, even with its short flag list.&quot;</span>, {<span class="st">&quot;baz&quot;</span>});</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos1(parser, <span class="st">&quot;POS1&quot;</span>, <span class="st">&quot;The pos1 argument.&quot;</span>);</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist1(parser, <span class="st">&quot;POSLIST1&quot;</span>, <span class="st">&quot;The poslist1 argument.&quot;</span>);</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos2(parser, <span class="st">&quot;POS2&quot;</span>, <span class="st">&quot;The pos2 argument.&quot;</span>);</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist2(parser, <span class="st">&quot;POSLIST2&quot;</span>, <span class="st">&quot;The poslist2 argument.&quot;</span>);</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos3(parser, <span class="st">&quot;POS3&quot;</span>, <span class="st">&quot;The pos3 argument.&quot;</span>);</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist3(parser, <span class="st">&quot;POSLIST3&quot;</span>, <span class="st">&quot;The poslist3 argument.&quot;</span>);</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos4(parser, <span class="st">&quot;POS4&quot;</span>, <span class="st">&quot;The pos4 argument.&quot;</span>);</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist4(parser, <span class="st">&quot;POSLIST4&quot;</span>, <span class="st">&quot;The poslist4 argument.&quot;</span>);</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos5(parser, <span class="st">&quot;POS5&quot;</span>, <span class="st">&quot;The pos5 argument.&quot;</span>);</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist5(parser, <span class="st">&quot;POSLIST5&quot;</span>, <span class="st">&quot;The poslist5 argument.&quot;</span>);</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos6(parser, <span class="st">&quot;POS6&quot;</span>, <span class="st">&quot;The pos6 argument.&quot;</span>);</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist6(parser, <span class="st">&quot;POSLIST6&quot;</span>, <span class="st">&quot;The poslist6 argument.&quot;</span>);</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos7(parser, <span class="st">&quot;POS7&quot;</span>, <span class="st">&quot;The pos7 argument.&quot;</span>);</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist7(parser, <span class="st">&quot;POSLIST7&quot;</span>, <span class="st">&quot;The poslist7 argument.&quot;</span>);</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos8(parser, <span class="st">&quot;POS8&quot;</span>, <span class="st">&quot;The pos8 argument.&quot;</span>);</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist8(parser, <span class="st">&quot;POSLIST8&quot;</span>, <span class="st">&quot;The poslist8 argument.&quot;</span>);</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true"></a>    args::Positional&lt;<span class="bu">std::</span>string&gt; pos9(parser, <span class="st">&quot;POS9&quot;</span>, <span class="st">&quot;The pos9 argument.&quot;</span>);</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true"></a>    args::PositionalList&lt;<span class="bu">std::</span>string&gt; poslist9(parser, <span class="st">&quot;POSLIST9&quot;</span>, <span class="st">&quot;The poslist9 argument.&quot;</span>);</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true"></a>    {</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true"></a>    }</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true"></a>    {</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true"></a>    }</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true"></a>    {</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true"></a>    }</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ValidationError e)</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true"></a>    {</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true"></a>    }</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % ./test -h
+  ./test {OPTIONS} [POS1] [POSLIST1...] [POS2] [POSLIST2...] [POS3]
+      [POSLIST3...] [POS4] [POSLIST4...] [POS5] [POSLIST5...] [POS6]
+      [POSLIST6...] [POS7] [POSLIST7...] [POS8] [POSLIST8...] [POS9]
+      [POSLIST9...] 
+
+    This is a test program with a really long description that is probably going
+    to have to be wrapped across multiple different lines. This is a test to see
+    how the line wrapping works 
+
+  OPTIONS:
+
+      -h, --help         Show this help menu. 
+      -a FOO, -b FOO, -c FOO, --a FOO, --b FOO, --c FOO, --the-foo-flag FOO
+                         The foo flag. 
+      -d BAR, -e BAR, -f BAR, --d BAR, --e BAR, --f BAR
+                         The bar flag. This one has a lot of options, and will
+                         need wrapping in the description, along with its long
+                         flag list. 
+      --baz FOO          The baz flag. This one has a lot of options, and will
+                         need wrapping in the description, even with its short
+                         flag list. 
+      POS1               The pos1 argument. 
+      POSLIST1           The poslist1 argument. 
+      POS2               The pos2 argument. 
+      POSLIST2           The poslist2 argument. 
+      POS3               The pos3 argument. 
+      POSLIST3           The poslist3 argument. 
+      POS4               The pos4 argument. 
+      POSLIST4           The poslist4 argument. 
+      POS5               The pos5 argument. 
+      POSLIST5           The poslist5 argument. 
+      POS6               The pos6 argument. 
+      POSLIST6           The poslist6 argument. 
+      POS7               The pos7 argument. 
+      POSLIST7           The poslist7 argument. 
+      POS8               The pos8 argument. 
+      POSLIST8           The poslist8 argument. 
+      POS9               The pos9 argument. 
+      POSLIST9           The poslist9 argument. 
+      &quot;--&quot; can be used to terminate flag options and force all following
+      arguments to be treated as positional options 
+
+    This goes after the options. This epilog is also long enough that it will
+    have to be properly wrapped to display correctly on the screen 
+ %</code></pre>
+<h2 id="customizing-parser-prefixes">Customizing parser prefixes</h2>
+<h3 id="dd-style">dd-style</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true"></a>{</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This command likes to break your disks&quot;</span>);</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true"></a>    parser.LongPrefix(<span class="st">&quot;&quot;</span>);</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a>    parser.LongSeparator(<span class="st">&quot;=&quot;</span>);</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a>    args::HelpFlag help(parser, <span class="st">&quot;HELP&quot;</span>, <span class="st">&quot;Show this help menu.&quot;</span>, {<span class="st">&quot;help&quot;</span>});</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="dt">long</span>&gt; bs(parser, <span class="st">&quot;BYTES&quot;</span>, <span class="st">&quot;Block size&quot;</span>, {<span class="st">&quot;bs&quot;</span>}, <span class="dv">512</span>);</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="dt">long</span>&gt; skip(parser, <span class="st">&quot;BYTES&quot;</span>, <span class="st">&quot;Bytes to skip&quot;</span>, {<span class="st">&quot;skip&quot;</span>}, <span class="dv">0</span>);</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; input(parser, <span class="st">&quot;BLOCK SIZE&quot;</span>, <span class="st">&quot;Block size&quot;</span>, {<span class="st">&quot;if&quot;</span>});</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true"></a>    args::ValueFlag&lt;<span class="bu">std::</span>string&gt; output(parser, <span class="st">&quot;BLOCK SIZE&quot;</span>, <span class="st">&quot;Block size&quot;</span>, {<span class="st">&quot;of&quot;</span>});</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true"></a>    {</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true"></a>    }</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true"></a>    {</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true"></a>    }</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true"></a>    {</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true"></a>    }</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ValidationError e)</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true"></a>    {</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; parser;</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true"></a>    }</span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;bs = &quot;</span> &lt;&lt; args::get(bs) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;skip = &quot;</span> &lt;&lt; args::get(skip) &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true"></a>    <span class="cf">if</span> (input) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;if = &quot;</span> &lt;&lt; args::get(input) &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true"></a>    <span class="cf">if</span> (output) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;of = &quot;</span> &lt;&lt; args::get(output) &lt;&lt; <span class="bu">std::</span>endl; }</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % ./test help
+  ./test {OPTIONS}
+
+    This command likes to break your disks
+
+  OPTIONS:
+
+      help                              Show this help menu.
+      bs=[BYTES]                        Block size
+      skip=[BYTES]                      Bytes to skip
+      if=[BLOCK SIZE]                   Block size
+      of=[BLOCK SIZE]                   Block size
+
+ % ./test bs=1024 skip=7 if=/tmp/input
+bs = 1024
+skip = 7
+if = /tmp/input</code></pre>
+<h3 id="windows-style">Windows style</h3>
+<p>The code is the same as above, but the two lines are replaced out:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a>parser.LongPrefix(<span class="st">&quot;/&quot;</span>);</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a>parser.LongSeparator(<span class="st">&quot;:&quot;</span>);</span></code></pre></div>
+<pre class="shell"><code> % ./test /help     
+  ./test {OPTIONS}
+
+    This command likes to break your disks
+
+  OPTIONS:
+
+      /help                             Show this help menu.
+      /bs:[BYTES]                       Block size
+      /skip:[BYTES]                     Bytes to skip
+      /if:[BLOCK SIZE]                  Block size
+      /of:[BLOCK SIZE]                  Block size
+
+ % ./test /bs:72 /skip:87 /if:/tmp/test.txt
+bs = 72
+skip = 87
+if = /tmp/test.txt
+ % </code></pre>
+<h2 id="group-nesting-help-menu-text">Group nesting help menu text</h2>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;args.hxx&gt;</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> **argv)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a>{</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a>    args::Group xorgroup(parser, <span class="st">&quot;this group provides xor validation:&quot;</span>, args::Group::Validators::Xor);</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a>    args::Flag a(xorgroup, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;a&#39;</span>});</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a>    args::Flag b(xorgroup, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;b&#39;</span>});</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a>    args::Flag c(xorgroup, <span class="st">&quot;c&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;c&#39;</span>});</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a>    args::Group nxor(xorgroup, <span class="st">&quot;this group provides all-or-none (nxor) validation:&quot;</span>, args::Group::Validators::AllOrNone);</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a>    args::Flag d(nxor, <span class="st">&quot;d&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;d&#39;</span>});</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a>    args::Flag e(nxor, <span class="st">&quot;e&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;e&#39;</span>});</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a>    args::Flag f(nxor, <span class="st">&quot;f&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;f&#39;</span>});</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true"></a>    args::Group nxor2(nxor, <span class="st">&quot;this group provides all-or-none (nxor2) validation:&quot;</span>, args::Group::Validators::AllOrNone);</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true"></a>    args::Flag i(nxor2, <span class="st">&quot;i&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;i&#39;</span>});</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true"></a>    args::Flag j(nxor2, <span class="st">&quot;j&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;j&#39;</span>});</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true"></a>    args::Flag k(nxor2, <span class="st">&quot;k&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;k&#39;</span>});</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true"></a>    args::Group nxor3(nxor, <span class="st">&quot;this group provides all-or-none (nxor3) validation:&quot;</span>, args::Group::Validators::AllOrNone);</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true"></a>    args::Flag l(nxor3, <span class="st">&quot;l&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;l&#39;</span>});</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true"></a>    args::Flag m(nxor3, <span class="st">&quot;m&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;m&#39;</span>});</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true"></a>    args::Flag n(nxor3, <span class="st">&quot;n&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;n&#39;</span>});</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true"></a>    args::Group atleastone(xorgroup, <span class="st">&quot;this group provides at-least-one validation:&quot;</span>, args::Group::Validators::AtLeastOne);</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true"></a>    args::Flag g(atleastone, <span class="st">&quot;g&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;g&#39;</span>});</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true"></a>    args::Flag o(atleastone, <span class="st">&quot;o&quot;</span>, <span class="st">&quot;test flag&quot;</span>, {<span class="ch">&#39;o&#39;</span>});</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true"></a>    args::HelpFlag help(parser, <span class="st">&quot;help&quot;</span>, <span class="st">&quot;Show this help menu&quot;</span>, {<span class="ch">&#39;h&#39;</span>, <span class="st">&quot;help&quot;</span>});</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true"></a>    <span class="cf">try</span></span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true"></a>    {</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true"></a>        parser.ParseCLI(argc, argv);</span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true"></a>    }</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true"></a>    <span class="cf">catch</span> (args::Help)</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true"></a>    {</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; parser;</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true"></a>    }</span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ParseError e)</span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true"></a>    {</span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true"></a>        parser.Help(<span class="bu">std::</span>cerr);</span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true"></a>    }</span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true"></a>    <span class="cf">catch</span> (args::ValidationError e)</span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true"></a>    {</span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true"></a>        parser.Help(<span class="bu">std::</span>cerr);</span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true"></a>    }</span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb24-48"><a href="#cb24-48" aria-hidden="true"></a>}</span></code></pre></div>
+<pre class="shell"><code> % /tmp/test -h
+  /tmp/test {OPTIONS} 
+
+    This is a test program. 
+
+  OPTIONS:
+
+                         this group provides xor validation: 
+        -a                 test flag 
+        -b                 test flag 
+        -c                 test flag 
+                           this group provides all-or-none (nxor) validation: 
+          -d                 test flag 
+          -e                 test flag 
+          -f                 test flag 
+                             this group provides all-or-none (nxor2) validation:
+            -i                 test flag 
+            -j                 test flag 
+            -k                 test flag 
+                             this group provides all-or-none (nxor3) validation:
+            -l                 test flag 
+            -m                 test flag 
+            -n                 test flag 
+                           this group provides at-least-one validation: 
+          -g                 test flag 
+          -o                 test flag 
+      -h, --help         Show this help menu 
+
+    This goes after the options. 
+ %                                                                                </code></pre>
+<h1 id="mapping-arguments">Mapping arguments</h1>
+<p>I haven’t written out a long example for this, but here’s the test case you should be able to discern the meaning from:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="dt">bool</span> ToLowerReader(<span class="at">const</span> <span class="bu">std::</span>string &amp;name, <span class="at">const</span> <span class="bu">std::</span>string &amp;value, <span class="bu">std::</span>string &amp;destination)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a>{</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a>    destination = value;</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a>    <span class="bu">std::</span>transform(destination.begin(), destination.end(), destination.begin(), ::tolower);</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true"></a>    <span class="cf">return</span> <span class="kw">true</span>;</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true"></a>}</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true"></a></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true"></a>TEST_CASE(<span class="st">&quot;Mapping types work as needed&quot;</span>, <span class="st">&quot;[args]&quot;</span>)</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true"></a>{</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true"></a>    <span class="bu">std::</span>unordered_map&lt;<span class="bu">std::</span>string, MappingEnum&gt; map{</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true"></a>        {<span class="st">&quot;default&quot;</span>, MappingEnum::def},</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true"></a>        {<span class="st">&quot;foo&quot;</span>, MappingEnum::foo},</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true"></a>        {<span class="st">&quot;bar&quot;</span>, MappingEnum::bar},</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true"></a>        {<span class="st">&quot;red&quot;</span>, MappingEnum::red},</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true"></a>        {<span class="st">&quot;yellow&quot;</span>, MappingEnum::yellow},</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true"></a>        {<span class="st">&quot;green&quot;</span>, MappingEnum::green}};</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true"></a>    args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true"></a>    args::MapFlag&lt;<span class="bu">std::</span>string, MappingEnum&gt; dmf(parser, <span class="st">&quot;DMF&quot;</span>, <span class="st">&quot;Maps string to an enum&quot;</span>, {<span class="st">&quot;dmf&quot;</span>}, map);</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true"></a>    args::MapFlag&lt;<span class="bu">std::</span>string, MappingEnum&gt; mf(parser, <span class="st">&quot;MF&quot;</span>, <span class="st">&quot;Maps string to an enum&quot;</span>, {<span class="st">&quot;mf&quot;</span>}, map);</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true"></a>    args::MapFlag&lt;<span class="bu">std::</span>string, MappingEnum, ToLowerReader&gt; cimf(parser, <span class="st">&quot;CIMF&quot;</span>, <span class="st">&quot;Maps string to an enum case-insensitively&quot;</span>, {<span class="st">&quot;cimf&quot;</span>}, map);</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true"></a>    args::MapFlagList&lt;<span class="bu">std::</span>string, MappingEnum&gt; mfl(parser, <span class="st">&quot;MFL&quot;</span>, <span class="st">&quot;Maps string to an enum list&quot;</span>, {<span class="st">&quot;mfl&quot;</span>}, map);</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true"></a>    args::MapPositional&lt;<span class="bu">std::</span>string, MappingEnum&gt; mp(parser, <span class="st">&quot;MP&quot;</span>, <span class="st">&quot;Maps string to an enum&quot;</span>, map);</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true"></a>    args::MapPositionalList&lt;<span class="bu">std::</span>string, MappingEnum&gt; mpl(parser, <span class="st">&quot;MPL&quot;</span>, <span class="st">&quot;Maps string to an enum list&quot;</span>, map);</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true"></a>    parser.ParseArgs(<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;{<span class="st">&quot;--mf=red&quot;</span>, <span class="st">&quot;--cimf=YeLLoW&quot;</span>, <span class="st">&quot;--mfl=bar&quot;</span>, <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;--mfl=green&quot;</span>, <span class="st">&quot;red&quot;</span>, <span class="st">&quot;--mfl&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;default&quot;</span>});</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true"></a>    REQUIRE_FALSE(dmf);</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true"></a>    REQUIRE(args::get(dmf) == MappingEnum::def);</span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true"></a>    REQUIRE(mf);</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true"></a>    REQUIRE(args::get(mf) == MappingEnum::red);</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true"></a>    REQUIRE(cimf);</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true"></a>    REQUIRE(args::get(cimf) == MappingEnum::yellow);</span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true"></a>    REQUIRE(mfl);</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true"></a>    REQUIRE((args::get(mfl) == <span class="bu">std::</span>vector&lt;MappingEnum&gt;{MappingEnum::bar, MappingEnum::green, MappingEnum::bar}));</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true"></a>    REQUIRE(mp);</span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true"></a>    REQUIRE((args::get(mp) == MappingEnum::foo));</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true"></a>    REQUIRE(mpl);</span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true"></a>    REQUIRE((args::get(mpl) == <span class="bu">std::</span>vector&lt;MappingEnum&gt;{MappingEnum::red, MappingEnum::def}));</span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true"></a>    REQUIRE_THROWS_AS(parser.ParseArgs(<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;{<span class="st">&quot;--mf=YeLLoW&quot;</span>}), args::MapError);</span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true"></a>}</span></code></pre></div>
+<h1 id="how-fast-is-it">How fast is it?</h1>
+<p>This should not really be a question you ask when you are looking for an argument-parsing library, but every test I’ve done shows args as being about 65% faster than TCLAP and 220% faster than boost::program_options.</p>
+<p>The simplest benchmark I threw together is the following one, which parses the command line <code>-i 7 -c a 2.7 --char b 8.4 -c c 8.8 --char d</code> with a parser that parses -i as an int, -c as a list of chars, and the positional parameters as a list of doubles (the command line was originally much more complex, but TCLAP’s limitations made me trim it down so I could use a common command line across all libraries. I also have to copy in the arguments list with every run, because TCLAP permutes its argument list as it runs (and comparison would have been unfair without comparing all about equally), but that surprisingly didn’t affect much. Also tested is pulling the arguments out, but that was fast compared to parsing, as would be expected.</p>
+<h3 id="the-run">The run:</h3>
+<pre class="shell"><code>% g++ -obench bench.cxx -O2 -std=c++11 -lboost_program_options
+% ./bench
+args seconds to run: 0.895472
+tclap seconds to run: 1.45001
+boost::program_options seconds to run: 1.98972
+%</code></pre>
+<h3 id="the-benchmark">The benchmark:</h3>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="pp">#undef NDEBUG</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;chrono&gt;</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;args.hxx&quot;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;tclap/CmdLine.h&gt;</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;boost/program_options.hpp&gt;</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true"></a><span class="kw">namespace</span> po = <span class="ex">boost::</span>program_options;</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono;</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true"></a><span class="kw">inline</span> <span class="dt">bool</span> doubleequals(<span class="at">const</span> <span class="dt">double</span> a, <span class="at">const</span> <span class="dt">double</span> b)</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true"></a>{</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true"></a>    <span class="at">static</span> <span class="at">const</span> <span class="dt">double</span> delta = <span class="fl">0.0001</span>;</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true"></a>    <span class="at">const</span> <span class="dt">double</span> diff = a - b;</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true"></a>    <span class="cf">return</span> diff &lt; delta &amp;&amp; diff &gt; -delta;</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true"></a>}</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true"></a><span class="dt">int</span> main()</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true"></a>{</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true"></a>    <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; carguments({<span class="st">&quot;-i&quot;</span>, <span class="st">&quot;7&quot;</span>, <span class="st">&quot;-c&quot;</span>, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;2.7&quot;</span>, <span class="st">&quot;--char&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;8.4&quot;</span>, <span class="st">&quot;-c&quot;</span>, <span class="st">&quot;c&quot;</span>, <span class="st">&quot;8.8&quot;</span>, <span class="st">&quot;--char&quot;</span>, <span class="st">&quot;d&quot;</span>});</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true"></a>    <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; pcarguments({<span class="st">&quot;progname&quot;</span>, <span class="st">&quot;-i&quot;</span>, <span class="st">&quot;7&quot;</span>, <span class="st">&quot;-c&quot;</span>, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;2.7&quot;</span>, <span class="st">&quot;--char&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;8.4&quot;</span>, <span class="st">&quot;-c&quot;</span>, <span class="st">&quot;c&quot;</span>, <span class="st">&quot;8.8&quot;</span>, <span class="st">&quot;--char&quot;</span>, <span class="st">&quot;d&quot;</span>});</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true"></a>    <span class="co">// args</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true"></a>    {</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true"></a>        high_resolution_clock::time_point start = high_resolution_clock::now();</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">unsigned</span> <span class="dt">int</span> x = <span class="dv">0</span>; x &lt; <span class="dv">100000</span>; ++x)</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true"></a>        {</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true"></a>            <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; arguments(carguments);</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true"></a>            args::ArgumentParser parser(<span class="st">&quot;This is a test program.&quot;</span>, <span class="st">&quot;This goes after the options.&quot;</span>);</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true"></a>            args::ValueFlag&lt;<span class="dt">int</span>&gt; integer(parser, <span class="st">&quot;integer&quot;</span>, <span class="st">&quot;The integer flag&quot;</span>, {<span class="ch">&#39;i&#39;</span>, <span class="st">&quot;int&quot;</span>});</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true"></a>            args::ValueFlagList&lt;<span class="dt">char</span>&gt; characters(parser, <span class="st">&quot;characters&quot;</span>, <span class="st">&quot;The character flag&quot;</span>, {<span class="ch">&#39;c&#39;</span>, <span class="st">&quot;char&quot;</span>});</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true"></a>            args::PositionalList&lt;<span class="dt">double</span>&gt; numbers(parser, <span class="st">&quot;numbers&quot;</span>, <span class="st">&quot;The numbers position list&quot;</span>);</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true"></a>            parser.ParseArgs(arguments);</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true"></a>            <span class="at">const</span> <span class="dt">int</span> i = args::get(integer);</span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt; c(args::get(characters));</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; n(args::get(numbers));</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true"></a>            <span class="ot">assert</span>(i == <span class="dv">7</span>);</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">0</span>] == <span class="ch">&#39;a&#39;</span>);</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">1</span>] == <span class="ch">&#39;b&#39;</span>);</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">2</span>] == <span class="ch">&#39;c&#39;</span>);</span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">3</span>] == <span class="ch">&#39;d&#39;</span>);</span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">0</span>], <span class="fl">2.7</span>));</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">1</span>], <span class="fl">8.4</span>));</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">2</span>], <span class="fl">8.8</span>));</span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true"></a>        }</span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true"></a>        high_resolution_clock::duration runtime = high_resolution_clock::now() - start;</span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;args seconds to run: &quot;</span> &lt;&lt; duration_cast&lt;duration&lt;<span class="dt">double</span>&gt;&gt;(runtime).count() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true"></a>    }</span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true"></a>    <span class="co">// tclap</span></span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true"></a>    {</span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true"></a>        high_resolution_clock::time_point start = high_resolution_clock::now();</span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">unsigned</span> <span class="dt">int</span> x = <span class="dv">0</span>; x &lt; <span class="dv">100000</span>; ++x)</span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true"></a>        {</span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true"></a>            <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; arguments(pcarguments);</span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true"></a>            TCLAP::CmdLine cmd(<span class="st">&quot;Command description message&quot;</span>, <span class="ch">&#39; &#39;</span>, <span class="st">&quot;0.9&quot;</span>);</span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true"></a>            TCLAP::ValueArg&lt;<span class="dt">int</span>&gt; integer(<span class="st">&quot;i&quot;</span>, <span class="st">&quot;int&quot;</span>, <span class="st">&quot;The integer flag&quot;</span>, <span class="kw">false</span>, <span class="dv">0</span>, <span class="st">&quot;integer&quot;</span>, cmd);</span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true"></a>            TCLAP::MultiArg&lt;<span class="dt">char</span>&gt; characters(<span class="st">&quot;c&quot;</span>, <span class="st">&quot;char&quot;</span>, <span class="st">&quot;The character flag&quot;</span>, <span class="kw">false</span>, <span class="st">&quot;characters&quot;</span>, cmd);</span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true"></a>            TCLAP::UnlabeledMultiArg&lt;<span class="dt">double</span>&gt; numbers(<span class="st">&quot;numbers&quot;</span>, <span class="st">&quot;The numbers position list&quot;</span>, <span class="kw">false</span>, <span class="st">&quot;foo&quot;</span>, cmd, <span class="kw">false</span>);</span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true"></a>            cmd.parse(arguments);</span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true"></a>            <span class="at">const</span> <span class="dt">int</span> i = integer.getValue();</span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt; c(characters.getValue());</span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; n(numbers.getValue());</span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true"></a>            <span class="ot">assert</span>(i == <span class="dv">7</span>);</span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">0</span>] == <span class="ch">&#39;a&#39;</span>);</span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">1</span>] == <span class="ch">&#39;b&#39;</span>);</span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">2</span>] == <span class="ch">&#39;c&#39;</span>);</span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">3</span>] == <span class="ch">&#39;d&#39;</span>);</span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">0</span>], <span class="fl">2.7</span>));</span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">1</span>], <span class="fl">8.4</span>));</span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">2</span>], <span class="fl">8.8</span>));</span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true"></a>        }</span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true"></a>        high_resolution_clock::duration runtime = high_resolution_clock::now() - start;</span>
+<span id="cb28-70"><a href="#cb28-70" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;tclap seconds to run: &quot;</span> &lt;&lt; duration_cast&lt;duration&lt;<span class="dt">double</span>&gt;&gt;(runtime).count() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb28-71"><a href="#cb28-71" aria-hidden="true"></a>    }</span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true"></a>    <span class="co">// boost::program_options</span></span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true"></a>    {</span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true"></a>        high_resolution_clock::time_point start = high_resolution_clock::now();</span>
+<span id="cb28-75"><a href="#cb28-75" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">unsigned</span> <span class="dt">int</span> x = <span class="dv">0</span>; x &lt; <span class="dv">100000</span>; ++x)</span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true"></a>        {</span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true"></a>            <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; arguments(carguments);</span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true"></a>            po::options_description desc(<span class="st">&quot;This is a test program.&quot;</span>);</span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true"></a>            desc.add_options()</span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true"></a>                (<span class="st">&quot;int,i&quot;</span>, po::value&lt;<span class="dt">int</span>&gt;(), <span class="st">&quot;The integer flag&quot;</span>)</span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true"></a>                (<span class="st">&quot;char,c&quot;</span>, po::value&lt;<span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt;&gt;(), <span class="st">&quot;The character flag&quot;</span>)</span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true"></a>                (<span class="st">&quot;numbers&quot;</span>, po::value&lt;<span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;&gt;(), <span class="st">&quot;The numbers flag&quot;</span>);</span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true"></a>            po::positional_options_description p;</span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true"></a>            p.add(<span class="st">&quot;numbers&quot;</span>, -<span class="dv">1</span>);</span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true"></a>            po::variables_map vm;</span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true"></a>            po::store(po::command_line_parser(carguments).options(desc).positional(p).run(), vm);</span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true"></a>            <span class="at">const</span> <span class="dt">int</span> i = vm[<span class="st">&quot;int&quot;</span>].as&lt;<span class="dt">int</span>&gt;();</span>
+<span id="cb28-88"><a href="#cb28-88" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt; c(vm[<span class="st">&quot;char&quot;</span>].as&lt;<span class="bu">std::</span>vector&lt;<span class="dt">char</span>&gt;&gt;());</span>
+<span id="cb28-89"><a href="#cb28-89" aria-hidden="true"></a>            <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt; n(vm[<span class="st">&quot;numbers&quot;</span>].as&lt;<span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;&gt;());</span>
+<span id="cb28-90"><a href="#cb28-90" aria-hidden="true"></a>            <span class="ot">assert</span>(i == <span class="dv">7</span>);</span>
+<span id="cb28-91"><a href="#cb28-91" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">0</span>] == <span class="ch">&#39;a&#39;</span>);</span>
+<span id="cb28-92"><a href="#cb28-92" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">1</span>] == <span class="ch">&#39;b&#39;</span>);</span>
+<span id="cb28-93"><a href="#cb28-93" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">2</span>] == <span class="ch">&#39;c&#39;</span>);</span>
+<span id="cb28-94"><a href="#cb28-94" aria-hidden="true"></a>            <span class="ot">assert</span>(c[<span class="dv">3</span>] == <span class="ch">&#39;d&#39;</span>);</span>
+<span id="cb28-95"><a href="#cb28-95" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">0</span>], <span class="fl">2.7</span>));</span>
+<span id="cb28-96"><a href="#cb28-96" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">1</span>], <span class="fl">8.4</span>));</span>
+<span id="cb28-97"><a href="#cb28-97" aria-hidden="true"></a>            <span class="ot">assert</span>(doubleequals(n[<span class="dv">2</span>], <span class="fl">8.8</span>));</span>
+<span id="cb28-98"><a href="#cb28-98" aria-hidden="true"></a>        }</span>
+<span id="cb28-99"><a href="#cb28-99" aria-hidden="true"></a>        high_resolution_clock::duration runtime = high_resolution_clock::now() - start;</span>
+<span id="cb28-100"><a href="#cb28-100" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;boost::program_options seconds to run: &quot;</span> &lt;&lt; duration_cast&lt;duration&lt;<span class="dt">double</span>&gt;&gt;(runtime).count() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb28-101"><a href="#cb28-101" aria-hidden="true"></a>    }</span>
+<span id="cb28-102"><a href="#cb28-102" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb28-103"><a href="#cb28-103" aria-hidden="true"></a>}</span></code></pre></div>
+<p>So, on top of being more flexible, smaller, and easier to read, it is faster than the most common alternatives.</p>

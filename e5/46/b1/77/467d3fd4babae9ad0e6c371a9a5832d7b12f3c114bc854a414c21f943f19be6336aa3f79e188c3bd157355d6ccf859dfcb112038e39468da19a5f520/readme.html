@@ -1,0 +1,137 @@
+<h1 id="reproc">reproc</h1>
+<p><a href="https://travis-ci.com/DaanDeMeyer/reproc"><img src="https://travis-ci.com/DaanDeMeyer/reproc.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/DaanDeMeyer/reproc"><img src="https://ci.appveyor.com/api/projects/status/9d79srq8n7ytnrs5?svg=true" alt="Build status" /></a> <a href="https://dev.azure.com/daanjdemeyer/reproc/_build/latest?definitionId=1&amp;branchName=master"><embed src="https://dev.azure.com/daanjdemeyer/reproc/_apis/build/status/DaanDeMeyer.reproc?branchName=master" /></a> <a href="https://gitter.im/reproc/Lobby?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/reproc/Lobby.svg" alt="Join the chat at https://gitter.im/reproc/Lobby" /></a></p>
+<ul>
+<li><a href="#what-is-reproc">What is reproc?</a></li>
+<li><a href="#features">Features</a></li>
+<li><a href="#questions">Questions</a></li>
+<li><a href="#retrieving-reproc">Retrieving reproc</a></li>
+<li><a href="#dependencies">Dependencies</a></li>
+<li><a href="#cmake-options">CMake options</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#error-handling">Error handling</a></li>
+<li><a href="#multithreading">Multithreading</a></li>
+<li><a href="#gotchas">Gotchas</a></li>
+<li><a href="#avoiding-resource-leaks">Avoiding resource leaks</a></li>
+</ul>
+<h2 id="what-is-reproc">What is reproc?</h2>
+<p>reproc (Redirected Process) is a cross-platform library that starts external processes from within a C or C++ application, reads/writes to their stdin/stdout/stderr streams and waits for them to exit or forcefully stops them.</p>
+<p>The main use case is executing command line applications directly from C or C++ code and retrieving their output.</p>
+<p>reproc consists out of two libraries: reproc and reproc++. reproc is a C99 library that contains all the actual code for interacting with child processes. reproc++ depends on reproc and adapts its API to an idiomatic C++11 API. It also adds a few extras that make working with child processes from C++ easier.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Start any program directly from C or C++ code.</li>
+<li>Write to its standard input stream and read from its standard output and standard error streams.</li>
+<li>Wait for the program to exit or forcefully stop it yourself. When forcefully stopping a process you can either allow the process to clean up its resources or stop it immediately.</li>
+<li>The core library (reproc) is written in C99. An optional C++11 wrapper library (reproc++) with extra features is available for use in C++ applications.</li>
+<li>Multiple installation methods. Either build reproc as part of your project or use a system installed version of reproc.</li>
+</ul>
+<h2 id="questions">Questions</h2>
+<p>If you have any questions after reading the readme and documentation you can either make an issue or ask questions directly in the reproc <a href="https://gitter.im/reproc/Lobby">gitter</a> channel.</p>
+<h2 id="retrieving-reproc">Retrieving reproc</h2>
+<p>There are multiple ways to get reproc into your project. One way is to build reproc as part of your project using CMake. To do this, we first have to get the reproc source code into the project. This can be done using any of the following options:</p>
+<ul>
+<li>If you're using CMake 3.11 or later you can use the CMake <code>FetchContent</code> API to download reproc when running CMake. See <a href="https://cliutils.gitlab.io/modern-cmake/chapters/projects/fetch.html" class="uri">https://cliutils.gitlab.io/modern-cmake/chapters/projects/fetch.html</a> for an example.</li>
+<li>Another option is to include reproc's repository as a git submodule. <a href="https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html" class="uri">https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html</a> provides more information.</li>
+<li>A very simple solution is to just include reproc's source code in your repository. You can download a zip of the source code without the git history and add it to your repository in a separate directory (reproc itself uses the <code>external</code> directory).</li>
+</ul>
+<p>After including reproc's source code in your project, it can be built from the root CMakeLists.txt file as follows:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">add_subdirectory</span>(&lt;path-to-reproc&gt;) <span class="co"># For example: add_subdirectory(external/reproc)</span></code></pre></div>
+<p>Options can be specified before calling <code>add_subdirectory</code> (omit <code>FORCE</code> if you don't want to override an existing value in the cache):</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">set</span>(REPROC++ <span class="ot">ON</span> <span class="ot">CACHE</span> <span class="ot">BOOL</span> <span class="st">&quot;&quot;</span> <span class="ot">FORCE</span>)
+<span class="kw">add_subdirectory</span>(&lt;path-to-reproc&gt;)</code></pre></div>
+<p>You can also depend on a system installed version of reproc. You can either build and install reproc to your system yourself or install reproc via a package manager. reproc is available in the following package repositories:</p>
+<ul>
+<li>Arch User Repository (<a href="https://aur.archlinux.org/packages/reproc" class="uri">https://aur.archlinux.org/packages/reproc</a>)</li>
+</ul>
+<p>After installing reproc to the system your build system will have to find it. reproc provides both CMake config files and pkg-config files to simplify finding a system installed version of reproc using CMake and pkg-config respectively. Note that reproc and reproc++ are separate libraries and as a result have separate config files as well. Make sure to search for the one you need.</p>
+<p>To find a system installation of reproc using CMake:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(reproc) <span class="co"># Find reproc.</span>
+<span class="kw">find_package</span>(reproc++) <span class="co"># Find reproc++.</span></code></pre></div>
+<p>After building reproc as part of your project or finding a system installed reproc, you can link against it from within your CMakeLists.txt file as follows:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">target_link_libraries</span>(myapp reproc) <span class="co"># Link against reproc.</span>
+<span class="kw">target_link_libraries</span>(myapp reproc++) <span class="co"># Link against reproc++.</span></code></pre></div>
+<h2 id="dependencies">Dependencies</h2>
+<p>Building reproc requires CMake 3.13 or higher.</p>
+<p>By default, reproc has a single dependency on pthreads on POSIX systems. However, the dependency is included in both reproc's CMake config and pkg-config files so it should be picked up by your build system automatically.</p>
+<h2 id="cmake-options">CMake options</h2>
+<p>reproc's build can be configured using the following CMake options:</p>
+<h3 id="user">User</h3>
+<ul>
+<li><code>REPROC++</code>: Build reproc++ (default: <code>OFF</code>).</li>
+<li><code>REPROC_TEST</code>: Build tests (default: <code>OFF</code>).</li>
+<li><code>REPROC_EXAMPLES</code>: Build examples (default: <code>OFF</code>).</li>
+</ul>
+<h3 id="advanced">Advanced</h3>
+<ul>
+<li><code>REPROC_INSTALL</code>: Generate installation rules (default: <code>ON</code> unless <code>BUILD_SHARED_LIBS</code> is false and reproc is built via <code>add_subdirectory</code>).</li>
+<li><code>REPROC_INSTALL_CMAKECONFIGDIR</code>: CMake config files installation directory (default: <code>${CMAKE_INSTALL_LIBDIR}/cmake</code>).</li>
+<li><code>REPROC_INSTALL_PKGCONFIG</code>: Install pkg-config files (default: <code>ON</code>)</li>
+<li><code>REPROC_INSTALL_PKGCONFIGDIR</code>: pkg-config files installation directory (default: <code>${CMAKE_INSTALL_LIBDIR}/pkgconfig</code>).</li>
+<li><code>REPROC_MULTITHREADED</code>: Use <code>pthread_sigmask</code> instead of <code>sigprocmask</code> (default: <code>ON</code>).</li>
+</ul>
+<p><code>sigprocmask</code>'s behaviour is only defined for single-threaded programs. When using multiple threads, <code>pthread_sigmask</code> should be used instead. Because we cannot determine whether reproc will be used in a multi-threaded program when building reproc, <code>REPROC_MULTITHREADED</code> is enabled by default to guarantee defined behaviour. Users that know for certain their program will only use a single thread can opt to disable <code>REPROC_MULTITHREADED</code>.</p>
+<p>When using reproc via CMake <code>add_subdirectory</code> and <code>REPROC_MULTITHREADED</code> is enabled, reproc will only call <code>find_package(Threads)</code> if the user has not called <code>find_package(Threads)</code> himself. The <code>THREADS_PREFER_PTHREAD_FLAG</code> variable influences the behaviour of <code>find_package(Threads)</code>. if it is not defined, reproc's build enables it before calling <code>find_package(Threads)</code>.</p>
+<h3 id="developer">Developer</h3>
+<ul>
+<li><code>REPROC_SANITIZERS</code>: Build with sanitizers (default: <code>OFF</code>).</li>
+<li><code>REPROC_TIDY</code>: Run clang-tidy when building (default: <code>OFF</code>).</li>
+<li><code>REPROC_WARNINGS_AS_ERRORS</code>: Add -Werror or equivalent to the compile flags and clang-tidy (default: <code>OFF</code>).</li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<p>Each function and class is documented extensively in its header file. Examples can be found in the examples subdirectory of <a href="reproc/examples">reproc</a> and <a href="reproc++/examples">reproc++</a>.</p>
+<h2 id="error-handling">Error handling</h2>
+<p>Most functions in reproc's API return <code>REPROC_ERROR</code>. The <code>REPROC_ERROR</code> enum represents all possible errors that can occur when calling reproc API functions. Not all errors apply to each function so the documentation of each function includes a section detailing which errors can occur. System errors are represented by <code>REPROC_ERROR_SYSTEM</code>. The <code>reproc_system_error</code> error can be used to retrieve the actual system error.</p>
+<p>reproc++'s API integrates with the C++ standard library error codes mechanism (<code>std::error_code</code> and <code>std::error_condition</code>). All functions in reproc++'s API return <code>std::error_code</code> values that contain the actual system error that occurred. This means <code>reproc_system_error</code> is not necessary in reproc++ since the returned error codes store the actual system error instead of the value of <code>REPROC_ERROR_SYSTEM</code>. You can test against these error codes using the <code>std::errc</code> error condition enum:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">reproc::process;
+<span class="bu">std::</span>error_code ec = process.start(...);
+
+<span class="cf">if</span> (ec == <span class="bu">std::</span>errc<span class="bu">::</span>no_such_file_or_directory) {
+  <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;Executable not found. Make sure it is available from the PATH.&quot;</span>;
+  <span class="cf">return</span> <span class="dv">1</span>;
+}
+
+<span class="cf">if</span> (ec) {
+  <span class="co">// Will print the actual system error value from errno or GetLastError() if a</span>
+  <span class="co">// system error occurred.</span>
+  <span class="bu">std::</span>cerr &lt;&lt; ec.value() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="co">// You can also print a string representation of the error.</span>
+  <span class="bu">std::</span>cerr &lt;&lt; ec.message();
+  <span class="cf">return</span> <span class="dv">1</span>;
+}</code></pre></div>
+<p>If needed, you can also convert <code>std::error_code</code>'s to exceptions using <code>std::system_error</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">reproc::process;
+<span class="bu">std::</span>error_code ec = process.start(...);
+<span class="cf">if</span> (ec) {
+  <span class="cf">throw</span> <span class="bu">std::</span>system_error(ec, <span class="st">&quot;Unable to start process&quot;</span>);
+}</code></pre></div>
+<h2 id="multithreading">Multithreading</h2>
+<p>Guidelines for using a reproc child process from multiple threads:</p>
+<ul>
+<li>Don't wait for or stop the same child process from multiple threads at the same time.</li>
+<li>Don't read from or write to the same stream of the same child process from multiple threads at the same time.</li>
+</ul>
+<p>Different threads can read from or write to different streams at the same time. This is a valid approach when you want to write to stdin and read from stdout in parallel.</p>
+<p>Look at the <a href="reproc++/examples/forward.cpp">forward</a> and <a href="reproc++/examples/background.cpp">background</a> examples to see examples of how to work with reproc from multiple threads.</p>
+<h2 id="gotchas">Gotchas</h2>
+<ul>
+<li><p>(POSIX) On POSIX a parent process is required to wait on a child process that has exited (using <code>reproc_wait</code>) before all resources related to that process can be released by the kernel. If the parent doesn't wait on a child process after it exits, the child process becomes a <a href="https://en.wikipedia.org/wiki/Zombie_process">zombie process</a>.</p></li>
+<li><p>While <code>reproc_terminate</code> allows the child process to perform cleanup it is up to the child process to correctly clean up after itself. reproc only sends a termination signal to the child process. The child process itself is responsible for cleaning up its own child processes and other resources.</p></li>
+<li><p>When using <code>reproc_kill</code> the child process does not receive a chance to perform cleanup which could result in resources being leaked. Chief among these leaks is that the child process will not be able to stop its own child processes. Always try to let a child process exit normally by calling <code>reproc_terminate</code> before calling <code>reproc_kill</code>.</p></li>
+<li><p>(Windows) <code>reproc_kill</code> is not guaranteed to kill a child process immediately on Windows. For more information, read the Remarks section in the documentation of the Windows <code>TerminateProcess</code> function that reproc uses to kill child processes on Windows.</p></li>
+<li><p>While reproc tries its very best to avoid leaking file descriptors into child processes, there are scenarios where it can't guarantee no file descriptors will be leaked to child processes. See <a href="#avoiding-resource-leaks">Avoiding resource leaks</a> for more information.</p></li>
+<li><p>(POSIX) Writing to a closed stdin pipe of a child process will crash the parent process with the <code>SIGPIPE</code> signal. To avoid this the <code>SIGPIPE</code> signal has to be ignored in the parent process. If the <code>SIGPIPE</code> signal is ignored <code>reproc_write</code> will return <code>REPROC_ERROR_STREAM_CLOSED</code> as expected when writing to a closed stdin pipe.</p></li>
+<li><p>(POSIX) Ignoring the <code>SIGCHLD</code> signal by setting its disposition to <code>SIG_IGN</code> changes the behavior of the <code>waitpid</code> system call which will cause <code>reproc_wait</code> to stop working as expected. Read the Notes section of the <code>waitpid</code> man page for more information.</p></li>
+<li><p>(POSIX) Don't call any <code>set*id</code> functions when a call to <code>reproc_start</code> is in progress. This is necessary because <code>reproc_start</code> uses <code>vfork</code> under the hood. See <a href="http://ewontfix.com/7/" class="uri">http://ewontfix.com/7/</a> for more information on why calling <code>set*id</code> functions when <code>vfork</code> is in progress is dangerous.</p></li>
+</ul>
+<h2 id="avoiding-resource-leaks">Avoiding resource leaks</h2>
+<h3 id="posix">POSIX</h3>
+<p>On POSIX systems, by default file descriptors are inherited by child processes when calling <code>exec</code>. To prevent unintended leaking of file descriptors to child processes, POSIX provides a function <code>fcntl</code> which can be used to set the <code>FD_CLOEXEC</code> flag on file descriptors which instructs the underlying system to close them when <code>exec</code> (or one of its variants) is called. However, using <code>fcntl</code> introduces a race condition since any process created in another thread after a file descriptor is created (for example using <code>pipe</code>) but before <code>fcntl</code> is called to set <code>FD_CLOEXEC</code> on the file descriptor will still inherit that file descriptor.</p>
+<p>To get around this race condition reproc uses the <code>pipe2</code> function (when it is available) which takes the <code>O_CLOEXEC</code> flag as an argument. This ensures the file descriptors of the created pipe are closed when <code>exec</code> is called. Similar system calls that take the <code>O_CLOEXEC</code> flag exist for other system calls that create file descriptors. If <code>pipe2</code> is not available (for example on Darwin) reproc falls back to calling <code>fcntl</code> to set <code>FD_CLOEXEC</code> immediately after creating a pipe.</p>
+<p>Darwin does not support the <code>FD_CLOEXEC</code> flag on any of its system calls but instead provides an extra flag for the <code>posix_spawn</code> API (a wrapper around <code>fork/exec</code>) named <a href="https://www.unix.com/man-page/osx/3/posix_spawnattr_setflags/">POSIX_SPAWN_CLOEXEC_DEFAULT</a> that instructs <code>posix_spawn</code> to close all open file descriptors in the child process created by <code>posix_spawn</code>. However, <code>posix_spawn</code> doesn't support changing the working directory of the child process. A solution to get around this was implemented in reproc but it was deemed too complex and brittle so it was removed.</p>
+<p>While using <code>pipe2</code> prevents file descriptors created by reproc from leaking into other child processes, file descriptors created outside of reproc without the <code>FD_CLOEXEC</code> flag set will still leak into reproc child processes. To mostly get around this after forking and redirecting the standard streams (stdin, stdout, stderr) of the child process we close all file descriptors (except the standard streams) up to <code>_SC_OPEN_MAX</code> (obtained with <code>sysconf</code>) in the child process. <code>_SC_OPEN_MAX</code> describes the maximum number of files that a process can have open at any time. As a result, trying to close every file descriptor up to this number closes all file descriptors of the child process which includes file descriptors that were leaked into the child process. However, an application can manually lower the resource limit at any time (for example with <code>setrlimit(RLIMIT_NOFILE)</code>), which can lead to open file descriptors with a value above the new resource limit if they were created before the resource limit was lowered. These file descriptors will not be closed in the child process since only the file descriptors up to the latest resource limit are closed. Of course, this only happens if the application manually lowers the resource limit.</p>
+<h3 id="windows">Windows</h3>
+<p>On Windows the <code>CreatePipe</code> function receives a flag as part of its arguments that specifies if the returned handles can be inherited by child processes or not. The <code>CreateProcess</code> function also takes a flag indicating whether it should inherit handles or not. Inheritance for endpoints of a single pipe can be configured after the <code>CreatePipe</code> call using the function <code>SetHandleInformation</code>. A race condition occurs after calling <code>CreatePipe</code> (allowing inheritance) but before calling <code>SetHandleInformation</code> in one thread and calling <code>CreateProcess</code> (configured to inherit pipes) in another thread. In this scenario handles are unintentionally leaked into a child process. We try to mitigate this in two ways:</p>
+<ul>
+<li>We call <code>SetHandleInformation</code> after <code>CreatePipe</code> for the handles that should not be inherited by any process to lower the chance of them accidentally being inherited (just like with <code>fnctl</code> if <code>pipe2</code> is not available). This only works for half of the endpoints created (the ones intended to be used by the parent process) since the endpoints intended to be used by the child actually need to be inherited by their corresponding child process.</li>
+<li>Windows Vista added the <code>STARTUPINFOEXW</code> structure in which we can put a list of handles that should be inherited. Only these handles are inherited by the child process. This again (just like Darwin's <code>posix_spawn</code>) only stops reproc's processes from inheriting unintended handles. Other code in an application that calls <code>CreateProcess</code> without passing a <code>STARTUPINFOEXW</code> struct containing the handles it should inherit can still unintentionally inherit handles meant for a reproc child process. reproc uses the <code>STARTUPINFOEXW</code> struct if it is available.</li>
+</ul>

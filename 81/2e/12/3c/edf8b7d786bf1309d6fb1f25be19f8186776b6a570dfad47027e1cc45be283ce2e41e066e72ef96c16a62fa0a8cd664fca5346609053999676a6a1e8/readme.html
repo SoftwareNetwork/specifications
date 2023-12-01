@@ -1,0 +1,74 @@
+<h1 id="a-single-producer-single-consumer-lock-free-queue-for-c">A single-producer, single-consumer lock-free queue for C++</h1>
+<p>This mini-repository has my very own implementation of a lock-free queue (that I designed from scratch) for C++.</p>
+<p>It only supports a two-thread use case (one consuming, and one producing). The threads can't switch roles, though you could use this queue completely from a single thread if you wish (but that would sort of defeat the purpose!).</p>
+<p>Note: If you need a general-purpose multi-producer, multi-consumer lock free queue, I have <a href="https://github.com/cameron314/concurrentqueue">one of those too</a>.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><a href="http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++#benchmarks">Blazing fast</a></li>
+<li>Compatible with C++11 (supports moving objects instead of making copies)</li>
+<li>Fully generic (templated container of any type) -- just like <code>std::queue</code>, you never need to allocate memory for elements yourself (which saves you the hassle of writing a lock-free memory manager to hold the elements you're queueing)</li>
+<li>Allocates memory up front, in contiguous blocks</li>
+<li>Provides a <code>try_enqueue</code> method which is guaranteed never to allocate memory (the queue starts with an initial capacity)</li>
+<li>Also provides an <code>enqueue</code> method which can dynamically grow the size of the queue as needed</li>
+<li>Also provides <code>try_emplace</code>/<code>emplace</code> convenience methods</li>
+<li>Has a blocking version with <code>wait_dequeue</code></li>
+<li>Completely &quot;wait-free&quot; (no compare-and-swap loop). Enqueue and dequeue are always O(1) (not counting memory allocation)</li>
+<li>On x86, the memory barriers compile down to no-ops, meaning enqueue and dequeue are just a simple series of loads and stores (and branches)</li>
+</ul>
+<h2 id="use">Use</h2>
+<p>Simply drop the readerwriterqueue.h and atomicops.h files into your source code and include them :-) A modern compiler is required (MSVC2010+, GCC 4.7+, ICC 13+, or any C++11 compliant compiler should work).</p>
+<p>Note: If you're using GCC, you really do need GCC 4.7 or above -- <a href="http://stackoverflow.com/questions/16429669/stdatomic-thread-fence-has-undefined-reference">4.6 has a bug</a> that prevents the atomic fence primitives from working correctly.</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> moodycamel;
+
+ReaderWriterQueue&lt;<span class="dt">int</span>&gt; q(<span class="dv">100</span>);       <span class="co">// Reserve space for at least 100 elements up front</span>
+
+q.enqueue(<span class="dv">17</span>);                       <span class="co">// Will allocate memory if the queue is full</span>
+<span class="dt">bool</span> succeeded = q.try_enqueue(<span class="dv">18</span>);  <span class="co">// Will only succeed if the queue has an empty slot (never allocates)</span>
+assert(succeeded);
+
+<span class="dt">int</span> number;
+succeeded = q.try_dequeue(number);  <span class="co">// Returns false if the queue was empty</span>
+
+assert(succeeded &amp;&amp; number == <span class="dv">17</span>);
+
+<span class="co">// You can also peek at the front item of the queue (consumer only)</span>
+<span class="dt">int</span>* front = q.peek();
+assert(*front == <span class="dv">18</span>);
+succeeded = q.try_dequeue(number);
+assert(succeeded &amp;&amp; number == <span class="dv">18</span>);
+front = q.peek(); 
+assert(front == <span class="kw">nullptr</span>);           <span class="co">// Returns nullptr if the queue was empty</span></code></pre></div>
+<p>The blocking version has the exact same API, with the addition of <code>wait_dequeue</code> and <code>wait_dequeue_timed</code> methods:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BlockingReaderWriterQueue&lt;<span class="dt">int</span>&gt; q;
+
+<span class="bu">std::</span>thread reader([&amp;]() {
+    <span class="dt">int</span> item;
+    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i != <span class="dv">100</span>; ++i) {
+        <span class="co">// Fully-blocking:</span>
+        q.wait_dequeue(item);
+
+        <span class="co">// Blocking with timeout</span>
+        <span class="cf">if</span> (q.wait_dequeue_timed(item, <span class="bu">std::</span>chrono<span class="bu">::</span>milliseconds(<span class="dv">5</span>)))
+            ++i;
+    }
+});
+<span class="bu">std::</span>thread writer([&amp;]() {
+    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i != <span class="dv">100</span>; ++i) {
+        q.enqueue(i);
+        <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for(<span class="bu">std::</span>chrono<span class="bu">::</span>milliseconds(<span class="dv">10</span>));
+    }
+});
+writer.join();
+reader.join();
+
+assert(q.size_approx() == <span class="dv">0</span>);</code></pre></div>
+<p>Note that <code>wait_dequeue</code> will block indefinitely while the queue is empty; this means care must be taken to only call <code>wait_dequeue</code> if you're sure another element will come along eventually, or if the queue has a static lifetime. This is because destroying the queue while a thread is waiting on it will invoke undefined behaviour.</p>
+<h2 id="disclaimers">Disclaimers</h2>
+<p>The queue should only be used on platforms where aligned integer and pointer access is atomic; fortunately, that includes all modern processors (e.g. x86/x86-64, ARM, and PowerPC). <em>Not</em> for use with a DEC Alpha processor (which has very weak memory ordering) :-)</p>
+<p>Note that it's only been tested on x86(-64); if someone has access to other processors I'd love to run some tests on anything that's not x86-based.</p>
+<p>Finally, I am not an expert. This is my first foray into lock-free programming, and though I'm confident in the code, it's possible that there are bugs despite the effort I put into designing and testing this data structure.</p>
+<p>Use this code at your own risk; in particular, lock-free programming is a patent minefield, and this code may very well violate a pending patent (I haven't looked). It's worth noting that I came up with this algorithm and implementation from scratch, independent of any existing lock-free queues.</p>
+<h2 id="more-info">More info</h2>
+<p>See the <a href="LICENSE.md" class="uri">LICENSE.md</a> file for the license (simplified BSD).</p>
+<p>My <a href="http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++">blog post</a> introduces the context that led to this code, and may be of interest if you're curious about lock-free programming.</p>

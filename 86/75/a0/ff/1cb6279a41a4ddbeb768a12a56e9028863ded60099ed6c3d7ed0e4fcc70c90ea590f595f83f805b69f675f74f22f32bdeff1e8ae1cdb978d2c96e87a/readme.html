@@ -1,0 +1,75 @@
+<p><a href="https://travis-ci.org/mity/md4c"><img src="https://img.shields.io/travis/mity/md4c/master.svg?label=linux%20build" alt="Build status (travis-ci.com)" /></a> <a href="https://ci.appveyor.com/project/mity/md4c/branch/master"><img src="https://img.shields.io/appveyor/ci/mity/md4c/master.svg?label=windows%20build" alt="Build status (appveyor.com)" /></a> <a href="https://scan.coverity.com/projects/mity-md4c"><img src="https://img.shields.io/coverity/scan/mity-md4c.svg?label=coverity%20scan" alt="Coverity Scan Build Status" /></a> <a href="https://codecov.io/github/mity/md4c"><img src="https://img.shields.io/codecov/c/github/mity/md4c/master.svg?label=code%20coverage" alt="Codecov" /></a></p>
+<h1 id="md4c-readme">MD4C Readme</h1>
+<ul>
+<li>Home: http://github.com/mity/md4c</li>
+<li>Wiki: http://github.com/mity/md4c/wiki</li>
+</ul>
+<p>MD4C stands for &quot;Markdown for C&quot; and, unsurprisingly, it is a C Markdown parser implementation.</p>
+<h2 id="what-is-markdown">What is Markdown</h2>
+<p>In short, Markdown is the markup language this <code>README.md</code> file is written in.</p>
+<p>The following resources can explain more if you are unfamiliar with it: * <a href="http://en.wikipedia.org/wiki/Markdown">Wikipedia article</a> * <a href="http://commonmark.org">CommonMark site</a></p>
+<h2 id="what-is-md4c">What is MD4C</h2>
+<p>MD4C is C Markdown parser with the following features:</p>
+<ul>
+<li><p><strong>Compliance:</strong> Generally MD4C aims to be compliant to the latest version of <a href="http://spec.commonmark.org/">CommonMark specification</a>. Right now we are fully compliant to CommonMark 0.29.</p></li>
+<li><p><strong>Extensions:</strong> MD4C supports some commonly requested and accepted extensions. See below.</p></li>
+<li><p><strong>Compactness:</strong> MD4C is implemented in one source file and one header file.</p></li>
+<li><p><strong>Embedding:</strong> MD4C is easy to reuse in other projects, its API is very straightforward: There is actually just one function, <code>md_parse()</code>.</p></li>
+<li><p><strong>Push model:</strong> MD4C parses the complete document and calls callback functions provided by the application for each start/end of block, start/end of a span, and with any textual contents.</p></li>
+<li><p><strong>Portability:</strong> MD4C builds and works on Windows and Linux, and it should be fairly simple to make it run also on most other systems.</p></li>
+<li><p><strong>Encoding:</strong> MD4C can be compiled to recognize ASCII-only control characters, UTF-8 and, on Windows, also UTF-16, i.e. what is on Windows commonly called just &quot;Unicode&quot;. See more details below.</p></li>
+<li><p><strong>Permissive license:</strong> MD4C is available under the MIT license.</p></li>
+<li><p><strong>Performance:</strong> MD4C is <a href="https://talk.commonmark.org/t/2520">very fast</a>.</p></li>
+</ul>
+<h2 id="using-md4c">Using MD4C</h2>
+<p>Application has to include the header <code>md4c.h</code> and link against MD4C library; or alternatively it may include <code>md4c.h</code> and <code>md4c.c</code> directly into its source base as the parser is only implemented in the single C source file.</p>
+<p>The main provided function is <code>md_parse()</code>. It takes a text in Markdown syntax as an input and a pointer to a structure which holds pointers to several callback functions.</p>
+<p>As <code>md_parse()</code> processes the input, and it calls the appropriate callbacks (when entering or leaving any Markdown block or span; and when outputting any textual content of the document), allowing application to convert it into another format or render it onto the screen.</p>
+<p>More comprehensive guide can be found in the header <code>md4c.h</code> and also on <a href="http://github.com/mity/md4c/wiki">MD4C wiki</a>.</p>
+<p>Example implementation of simple renderer is available in the <code>md2html</code> directory which implements a conversion utility from Markdown to HTML.</p>
+<h2 id="markdown-extensions">Markdown Extensions</h2>
+<p>The default behavior is to recognize only elements defined by the <a href="http://spec.commonmark.org/">CommonMark specification</a>.</p>
+<p>However with appropriate flags, the behavior can be tuned to enable some extensions:</p>
+<ul>
+<li><p>With the flag <code>MD_FLAG_COLLAPSEWHITESPACE</code>, non-trivial whitespace is collapsed into a single space.</p></li>
+<li><p>With the flag <code>MD_FLAG_TABLES</code>, GitHub-style tables are supported.</p></li>
+<li><p>With the flag <code>MD_FLAG_TASKLISTS</code>, GitHub-style task lists are supported.</p></li>
+<li><p>With the flag <code>MD_FLAG_STRIKETHROUGH</code>, strike-through spans are enabled (text enclosed in tilde marks, e.g. <code>~foo bar~</code>).</p></li>
+<li><p>With the flag <code>MD_FLAG_PERMISSIVEURLAUTOLINKS</code> permissive URL autolinks (not enclosed in <code>&lt;</code> and <code>&gt;</code>) are supported.</p></li>
+<li><p>With the flag <code>MD_FLAG_PERMISSIVEAUTOLINKS</code>, ditto for e-mail autolinks.</p></li>
+<li><p>With the flag <code>MD_FLAG_PERMISSIVEWWWAUTOLINKS</code> permissive WWW autolinks (without any scheme specified; <code>http:</code> is assumed) are supported.</p></li>
+<li><p>With the flag <code>MD_FLAG_LATEXMATHSPANS</code> LaTeX math spans (<code>$...$</code>) and LaTeX display math spans (<code>$$...$$</code>) are supported. (Note though that the HTML renderer outputs them verbatim.)</p></li>
+</ul>
+<p>The syntax of the extensions is described on <a href="http://github.com/mity/md4c/wiki">MD4C wiki</a>.</p>
+<p>Few features (those some people see as mis-features) of CommonMark specification may be disabled:</p>
+<ul>
+<li><p>With the flag <code>MD_FLAG_NOHTMLSPANS</code> or <code>MD_FLAG_NOHTMLBLOCKS</code>, raw inline HTML or raw HTML blocks respectively are disabled.</p></li>
+<li><p>With the flag <code>MD_FLAG_NOINDENTEDCODEBLOCKS</code>, indented code blocks are disabled.</p></li>
+</ul>
+<h2 id="inputoutput-encoding">Input/Output Encoding</h2>
+<p>The CommonMark specification generally assumes UTF-8 input, but under closer inspection, Unicode plays any role in few very specific situations when parsing Markdown documents:</p>
+<ul>
+<li><p>For detection of word boundary when processing emphasis and strong emphasis, some classification of Unicode character (whitespace, punctuation) is used.</p></li>
+<li><p>For (case-insensitive) matching of a link reference with corresponding link reference definition, Unicode case folding is used.</p></li>
+<li><p>For translating HTML entities (e.g. <code>&amp;amp;</code>) and numeric character references (e.g. <code>&amp;#35;</code> or <code>&amp;#xcab;</code>) into their Unicode equivalents. However MD4C leaves this translation on the renderer/application; as the renderer is supposed to really know output encoding and whether it really needs to perform this kind of translation. (Consider that a renderer converting Markdown to HTML may leave the entities untranslated and defer the work to a web browser.)</p></li>
+</ul>
+<p>MD4C relies on this property of the CommonMark and the implementation is, to a large degree, encoding-agnostic. Most of MD4C code only assumes that the encoding of your choice is compatible with ASCII, i.e. that the codepoints below 128 have the same numeric values as ASCII.</p>
+<p>Any input MD4C does not understand is simply seen as part of the document text and sent to the renderer's callback functions unchanged.</p>
+<p>The two situations where MD4C has to understand Unicode are handled accordingly to the following preprocessor macros:</p>
+<ul>
+<li><p>If preprocessor macro <code>MD4C_USE_UTF8</code> is defined, MD4C assumes UTF-8 for word boundary detection and case-folding.</p></li>
+<li><p>On Windows, if preprocessor macro <code>MD4C_USE_UTF16</code> is defined, MD4C uses <code>WCHAR</code> instead of <code>char</code> and assumes UTF-16 encoding in those situations. (UTF-16 is what Windows developers usually call just &quot;Unicode&quot; and what Win32API works with.)</p></li>
+<li><p>By default (when none of the macros is defined), ASCII-only mode is used even in the specific situations. That effectively means that non-ASCII whitespace or punctuation characters won't be recognized as such and that case-folding is performed only on ASCII letters (i.e. <code>[a-zA-Z]</code>).</p></li>
+</ul>
+<p>(Adding support for yet another encodings should be relatively simple due the isolation of the respective code.)</p>
+<h2 id="ports-to-other-languages">Ports to Other Languages</h2>
+<ul>
+<li>D language: <a href="https://github.com/AuburnSounds/commonmark-d">commonmark-d</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>MD4C is covered with MIT license, see the file <code>LICENSE.md</code>.</p>
+<h2 id="reporting-bugs">Reporting Bugs</h2>
+<p>If you encounter any bug, please be so kind and report it. Unheard bugs cannot get fixed. You can submit bug reports here:</p>
+<ul>
+<li>http://github.com/mity/md4c/issues</li>
+</ul>

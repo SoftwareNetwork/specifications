@@ -1,0 +1,73 @@
+<h1 id="jpeg-xl-reference-implementation">JPEG XL reference implementation</h1>
+<p><img src="doc/jxl.svg" width="100" align="right" alt="JXL logo"></p>
+<p>This repository contains a reference implementation of JPEG XL (encoder and decoder), called <code>libjxl</code>. This software library is <a href="doc/software_support.md">used by many applications that support JPEG XL</a>.</p>
+<p>JPEG XL is in the final stages of standardization and its codestream and file format are frozen.</p>
+<p>The library API, command line options, and tools in this repository are subject to change, however files encoded with <code>cjxl</code> conform to the JPEG XL format specification and can be decoded with current and future <code>djxl</code> decoders or <code>libjxl</code> decoding library.</p>
+<h2 id="quick-start-guide">Quick start guide</h2>
+<p>For more details and other workflows see the “Advanced guide” below.</p>
+<h3 id="checking-out-the-code">Checking out the code</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/libjxl/libjxl.git <span class="at">--recursive</span></span></code></pre></div>
+<p>This repository uses git submodules to handle some third party dependencies under <code>third_party</code>, that’s why is important to pass <code>--recursive</code>. If you didn’t check out with <code>--recursive</code>, or any submodule has changed, run:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> submodule update <span class="at">--init</span> <span class="at">--recursive</span></span></code></pre></div>
+<p>Important: If you downloaded a zip file or tarball from the web interface you won’t get the needed submodules and the code will not compile. You can download these external dependencies from source running <code>./deps.sh</code>. The git workflow described above is recommended instead.</p>
+<h3 id="installing-dependencies">Installing dependencies</h3>
+<p>Required dependencies for compiling the code, in a Debian/Ubuntu based distribution run:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install cmake pkg-config libbrotli-dev</span></code></pre></div>
+<p>Optional dependencies for supporting other formats in the <code>cjxl</code>/<code>djxl</code> tools, in a Debian/Ubuntu based distribution run:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libgif-dev libjpeg-dev libopenexr-dev libpng-dev libwebp-dev</span></code></pre></div>
+<p>We recommend using a recent Clang compiler (version 7 or newer), for that install clang and set <code>CC</code> and <code>CXX</code> variables.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install clang</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">CC</span><span class="op">=</span>clang <span class="va">CXX</span><span class="op">=</span>clang++</span></code></pre></div>
+<h3 id="building">Building</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> libjxl</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DCMAKE_BUILD_TYPE</span><span class="op">=</span>Release <span class="at">-DBUILD_TESTING</span><span class="op">=</span>OFF ..</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> . <span class="at">--</span> <span class="at">-j</span><span class="va">$(</span><span class="ex">nproc</span><span class="va">)</span></span></code></pre></div>
+<p>The encoder/decoder tools will be available in the <code>build/tools</code> directory.</p>
+<h3 id="installing"><a name="installing"></a> Installing</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cmake <span class="at">--install</span> .</span></code></pre></div>
+<h3 id="basic-encoderdecoder">Basic encoder/decoder</h3>
+<p>To encode a source image to JPEG XL with default settings:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">build/tools/cjxl</span> input.png output.jxl</span></code></pre></div>
+<p>For more settings run <code>build/tools/cjxl --help</code> or for a full list of options run <code>build/tools/cjxl -v -v --help</code>.</p>
+<p>To decode a JPEG XL file run:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">build/tools/djxl</span> input.jxl output.png</span></code></pre></div>
+<p>When possible <code>cjxl</code>/<code>djxl</code> are able to read/write the following image formats: .exr, .gif, .jpeg/.jpg, .pfm, .pgm/.ppm, .pgx, .png.</p>
+<h3 id="benchmarking">Benchmarking</h3>
+<p>For speed benchmarks on single images in single or multi-threaded decoding <code>djxl</code> can print decoding speed information. See <code>djxl --help</code> for details on the decoding options and note that the output image is optional for benchmarking purposes.</p>
+<p>For more comprehensive benchmarking options, see the <a href="doc/benchmarking.md">benchmarking guide</a>.</p>
+<h2 id="advanced-guide">Advanced guide</h2>
+<h3 id="building-with-docker">Building with Docker</h3>
+<p>We build a common environment based on Debian/Ubuntu using Docker. Other systems may have different combinations of versions and dependencies that have not been tested and may not work. For those cases we recommend using the Docker container as explained in the <a href="doc/developing_in_docker.md">step by step guide</a>.</p>
+<h3 id="building-jpeg-xl-for-developers">Building JPEG XL for developers</h3>
+<p>For experienced developers, we provide build instructions for several other environments:</p>
+<ul>
+<li><a href="doc/developing_in_debian.md">Building on Debian</a></li>
+<li>Building on Windows with <a href="doc/developing_in_windows_vcpkg.md">vcpkg</a> (Visual Studio 2019)</li>
+<li>Building on Windows with <a href="doc/developing_in_windows_msys.md">MSYS2</a></li>
+<li><a href="doc/developing_with_crossroad.md">Cross Compiling for Windows with Crossroad</a></li>
+</ul>
+<p>If you encounter any difficulties, please use Docker instead.</p>
+<h2 id="license">License</h2>
+<p>This software is available under a 3-clause BSD license which can be found in the <a href="LICENSE">LICENSE</a> file, with an “Additional IP Rights Grant” as outlined in the <a href="PATENTS">PATENTS</a> file.</p>
+<p>Please note that the PATENTS file only mentions Google since Google is the legal entity receiving the Contributor License Agreements (CLA) from all contributors to the JPEG XL Project, including the initial main contributors to the JPEG XL format: Cloudinary and Google.</p>
+<h2 id="additional-documentation">Additional documentation</h2>
+<h3 id="codec-description">Codec description</h3>
+<ul>
+<li><a href="https://www.spiedigitallibrary.org/proceedings/Download?fullDOI=10.1117%2F12.2529237">Introductory paper</a> (open-access)</li>
+<li><a href="doc/xl_overview.md">XL Overview</a> - a brief introduction to the source code modules</li>
+<li><a href="http://ds.jpeg.org/whitepapers/jpeg-xl-whitepaper.pdf">JPEG XL white paper</a></li>
+<li><a href="https://jpeg.org/jpegxl">JPEG XL official website</a></li>
+<li><a href="https://jpegxl.info">JPEG XL community website</a></li>
+</ul>
+<h3 id="development-process">Development process</h3>
+<ul>
+<li><a href="doc/building_and_testing.md">More information on testing/build options</a></li>
+<li><a href="doc/developing_in_github.md">Git guide for JPEG XL</a> - for developers</li>
+<li><a href="doc/fuzzing.md">Fuzzing</a> - for developers</li>
+<li><a href="doc/building_wasm.md">Building Web Assembly artifacts</a></li>
+</ul>
+<h3 id="contact">Contact</h3>
+<p>If you encounter a bug or other issue with the software, please open an Issue here.</p>
+<p>There is a <a href="https://www.reddit.com/r/jpegxl/">subreddit about JPEG XL</a>, and informal chatting with developers and early adopters of <code>libjxl</code> can be done on the <a href="https://discord.gg/DqkQgDRTFu">JPEG XL Discord server</a>.</p>

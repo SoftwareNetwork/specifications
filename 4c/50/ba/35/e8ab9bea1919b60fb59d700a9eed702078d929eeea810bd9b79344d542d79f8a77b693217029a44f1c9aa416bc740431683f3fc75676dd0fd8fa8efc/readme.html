@@ -1,0 +1,125 @@
+<h2 id="folly-facebook-open-source-library">Folly: Facebook Open-source Library</h2>
+<p><a href="https://travis-ci.org/facebook/folly"><img src="https://travis-ci.org/facebook/folly.svg?branch=master" alt="Build Status" /></a></p>
+<h3 id="what-is-folly">What is <code>folly</code>?</h3>
+<p>Folly (acronymed loosely after Facebook Open Source Library) is a library of C++14 components designed with practicality and efficiency in mind. <strong>Folly contains a variety of core library components used extensively at Facebook</strong>. In particular, it's often a dependency of Facebook's other open source C++ efforts and place where those projects can share code.</p>
+<p>It complements (as opposed to competing against) offerings such as Boost and of course <code>std</code>. In fact, we embark on defining our own component only when something we need is either not available, or does not meet the needed performance profile. We endeavor to remove things from folly if or when <code>std</code> or Boost obsoletes them.</p>
+<p>Performance concerns permeate much of Folly, sometimes leading to designs that are more idiosyncratic than they would otherwise be (see e.g. <code>PackedSyncPtr.h</code>, <code>SmallLocks.h</code>). Good performance at large scale is a unifying theme in all of Folly.</p>
+<h3 id="logical-design">Logical Design</h3>
+<p>Folly is a collection of relatively independent components, some as simple as a few symbols. There is no restriction on internal dependencies, meaning that a given folly module may use any other folly components.</p>
+<p>All symbols are defined in the top-level namespace <code>folly</code>, except of course macros. Macro names are ALL_UPPERCASE and should be prefixed with <code>FOLLY_</code>. Namespace <code>folly</code> defines other internal namespaces such as <code>internal</code> or <code>detail</code>. User code should not depend on symbols in those namespaces.</p>
+<p>Folly has an <code>experimental</code> directory as well. This designation connotes primarily that we feel the API may change heavily over time. This code, typically, is still in heavy use and is well tested.</p>
+<h3 id="physical-design">Physical Design</h3>
+<p>At the top level Folly uses the classic &quot;stuttering&quot; scheme <code>folly/folly</code> used by Boost and others. The first directory serves as an installation root of the library (with possible versioning a la <code>folly-1.0/</code>), and the second is to distinguish the library when including files, e.g. <code>#include &lt;folly/FBString.h&gt;</code>.</p>
+<p>The directory structure is flat (mimicking the namespace structure), i.e. we don't have an elaborate directory hierarchy (it is possible this will change in future versions). The subdirectory <code>experimental</code> contains files that are used inside folly and possibly at Facebook but not considered stable enough for client use. Your code should not use files in <code>folly/experimental</code> lest it may break when you update Folly.</p>
+<p>The <code>folly/folly/test</code> subdirectory includes the unittests for all components, usually named <code>ComponentXyzTest.cpp</code> for each <code>ComponentXyz.*</code>. The <code>folly/folly/docs</code> directory contains documentation.</p>
+<h3 id="whats-in-it">What's in it?</h3>
+<p>Because of folly's fairly flat structure, the best way to see what's in it is to look at the headers in <a href="https://github.com/facebook/folly/tree/master/folly">top level <code>folly/</code> directory</a>. You can also check the <a href="folly/docs"><code>docs</code> folder</a> for documentation, starting with the <a href="folly/docs/Overview.md">overview</a>.</p>
+<p>Folly is published on GitHub at https://github.com/facebook/folly</p>
+<h3 id="build-notes">Build Notes</h3>
+<h4 id="dependencies">Dependencies</h4>
+<p>folly requires gcc 5.1+ and a version of boost compiled with C++14 support.</p>
+<p>googletest is required to build and run folly's tests. You can download it from https://github.com/google/googletest/archive/release-1.8.0.tar.gz The following commands can be used to download and install it:</p>
+<pre><code>wget https://github.com/google/googletest/archive/release-1.8.0.tar.gz &amp;&amp; \
+tar zxf release-1.8.0.tar.gz &amp;&amp; \
+rm -f release-1.8.0.tar.gz &amp;&amp; \
+cd googletest-release-1.8.0 &amp;&amp; \
+cmake . &amp;&amp; \
+make &amp;&amp; \
+make install</code></pre>
+<h4 id="finding-dependencies-in-non-default-locations">Finding dependencies in non-default locations</h4>
+<p>If you have boost, gtest, or other dependencies installed in a non-default location, you can use the <code>CMAKE_INCLUDE_PATH</code> and <code>CMAKE_LIBRARY_PATH</code> variables to make CMAKE look also look for header files and libraries in non-standard locations. For example, to also search the directories <code>/alt/include/path1</code> and <code>/alt/include/path2</code> for header files and the directories <code>/alt/lib/path1</code> and <code>/alt/lib/path2</code> for libraries, you can invoke <code>cmake</code> as follows:</p>
+<pre><code>cmake \
+  -DCMAKE_INCLUDE_PATH=/alt/include/path1:/alt/include/path2 \
+  -DCMAKE_LIBRARY_PATH=/alt/lib/path1:/alt/lib/path2 ...</code></pre>
+<h4 id="building-tests">Building tests</h4>
+<p>By default, building the tests is disabled as part of the CMake <code>all</code> target. To build the tests, specify <code>-DBUILD_TESTS=ON</code> to CMake at configure time.</p>
+<h4 id="ubuntu-16.04-lts">Ubuntu 16.04 LTS</h4>
+<p>The following packages are required (feel free to cut and paste the apt-get command below):</p>
+<pre><code>sudo apt-get install \
+    g++ \
+    cmake \
+    libboost-all-dev \
+    libevent-dev \
+    libdouble-conversion-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libiberty-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libsnappy-dev \
+    make \
+    zlib1g-dev \
+    binutils-dev \
+    libjemalloc-dev \
+    libssl-dev \
+    pkg-config \
+    libunwind-dev</code></pre>
+<p>Folly relies on <a href="https://github.com/fmtlib/fmt">fmt</a> which needs to be installed from source. The following commands will download, compile, and install fmt.</p>
+<pre><code>git clone https://github.com/fmtlib/fmt.git &amp;&amp; cd fmt
+
+mkdir _build &amp;&amp; cd _build
+cmake ..
+
+make -j$(nproc)
+sudo make install</code></pre>
+<p>If advanced debugging functionality is required, use:</p>
+<pre><code>sudo apt-get install \
+    libunwind8-dev \
+    libelf-dev \
+    libdwarf-dev</code></pre>
+<p>In the folly directory (e.g. the checkout root or the archive unpack root), run:</p>
+<pre><code>  mkdir _build &amp;&amp; cd _build
+  cmake ..
+  make -j $(nproc)
+  make install # with either sudo or DESTDIR as necessary</code></pre>
+<h4 id="os-x-homebrew">OS X (Homebrew)</h4>
+<p>folly is available as a Formula and releases may be built via <code>brew install folly</code>.</p>
+<p>You may also use <code>folly/build/bootstrap-osx-homebrew.sh</code> to build against <code>master</code>:</p>
+<pre><code>  ./folly/build/bootstrap-osx-homebrew.sh</code></pre>
+<p>This will create a build directory <code>_build</code> in the top-level.</p>
+<h4 id="os-x-macports">OS X (MacPorts)</h4>
+<p>Install the required packages from MacPorts:</p>
+<pre><code>  sudo port install \
+    boost \
+    cmake \
+    gflags \
+    git \
+    google-glog \
+    libevent \
+    libtool \
+    lz4 \
+    lzma \
+    openssl \
+    snappy \
+    xz \
+    zlib</code></pre>
+<p>Download and install double-conversion:</p>
+<pre><code>  git clone https://github.com/google/double-conversion.git
+  cd double-conversion
+  cmake -DBUILD_SHARED_LIBS=ON .
+  make
+  sudo make install</code></pre>
+<p>Download and install folly with the parameters listed below:</p>
+<pre><code>  git clone https://github.com/facebook/folly.git
+  cd folly
+  mkdir _build
+  cd _build
+  cmake ..
+  make
+  sudo make install</code></pre>
+<h4 id="windows-vcpkg">Windows (Vcpkg)</h4>
+<p>folly is available in <a href="https://github.com/Microsoft/vcpkg#vcpkg">Vcpkg</a> and releases may be built via <code>vcpkg install folly:x64-windows</code>.</p>
+<p>You may also use <code>vcpkg install folly:x64-windows --head</code> to build against <code>master</code>.</p>
+<h4 id="other-linux-distributions">Other Linux distributions</h4>
+<ul>
+<li>double-conversion (https://github.com/google/double-conversion)</li>
+</ul>
+<p>Download and build double-conversion. You may need to tell cmake where to find it.</p>
+<p>[double-conversion/] <code>ln -s src double-conversion</code></p>
+<p>[folly/] <code>mkdir build &amp;&amp; cd build</code> [folly/build/] <code>cmake &quot;-DCMAKE_INCLUDE_PATH=$DOUBLE_CONVERSION_HOME/include&quot; &quot;-DCMAKE_LIBRARY_PATH=$DOUBLE_CONVERSION_HOME/lib&quot; ..</code></p>
+<p>[folly/build/] <code>make</code></p>
+<ul>
+<li>additional platform specific dependencies:</li>
+</ul>
+<p>Fedora &gt;= 21 64-bit (last tested on Fedora 28 64-bit) - gcc - gcc-c++ - cmake - automake - boost-devel - libtool - lz4-devel - lzma-devel - snappy-devel - zlib-devel - glog-devel - gflags-devel - scons - double-conversion-devel - openssl-devel - libevent-devel</p>
+<p>Optional - libdwarf-dev - libelf-dev - libunwind8-dev</p>

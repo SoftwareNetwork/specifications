@@ -1,0 +1,104 @@
+<h1 id="c-requests-curl-for-people">C++ Requests: Curl for People <img align="right" height="40" src="http://i.imgur.com/d9Xtyts.png"></h1>
+<p><a href="https://whoshuu.github.io/cpr/"><img src="https://img.shields.io/badge/docs-online-informational?style=flat&amp;link=https://whoshuu.github.io/cpr/" alt="Documentation" /></a> <img src="https://github.com/whoshuu/cpr/workflows/CI/badge.svg" alt="CI" /></p>
+<h2 id="announcements">Announcements</h2>
+<p>The cpr project has new maintainers: <a href="https://github.com/com8">Fabian Sauter</a> and <a href="https://github.com/tstack">Tim Stack</a>.</p>
+<h2 id="tldr">TLDR</h2>
+<p>C++ Requests is a simple wrapper around <a href="http://curl.haxx.se/libcurl">libcurl</a> inspired by the excellent <a href="https://github.com/kennethreitz/requests">Python Requests</a> project.</p>
+<p>Despite its name, libcurl’s easy interface is anything but, and making mistakes misusing it is a common source of error and frustration. Using the more expressive language facilities of C++11, this library captures the essence of making network calls into a few concise idioms.</p>
+<p>Here’s a quick GET request:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;cpr/cpr.h&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    cpr::Response r = cpr::Get(cpr::Url{<span class="st">&quot;https://api.github.com/repos/whoshuu/cpr/contributors&quot;</span>},</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>                      cpr::Authentication{<span class="st">&quot;user&quot;</span>, <span class="st">&quot;pass&quot;</span>},</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>                      cpr::Parameters{{<span class="st">&quot;anon&quot;</span>, <span class="st">&quot;true&quot;</span>}, {<span class="st">&quot;key&quot;</span>, <span class="st">&quot;value&quot;</span>}});</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    r.status_code;                  <span class="co">// 200</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    r.header[<span class="st">&quot;content-type&quot;</span>];       <span class="co">// application/json; charset=utf-8</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>    r.text;                         <span class="co">// JSON text string</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>}</span></code></pre></div>
+<p>And here’s <a href="https://gist.github.com/whoshuu/2dc858b8730079602044">less functional, more complicated code, without cpr</a>.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://whoshuu.github.io/cpr/"><img src="https://img.shields.io/badge/docs-online-informational?style=for-the-badge&amp;link=https://whoshuu.github.io/cpr/" alt="Documentation" /></a><br />
+You can find the latest documentation <a href="https://whoshuu.github.io/cpr">here</a>. It’s a work in progress, but it should give you a better idea of how to use the library than the <a href="https://github.com/whoshuu/cpr/tree/master/test">tests</a> currently do.</p>
+<h2 id="features">Features</h2>
+<p>C++ Requests currently supports:</p>
+<ul>
+<li>Custom headers</li>
+<li>Url encoded parameters</li>
+<li>Url encoded POST values</li>
+<li>Multipart form POST upload</li>
+<li>File POST upload</li>
+<li>Basic authentication</li>
+<li>Bearer authentication</li>
+<li>Digest authentication</li>
+<li>NTLM authentication</li>
+<li>Connection and request timeout specification</li>
+<li>Timeout for low speed connection</li>
+<li>Asynchronous requests</li>
+<li>:cookie: support!</li>
+<li>Proxy support</li>
+<li>Callback interfaces</li>
+<li>PUT methods</li>
+<li>DELETE methods</li>
+<li>HEAD methods</li>
+<li>OPTIONS methods</li>
+<li>PATCH methods</li>
+<li>Thread Safe access to <a href="https://curl.haxx.se/libcurl/c/threadsafe.html">libCurl</a></li>
+<li>OpenSSL and WinSSL support for HTTPS requests</li>
+</ul>
+<h2 id="planned">Planned</h2>
+<p>For a quick overview about the planed features, have a look at the next <a href="https://github.com/whoshuu/cpr/milestones">Milestones</a>.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="cmake">CMake</h3>
+<p>If you already have a CMake project you need to integrate C++ Requests with, the primary way is to use <code>fetch_content</code>. Add the following to your <code>CMakeLists.txt</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">include</span>(FetchContent)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="fu">FetchContent_Declare</span>(cpr GIT_REPOSITORY https://github.com/whoshuu/cpr.git GIT_TAG c8d33915dbd88ad6c92b258869b03aba06587ff9) <span class="co"># the commit hash for 1.5.0</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="fu">FetchContent_MakeAvailable</span>(cpr)</span></code></pre></div>
+<p>This will produce the target <code>cpr::cpr</code> which you can link against the typical way:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="kw">target_link_libraries</span>(your_target_name <span class="ot">PRIVATE</span> cpr::cpr)</span></code></pre></div>
+<p>That should do it! There’s no need to handle <code>libcurl</code> yourself. All dependencies are taken care of for you.</p>
+<h3 id="packages-for-linux-distributions">Packages for Linux Distributions</h3>
+<p>Alternatively, you may install a package specific to your Linux distribution. Since so few distributions currently have a package for cpr, most users will not be able to run your program with this approach.</p>
+<p>Currently, we are aware of packages for the following distributions:</p>
+<ul>
+<li><a href="https://aur.archlinux.org/packages/cpr">Arch Linux (AUR)</a></li>
+</ul>
+<p>If there’s no package for your distribution, try making one! If you do, and it is added to your distribution’s repositories, please submit a pull request to add it to the list above. However, please only do this if you plan to actively maintain the package.</p>
+<h2 id="requirements">Requirements</h2>
+<p>The only explicit requirements are:</p>
+<ul>
+<li>a <code>C++11</code> compatible compiler such as Clang or GCC. The minimum required version of GCC is unknown, so if anyone has trouble building this library with a specific version of GCC, do let me know</li>
+<li>If you would like to perform https requests <code>OpenSSL</code> and its development libraries are required.</li>
+</ul>
+<h2 id="building-cpr---using-vcpkg">Building cpr - Using vcpkg</h2>
+<p>You can download and install cpr using the <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> dependency manager:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/Microsoft/vcpkg.git</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="bu">cd</span> vcpkg</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="ex">./bootstrap-vcpkg.sh</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="ex">./vcpkg</span> integrate install</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="ex">./vcpkg</span> install cpr</span></code></pre></div>
+<p>The <code>cpr</code> port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull request</a> on the vcpkg repository.</p>
+<h2 id="building-cpr---using-conan">Building cpr - Using Conan</h2>
+<p>You can download and install <code>cpr</code> using the <a href="https://conan.io/">Conan</a> package manager. Setup your CMakeLists.txt (see <a href="https://docs.conan.io/en/latest/integrations/build_system.html">Conan documentation</a> on how to use MSBuild, Meson and others) like this:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">project</span>(myproject <span class="ot">CXX</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="kw">add_executable</span>(<span class="dv">${PROJECT_NAME}</span> main.cpp)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="kw">include</span>(<span class="dv">${CMAKE_BINARY_DIR}</span>/conanbuildinfo.cmake) <span class="co"># Include Conan-generated file</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="fu">conan_basic_setup</span>(TARGETS) <span class="co"># Introduce Conan-generated targets</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="kw">target_link_libraries</span>(<span class="dv">${PROJECT_NAME}</span> CONAN_PKG::cpr)</span></code></pre></div>
+<p>Create <code>conanfile.txt</code> in your source dir:</p>
+<pre><code>[requires]
+cpr/1.5.0
+
+[generators]
+cmake</code></pre>
+<p>Install and run Conan, then build your project as always:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="ex">pip</span> install conan</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="fu">mkdir</span> build</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="bu">cd</span> build</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="ex">conan</span> install ../ --build=missing</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="fu">cmake</span> ../</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a><span class="fu">cmake</span> --build .</span></code></pre></div>
+<p>The <code>cpr</code> package in Conan is kept up to date by Conan contributors. If the version is out of date, please <a href="https://github.com/conan-io/conan-center-index">create an issue or pull request</a> on the <code>conan-center-index</code> repository.</p>

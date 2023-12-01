@@ -1,0 +1,402 @@
+<p><a href="https://travis-ci.org/Tessil/sparse-map"><img src="https://travis-ci.org/Tessil/sparse-map.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Tessil/sparse-map/branch/master"><img src="https://ci.appveyor.com/api/projects/status/wp65gwsyyi7j1tli/branch/master?svg=true" alt="Build status" /></a></p>
+<h2 id="a-c-implementation-of-a-memory-efficient-hash-map-and-hash-set">A C++ implementation of a memory efficient hash map and hash set</h2>
+<p>The sparse-map library is a C++ implementation of a memory efficient hash map and hash set. It uses open-addressing with sparse quadratic probing. The goal of the library is to be the most memory efficient possible, even at low load factor, while keeping reasonable performances. You can find an <a href="https://smerity.com/articles/2015/google_sparsehash.html">article</a> of Stephen Merity which explains the idea behind <code>google::sparse_hash_map</code> and this project.</p>
+<p>Four classes are provided: <code>tsl::sparse_map</code>, <code>tsl::sparse_set</code>, <code>tsl::sparse_pg_map</code> and <code>tsl::sparse_pg_set</code>. The first two are faster and use a power of two growth policy, the last two use a prime growth policy instead and are able to cope better with a poor hash function. Use the prime version if there is a chance of repeating patterns in the lower bits of your hash (e.g. you are storing pointers with an identity hash function). See <a href="#growth-policy">GrowthPolicy</a> for details.</p>
+<p>A <strong>benchmark</strong> of <code>tsl::sparse_map</code> against other hash maps may be found <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">here</a>. The benchmark, in its additional tests page, notably includes <code>google::sparse_hash_map</code> and <code>spp::sparse_hash_map</code> to which <code>tsl::sparse_map</code> is an alternative. This page also gives some advices on which hash table structure you should try for your use case (useful if you are a bit lost with the multiple hash tables implementations in the <code>tsl</code> namespace).</p>
+<h3 id="key-features">Key features</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a> directory to your include path and you are ready to go. If you use CMake, you can also use the <code>tsl::sparse_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a>.</li>
+<li>Memory efficient while keeping good lookup speed, see the <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">benchmark</a> for some numbers.</li>
+<li>Support for heterogeneous lookups allowing the usage of <code>find</code> with a type different than <code>Key</code> (e.g. if you have a map that uses <code>std::unique_ptr&lt;foo&gt;</code> as key, you can use a <code>foo*</code> or a <code>std::uintptr_t</code> as key parameter to <code>find</code> without constructing a <code>std::unique_ptr&lt;foo&gt;</code>, see <a href="#heterogeneous-lookups">example</a>).</li>
+<li>No need to reserve any sentinel value from the keys.</li>
+<li>If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see <code>precalculated_hash</code> parameter in <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html">API</a>).</li>
+<li>Support for efficient serialization and deserialization (see <a href="#serialization">example</a> and the <code>serialize/deserialize</code> methods in the <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html">API</a> for details).</li>
+<li>Possibility to control the balance between insertion speed and memory usage with the <code>Sparsity</code> template parameter. A high sparsity means less memory but longer insertion times, and vice-versa for low sparsity. The default medium sparsity offers a good compromise (see <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html#details">API</a> for details). For reference, with simple 64 bits integers as keys and values, a low sparsity offers ~15% faster insertions times but uses ~12% more memory. Nothing change regarding lookup speed.</li>
+<li>API closely similar to <code>std::unordered_map</code> and <code>std::unordered_set</code>.</li>
+</ul>
+<h3 id="differences-compared-to-stdunordered_map">Differences compared to <code>std::unordered_map</code></h3>
+<p><code>tsl::sparse_map</code> tries to have an interface similar to <code>std::unordered_map</code>, but some differences exist.</p>
+<ul>
+<li><strong>By default only the basic exception safety is guaranteed</strong> which mean that, in case of exception, all resources used by the hash map will be freed (no memory leaks) but the hash map may end-up in an undefined state (undefined here means that some elements may be missing). This can ONLY happen on rehash (either on insert or if <code>rehash</code> is called explicitly) and will occur if the <code>Allocator</code> can't allocate memory (<code>std::bad_alloc</code>) or if the copy constructor (when a nothrow move constructor is not available) throws and exception. This can be avoided by calling <code>reserve</code> beforehand. It is the same guarantee that the one provided by <code>google::sparse_hash_map</code> and <code>spp::sparse_hash_map</code> which don't provide the strong exception guarantee. For more information and if you need the strong exception guarantee, check the <code>ExceptionSafety</code> template parameter (see <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html#details">API</a> for details).</li>
+<li>Iterator invalidation doesn't behave in the same way, any operation modifying the hash table invalidate them (see <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html#details">API</a> for details).</li>
+<li>References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values.</li>
+<li><p>For iterators, <code>operator*()</code> and <code>operator-&gt;()</code> return a reference and a pointer to <code>const std::pair&lt;Key, T&gt;</code> instead of <code>std::pair&lt;const Key, T&gt;</code> making the value <code>T</code> not modifiable. To modify the value you have to call the <code>value()</code> method of the iterator to get a mutable reference. Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tsl::sparse_map&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; map = {{<span class="dv">1</span>, <span class="dv">1</span>}, {<span class="dv">2</span>, <span class="dv">1</span>}, {<span class="dv">3</span>, <span class="dv">1</span>}};
+<span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+<span class="co">//it-&gt;second = 2; // Illegal</span>
+it.value() = <span class="dv">2</span>; <span class="co">// Ok</span>
+}</code></pre></div></li>
+<li>Move-only types must have a nothrow move constructor.</li>
+<li><p>No support for some buckets related methods (like <code>bucket_size</code>, <code>bucket</code>, ...).</p></li>
+</ul>
+<p>These differences also apply between <code>std::unordered_set</code> and <code>tsl::sparse_set</code>.</p>
+<p>Thread-safety guarantees are the same as <code>std::unordered_map/set</code> (i.e. possible to have multiple readers with no writer).</p>
+<h3 id="optimization">Optimization</h3>
+<h4 id="popcount">Popcount</h4>
+<p>The library relies heavily on the <a href="https://en.wikipedia.org/wiki/Hamming_weight">popcount</a> operation.</p>
+<p>With Clang and GCC, the library uses the <code>__builtin_popcount</code> function which will use the fast CPU instruction <code>POPCNT</code> when the library is compiled with <code>-mpopcnt</code>. Using the <code>POPCNT</code> instruction offers an improvement of ~15% to ~30% on lookups. So if you are compiling your code for a specific architecture that support the operation, don't forget the <code>-mpopcnt</code> (or <code>-march=native</code>) flag of your compiler.</p>
+<p>On Windows with MSVC, the detection is done at runtime.</p>
+<h4 id="move-constructor">Move constructor</h4>
+<p>Make sure that your key <code>Key</code> and potential value <code>T</code> have a <code>noexcept</code> move constructor. The library will work without it but insertions will be much slower if the copy constructor is expensive (the structure often needs to move some values around on insertion).</p>
+<h3 id="growth-policy">Growth policy</h3>
+<p>The library supports multiple growth policies through the <code>GrowthPolicy</code> template parameter. Three policies are provided by the library but you can easily implement your own if needed.</p>
+<ul>
+<li><strong><a href="https://tessil.github.io/sparse-map/classtsl_1_1sh_1_1power__of__two__growth__policy.html">tsl::sh::power_of_two_growth_policy.</a></strong> Default policy used by <code>tsl::sparse_map/set</code>. This policy keeps the size of the bucket array of the hash table to a power of two. This constraint allows the policy to avoid the usage of the slow modulo operation to map a hash to a bucket, instead of <code>hash % 2<sup>n</sup></code>, it uses <code>hash &amp; (2<sup>n</sup> - 1)</code> (see <a href="https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues">fast modulo</a>). Fast but this may cause a lot of collisions with a poor hash function as the modulo with a power of two only masks the most significant bits in the end.</li>
+<li><strong><a href="https://tessil.github.io/sparse-map/classtsl_1_1sh_1_1prime__growth__policy.html">tsl::sh::prime_growth_policy.</a></strong> Default policy used by <code>tsl::sparse_pg_map/set</code>. The policy keeps the size of the bucket array of the hash table to a prime number. When mapping a hash to a bucket, using a prime number as modulo will result in a better distribution of the hash across the buckets even with a poor hash function. To allow the compiler to optimize the modulo operation, the policy use a lookup table with constant primes modulos (see <a href="https://tessil.github.io/sparse-map/classtsl_1_1sh_1_1prime__growth__policy.html#details">API</a> for details). Slower than <code>tsl::sh::power_of_two_growth_policy</code> but more secure.</li>
+<li><strong><a href="https://tessil.github.io/sparse-map/classtsl_1_1sh_1_1mod__growth__policy.html">tsl::sh::mod_growth_policy.</a></strong> The policy grows the map by a customizable growth factor passed in parameter. It then just use the modulo operator to map a hash to a bucket. Slower but more flexible.</li>
+</ul>
+<p>To implement your own policy, you have to implement the following interface.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> custom_policy {
+    <span class="co">// Called on hash table construction and rehash, min_bucket_count_in_out is the minimum buckets</span>
+    <span class="co">// that the hash table needs. The policy can change it to a higher number of buckets if needed </span>
+    <span class="co">// and the hash table will use this value as bucket count. If 0 bucket is asked, then the value</span>
+    <span class="co">// must stay at 0.    </span>
+    <span class="kw">explicit</span> custom_policy(<span class="bu">std::</span>size_t&amp; min_bucket_count_in_out);
+    
+    <span class="co">// Return the bucket [0, bucket_count()) to which the hash belongs. </span>
+    <span class="co">// If bucket_count() is 0, it must always return 0.</span>
+    <span class="bu">std::</span>size_t bucket_for_hash(<span class="bu">std::</span>size_t hash) <span class="at">const</span> <span class="kw">noexcept</span>;
+    
+    <span class="co">// Return the number of buckets that should be used on next growth</span>
+    <span class="bu">std::</span>size_t next_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Return the maximum number of buckets supported by the policy.</span>
+    <span class="bu">std::</span>size_t max_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Reset the growth policy as if it was created with a bucket count of 0.</span>
+    <span class="co">// After a clear, the policy must always return 0 when bucket_for_hash is called.</span>
+    <span class="dt">void</span> clear() <span class="kw">noexcept</span>;
+}</code></pre></div>
+<h3 id="installation">Installation</h3>
+<p>To use sparse-map, just add the <a href="include/">include</a> directory to your include path. It is a <strong>header-only</strong> library.</p>
+<p>If you use CMake, you can also use the <code>tsl::sparse_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a> with <code>target_link_libraries</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># Example where the sparse-map project is stored in a third-party directory</span>
+<span class="kw">add_subdirectory</span>(third-party/sparse-map)
+<span class="kw">target_link_libraries</span>(your_target <span class="ot">PRIVATE</span> tsl::sparse_map)  </code></pre></div>
+<p>If the project has been installed through <code>make install</code>, you can also use <code>find_package(tsl-sparse-map REQUIRED)</code> instead of <code>add_subdirectory</code>.</p>
+<p>The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Tessil/sparse-map.git
+<span class="bu">cd</span> sparse-map/tests
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build .
+<span class="ex">./tsl_sparse_map_tests</span> </code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a href="https://tessil.github.io/sparse-map/">here</a>.</p>
+<p>All methods are not documented yet, but they replicate the behaviour of the ones in <code>std::unordered_map</code> and <code>std::unordered_set</code>, except if specified otherwise.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/sparse_map.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/sparse_set.h&gt;</span>
+
+<span class="dt">int</span> main() {
+    tsl::sparse_map&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt; map = {{<span class="st">&quot;a&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;b&quot;</span>, <span class="dv">2</span>}};
+    map[<span class="st">&quot;c&quot;</span>] = <span class="dv">3</span>;
+    map[<span class="st">&quot;d&quot;</span>] = <span class="dv">4</span>;
+    
+    map.insert({<span class="st">&quot;e&quot;</span>, <span class="dv">5</span>});
+    map.erase(<span class="st">&quot;b&quot;</span>);
+    
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="co">//it-&gt;second += 2; // Not valid.</span>
+        it.value() += <span class="dv">2</span>;
+    }
+    
+    <span class="co">// {d, 6} {a, 3} {e, 7} {c, 5}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key_value : map) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_value.first &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; key_value.second &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    <span class="cf">if</span>(map.find(<span class="st">&quot;a&quot;</span>) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st">.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="at">const</span> <span class="bu">std::</span>size_t precalculated_hash = <span class="bu">std::</span>hash&lt;<span class="bu">std::</span>string&gt;()(<span class="st">&quot;a&quot;</span>);
+    <span class="co">// If we already know the hash beforehand, we can pass it as argument to speed-up the lookup.</span>
+    <span class="cf">if</span>(map.find(<span class="st">&quot;a&quot;</span>, precalculated_hash) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st"> with hash &quot;</span> &lt;&lt; precalculated_hash &lt;&lt; <span class="st">&quot;.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    
+    
+    tsl::sparse_set&lt;<span class="dt">int</span>&gt; set;
+    set.insert({<span class="dv">1</span>, <span class="dv">9</span>, <span class="dv">0</span>});
+    set.insert({<span class="dv">2</span>, <span class="dv">-1</span>, <span class="dv">9</span>});
+    
+    <span class="co">// {0} {1} {2} {9} {-1}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key : set) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<h4 id="heterogeneous-lookups">Heterogeneous lookups</h4>
+<p>Heterogeneous overloads allow the usage of other types than <code>Key</code> for lookup and erase operations as long as the used types are hashable and comparable to <code>Key</code>.</p>
+<p>To activate the heterogeneous overloads in <code>tsl::sparse_map/set</code>, the qualified-id <code>KeyEqual::is_transparent</code> must be valid. It works the same way as for <a href="http://en.cppreference.com/w/cpp/container/map/find"><code>std::map::find</code></a>. You can either use <a href="http://en.cppreference.com/w/cpp/utility/functional/equal_to_void"><code>std::equal_to&lt;&gt;</code></a> or define your own function object.</p>
+<p>Both <code>KeyEqual</code> and <code>Hash</code> will need to be able to deal with the different types.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;functional&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/sparse_map.h&gt;</span>
+
+
+<span class="kw">struct</span> employee {
+    employee(<span class="dt">int</span> id, <span class="bu">std::</span>string name) : <span class="va">m_id</span>(id), <span class="va">m_name</span>(<span class="bu">std::</span>move(name)) {
+    }
+    
+    <span class="co">// Either we include the comparators in the class and we use `std::equal_to&lt;&gt;`...</span>
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+    
+    
+    <span class="dt">int</span> <span class="va">m_id</span>;
+    <span class="bu">std::</span>string <span class="va">m_name</span>;
+};
+
+<span class="co">// ... or we implement a separate class to compare employees.</span>
+<span class="kw">struct</span> equal_employee {
+    <span class="kw">using</span> is_transparent = <span class="dt">void</span>;
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) <span class="at">const</span> {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) <span class="at">const</span> {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+};
+
+<span class="kw">struct</span> hash_employee {
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(empl.<span class="va">m_id</span>);
+    }
+    
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="dt">int</span> id) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(id);
+    }
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="co">// Use std::equal_to&lt;&gt; which will automatically deduce and forward the parameters</span>
+    tsl::sparse_map&lt;employee, <span class="dt">int</span>, hash_employee, <span class="bu">std::</span>equal_to&lt;&gt;&gt; map; 
+    map.insert({employee(<span class="dv">1</span>, <span class="st">&quot;John Doe&quot;</span>), <span class="dv">2001</span>});
+    map.insert({employee(<span class="dv">2</span>, <span class="st">&quot;Jane Doe&quot;</span>), <span class="dv">2002</span>});
+    map.insert({employee(<span class="dv">3</span>, <span class="st">&quot;John Smith&quot;</span>), <span class="dv">2003</span>});
+
+    <span class="co">// John Smith 2003</span>
+    <span class="kw">auto</span> it = map.find(<span class="dv">3</span>);
+    <span class="cf">if</span>(it != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; it-&gt;first.<span class="va">m_name</span> &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; it-&gt;second &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+    map.erase(<span class="dv">1</span>);
+
+
+
+    <span class="co">// Use a custom KeyEqual which has an is_transparent member type</span>
+    tsl::sparse_map&lt;employee, <span class="dt">int</span>, hash_employee, equal_employee&gt; map2;
+    map2.insert({employee(<span class="dv">4</span>, <span class="st">&quot;Johnny Doe&quot;</span>), <span class="dv">2004</span>});
+
+    <span class="co">// 2004</span>
+    <span class="bu">std::</span>cout &lt;&lt; map2.at(<span class="dv">4</span>) &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<h4 id="serialization">Serialization</h4>
+<p>The library provides an efficient way to serialize and deserialize a map or a set so that it can be saved to a file or send through the network. To do so, it requires the user to provide a function object for both serialization and deserialization.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> serializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float </span>
+    <span class="co">// and std::pair&lt;Key, T&gt; if a map is used or Key for a set.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> U&amp; value);
+};</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> deserializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float </span>
+    <span class="co">// and std::pair&lt;Key, T&gt; if a map is used or Key for a set.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    U <span class="kw">operator</span>()();
+};</code></pre></div>
+<p>Note that the implementation leaves binary compatibilty (endianness, float binary representation, size of int, ...) of the types it serializes/deserializes in the hands of the provided function objects if compatibilty is required.</p>
+<p>More details regarding the <code>serialize</code> and <code>deserialize</code> methods can be found in the <a href="https://tessil.github.io/sparse-map/classtsl_1_1sparse__map.html">API</a>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;type_traits&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/sparse_map.h&gt;</span>
+
+
+<span class="kw">class</span> serializer {
+<span class="kw">public</span>:
+    serializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_ostream</span>.exceptions(<span class="va">m_ostream</span>.badbit | <span class="va">m_ostream</span>.failbit);
+        <span class="va">m_ostream</span>.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> T&amp; value) {
+        <span class="va">m_ostream</span>.write(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+    }
+    
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="bu">std::</span>pair&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt;&amp; value) {
+        (*<span class="kw">this</span>)(value.first);
+        (*<span class="kw">this</span>)(value.second);
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ofstream <span class="va">m_ostream</span>;
+};
+
+<span class="kw">class</span> deserializer {
+<span class="kw">public</span>:
+    deserializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_istream</span>.exceptions(<span class="va">m_istream</span>.badbit | <span class="va">m_istream</span>.failbit | <span class="va">m_istream</span>.eofbit);
+        <span class="va">m_istream</span>.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+    T <span class="kw">operator</span>()() {
+        T value;
+        deserialize(value);
+        
+        <span class="cf">return</span> value;
+    }
+    
+<span class="kw">private</span>:
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    <span class="dt">void</span> deserialize(T&amp; value) {
+        <span class="va">m_istream</span>.read(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+    }
+    
+    <span class="dt">void</span> deserialize(<span class="bu">std::</span>pair&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt;&amp; value) {
+        deserialize(value.first);
+        deserialize(value.second);
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ifstream <span class="va">m_istream</span>;
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="at">const</span> tsl::sparse_map&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt; map = {{<span class="dv">1</span>, <span class="dv">-1</span>}, {<span class="dv">2</span>, <span class="dv">-2</span>}, {<span class="dv">3</span>, <span class="dv">-3</span>}, {<span class="dv">4</span>, <span class="dv">-4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;sparse_map.data&quot;</span>;
+    {
+        serializer serial(file_name);
+        map.serialize(serial);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        <span class="kw">auto</span> map_deserialized = tsl::sparse_map&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial);
+        
+        assert(map == map_deserialized);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        
+        <span class="co">/**</span>
+<span class="co">         * If the serialized and deserialized map are hash compatibles (see conditions in API), </span>
+<span class="co">         * setting the argument to true speed-up the deserialization process as we don&#39;t have </span>
+<span class="co">         * to recalculate the hash of each key. We also know how much space each bucket needs.</span>
+<span class="co">         */</span>
+        <span class="at">const</span> <span class="dt">bool</span> hash_compatible = <span class="kw">true</span>;
+        <span class="kw">auto</span> map_deserialized = 
+            tsl::sparse_map&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial, hash_compatible);
+        
+        assert(map == map_deserialized);
+    }
+} </code></pre></div>
+<h5 id="serialization-with-boost-serialization-and-compression-with-zlib">Serialization with Boost Serialization and compression with zlib</h5>
+<p>It's possible to use a serialization library to avoid the boilerplate.</p>
+<p>The following example uses Boost Serialization with the Boost zlib compression stream to reduce the size of the resulting serialized file. The example requires C++20 due to the usage of the template parameter list syntax in lambdas, but it can be adapted to less recent versions.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;boost/archive/binary_iarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/archive/binary_oarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filter/zlib.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filtering_stream.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/split_free.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/utility.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/sparse_map.h&gt;</span>
+
+
+<span class="kw">namespace</span> boost { <span class="kw">namespace</span> serialization {
+    <span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> Key, <span class="kw">class</span> T&gt;
+    <span class="dt">void</span> serialize(Archive &amp; ar, tsl::sparse_map&lt;Key, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+        split_free(ar, map, version); 
+    }
+
+    <span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> Key, <span class="kw">class</span> T&gt;
+    <span class="dt">void</span> save(Archive &amp; ar, <span class="at">const</span> tsl::sparse_map&lt;Key, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> <span class="co">/*version*/</span>) {
+        <span class="kw">auto</span> serializer = [&amp;ar](<span class="at">const</span> <span class="kw">auto</span>&amp; v) { ar &amp; v; };
+        map.serialize(serializer);
+    }
+
+    <span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> Key, <span class="kw">class</span> T&gt;
+    <span class="dt">void</span> load(Archive &amp; ar, tsl::sparse_map&lt;Key, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> <span class="co">/*version*/</span>) {
+        <span class="kw">auto</span> deserializer = [&amp;ar]&lt;<span class="kw">typename</span> U&gt;() { U u; ar &amp; u; <span class="cf">return</span> u; };
+        map = tsl::sparse_map&lt;Key, T&gt;::deserialize(deserializer);
+    }
+}}
+
+
+<span class="dt">int</span> main() {
+    tsl::sparse_map&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt; map = {{<span class="dv">1</span>, <span class="dv">-1</span>}, {<span class="dv">2</span>, <span class="dv">-2</span>}, {<span class="dv">3</span>, <span class="dv">-3</span>}, {<span class="dv">4</span>, <span class="dv">-4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;sparse_map.data&quot;</span>;
+    {
+        <span class="bu">std::</span>ofstream ofs;
+        ofs.exceptions(ofs.badbit | ofs.failbit);
+        ofs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_ostream fo;
+        fo.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_compressor());
+        fo.push(ofs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_oarchive oa(fo);
+        
+        oa &lt;&lt; map;
+    }
+    
+    {
+        <span class="bu">std::</span>ifstream ifs;
+        ifs.exceptions(ifs.badbit | ifs.failbit | ifs.eofbit);
+        ifs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_istream fi;
+        fi.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_decompressor());
+        fi.push(ifs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_iarchive ia(fi);
+     
+        tsl::sparse_map&lt;<span class="bu">std::</span>int64_t, <span class="bu">std::</span>int64_t&gt; map_deserialized;   
+        ia &gt;&gt; map_deserialized;
+        
+        assert(map == map_deserialized);
+    }
+}</code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a href="LICENSE">LICENSE file</a> for details.</p>

@@ -1,0 +1,96 @@
+<h1 id="section"><a href="#"><img src="media/BLAKE3.svg" alt="BLAKE3" height=50></a></h1>
+<p>BLAKE3 is a cryptographic hash function that is:</p>
+<ul>
+<li><strong>Much faster</strong> than MD5, SHA-1, SHA-2, SHA-3, and BLAKE2.</li>
+<li><strong>Secure</strong>, unlike MD5 and SHA-1. And secure against length extension, unlike SHA-2.</li>
+<li><strong>Highly parallelizable</strong> across any number of threads and SIMD lanes, because it’s a Merkle tree on the inside.</li>
+<li>Capable of <strong>verified streaming</strong> and <strong>incremental updates</strong>, again because it’s a Merkle tree.</li>
+<li>A <strong>PRF</strong>, <strong>MAC</strong>, <strong>KDF</strong>, and <strong>XOF</strong>, as well as a regular hash.</li>
+<li><strong>One algorithm with no variants</strong>, which is fast on x86-64 and also on smaller architectures.</li>
+</ul>
+<p>The <a href="https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/benchmarks/bar_chart.py">chart below</a> is an example benchmark of 16 KiB inputs on modern server hardware (a Cascade Lake-SP 8275CL processor). For more detailed benchmarks, see the <a href="https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf">BLAKE3 paper</a>.</p>
+<p align="center">
+<img src="media/speed.svg" alt="performance graph">
+</p>
+<p>BLAKE3 is based on an optimized instance of the established hash function <a href="https://blake2.net">BLAKE2</a> and on the <a href="https://github.com/oconnor663/bao/blob/master/docs/spec_0.9.1.md">original Bao tree mode</a>. The specifications and design rationale are available in the <a href="https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf">BLAKE3 paper</a>. The default output size is 256 bits. The current version of <a href="https://github.com/oconnor663/bao">Bao</a> implements verified streaming with BLAKE3.</p>
+<p>This repository is the official implementation of BLAKE3. It includes:</p>
+<ul>
+<li><p>The <a href="https://crates.io/crates/blake3"><code>blake3</code></a> Rust crate, which includes optimized implementations for SSE2, SSE4.1, AVX2, AVX-512, and NEON, with automatic runtime CPU feature detection on x86. The <code>rayon</code> feature provides multithreading.</p></li>
+<li><p>The <a href="https://crates.io/crates/b3sum"><code>b3sum</code></a> Rust crate, which provides a command line interface. It uses multithreading by default, making it an order of magnitude faster than e.g. <code>sha256sum</code> on typical desktop hardware.</p></li>
+<li><p>The <a href="c">C implementation</a>, which like the Rust implementation includes SIMD code and runtime CPU feature detection on x86. Unlike the Rust implementation, it’s not currently multithreaded. See <a href="c/README.md"><code>c/README.md</code></a>.</p></li>
+<li><p>The <a href="reference_impl/reference_impl.rs">reference implementation</a>, which is discussed in Section 5.1 of the <a href="https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf">BLAKE3 paper</a>. This implementation is much smaller and simpler than the optimized ones above. If you want to see how BLAKE3 works, or you’re writing a port that doesn’t need multithreading or SIMD optimizations, start here.</p></li>
+<li><p>A <a href="https://github.com/BLAKE3-team/BLAKE3/blob/master/test_vectors/test_vectors.json">set of test vectors</a> that covers extended outputs, all three modes, and a variety of input lengths.</p></li>
+<li><p><a href="https://github.com/BLAKE3-team/BLAKE3/actions"><img src="https://github.com/BLAKE3-team/BLAKE3/workflows/tests/badge.svg" alt="Actions Status" /></a></p></li>
+</ul>
+<p>BLAKE3 was designed by:</p>
+<ul>
+<li><span class="citation" data-cites="oconnor663">[@oconnor663 ]</span>(https://github.com/oconnor663) (Jack O’Connor)</li>
+<li><span class="citation" data-cites="sneves">[@sneves]</span>(https://github.com/sneves) (Samuel Neves)</li>
+<li><span class="citation" data-cites="veorq">[@veorq]</span>(https://github.com/veorq) (Jean-Philippe Aumasson)</li>
+<li><span class="citation" data-cites="zookozcash">[@zookozcash]</span>(https://github.com/zookozcash) (Zooko)</li>
+</ul>
+<p>The development of BLAKE3 was sponsored by <a href="https://electriccoin.co">Electric Coin Company</a>.</p>
+<p><em>NOTE: BLAKE3 is not a password hashing algorithm, because it’s designed to be fast, whereas password hashing should not be fast. If you hash passwords to store the hashes or if you derive keys from passwords, we recommend <a href="https://github.com/P-H-C/phc-winner-argon2">Argon2</a>.</em></p>
+<h2 id="usage">Usage</h2>
+<h3 id="the-b3sum-utility">The <code>b3sum</code> utility</h3>
+<p>The <code>b3sum</code> command line utility prints the BLAKE3 hashes of files or of standard input. Prebuilt binaries are available for Linux, Windows, and macOS (requiring the <a href="https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac">unidentified developer workaround</a>) on the <a href="https://github.com/BLAKE3-team/BLAKE3/releases">releases page</a>. If you’ve <a href="https://doc.rust-lang.org/cargo/getting-started/installation.html">installed Rust and Cargo</a>, you can also build <code>b3sum</code> yourself with:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="ex">cargo</span> install b3sum</span></code></pre></div>
+<p>If <code>rustup</code> didn’t configure your <code>PATH</code> for you, you might need to go looking for the installed binary in e.g. <code>~/.cargo/bin</code>. You can test out how fast BLAKE3 is on your machine by creating a big file and hashing it, for example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co"># Create a 1 GB file.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="fu">head</span> -c 1000000000 /dev/zero <span class="op">&gt;</span> /tmp/bigfile</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="co"># Hash it with SHA-256.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="bu">time</span> openssl sha256 /tmp/bigfile</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="co"># Hash it with BLAKE3.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="bu">time</span> b3sum /tmp/bigfile</span></code></pre></div>
+<h3 id="the-blake3-crate-docs.rs">The <code>blake3</code> crate <a href="https://docs.rs/blake3"><img src="https://docs.rs/blake3/badge.svg" alt="docs.rs" /></a></h3>
+<p>To use BLAKE3 from Rust code, add a dependency on the <code>blake3</code> crate to your <code>Cargo.toml</code>. Here’s an example of hashing some input bytes:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">// Hash an input all at once.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">let</span> hash1 <span class="op">=</span> <span class="pp">blake3::</span>hash(<span class="st">b&quot;foobarbaz&quot;</span>)<span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="co">// Hash an input incrementally.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">mut</span> hasher <span class="op">=</span> <span class="pp">blake3::</span><span class="bu">Hasher</span><span class="pp">::</span>new()<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>hasher<span class="op">.</span>update(<span class="st">b&quot;foo&quot;</span>)<span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>hasher<span class="op">.</span>update(<span class="st">b&quot;bar&quot;</span>)<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>hasher<span class="op">.</span>update(<span class="st">b&quot;baz&quot;</span>)<span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="kw">let</span> hash2 <span class="op">=</span> hasher<span class="op">.</span>finalize()<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="pp">assert_eq!</span>(hash1<span class="op">,</span> hash2)<span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a><span class="co">// Extended output. OutputReader also implements Read and Seek.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">mut</span> output <span class="op">=</span> [<span class="dv">0</span><span class="op">;</span> <span class="dv">1000</span>]<span class="op">;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">mut</span> output_reader <span class="op">=</span> hasher<span class="op">.</span>finalize_xof()<span class="op">;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>output_reader<span class="op">.</span>fill(<span class="op">&amp;</span><span class="kw">mut</span> output)<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a><span class="pp">assert_eq!</span>(<span class="op">&amp;</span>output[<span class="op">..</span><span class="dv">32</span>]<span class="op">,</span> hash1<span class="op">.</span>as_bytes())<span class="op">;</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a><span class="co">// Print a hash as hex.</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a><span class="pp">println!</span>(<span class="st">&quot;{}&quot;</span><span class="op">,</span> hash1)<span class="op">;</span></span></code></pre></div>
+<p>Besides <code>hash</code>, BLAKE3 provides two other modes, <code>keyed_hash</code> and <code>derive_key</code>. The <code>keyed_hash</code> mode takes a 256-bit key:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">// MAC an input all at once.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">let</span> example_key <span class="op">=</span> [<span class="dv">42u8</span><span class="op">;</span> <span class="dv">32</span>]<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="kw">let</span> mac1 <span class="op">=</span> <span class="pp">blake3::</span>keyed_hash(<span class="op">&amp;</span>example_key<span class="op">,</span> <span class="st">b&quot;example input&quot;</span>)<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="co">// MAC incrementally.</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="kw">let</span> <span class="kw">mut</span> hasher <span class="op">=</span> <span class="pp">blake3::</span><span class="bu">Hasher</span><span class="pp">::</span>new_keyed(<span class="op">&amp;</span>example_key)<span class="op">;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>hasher<span class="op">.</span>update(<span class="st">b&quot;example input&quot;</span>)<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a><span class="kw">let</span> mac2 <span class="op">=</span> hasher<span class="op">.</span>finalize()<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a><span class="pp">assert_eq!</span>(mac1<span class="op">,</span> mac2)<span class="op">;</span></span></code></pre></div>
+<p>The <code>derive_key</code> mode takes a context string and some key material (not a password). The context string should be hardcoded, globally unique, and application-specific. A good default format for the context string is <code>"[application] [commit timestamp] [purpose]"</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode rust"><code class="sourceCode rust"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">// Derive a couple of subkeys for different purposes.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="kw">const</span> EMAIL_CONTEXT<span class="op">:</span> <span class="op">&amp;</span><span class="dt">str</span> <span class="op">=</span> <span class="st">&quot;BLAKE3 example 2020-01-07 17:10:44 email key&quot;</span><span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="kw">const</span> API_CONTEXT<span class="op">:</span> <span class="op">&amp;</span><span class="dt">str</span> <span class="op">=</span> <span class="st">&quot;BLAKE3 example 2020-01-07 17:11:21 API key&quot;</span><span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="kw">let</span> input_key_material <span class="op">=</span> <span class="st">b&quot;usually at least 32 random bytes, not a password&quot;</span><span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="kw">let</span> email_key <span class="op">=</span> <span class="pp">blake3::</span>derive_key(EMAIL_CONTEXT<span class="op">,</span> input_key_material)<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="kw">let</span> api_key <span class="op">=</span> <span class="pp">blake3::</span>derive_key(API_CONTEXT<span class="op">,</span> input_key_material)<span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="pp">assert_ne!</span>(email_key<span class="op">,</span> api_key)<span class="op">;</span></span></code></pre></div>
+<h3 id="the-c-implementation">The C implementation</h3>
+<p>See <a href="c/README.md"><code>c/README.md</code></a>.</p>
+<h3 id="other-implementations">Other implementations</h3>
+<p>We post links to third-party bindings and implementations on the <span class="citation" data-cites="BLAKE3team">[@BLAKE3team Twitter account]</span>(https://twitter.com/BLAKE3team) whenever we hear about them. Some highlights include <a href="https://github.com/zeebo/blake3">an optimized Go implementation</a>, <a href="https://github.com/connor4312/blake3">Wasm bindings for Node.js and browsers</a>, <a href="https://github.com/oconnor663/blake3-py">binary wheels for Python</a>, <a href="https://github.com/xoofx/Blake3.NET">.NET bindings</a>, and <a href="https://github.com/sken77/BLAKE3jni">JNI bindings</a>.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Please see <a href="CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+<h2 id="intellectual-property">Intellectual property</h2>
+<p>The Rust code is copyright Jack O’Connor, 2019-2020. The C code is copyright Samuel Neves and Jack O’Connor, 2019-2020. The assembly code is copyright Samuel Neves, 2019-2020.</p>
+<p>This work is released into the public domain with CC0 1.0. Alternatively, it is licensed under the Apache License 2.0.</p>
+<h2 id="miscellany">Miscellany</h2>
+<ul>
+<li><span class="citation" data-cites="veorq">[@veorq]</span>(https://github.com/veorq) and <span class="citation" data-cites="oconnor663">[@oconnor663]</span>(https://github.com/oconnor663) did <a href="https://www.cryptography.fm/3">a podcast interview</a> about designing BLAKE3.</li>
+</ul>

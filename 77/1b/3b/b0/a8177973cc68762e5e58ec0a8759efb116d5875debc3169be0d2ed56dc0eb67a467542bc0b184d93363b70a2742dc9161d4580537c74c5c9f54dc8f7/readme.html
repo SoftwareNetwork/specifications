@@ -1,0 +1,369 @@
+<p><a href="https://gitter.im/flecsdev/community?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/flecsdev/community.svg" alt="Join the chat at https://gitter.im/flecsdev/community" /></a> <a href="https://discord.gg/MRSAZqb"><img src="https://img.shields.io/discord/633826290415435777.svg" alt="Discord Chat" /></a> <a href="https://travis-ci.org/SanderMertens/flecs"><img src="https://travis-ci.org/SanderMertens/flecs.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/SanderMertens/flecs/branch/master"><img src="https://ci.appveyor.com/api/projects/status/t99p1per439ctg1a/branch/master?svg=true" alt="Build status" /></a> <a href="https://codecov.io/gh/SanderMertens/flecs"><img src="https://codecov.io/gh/SanderMertens/flecs/branch/master/graph/badge.svg" alt="codecov" /></a></p>
+<div class="figure">
+<img src="https://user-images.githubusercontent.com/9919222/54175082-b107f900-4446-11e9-9cbc-91c096f7c0b1.png" alt="flecs" />
+<p class="caption">flecs</p>
+</div>
+<p>Flecs is a <a href="https://github.com/SanderMertens/ecs_benchmark">Fast</a> and Lightweight ECS (<a href="#what-is-an-entity-component-system">Entity Component System</a>). Flecs packs as much punch as possible into a small library with a tiny C99 API and zero dependencies. Here are some of the things it can do:</p>
+<ul>
+<li>Process entities on multiple threads with a lock-free, zero-overhead staging architecture [<a href="Manual.md#staging">learn more</a>]</li>
+<li>Organize components &amp; systems in reusable, library-friendly modules [<a href="Manual.md#modules">learn more</a>]</li>
+<li>Run systems every frame, periodically, on demand or on change events [<a href="Manual.md#reactive-systems">learn more</a>]</li>
+</ul>
+<p>Additionally, flecs has a flexible engine that lets you do many things, like:</p>
+<ul>
+<li>A prefab system with variants, overrides and prefab nesting [<a href="Manual.md#prefabs">learn more</a>]</li>
+<li>Create system expressions with AND, OR, NOT and optional operators [<a href="Manual.md#system-signatures">learn more</a>]</li>
+<li>Create hierarchies, indexes and <a href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">DAGs</a> with container entities [<a href="Manual.md#containers">learn more</a>]</li>
+</ul>
+<p>Make sure to check the flecs <a href="https://github.com/SanderMertens/flecs-systems-admin">dashboard</a>:</p>
+<div class="figure">
+<img src="https://user-images.githubusercontent.com/9919222/54180572-309ec380-4459-11e9-9e48-1a08de57ff91.png" alt="dashboard" />
+<p class="caption">dashboard</p>
+</div>
+<h2 id="what-is-an-entity-component-system">What is an Entity Component System?</h2>
+<p>ECS (Entity Component System) is a way to organize code that is mostly used in gaming and simulation projects. ECS code generally performs better than traditional OOP, and is typically easier to reuse. The main differences between ECS and OOP are composition is a first class citizen in ECS, and that data is represented as plain data types rather than encapsulated classes. A framework is an Entity Component System if it:</p>
+<ul>
+<li>Has <em>entities</em> that are unique identifiers (integers)</li>
+<li>Has <em>components</em> that are plain data types which can be added to entities</li>
+<li>Has <em>systems</em> that are functions which are matched against entities with a set of components</li>
+</ul>
+<p>For more information, check <a href="https://github.com/SanderMertens/ecs-faq">the Entity Component System FAQ</a>!</p>
+<h2 id="example">Example</h2>
+<p>This is a simple flecs example using the C99 API:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="kw">struct</span> Position {
+    <span class="dt">float</span> x;
+    <span class="dt">float</span> y;
+} Position;
+
+<span class="kw">typedef</span> <span class="dt">float</span> Speed;
+
+<span class="dt">void</span> Move(ecs_rows_t *rows) {
+    ECS_COLUMN(rows, Position, p, <span class="dv">1</span>);
+    ECS_COLUMN(rows, Speed, s, <span class="dv">2</span>);
+    
+    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; rows-&gt;count; i ++) {
+        p[i].x += s[i] * rows-&gt;delta_time;
+        p[i].y += s[i] * rows-&gt;delta_time;
+    }
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {
+    ecs_world_t *world = ecs_init_w_args(argc, argv);
+
+    ECS_COMPONENT(world, Position);
+    ECS_COMPONENT(world, Speed);
+    ECS_SYSTEM(world, Move, EcsOnUpdate, Position, Speed);
+    ECS_ENTITY(world, MyEntity, Position, Speed);
+    
+    ecs_set(world, MyEntity, Position, {<span class="dv">0</span>, <span class="dv">0</span>});
+    ecs_set(world, MyEntity, Speed, {<span class="dv">1</span>});
+    
+    <span class="cf">while</span> (ecs_progress(world, <span class="dv">0</span>));
+
+    <span class="cf">return</span> ecs_fini(world);
+}</code></pre></div>
+<p>This is the same example in the C++11 API:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Position {
+    <span class="dt">float</span> x;
+    <span class="dt">float</span> y;
+};
+
+<span class="kw">struct</span> Speed {
+    <span class="dt">float</span> value;
+};
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {
+    flecs::world world(argc, argv);
+
+    flecs::component&lt;Position&gt;(world, <span class="st">&quot;Position&quot;</span>);
+    flecs::component&lt;Speed&gt;(world, <span class="st">&quot;Speed&quot;</span>);
+
+    flecs::system&lt;Position, Speed&gt;(world)
+        .action([](<span class="at">const</span> flecs::rows&amp; rows, 
+            flecs::column&lt;Position&gt; p, 
+            flecs::column&lt;Speed&gt; s) 
+        {    
+            <span class="cf">for</span> (<span class="kw">auto</span> row : rows) {
+                p[row].x += s[row].value * rows.delta_time();
+                p[row].y += s[row].value * rows.delta_time();
+            }
+        });
+
+    flecs::entity(world, <span class="st">&quot;MyEntity&quot;</span>)
+        .set&lt;Position&gt;({<span class="dv">0</span>, <span class="dv">0</span>})
+        .set&lt;Speed&gt;({<span class="dv">1</span>});
+
+    <span class="cf">while</span> (world.progress()) { }
+}</code></pre></div>
+<p>For more examples, go to <a href="https://github.com/SanderMertens/flecs/tree/master/examples">the flecs examples folder</a> or the <a href="https://github.com/flecs-hub">flecs-hub organization</a>.</p>
+<h2 id="manual">Manual</h2>
+<p><a href="Manual.md">Click here</a> to view the Flecs manual.</p>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><a href="#building">Building</a></li>
+<li><a href="#getting-started">Getting started</a></li>
+<li><a href="#built-with-flecs">Built with flecs</a></li>
+<li><a href="#modules">Modules</a></li>
+<li><a href="#concepts">Concepts</a></li>
+<li><a href="#entity">entity</a></li>
+<li><a href="#component">component</a></li>
+<li><a href="#system">system</a></li>
+<li><a href="#identifier">identifier</a></li>
+<li><a href="#type">type</a></li>
+<li><a href="#feature">feature</a></li>
+<li><a href="#tag">tag</a></li>
+<li><a href="#container">container</a></li>
+<li><a href="#prefab">prefab</a></li>
+<li><a href="#module">module</a></li>
+</ul>
+<h2 id="building">Building</h2>
+<p>You can build flecs with either CMake, Meson, <a href="https://github.com/SanderMertens/bake">Bake</a> or embed the sources into your own project.</p>
+<h3 id="embedding">Embedding:</h3>
+<p>Flecs can be easily embedded into projects, as it does not require complex build instructions. The following build instructions are enough to build a functioning Flecs library with gcc:</p>
+<pre><code>gcc src/*.c -Iinclude --shared -o libflecs.so</code></pre>
+<h3 id="cmake">CMake</h3>
+<pre><code>git clone https://github.com/SanderMertens/flecs
+cd flecs
+mkdir build
+cd build
+cmake ..
+make</code></pre>
+<h3 id="meson">Meson</h3>
+<pre><code>git clone https://github.com/SanderMertens/flecs
+cd flecs
+meson build --default-library=both
+cd build
+ninja</code></pre>
+<h3 id="bake">Bake</h3>
+<p>Install bake first:</p>
+<pre><code>git clone https://github.com/SanderMertens/bake
+make -C bake/build-$(uname)
+bake/bake setup</code></pre>
+<p>To then install Flecs, do:</p>
+<pre><code>bake clone https://github.com/SanderMertens/flecs</code></pre>
+<h3 id="building-notes">Building notes</h3>
+<h4 id="operating-system-abstraction-api">Operating system abstraction API</h4>
+<p>Most of Flecs can run without relying on operating system specific functionality. However, some features require threading and timing, amongst others. Out of the box, Flecs implements abstractions for these functions for common platforms. If you however want to run Flecs on a platform that is not implemented, you can easily provide Flecs with a platform specific set of functions through the OS API interface.</p>
+<p>The OS API is an interface that contains function pointers for all the functions Flecs needs from the underlying platform which can be easily overridden by an application. These functions include support for:</p>
+<ul>
+<li>Heap memory management</li>
+<li>Threading</li>
+<li>Timing</li>
+<li>Logging</li>
+<li>Exception handling</li>
+</ul>
+<p><a href="Manual.md#operating-system-abstraction-api">This section of the manual</a> describes how to override functions in OS API.</p>
+<h4 id="modules">Modules</h4>
+<p>Flecs has optional <a href="#modules">modules</a> which are created as bake packages. It is possible to use modules in a non-bake environment, but this is still a work in progress and likely requires manual labor.</p>
+<p>If you want to use modules, but you do not want to use bake as the build tool for your own applications, the recommended way of accomplishing this is to first build Flecs and the modules with bake, and use the generated binaries with your own build system.</p>
+<p>After building with bake, you will have a folder called <code>bake</code> in your home directory which contains binaries and include files. Depending on your operating system, you may need to set <code>LD_LIBRARY_PATH</code> (Linux), <code>DYLD_LIBRARY_PATH</code> (MacOS) or <code>PATH</code> (Windows) to the path where the libraries are stored.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>To create a new flecs application, first create a new project:</p>
+<pre><code>bake new my_app -t flecs</code></pre>
+<p>You now have a project which contains a simple flecs application! To run the project, do:</p>
+<pre><code>bake run my_app</code></pre>
+<h3 id="getting-started-with-the-dashboard">Getting started with the dashboard</h3>
+<p>To create an application that uses the flecs web dashboard, first install the <code>admin</code> and <code>civetweb</code> modules:</p>
+<pre><code>bake clone SanderMertens/flecs-systems-admin
+bake clone SanderMertens/flecs-systems-civetweb</code></pre>
+<p>Currently this is only possible out of the box with <a href="https://github.com/SanderMertens/bake">bake</a>. Future versions may also support modules with CMake.</p>
+<p>After cloning the packages, create a new project like so:</p>
+<pre><code>bake new my_app -t flecs</code></pre>
+<p>This creates a new flecs application. To now run your application with the dashboard, run it like this:</p>
+<pre><code>bake run my_app -a --admin 9090</code></pre>
+<p>This runs the application, and passes <code>--admin 9090</code> as its arguments. You can now navigate to http://localhost:9090 to see the dashboard. Any systems that you add to your application will now show up in the dashboard, and can be turned on/off.</p>
+<h2 id="built-with-flecs">Built with flecs</h2>
+<h4 id="ecs_graphics"><a href="https://github.com/SanderMertens/ecs_graphics">ecs_graphics</a></h4>
+<p>Basic rendering and user input.</p>
+<h4 id="ecs_nbody"><a href="https://github.com/SanderMertens/ecs_nbody">ecs_nbody</a></h4>
+<p>An nbody simulation that uses flecs multithreading.</p>
+<h4 id="ecs_collisions"><a href="https://github.com/SanderMertens/ecs_collisions">ecs_collisions</a></h4>
+<p>A simple application demonstrating collision detection with flecs.</p>
+<h4 id="ecs_inheritance"><a href="https://github.com/SanderMertens/ecs_inheritance">ecs_inheritance</a></h4>
+<p>A simple application demonstrating inheritance with flecs.</p>
+<h4 id="ecs_pong"><a href="https://github.com/SanderMertens/ecs_pong">ecs_pong</a></h4>
+<p>An implementation of pong in flecs.</p>
+<h4 id="ecs_solar"><a href="https://github.com/SanderMertens/ecs_solar">ecs_solar</a></h4>
+<p>An intermediate application that demonstrates hierarchies and particle effects</p>
+<h4 id="ecs_benchmark"><a href="https://github.com/SanderMertens/ecs_benchmark">ecs_benchmark</a></h4>
+<p>ECS performance benchmark that tests various operations and iterations.</p>
+<h2 id="modules-1">Modules</h2>
+<p>Flecs has a growing ecosystem of modules. The following modules are currently available:</p>
+<table style="width:44%;">
+<colgroup>
+<col width="18%" />
+<col width="26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Module</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-components-transform">flecs.components.transform</a></td>
+<td>Components for positioning, rotating and scaling entities</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-components-physics">flecs.components.physics</a></td>
+<td>Components for moving entities</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-components-graphics">flecs.components.graphics</a></td>
+<td>Components for describing a drawing canvas and camera</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-components-geometry">flecs.components.geometry</a></td>
+<td>Components for describing geometry</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-components-input">flecs.components.input</a></td>
+<td>Components for describing keyboard and mouse input</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-components-http">flecs.components.http</a></td>
+<td>Components for describing an HTTP server with endpoints</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-components-meta">flecs.components.meta</a></td>
+<td>Reflection components for flecs components</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-systems-transform">flecs.systems.transform</a></td>
+<td>Compute transformation matrices from transform components</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-systems-physics">flecs.systems.physics</a></td>
+<td>Simple 2D physics engine with limited 3D features</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-systems-civetweb">flecs.systems.civetweb</a></td>
+<td>A civetweb-based implementation of components-http</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-systems-admin">flecs.systems.admin</a></td>
+<td>A web-based dashboard for monitoring flecs performance</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-systems-sdl2">flecs.systems.sdl2</a></td>
+<td>An SDL2-based renderer</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/SanderMertens/flecs-math">flecs.math</a></td>
+<td>Matrix and vector math functions</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/SanderMertens/flecs-util">flecs.util</a></td>
+<td>Utility functions and datastructures</td>
+</tr>
+</tbody>
+</table>
+<h2 id="concepts">Concepts</h2>
+<p>This section describes the high-level concepts used in flecs, and how they are represented in the API. Rather than providing an exhaustive overview of the API behavior, this section is intended as an introduction to the different API features of flecs.</p>
+<h3 id="world">World</h3>
+<p>A world is a container in which entities, components and systems can be stored and evaluated. An application can create any number of worlds. Data between worlds is not shared. If the application wants to share data between worlds, this has to be done manually. A world in ECS can be created with the <code>ecs_init</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_world_t *world = ecs_init();</code></pre></div>
+<h3 id="entity">Entity</h3>
+<p>An entity is an integer that uniquely identifies an &quot;object&quot; in a system. An entity may have <code>0..n</code> components, and each component can be added only once. Entities can be created in flecs with the <code>ecs_new</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_entity_t e = ecs_new(world, <span class="dv">0</span>);</code></pre></div>
+<p><a href="Manual.md#entities">Learn more</a></p>
+<h3 id="component">Component</h3>
+<p>Components are datatypes that can be added to an entity. Any C datatype can be registered as a component within flecs. To register a component, you can use the <code>ECS_COMPONENT</code> macro, which wraps around the <code>ecs_new_component</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="kw">struct</span> Point {
+   <span class="dt">int</span> x;
+   <span class="dt">int</span> y;
+} Point;
+
+ECS_COMPONENT(world, Point);</code></pre></div>
+<p>After this macro, you are able to add the <code>Point</code> component using <code>ecs_add</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_add(world, e, Point);</code></pre></div>
+<p>Additionally, the component can be added and initialized with the <code>ecs_set</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_set(world, e, Point, {.x = <span class="dv">10</span>, .y = <span class="dv">20</span>});</code></pre></div>
+<p>Flecs components are stored internally as entities, which is why handles to components are of the <code>ecs_entity_t</code> type.</p>
+<p><a href="Manual.md#components-and-types">Learn more</a></p>
+<h3 id="system">System</h3>
+<p>A system is logic (a function) that is executed for every entity that has a set of components that match a system's interest. In flecs, systems specify their interest, and when they should run. To define a system, you can use the <code>ECS_SYSTEM</code> macro, which wraps around the <code>ecs_new_system</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_SYSTEM(world, LogPoints, EcsOnUpdate, Point);</code></pre></div>
+<p>In this statement, <code>LogPoints</code> refers to a C function that will be associated with the system. <code>EcsOnUpdate</code> identifies the stage in which the system is executed. The <code>Point</code> identifies the component interest expression. The system is implemented as a regular C function, like this:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> LogPoints(ecs_rows_t *rows) {
+    Point *p = ecs_column(rows, Point, <span class="dv">1</span>);
+    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; rows-&gt;count; i ++) {
+        printf(<span class="st">&quot;Log point (%d, %d)</span><span class="sc">\n</span><span class="st">&quot;</span>, p[i].x, p[i].y);
+    }
+}</code></pre></div>
+<p>Systems can be enabled / disabled. By default a system is enabled. To enable or disable a system, you can use the <code>ecs_enable</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_enable(world, LogPoints, false);</code></pre></div>
+<p><a href="Manual.md#systems">Learn more</a></p>
+<h3 id="identifier">Identifier</h3>
+<p>Entities in flecs may have an optional string-based identifier. An identifier can be added to an entity by setting the <code>EcsId</code> component, like this:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_set(world, e, EcsId, {<span class="st">&quot;MyEntity&quot;</span>});</code></pre></div>
+<p>After a string identifier is added, the entity can be looked up like this:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_entity_t e = ecs_lookup(world, <span class="st">&quot;MyEntity&quot;</span>);</code></pre></div>
+<p>Additionally, applications can define entities with the <code>ECS_ENTITY</code> macro, which automatically adds <code>EcsId</code> and initializes it with the provided name:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_ENTITY(world, MyEntity, Point);</code></pre></div>
+<p>Components, systems, tasks, types and prefabs automatically register the <code>EcsId</code> component when they are created, and can thus be looked up with <code>ecs_lookup</code>.</p>
+<h3 id="task">Task</h3>
+<p>A task is a system that has no interest expression. Tasks are run once every frame. Tasks are defined the same way as normal systems, but instead of an interest expression, you specify <code>0</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_SYSTEM(world, MyTask, EcsOnUpdate, <span class="dv">0</span>);</code></pre></div>
+<h3 id="type">Type</h3>
+<p>A type identifies a collection of <code>1..n</code> entities. In flecs, components and systems are assigned unique identifiers from the same pool as entities, and therefore a type may contain identifiers to entities, components and systems. Typical usecases for types are:</p>
+<ul>
+<li>Group components so that they can be added to an entity with a single <code>ecs_add</code> call</li>
+<li>Group systems so that they can be enabled or disabled with a single <code>ecs_enable</code> call</li>
+</ul>
+<p>To define a type, you can use the <code>ECS_TYPE</code> macro, which wraps the <code>ecs_new_type</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_TYPE(world, Circle, EcsCircle, EcsPosition2D);</code></pre></div>
+<p>This defines a type called <code>Circle</code> that contains <code>EcsCircle</code> and <code>EcsPosition2D</code>. After this macro, you can use the <code>Circle</code> type with functions like <code>ecs_add</code> and <code>ecs_remove</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_add(world, e, Circle);</code></pre></div>
+<p><a href="Manual.md#components-and-types">Learn more</a></p>
+<h3 id="feature">Feature</h3>
+<p>A feature is a type that contains solely out of systems. To create features, use the <code>ECS_TYPE</code> macro or <code>ecs_new_type</code> function. This can be used to enable/disable multiple systems with a single API call, like so:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_TYPE(world, MyFeature, SystemA, SystemB);
+
+ecs_enable(World, MyFeature, true);</code></pre></div>
+<p>A useful property of features (types) is that they can be nested, like so:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_TYPE(world, MyNestedFeatureA, SystemA, SystemB);
+ECS_TYPE(world, MyNestedFeatureB, SystemC);
+ECS_TYPE(world, MyFeature, MyNestedFeatureA, MyNestedFeatureB);
+
+ecs_enable(World, MyFeature, true);</code></pre></div>
+<p><a href="Manual.md#features">Learn more</a></p>
+<h3 id="tag">Tag</h3>
+<p>A tag is a component that does not contain any data. Internally it is represented as a component with data-size 0. Tags can be useful for subdividing entities into categories, without adding any data. A tag can be defined with the <code>ECS_TAG</code> macro:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_TAG(world, MyTag);</code></pre></div>
+<p>Tags can be added/removed like any other component:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_add(world, e, MyTag);</code></pre></div>
+<p><a href="Manual.md#tags">Learn more</a></p>
+<h3 id="container">Container</h3>
+<p>A container is an entity that can contain other entities. There are several methods to add a child entity to a container entity. The easiest way is with the <code>ecs_new_child</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_entity_t parent = ecs_new(world, <span class="dv">0</span>);
+ecs_entity_t child = ecs_new_child(world, parent, <span class="dv">0</span>);</code></pre></div>
+<p>Alternatively, you can add an entity to a container entity after its creation using <code>ecs_adopt</code>:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_entity_t parent = ecs_new(world, <span class="dv">0</span>);
+ecs_entity_t child = ecs_new(world, <span class="dv">0</span>);
+ecs_adopt(world, child, parent);</code></pre></div>
+<p>With the <code>ecs_contains</code> function you can check whether an entity contains another entity:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="cf">if</span> (ecs_contains(world, parent, child) {
+    printf(<span class="st">&quot;entity %u is a child of %u</span><span class="sc">\n</span><span class="st">&quot;</span>, child, parent);
+}</code></pre></div>
+<p>Systems can request components from containers. If a system requests component <code>EcsPosition2D</code> from a container, but an entity does not have a container, or the container does not have <code>EcsPosition2D</code>, the system will not match the entity. This system definition shows an example of how a system can access container components:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_SYSTEM(world, MySystem, EcsOnUpdate, CONTAINER.Foo, Bar);</code></pre></div>
+<p><a href="Manual.md#containers">Learn more</a></p>
+<h3 id="prefab">Prefab</h3>
+<p>Prefabs are a special kind of entity that enable applications to reuse components values across entities. To create a prefab, you can use the <code>ECS_PREFAB</code> macro, or <code>ecs_new_prefab</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_PREFAB(world, CirclePrefab, EcsCircle, EcsPosition2D);</code></pre></div>
+<p>This defines a prefab with the <code>EcsCircle</code> and <code>EcsPosition2D</code> components. We can now add this prefab to regular entities:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_entity_t e1 = ecs_new(world, CirclePrefab);
+ecs_entity_t e2 = ecs_new(world, CirclePrefab);</code></pre></div>
+<p>This will make the <code>EcsCircle</code> and <code>EcsPosition2D</code> components available on entities <code>e1</code> and <code>e2</code>, similar to a family. In contrast to types, component values of <code>EcsCircle</code> and <code>EcsPosition2D</code> are now shared between entities, and stored only once in memory. Since a prefab can be used as a regular entity, we can change the value of a prefab component with the <code>ecs_set</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ecs_set(world, CirclePrefab, EcsCircle, {.radius = <span class="dv">10</span>});</code></pre></div>
+<p>This will change the value of <code>EcsCircle</code> across all entities that have the prefab. Entities can override component values from a prefab, by either adding or setting a component on themselves, using <code>ecs_add</code> or <code>ecs_set</code>. When a component is added using <code>ecs_add</code>, it will be initialized with the component value of the prefab.</p>
+<p><a href="Manual.md#prefabs">Learn more</a></p>
+<h3 id="module">Module</h3>
+<p>Modules are used to group entities / components / systems. They can be imported with the <code>ECS_IMPORT</code> macro:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">ECS_IMPORT(world, EcsComponentsTransform, <span class="dv">0</span>);</code></pre></div>
+<p>This will invoke the <code>EcsComponentsTransform</code> function, which will define the entities / components / systems. Furthermore, the macro will declare the variables to the entity / component / system handles to the local scope, so that they can be accessed by the code.</p>
+<p>In large code bases modules can be used to organize code and limit exposure of internal systems to other parts of the code. Modules may be implemented in separate shared libraries, or within the same project. The only requirements for using the <code>ECS_IMPORT</code> macro is that the name of the module (<code>EcsComponentsTransform</code>) can be resolved as a C function with the right type. For an example on how to implement modules, see the implementation of one of the flecs modules (see above).</p>
+<p>Modules can be imported multiple times without causing side effects.</p>
+<p><a href="Manual.md#modules">Learn more</a></p>

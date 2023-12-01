@@ -1,0 +1,116 @@
+<h1 id="a-universal-serialization-engine-based-on-compile-time-reflection">A Universal Serialization Engine Based on compile-time Reflection</h1>
+<p><em>iguana</em> is a modern, universal and easy-to-use serialization engine developed in c++17. ### Motivation ### Serialize an object to any other format data with compile-time reflection, such as json, xml, binary, table and so on. This library is designed to unify and simplify serialization in a portable cross-platform manner. This library is also easy to extend, and you can serialize any format of data with the library. This library provides a portable cross-platform way of:</p>
+<ul>
+<li>serialization of json</li>
+<li>serialization of xml</li>
+<li>serialization of any customized format</li>
+</ul>
+<h3 id="tutorial">Tutorial</h3>
+<p>This Tutorial is provided to give you a view of how <em>iguana</em> works for serialization.</p>
+<h3 id="serialization-of-json">Serialization of json</h3>
+<p>The first thing to do when you serialize an object is to define meta data. There is an example of defining meta data.</p>
+<pre><code>struct person
+{
+    std::string  name;
+    int          age;
+};
+
+REFLECTION(person, name, age) //define meta data</code></pre>
+<p>Defining meta data is very simple, and just needs to define in a <code>REFLECTION</code> macro.</p>
+<p>Now let's serialize <code>person</code> to <code>json</code> string.</p>
+<pre><code>person p = { &quot;tom&quot;, 28 };
+
+iguana::string_stream ss;
+iguana::json::to_json(ss, p);
+
+std::cout &lt;&lt; ss.str() &lt;&lt; std::endl; </code></pre>
+<p>This example will output:</p>
+<pre><code>{&quot;name&quot;:&quot;tom&quot;,&quot;age&quot;:28}</code></pre>
+<p>Serializing person to <code>json</code> string is also very simple, just need to call <code>to_json</code> method, there is nothing more.</p>
+<p>How about deserialization of <code>json</code>? Look at the follow example.</p>
+<pre><code>const char * json = &quot;{ \&quot;name\&quot; : \&quot;tom\&quot;, \&quot;age\&quot; : 28}&quot;;
+
+person p;
+iguana::json::from_json(p, json);</code></pre>
+<p>It's as simple as serialization, just need to call <code>from_json</code> method.</p>
+<h3 id="serialization-of-xml">Serialization of xml</h3>
+<p>Serialization of <code>xml</code> is similar to <code>json</code>. The first step is also defining meta data as above. This is a complete example.</p>
+<pre><code>person p = {&quot;admin&quot;, 20};
+
+iguana::string_stream ss;
+iguana::xml::to_xml(ss, p);
+
+std::cout &lt;&lt; ss.str() &lt;&lt; std::endl;
+
+std::string xml = &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;UTF-8\&quot;&gt;  &lt;name&gt;buke&lt;/name&gt; &lt;id&gt;1&lt;/id&gt;&quot;;
+iguana::xml::from_xml(p, xml.data(), xml.length());</code></pre>
+<h3 id="a-complicated-example">A complicated example</h3>
+<p><em>iguana</em> can deal with objects which contain another objects and containers. Here is the example:</p>
+<p>At first, we define the meta data:</p>
+<pre><code>struct one_t
+{
+    int id;
+};
+REFLECTION(one_t, id);
+
+struct two
+{
+    std::string name;
+    one_t one;
+    int age;
+};
+REFLECTION(two, name, one, age);
+
+struct composit_t
+{
+    int a;
+    std::vector&lt;std::string&gt; b;
+    int c;
+    std::map&lt;int, int&gt; d;
+    std::unordered_map&lt;int, int&gt; e;
+    double f;
+    std::list&lt;one_t&gt; g;
+};
+REFLECTION(composit_t, a, b, c, d, e, f, g);</code></pre>
+<p>Then call the simple interface:</p>
+<pre><code>one_t one = { 2 };
+composit_t composit = { 1,{ &quot;tom&quot;, &quot;jack&quot; }, 3,{ { 2,3 } },{ { 5,6 } }, 5.3,{ one } };
+iguana::string_stream ss;
+iguana::json::to_json(ss, composit);
+std::cout &lt;&lt; ss.str() &lt;&lt; std::endl;
+
+const char* str_comp = R&quot;({&quot;a&quot;:1, &quot;b&quot;:[&quot;tom&quot;, &quot;jack&quot;], &quot;c&quot;:3, &quot;d&quot;:{&quot;2&quot;:3,&quot;5&quot;:6},&quot;e&quot;:{&quot;3&quot;:4},&quot;f&quot;:5.3,&quot;g&quot;:[{&quot;id&quot;:1},{&quot;id&quot;:2}])&quot;;
+composit_t comp;
+iguana::json::from_json(comp, str_comp);</code></pre>
+<h3 id="full-sources">Full sources:</h3>
+<ul>
+<li>https://github.com/qicosmos/iguana/blob/master/example/example.cpp</li>
+</ul>
+<h3 id="f.a.q">F.A.Q</h3>
+<ul>
+<li><p><strong>Question</strong>: Why is the library called <em>iguana</em>?</p>
+<ul>
+<li><strong>Answer</strong>: I think serialization is like an iguana, because the only difference is the displaying format, however the meta data is never changed. With changeless meta data and reflection, you can serialize an object to any format, which is like how an iguana does.</li>
+</ul></li>
+<li><p><strong>Question</strong>: Does <em>iguana</em> support raw pointer?</p>
+<ul>
+<li><strong>Answer</strong>: No. <em>iguana</em> doesn't support raw pointer, but it will support smart pointer in the future.</li>
+</ul></li>
+<li><p><strong>Question</strong>: Is iguana thread-safe?</p>
+<ul>
+<li><strong>Answer</strong>: Not yet, but it's not a problem, you can use <code>lock</code> before calling <code>from_json</code> or <code>to_json</code>.</li>
+</ul></li>
+<li><p><strong>Question</strong>: Is <em>iguana</em> high performance?</p>
+<ul>
+<li><strong>Answer</strong>: Yes, it is, because <em>iguana</em> is based on compile-time reflection.</li>
+</ul></li>
+<li><strong>Question</strong>: I found a bug, how could I report?
+<ul>
+<li><strong>Answer</strong>: Create an issue on <a href="https://github.com/qicosmos/iguana">GitHub</a> with a detailed description.</li>
+</ul></li>
+</ul>
+<h3 id="update">Update</h3>
+<ol style="list-style-type: decimal">
+<li>Support C++17</li>
+<li>Support disorderly parse json, a new interface from_json0 do this, however it is slower than from_json.</li>
+</ol>

@@ -1,0 +1,85 @@
+<h1 id="what-is-restinio">What Is RESTinio?</h1>
+<p>RESTinio is a header-only C++14 library that gives you an embedded HTTP/Websocket server. It is based on standalone version of ASIO and targeted primarily for asynchronous processing of HTTP-requests. Since v.0.4.1 Boost::ASIO (1.66 or higher) is also supported (see <a href="https://stiffstream.com/en/docs/restinio/0.4/obtaining.html#building-with-boost">notes on building with Boost::ASIO</a>).</p>
+<h1 id="a-very-basic-example-of-restinio">A Very Basic Example Of RESTinio</h1>
+<p>Consider the task of writing a C++ application that must support some REST API, RESTinio represents our solution for that task. Currently it is in stable beta state. Lets see how it feels like in the simplest case:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;restinio/all.hpp&gt;</span>
+<span class="dt">int</span> main()
+{
+    restinio::run(
+        restinio::on_this_thread()
+        .port(<span class="dv">8080</span>)
+        .address(<span class="st">&quot;localhost&quot;</span>)
+        .request_handler([](<span class="kw">auto</span> req) {
+            <span class="cf">return</span> req-&gt;create_response().set_body(<span class="st">&quot;Hello, World!&quot;</span>).done();
+        }));
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>Server runs on the main thread, and respond to all requests with hello-world message. Of course you've got an access to the structure of a given HTTP request, so you can apply a complex logic for handling requests.</p>
+<h1 id="features">Features</h1>
+<ul>
+<li>Async request handling. Cannot get the response data immediately? That's ok, store request handle somewhere and/or pass it to another execution context and get back to it when the data is ready.</li>
+<li>HTTP pipelining. Works well with async request handling. It might increase your server throughput dramatically.</li>
+<li>Timeout control. RESTinio can take care of bad connection that are like: send &quot;GET /&quot; and then just stuck.</li>
+<li>Response builders. Need chunked-encoded body - then RESTinio has a special response builder for you (obviously it is not the only builder).</li>
+<li>ExpressJS-like request routing (see an example below).</li>
+<li>Working with query string parameters.</li>
+<li>Supports sending files and its parts (with sendfile on linux/unix and TransmitFile on windows).</li>
+<li>Supports compression (deflate, gzip).</li>
+<li>Supports TLS (HTTPS).</li>
+<li>Basic websocket support. Simply restinio::websocket::basic::upgrade() the request handle and start websocket session on a corresponding connection.</li>
+<li>Can run on external asio::io_context. RESTinio is separated from execution context.</li>
+<li>Some tune options. One can set acceptor and socket options. When running RESTinio on a pool of threads connections can be accepted in parallel.</li>
+</ul>
+<h1 id="enhanced-example-with-express-router">Enhanced Example With Express Router</h1>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;restinio/all.hpp&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> restinio;
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="bu">std::</span>ostream &amp; <span class="kw">operator</span>&lt;&lt;(<span class="bu">std::</span>ostream &amp; to, <span class="at">const</span> <span class="dt">optional_t</span>&lt;T&gt; &amp; v) {
+    <span class="cf">if</span>(v) to &lt;&lt; *v;
+    <span class="cf">return</span> to;
+}
+
+<span class="dt">int</span> main() {
+    <span class="co">// Create express router for our service.</span>
+    <span class="kw">auto</span> router = <span class="bu">std::</span>make_unique&lt;router::<span class="dt">express_router_t</span>&lt;&gt;&gt;();
+    router-&gt;http_get(
+            <span class="st">R&quot;(/data/meter/:meter_id(\d+))&quot;</span>,
+            [](<span class="kw">auto</span> req, <span class="kw">auto</span> params) {
+                <span class="at">const</span> <span class="kw">auto</span> qp = parse_query(req-&gt;header().query());
+                <span class="cf">return</span> req-&gt;create_response()
+                        .set_body(
+                                fmt::format(<span class="st">&quot;meter_id={} (year={}/mon={}/day={})&quot;</span>,
+                                        cast_to&lt;<span class="dt">int</span>&gt;(params[<span class="st">&quot;meter_id&quot;</span>]),
+                                        opt_value&lt;<span class="dt">int</span>&gt;(qp, <span class="st">&quot;year&quot;</span>),
+                                        opt_value&lt;<span class="dt">int</span>&gt;(qp, <span class="st">&quot;mon&quot;</span>),
+                                        opt_value&lt;<span class="dt">int</span>&gt;(qp, <span class="st">&quot;day&quot;</span>)))
+                        .done();
+            });
+
+    router-&gt;non_matched_request_handler(
+            [](<span class="kw">auto</span> req){
+                <span class="cf">return</span> req-&gt;create_response( <span class="dv">404</span>, <span class="st">&quot;Not found&quot;</span>).connection_close().done();
+            });
+
+    <span class="co">// Launching a server with custom traits.</span>
+    <span class="kw">struct</span> my_server_traits : <span class="kw">public</span> <span class="dt">default_single_thread_traits_t</span> {
+        <span class="kw">using</span> <span class="dt">request_handler_t</span> = restinio::router::<span class="dt">express_router_t</span>&lt;&gt;;
+    };
+
+    restinio::run(
+            restinio::on_this_thread&lt;my_server_traits&gt;()
+                    .address(<span class="st">&quot;localhost&quot;</span>)
+                    .request_handler(<span class="bu">std::</span>move(router)));
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h1 id="license">License</h1>
+<p>RESTinio is distributed under BSD-3-CLAUSE license.</p>
+<h1 id="how-to-use-it">How To Use It?</h1>
+<p>The full documentation for RESTinio can be found <a href="https://stiffstream.com/en/docs/restinio/0.4">here</a>.</p>
+<h1 id="more">More</h1>
+<ul>
+<li>Issues and bugs: <a href="https://bitbucket.org/sobjectizerteam/restinio-0.4/issues">Issue Tracker on BitBucket</a>.</li>
+</ul>

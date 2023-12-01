@@ -1,0 +1,339 @@
+<h1 id="rang-build-status-build-status-codecov-download">rang <a href="https://travis-ci.org/agauniyal/rang"><img src="https://travis-ci.org/agauniyal/rang.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/agauniyal/rang"><img src="https://ci.appveyor.com/api/projects/status/jqpdoelli38h2a7w?svg=true" alt="Build status" /></a> <a href="https://codecov.io/gh/agauniyal/rang"><img src="https://codecov.io/gh/agauniyal/rang/branch/master/graph/badge.svg" alt="codecov" /></a> <a href="https://bintray.com/agauniyal/rang/rang%3Arang/_latestVersion"><img src="https://api.bintray.com/packages/agauniyal/rang/rang%3Arang/images/download.svg" alt="Download" /></a></h1>
+<h5 id="colors-for-your-terminal.">Colors for your Terminal.</h5>
+<img src="https://cloud.githubusercontent.com/assets/7630575/13501282/0bd00074-e18c-11e5-9848-5bd1f20566d9.gif" title="fig:" alt="rang-demo" />
+<details>
+<p><summary>Windows Demo</summary></p>
+<img src="https://cloud.githubusercontent.com/assets/11349690/19836886/8134975e-9ebe-11e6-9ee4-c4657784ff3b.gif" title="fig:" alt="rang-windows-demo" />
+</details>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&quot;rang.hpp&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> std;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> rang;</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="dt">int</span> main()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>{</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    cout &lt;&lt; <span class="st">&quot;Plain old text&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>         &lt;&lt; style::bold &lt;&lt; <span class="st">&quot;Rang styled text!!&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>         &lt;&lt; style::reset &lt;&lt; endl;</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>}</span></code></pre></div>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>rang</em> only depends on <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>, <code>unistd.h</code> system header on unix and <code>windows.h</code> &amp; <code>io.h</code> system headers on windows based systems. In other words, you don’t need any 3rd party dependencies.</p>
+<h2 id="installation">Installation</h2>
+<p><em>rang</em> is a single header-only library. Put <code>rang.hpp</code> in the <a href="include">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<p>Or, if you use the <a href="https://www.conan.io/">conan package manager</a>, follow these steps:</p>
+<ol type="1">
+<li><p>Add a reference to <em>rang</em> to the <em>requires</em> section of your project’s <code>conanfile.txt</code> file:</p>
+<pre><code> [requires]
+ rang/3.1.0@rang/stable</code></pre></li>
+<li><p>Run conan’s install command:</p>
+<pre><code> conan install</code></pre></li>
+</ol>
+<h2 id="how-to-use">How to use</h2>
+<p><em>Rang</em> uses iostream objects - <code>cout</code>/<code>clog</code>/<code>cerr</code> to apply attributes to output text. Since <em>rang</em> aims to support both windows and unix like systems, it takes care of the os specific details and tries to provide a uniform interface. Due to incompatiblities b/w different OS versions, not all kinds of attributes are supported on every system so rang will try to skip the ones which might produce garbage(instead of pushing random ANSI escape codes on your streams). Detection of tty is also handled internally so you don’t need to check if application user might redirect output to a file.</p>
+<blockquote>
+<p><strong>Need support for non-ansi terminals? Check out <a href="https://github.com/agauniyal/termdb">Termdb</a> which supports virtually all terminals and their capablities.</strong></p>
+</blockquote>
+<p>Apart from setting text attributes, you can also ask rang to override its default behaviour through these methods -</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="dt">void</span> rang::setControlMode(rang::control);</span></code></pre></div>
+<p>where <code>rang::control</code> takes - <code>control::Auto</code> - Automatically detects whether terminal supports color or not(<strong>Default</strong>) - <code>control::Off</code> - Turn off colors completely - <code>control::Force</code> - Force colors even if terminal doesn’t supports them or output is redirected to non-terminal</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="dt">void</span> rang::setWinTermMode(rang::winTerm);</span></code></pre></div>
+<p>where <code>rang::winTerm</code> takes - <code>winTerm::Auto</code> - Checks for newer windows and picks Ansi otherwise falls back to Native(<strong>Default</strong>) - <code>winTerm::Native</code> - This method is supported in all versions of windows but supports less attributes - <code>winTerm::Ansi</code> - This method is supported in newer versions of windows and supports rich variety of attributes</p>
+<p>Supported attributes with their compatiblity are listed below -</p>
+<p><strong>Text Styles</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::style::bold</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::style::dim</code></td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td><code>rang::style::italic</code></td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td><code>rang::style::underline</code></td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td><code>rang::style::blink</code></td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td><code>rang::style::rblink</code></td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td><code>rang::style::reversed</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::style::conceal</code></td>
+<td>maybe</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::style::crossed</code></td>
+<td>yes</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Text Color</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::fg::black</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fg::red</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fg::green</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fg::yellow</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fg::blue</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fg::magenta</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fg::cyan</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fg::gray</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Background Color</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::bg::black</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bg::red</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bg::green</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bg::yellow</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bg::blue</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bg::magenta</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bg::cyan</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bg::gray</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bright Foreground Color</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::fgB::black</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fgB::red</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fgB::green</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fgB::yellow</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fgB::blue</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fgB::magenta</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::fgB::cyan</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fgB::gray</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bright Background Color</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::bgB::black</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bgB::red</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bgB::green</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bgB::yellow</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bgB::blue</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bgB::magenta</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bgB::cyan</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::bgB::gray</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reset Styles/Colors</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Linux/Win/Others</th>
+<th>Old Win</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rang::style::reset</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td><code>rang::fg::reset</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td><code>rang::bg::reset</code></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="my-terminal-is-not-detectedgets-garbage-output">My terminal is not detected/gets garbage output!</h2>
+<p>Check your env variable <code>TERM</code>’s value. Then open an issue <a href="https://github.com/agauniyal/rang/issues/new">here</a> and make sure to mention <code>TERM</code>’s value along with your terminal name.</p>
+<h2 id="redirecting-coutcerrclog-rdbuf">Redirecting <code>cout</code>/<code>cerr</code>/<code>clog</code> rdbuf?</h2>
+<p>Rang doesn’t interfere if you try to redirect <code>cout</code>/<code>cerr</code>/<code>clog</code> to somewhere else and leaves the decision to the library user. Make sure you’ve read this <a href="https://github.com/agauniyal/rang/pull/77#issuecomment-360991652">conversation</a> and check out the example code <a href="https://gist.github.com/kingseva/a918ec66079a9475f19642ec31276a21">here</a>.</p>

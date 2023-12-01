@@ -1,0 +1,87 @@
+<p><a href="https://travis-ci.com/TheLartians/EasyIterator"><img src="https://travis-ci.com/TheLartians/EasyIterator.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/gh/TheLartians/EasyIterator"><img src="https://codecov.io/gh/TheLartians/EasyIterator/branch/master/graph/badge.svg" alt="codecov" /></a> <a href="https://www.codacy.com/app/TheLartians/EasyIterator?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheLartians/EasyIterator&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/eda53bd4cfa84a91b10cf814ed0eb04c" alt="Codacy Badge" /></a></p>
+<h1 id="easyiterator">EasyIterator</h1>
+<p>C++ iterators and range-based loops are increadibly useful, however defining iterators still requires a large amount of boilerplate code. The goal of this library is to find alternative and useful ways to use and create C++17 iterators without impacting performance or compiler optimizations.</p>
+<h2 id="example">Example</h2>
+<h3 id="iteration">Iteration</h3>
+<p>EasyIterator adds well-known generators and iterator combinators from other languages to C++, such as <code>range</code>, <code>zip</code> and <code>enumerate</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> easy_iterator;
+
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; integers(<span class="dv">10</span>);
+<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; strings(integers.size());
+
+<span class="cf">for</span> (<span class="kw">auto</span> i: range(integers.size())) {
+  integers[i] = i*i;
+}
+
+<span class="cf">for</span> (<span class="kw">auto</span> [i, v, s]: zip(range(integers.size()), integers, strings)) {
+  s = <span class="bu">std::</span>to_string(i) + <span class="st">&quot;^2 = &quot;</span> + <span class="bu">std::</span>to_string(v);
+}
+
+<span class="cf">for</span> (<span class="kw">auto</span> [i, s]: enumerate(strings)) {
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;strings[&quot;</span> &lt;&lt; i &lt;&lt; <span class="st">&quot;] = </span><span class="sc">\&quot;</span><span class="st">&quot;</span> &lt;&lt; s &lt;&lt; <span class="st">&quot;</span><span class="sc">\&quot;</span><span class="st">&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<h3 id="iterator-definition">Iterator definition</h3>
+<p>Most iterator boilerplate code is defined in an <code>easy_iterator::IteratorPrototype</code> base class type. A possible implementation of the <code>range</code> iterable is below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> easy_iterator;
+
+<span class="kw">template</span> &lt;<span class="kw">class</span> T&gt; <span class="kw">struct</span> RangeIterator: <span class="kw">public</span> IteratorPrototype&lt;T, dereference::ByValue&gt; {
+  T increment;
+
+  RangeIterator(<span class="at">const</span> T &amp;start):
+    IteratorPrototype&lt;T, dereference::ByValue&gt;(start),
+    increment(<span class="dv">1</span>) {
+  }
+
+  RangeIterator &amp;<span class="kw">operator</span>++(){ RangeIterator::value += increment; <span class="cf">return</span> *<span class="kw">this</span>; }
+};
+
+<span class="kw">template</span> &lt;<span class="kw">class</span> T&gt; <span class="kw">auto</span> range(T end) {
+  <span class="cf">return</span> wrap(RangeIterator&lt;T&gt;(begin), RangeIterator&lt;T&gt;(end));
+}</code></pre></div>
+<h3 id="iterable-algorithms">Iterable algorithms</h3>
+<p>Algorithms can be easily wrapped into iterators by defining a class that defines <code>advance()</code> and <code>value()</code> member functions. The code below shows how to define an iterator over Fibonacci numbers.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Fibonacci {
+  <span class="dt">unsigned</span> current = <span class="dv">0</span>;
+  <span class="dt">unsigned</span> next = <span class="dv">1</span>;
+
+  <span class="dt">void</span> advance() {
+    <span class="kw">auto</span> tmp = next;
+    next += current;
+    current = tmp;
+  }
+  
+  <span class="dt">unsigned</span> value() {
+    <span class="cf">return</span> current;
+  }
+};
+
+<span class="kw">using</span> <span class="kw">namespace</span> easy_iterator;
+
+<span class="cf">for</span> (<span class="kw">auto</span> [i,v]: enumerate(MakeIterable&lt;Fibonacci&gt;())){
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Fib_&quot;</span> &lt;&lt; i &lt;&lt; <span class="st">&quot;</span><span class="sc">\t</span><span class="st">= &quot;</span> &lt;&lt; v &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="cf">if</span> (i == <span class="dv">10</span>) <span class="cf">break</span>;
+}</code></pre></div>
+<p>Algorithms that have an end state can also be definied by returning a the state in the <code>advance()</code> method. If the initial state can also be undefined, the iterator should define a <code>bool init()</code> method and inherit from <code>easy_iterator::InitializedIterable</code>. The code below shows an alternative <code>range</code> implementation.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span> T&gt; <span class="kw">struct</span> RangeIterator: <span class="kw">public</span> easy_iterator::InitializedIterable {
+  T current, max, step;
+  RangeIterator(T end): current(<span class="dv">0</span>), max(end), step(<span class="dv">1</span>) { }
+  <span class="dt">bool</span> advance(){ current += step; <span class="cf">return</span> current != max; }
+  <span class="dt">bool</span> init(){ <span class="cf">return</span> current != max; }
+  T value(){ <span class="cf">return</span> current; }
+};
+
+<span class="kw">template</span> &lt;<span class="kw">class</span> T&gt; <span class="kw">auto</span> range(T end) {
+  <span class="cf">return</span> easy_iterator::MakeIterable&lt;RangeIterator&lt;T&gt;&gt;(end);
+}</code></pre></div>
+<h2 id="installation-and-usage">Installation and usage</h2>
+<p>EasyIterator is a single-header library, so you can simply download and copy the header into your project, or use the Cmake script to install it gloablly. Using the <a href="https://github.com/TheLartians/CPM">CPM</a> dependency manager, you can also include EasyIterator simply by adding the following to your projects' <code>CMakeLists.txt</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="fu">CPMAddPackage</span>(
+  NAME EasyIterator
+  VERSION 1.2
+  GIT_REPOSITORY https://github.com/TheLartians/EasyIterator.git
+)
+
+<span class="kw">target_link_libraries</span>(myProject EasyIterator)            
+<span class="kw">set_target_properties</span>(myProject <span class="ot">PROPERTIES</span> <span class="ot">CXX_STANDARD</span> 17)        </code></pre></div>
+<h2 id="performance">Performance</h2>
+<p>EasyIterator is designed to come with little or no performance impact compared to handwritten code. For example, using <code>for(auto i: range(N))</code> loops create identical assembly compared to regular <code>for(auto i=0;i&lt;N;++i)</code> loops (using <code>clang++ -O2</code>). The performance of different methods and approaches can be compared with the included benchmark suite.</p>

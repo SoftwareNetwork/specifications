@@ -1,0 +1,241 @@
+[
+<div align="center">
+<img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg">
+</div>
+<p>](https://github.com/pantor/inja/releases)</p>
+<p align="center">
+<p><a href="https://github.com/pantor/inja/actions"> <img src="https://github.com/pantor/inja/workflows/CI/badge.svg" alt="CI Status"> </a></p>
+<p><a href="https://github.com/pantor/inja/actions"> <img src="https://github.com/pantor/inja/workflows/Documentation/badge.svg" alt="Documentation Status"> </a></p>
+<p><a href="https://www.codacy.com/manual/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade"> <img src="https://app.codacy.com/project/badge/Grade/211718f7a36541819d1244c0e2ee6f08"/> </a></p>
+<p><a href="https://github.com/pantor/inja/releases"> <img src="https://img.shields.io/github/release/pantor/inja.svg" alt="Github Releases"> </a></p>
+<p><a href="http://github.com/pantor/inja/issues"> <img src="https://img.shields.io/github/issues/pantor/inja.svg" alt="Github Issues"> </a></p>
+<a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE"> <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License"> </a>
+</p>
+<p>Inja is a template engine for modern C++, loosely inspired by <a href="http://jinja.pocoo.org">jinja</a> for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful <a href="https://github.com/nlohmann/json">json</a> library by nlohmann for data input. Most importantly, inja needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">json data;
+data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;world&quot;</span>;
+
+inja::render(<span class="st">&quot;Hello {{ name }}!&quot;</span>, data); <span class="co">// Returns &quot;Hello world!&quot;</span></code></pre></div>
+<h2 id="integration">Integration</h2>
+<p>Inja is a headers only library, which can be downloaded from the <a href="https://github.com/pantor/inja/releases">releases</a> or directly from the <code>include/</code> or <code>single_include/</code> folder. Inja uses <code>nlohmann/json.hpp</code> (&gt;= v3.8.0) as its single dependency, so make sure it can be included from <code>inja.hpp</code>. json can be downloaded <a href="https://github.com/nlohmann/json/releases">here</a>. Then integration is as easy as:</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;inja.hpp&gt;</span>
+
+<span class="co">// Just for convenience</span>
+<span class="kw">using</span> <span class="kw">namespace</span> inja;
+<span class="kw">using</span> json = nlohmann::json;</code></pre></div>
+<p>If you are using the <a href="http://mesonbuild.com">Meson Build System</a>, then you can wrap this repository as a subproject.</p>
+<p>If you are using <a href="https://conan.io">Conan</a> to manage your dependencies, have a look at <a href="https://github.com/DEGoodmanWilson/conan-inja">this repository</a>. Please file issues <a href="https://github.com/DEGoodmanWilson/conan-inja/issues">here</a> if you experience problems with the packages.</p>
+<p>You can also integrate inja in your project using <a href="https://github.com/cpp-pm/hunter">Hunter</a>, a package manager for C++.</p>
+<p>If you are using <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> on your project for external dependencies, then you can use the <a href="https://github.com/Microsoft/vcpkg/tree/master/ports/inja">inja package</a>. Please see the vcpkg project for any issues regarding the packaging.</p>
+<p>If you are using <a href="https://cget.readthedocs.io/en/latest/">cget</a>, you can install the latest development version with <code>cget install pantor/inja</code>. A specific version can be installed with <code>cget install pantor/inja@v2.1.0</code>.</p>
+<p>On macOS, you can install inja via <a href="https://formulae.brew.sh/formula/inja#default">Homebrew</a> and <code>brew install inja</code>.</p>
+<h2 id="tutorial">Tutorial</h2>
+<p>This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the <a href="https://pantor.github.io/inja">documentation</a>.</p>
+<h3 id="template-rendering">Template Rendering</h3>
+<p>The basic template rendering takes a template as a <code>std::string</code> and a <code>json</code> object for all data. It returns the rendered template as an <code>std::string</code>.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">json data;
+data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;world&quot;</span>;
+
+render(<span class="st">&quot;Hello {{ name }}!&quot;</span>, data); <span class="co">// Returns std::string &quot;Hello world!&quot;</span>
+render_to(<span class="bu">std::</span>cout, <span class="st">&quot;Hello {{ name }}!&quot;</span>, data); <span class="co">// Writes &quot;Hello world!&quot; to stream</span></code></pre></div>
+<p>For more advanced usage, an environment is recommended.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">Environment env;
+
+<span class="co">// Render a string with json data</span>
+<span class="bu">std::</span>string result = env.render(<span class="st">&quot;Hello {{ name }}!&quot;</span>, data); <span class="co">// &quot;Hello world!&quot;</span>
+
+<span class="co">// Or directly read a template file</span>
+Template temp = env.parse_template(<span class="st">&quot;./templates/greeting.txt&quot;</span>);
+<span class="bu">std::</span>string result = env.render(temp, data); <span class="co">// &quot;Hello world!&quot;</span>
+
+data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;Inja&quot;</span>;
+<span class="bu">std::</span>string result = env.render(temp, data); <span class="co">// &quot;Hello Inja!&quot;</span>
+
+<span class="co">// Or read the template file (and/or the json file) directly from the environment</span>
+result = env.render_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, data);
+result = env.render_file_with_json_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, <span class="st">&quot;./data.json&quot;</span>);
+
+<span class="co">// Or write a rendered template file</span>
+env.write(temp, data, <span class="st">&quot;./result.txt&quot;</span>);
+env.write_with_json_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, <span class="st">&quot;./data.json&quot;</span>, <span class="st">&quot;./result.txt&quot;</span>);</code></pre></div>
+<p>The environment class can be configured to your needs.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="co">// With default settings</span>
+Environment env_default;
+
+<span class="co">// With global path to template files and where files will be saved</span>
+Environment env_1 {<span class="st">&quot;../path/templates/&quot;</span>};
+
+<span class="co">// With separate input and output path</span>
+Environment env_2 {<span class="st">&quot;../path/templates/&quot;</span>, <span class="st">&quot;../path/results/&quot;</span>};
+
+<span class="co">// With other opening and closing strings (here the defaults)</span>
+env.set_expression(<span class="st">&quot;{{&quot;</span>, <span class="st">&quot;}}&quot;</span>); <span class="co">// Expressions</span>
+env.set_comment(<span class="st">&quot;{#&quot;</span>, <span class="st">&quot;#}&quot;</span>); <span class="co">// Comments</span>
+env.set_statement(<span class="st">&quot;{%&quot;</span>, <span class="st">&quot;%}&quot;</span>); <span class="co">// Statements {% %} for many things, see below</span>
+env.set_line_statement(<span class="st">&quot;##&quot;</span>); <span class="co">// Line statements ## (just an opener)</span></code></pre></div>
+<h3 id="variables">Variables</h3>
+<p>Variables are rendered within the <code>{{ ... }}</code> expressions.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">json data;
+data[<span class="st">&quot;neighbour&quot;</span>] = <span class="st">&quot;Peter&quot;</span>;
+data[<span class="st">&quot;guests&quot;</span>] = {<span class="st">&quot;Jeff&quot;</span>, <span class="st">&quot;Tom&quot;</span>, <span class="st">&quot;Patrick&quot;</span>};
+data[<span class="st">&quot;time&quot;</span>][<span class="st">&quot;start&quot;</span>] = <span class="dv">16</span>;
+data[<span class="st">&quot;time&quot;</span>][<span class="st">&quot;end&quot;</span>] = <span class="dv">22</span>;
+
+<span class="co">// Indexing in array</span>
+render(<span class="st">&quot;{{ guests.1 }}&quot;</span>, data); <span class="co">// &quot;Tom&quot;</span>
+
+<span class="co">// Objects</span>
+render(<span class="st">&quot;{{ time.start }} to {{ time.end + 1 }}pm&quot;</span>, data); <span class="co">// &quot;16 to 23pm&quot;</span></code></pre></div>
+<p>If no variable is found, valid JSON is printed directly, otherwise an <code>inja::RenderError</code> is thrown.</p>
+<h3 id="statements">Statements</h3>
+<p>Statements can be written either with the <code>{% ... %}</code> syntax or the <code>##</code> syntax for entire lines. Note that <code>##</code> needs to start the line without indentation. The most important statements are loops, conditions and file includes. All statements can be nested.</p>
+<h4 id="loops">Loops</h4>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="co">// Combining loops and line statements</span>
+render(<span class="st">R&quot;(Guest List:</span>
+<span class="st">## for guest in guests</span>
+<span class="st">    {{ loop.index1 }}: {{ guest }}</span>
+<span class="st">## endfor )&quot;</span>, data)
+
+<span class="co">/* Guest List:</span>
+<span class="co">    1: Jeff</span>
+<span class="co">    2: Tom</span>
+<span class="co">    3: Patrick */</span></code></pre></div>
+<p>In a loop, the special variables <code>loop/index (number)</code>, <code>loop/index1 (number)</code>, <code>loop/is_first (boolean)</code> and <code>loop/is_last (boolean)</code> are defined. In nested loops, the parent loop variables are available e.g. via <code>loop/parent/index</code>. You can also iterate over objects like <code>{% for key, value in time %}</code>.</p>
+<h4 id="conditions">Conditions</h4>
+<p>Conditions support the typical if, else if and else statements. Following conditions are for example possible:</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="co">// Standard comparisons with variable</span>
+render(<span class="st">&quot;{% if time.hour &gt;= 20 </span><span class="sc">%}…{%</span><span class="st"> else if time.hour &gt;= 18 </span><span class="sc">%}…{%</span><span class="st"> endif %}&quot;</span>, data); <span class="co">// True</span>
+
+<span class="co">// Variable in list</span>
+render(<span class="st">&quot;{% if neighbour in guests </span><span class="sc">%}…{%</span><span class="st"> endif %}&quot;</span>, data); <span class="co">// True</span>
+
+<span class="co">// Logical operations</span>
+render(<span class="st">&quot;{% if guest_count &lt; (3+2) and all_tired </span><span class="sc">%}…{%</span><span class="st"> else </span><span class="sc">%}…{%</span><span class="st"> endif %}&quot;</span>, data); <span class="co">// True</span>
+
+<span class="co">// Negations</span>
+render(<span class="st">&quot;{% if not guest_count </span><span class="sc">%}…{%</span><span class="st"> endif %}&quot;</span>, data); <span class="co">// True</span></code></pre></div>
+<h4 id="includes">Includes</h4>
+<p>You can either include other in-memory templates or from the file system.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="co">// To include in-memory templates, add them to the environment first</span>
+inja::Template content_template = env.parse(<span class="st">&quot;Hello {{ neighbour }}!&quot;</span>);
+env.include_template(<span class="st">&quot;content&quot;</span>, content_template);
+env.render(<span class="st">&quot;Content: {% include </span><span class="sc">\&quot;</span><span class="st">content</span><span class="sc">\&quot;</span><span class="st"> %}&quot;</span>, data); <span class="co">// &quot;Content: Hello Peter!&quot;</span>
+
+<span class="co">// Other template files are included relative from the current file location</span>
+render(<span class="st">&quot;{% include </span><span class="sc">\&quot;</span><span class="st">footer.html</span><span class="sc">\&quot;</span><span class="st"> %}&quot;</span>, data);
+
+<span class="co">// You can disable to search for templates in the file system via</span>
+env.set_search_included_templates_in_files(<span class="kw">false</span>);</code></pre></div>
+<p>Inja will throw an <code>inja::RenderError</code> if an included file is not found. To disable this error, you can call <code>env.set_throw_at_missing_includes(false)</code>.</p>
+<h4 id="assignments">Assignments</h4>
+<p>Variables can also be defined within the template using the set statment.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">render(<span class="st">&quot;{% set new_hour=23 %}{{ new_hour }}pm&quot;</span>, data); <span class="co">// &quot;23pm&quot;</span></code></pre></div>
+<h3 id="functions">Functions</h3>
+<p>A few functions are implemented within the inja template syntax. They can be called with</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span class="co">// Upper and lower function, for string cases</span>
+render(<span class="st">&quot;Hello {{ upper(neighbour) }}!&quot;</span>, data); <span class="co">// &quot;Hello PETER!&quot;</span>
+render(<span class="st">&quot;Hello {{ lower(neighbour) }}!&quot;</span>, data); <span class="co">// &quot;Hello peter!&quot;</span>
+
+<span class="co">// Range function, useful for loops</span>
+render(<span class="st">&quot;{% for i in range(4) %}{{ loop.index1 }}{% endfor %}&quot;</span>, data); <span class="co">// &quot;1234&quot;</span>
+render(<span class="st">&quot;{% for i in range(3) %}{{ at(guests, i) }} {% endfor %}&quot;</span>, data); <span class="co">// &quot;Jeff Tom Patrick &quot;</span>
+
+<span class="co">// Length function (please don&#39;t combine with range, use list directly...)</span>
+render(<span class="st">&quot;I count {{ length(guests) }} guests.&quot;</span>, data); <span class="co">// &quot;I count 3 guests.&quot;</span>
+
+<span class="co">// Get first and last element in a list</span>
+render(<span class="st">&quot;{{ first(guests) }} was first.&quot;</span>, data); <span class="co">// &quot;Jeff was first.&quot;</span>
+render(<span class="st">&quot;{{ last(guests) }} was last.&quot;</span>, data); <span class="co">// &quot;Patir was last.&quot;</span>
+
+<span class="co">// Sort a list</span>
+render(<span class="st">&quot;{{ sort([3,2,1]) }}&quot;</span>, data); <span class="co">// &quot;[1,2,3]&quot;</span>
+render(<span class="st">&quot;{{ sort(guests) }}&quot;</span>, data); <span class="co">// &quot;[\&quot;Jeff\&quot;, \&quot;Patrick\&quot;, \&quot;Tom\&quot;]&quot;</span>
+
+<span class="co">// Round numbers to a given precision</span>
+render(<span class="st">&quot;{{ round(3.1415, 0) }}&quot;</span>, data); <span class="co">// 3</span>
+render(<span class="st">&quot;{{ round(3.1415, 3) }}&quot;</span>, data); <span class="co">// 3.142</span>
+
+<span class="co">// Check if a value is odd, even or divisible by a number</span>
+render(<span class="st">&quot;{{ odd(42) }}&quot;</span>, data); <span class="co">// false</span>
+render(<span class="st">&quot;{{ even(42) }}&quot;</span>, data); <span class="co">// true</span>
+render(<span class="st">&quot;{{ divisibleBy(42, 7) }}&quot;</span>, data); <span class="co">// true</span>
+
+<span class="co">// Maximum and minimum values from a list</span>
+render(<span class="st">&quot;{{ max([1, 2, 3]) }}&quot;</span>, data); <span class="co">// 3</span>
+render(<span class="st">&quot;{{ min([-2.4, -1.2, 4.5]) }}&quot;</span>, data); <span class="co">// -2.4</span>
+
+<span class="co">// Convert strings to numbers</span>
+render(<span class="st">&quot;{{ int(</span><span class="sc">\&quot;</span><span class="st">2</span><span class="sc">\&quot;</span><span class="st">) == 2 }}&quot;</span>, data); <span class="co">// true</span>
+render(<span class="st">&quot;{{ float(</span><span class="sc">\&quot;</span><span class="st">1.8</span><span class="sc">\&quot;</span><span class="st">) &gt; 2 }}&quot;</span>, data); <span class="co">// false</span>
+
+<span class="co">// Set default values if variables are not defined</span>
+render(<span class="st">&quot;Hello {{ default(neighbour, </span><span class="sc">\&quot;</span><span class="st">my friend</span><span class="sc">\&quot;</span><span class="st">) }}!&quot;</span>, data); <span class="co">// &quot;Hello Peter!&quot;</span>
+render(<span class="st">&quot;Hello {{ default(colleague, </span><span class="sc">\&quot;</span><span class="st">my friend</span><span class="sc">\&quot;</span><span class="st">) }}!&quot;</span>, data); <span class="co">// &quot;Hello my friend!&quot;</span>
+
+<span class="co">// Check if a key exists in an object</span>
+render(<span class="st">&quot;{{ exists(</span><span class="sc">\&quot;</span><span class="st">guests</span><span class="sc">\&quot;</span><span class="st">) }}&quot;</span>, data); <span class="co">// &quot;true&quot;</span>
+render(<span class="st">&quot;{{ exists(</span><span class="sc">\&quot;</span><span class="st">city</span><span class="sc">\&quot;</span><span class="st">) }}&quot;</span>, data); <span class="co">// &quot;false&quot;</span>
+render(<span class="st">&quot;{{ existsIn(time, </span><span class="sc">\&quot;</span><span class="st">start</span><span class="sc">\&quot;</span><span class="st">) }}&quot;</span>, data); <span class="co">// &quot;true&quot;</span>
+render(<span class="st">&quot;{{ existsIn(time, neighbour) }}&quot;</span>, data); <span class="co">// &quot;false&quot;</span>
+
+<span class="co">// Check if a key is a specific type</span>
+render(<span class="st">&quot;{{ isString(neighbour) }}&quot;</span>, data); <span class="co">// &quot;true&quot;</span>
+render(<span class="st">&quot;{{ isArray(guests) }}&quot;</span>, data); <span class="co">// &quot;true&quot;</span>
+<span class="co">// Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,</span></code></pre></div>
+<h3 id="whitespace-control">Whitespace Control</h3>
+<p>In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling <code>set_trim_blocks</code> removes the first newline after a statement, <code>set_lstrip_blocks</code> strips tabs and spaces from the beginning of a line to the start of a block.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">Environment env;
+env.set_trim_blocks(<span class="kw">true</span>);
+env.set_lstrip_blocks(<span class="kw">true</span>);</code></pre></div>
+<p>With both <code>trim_blocks</code> and <code>lstrip_blocks</code> enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (<code>-</code>) to the start or end, the whitespaces before or after that block will be removed:</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">render(<span class="st">&quot;Hello       {{- name -}}     !&quot;</span>, data); <span class="co">// &quot;Hello Inja!&quot;</span>
+render(<span class="st">&quot;{% if neighbour in guests -%}   I was there{% endif -%}   !&quot;</span>, data); <span class="co">// Renders without any whitespaces</span></code></pre></div>
+<p>Stripping behind a statement or expression also removes any newlines.</p>
+<h3 id="callbacks">Callbacks</h3>
+<p>You can create your own and more complex functions with callbacks. These are implemented with <code>std::function</code>, so you can for example use C++ lambdas. Inja <code>Arguments</code> are a vector of json pointers.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">Environment env;
+
+<span class="co">/*</span>
+<span class="co"> * Callbacks are defined by its:</span>
+<span class="co"> * - name,</span>
+<span class="co"> * - (optional) number of arguments,</span>
+<span class="co"> * - callback function.</span>
+<span class="co"> */</span>
+env.add_callback(<span class="st">&quot;double&quot;</span>, <span class="dv">1</span>, [](Arguments&amp; args) {
+    <span class="dt">int</span> number = args.at(<span class="dv">0</span>)-&gt;get&lt;<span class="dt">int</span>&gt;(); <span class="co">// Adapt the index and type of the argument</span>
+    <span class="cf">return</span> <span class="dv">2</span> * number;
+});
+
+<span class="co">// You can then use a callback like a regular function</span>
+env.render(<span class="st">&quot;{{ double(16) }}&quot;</span>, data); <span class="co">// &quot;32&quot;</span>
+
+<span class="co">// Inja falls back to variadic callbacks if the number of expected arguments is omitted.</span>
+env.add_callback(<span class="st">&quot;argmax&quot;</span>, [](Arguments&amp; args) {
+  <span class="kw">auto</span> result = <span class="bu">std::</span>max_element(args.begin(), args.end(), [](<span class="at">const</span> json* a, <span class="at">const</span> json* b) { <span class="cf">return</span> *a &lt; *b;});
+  <span class="cf">return</span> <span class="bu">std::</span>distance(args.begin(), result);
+});
+env.render(<span class="st">&quot;{{ argmax(4, 2, 6) }}&quot;</span>, data); <span class="co">// &quot;2&quot;</span>
+env.render(<span class="st">&quot;{{ argmax(0, 2, 6, 8, 3) }}&quot;</span>, data); <span class="co">// &quot;3&quot;</span>
+
+<span class="co">// A callback without argument can be used like a dynamic variable:</span>
+<span class="bu">std::</span>string greet = <span class="st">&quot;Hello&quot;</span>;
+env.add_callback(<span class="st">&quot;double-greetings&quot;</span>, <span class="dv">0</span>, [greet](Arguments args) {
+    <span class="cf">return</span> greet + <span class="st">&quot; &quot;</span> + greet + <span class="st">&quot;!&quot;</span>;
+});
+env.render(<span class="st">&quot;{{ double-greetings }}&quot;</span>, data); <span class="co">// &quot;Hello Hello!&quot;</span></code></pre></div>
+<p>You can also add a void callback without return variable, e.g. for debugging:</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">env.add_void_callback(<span class="st">&quot;log&quot;</span>, <span class="dv">1</span>, [greet](Arguments args) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;logging: &quot;</span> &lt;&lt; args[<span class="dv">0</span>] &lt;&lt; <span class="bu">std::</span>endl;
+});
+env.render(<span class="st">&quot;{{ log(neighbour) }}&quot;</span>, data); <span class="co">// Prints nothing to result, only to cout...</span></code></pre></div>
+<h3 id="comments">Comments</h3>
+<p>Comments can be written with the <code>{# ... #}</code> syntax.</p>
+<div class="sourceCode"><pre class="sourceCode .cpp"><code class="sourceCode cpp">render(<span class="st">&quot;Hello{# Todo #}!&quot;</span>, data); <span class="co">// &quot;Hello!&quot;</span></code></pre></div>
+<h2 id="supported-compilers">Supported compilers</h2>
+<p>Inja uses <code>string_view</code> from C++17, but includes the <a href="https://github.com/martinmoene/string-view-lite">polyfill</a> from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:</p>
+<ul>
+<li>GCC 4.8 - 9 (and possibly later)</li>
+<li>Clang 3.5 - 9 (and possibly later)</li>
+<li>Microsoft Visual C++ 2016 - 2019 (and possibly later)</li>
+</ul>
+<p>The unit tests fail to compile with GCC 4.8 but should just work fine. A complete list of supported compiler / os versions can be found in the <a href="https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml">CI definition</a>.</p>

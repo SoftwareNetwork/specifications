@@ -1,0 +1,163 @@
+<p><a href="https://ci.appveyor.com/project/LukasBanana/llgl"><img src="https://ci.appveyor.com/api/projects/status/j09x8n07u3byfky0?svg=true" alt="Build status" /></a></p>
+<h1 id="low-level-graphics-library-llgl">Low Level Graphics Library (LLGL)</h1>
+<p align="center">
+<img src="docu/LLGL_Logo.png"/>
+</p>
+<h2 id="license">License</h2>
+<p><a href="https://github.com/LukasBanana/LLGL/blob/master/LICENSE.txt">3-Clause BSD License</a></p>
+<h2 id="documentation">Documentation</h2>
+<ul>
+<li><a href="docu/GettingStarted/Getting%20Started%20with%20LLGL.pdf">Getting Started with LLGL</a> (PDF) with Introduction, Hello Triangle Tutorial, and Extensibility Example with <a href="http://www.glfw.org/">GLFW</a></li>
+<li><a href="docu/refman.pdf">LLGL Reference Manual</a> (PDF)</li>
+<li><a href="docu/CodingConventions/Coding%20Conventions%20for%20LLGL.pdf">LLGL Coding Conventions</a> (PDF)</li>
+<li><a href="examples/Cpp">Examples and Tutorials for C++</a></li>
+<li><a href="examples/CSharp">Examples for C#</a></li>
+</ul>
+<h2 id="progress">Progress</h2>
+<ul>
+<li><strong>Version</strong>: 0.03 Beta (see <a href="docu/ChangeLog">ChangeLog</a>)</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>Renderer</th>
+<th align="center">Progress</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>OpenGL</td>
+<td align="center">~90%</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Direct3D 11</td>
+<td align="center">~90%</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Direct3D 12</td>
+<td align="center">~30%</td>
+<td>Experimental state</td>
+</tr>
+<tr class="even">
+<td>Vulkan</td>
+<td align="center">~30%</td>
+<td>Experimental state</td>
+</tr>
+<tr class="odd">
+<td>Metal</td>
+<td align="center">~50%</td>
+<td>Experimental state</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Platform</th>
+<th align="center">Progress</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Windows</td>
+<td align="center">100%</td>
+<td>Tested on <em>Windows 10</em></td>
+</tr>
+<tr class="even">
+<td>GNU/Linux</td>
+<td align="center">70%</td>
+<td>Tested on <em>Kubuntu 16</em></td>
+</tr>
+<tr class="odd">
+<td>macOS</td>
+<td align="center">70%</td>
+<td>Tested on <em>macOS Sierra</em></td>
+</tr>
+<tr class="even">
+<td>iOS</td>
+<td align="center">1%</td>
+<td>Currently not compilable</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Language Binding</th>
+<th align="center">Progress</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>C#</td>
+<td align="center">30%</td>
+<td>Experimental state</td>
+</tr>
+</tbody>
+</table>
+<h2 id="build-notes">Build Notes</h2>
+<h3 id="windows">Windows</h3>
+<p><strong>Visual Studio 2015</strong> or later is required to build LLGL on Windows.</p>
+<h3 id="macos">macOS</h3>
+<p><strong>Xcode 9</strong> or later is required to build LLGL on macOS.</p>
+<h3 id="gnulinux">GNU/Linux</h3>
+<p>The following development libraries are required to build LLGL on GNU/Linux: - <strong>X11</strong>: <code>libx11-dev</code> - <strong>xf86vidmode</strong>: <code>libxxf86vm-dev</code> - <strong>Xrandr</strong>: <code>libxrandr-dev</code></p>
+<h2 id="thin-abstraction-layer">Thin Abstraction Layer</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Unified Interface:</span>
+CommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex);
+
+<span class="co">// OpenGL Implementation:</span>
+<span class="dt">void</span> GLCommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex) {
+    <span class="at">const</span> GLsizeiptr indices = firstIndex * <span class="va">renderState_</span>.indexBufferStride;
+    glDrawElements(
+        <span class="va">renderState_</span>.drawMode,
+        <span class="kw">static_cast</span>&lt;GLsizei&gt;(numIndices),
+        <span class="va">renderState_</span>.indexBufferDataType,
+        <span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> GLvoid*&gt;(indices)
+    );
+}
+
+<span class="co">// Direct3D 11 Implementation</span>
+<span class="dt">void</span> D3D11CommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex) {
+    <span class="va">context_</span>-&gt;DrawIndexed(numIndices, firstIndex, <span class="dv">0</span>);
+}
+
+<span class="co">// Direct3D 12 Implementation</span>
+<span class="dt">void</span> D3D12CommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex) {
+    <span class="va">commandList_</span>-&gt;DrawIndexedInstanced(numIndices, <span class="dv">1</span>, firstIndex, <span class="dv">0</span>, <span class="dv">0</span>);
+}
+
+<span class="co">// Vulkan Implementation</span>
+<span class="dt">void</span> VKCommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex) {
+    vkCmdDrawIndexed(<span class="va">commandBuffer_</span>, numIndices, <span class="dv">1</span>, firstIndex, <span class="dv">0</span>, <span class="dv">0</span>);
+}
+
+<span class="co">// Metal implementation</span>
+<span class="dt">void</span> MTCommandBuffer::DrawIndexed(<span class="bu">std::</span>uint32_t numIndices, <span class="bu">std::</span>uint32_t firstIndex) {
+    <span class="cf">if</span> (<span class="va">numPatchControlPoints_</span> &gt; <span class="dv">0</span>) {
+        [<span class="va">renderEncoder_</span>
+            drawIndexedPatches:             <span class="va">numPatchControlPoints_</span>
+            patchStart:                     <span class="kw">static_cast</span>&lt;NSUInteger&gt;(firstIndex) / <span class="va">numPatchControlPoints_</span>
+            patchCount:                     <span class="kw">static_cast</span>&lt;NSUInteger&gt;(numIndices) / <span class="va">numPatchControlPoints_</span>
+            patchIndexBuffer:               nil
+            patchIndexBufferOffset:         <span class="dv">0</span>
+            controlPointIndexBuffer:        <span class="va">indexBuffer_</span>
+            controlPointIndexBufferOffset:  <span class="va">indexTypeSize_</span> * (<span class="kw">static_cast</span>&lt;NSUInteger&gt;(firstIndex))
+            instanceCount:                  <span class="dv">1</span>
+            baseInstance:                   <span class="dv">0</span>
+        ];
+    } <span class="cf">else</span> {
+        [<span class="va">renderEncoder_</span>
+            drawIndexedPrimitives:  <span class="va">primitiveType_</span>
+            indexCount:             <span class="kw">static_cast</span>&lt;NSUInteger&gt;(numIndices)
+            indexType:              <span class="va">indexType_</span>
+            indexBuffer:            <span class="va">indexBuffer_</span>
+            indexBufferOffset:      <span class="va">indexTypeSize_</span> * <span class="kw">static_cast</span>&lt;NSUInteger&gt;(firstIndex)
+        ];
+    }
+}</code></pre></div>

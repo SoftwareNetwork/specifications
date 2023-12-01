@@ -1,0 +1,53 @@
+<h1 id="stackext">stackext</h1>
+<p>Small, header-only library for working with an extended stack. Like <a href="http://man7.org/linux/man-pages/man3/alloca.3.html">alloca</a>, stackext provides a much faster alternative than the heap for allocating memory that doesn't need to persist beyond a function's scope. But, unlike alloca, stackext 1. Doesn't risk causing a stack overflow. If an allocation can't fit into the extended stack, it falls back to heap allocation. 1. Works with classes that have non-trivial constructors and destructors.</p>
+<p>See <a href="https://medium.com/@ryan.burn/how-to-make-your-c-code-faster-with-an-extended-stack-38b81c87f9d7">How to make your C++ code faster with an extended stack</a> and <a href="benchmark/README.md">benchmarks</a> for example usages.</p>
+<h2 id="installation">Installation</h2>
+<pre><code>sudo cp -r include/stackext /usr/local/include</code></pre>
+<h2 id="quick-start">Quick start</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Set aside 1KB of extended stack space per thread.</span>
+<span class="at">static</span> <span class="at">thread_local</span> stackext::stack_allocator ExtendedStack{<span class="dv">1024</span>};
+
+<span class="at">static</span> <span class="dt">void</span> example1(<span class="dt">int</span> n) {
+  <span class="co">// Make an allocator for this function&#39;s scope</span>
+  stackext::scoped_allocator allocator{ExtendedStack};
+
+  <span class="co">// allocate a dynamic number of characters</span>
+  <span class="co">// memory for s will be freed automatically when allocator&#39;s destructor is called</span>
+  <span class="kw">auto</span> s = allocator.allocate&lt;<span class="dt">char</span>&gt;(n);
+  (<span class="dt">void</span>)s;
+
+  <span class="co">// allocator works with classes that have non-trivial constructors and</span>
+  <span class="co">// destructors</span>
+  <span class="kw">struct</span> A {
+    A(<span class="dt">int</span> x) { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;A: &quot;</span> &lt;&lt; x &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>; }
+
+    ~A() {
+      <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;~A</span><span class="sc">\n</span><span class="st">&quot;</span>;
+    }
+  };
+  <span class="kw">auto</span> aptr = allocator.allocate&lt;A&gt;(<span class="dv">3</span>, <span class="dv">97</span>);
+  (<span class="dt">void</span>)aptr;
+
+  <span class="co">// allocations larger than the amount of stack space reserved will fall back</span>
+  <span class="co">// to using the heap</span>
+  <span class="kw">auto</span> bigdata = allocator.allocate&lt;<span class="dt">char</span>&gt;(<span class="dv">1024</span> * <span class="dv">1024</span>);
+  (<span class="dt">void</span>)bigdata;
+
+  <span class="co">// we can nest usages of scoped_allocator</span>
+  example2();
+
+  <span class="co">// with linear_allocator, we can use scoped_allocator with standard C++ containers</span>
+  <span class="bu">std::</span>vector&lt;<span class="dt">int</span>, stackext::linear_allocator&lt;<span class="dt">int</span>&gt;&gt; v(stackext::linear_allocator&lt;<span class="dt">int</span>&gt;{allocator});
+  v.push_back(<span class="dv">1</span>);
+  v.push_back(<span class="dv">2</span>);
+  v.push_back(<span class="dv">3</span>);
+}
+
+<span class="at">static</span> <span class="dt">void</span> example2() {
+  stackext::scoped_allocator allocator{ExtendedStack};
+  <span class="kw">struct</span> B {
+    B() { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;B</span><span class="sc">\n</span><span class="st">&quot;</span>; };
+  };
+  <span class="kw">auto</span> bptr = allocator.allocate&lt;B&gt;(<span class="dv">5</span>);
+  (<span class="dt">void</span>)bptr;
+}</code></pre></div>

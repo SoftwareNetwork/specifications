@@ -1,0 +1,78 @@
+<h1 id="winreg-v2.3.1">WinReg v2.3.1</h1>
+<h2 id="high-level-c-wrapper-around-the-low-level-windows-registry-c-interface-api">High-level C++ Wrapper Around the Low-level Windows Registry C-interface API</h2>
+<p>by Giovanni Dicanio</p>
+<p>The Windows Registry C-interface API is <em>very low-level</em> and <em>hard</em> to use.</p>
+<p>I developed some <strong>C++ wrappers</strong> around this low-level Win32 API, to raise the semantic level, using C++ classes like <code>std::wstring</code>, <code>std::vector</code>, etc. instead of raw C-style buffers and low-level mechanisms.</p>
+<p>For example, the <code>REG_MULTI_SZ</code> registry type associated to double-NUL-terminated C-style strings is handled using a much easier higher-level <code>vector&lt;wstring&gt;</code>. My C++ code does the <em>translation</em> between high-level C++ STL-based stuff and the low-level Win32 C-interface API.</p>
+<p>Moreover, Win32 error codes are translated to C++ exceptions.</p>
+<p>The Win32 registry value types are mapped to C++ higher-level types according the following table:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Win32 Registry Type</th>
+<th align="center">C++ Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>REG_DWORD</code></td>
+<td align="center"><code>DWORD</code></td>
+</tr>
+<tr class="even">
+<td><code>REG_QWORD</code></td>
+<td align="center"><code>ULONGLONG</code></td>
+</tr>
+<tr class="odd">
+<td><code>REG_SZ</code></td>
+<td align="center"><code>std::wstring</code></td>
+</tr>
+<tr class="even">
+<td><code>REG_EXPAND_SZ</code></td>
+<td align="center"><code>std::wstring</code></td>
+</tr>
+<tr class="odd">
+<td><code>REG_MULTI_SZ</code></td>
+<td align="center"><code>std::vector&lt;std::wstring&gt;</code></td>
+</tr>
+<tr class="even">
+<td><code>REG_BINARY</code></td>
+<td align="center"><code>std::vector&lt;BYTE&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>I initially developed this code using Visual Studio 2015 with Update 3; then I used Visual Studio 2017, and currently <strong>Visual Studio 2019</strong>. I have no longer tested the code with previous compilers. The code compiles cleanly at <code>/W4</code> in both 32-bit and 64-bit builds.</p>
+<p>This library is made by two files:</p>
+<ul>
+<li><a href="WinReg/WinReg.hpp"><code>WinReg.hpp</code></a>: the library's header file</li>
+<li><a href="WinReg/WinReg.cpp"><code>WinReg.cpp</code></a>: the library's implementation file</li>
+</ul>
+<p>Moreover, <code>WinRegTest.cpp</code> contains some demo/test code for the library: check it out for some sample usage.</p>
+<p>The library exposes three main classes:</p>
+<ul>
+<li><code>RegKey</code>: a tiny efficient wrapper around raw Win32 <code>HKEY</code> handles</li>
+<li><code>RegException</code>: an exception class to signal error conditions</li>
+<li><code>RegResult</code>: a tiny wrapper around the raw return codes of the Windows Registry C API functions</li>
+</ul>
+<p>There are many member functions inside the <code>RegKey</code> class, that wrap many parts of the native C-interface Windows Registry API, in a convenient C++ way.</p>
+<p>For example, you can simply open a registry key and get registry values with C++ code like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">RegKey  key(HKEY_CURRENT_USER, <span class="st">L&quot;SOFTWARE</span><span class="sc">\\</span><span class="st">SomeKey&quot;</span>);
+
+DWORD   dw = key.GetDwordValue (<span class="st">L&quot;SomeDwordValue&quot;</span>);
+wstring s  = key.GetStringValue(<span class="st">L&quot;SomeStringValue&quot;</span>);</code></pre></div>
+<p>Or you can enumerate all the values under a given key with simple C++ code like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> values = key.EnumValues();
+
+<span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span> &amp; v : values)
+{
+    <span class="co">//</span>
+    <span class="co">// Process current value:</span>
+    <span class="co">//</span>
+    <span class="co">//   - v.first  (wstring) is the value name</span>
+    <span class="co">//   - v.second (DWORD)   is the value type</span>
+    <span class="co">//</span>
+    ...
+}</code></pre></div>
+<p>The library also offers methods that return error codes wrapped in <code>RegResult</code>, instead of throwing <code>RegException</code> on failure. These methods are named in the form of <em>TryAction</em>, e.g. <code>RegKey::TryOpen()</code>, <code>RegKey::TryGetDwordValue()</code>, etc. You can take a look at the test code in <code>WinRegTest.cpp</code> for some sample usage.</p>
+<p>The library stuff lives under the <code>winreg</code> namespace.</p>
+<p>See the <a href="WinReg/WinReg.hpp"><strong><code>WinReg.hpp</code></strong></a> header for more details and <strong>documentation</strong>.</p>
+<p>Thanks to everyone who contributed to this project with some additional features and constructive comments and suggestions.</p>

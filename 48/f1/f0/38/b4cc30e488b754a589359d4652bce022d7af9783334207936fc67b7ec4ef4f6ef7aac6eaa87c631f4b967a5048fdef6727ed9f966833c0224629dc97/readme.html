@@ -1,0 +1,132 @@
+<h1 id="yomm2">YOMM2</h1>
+<p>This is a complete rewrite of YOMM11, which is now deprecated. This library is much better, see <a href="yomm11-yomm2.md">here</a> to find out why.</p>
+<h2 id="tldr">TL;DR</h2>
+<p>If you are familiar with the concept of open multi-methods, or prefer to learn by reading code, go directly to <a href="examples/synopsis.cpp">the synopsis</a></p>
+<h2 id="open-methods-in-a-nutshell">Open Methods in a Nutshell</h2>
+<h3 id="cross-cutting-concerns-and-the-expression-problem">Cross-cutting Concerns and the Expression Problem</h3>
+<p>You have a matrix math library. It deals with all sort of matrices: dense, diagonal, tri-diagonal, etc. Each matrix subtype has a corresponding class in a hierarchy rooted in Matrix.</p>
+<p>Now you would like to render Matrix objects as JSON strings. The representation will vary depending on the exact type of the object; for example, if a matrix is a DiagonalMatrix, you only need to store the diagonal - the other elements are all zeroes.</p>
+<p>This is an example of a <a href="http://wiki.c2.com/?CrossCuttingConcern">&quot;cross-cutting concern&quot;</a>. How do you do it?</p>
+<p>It turns out that OOP doesn't offer a good solution to this.</p>
+<p>You can stick a pure virtual <code>to_json</code> function in the <code>Matrix</code> base class and override it in the subclasses. It is an easy solution but it has severe drawbacks. It requires you to change the Matrix class and its subclasses, and recompile the library. And now all the applications that use it will contain the <code>to_json</code> functions even if they don't need them, because of the way virtual functions are implemented.</p>
+<p>Or you may resort on a &quot;type switch&quot;: have the application test for each category and generate the JSON accordingly. This is tedious, error prone and, above all, not extensible. Adding a new matrix subclass requires updating all the type switches. The Visitor pattern also suffers from this flaw.</p>
+<p>Wouldn't it be nice if you could add behavior to existing types, just as easily and unintrusively as you can extend existing class hierarchies via derivation? What if you could solve the so-called <a href="http://wiki.c2.com/?ExpressionProblem">Expression Problem</a>:</p>
+<pre><code>behaviors += types
+types += behaviors</code></pre>
+<p>This is exactly what Open Methods are all about: solving the Expression Problem.</p>
+<p>Let's look at an example.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// -----------------------------------------------------------------------------</span>
+<span class="co">// library code</span>
+
+<span class="kw">struct</span> matrix {
+    <span class="kw">virtual</span> ~matrix() {}
+    <span class="co">// ...</span>
+};
+
+<span class="kw">struct</span> dense_matrix    : matrix { <span class="co">/* ... */</span> };
+<span class="kw">struct</span> diagonal_matrix : matrix { <span class="co">/* ... */</span> };
+
+<span class="co">// -----------------------------------------------------------------------------</span>
+<span class="co">// application code</span>
+
+<span class="pp">#include </span><span class="im">&lt;yorel/yomm2/cute.hpp&gt;</span>
+
+<span class="kw">using</span> yorel::yomm2::<span class="va">virtual_</span>;
+
+register_class(matrix);
+register_class(dense_matrix, matrix);
+register_class(diagonal_matrix, matrix);
+
+declare_method(string, to_json, (<span class="va">virtual_</span>&lt;<span class="at">const</span> matrix&amp;&gt;));
+
+define_method(string, to_json, (<span class="at">const</span> dense_matrix&amp; m)) {
+    <span class="cf">return</span> <span class="st">&quot;json for dense matrix...&quot;</span>;
+}
+
+define_method(string, to_json, (<span class="at">const</span> diagonal_matrix&amp; m)) {
+    <span class="cf">return</span> <span class="st">&quot;json for diagonal matrix...&quot;</span>;
+}
+
+<span class="dt">int</span> main() {
+    yorel::yomm2::update_methods();
+
+    shared_ptr&lt;<span class="at">const</span> matrix&gt; a = make_shared&lt;dense_matrix&gt;();
+    shared_ptr&lt;<span class="at">const</span> matrix&gt; b = make_shared&lt;diagonal_matrix&gt;();
+
+    cout &lt;&lt; to_json(*a) &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>; <span class="co">// json for dense matrix</span>
+    cout &lt;&lt; to_json(*b) &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>; <span class="co">// json for diagonal matrix</span>
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The <code>declare_method</code> line declares an open method called <code>to_json</code>that takes one virtual argument of type <code>const matrix&amp;</code> and returns a string. The <code>virtual_&lt;&gt;</code> decorator specifies that the argument must be taken into account to select the appropriate specialization. In essence, this is the same thing as having a <code>virtual string to_json() const</code> inside class Matrix - except that the virtual function lives outside of any classes, and you can add as many as you want without modifying the classes.</p>
+<p>NOTE: DO NOT specify argument names, i.e. <code>virtual_&lt;const matrix&amp;&gt; arg</code> is not permitted.</p>
+<p>The following two <code>define_method ... end_method</code> blocks define two implementations for the <code>to_json</code> method: one for dense matrices, and one for diagonal matrices.</p>
+<p><code>yorel::yomm2::update_methods()</code> must be called before any method is called, and after dynamically loading and unloading shared libraries.</p>
+<h3 id="multiple-dispatch">Multiple Dispatch</h3>
+<p>Methods can have more than one virtual argument. This is handy in certain situations, for example to implement binary operations on matrices:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="co">// -----------------------------------------------------------------------------</span>
+<span class="co">// matrix * matrix</span>
+
+declare_method(
+    shared_ptr&lt;<span class="at">const</span> matrix&gt;,
+    times,
+    (<span class="va">virtual_</span>&lt;shared_ptr&lt;<span class="at">const</span> matrix&gt;&gt;, <span class="va">virtual_</span>&lt;shared_ptr&lt;<span class="at">const</span> matrix&gt;&gt;));
+
+<span class="co">// catch-all matrix * matrix -&gt; dense_matrix</span>
+define_method(
+    shared_ptr&lt;<span class="at">const</span> matrix&gt;,
+    times,
+    (shared_ptr&lt;<span class="at">const</span> matrix&gt; a, shared_ptr&lt;<span class="at">const</span> matrix&gt; b)) {
+    <span class="cf">return</span> make_shared&lt;dense_matrix&gt;();
+}
+
+<span class="co">// diagonal_matrix * diagonal_matrix -&gt; diagonal_matrix</span>
+define_method(
+    shared_ptr&lt;<span class="at">const</span> matrix&gt;,
+    times,
+    (shared_ptr&lt;<span class="at">const</span> diagonal_matrix&gt; a, shared_ptr&lt;<span class="at">const</span> diagonal_matrix&gt; b)) {
+    <span class="cf">return</span> make_shared&lt;diagonal_matrix&gt;();
+}</code></pre></div>
+<h2 id="performance">Performance</h2>
+<p>Don't worry about it. Open methods are almost as fast as ordinary virtual member functions once you turn on optimization (-O2). With both clang and gcc, dispatching a call to a method with one virtual argument is only 15-30% slower than calling the equivalent virtual member function. If the body of the method does any amount of work, the difference is unnoticeable. See the implementation notes for benchmarks and assembly listings.</p>
+<h2 id="building-and-installing">Building and Installing</h2>
+<p>Make sure that you have the following dependencies:</p>
+<ul>
+<li><p>a C++17 capable compiler</p></li>
+<li><p>The following Boost libraries: Preprocessor, DynamicBitset, TypeTraits - version 1.65 or above is recommended</p></li>
+<li><p>For tests: Boost.Test version 1.65 or above</p></li>
+<li><p>cmake version 3.5 or above</p></li>
+</ul>
+<p>Clone the repository:</p>
+<pre><code>git clone https://github.com/jll63/yomm2.git
+cd yomm2</code></pre>
+<p>If you want to run the benchmarks, fetch the Google Benchmark submodule:</p>
+<pre><code>git submodule init
+git submodule update</code></pre>
+<p>Create a build directory and run cmake then make:</p>
+<pre><code>mkdir build
+cd build
+cmake ..
+make</code></pre>
+<p>If you want to run the tests:</p>
+<pre><code>cmake .. -DYOMM2_ENABLE_TESTS=1
+make &amp;&amp; ctest</code></pre>
+<p>If you also want to run the benchmarks (and in this case you really want a release build):</p>
+<pre><code>cmake .. -DYOMM2_ENABLE_TESTS=1 -DYOMM2_ENABLE_BENCHMARKS=1 -DCMAKE_BUILD_TYPE=Release
+make &amp;&amp; tests/benchmarks # wow it&#39;s fast!</code></pre>
+<p>Finally, if you like it and you want to install it:</p>
+<pre><code># either:
+sudo make install
+# or:
+make install DESTDIR=/path/to/my/libs</code></pre>
+<h2 id="going-further">Going Further</h2>
+<p>The Reference is <a href="REFERENCE.md">here</a>.</p>
+<p>The library comes with a series of examples:</p>
+<ul>
+<li><p><a href="examples/matrix.cpp">The complete <code>matrix</code> example</a></p></li>
+<li><p><a href="examples/asteroids.cpp">The Asteroids example used in Wikipedia's article on Multiple Dispatch</a></p></li>
+<li><p><a href="examples/accept_no_visitors.cpp">Process an AST sans clumsy Visitor</a></p></li>
+<li><p><a href="examples/adventure.cpp">Adventure: a 3-method example</a></p></li>
+</ul>
+<p>I presented the library at CppCon 2018. Here are <a href="https://www.youtube.com/watch?v=xkxo0lah51s">the video recording</a> and <a href="https://jll63.github.io/yomm2/slides/">the slides</a>.</p>

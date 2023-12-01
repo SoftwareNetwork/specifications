@@ -1,0 +1,646 @@
+<h1 id="lest-lest-errors-escape-testing">lest – lest errors escape testing</h1>
+<p><a href="https://isocpp.org/"><img src="https://img.shields.io/badge/language-C++-blue.svg" alt="Language" /></a> <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/c%2B%2B-11-blue.svg" alt="Standard" /></a> <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/c%2B%2B-98-orange.svg" alt="Standard" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/lest"><img src="https://travis-ci.org/martinmoene/lest.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/lest/branch/master"><img src="https://ci.appveyor.com/api/projects/status/3777o06o2ni5lww2/branch/master?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/lest/releases"><img src="https://badge.fury.io/gh/martinmoene%2Flest.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/lest/master/include/lest/lest.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/martinmoene/testing/lest%3Atesting/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/80a88nlPralvatNq"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it online" /></a></p>
+<p>This tiny C++11 test framework is based on ideas and examples by Kevlin Henney [1,2] and on ideas found in the CATCH test framework by Phil Nash [3].</p>
+<p>Let writing tests become irresistibly easy and attractive.</p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#usage">Usage</a> - <a href="#synopsis">Synopsis</a> - <a href="#variants-of-lest">Variants of <em>lest</em></a> - <a href="#features-of-lest">Features of <em>lest</em></a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-tests-and-examples">Building tests and examples</a> - <a href="#contributions-to-lest">Contributions to <em>lest</em></a> - <a href="#other-test-frameworks">Other test frameworks</a> - <a href="#notes-and-references">Notes and references</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;lest/lest.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="at">const</span> lest::test specification[] =
+{
+    CASE( <span class="st">&quot;Empty string has length zero (succeed)&quot;</span> )
+    {
+        EXPECT( <span class="dv">0</span> == string(  ).length() );
+        EXPECT( <span class="dv">0</span> == string(<span class="st">&quot;&quot;</span>).length() );
+    },
+
+    CASE( <span class="st">&quot;Text compares lexically (fail)&quot;</span> )
+    {
+        EXPECT( string(<span class="st">&quot;hello&quot;</span>) &gt; string(<span class="st">&quot;world&quot;</span>) );
+    },
+
+    CASE( <span class="st">&quot;Unexpected exception is reported&quot;</span> )
+    {
+        EXPECT( (<span class="cf">throw</span> <span class="bu">std::</span>runtime_error(<span class="st">&quot;surprise!&quot;</span>), <span class="kw">true</span>) );
+    },
+
+    CASE( <span class="st">&quot;Unspecified expected exception is captured&quot;</span> )
+    {
+        EXPECT_THROWS( <span class="cf">throw</span> <span class="bu">std::</span>runtime_error(<span class="st">&quot;surprise!&quot;</span>) );
+    },
+
+    CASE( <span class="st">&quot;Specified expected exception is captured&quot;</span> )
+    {
+        EXPECT_THROWS_AS( <span class="cf">throw</span> <span class="bu">std::</span>bad_alloc(), <span class="bu">std::</span>bad_alloc );
+    },
+
+    CASE( <span class="st">&quot;Expected exception is reported missing&quot;</span> )
+    {
+        EXPECT_THROWS( <span class="kw">true</span> );
+    },
+
+    CASE( <span class="st">&quot;Specific expected exception is reported missing&quot;</span> )
+    {
+        EXPECT_THROWS_AS( <span class="kw">true</span>, <span class="bu">std::</span>runtime_error );
+    },
+};
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> * argv[] )
+{
+    <span class="cf">return</span> lest::run( specification, argc, argv );
+}</code></pre></div>
+<p>Note: besides above table approach, <em>lest</em> also supports <a href="#test-case-macro">auto-registration of tests</a>.</p>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt;g++ -Wall -Wextra -std=c++11 -I../include -o 05_select.exe 05_select.cpp &amp;&amp; 05_select.exe
+05_select.cpp:17: failed: Text compares lexically (fail): string(&quot;hello&quot;) &gt; string(&quot;world&quot;) for &quot;hello&quot; &gt; &quot;world&quot;
+05_select.cpp:22: failed: got unexpected exception with message &quot;surprise!&quot;: Unexpected exception is reported: (throw std::runtime_error(&quot;surprise!&quot;), true)
+05_select.cpp:37: failed: didn&#39;t get exception: Expected exception is reported missing: true
+05_select.cpp:42: failed: didn&#39;t get exception of type std::runtime_error: Specific expected exception is reported missing: true
+4 out of 7 selected tests failed.</code></pre>
+<p>With <a href="https://buckbuild.com/">Buck</a>:</p>
+<pre><code>prompt&gt; buck run example/:05_select
+...</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>lest</strong> is a small C++11 test framework for unit testing, regression testing, <a href="http://en.wikipedia.org/wiki/Test-driven_development">Test-driven development (TDD)</a> and <a href="http://dannorth.net/introducing-bdd/">Behaviour-driven design (BDD)</a>. It replicates innovative ideas in C++ testing from the <a href="https://github.com/philsquared/Catch">Catch test framework</a> such as <a href="#fixture-macros">function-level fixtures</a> and <a href="#assertion-macros">expression-decomposing assertion macros</a> in a form that is compact enough to read in five minutes. The lest_cpp03 variant provides similar capabilities to use with C++98/03 compilers.</p>
+<p><strong>Features and properties of lest</strong> are ease of installation (single header), no boilerplate code, traditional unit test cases and BDD style scenarios, strings as test names, function-level fixtures, expression-decomposing assertion macros, support for floating point comparison, test selection from commandline, test duration timing, test randomisation and sorting, display of passing tests, colourised output (compile-time option), C++11 code and a C++98/03 variant with comparable features (also compilable as C++11).</p>
+<p><strong>Features available via other projects</strong> are mocking (see <a href="#main-trompeloeil">integrate Trompeloeil mocking framework</a>) and hamcrest matchers (see <a href="#variants-of-lest">variants of lest</a>),</p>
+<p><strong>Not provided</strong> are things present in <a href="#other-test-frameworks">other test frameworks</a>, such as suites of tests, value-parameterised tests, type-parameterised tests, test data generators, customisable reporting, easy logging of extra information, breaking into a debugger, concurrent execution of tests, isolated execution of tests, Visual Studio Test Adapter.</p>
+<h2 id="license">License</h2>
+<p><em>lest</em> uses the <a href="LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>lest</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>lest</em> is a single-file header-only library. Put <code>lest.hpp</code>, or a variant of it such as <code>lest_cpp03.hpp</code> directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="usage">Usage</h2>
+<ul>
+<li><a href="#test-case-macro">Making a case</a> – <a href="example/05-select.cpp#L9">example</a></li>
+<li><a href="#assertion-macros">Asserting for success</a> – <a href="example/05-select.cpp#L11">example</a></li>
+<li><a href="#assertion-macros">Asserting for failure</a> – <a href="example/05-select.cpp#L13">example</a></li>
+<li><a href="#assertion-macros">Asserting for exceptions</a> – <a href="example/05-select.cpp#L28">example</a></li>
+<li><a href="#assertion-macros">Asserting for a specific exception</a> – <a href="example/05-select.cpp#L33">example</a></li>
+<li><a href="#floating-point-comparison">Comparing floating point numbers</a> – <a href="example/06-approx.cpp">example</a>.</li>
+<li><a href="#test-case-macro">Auto test registration</a> – <a href="example/11-auto-reg.cpp">single-file example</a></li>
+<li><a href="#test-case-macro">Auto test registration with multiple source files</a> – <a href="example/13-module-auto-reg-1.cpp">example part 1</a>, <a href="example/13-module-auto-reg-2.cpp">2</a>, <a href="example/13-module-auto-reg-3.cpp">3</a>.</li>
+<li><a href="#test-case-macro">Non-auto test registration</a> – <a href="example/05-select.cpp">single-file example</a></li>
+<li><a href="#module-registration-macro">Non-auto test registration with multiple source files</a> – <a href="example/12-module-1.cpp">example part 1</a>, <a href="example/12-module-2.cpp">2</a>, <a href="example/12-module-3.cpp">3</a>.</li>
+<li><a href="#fixture-macros">Using fixtures</a> – <a href="example/09-fixture.cpp">example</a>.</li>
+<li><a href="#tests">Using <em>lest</em> assertions in a (reusable) user-defined function or lambda</a> – <a href="example/15-extract-function.cpp">function</a>, <a href="example/15-extract-template-function.cpp">templated function</a>, <a href="example/15-extract-lambda.cpp">lambda</a>.</li>
+<li><a href="#main">Writing the test main function</a> – <a href="example/11-auto-reg.cpp">single-file auto</a>, <a href="example/05-select.cpp">non-auto</a> – <a href="example/13-module-auto-reg-1.cpp">multi-file auto part 1</a>, <a href="example/13-module-auto-reg-2.cpp">2</a>, <a href="example/13-module-auto-reg-3.cpp">3</a>, <a href="example/12-module-1.cpp">non-auto part 1</a>, <a href="example/12-module-2.cpp">2</a>, <a href="example/12-module-3.cpp">3</a>.</li>
+<li><a href="#main-trompeloeil">Integrating <em>lest</em> with the Trompeloeil mocking framework</a> – <a href="example/16-trompeloeil-runtime.cpp">example</a>.</li>
+<li><a href="#reporting-a-user-defined-type">Reporting a user-defined type</a> – <a href="example/07-udt.cpp">example</a>.</li>
+<li><a href="#command-line">Running tests</a></li>
+</ul>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#command-line">Command line</a> - <a href="#test-case-macro">Test case macro</a> - <a href="#fixture-macros">Fixture macros</a> - <a href="#assertion-macros">Assertion macros</a> - <a href="#bdd-style-macros">BDD style macros</a> - <a href="#module-registration-macro">Module registration macro</a> - <a href="#feature-selection-macros">Feature selection macros</a> - <a href="#standard-selection-macro">Standard selection macro</a> - <a href="#namespace">Namespace</a> - <a href="#tests">Tests</a> - <a href="#main">Main</a> - <a href="#main-trompeloeil">Main (Trompeloeil)</a> - <a href="#floating-point-comparison">Floating point comparison</a> - <a href="#reporting-a-user-defined-type">Reporting a user-defined type</a></p>
+<h3 id="command-line">Command line</h3>
+<p>Usage: <strong>test</strong> [options] [<em>test-spec</em> ...]</p>
+<p>Options: - <code>-h, --help</code>, this help message - <code>-a, --abort</code>, abort at first failure - <code>-c, --count</code>, count selected tests - <code>-g, --list-tags</code>, list tags of selected tests - <code>-l, --list-tests</code>, list selected tests - <code>-p, --pass</code>, also report passing tests - <code>-z, --pass-zen</code>, ... without expansion - <code>-t, --time</code>, list duration of selected tests - <code>-v, --verbose</code>, also report passing or failing sections - <code>--order=declared</code>, use source code test order (default) - <code>--order=lexical</code>, use lexical sort test order - <code>--order=random</code>, use random test order - <code>--random-seed=n</code>, use <em>n</em> for random generator seed - <code>--random-seed=time</code>, use time for random generator seed - <code>--repeat=n</code>, repeat selected tests <em>n</em> times (-1: indefinite) - <code>--version</code>, report lest version and compiler used - <code>--</code>, end options</p>
+<p>Test specification: - <code>&quot;@&quot;</code>, <code>&quot;*&quot;</code>: all tests, unless excluded - <em>empty</em>: all tests, unless tagged [hide] or [.<em>optional-name</em>] - <code>&quot;text&quot;</code>: select tests that contain <em>text</em> (case insensitive) - <code>&quot;!text&quot;</code>: omit tests that contain <em>text</em> (case insensitive)</p>
+<p>Test descriptions can contain tags such as <code>[option]</code>, <code>[hide]</code> and <code>[.integration]</code>. Tests that contain the tag <code>[hide]</code> or a tag that starts with <code>[.</code> in their description are skipped, unless they are specifically selected by specifying <code>&quot;@&quot;</code>, <code>&quot;*&quot;</code>, or by specifying (part of) the tag.</p>
+<p>Test specifications can be combined and are evaluated left-to-right. For example: <code>a !ab abc</code> selects all tests that contain 'a', except those that contain 'ab', but include those that contain 'abc'.</p>
+<p>When regular expression selection has been enabled (and works), test specifications can use the regular expression syntax of <code>std::regex_search()</code>. See also <code>lest_FEATURE_REGEX_SEARCH</code> in section <a href="#other-macros">Other Macros</a>.</p>
+<h3 id="test-case-macro">Test case macro</h3>
+<p>A <em>lest</em> test specification can consist of a) one or more arrays of test cases that use lambdas, or b) auto-registered test cases that use free functions. See also macro <a href="#other-macros">lest_FEATURE_AUTO_REGISTER</a>.</p>
+<p><strong>CASE(</strong> &quot;<em>proposition</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong>   <em>(array of cases)</em><br />
+Describe the expected behaviour to test for and specify the actions and expectations. See also section <a href="#module-registration-macro">Module registration macro</a> – <a href="example/02-basic.cpp">Single-file code example</a> – <a href="example/12-module-1.cpp">Multi-file code example part 1</a>, <a href="example/12-module-2.cpp">2</a>, <a href="example/12-module-3.cpp">3</a>.</p>
+<p><strong>CASE_ON(</strong> &quot;<em>proposition</em>&quot;, ...<strong>) {</strong> <em>code</em> <strong>}</strong>   <em>(array of cases, since v1.33)</em><br />
+Describe the expected behaviour to test for and specify the actions and expectations. After the description you can add a lambda capture list to refer to symbols in the enclosing scope. See also section <a href="#module-registration-macro">Module registration macro</a> – <a href="example/02-basic.cpp">Single-file code example</a> – <a href="example/12-module-1.cpp">Multi-file code example part 1</a>, <a href="example/12-module-2.cpp">2</a>, <a href="example/12-module-3.cpp">3</a>.</p>
+<p><strong>lest_CASE(</strong> <em>specification</em>, &quot;<em>proposition</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong>   <em>(auto-registered cases)</em><br />
+Provide the collection of test cases, describe the expected behaviour to test for and specify the actions and expectations. Consider defining macro CASE(<em>proposition</em>) to hide the collection of test cases and define it in terms of lest_CASE(...) – <a href="example/11-auto-reg.cpp">Single-file code example</a> – <a href="example/13-module-auto-reg-1.cpp">Multi-file code example part 1</a>, <a href="example/13-module-auto-reg-2.cpp">2</a>, <a href="example/13-module-auto-reg-3.cpp">3</a>.</p>
+<h3 id="fixture-macros">Fixture macros</h3>
+<p><em>lest</em> provides function-level fixtures. Fixtures are stack-based and their setup and teardown occurs at the block scope of SETUP and (nested) SECTIONs – <a href="example/09-fixture.cpp">Code example</a>.</p>
+<p><strong>SETUP(</strong> &quot;<em>context</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong><br />
+Describe and setup the context to use afresh in each enclosed section.</p>
+<p><strong>SECTION(</strong> &quot;<em>proposition</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong><br />
+Describe the expected behaviour to test for using the enclosing context and specify the actions and expectations. The objects in the enclosing setup or section come into existence and go out of scope for each section. A section must be enclosed in setup or in another section.</p>
+<h3 id="assertion-macros">Assertion macros</h3>
+<p><em>lest</em> has expression-decomposing assertion macros. An expression with strings such as <code>hello &gt; world</code> may be reported with code and expansion as <code>hello &gt; world (&quot;hello&quot; &gt; &quot;world&quot;)</code>. As a consequence, only a few assertion macro variants are needed – <a href="example/05-select.cpp">Code example</a>.</p>
+<p><strong>EXPECT(</strong> <em>expr</em> <strong>)</strong><br />
+Evaluate the expression and report failure. If an exception is thrown it is caught, reported and counted as a failure.</p>
+<p><strong>EXPECT_NOT(</strong> <em>expr</em> <strong>)</strong><br />
+Evaluate the expression, record the <em>logical not</em> of its result and report failure. If an exception is thrown it is caught, reported and counted as a failure. This macro is a workaround to circumvent ! prefixed expressions as these cannot be decomposed.</p>
+<p><strong>EXPECT_NO_THROW(</strong> <em>expr</em> <strong>)</strong><br />
+Expect that no exception (of any type) is thrown during evaluation of the expression.</p>
+<p><strong>EXPECT_THROWS(</strong> <em>expr</em> <strong>)</strong><br />
+Expect that an exception (of any type) is thrown during evaluation of the expression.</p>
+<p><strong>EXPECT_THROWS_AS(</strong> <em>expr</em>, <em>exception</em> <strong>)</strong><br />
+Expect that an exception of the specified type is thrown during evaluation of the expression.</p>
+<p>If an assertion fails, the remainder of the test that assertion is part of is skipped.</p>
+<h3 id="bdd-style-macros">BDD style macros</h3>
+<p><em>lest</em> provides several macros to write <a href="http://dannorth.net/introducing-bdd/">Behaviour-Driven Design (BDD)</a> style scenarios – <a href="example/10-bdd.cpp">Code example</a>, <a href="example/10-bdd-auto.cpp">auto-registration</a>.</p>
+<p><strong>lest_SCENARIO(</strong> <em>specification</em>, &quot;<em>sketch</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong>   <em>(auto-registered cases)</em></p>
+<p><strong>SCENARIO(</strong> &quot;<em>sketch</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong>   <em>(array of cases)</em></p>
+<p><strong>GIVEN(</strong> &quot;<em>context</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong></p>
+<p><strong>WHEN(</strong> &quot;<em>action</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong></p>
+<p><strong>THEN(</strong> &quot;<em>result</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong></p>
+<p><strong>AND_WHEN(</strong> &quot;<em>action</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong></p>
+<p><strong>AND_THEN(</strong> &quot;<em>result</em>&quot; <strong>) {</strong> <em>code</em> <strong>}</strong></p>
+<p>These macros simply map to macros CASE(), SETUP() and SECTION().</p>
+<p>For auto-registered scenarios, consider defining macro SCENARIO(proposition) to hide the collection of scenarios and define it in terms of lest_SCENARIO(...).</p>
+<h3 id="module-registration-macro">Module registration macro</h3>
+<p>When using <em>arrays of test cases</em> written across multiple files, you can use macro MODULE() to add a module's test cases to the overall specification – <a href="example/12-module-1.cpp">Code example part 1</a>, <a href="example/12-module-2.cpp">2</a>, <a href="example/12-module-3.cpp">3</a>.</p>
+<p><strong>MODULE(</strong> <em>overall-specification</em>, <em>module-specification</em> <strong>)</strong><br />
+Register this module's test specification with the overall specification.</p>
+<p>Note that with <em>lest</em> using <a href="#other-macros">auto test case registration</a> there's no need for macro MODULE(), see the <a href="example/13-module-auto-reg-1.cpp">auto-registration example part 1</a>, <a href="example/13-module-auto-reg-2.cpp">2</a>, <a href="example/13-module-auto-reg-3.cpp">3</a>. The same holds for <em>lest_cpp03</em>, see <a href="example/14-module-cpp03-1.cpp">cpp03 example part 1</a>, <a href="example/14-module-cpp03-2.cpp">2</a>, <a href="example/14-module-cpp03-3.cpp">3</a>.</p>
+<h3 id="feature-selection-macros">Feature selection macros</h3>
+<p>-D<b>lest_NO_SHORT_MACRO_NAMES</b><br />
+-D<b>lest_NO_SHORT_ASSERTION_NAMES</b> (deprecated)<br />
+All public API macros of <em>lest</em> exist as lest_<em>MACRO</em> and shorthand <em>MACRO</em> variant. Define this macro to omit the shorthand macros.</p>
+<p>-D<b>lest_FEATURE_AUTO_REGISTER</b>=0<br />
+Define this to 1 to enable auto registration of test cases. Default is 0.</p>
+<p>See also section <a href="#test-case-macro">Test case macro</a>.</p>
+<p>-D<b>lest_FEATURE_COLOURISE</b>=0<br />
+Define this to 1 to emphasise success and failure with colour. Default is 0.</p>
+<p>Note: <a href="http://en.wikipedia.org/wiki/ANSI_escape_code">ANSI colour codes</a> are used. On Windows versions that <a href="http://stackoverflow.com/questions/16755142/how-to-make-win32-console-recognize-ansi-vt100-escape-sequences">lack support for this</a> you can use the <a href="https://github.com/adoxa/ansicon">ANSICON</a> terminal. Executables can be obtained <a href="http://ansicon.adoxa.vze.com/">here</a>.</p>
+<p>-D<b>lest_FEATURE_LITERAL_SUFFIX</b>=0<br />
+Define this to 1 to append <code>u</code>, <code>l</code>, a combination of these, or <code>f</code> to numeric literals. Default is 0.</p>
+<p>-D<b>lest_FEATURE_REGEX_SEARCH</b>=0<br />
+Define this to 1 to enable regular expressions to select tests. Default is 0.</p>
+<p>Note: You have to make sure the compiler's library has a working <code>std::regex_search()</code>; not all do currently. GCC 4.8.1's regex search function doesn't work yet. Visual C++ probably has a working regex search function since VC9, Visual Studio 2008 (tested VC10, Visual Studio 2010).</p>
+<p>-D<b>lest_FEATURE_TIME_PRECISION</b>=0<br />
+Define this to set the precision of the duration in ms reported with option --time. Default is 0.</p>
+<p>-D<b>lest_FEATURE_WSTRING</b>=1<br />
+Define this to 0 to remove references to std::wstring. Default is 1.</p>
+<p>-D<b>lest_FEATURE_RTTI</b> (undefined)<br />
+<em>lest</em> tries to determine if RTTI is available itself. If that doesn't work out, define this to 1 or 0 to include or remove uses of RTTI (currently a single occurrence of <code>typeid</code> used for reporting a type name). Default is undefined.</p>
+<h3 id="standard-selection-macro">Standard selection macro</h3>
+<p>-D<b>lest_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, or if your compiler does not set the <code>__cplusplus</code> macro correctly.</p>
+<h3 id="namespace">Namespace</h3>
+<p>namespace <strong>lest</strong> { }<br />
+Types and functions are located in namespace lest.</p>
+<h3 id="tests">Tests</h3>
+<p>struct <strong>env</strong> { };</p>
+<p>struct <strong>test</strong><br />
+{<br />
+ std::string name;<br />
+ std::function&lt;void( env &amp; )&gt; behaviour;<br />
+};</p>
+<p>You'll need type <code>env</code> and variable <code>lest_env</code> when you have a test case that calls a user-defined function or lambda that uses lest assertions like <code>EXPECT()</code> – <a href="example/15-extract-function.cpp">Call reusable function</a>, <a href="example/15-extract-template-function.cpp">Call reusable templated function</a>, and <a href="example/15-extract-lambda.cpp">Call reusable lambda</a>.</p>
+<h3 id="main">Main</h3>
+<p>A typical <code>main()</code> function for <em>lest</em> may look as follows:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;lest/lest.hpp&quot;</span>
+
+<span class="at">const</span> lest::test specification[] = { CASE(<span class="st">&quot;...&quot;</span>){} };
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> *argv[] )
+{
+    <span class="cf">if</span> ( <span class="dt">int</span> failures = lest::run( specification, argc, argv ) )
+        <span class="cf">return</span> failures;
+    
+    <span class="cf">return</span> <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;All tests passed</span><span class="sc">\n</span><span class="st">&quot;</span>, EXIT_SUCCESS;
+}</code></pre></div>
+<p>Compile and run:</p>
+<pre><code>prompt&gt;g++ -std=c++11 -o main.exe -I../include main.cpp &amp;&amp; main.exe
+All tests passed</code></pre>
+<p>Or, if feedback on success is moved to the command line:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;lest/lest.hpp&quot;</span>
+
+<span class="at">const</span> lest::test specification[] = { CASE(<span class="st">&quot;...&quot;</span>){} };
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> *argv[] )
+{
+    <span class="cf">return</span> lest::run( specification, argc, argv );
+}</code></pre></div>
+<p>Compile and run with feedback on success:</p>
+<pre><code>prompt&gt;g++ -std=c++11 -o main.exe -I../include main.cpp &amp;&amp; main.exe &amp;&amp; echo All tests passed
+All tests passed</code></pre>
+<p>You can use the following variants of <em>lest</em>'s <code>run()</code> function in main.</p>
+<p>inline<br />
+int <strong>run(</strong> std::vector&lt;test&gt; <em>specification</em>, std::vector&lt;std::string&gt; <em>arguments</em>, std::ostream &amp; <em>os</em> = std::cout );</p>
+<p>inline<br />
+int <strong>run(</strong> std::vector&lt;test&gt; <em>specification</em>, int <em>argc</em>, char * <em>argv</em>[], std::ostream &amp; <em>os</em> = std::cout );</p>
+<p>template&lt;std::size_t N&gt;<br />
+int <strong>run(</strong> test const (&amp; <em>specification</em> )[N], std::ostream &amp; <em>os</em> = std::cout <strong>)</strong>;</p>
+<p>template&lt;std::size_t N&gt;<br />
+int <strong>run(</strong> test const (&amp; <em>specification</em> )[N], std::vector&lt;std::string&gt; <em>arguments</em>, std::ostream &amp; <em>os</em> = std::cout <strong>)</strong>;</p>
+<p>template&lt;std::size_t N&gt;<br />
+int <strong>run(</strong> test const (&amp; <em>specification</em> )[N], int <em>argc</em>, char * <em>argv</em>[], std::ostream &amp; <em>os</em> = std::cout <strong>)</strong>;</p>
+<ul>
+<li><em>specification</em> - collection of tests</li>
+<li><em>arguments</em> - options and arguments to select and omit tests</li>
+<li><em>argc</em>, <em>arcv</em> - options and arguments to select and omit tests</li>
+<li><em>os</em> - stream to report to</li>
+<li>returns number of failing tests</li>
+</ul>
+<h3 id="main-trompeloeil">Main (Trompeloeil)</h3>
+<p>You can integrate the <a href="https://github.com/rollbear/trompeloeil">Trompeloeil mocking framework</a> with <em>lest</em> by providing a reporter for Trompeloeil – <a href="example/16-trompeloeil-runtime.cpp">Code example</a>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;lest/lest.hpp&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;trompeloeil.hpp&quot;</span>
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> * argv[] )
+{
+    <span class="bu">std::</span>ostream &amp; stream = <span class="bu">std::</span>cout;
+    
+    trompeloeil::set_reporter(
+        [&amp;stream]( trompeloeil::severity severity, <span class="at">const</span> <span class="dt">char</span> * file, <span class="dt">unsigned</span> <span class="dt">long</span> line, <span class="bu">std::</span>string <span class="at">const</span> &amp; msg )
+    {
+        <span class="cf">if</span> ( severity == trompeloeil::severity::fatal )
+        {
+            <span class="cf">throw</span> lest::message{<span class="st">&quot;&quot;</span>, lest::location{ line ? file : <span class="st">&quot;[file/line unavailable]&quot;</span>, <span class="dt">int</span>(line) }, <span class="st">&quot;&quot;</span>, msg };
+        }
+        <span class="cf">else</span>
+        {   
+            stream &lt;&lt; lest::location{ line ? file : <span class="st">&quot;[file/line unavailable]&quot;</span>, <span class="dt">int</span>(line) } &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; msg;
+        }
+    });
+
+    <span class="cf">return</span> lest::run( specification, argc, argv, stream );
+}</code></pre></div>
+<h3 id="floating-point-comparison">Floating point comparison</h3>
+<p><em>lest</em> provides <code>class approx</code> to compare floating point values – <a href="example/06-approx.cpp">Code example</a>.</p>
+<p>class <strong>approx</strong> { };</p>
+<p>Use <code>approx</code> as follows:</p>
+<p>EXPECT( 1.23 == approx( 1.23 ) );<br />
+EXPECT( 1.23 != approx( 1.24 ) );</p>
+<p>EXPECT( 1.23 != approx( 1.231 ) );<br />
+EXPECT( 1.23 == approx( 1.231 ).epsilon( 0.1 ) );</p>
+<p>approx custom = approx::custom().epsilon( 0.1 );</p>
+<p>EXPECT( approx( 1.231 ) != 1.23 );<br />
+EXPECT( custom( 1.231 ) == 1.23 );</p>
+<p>Class <code>approx</code> also provides <em>less-than or equal</em> and <em>greater-than or equal</em> operators.</p>
+<h3 id="reporting-a-user-defined-type">Reporting a user-defined type</h3>
+<p><em>lest</em> allows you to report a user-defined type via operator&lt;&lt;() – <a href="example/07-udt.cpp">Code example</a>.</p>
+<p>To report a type not yet supported by <em>lest</em>, define a streaming function for it:</p>
+<p>namespace ns {<br />
+ struct <em>user-defined-type</em> { ... };<br />
+ std::ostream &amp; <strong>operator&lt;&lt;</strong> ( std::ostream &amp; os, <em>user-defined-type</em> const &amp; <em>type</em> )<br />
+ {<br />
+  using lest::to_string;<br />
+  return os &lt;&lt; ... ;<br />
+ }<br />
+}</p>
+<p>In it, stream the constituent parts of the type via lest's <code>to_string()</code> conversion functions.</p>
+<h2 id="variants-of-lest">Variants of <em>lest</em></h2>
+<p>Various variants of <em>lest</em> are kept here. The simple ones, such as <code>lest_basic</code> and <code>lest_decompose</code> provide an easy read into the techniques used and remain the tiny test frameworks that are a good fit to include with small projects.</p>
+<p>You are encouraged to take it from here and change and expand it as you see fit and publish your variant. If you do, I'd much appreciate to hear from you!</p>
+<ul>
+<li>lest.hpp - lest's latest development, this project.</li>
+<li>lest_basic.hpp - lest at its very basic, this project.</li>
+<li>lest_decompose.hpp - lest with expression decomposition, this project.</li>
+<li>lest_cpp03.hpp - lest with expression decomposition for C++03, this project.</li>
+<li><a href="https://github.com/martinmoene/hamlest">hamlest</a> - matchers for lest.</li>
+<li><a href="https://github.com/pmed/lest/tree/test_group">lest with groups</a> - Pavel Medvedev</li>
+</ul>
+<h2 id="features-of-lest">Features of <em>lest</em></h2>
+<table>
+<thead>
+<tr class="header">
+<th>Feature / variant</th>
+<th align="center">latest</th>
+<th align="center">cpp03</th>
+<th align="center">decompose</th>
+<th align="center">basic</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Assert expressions</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+</tr>
+<tr class="even">
+<td>Assert exceptions</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+</tr>
+<tr class="odd">
+<td>Assert abortion (death)</td>
+<td align="center"><a href="contrib/lest_expect_abort/">contrib</a></td>
+<td align="center"><a href="contrib/lest_expect_abort/">contrib</a></td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Assert assertions (death)</td>
+<td align="center"><a href="contrib/lest_expect_assert/">contrib</a></td>
+<td align="center"><a href="contrib/lest_expect_assert/">contrib</a></td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Expression decomposition</td>
+<td align="center">✓</td>
+<td align="center">modest</td>
+<td align="center">modest</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Literal suffix u, l, f</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Colourised output</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>BDD style scenarios</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Fixtures (sections)</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Floating point comparison, approx</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Floating point comparison, ulp</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Test selection (include/omit)</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Test selection (regexp)</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Help screen</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Abort at first failure</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Count selected tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>List tags of selected tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>List selected tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Report passing tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Time duration of tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Control order of tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Repeat tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Auto registration of tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Modules of tests</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+<td align="center"> </td>
+</tr>
+<tr class="even">
+<td>Suites of tests</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Value-parameterised tests</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Type-parameterised tests</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Test data generators</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td><a href="#variants-of-lest">Hamcrest matchers</a></td>
+<td align="center">+/-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Mocking support</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Logging facility</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Break into debugger</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="even">
+<td>Concurrent execution of tests</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr class="odd">
+<td>Isolated execution of tests</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the lowest version of a compiler <code>lest</code> is reported to work with.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Variant / compiler</th>
+<th>clang</th>
+<th>GCC</th>
+<th>VC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>lest (latest)</td>
+<td>3.2</td>
+<td>4.8.1</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>lest_basic</td>
+<td>3.2</td>
+<td>4.6</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td>lest_decompose</td>
+<td>3.2</td>
+<td>4.6</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td>lest_cpp03 (decompose)</td>
+<td>?</td>
+<td>?</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: I've made a few concessions to enable compilation of <code>lest.hpp</code> with Visual C++: - Prevent <a href="https://connect.microsoft.com/VisualStudio/feedbackdetail/view/917150">error C2797</a>: replace braced member initialisation with C++98 style initialisation. - Prevent <a href="https://connect.microsoft.com/VisualStudio/feedbackdetail/view/812488">error C2144</a>: use <code>enum{ value }</code> instead of <code>static constexpr bool</code> in struct <code>is_container</code> (for VC only).</p>
+<h2 id="building-tests-and-examples">Building tests and examples</h2>
+<p>Tests and examples can be build with Buck, via Makefiles or by using CMake.</p>
+<p>To build the tests and examples as described below you need:</p>
+<ul>
+<li><a href="https://buckbuild.com/">Buck</a> or <a href="http://cmake.org">CMake</a> version 3.5 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/lest"><em>lest</em> source code</a> has been cloned into a directory named <code>lest</code>.</p>
+<h3 id="buck">Buck</h3>
+<pre><code>lest&gt; buck run test:test_lest_basic
+lest&gt; buck run test:test_lest_cpp03
+lest&gt; buck run test:test_lest_decompose
+lest&gt; buck run test:test_lest</code></pre>
+<h3 id="cmake">CMake</h3>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture.<br />
+Here we use lest/build.</p>
+<pre><code>lest&gt; mkdir build &amp;&amp; cd build</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list) and build the tests for <em>lest</em> and the examples.</p>
+<pre><code>lest/build&gt; cmake -G &quot;Unix Makefiles&quot; [see 3. below] ..</code></pre></li>
+<li>Optional. You can control above configuration through the following options:
+<ul>
+<li><code>-DLEST_BUILD_TEST=ON</code>: build the tests for lest, default on</li>
+<li><code>-DLEST_BUILD_EXAMPLE=ON</code>: build the examples, default on</li>
+<li><code>-DLEST_BUILD_CONTRIB=OFF</code>: build the contrib folder, default off</li>
+<li><code>-DLEST_EXTRA_WARNINGS=OFF</code>: build with extra warnings and warnings as errors, default off</li>
+</ul></li>
+<li><p>Build the test suite.</p>
+<pre><code>lest/build&gt; cmake --build .</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>lest/build&gt; ctest -V</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>lest</em>. Note that quite some examples fail. They do so to demonstrate the usage of things.</p>
+<h2 id="contributions-to-lest">Contributions to <em>lest</em></h2>
+<p>Folder <a href="contrib" class="uri">contrib</a> contains extensions to <em>lest</em>. These extensions are not part of <em>lest</em> itself because for example they use non-standard behaviour, they are considered to be for a too-specific use case, or they are considered not yet ripe for inclusion in <em>lest</em> and we first like to gain more experience with them.</p>
+<h2 id="other-test-frameworks">Other test frameworks</h2>
+<p>This <a href="https://github.com/martinmoene/catch-lest-other-comparison#catchdoctestlest-feature-comparison">comparison of Catch, doctest and lest</a> in table form may help you to discover similarities and differences of these frameworks.</p>
+<ul>
+<li><a href="https://github.com/philsquared/Catch">Catch</a> - A modern, C++-native, header-only, framework for unit-tests, TDD and BDD.</li>
+<li><a href="https://github.com/onqtam/doctest">doctest</a> - The lightest feature-rich C++ single-header testing framework for unit tests and TDD. Catch/lest-inspired tests that accompany code.</li>
+<li><a href="https://github.com/jfalcou/stf">stf</a> - Simple TDD Framework. Catch/lest-inspired with an emphasis on floating point precision testing.<br />
+</li>
+<li><a href="https://github.com/Kosta-Github/cute">cute</a> - C++ unit test executor.</li>
+<li><a href="http://banditcpp.github.io/bandit/">bandit</a> - Human friendly unit testing for C++11.</li>
+<li><a href="http://igloo-testing.org/">igloo</a> - BDD style unit testing for C++.</li>
+<li><a href="https://github.com/jimporter/mettle">mettle</a> - A C++14 unit test framework.</li>
+<li><a href="http://cpputest.github.io/">CppUTest</a> - Unit testing and mocking framework for C/C++.</li>
+<li><a href="https://github.com/unittest-cpp/unittest-cpp">UnitTest++</a> - A lightweight unit testing framework for C++.</li>
+<li><a href="https://bitbucket.org/moswald/xunit/wiki/Home">xUnit++</a> - A unit testing platform for C++ inspired by <a href="http://xunit.github.io/">xUnit.net</a>.</li>
+<li><a href="https://github.com/NeilJustice/ZenUnit">ZenUnit</a> - Single-header C++ unit testing framework for value- and type-parameterized tests.</li>
+<li><a href="https://github.com/search?q=language%3AC%2B%2B+98+test+framework&amp;type=Repositories&amp;ref=advsearch">Search for C++98 test frameworks on GitHub</a></li>
+<li><a href="https://github.com/search?q=language%3AC%2B%2B+11+test+framework&amp;type=Repositories&amp;ref=advsearch">Search for C++11 test frameworks on GitHub</a></li>
+<li><a href="https://github.com/search?q=language%3AC%2B%2B+14+test+framework&amp;type=Repositories&amp;ref=advsearch">Search for C++14 test frameworks on GitHub</a></li>
+<li><a href="http://en.wikipedia.org/wiki/List_of_unit_testing_frameworks#C.2B.2B">List of C++ unit testing frameworks</a> at Wikipedia.</li>
+</ul>
+<h2 id="notes-and-references">Notes and references</h2>
+<p>[1] [Kevlin Henney on Rethinking Unit Testing in C++](http://accu.org/index.php/accu_branches/accu_london/accu_london_may_2010) (<a href="http://skillsmatter.com/podcast/agile-testing/kevlin-henney-rethinking-unit-testing-in-c-plus-plus">Video</a>).</p>
+<p>[2] Martin Moene. <a href="http://lists.accu.org/mailman/private/accu-general/2013-June/040594.html">Elefant C++11 test setup</a> on the <a href="http://accu.org/">ACCU</a> mailing list accu-general (requires login). It mentions the C++11 test appoach Andrzej Krzemieński uses for <a href="https://github.com/akrzemi1/Optional/">Optional. A library for optional (nullable) objects for C++11</a>.</p>
+<p>[3] Phil Nash. <a href="http://builds.catch-lib.net/">CATCH, an automated test framework for C, C++ and Objective-C</a>.</p>
+<p>[4] A more technically informed name: lest - lambda engaged small tester.</p>

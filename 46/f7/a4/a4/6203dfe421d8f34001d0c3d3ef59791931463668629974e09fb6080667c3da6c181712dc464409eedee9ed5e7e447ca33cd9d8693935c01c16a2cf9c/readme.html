@@ -1,0 +1,1027 @@
+<h1 id="t1ha">t1ha</h1>
+<p>Fast Positive Hash, aka &quot;Позитивный Хэш&quot; by <a href="https://www.ptsecurity.com">Positive Technologies</a>. Included in the <a href="https://github.com/kozross/awesome-c">Awesome C</a> list of open source C software.</p>
+<p><em>The Future will Positive. Всё будет хорошо.</em> <a href="https://opensource.org/licenses/Zlib"><img src="https://img.shields.io/badge/License-Zlib-lightgrey.svg" alt="License: Zlib" /></a> <a href="https://travis-ci.org/leo-yuriev/t1ha"><img src="https://travis-ci.org/leo-yuriev/t1ha.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/leo-yuriev/t1ha/branch/master"><img src="https://ci.appveyor.com/api/projects/status/ptug5fl2ouxdo68h/branch/master?svg=true" alt="Build status" /></a> <a href="https://circleci.com/gh/leo-yuriev/t1ha/tree/master"><img src="https://circleci.com/gh/leo-yuriev/t1ha/tree/master.svg?style=svg" alt="CircleCI" /></a> <a href="https://scan.coverity.com/projects/leo-yuriev-t1ha"><img src="https://scan.coverity.com/projects/12918/badge.svg" alt="Coverity Scan Status" /></a></p>
+<h2 id="briefly-it-is-a-portable-64-bit-hash-function">Briefly, it is a portable 64-bit hash function:</h2>
+<ol style="list-style-type: decimal">
+<li>Intended for 64-bit little-endian platforms, predominantly for Elbrus and x86_64, but portable and without penalties it can run on any 64-bit CPU.</li>
+<li>In most cases up to 15% faster than StadtX hash, xxHash, mum-hash, metro-hash, etc. and all others portable hash-functions (which do not use specific hardware tricks).</li>
+<li>Provides a set of <em>terraced</em> hash functions.</li>
+<li>Currently not suitable for cryptography.</li>
+<li>Licensed under <a href="https://en.wikipedia.org/wiki/Zlib_License">zlib License</a>.</li>
+</ol>
+<p>Also pay attention to <a href="https://github.com/flier/rust-t1ha">Rust</a>, <a href="https://github.com/lemenkov/erlang-t1ha">Erlang</a> and <a href="https://github.com/dgryski/go-t1ha">Golang</a> implementations.</p>
+<hr />
+<h1 id="usage">Usage</h1>
+<p>The <code>t1ha</code> library provides several terraced hash functions with the dissimilar properties and for a different cases. These functions briefly described below, see <a href="t1ha.h" class="uri">t1ha.h</a> for more API details.</p>
+<p>To use in your own project you may link with the t1ha-library, or just add to your project corresponding source files from <code>/src</code> directory.</p>
+<p>Please, feel free to fill an issue or make pull request.</p>
+<h2 id="t1ha0-64-bits-just-only-faster"><code>t1ha0</code> = 64 bits, &quot;Just Only Faster&quot;</h2>
+<p>Provides fast-as-possible hashing for current CPU, including 32-bit systems and engaging the available hardware acceleration. You can rest assured that t1ha0 faster than all other fast hashes (with comparable quality) so, otherwise we will extend and refine it time-to-time.</p>
+<p>On the other hand, without warranty that the hash result will be same for particular key on another machine or another version. Moreover, is deliberately known that the result will be different for systems with different bitness or endianness. Briefly, such hash-results and their derivatives, should be used only in runtime, but should not be persist or transferred over a network.</p>
+<p>Also should be noted, the quality of t1ha0() hashing is a subject for tradeoffs with performance. Therefore the quality and strength of <code>t1ha0()</code> may be lower than <code>t1ha1()</code> and <code>t1ha2()</code>, especially on 32-bit targets, but then much faster. However, guaranteed that it passes all SMHasher tests.</p>
+<p>Internally <code>t1ha0()</code> selects most faster implementation for current CPU, for now these are includes:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Implementation</th>
+<th align="left">Platform/CPU</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>t1ha0_ia32aes_avx()</code></td>
+<td align="left">x86 with AES-NI and AVX extensions</td>
+</tr>
+<tr class="even">
+<td align="left"><code>t1ha0_ia32aes_avx2()</code></td>
+<td align="left">x86 with AES-NI and AVX2 extensions</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>t1ha0_ia32aes_noavx()</code></td>
+<td align="left">x86 with AES-NI without AVX extensions</td>
+</tr>
+<tr class="even">
+<td align="left"><code>t1ha0_32le()</code></td>
+<td align="left">32-bit little-endian</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>t1h0a_32be()</code></td>
+<td align="left">32-bit big-endian</td>
+</tr>
+<tr class="even">
+<td align="left"><code>t1ha1_le()</code></td>
+<td align="left">64-bit little-endian</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>t1ha1_be()</code></td>
+<td align="left">64-bit big-endian</td>
+</tr>
+<tr class="even">
+<td align="left"><code>t1ha2_atonce()</code></td>
+<td align="left">64-bit little-endian</td>
+</tr>
+</tbody>
+</table>
+<h2 id="t1ha1-64-bits-baseline-fast-portable-hash"><code>t1ha1</code> = 64 bits, baseline fast portable hash</h2>
+<p>The first version of &quot;Fast Positive Hash&quot; with reasonable quality for checksum, hash tables and thin fingerprinting. It is stable, e.g. returns same result on all architectures and CPUs.</p>
+<ol style="list-style-type: decimal">
+<li>Speed with the reasonable quality of hashing.</li>
+<li>Efficiency on modern 64-bit CPUs, but not in a hardware.</li>
+<li>Strong as possible, until no penalties on performance.</li>
+</ol>
+<p>Unfortunatelly, <a href="https://github.com/demerphq/smhasher">Yves Orton</a> discovered that <code>t1ha1()</code> family fails the strict avalanche criteria in some cases. This flaw is insignificant for the <code>t1ha1()</code> purposes and imperceptible from a practical point of view. However, nowadays this issue has resolved in the next <code>t1ha2()</code> function, that was initially planned to providing a bit more quality.</p>
+<p>The basic version of <code>t1ha1()</code> intends for little-endian systems and will run slowly on big-endian. Therefore a dedicated big-endian version is also provided, but returns the different result than the basic version.</p>
+<h2 id="t1ha2-64-and-128-bits-slightly-more-attention-for-quality-and-strength"><code>t1ha2</code> = 64 and 128 bits, slightly more attention for quality and strength</h2>
+<p>The recommended version of &quot;Fast Positive Hash&quot; with good quality for checksum, hash tables and fingerprinting. It is stable, e.g. returns same result on all architectures and CPUs.</p>
+<ol style="list-style-type: decimal">
+<li>Portable and extremely efficiency on modern 64-bit CPUs.</li>
+<li>Great quality of hashing and still faster than other non-t1ha hashes.</li>
+<li>Provides streaming mode and 128-bit result.</li>
+</ol>
+<p>The <code>t1ha2()</code> is intended for little-endian systems and will run slightly slowly on big-endian systems.</p>
+<h2 id="t1ha3-128-and-256-bits-fast-non-cryptographic-fingerprinting"><code>t1ha3</code> = 128 and 256 bits, fast non-cryptographic fingerprinting</h2>
+<p>The next-step version of &quot;Fast Positive Hash&quot;, but not yet finished and therefore not available.</p>
+<h4 id="planned-t1ha4-128-and-256-bits-fast-insecure-fingerprinting">Planned: <code>t1ha4</code> = 128 and 256 bits, fast insecure fingerprinting</h4>
+<h4 id="planned-t1ha5-256-bits-fast-cryptographic-but-with-some-limitations">Planned: <code>t1ha5</code> = 256 bits, fast Cryptographic, but with some limitations</h4>
+<h4 id="planned-t1ha6-256-and-512-bits-cryptographic-with-reasonable-resistance-to-acceleration-on-gpu-and-fpga.">Planned: <code>t1ha6</code> = 256 and 512 bits, Cryptographic with reasonable resistance to acceleration on GPU and FPGA.</h4>
+<h4 id="planned-t1ha7-256-512-and-1024-bits-cryptographic-strong-post-quantum">Planned: <code>t1ha7</code> = 256, 512 and 1024 bits, Cryptographic, Strong Post-Quantum</h4>
+<hr />
+<h3 id="requirements-and-portability">Requirements and Portability:</h3>
+<ol style="list-style-type: decimal">
+<li><em>t1ha</em> designed for <strong>modern 64-bit architectures</strong>. But on the other hand, <em>t1ha</em> doesn't require instructions specific to a particular architecture:
+<ul>
+<li>therefore t1ha could be used on any CPU for which compiler provides support 64-bit arithmetic.</li>
+<li>but unfortunately <em>t1ha</em> could be dramatically slowly on architectures without native 64-bit operations.</li>
+</ul></li>
+<li>This implementation of <em>t1ha</em> requires <strong>modern GNU C compatible compiler</strong>, including Clang/LLVM, or <strong>Visual Studio 2013/2015/2017</strong>. For proper performance please use one of: GNU C 5.5 or later, CLANG 5.0 or later, Microsoft Visual Studio 2017 15.6 or later.</li>
+</ol>
+<h4 id="acknowledgement">Acknowledgement:</h4>
+<p>The <em>t1ha</em> was originally developed by Leonid Yuriev (Леонид Юрьев) for <em>The 1Hippeus project - zerocopy messaging in the spirit of Sparta!</em></p>
+<hr />
+<h2 id="benchmarking-and-testing">Benchmarking and Testing</h2>
+<p>Current version of t1ha library includes tool for basic testing and benchmarking. Just try <code>make check</code> from t1ha directory.</p>
+<p>To comparison benchmark also includes <code>xxHash</code>, <code>StadtX</code> and <code>HighwayHash</code> functions. For example actual results for <code>Intel(R) Core(TM) i7-4600U CPU</code>:</p>
+<pre><code>$ CC=gcc-8 CXX=g++-8 make all &amp;&amp; sudo make check
+...
+Testing t1ha2_atonce... Ok
+Testing t1ha2_atonce128... Ok
+Testing t1ha2_stream... Ok
+Testing t1ha2_stream128... Ok
+Testing t1ha1_64le... Ok
+Testing t1ha1_64be... Ok
+Testing t1ha0_32le... Ok
+Testing t1ha0_32be... Ok
+Testing t1ha0_ia32aes_noavx... Ok
+Testing t1ha0_ia32aes_avx... Ok
+Testing t1ha0_ia32aes_avx2... Ok
+Testing HighwayHash64_pure_c... Ok
+Testing HighwayHash64_portable_cxx... Ok
+Testing HighwayHash64_sse41... Ok
+Testing HighwayHash64_avx2... Ok
+Testing StadtX... Ok
+
+Preparing to benchmarking...
+ - suggest enable rdpmc for usermode (echo 2 | sudo tee /sys/devices/cpu/rdpmc)
+ - running on CPU#3
+ - use RDPMC_perf as clock source for benchmarking
+ - assume it cheap and stable
+ - measure granularity and overhead: 53 cycle, 0.0188679 iteration/cycle
+
+Bench for tiny keys (7 bytes):
+t1ha2_atonce            :     18.188 cycle/hash,  2.598 cycle/byte,  0.385 byte/cycle,  1.155 Gb/s @3GHz
+t1ha2_atonce128*        :     36.969 cycle/hash,  5.281 cycle/byte,  0.189 byte/cycle,  0.568 Gb/s @3GHz
+t1ha2_stream*           :     84.237 cycle/hash, 12.034 cycle/byte,  0.083 byte/cycle,  0.249 Gb/s @3GHz
+t1ha2_stream128*        :    101.812 cycle/hash, 14.545 cycle/byte,  0.069 byte/cycle,  0.206 Gb/s @3GHz
+t1ha1_64le              :     19.188 cycle/hash,  2.741 cycle/byte,  0.365 byte/cycle,  1.094 Gb/s @3GHz
+t1ha0                   :     14.102 cycle/hash,  2.015 cycle/byte,  0.496 byte/cycle,  1.489 Gb/s @3GHz
+xxhash32                :     18.859 cycle/hash,  2.694 cycle/byte,  0.371 byte/cycle,  1.114 Gb/s @3GHz
+xxhash64                :     27.188 cycle/hash,  3.884 cycle/byte,  0.257 byte/cycle,  0.772 Gb/s @3GHz
+StadtX                  :     19.188 cycle/hash,  2.741 cycle/byte,  0.365 byte/cycle,  1.094 Gb/s @3GHz
+HighwayHash64_pure_c    :    630.000 cycle/hash, 90.000 cycle/byte,  0.011 byte/cycle,  0.033 Gb/s @3GHz
+HighwayHash64_portable  :    507.500 cycle/hash, 72.500 cycle/byte,  0.014 byte/cycle,  0.041 Gb/s @3GHz
+HighwayHash64_sse41     :     69.625 cycle/hash,  9.946 cycle/byte,  0.101 byte/cycle,  0.302 Gb/s @3GHz
+HighwayHash64_avx2      :     57.500 cycle/hash,  8.214 cycle/byte,  0.122 byte/cycle,  0.365 Gb/s @3GHz
+
+Bench for large keys (16384 bytes):
+t1ha2_atonce            :   3544.000 cycle/hash,  0.216 cycle/byte,  4.623 byte/cycle, 13.869 Gb/s @3GHz
+t1ha2_atonce128*        :   3590.000 cycle/hash,  0.219 cycle/byte,  4.564 byte/cycle, 13.691 Gb/s @3GHz
+t1ha2_stream*           :   3600.000 cycle/hash,  0.220 cycle/byte,  4.551 byte/cycle, 13.653 Gb/s @3GHz
+t1ha2_stream128*        :   3618.000 cycle/hash,  0.221 cycle/byte,  4.528 byte/cycle, 13.585 Gb/s @3GHz
+t1ha1_64le              :   3562.818 cycle/hash,  0.217 cycle/byte,  4.599 byte/cycle, 13.796 Gb/s @3GHz
+t1ha0                   :   1281.203 cycle/hash,  0.078 cycle/byte, 12.788 byte/cycle, 38.364 Gb/s @3GHz
+xxhash32                :   8203.360 cycle/hash,  0.501 cycle/byte,  1.997 byte/cycle,  5.992 Gb/s @3GHz
+xxhash64                :   4128.240 cycle/hash,  0.252 cycle/byte,  3.969 byte/cycle, 11.906 Gb/s @3GHz
+StadtX                  :   3631.000 cycle/hash,  0.222 cycle/byte,  4.512 byte/cycle, 13.537 Gb/s @3GHz
+HighwayHash64_pure_c    :  55309.000 cycle/hash,  3.376 cycle/byte,  0.296 byte/cycle,  0.889 Gb/s @3GHz
+HighwayHash64_portable  :  44433.000 cycle/hash,  2.712 cycle/byte,  0.369 byte/cycle,  1.106 Gb/s @3GHz
+HighwayHash64_sse41     :   6567.000 cycle/hash,  0.401 cycle/byte,  2.495 byte/cycle,  7.485 Gb/s @3GHz
+HighwayHash64_avx2      :   4528.996 cycle/hash,  0.276 cycle/byte,  3.618 byte/cycle, 10.853 Gb/s @3GHz</code></pre>
+<p>The <code>test</code> tool support a set of command line options to selecting functions and size of keys for benchmarking. For more info please run <code>./test --help</code>.</p>
+<h3 id="the---hash-stdin-strings-option">The <code>--hash-stdin-strings</code> option</h3>
+<p>One noteable option is <code>--hash-stdin-strings</code>, it intended to estimate hash collisions on your custom data. With this option <code>test</code> tool will hash each line from standard input and print its hash to standard output.</p>
+<p>For instance, you could count collisions for lines from some <code>words.list</code> file by bash's command:</p>
+<pre><code>  ./t1ha/test --hash-stdin-strings &lt; words.list | sort | uniq -c -d | wc -l</code></pre>
+<p>More complex example - count <code>xxhash()</code> collisions for lines from <code>words.list</code> and 0...10000 numbers, with distinction only in 32 bit of hash values:</p>
+<pre><code>  (cat words.list &amp;&amp; seq 0 10000) | \
+     ./t1ha/test --xxhash --hash-stdin-strings | \
+     cut --bytes=-8 | sort | uniq -c -d | wc -l</code></pre>
+<h3 id="smhasher">SMHasher</h3>
+<p><a href="https://github.com/aappleby/smhasher/wiki"><em>SMHasher</em></a> is a wellknown test suite designed to test the distribution, collision, and performance properties of non-cryptographic hash functions.</p>
+<p><em>Reini Urban</em> provides <a href="https://github.com/rurban/smhasher">extended version/fork of SMHasher</a> which integrates a lot of modern hash functions, including <em>t1ha</em>.</p>
+<p>So, <strong>the quality and speed of <em>t1ha</em> can be easily checked with the following scenario:</strong></p>
+<pre><code>git clone https://github.com/rurban/smhasher
+cd smhasher
+cmake .
+make
+./SMHasher City64
+./SMHasher metrohash64_1
+./SMHasher xxHash64
+...
+./SMHasher t1ha</code></pre>
+<p>For properly performance please use at least GCC 5.5, Clang 6.0 or Visual Studio 2017.</p>
+<h3 id="scores">Scores</h3>
+<p>Please take in account that the results is significantly depend on actual CPU, compiler version and CFLAGS. The results below were obtained in <strong>2016</strong> with: - CPU: <code>Intel(R) Core(TM) i7-6700K CPU</code>; - Compiler: <code>gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4)</code>; - CFLAGS: <code>-march=native -O3 -fPIC</code>;</p>
+<h4 id="the-small-keys-case">The <em>SMALL KEYS</em> case</h4>
+<p>Order by average Cycles per Hash for 1..31 bytes (less is better).</p>
+<table style="width:100%;">
+<colgroup>
+<col width="29%" />
+<col width="18%" />
+<col width="12%" />
+<col width="39%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Function</th>
+<th align="right">MiB/Second</th>
+<th align="right">Cycles/Hash</th>
+<th align="left">Notes (quality, portability)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>donothing</em></td>
+<td align="right">15747227.36</td>
+<td align="right">6.00</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="even">
+<td align="left"><em>sumhash32</em></td>
+<td align="right">43317.86</td>
+<td align="right">16.69</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="odd">
+<td align="left">FNV1a_YoshimitsuTRIAD</td>
+<td align="right">13000.49</td>
+<td align="right">24.96</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">crc64_hw</td>
+<td align="right">7308.06</td>
+<td align="right">28.37</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">crc32_hw</td>
+<td align="right">5577.64</td>
+<td align="right">29.10</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">NOP_OAAT_read64</td>
+<td align="right">1991.31</td>
+<td align="right">30.46</td>
+<td align="left">poor (100% bias, 2.17x collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">Crap8</td>
+<td align="right">2743.80</td>
+<td align="right">32.50</td>
+<td align="left">poor (2.42% bias, collisions, 2% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>t1ha_aes</strong></td>
+<td align="right"><strong>34636.42</strong></td>
+<td align="right"><strong>33.03</strong></td>
+<td align="left">non-portable (AES-NI)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>t1ha</strong></td>
+<td align="right"><strong>12228.80</strong></td>
+<td align="right"><strong>35.55</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">MUM</td>
+<td align="right">10246.20</td>
+<td align="right">37.25</td>
+<td align="left">non-portable (different result, machine specific)</td>
+</tr>
+<tr class="odd">
+<td align="left">Murmur2</td>
+<td align="right">2789.89</td>
+<td align="right">38.37</td>
+<td align="left">poor (1.7% bias, 81x coll, 1.7% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">t1ha_32le</td>
+<td align="right">5958.54</td>
+<td align="right">38.54</td>
+<td align="left">alien (designed for 32-bit CPU)</td>
+</tr>
+<tr class="odd">
+<td align="left">t1ha_64be</td>
+<td align="right">9321.23</td>
+<td align="right">38.29</td>
+<td align="left">alien (designed for big-endian CPU)</td>
+</tr>
+<tr class="even">
+<td align="left">lookup3</td>
+<td align="right">1817.11</td>
+<td align="right">39.30</td>
+<td align="left">poor (28% bias, collisions, 30% distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">t1ha_32be</td>
+<td align="right">5873.45</td>
+<td align="right">39.81</td>
+<td align="left">alien (designed for 32-bit big-endian CPU)</td>
+</tr>
+<tr class="even">
+<td align="left">Murmur2C</td>
+<td align="right">3655.60</td>
+<td align="right">42.68</td>
+<td align="left">poor (91% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">fasthash64</td>
+<td align="right">5578.06</td>
+<td align="right">43.42</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Murmur2A</td>
+<td align="right">2789.85</td>
+<td align="right">43.38</td>
+<td align="left">poor (12.7% bias)</td>
+</tr>
+<tr class="odd">
+<td align="left">xxHash32</td>
+<td align="right">5513.55</td>
+<td align="right">43.72</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Murmur2B</td>
+<td align="right">5578.21</td>
+<td align="right">44.13</td>
+<td align="left">weak (1.8% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">fasthash32</td>
+<td align="right">5381.46</td>
+<td align="right">45.50</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">cmetrohash64_1_optshort</td>
+<td align="right">11808.92</td>
+<td align="right">46.33</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64_2</td>
+<td align="right">12113.12</td>
+<td align="right">46.88</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">cmetrohash64_1</td>
+<td align="right">12081.32</td>
+<td align="right">47.28</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64_1</td>
+<td align="right">12024.68</td>
+<td align="right">47.21</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">Murmur3F</td>
+<td align="right">5473.62</td>
+<td align="right">47.37</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">superfast</td>
+<td align="right">1860.25</td>
+<td align="right">47.45</td>
+<td align="left">poor (91% bias, 5273.01x collisions, 37% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">cmetrohash64_2</td>
+<td align="right">12052.58</td>
+<td align="right">48.66</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Murmur3A</td>
+<td align="right">2232.00</td>
+<td align="right">48.16</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">City32</td>
+<td align="right">5014.33</td>
+<td align="right">51.13</td>
+<td align="left">far to perfect (2 minor collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">City64</td>
+<td align="right">11041.72</td>
+<td align="right">51.77</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">metrohash64crc_2</td>
+<td align="right">20582.76</td>
+<td align="right">51.39</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>sumhash</em></td>
+<td align="right">9668.13</td>
+<td align="right">51.31</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="even">
+<td align="left">metrohash64crc_1</td>
+<td align="right">21319.23</td>
+<td align="right">52.36</td>
+<td align="left">weak (cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">PMurHash32</td>
+<td align="right">2232.26</td>
+<td align="right">53.18</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Murmur3C</td>
+<td align="right">3719.22</td>
+<td align="right">54.05</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">bernstein</td>
+<td align="right">921.43</td>
+<td align="right">55.17</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">xxHash64</td>
+<td align="right">11123.15</td>
+<td align="right">56.17</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Spooky32</td>
+<td align="right">11464.20</td>
+<td align="right">59.45</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">City128</td>
+<td align="right">12551.54</td>
+<td align="right">60.93</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">FarmHash64</td>
+<td align="right">12145.36</td>
+<td align="right">60.12</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">Spooky128</td>
+<td align="right">11735.99</td>
+<td align="right">60.45</td>
+<td align="left">weak (collisions with 4bit diff)</td>
+</tr>
+<tr class="odd">
+<td align="left">Spooky64</td>
+<td align="right">11820.20</td>
+<td align="right">60.39</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">CityCrc128</td>
+<td align="right">14821.82</td>
+<td align="right">62.38</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">MicroOAAT</td>
+<td align="right">826.32</td>
+<td align="right">62.06</td>
+<td align="left">poor (100% bias, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">metrohash128_1</td>
+<td align="right">11063.78</td>
+<td align="right">66.58</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash128_2</td>
+<td align="right">11465.18</td>
+<td align="right">66.72</td>
+<td align="left">weak (cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">GoodOAAT</td>
+<td align="right">930.18</td>
+<td align="right">68.24</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash128crc_1</td>
+<td align="right">21322.80</td>
+<td align="right">70.33</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">metrohash128crc_2</td>
+<td align="right">20990.70</td>
+<td align="right">70.40</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">farmhash64_c</td>
+<td align="right">12033.13</td>
+<td align="right">71.30</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">sdbm</td>
+<td align="right">695.29</td>
+<td align="right">71.76</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">FNV1a</td>
+<td align="right">684.17</td>
+<td align="right">72.75</td>
+<td align="left">poor (zeros, 100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">FNV64</td>
+<td align="right">697.67</td>
+<td align="right">72.70</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">FarmHash128</td>
+<td align="right">12515.98</td>
+<td align="right">77.43</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">hasshe2</td>
+<td align="right">2587.39</td>
+<td align="right">81.23</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE2)</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>BadHash</em></td>
+<td align="right">558.14</td>
+<td align="right">87.87</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="even">
+<td align="left">x17</td>
+<td align="right">551.99</td>
+<td align="right">89.24</td>
+<td align="left">poor (99.98% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">JenkinsOOAT_perl</td>
+<td align="right">558.14</td>
+<td align="right">95.26</td>
+<td align="left">poor (1.5-11.5% bias, 7.2x collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">farmhash128_c</td>
+<td align="right">12709.06</td>
+<td align="right">96.42</td>
+<td align="left">non-portable (SSE4.1)</td>
+</tr>
+<tr class="odd">
+<td align="left">MurmurOAAT</td>
+<td align="right">465.12</td>
+<td align="right">107.61</td>
+<td align="left">poor (collisions, 99.99% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">JenkinsOOAT</td>
+<td align="right">558.13</td>
+<td align="right">116.75</td>
+<td align="left">poor (53.5% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">falkhash</td>
+<td align="right">8909.54</td>
+<td align="right">124.48</td>
+<td align="left">non-portable (AES-NI)</td>
+</tr>
+<tr class="even">
+<td align="left">crc32</td>
+<td align="right">342.27</td>
+<td align="right">142.06</td>
+<td align="left">poor (insecure, 8589.93x collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">SipHash</td>
+<td align="right">962.35</td>
+<td align="right">147.36</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">md5_32a</td>
+<td align="right">433.03</td>
+<td align="right">508.98</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">sha1_32a</td>
+<td align="right">531.44</td>
+<td align="right">1222.44</td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+<h4 id="the-large-keys-case">The <em>LARGE KEYS</em> case</h4>
+<p>Order by hashing speed in Mi-bytes (2^20 = 1048576) per second for 262144-byte block (more is better).</p>
+<table style="width:100%;">
+<colgroup>
+<col width="29%" />
+<col width="18%" />
+<col width="12%" />
+<col width="39%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Function</th>
+<th align="right">MiB/Second</th>
+<th align="right">Cycles/Hash</th>
+<th align="left">Notes (quality, portability)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>donothing</em></td>
+<td align="right">15747227.36</td>
+<td align="right">6.00</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="even">
+<td align="left"><em>sumhash32</em></td>
+<td align="right">43317.86</td>
+<td align="right">16.69</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>t1ha_aes</strong></td>
+<td align="right"><strong>34636.42</strong></td>
+<td align="right"><strong>33.03</strong></td>
+<td align="left">non-portable (AES-NI)</td>
+</tr>
+<tr class="even">
+<td align="left">metrohash128crc_1</td>
+<td align="right">21322.80</td>
+<td align="right">70.33</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64crc_1</td>
+<td align="right">21319.23</td>
+<td align="right">52.36</td>
+<td align="left"><em>seems weak</em> (cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">metrohash128crc_2</td>
+<td align="right">20990.70</td>
+<td align="right">70.40</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64crc_2</td>
+<td align="right">20582.76</td>
+<td align="right">51.39</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions), non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">CityCrc128</td>
+<td align="right">14821.82</td>
+<td align="right">62.38</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">FNV1a_YoshimitsuTRIAD</td>
+<td align="right">13000.49</td>
+<td align="right">24.96</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">farmhash128_c</td>
+<td align="right">12709.06</td>
+<td align="right">96.42</td>
+<td align="left">non-portable (SSE4.1)</td>
+</tr>
+<tr class="odd">
+<td align="left">City128</td>
+<td align="right">12551.54</td>
+<td align="right">60.93</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">FarmHash128</td>
+<td align="right">12515.98</td>
+<td align="right">77.43</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>t1ha</strong></td>
+<td align="right"><strong>12228.80</strong></td>
+<td align="right"><strong>35.55</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">FarmHash64</td>
+<td align="right">12145.36</td>
+<td align="right">60.12</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64_2</td>
+<td align="right">12113.12</td>
+<td align="right">46.88</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">cmetrohash64_1</td>
+<td align="right">12081.32</td>
+<td align="right">47.28</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">cmetrohash64_2</td>
+<td align="right">12052.58</td>
+<td align="right">48.66</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">farmhash64_c</td>
+<td align="right">12033.13</td>
+<td align="right">71.30</td>
+<td align="left">non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash64_1</td>
+<td align="right">12024.68</td>
+<td align="right">47.21</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">Spooky64</td>
+<td align="right">11820.20</td>
+<td align="right">60.39</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">cmetrohash64_1_optshort</td>
+<td align="right">11808.92</td>
+<td align="right">46.33</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">Spooky128</td>
+<td align="right">11735.99</td>
+<td align="right">60.45</td>
+<td align="left">weak (collisions with 4-bit diff)</td>
+</tr>
+<tr class="odd">
+<td align="left">metrohash128_2</td>
+<td align="right">11465.18</td>
+<td align="right">66.72</td>
+<td align="left">weak (cyclic collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">Spooky32</td>
+<td align="right">11464.20</td>
+<td align="right">59.45</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">xxHash64</td>
+<td align="right">11123.15</td>
+<td align="right">56.17</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">metrohash128_1</td>
+<td align="right">11063.78</td>
+<td align="right">66.58</td>
+<td align="left"><em>seems weak</em> (likely cyclic collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">City64</td>
+<td align="right">11041.72</td>
+<td align="right">51.77</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">MUM</td>
+<td align="right">10246.20</td>
+<td align="right">37.25</td>
+<td align="left">non-portable (different result, machine specific)</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>sumhash</em></td>
+<td align="right">9668.13</td>
+<td align="right">51.31</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="even">
+<td align="left">t1ha_64be</td>
+<td align="right">9321.23</td>
+<td align="right">38.29</td>
+<td align="left">alien (designed for big-endian CPU)</td>
+</tr>
+<tr class="odd">
+<td align="left">falkhash</td>
+<td align="right">8909.54</td>
+<td align="right">124.48</td>
+<td align="left">non-portable (AES-NI)</td>
+</tr>
+<tr class="even">
+<td align="left">crc64_hw</td>
+<td align="right">7308.06</td>
+<td align="right">28.37</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE4.2)</td>
+</tr>
+<tr class="odd">
+<td align="left">t1ha_32le</td>
+<td align="right">5958.54</td>
+<td align="right">38.54</td>
+<td align="left">alien (designed for 32-bit CPU)</td>
+</tr>
+<tr class="even">
+<td align="left">t1ha_32be</td>
+<td align="right">5873.45</td>
+<td align="right">39.81</td>
+<td align="left">alien (designed for 32-bit big-endian CPU)</td>
+</tr>
+<tr class="odd">
+<td align="left">fasthash64</td>
+<td align="right">5578.06</td>
+<td align="right">43.42</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Murmur2B</td>
+<td align="right">5578.21</td>
+<td align="right">44.13</td>
+<td align="left">weak (1.8% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">crc32_hw</td>
+<td align="right">5577.64</td>
+<td align="right">29.10</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE4.2)</td>
+</tr>
+<tr class="even">
+<td align="left">xxHash32</td>
+<td align="right">5513.55</td>
+<td align="right">43.72</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Murmur3F</td>
+<td align="right">5473.62</td>
+<td align="right">47.37</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">fasthash32</td>
+<td align="right">5381.46</td>
+<td align="right">45.50</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">City32</td>
+<td align="right">5014.33</td>
+<td align="right">51.13</td>
+<td align="left">far to perfect (2 minor collisions)</td>
+</tr>
+<tr class="even">
+<td align="left">Murmur3C</td>
+<td align="right">3719.22</td>
+<td align="right">54.05</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Murmur2C</td>
+<td align="right">3655.60</td>
+<td align="right">42.68</td>
+<td align="left">poor (91% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">Murmur2</td>
+<td align="right">2789.89</td>
+<td align="right">38.37</td>
+<td align="left">poor (1.7% bias, 81x coll, 1.7% distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">Murmur2A</td>
+<td align="right">2789.85</td>
+<td align="right">43.38</td>
+<td align="left">poor (12.7% bias)</td>
+</tr>
+<tr class="even">
+<td align="left">Crap8</td>
+<td align="right">2743.80</td>
+<td align="right">32.50</td>
+<td align="left">poor (2.42% bias, collisions, 2% distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">hasshe2</td>
+<td align="right">2587.39</td>
+<td align="right">81.23</td>
+<td align="left">poor (insecure, 100% bias, collisions, distrib), non-portable (SSE2)</td>
+</tr>
+<tr class="even">
+<td align="left">Murmur3A</td>
+<td align="right">2232.00</td>
+<td align="right">48.16</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">PMurHash32</td>
+<td align="right">2232.26</td>
+<td align="right">53.18</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">NOP_OAAT_read64</td>
+<td align="right">1991.31</td>
+<td align="right">30.46</td>
+<td align="left">poor (100% bias, 2.17x collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">superfast</td>
+<td align="right">1860.25</td>
+<td align="right">47.45</td>
+<td align="left">poor (91% bias, 5273.01x collisions, 37% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">lookup3</td>
+<td align="right">1817.11</td>
+<td align="right">39.30</td>
+<td align="left">poor (28% bias, collisions, 30% distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">SipHash</td>
+<td align="right">962.35</td>
+<td align="right">147.36</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">GoodOAAT</td>
+<td align="right">930.18</td>
+<td align="right">68.24</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">bernstein</td>
+<td align="right">921.43</td>
+<td align="right">55.17</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">MicroOAAT</td>
+<td align="right">826.32</td>
+<td align="right">62.06</td>
+<td align="left">poor (100% bias, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">FNV64</td>
+<td align="right">697.67</td>
+<td align="right">72.70</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">sdbm</td>
+<td align="right">695.29</td>
+<td align="right">71.76</td>
+<td align="left">poor (100% bias, collisions, distrib)</td>
+</tr>
+<tr class="odd">
+<td align="left">FNV1a</td>
+<td align="right">684.17</td>
+<td align="right">72.75</td>
+<td align="left">poor (zeros, 100% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left"><em>BadHash</em></td>
+<td align="right">558.14</td>
+<td align="right">87.87</td>
+<td align="left">not a hash (just for reference)</td>
+</tr>
+<tr class="odd">
+<td align="left">JenkinsOOAT</td>
+<td align="right">558.13</td>
+<td align="right">116.75</td>
+<td align="left">poor (53.5% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">JenkinsOOAT_perl</td>
+<td align="right">558.14</td>
+<td align="right">95.26</td>
+<td align="left">poor (1.5-11.5% bias, 7.2x collisions)</td>
+</tr>
+<tr class="odd">
+<td align="left">x17</td>
+<td align="right">551.99</td>
+<td align="right">89.24</td>
+<td align="left">poor (99.98% bias, collisions, distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">sha1_32a</td>
+<td align="right">531.44</td>
+<td align="right">1222.44</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">MurmurOAAT</td>
+<td align="right">465.12</td>
+<td align="right">107.61</td>
+<td align="left">poor (collisions, 99.99% distrib)</td>
+</tr>
+<tr class="even">
+<td align="left">md5_32a</td>
+<td align="right">433.03</td>
+<td align="right">508.98</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">crc32</td>
+<td align="right">342.27</td>
+<td align="right">142.06</td>
+<td align="left">poor (insecure, 8589.93x collisions, distrib)</td>
+</tr>
+</tbody>
+</table>

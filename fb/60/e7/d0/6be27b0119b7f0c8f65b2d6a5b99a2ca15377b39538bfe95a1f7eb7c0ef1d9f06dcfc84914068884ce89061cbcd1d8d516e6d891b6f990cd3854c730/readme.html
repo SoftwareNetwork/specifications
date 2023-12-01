@@ -1,0 +1,42 @@
+<p><a href="https://travis-ci.com/TheLartians/Parser"><img src="https://travis-ci.com/TheLartians/Parser.svg?branch=master" alt="Build Status" /></a></p>
+<h1 id="larsparser">lars::parser</h1>
+<p>A linear-time C++17 PEG parser generator supporting memoization, left-recursion and context-dependent grammars.</p>
+<h2 id="example">Example</h2>
+<p>The following defines a simple calculator program. It is able to parse and evaluate the basic operations <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code> while obeying operator and bracket precedence and ignoring whitespace characters between tokens.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">lars::ParserGenerator&lt;<span class="dt">float</span>&gt; g;
+
+<span class="co">// Define grammar and evaluation rules</span>
+g.setSeparator(g[<span class="st">&quot;Whitespace&quot;</span>] &lt;&lt; <span class="st">&quot;[</span><span class="sc">\t</span><span class="st"> ]&quot;</span>);
+g[<span class="st">&quot;Sum&quot;</span>     ] &lt;&lt; <span class="st">&quot;Add | Subtract | Product&quot;</span>;
+g[<span class="st">&quot;Product&quot;</span> ] &lt;&lt; <span class="st">&quot;Multiply | Divide | Atomic&quot;</span>;
+g[<span class="st">&quot;Atomic&quot;</span>  ] &lt;&lt; <span class="st">&quot;Number | &#39;(&#39; Sum &#39;)&#39;&quot;</span>;
+g[<span class="st">&quot;Add&quot;</span>     ] &lt;&lt; <span class="st">&quot;Sum &#39;+&#39; Product&quot;</span>    &gt;&gt; [](<span class="kw">auto</span> e){ <span class="cf">return</span> e[<span class="dv">0</span>].evaluate() + e[<span class="dv">1</span>].evaluate(); };
+g[<span class="st">&quot;Subtract&quot;</span>] &lt;&lt; <span class="st">&quot;Sum &#39;-&#39; Product&quot;</span>    &gt;&gt; [](<span class="kw">auto</span> e){ <span class="cf">return</span> e[<span class="dv">0</span>].evaluate() - e[<span class="dv">1</span>].evaluate(); };
+g[<span class="st">&quot;Multiply&quot;</span>] &lt;&lt; <span class="st">&quot;Product &#39;*&#39; Atomic&quot;</span> &gt;&gt; [](<span class="kw">auto</span> e){ <span class="cf">return</span> e[<span class="dv">0</span>].evaluate() * e[<span class="dv">1</span>].evaluate(); };
+g[<span class="st">&quot;Divide&quot;</span>  ] &lt;&lt; <span class="st">&quot;Product &#39;/&#39; Atomic&quot;</span> &gt;&gt; [](<span class="kw">auto</span> e){ <span class="cf">return</span> e[<span class="dv">0</span>].evaluate() / e[<span class="dv">1</span>].evaluate(); };
+g[<span class="st">&quot;Number&quot;</span>  ] &lt;&lt; <span class="st">&quot;&#39;-&#39;? [0-9]+ (&#39;.&#39; [0-9]+)?&quot;</span> &gt;&gt; [](<span class="kw">auto</span> e){ <span class="cf">return</span> stof(e.string()); };
+g.setStart(g[<span class="st">&quot;Sum&quot;</span>]);
+
+<span class="co">// Execute a string</span>
+<span class="dt">float</span> result = g.run(<span class="st">&quot;1 + 2 * (3+4)/2 - 3&quot;</span>); <span class="co">// = 5</span></code></pre></div>
+<h2 id="quickstart">Quickstart</h2>
+<p>lars::parser requires at least cmake 3.14 and the ability to compile C++17 code. The following shows how to compile and run the calculator example.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/TheLartians/Parser.git
+<span class="fu">cmake</span> -HParser -BParser/build -DBUILD_LARS_PARSER_EXAMPLES=true
+<span class="fu">cmake</span> --build Parser/build
+<span class="ex">./Parser/build/examples/calculator</span></code></pre></div>
+<p>You should familiarize yourself with the syntax of <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">parsing expression grammars</a>. The included <a href="https://github.com/TheLartians/Parser/tree/master/examples">examples</a> should help you to get started.</p>
+<h2 id="installation-and-usage">Installation and usage</h2>
+<p>With <a href="https://github.com/TheLartians/CPM">CPM</a>, lars::parser can be added to your project by adding the following to your projects' <code>CMakeLists.txt</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="fu">CPMAddPackage</span>(
+  NAME LarsParser
+  VERSION 1.8
+  GIT_REPOSITORY https://github.com/TheLartians/Parser.git
+)
+
+<span class="kw">target_link_libraries</span>(myProject LarsParser)</code></pre></div>
+<p>Alternatively, you can use <a href="https://cmake.org/cmake/help/v3.11/module/FetchContent.html">FetchContent</a> with similar arguments, or download include it via <code>add_subdirectory</code>. Installing lars::parser will allow it to be found via <code>find_package</code>.</p>
+<h2 id="performance">Performance</h2>
+<p>lars::parser uses memoization, resulting in linear time complexity (as a function of input string length) for grammars without left-recursion. Left-recursive grammars have squared time complexity in worst case. Memoization can also be disabled on a per-rule basis, reducing the memory footprint and allowing context-dependent rules.</p>
+<h2 id="license">License</h2>
+<p>lars::parser is published under the BSD 3-Clause license. See the <a href="https://github.com/TheLartians/Parser/blob/master/LICENSE">LICENSE</a> for more info.</p>

@@ -1,0 +1,340 @@
+<p><a href="https://travis-ci.org/Tessil/array-hash"><img src="https://travis-ci.org/Tessil/array-hash.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Tessil/array-hash/branch/master"><img src="https://ci.appveyor.com/api/projects/status/t50rr5bm6ejf350x/branch/master?svg=true" alt="Build status" /></a></p>
+<h2 id="a-c-implementation-of-a-fast-and-memory-efficient-hash-mapset-for-strings">A C++ implementation of a fast and memory efficient hash map/set for strings</h2>
+<p>Cache conscious hash map and hash set for strings based on the &quot;Cache-conscious collision resolution in string hash tables.&quot; (Askitis Nikolas and Justin Zobel, 2005) paper. You can find some details regarding the structure <a href="https://tessil.github.io/2017/06/22/hat-trie.html#array-hash-table">here</a>.</p>
+<p>Thanks to its cache friendliness, the structure provides fast lookups while keeping a low memory usage. The main drawback is the rehash process which is a bit slow and need some spare memory to copy the strings from the old hash table to the new hash table (it can’t use <code>std::move</code> as the other hash tables using <code>std::string</code> as key).</p>
+<p align="center">
+<img src="https://tessil.github.io/images/array_hash.png" width="500px" />
+</p>
+<p>Four classes are provided: <code>tsl::array_map</code>, <code>tsl::array_set</code>, <code>tsl::array_pg_map</code> and <code>tsl::array_pg_set</code>. The first two are faster and use a power of two growth policy, the last two use a prime growth policy instead and are able to cope better with a poor hash function. Use the prime version if there is a chance of repeating patterns in the lower bits of your hash (e.g. you are storing pointers with an identity hash function). See <a href="#growth-policy">GrowthPolicy</a> for details.</p>
+<p>A <strong>benchmark</strong> of <code>tsl::array_map</code> against other hash maps can be found <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">here</a>. This page also gives some advices on which hash table structure you should try for your use case (useful if you are a bit lost with the multiple hash tables implementations in the <code>tsl</code> namespace). You can also find another benchmark on the <a href="https://github.com/Tessil/hat-trie#benchmark"><code>tsl::hat-trie</code></a> page.</p>
+<h3 id="overview">Overview</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a> directory to your include path and you are ready to go. If you use CMake, you can also use the <code>tsl::array_hash</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a>.</li>
+<li>Low memory usage with good performances, see the <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">benchmark</a> for some numbers.</li>
+<li>Support for move-only and non-default constructible values.</li>
+<li>Strings with null characters inside them are supported (you can thus store binary data as key).</li>
+<li>If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see <code>precalculated_hash</code> parameter in <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html">API</a>).</li>
+<li>Support for efficient serialization and deserialization (see <a href="#serialization">example</a> and the <code>serialize/deserialize</code> methods in the <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html">API</a> for details).</li>
+<li>By default the maximum allowed size for a key is set to 65 535. This can be raised through the <code>KeySizeT</code> template parameter (see <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html#details">API</a> for details).</li>
+<li>By default the maximum size of the map is limited to 4 294 967 296 elements. This can be raised through the <code>IndexSizeT</code> template parameter (see <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html#details">API</a> for details).</li>
+</ul>
+<h3 id="differences-compare-to-stdunordered_map">Differences compare to <code>std::unordered_map</code></h3>
+<p><code>tsl::array_map</code> tries to have an interface similar to <code>std::unordered_map</code>, but some differences exist: - Iterator invalidation doesn't behave in the same way, any operation modifying the hash table invalidate them (see <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html#details">API</a> for details). - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values. - Erase operations have an amortized runtime complexity of O(1) for <code>tsl::array_map</code>. An erase operation will delete the key immediatly but for the value part of the map, the deletion may be delayed. The destructor of the value is only called when the ratio between the size of the map and the size of the map + the number of deleted values still stored is low enough. The method <code>shrink_to_fit</code> may be called to force the deletion. - The key and the value are stored separatly and not in a <code>std::pair&lt;const Key, T&gt;</code>. Methods like <code>insert</code> or <code>emplace</code> take the key and the value separatly instead of a <code>std::pair</code>. The insert method looks like <code>std::pair&lt;iterator, bool&gt; insert(const CharT* key, const T&amp; value)</code> instead of <code>std::pair&lt;iterator, bool&gt; insert(const std::pair&lt;const Key, T&gt;&amp; value)</code> (see <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html">API</a> for details). - For iterators, <code>operator*()</code> and <code>operator-&gt;()</code> return a reference and a pointer to the value <code>T</code> instead of <code>std::pair&lt;const Key, T&gt;</code>. For an access to the key string, the <code>key()</code> (which returns a <code>const CharT*</code>) or <code>key_sv()</code> (which returns a <code>std::basic_string_view&lt;CharT&gt;</code>) method of the iterator must be called. - No support for some bucket related methods (like <code>bucket_size</code>, <code>bucket</code>, ...).</p>
+<p>These differences also apply between <code>std::unordered_set</code> and <code>tsl::array_set</code>.</p>
+<p>Thread-safety and exception guarantees are similar to the STL containers.</p>
+<h3 id="hash-function">Hash function</h3>
+<p>The default hash function used by the structure depends on the presence of <code>std::string_view</code>. If it is available, <code>std::hash&lt;std::string_view&gt;</code> is used, otherwise a simple <a href="https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV-1a_hash">FNV-1a</a> hash function is used to avoid any dependency.</p>
+<p>If you can't use C++17 or later, we recommend to replace the hash function with something like <a href="https://github.com/google/cityhash">CityHash</a>, MurmurHash, <a href="https://github.com/google/farmhash">FarmHash</a>, ... for better performances. On the tests we did, CityHash64 offers a ~40% improvement on reads compared to FNV-1a.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;city.h&gt;</span>
+
+<span class="kw">struct</span> str_hash {
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char</span>* key, <span class="bu">std::</span>size_t key_size) <span class="at">const</span> {
+        <span class="cf">return</span> CityHash64(key, key_size);
+    }
+};
+
+tsl::array_map&lt;<span class="dt">char</span>, <span class="dt">int</span>, str_hash&gt; map;</code></pre></div>
+<p>The <code>std::hash&lt;std::string&gt;</code> can't be used efficiently as the structure doesn't store any <code>std::string</code> object. Any time a hash would be needed, a temporary <code>std::string</code> would have to be created.</p>
+<h3 id="growth-policy">Growth policy</h3>
+<p>The library supports multiple growth policies through the <code>GrowthPolicy</code> template parameter. Three policies are provided by the library but you can easily implement your own if needed.</p>
+<ul>
+<li><strong><a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1ah_1_1power__of__two__growth__policy.html">tsl::ah::power_of_two_growth_policy.</a></strong> Default policy used by <code>tsl::array_map/set</code>. This policy keeps the size of the bucket array of the hash table to a power of two. This constraint allows the policy to avoid the usage of the slow modulo operation to map a hash to a bucket, instead of <code>hash % 2<sup>n</sup></code>, it uses <code>hash &amp; (2<sup>n</sup> - 1)</code> (see <a href="https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues">fast modulo</a>). Fast but this may cause a lot of collisions with a poor hash function as the modulo with a power of two only masks the most significant bits in the end.</li>
+<li><strong><a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1ah_1_1prime__growth__policy.html">tsl::ah::prime_growth_policy.</a></strong> Default policy used by <code>tsl::array_pg_map/set</code>. The policy keeps the size of the bucket array of the hash table to a prime number. When mapping a hash to a bucket, using a prime number as modulo will result in a better distribution of the hash across the buckets even with a poor hash function. To allow the compiler to optimize the modulo operation, the policy use a lookup table with constant primes modulos (see <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1ah_1_1prime__growth__policy.html#details">API</a> for details). Slower than <code>tsl::ah::power_of_two_growth_policy</code> but more secure.</li>
+<li><strong><a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1ah_1_1mod__growth__policy.html">tsl::ah::mod_growth_policy.</a></strong> The policy grows the map by a customizable growth factor passed in parameter. It then just use the modulo operator to map a hash to a bucket. Slower but more flexible.</li>
+</ul>
+<p>To implement your own policy, you have to implement the following interface.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> custom_policy {
+    <span class="co">// Called on hash table construction and rehash, min_bucket_count_in_out is the minimum buckets</span>
+    <span class="co">// that the hash table needs. The policy can change it to a higher number of buckets if needed </span>
+    <span class="co">// and the hash table will use this value as bucket count. If 0 bucket is asked, then the value</span>
+    <span class="co">// must stay at 0.</span>
+    <span class="kw">explicit</span> custom_policy(<span class="bu">std::</span>size_t&amp; min_bucket_count_in_out);
+    
+    <span class="co">// Return the bucket [0, bucket_count()) to which the hash belongs. </span>
+    <span class="co">// If bucket_count() is 0, it must always return 0.</span>
+    <span class="bu">std::</span>size_t bucket_for_hash(<span class="bu">std::</span>size_t hash) <span class="at">const</span> <span class="kw">noexcept</span>;
+    
+    <span class="co">// Return the number of buckets that should be used on next growth</span>
+    <span class="bu">std::</span>size_t next_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Maximum number of buckets supported by the policy</span>
+    <span class="bu">std::</span>size_t max_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Reset the growth policy as if the policy was created with a bucket count of 0.</span>
+    <span class="co">// After a clear, the policy must always return 0 when bucket_for_hash() is called.</span>
+    <span class="dt">void</span> clear() <span class="kw">noexcept</span>;
+}</code></pre></div>
+<h3 id="installation">Installation</h3>
+<p>To use the library, just add the <a href="include/">include</a> directory to your include path. It is a <strong>header-only</strong> library.</p>
+<p>If you use CMake, you can also use the <code>tsl::array_hash</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a> with <code>target_link_libraries</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># Example where the array-hash project is stored in a third-party directory</span>
+<span class="kw">add_subdirectory</span>(third-party/array-hash)
+<span class="kw">target_link_libraries</span>(your_target <span class="ot">PRIVATE</span> tsl::array_hash)  </code></pre></div>
+<p>If the project has been installed through <code>make install</code>, you can also use <code>find_package(tsl-array-hash REQUIRED)</code> instead of <code>add_subdirectory</code>.</p>
+<p>The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Tessil/array-hash.git
+<span class="bu">cd</span> array-hash/tests
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build .
+<span class="ex">./tsl_array_hash_tests</span></code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a href="https://tessil.github.io/array-hash/doc_without_string_view/html">here</a>. If <code>std::string_view</code> is available, the API changes slightly and can be found <a href="https://tessil.github.io/array-hash/doc/html/">here</a>.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/array_map.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/array_set.h&gt;</span>
+
+
+<span class="dt">int</span> main() {
+    <span class="co">// Map of const char* to int</span>
+    tsl::array_map&lt;<span class="dt">char</span>, <span class="dt">int</span>&gt; map = {{<span class="st">&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;two&quot;</span>, <span class="dv">2</span>}};
+    map[<span class="st">&quot;three&quot;</span>] = <span class="dv">3</span>;
+    map[<span class="st">&quot;four&quot;</span>] = <span class="dv">4</span>;
+    
+    map.insert(<span class="st">&quot;five&quot;</span>, <span class="dv">5</span>);
+    map.insert_ks(<span class="st">&quot;six_with_extra_chars_we_ignore&quot;</span>, <span class="dv">3</span>, <span class="dv">6</span>);
+    
+    map.erase(<span class="st">&quot;two&quot;</span>);
+    
+    <span class="co">// When template parameter StoreNullTerminator is true (default) and there is no</span>
+    <span class="co">// null character in the strings.</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key() &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; it.value() &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">// If StoreNullTerminator is false for space efficiency or you are storing null characters, </span>
+    <span class="co">// you can access to the size of the key.</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        (<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span>).write(it.key(), it.key_size()) &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; it.value() &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">// Better, use key_sv() if you compiler provides access to std::string_view.</span>
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key_sv() &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; it.value() &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="co">// Or if you just want the values.</span>
+    <span class="cf">for</span>(<span class="dt">int</span> value: map) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; value &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+
+    <span class="co">// Map of const char32_t* to int</span>
+    tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="dt">int</span>&gt; map_char32 = {{<span class="st">U&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">U&quot;two&quot;</span>, <span class="dv">2</span>}};
+    map_char32[<span class="st">U&quot;three&quot;</span>] = <span class="dv">3</span>;
+    
+    
+    <span class="co">// Set of const char*</span>
+    tsl::array_set&lt;<span class="dt">char</span>&gt; set = {<span class="st">&quot;one&quot;</span>, <span class="st">&quot;two&quot;</span>, <span class="st">&quot;three&quot;</span>};
+    set.insert({<span class="st">&quot;four&quot;</span>, <span class="st">&quot;five&quot;</span>});
+    
+    <span class="cf">for</span>(<span class="kw">auto</span> it = set.begin(); it != set.end(); ++it) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; it.key() &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<h4 id="serialization">Serialization</h4>
+<p>The library provides an efficient way to serialize and deserialize a map or a set so that it can be saved to a file or send through the network. To do so, it requires the user to provide a function object for both serialization and deserialization.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> serializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float and T if a map is used.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> U&amp; value);
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> CharT* value, <span class="bu">std::</span>size_t value_size);
+};</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> deserializer {
+    <span class="co">// Must support the following types for U: std::uint64_t, float and T if a map is used.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> U&gt;
+    U <span class="kw">operator</span>()();
+    <span class="dt">void</span> <span class="kw">operator</span>()(CharT* value_out, <span class="bu">std::</span>size_t value_size);
+};</code></pre></div>
+<p>Note that the implementation leaves binary compatibilty (endianness, float binary representation, size of int, ...) of the types it serializes/deserializes in the hands of the provided function objects if compatibilty is required.</p>
+<p>More details regarding the <code>serialize</code> and <code>deserialize</code> methods can be found in the <a href="https://tessil.github.io/array-hash/doc/html/classtsl_1_1array__map.html">API</a>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;type_traits&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/array_map.h&gt;</span>
+
+
+<span class="kw">class</span> serializer {
+<span class="kw">public</span>:
+    serializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_ostream</span>.exceptions(<span class="va">m_ostream</span>.badbit | <span class="va">m_ostream</span>.failbit);
+        <span class="va">m_ostream</span>.open(file_name);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> T&amp; value) {
+        <span class="va">m_ostream</span>.write(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+    }
+    
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char32_t</span>* value, <span class="bu">std::</span>size_t value_size) {
+        <span class="va">m_ostream</span>.write(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">char</span>*&gt;(value), value_size*<span class="kw">sizeof</span>(<span class="dt">char32_t</span>));
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ofstream <span class="va">m_ostream</span>;
+};
+
+<span class="kw">class</span> deserializer {
+<span class="kw">public</span>:
+    deserializer(<span class="at">const</span> <span class="dt">char</span>* file_name) {
+        <span class="va">m_istream</span>.exceptions(<span class="va">m_istream</span>.badbit | <span class="va">m_istream</span>.failbit | <span class="va">m_istream</span>.eofbit);
+        <span class="va">m_istream</span>.open(file_name);
+    }
+    
+    <span class="kw">template</span>&lt;<span class="kw">class</span> T,
+             <span class="kw">typename</span> <span class="bu">std::</span>enable_if&lt;<span class="bu">std::</span>is_arithmetic&lt;T&gt;::value&gt;::type* = <span class="kw">nullptr</span>&gt;
+    T <span class="kw">operator</span>()() {
+        T value;
+        <span class="va">m_istream</span>.read(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">char</span>*&gt;(&amp;value), <span class="kw">sizeof</span>(T));
+        
+        <span class="cf">return</span> value;
+    }
+    
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="dt">char32_t</span>* value_out, <span class="bu">std::</span>size_t value_size) {
+        <span class="va">m_istream</span>.read(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">char</span>*&gt;(value_out), value_size*<span class="kw">sizeof</span>(<span class="dt">char32_t</span>));
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>ifstream <span class="va">m_istream</span>;
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="at">const</span> tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="bu">std::</span>int64_t&gt; map = {{<span class="st">U&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">U&quot;two&quot;</span>, <span class="dv">2</span>}, 
+                                                        {<span class="st">U&quot;three&quot;</span>, <span class="dv">3</span>}, {<span class="st">U&quot;four&quot;</span>, <span class="dv">4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;array_map.data&quot;</span>;
+    {
+        serializer serial(file_name);
+        map.serialize(serial);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        <span class="kw">auto</span> map_deserialized = tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial);
+        
+        assert(map == map_deserialized);
+    }
+    
+    {
+        deserializer dserial(file_name);
+        
+        <span class="co">/**</span>
+<span class="co">         * If the serialized and deserialized map are hash compatibles (see conditions in API), </span>
+<span class="co">         * setting the argument to true speed-up the deserialization process as we don&#39;t have </span>
+<span class="co">         * to recalculate the hash of each key. We also know how much space each bucket needs.</span>
+<span class="co">         */</span>
+        <span class="at">const</span> <span class="dt">bool</span> hash_compatible = <span class="kw">true</span>;
+        <span class="kw">auto</span> map_deserialized = 
+            tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="bu">std::</span>int64_t&gt;::deserialize(dserial, hash_compatible);
+        
+        assert(map == map_deserialized);
+    }
+}</code></pre></div>
+<h5 id="serialization-with-boost-serialization-and-compression-with-zlib">Serialization with Boost Serialization and compression with zlib</h5>
+<p>It's possible to use a serialization library to avoid some of the boilerplate if the types to serialize are more complex.</p>
+<p>The following example uses Boost Serialization with the Boost zlib compression stream to reduce the size of the resulting serialized file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;boost/archive/binary_iarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/archive/binary_oarchive.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filter/zlib.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/iostreams/filtering_stream.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/split_free.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/serialization/utility.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/array_map.h&gt;</span>
+
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> Archive&gt;
+<span class="kw">struct</span> serializer {
+    Archive&amp; ar;
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> T&amp; val) { ar &amp; val; }
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> CharT&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> CharT* val, <span class="bu">std::</span>size_t val_size) {
+        ar.save_binary(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">void</span>*&gt;(val), val_size*<span class="kw">sizeof</span>(CharT));
+    }   
+};
+
+<span class="kw">template</span>&lt;<span class="kw">typename</span> Archive&gt;
+<span class="kw">struct</span> deserializer {
+    Archive&amp; ar;
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    T <span class="kw">operator</span>()() { T val; ar &amp; val; <span class="cf">return</span> val; }
+    
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> CharT&gt;
+    <span class="dt">void</span> <span class="kw">operator</span>()(CharT* val_out, <span class="bu">std::</span>size_t val_size) {
+        ar.load_binary(<span class="kw">reinterpret_cast</span>&lt;<span class="dt">void</span>*&gt;(val_out), val_size*<span class="kw">sizeof</span>(CharT));
+    }  
+};
+
+<span class="kw">namespace</span> boost { <span class="kw">namespace</span> serialization {
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> serialize(Archive &amp; ar, tsl::array_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    split_free(ar, map, version); 
+}
+
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> save(Archive &amp; ar, <span class="at">const</span> tsl::array_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    serializer&lt;Archive&gt; serial{ar};
+    map.serialize(serial);
+}
+
+
+<span class="kw">template</span>&lt;<span class="kw">class</span> Archive, <span class="kw">class</span> CharT, <span class="kw">class</span> T&gt;
+<span class="dt">void</span> load(Archive &amp; ar, tsl::array_map&lt;CharT, T&gt;&amp; map, <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version) {
+    deserializer&lt;Archive&gt; deserial{ar};
+    map = tsl::array_map&lt;CharT, T&gt;::deserialize(deserial);
+}
+}}
+
+
+<span class="dt">int</span> main() {
+    <span class="at">const</span> tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="bu">std::</span>int64_t&gt; map = {{<span class="st">U&quot;one&quot;</span>, <span class="dv">1</span>}, {<span class="st">U&quot;two&quot;</span>, <span class="dv">2</span>}, 
+                                                        {<span class="st">U&quot;three&quot;</span>, <span class="dv">3</span>}, {<span class="st">U&quot;four&quot;</span>, <span class="dv">4</span>}};
+    
+    
+    <span class="at">const</span> <span class="dt">char</span>* file_name = <span class="st">&quot;array_map.data&quot;</span>;
+    {
+        <span class="bu">std::</span>ofstream ofs;
+        ofs.exceptions(ofs.badbit | ofs.failbit);
+        ofs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_ostream fo;
+        fo.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_compressor());
+        fo.push(ofs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_oarchive oa(fo);
+        
+        oa &lt;&lt; map;
+    }
+    
+    {
+        <span class="bu">std::</span>ifstream ifs;
+        ifs.exceptions(ifs.badbit | ifs.failbit | ifs.eofbit);
+        ifs.open(file_name, <span class="bu">std::</span>ios<span class="bu">::</span>binary);
+        
+        <span class="ex">boost::</span>iostreams<span class="ex">::</span>filtering_istream fi;
+        fi.push(<span class="ex">boost::</span>iostreams<span class="ex">::</span>zlib_decompressor());
+        fi.push(ifs);
+        
+        <span class="ex">boost::</span>archive<span class="ex">::</span>binary_iarchive ia(fi);
+     
+        tsl::array_map&lt;<span class="dt">char32_t</span>, <span class="bu">std::</span>int64_t&gt; map_deserialized;   
+        ia &gt;&gt; map_deserialized;
+        
+        assert(map == map_deserialized);
+    }
+}</code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a href="LICENSE">LICENSE file</a> for details.</p>

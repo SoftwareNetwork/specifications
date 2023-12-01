@@ -1,0 +1,97 @@
+<h1 id="optional">optional</h1>
+<p>Single header implementation of <code>std::optional</code> with functional-style extensions and support for references.</p>
+<p>Clang + GCC: <a href="https://travis-ci.org/TartanLlama/optional"><img src="https://travis-ci.org/TartanLlama/optional.png?branch=master" alt="Linux Build Status" /></a> MSVC: <a href="https://ci.appveyor.com/project/TartanLlama/optional"><img src="https://ci.appveyor.com/api/projects/status/k5x00xa11y3s5wsg?svg=true" alt="Windows Build Status" /></a></p>
+<p><code>std::optional</code> is the preferred way to represent an object which may or may not have a value. Unfortunately, chaining together many computations which may or may not produce a value can be verbose, as empty-checking code will be mixed in with the actual programming logic. This implementation provides a number of utilities to make coding with <code>optional</code> cleaner.</p>
+<p>For example, instead of writing this code:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>optional&lt;image&gt; get_cute_cat (<span class="at">const</span> image&amp; img) {
+    <span class="kw">auto</span> cropped = crop_to_cat(img);
+    <span class="cf">if</span> (!cropped) {
+      <span class="cf">return</span> <span class="bu">std::</span>nullopt;
+    }
+
+    <span class="kw">auto</span> with_tie = add_bow_tie(*cropped);
+    <span class="cf">if</span> (!with_tie) {
+      <span class="cf">return</span> <span class="bu">std::</span>nullopt;
+    }
+
+    <span class="kw">auto</span> with_sparkles = make_eyes_sparkle(*with_tie);
+    <span class="cf">if</span> (!with_sparkles) {
+      <span class="cf">return</span> <span class="bu">std::</span>nullopt;
+    }
+
+    <span class="cf">return</span> add_rainbow(make_smaller(*with_sparkles));
+}</code></pre></div>
+<p>You can do this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tl::optional&lt;image&gt; get_cute_cat (<span class="at">const</span> image&amp; img) {
+    <span class="cf">return</span> crop_to_cat(img)
+           .and_then(add_bow_tie)
+           .and_then(make_eyes_sparkle)
+           .map(make_smaller)
+           .map(add_rainbow);
+}</code></pre></div>
+<p>Full documentation available at <a href="https://optional.tartanllama.xyz">optional.tartanllama.xyz</a></p>
+<p>The interface is the same as <code>std::optional</code>, but the following member functions are also defined. Explicit types are for clarity.</p>
+<ul>
+<li><code>map</code>: carries out some operation on the stored object if there is one.</li>
+<li><code>tl::optional&lt;std::size_t&gt; s = opt_string.map(&amp;std::string::size);</code></li>
+<li><code>and_then</code>: like <code>map</code>, but for operations which return a <code>tl::optional</code>.</li>
+<li><code>tl::optional&lt;int&gt; stoi (const std::string&amp; s);</code></li>
+<li><code>tl::optional&lt;int&gt; i = opt_string.and_then(stoi);</code></li>
+<li><code>or_else</code>: calls some function if there is no value stored.</li>
+<li><code>opt.or_else([] { throw std::runtime_error{&quot;oh no&quot;}; });</code></li>
+<li><code>map_or</code>: carries out a <code>map</code> if there is a value, otherwise returns a default value.</li>
+<li><code>tl::optional&lt;std::size_t&gt; s = opt_string.map_or(&amp;std::string::size, 0);</code></li>
+<li><code>map_or_else</code>: carries out a <code>map</code> if there is a value, otherwise returns the result of a given default function.</li>
+<li><code>std::size_t get_default();</code></li>
+<li><code>tl::optional&lt;std::size_t&gt; s = opt_string.map_or(&amp;std::string::size, get_default);</code></li>
+<li><code>conjunction</code>: returns the argument if a value is stored in the optional, otherwise an empty optional.</li>
+<li><code>tl::make_optional(42).conjunction(13); //13</code></li>
+<li><code>tl::optional&lt;int&gt;){}.conjunction(13); //empty</code></li>
+<li><code>disjunction</code>: returns the argument if the optional is empty, otherwise the current value.</li>
+<li><code>tl::make_optional(42).disjunction(13); //42</code></li>
+<li><code>tl::optional&lt;int&gt;{}.disjunction(13); //13</code></li>
+<li><code>take</code>: returns the current value, leaving the optional empty.</li>
+<li><code>opt_string.take().map(&amp;std::string::size); //opt_string now empty;</code></li>
+</ul>
+<p>In addition to those member functions, optional references are also supported:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> i = <span class="dv">42</span>;
+tl::optional&lt;<span class="dt">int</span>&amp;&gt; o = i;
+*o == <span class="dv">42</span>; <span class="co">//true</span>
+i = <span class="dv">12</span>;
+*o = <span class="dv">12</span>; <span class="co">//true</span>
+&amp;*o == &amp;i; <span class="co">//true</span></code></pre></div>
+<p>Assignment has rebind semantics rather than assign-through semantics:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> j = <span class="dv">8</span>;
+o = j;
+
+&amp;*o == &amp;j; <span class="co">//true</span></code></pre></div>
+<h3 id="compiler-support">Compiler support</h3>
+<p>Tested on:</p>
+<ul>
+<li>Linux</li>
+<li>clang 6.0.1</li>
+<li>clang 5.0.2</li>
+<li>clang 4.0.1</li>
+<li>clang 3.9</li>
+<li>clang 3.8</li>
+<li>clang 3.7</li>
+<li>clang 3.6</li>
+<li>clang 3.5</li>
+<li>g++ 8.0.1</li>
+<li>g++ 7.3</li>
+<li>g++ 6.4</li>
+<li>g++ 5.5</li>
+<li>g++ 4.9</li>
+<li>g++ 4.8</li>
+<li>Windows</li>
+<li>MSVC 2015</li>
+<li>MSVC 2017</li>
+</ul>
+<h3 id="dependencies">Dependencies</h3>
+<p>Requires <a href="https://github.com/foonathan/standardese">Standardese</a> for generating documentation.</p>
+<p>Requires <a href="https://github.com/philsquared/Catch">Catch</a> for testing. This is bundled in the test directory.</p>
+<h3 id="standards-proposal">Standards Proposal</h3>
+<p>This library also serves as an implementation of WG21 standards paper <a href="https://wg21.tartanllama.xyz/monadic-optional">P0798R0: Monadic operations for std::optional</a>. This paper proposes adding <code>map</code>, <code>and_then</code>, and <code>or_else</code> to <code>std::optional</code>.</p>
+<hr />
+<p><a href="%22http://creativecommons.org/publicdomain/zero/1.0/%22"><img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" alt="CC0" /></a></p>
+<p>To the extent possible under law, <a href="https://twitter.com/TartanLlama">Simon Brand</a> has waived all copyright and related or neighboring rights to the <code>optional</code> library. This work is published from: United Kingdom.</p>

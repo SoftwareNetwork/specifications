@@ -1,0 +1,197 @@
+<h1 id="zpp-serializer">zpp serializer</h1>
+<p>A single header only standard C++ serialization framework.</p>
+<h2 id="abstract">Abstract</h2>
+<p>In C++ there is no standard way of taking an object as-is and transforming it into a language independent representation, that is, serialize it.</p>
+<p>Serialization frameworks are really common in C++, and they all come with difference promises and have their advantages and disadvantages. I've had the pleasure to seek a serialization framework that would turn my classes into data in the most effortless manner, without caring much about the format, and without doing unnecessary logic.</p>
+<p>Some frameworks support many common formats such as json, xml, and such; Some frameworks provide you with the highest level of performance using zero copy techniques, thus supporting only binary format; Some frameworks require you to run a script that generates the C++ code that serializes your classes;</p>
+<p>While there are many excellent serialization frameworks, the diversity of the features and complexity often make them hard to adopt, some of them require you to change existing code to integrate them, or even set up your build environment differently.</p>
+<p>I finally reached the conclusion that I do not need all those features. I definitly do not want to either pay unnecessary price in performance to serialize my classes into a textual format, change the code of my already existing classes, modify my build systems, write my classes in another format and compile it into C++.</p>
+<p>What I needed was to have my classes serialized in a zero overhead manner into binary, with the ability to serialize objects by their dynamic type, allowing easy dispatch logic between a server and client side, with little to no change to my already existing classes.</p>
+<h2 id="motivation">Motivation</h2>
+<p>Provide a single, simple header file, that would enable one to: * Enable save &amp; load any STL container / string / utility into and from a binary form, in a zero overhead approach. * Enable save &amp; load any object, by adding only a few lines to any class, without breaking existing code. * Enable save &amp; load the dynamic type of any object, by a simple one-liner.</p>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><p>To enable save &amp; load of any object, add the following lines to your class, <code>object_1, object_2, ...</code> being the non-static data members of the class.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">friend</span> zpp::serializer::access;
+<span class="kw">template</span> &lt;<span class="kw">typename</span> Archive, <span class="kw">typename</span> Self&gt;
+<span class="at">static</span> <span class="dt">void</span> serialize(Archive &amp; archive, Self &amp; self)
+{
+    archive(self.object_1, self.object_2, ...);
+}</code></pre></div>
+If your class does not have a default constructor, define one as private.</li>
+<li><p>To enable save &amp; load of the dynamic type of any object, you have to register it, and have the base type derive from <code>zpp::serializer::polymorphic</code>. Given the classes <code>v1::protocol::client_hello</code>, <code>v1::protocol::server_hello</code>, and <code>v1::protocol::sleep</code>, all derive from <code>protocol::command</code>. ```cpp // protocol.h class protocol::command : public zpp::serializer::polymorphic { public: virtual void operator()(protocol::context &amp;) = 0; virtual ~command() = default; };</p></li>
+</ul>
+<p>// protocol.cpp namespace { zpp::serializer::register_types&lt; zpp::serializer::make_type<v1::protocol::client_hello, zpp::serializer::make_id("v1::protocol::client_hello")>, zpp::serializer::make_type<v1::protocol::server_hello, zpp::serializer::make_id("v1::protocol::server_hello")>, zpp::serializer::make_type<v1::protocol::sleep, zpp::serializer::make_id("v1::protocol::sleep")>, // ... &gt; _; } <code>* Save and load objects into a vector of data, in this example we show polymorphic serialization which has an overhead of 8 bytes serialization id, per polymorphic object being serialized.</code>cpp // The data of the objects we serialize. std::vector<unsigned char> data;</p>
+<p>// Turns an object into data. zpp::serializer::memory_output_archive out(data);</p>
+<p>// Turns data into objects. zpp::serializer::memory_input_archive in(data);</p>
+<p>// Create a sleep command. std::unique_ptr<protocol::command> command = std::make_unique<v1::protocol::sleep>(60s);</p>
+<p>// Serialize a unique pointer of an object whose zpp::serializer::polymorphic is a base class, // prepends 8 bytes of the serialization id, then the derived class is serialized. out(command);</p>
+<p>// ... // Deserializes a unique pointer of an object whose zpp::serializer::polymorphic is a base class, // loads 8 bytes of the serialization id, constructs a <code>v1::protocol::sleep</code> then deseializes into it. in(command);</p>
+<p>// Run the command, any command has its own logic. (*command)(protocol_context); ```</p>
+<ul>
+<li><p>You can serialize multiple objects in the same line:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">out(object_1, object_2, ...);
+in(object_1, object_2, ...);</code></pre></div></li>
+<li><p>You can request serializtion without the polymorphic overhead, thus the static type is serialized and only this type can be loaded in the other end.</p>
+<pre><code>out(*command);
+in(*command);</code></pre></li>
+<li><p>Serializing STL containers and strings, first stores a 4 byte size, then the elements:</p>
+<pre><code>std::vector&lt;int&gt; v = { 1, 2, 3, 4 };
+out(v);
+in(v);</code></pre></li>
+<li><p>On the reading end, one can use <code>memory_view_input_archive</code> that receives a pointer and size rather than a vector which requires ownership and memory allocation.</p></li>
+<li><p>Serialization using argument dependent lookup is also possible: ```cpp namespace my_namespace { struct adl { int x; int y; };</p></li>
+</ul>
+<p>template <typename Archive> void serialize(Archive &amp; archive, adl &amp; adl) { archive(adl.x, adl.y); }</p>
+<p>template <typename Archive> void serialize(Archive &amp; archive, const adl &amp; adl) { archive(adl.x, adl.y); } } ```</p>
+<ul>
+<li>Objects that do not derive from <code>zpp::serializer::polymorphic</code> do not need registration and have no overhead at all.</li>
+</ul>
+<h2 id="example">Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;serializer.h&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="kw">class</span> point
+{
+<span class="kw">public</span>:
+    point() = <span class="cf">default</span>;
+    point(<span class="dt">int</span> x, <span class="dt">int</span> y) <span class="kw">noexcept</span> :
+        <span class="va">m_x</span>(x),
+        <span class="va">m_y</span>(y)
+    {
+    }
+
+    <span class="kw">friend</span> zpp::serializer::access;
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> Archive, <span class="kw">typename</span> Self&gt;
+    <span class="at">static</span> <span class="dt">void</span> serialize(Archive &amp; archive, Self &amp; self)
+    {
+        archive(self.<span class="va">m_x</span>, self.<span class="va">m_y</span>);
+    }
+
+    <span class="dt">int</span> get_x() <span class="at">const</span> <span class="kw">noexcept</span>
+    {
+        <span class="cf">return</span> <span class="va">m_x</span>;
+    }
+ 
+    <span class="dt">int</span> get_y() <span class="at">const</span> <span class="kw">noexcept</span>
+    {
+        <span class="cf">return</span> <span class="va">m_y</span>;
+    }
+
+<span class="kw">private</span>:
+    <span class="dt">int</span> <span class="va">m_x</span> = <span class="dv">0</span>;
+    <span class="dt">int</span> <span class="va">m_y</span> = <span class="dv">0</span>;
+};
+
+<span class="kw">class</span> person : <span class="kw">public</span> zpp::serializer::polymorphic
+{
+<span class="kw">public</span>:
+    person() = <span class="cf">default</span>;
+    <span class="kw">explicit</span> person(<span class="bu">std::</span>string name) <span class="kw">noexcept</span> :
+        <span class="va">m_name</span>(<span class="bu">std::</span>move(name))
+    {
+    }
+
+    <span class="kw">friend</span> zpp::serializer::access;
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> Archive, <span class="kw">typename</span> Self&gt;
+    <span class="at">static</span> <span class="dt">void</span> serialize(Archive &amp; archive, Self &amp; self)
+    {
+        archive(self.<span class="va">m_name</span>);
+    }
+
+    <span class="at">const</span> <span class="bu">std::</span>string &amp; get_name() <span class="at">const</span> <span class="kw">noexcept</span>
+    {
+        <span class="cf">return</span> <span class="va">m_name</span>;
+    }
+
+    <span class="kw">virtual</span> <span class="dt">void</span> print() <span class="at">const</span>
+    {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;person: &quot;</span> &lt;&lt; <span class="va">m_name</span>;
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>string <span class="va">m_name</span>;
+};
+
+<span class="kw">class</span> student : <span class="kw">public</span> person
+{
+<span class="kw">public</span>:
+    student() = <span class="cf">default</span>;
+    student(<span class="bu">std::</span>string name, <span class="bu">std::</span>string university) <span class="kw">noexcept</span> :
+        person(<span class="bu">std::</span>move(name)),
+        <span class="va">m_university</span>(<span class="bu">std::</span>move(university))
+    {
+    }
+
+    <span class="kw">friend</span> zpp::serializer::access;
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> Archive, <span class="kw">typename</span> Self&gt;
+    <span class="at">static</span> <span class="dt">void</span> serialize(Archive &amp; archive, Self &amp; self)
+    {
+        person::serialize(archive, self);
+        archive(self.<span class="va">m_university</span>);
+    }
+
+    <span class="kw">virtual</span> <span class="dt">void</span> print() <span class="at">const</span>
+    {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;student: &quot;</span> &lt;&lt; person::get_name() &lt;&lt; <span class="st">&#39; &#39;</span> &lt;&lt; <span class="va">m_university</span> &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>string <span class="va">m_university</span>;
+};
+
+<span class="kw">namespace</span>
+{
+zpp::serializer::register_types&lt;
+   zpp::serializer::<span class="dt">make_type</span>&lt;person, zpp::serializer::make_id(<span class="st">&quot;v1::person&quot;</span>)&gt;,
+   zpp::serializer::<span class="dt">make_type</span>&lt;student, zpp::serializer::make_id(<span class="st">&quot;v1::student&quot;</span>)&gt;
+&gt; _;
+} <span class="co">// &lt;anynymous namespace&gt;</span>
+
+<span class="at">static</span> <span class="dt">void</span> foo()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span> <span class="dt">char</span>&gt; data;
+    zpp::serializer::memory_input_archive in(data);
+    zpp::serializer::memory_output_archive out(data);
+
+    out(point(<span class="dv">1337</span>, <span class="dv">1338</span>));
+    
+    point my_point;
+    in(my_point);
+
+    <span class="bu">std::</span>cout &lt;&lt; my_point.get_x() &lt;&lt; <span class="st">&#39; &#39;</span> &lt;&lt; my_point.get_y() &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+}
+
+<span class="at">static</span> <span class="dt">void</span> bar()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span> <span class="dt">char</span>&gt; data;
+    zpp::serializer::memory_input_archive in(data);
+    zpp::serializer::memory_output_archive out(data);
+
+    <span class="bu">std::</span>unique_ptr&lt;person&gt; my_person = <span class="bu">std::</span>make_unique&lt;student&gt;(<span class="st">&quot;1337&quot;</span>, <span class="st">&quot;1337University&quot;</span>);
+    out(my_person);
+
+    my_person = <span class="kw">nullptr</span>; 
+    in(my_person);
+
+    my_person-&gt;print();
+}
+
+<span class="at">static</span> <span class="dt">void</span> foobar()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">unsigned</span> <span class="dt">char</span>&gt; data;
+    zpp::serializer::memory_input_archive in(data);
+    zpp::serializer::memory_output_archive out(data);
+
+    out(zpp::serializer::as_polymorphic(student(<span class="st">&quot;1337&quot;</span>, <span class="st">&quot;1337University&quot;</span>)));
+    
+    <span class="bu">std::</span>unique_ptr&lt;person&gt; my_person;
+    in(my_person);
+
+    my_person-&gt;print();
+}</code></pre></div>
+<h2 id="a-python-version">A Python Version</h2>
+<p>A compact python version of the library can be found here: https://github.com/eyalz800/zpp_serializer_py. You can use this library to intercommunicate with this one.</p>
+<h2 id="requirements">Requirements</h2>
+<p>This framework requires a fully compliant C++14 compiler, including RTTI and exceptions enabled. One can easily overcome the RTTI requirement by using the following project: https://github.com/eyalz800/type_info. Disclaimer: registering polymorphic types can be slower in C++14 compared to C++17 due to the use of <code>shared_timed_mutex</code> instead of <code>shared_mutex</code>.</p>

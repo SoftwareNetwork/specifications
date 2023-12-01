@@ -1,0 +1,799 @@
+<h1 id="ring-span-lite-a-circular-buffer-view-for-c98-and-later">ring-span lite: A circular buffer view for C++98 and later</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-98/11/14/17-blue.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/ring-span-lite"><img src="https://travis-ci.org/martinmoene/ring-span-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/ring-span-lite"><img src="https://ci.appveyor.com/api/projects/status/w2dgn3fxyrd6vcq8?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/ring-span-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fring-span-lite.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/ring-span-lite/master/include/nonstd/ring_span.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/martinmoene/nonstd-lite/ring-span-lite%3Anonstd-lite/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/E7mQi63fTgK8833x"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it on wandbox" /></a> <a href="http://bit.ly/mm-ring-span-lite-godbolt"><img src="https://img.shields.io/badge/on-godbolt-blue.svg" alt="Try it on godbolt online" /></a></p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-the-tests">Building the tests</a> - <a href="#other-ring-span-implementations">Other ring_span implementations</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;nonstd/ring_span.hpp&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;numeric&gt;</span>
+
+<span class="kw">template</span>&lt; <span class="kw">typename</span> T, <span class="dt">size_t</span> N &gt;
+<span class="kw">inline</span> <span class="dt">size_t</span> dim( T (&amp;arr)[N] ) { <span class="cf">return</span> N; }
+
+<span class="kw">template</span>&lt; <span class="kw">typename</span> T, <span class="kw">class</span> Popper&gt;
+<span class="kw">inline</span> <span class="bu">std::</span>ostream &amp; <span class="kw">operator</span>&lt;&lt;( <span class="bu">std::</span>ostream &amp; os, ::nonstd::ring_span&lt;T, Popper&gt; <span class="at">const</span> &amp; rs )
+{
+    os &lt;&lt; <span class="st">&quot;[ring_span: &quot;</span>; <span class="bu">std::</span>copy( rs.begin(), rs.end(), <span class="bu">std::</span>ostream_iterator&lt;T&gt;(os, <span class="st">&quot;, &quot;</span>) ); <span class="cf">return</span> os &lt;&lt; <span class="st">&quot;]&quot;</span>;
+}
+
+<span class="dt">int</span> main()
+{
+    <span class="dt">double</span> arr[]   = { <span class="fl">2.0</span> , <span class="fl">3.0</span>, <span class="fl">5.0</span>, };
+    <span class="dt">double</span> coeff[] = { <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.25</span> };
+
+    nonstd::ring_span&lt;<span class="dt">double</span>&gt; buffer( arr, arr + dim(arr), arr, dim(arr) );
+
+    <span class="bu">std::</span>cout &lt;&lt; buffer &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+
+    <span class="co">// new sample:</span>
+    buffer.push_back( <span class="fl">7.0</span> );
+
+    <span class="bu">std::</span>cout &lt;&lt; buffer &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+
+    <span class="dt">double</span> result = <span class="bu">std::</span>inner_product( buffer.begin(), buffer.end(), coeff, <span class="fl">0.0</span> );
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;filter result: &quot;</span> &lt;&lt; result &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt; g++ -std=c++98 -Wall -I../include -o 01-filter.exe 01-filter.cpp &amp;&amp; 01-filter.exe
+[ring_span: 2, 3, 5, ]
+[ring_span: 3, 5, 7, ]
+filter result: 5</code></pre>
+<p>Or to run with <a href="https://buckbuild.com/">Buck</a>:</p>
+<pre><code>prompt&gt; buck run example/:01-filter </code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>ring-span lite</strong> is a single-file header-only library to represent a circular buffer view on a container. The library aims to provide a <a href="">C++yy-like ring_span</a> for use with C++98 and later [1][2]. Its initial code is inspired on the reference implementation by Arthur O'Dwyer [3]. It is my intention to let the interface of this <code>ring_span</code> follow the unfolding standard one.</p>
+<p><strong>Features and properties of ring-span lite</strong> are ease of installation (single header), freedom of dependencies other than the standard library.</p>
+<p><strong>Limitations of ring-span lite</strong> are ... .</p>
+<h2 id="license">License</h2>
+<p><em>ring-span lite</em> is distributed under the <a href="LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>ring-span lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>ring-span lite</em> is a single-file header-only library. Put <code>ring_span.hpp</code> in the <a href="include" class="uri">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#types-in-namespace-nonstd">Types in namespace nonstd</a> - <a href="#interface-of-ring-span-lite">Interface of <em>ring-span lite</em></a> - <a href="#non-member-functions-for-ring-span-lite">Non-member functions for <em>ring-span lite</em></a> - <a href="#configuration-macros">Configuration macros</a></p>
+<h3 id="types-in-namespace-nonstd">Types in namespace nonstd</h3>
+<table style="width:79%;">
+<colgroup>
+<col width="13%" />
+<col width="44%" />
+<col width="9%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Purpose</th>
+<th align="center"><a href="http://wg21.link/p0059">p0059</a></th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Circular buffer view</td>
+<td align="center">✓</td>
+<td>template&lt; class T, class Popper = default_popper<T> &gt;<br>class <strong>ring_span</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Ignore element</td>
+<td align="center">✓</td>
+<td>template&lt; class T &gt;<br>class <strong>null_popper</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Return element</td>
+<td align="center">✓</td>
+<td>template&lt; class T &gt;<br>class <strong>default_popper</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Return element, replace original</td>
+<td align="center">✓</td>
+<td>template&lt; class T &gt;<br>class <strong>copy_popper</strong></td>
+<td> </td>
+</tr>
+</tbody>
+</table>
+<h3 id="interface-of-ring-span-lite">Interface of <em>ring-span lite</em></h3>
+<h4 id="class-ring_span">Class <code>ring_span</code></h4>
+<table style="width:99%;">
+<colgroup>
+<col width="11%" />
+<col width="23%" />
+<col width="41%" />
+<col width="22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th align="center"><a href="http://wg21.link/p0059">p0059</a></th>
+<th>Type / Method</th>
+<th>Note / Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Various types</td>
+<td align="center">✓</td>
+<td><strong>type</strong></td>
+<td>ring_span&lt; T, Popper &gt;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>size_type</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Value types</td>
+<td align="center">✓</td>
+<td><strong>value_type</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>pointer</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>reference</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>const_reference</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Iterator types</td>
+<td align="center">✓</td>
+<td><strong>iterator</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>const_iterator</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>reverse_iterator</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>const_reverse_iterator</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Construction</td>
+<td align="center">✓</td>
+<td><strong>ring_span</strong>(<br>It begin, It end<br>, Popper popper = Popper() ) noexcept</td>
+<td>create empty span of<br>distance(begin,end) capacity</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>ring_span</strong>(<br>It begin, It end<br>, It first, size_type size<br>, Popper popper = Popper() ) noexcept</td>
+<td>create partially filled span of<br>distance(begin,end) capacity,<br>size elements</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>ring_span</strong>( ring_span &amp;&amp; )</td>
+<td>= default (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td>ring_span&amp; <strong>operator=</strong>( ring_span &amp;&amp; )</td>
+<td>= default (&gt;= C++11)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>ring_span</strong>( ring_span const &amp; )</td>
+<td>implicitly deleted (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td>ring_span &amp; <strong>operator=</strong>( ring_span const &amp; );</td>
+<td>implicitly deleted (&gt;= C++11)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>ring_span</strong>( ring_span const &amp; )</td>
+<td>declared private (&lt; C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td>ring_span &amp; <strong>operator=</strong>( ring_span const &amp; );</td>
+<td>declared private (&lt; C++11)</td>
+</tr>
+<tr class="odd">
+<td>Iteration</td>
+<td align="center">✓</td>
+<td><strong>begin</strong>() noexcept</td>
+<td>iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>begin</strong>() noexcept</td>
+<td>const_iterator</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>cbegin</strong>() noexcept</td>
+<td>const_iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>end</strong>() noexcept</td>
+<td>iterator</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>end</strong>() noexcept</td>
+<td>const_iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>cend</strong>() noexcept</td>
+<td>const_iterator</td>
+</tr>
+<tr class="odd">
+<td>Reverse iter.</td>
+<td align="center">–</td>
+<td><strong>rbegin</strong>() noexcept</td>
+<td>reverse_iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>rbegin</strong>() noexcept</td>
+<td>const_reverse_iterator</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>crbegin</strong>() noexcept</td>
+<td>const_reverse_iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>rend</strong>() noexcept</td>
+<td>reverse_iterator</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>rend</strong>() noexcept</td>
+<td>const_reverse_iterator</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>crend</strong>() noexcept</td>
+<td>const_reverse_iterator</td>
+</tr>
+<tr class="odd">
+<td>Observation</td>
+<td align="center">✓</td>
+<td><strong>empty</strong>() noexcept</td>
+<td>true if empty</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>full</strong>() noexcept</td>
+<td>true if full</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>size</strong>() noexcept</td>
+<td>current number of elements</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>capacity</strong>() noexcept</td>
+<td>maximum number of elements</td>
+</tr>
+<tr class="odd">
+<td>Element access</td>
+<td align="center">✓</td>
+<td><strong>front</strong>() noexcept</td>
+<td>reference to element at front</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>front</strong>() noexcept</td>
+<td>const_reference to element at front</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>back</strong>() noexcept</td>
+<td>reference to back element at back</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>back</strong>() noexcept</td>
+<td>const_reference to element at back</td>
+</tr>
+<tr class="odd">
+<td>Elem.extraction</td>
+<td align="center">✓</td>
+<td><strong>pop_front</strong>()</td>
+<td>Popper::return_type (p0059: auto)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>pop_back</strong>()</td>
+<td>Popper::return_type</td>
+</tr>
+<tr class="odd">
+<td>Elem.insertion</td>
+<td align="center">✓</td>
+<td><strong>push_back</strong>( value_type const &amp; value ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>push_back</strong>( value_type const &amp; value )</td>
+<td>void; unrestrained (&lt; C++11)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>push_back</strong>( value_type &amp;&amp; value ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>emplace_back</strong>( Args &amp;&amp;... args ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>push_front</strong>( value_type const &amp; value ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>push_front</strong>( value_type const &amp; value )</td>
+<td>void; unrestrained (&lt; C++11)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td><strong>push_front</strong>( value_type &amp;&amp; value ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>emplace_front</strong>( Args &amp;&amp;... args ) noexcept(…)</td>
+<td>void; restrained (&gt;= C++11)</td>
+</tr>
+<tr class="odd">
+<td>Swap</td>
+<td align="center">✓</td>
+<td><strong>swap</strong>( ring_span &amp; rhs ) noexcept</td>
+<td>void;</td>
+</tr>
+</tbody>
+</table>
+<h4 id="class-ring_iterator">Class <code>ring_iterator</code></h4>
+<table>
+<colgroup>
+<col width="11%" />
+<col width="23%" />
+<col width="43%" />
+<col width="22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th align="center"><a href="http://wg21.link/p0059">p0059</a></th>
+<th>Type / Method</th>
+<th>Note / Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Various types</td>
+<td align="center">✓</td>
+<td><strong>type</strong></td>
+<td>ring_span&lt; T, Popper &gt;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>difference_type</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Value types</td>
+<td align="center">✓</td>
+<td><strong>value_type</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>pointer</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>reference</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Category</td>
+<td align="center">✓</td>
+<td><strong>iterator_category</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Construction</td>
+<td align="center">✓</td>
+<td><strong>ring_iterator</strong>()</td>
+<td>= default (&gt;= C++11)</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td><strong>ring_iterator</strong>()</td>
+<td>(&lt; C++11)</td>
+</tr>
+<tr class="odd">
+<td>Conversion</td>
+<td align="center">–</td>
+<td><strong>operator ring_iterator&lt;…,true&gt;</strong>() const noexcept</td>
+<td>const ring_iterator</td>
+</tr>
+<tr class="even">
+<td>Element access</td>
+<td align="center">✓</td>
+<td><strong>operator*</strong>() const noexcept</td>
+<td>reference</td>
+</tr>
+<tr class="odd">
+<td>Increment</td>
+<td align="center">✓</td>
+<td><strong>operator++</strong>() noexcept</td>
+<td>ring_iterator&lt;…&gt; &amp;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator++</strong>( int ) noexcept</td>
+<td>ring_iterator&lt;…&gt;</td>
+</tr>
+<tr class="odd">
+<td>Decrement</td>
+<td align="center">✓</td>
+<td><strong>operator--</strong>() noexcept</td>
+<td>ring_iterator&lt;…&gt; &amp;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator--</strong>( int ) noexcept</td>
+<td>ring_iterator&lt;…&gt;</td>
+</tr>
+<tr class="odd">
+<td>Addition</td>
+<td align="center">✓</td>
+<td><strong>operator+=</strong>( int i ) noexcept</td>
+<td>ring_iterator&lt;…&gt; &amp;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator-=</strong>( int i ) noexcept</td>
+<td>ring_iterator&lt;…&gt; &amp;</td>
+</tr>
+<tr class="odd">
+<td>Difference</td>
+<td align="center">–</td>
+<td><strong>operator-</strong>( ring_iterator&lt;…&gt; const &amp; rhs )</td>
+<td>difference_type, note 1</td>
+</tr>
+<tr class="even">
+<td>Comparison</td>
+<td align="center">✓</td>
+<td><strong>operator==</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator!=</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator&lt;</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator&lt;=</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator&gt;</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator&gt;=</strong>( ring_iterator&lt;…&gt; const &amp; rhs ) const noexcept</td>
+<td>bool, note 1</td>
+</tr>
+</tbody>
+</table>
+<p>note 1: accepts lhs and rhs of different const-ness.</p>
+<h3 id="non-member-functions-for-ring-span-lite">Non-member functions for <em>ring-span lite</em></h3>
+<table style="width:97%;">
+<colgroup>
+<col width="25%" />
+<col width="44%" />
+<col width="15%" />
+<col width="12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th align="center"><a href="http://wg21.link/p0059">p0059</a></th>
+<th>Function</th>
+<th>Note / Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Swap</td>
+<td align="center">–/✓</td>
+<td><strong>swap</strong>( ring_span&lt;…&gt; &amp; lhs, ring_span&lt;…&gt; &amp; rhs )</td>
+<td>void</td>
+</tr>
+<tr class="even">
+<td>Iterator offset</td>
+<td align="center">✓</td>
+<td><strong>operator+</strong>( ring_iterator&lt;…&gt; it, int i ) noexcept</td>
+<td>ring_iterator&lt;…&gt;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td><strong>operator-</strong>( ring_iterator&lt;…&gt; it, int i ) noexcept</td>
+<td>ring_iterator&lt;…&gt;</td>
+</tr>
+</tbody>
+</table>
+<p>Legenda: – not in proposal · ✓ in proposal · –/✓ not in proposal/in sg14 code</p>
+<h3 id="configuration-macros">Configuration macros</h3>
+<h4 id="standard-selection-macro">Standard selection macro</h4>
+<p>-D<b>nsrs_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, if your compiler does not set the <code>__cpluplus</code> macro correctly.</p>
+<h4 id="select-stdring_span-or-nonstdring_span">Select <code>std::ring_span</code> or <code>nonstd::ring_span</code></h4>
+<p>At default, <em>ring_span lite</em> uses <code>std::ring_span</code> if it is available and lets you use it via namespace <code>nonstd</code>. You can however override this default and explicitly request to use <code>std::ring_span</code> or ring_span lite's <code>nonstd::ring_span</code> as <code>nonstd::ring_span</code> via the following macros.</p>
+<p>-D<b>nsrs_CONFIG_SELECT_RING_SPAN</b>=nsrs_RING_SPAN_DEFAULT<br />
+Define this to <code>nsrs_RING_SPAN_STD</code> to select <code>std::ring_span</code> as <code>nonstd::ring_span</code>. Define this to <code>nsrs_RING_SPAN_NONSTD</code> to select <code>nonstd::ring_span</code> as <code>nonstd::ring_span</code>. Default is undefined, which has the same effect as defining to <code>nsrs_RING_SPAN_DEFAULT</code>.</p>
+<h4 id="disable-extensions">Disable extensions</h4>
+<p>-D<b>nsrs_STRICT_P0059</b>=0<br />
+Define this to 1 to omit behaviour not present in proposal <a href="http://wg21.link/p0059">p0059</a>. Default is undefined (same effect as 0).</p>
+<h4 id="enable-compilation-errors">Enable compilation errors</h4>
+<p>-D<b>nsrs_CONFIG_CONFIRMS_COMPILATION_ERRORS</b>=0<br />
+Define this to 1 to include the tests with compile-time errors. Default is undefined (same effect as 0).</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the compiler versions <em>ring-span lite</em> is reported to work with.</p>
+<table style="width:49%;">
+<colgroup>
+<col width="15%" />
+<col width="18%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">OS</th>
+<th align="left">Compiler</th>
+<th align="left">Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">Windows</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">5.2.0, 6.3.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">Visual C++<br>(Visual Studio)</td>
+<td align="left">8 (2005), 10 (2010), 11 (2012),<br>12 (2013), 14 (2015, 2017)</td>
+</tr>
+<tr class="even">
+<td align="right">GNU/Linux</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">3.5.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">4.8.4</td>
+</tr>
+<tr class="even">
+<td align="right">OS X</td>
+<td align="left">?</td>
+<td align="left">?</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>To build the tests you need: - <a href="https://buckbuild.com/">Buck</a> or <a href="http://cmake.org">CMake</a> version 2.8.7 or later to be installed and in your PATH. - A <a href="#reported-to-work-with">suitable compiler</a>.</p>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<h3 id="buck">Buck</h3>
+<p>To run the tests:</p>
+<pre><code>prompt&gt; buck run test/</code></pre>
+<h3 id="cmake">CMake</h3>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/ring-span-lite">ring-span lite source code</a> has been cloned into a directory named <code>c:\ring-span-lite</code>.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture.<br />
+Here we use c:-span-lite-win-x86-vc10.</p>
+<pre><code>cd c:\ring-span-lite
+md build-win-x86-vc10
+cd build-win-x86-vc10</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>cmake -G &quot;Visual Studio 10 2010&quot; [see 3. below] ..</code></pre></li>
+<li><p>Optional. You can control above configuration through the following options:</p></li>
+</ol>
+<ul>
+<li><code>-DRING_SPAN_LITE_COLOURISE_TEST=ON</code>: use colour for pass, fail, default off</li>
+</ul>
+<ol start="4" style="list-style-type: decimal">
+<li><p>Build the test suite in the Debug configuration (alternatively use Release).</p>
+<pre><code>cmake --build . --config Debug</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>ctest -V -C Debug</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>ring-span lite</em>. See the table with <a href="#features">supported types and functions</a>.</p>
+<h2 id="other-ring-span-implementations">Other ring-span implementations</h2>
+<p>(TBD)</p>
+<h2 id="notes-and-references">Notes and references</h2>
+<h3 id="references">References</h3>
+<p>[1] [p0059: A proposal to add a ring span to the standard library](http://wg21.link/p0059) (<a href="http://wg21.link/p0059">latest</a>, <a href="http://wg21.link/p0059r4">r4</a>, <a href="http://wg21.link/p0059r3">r3</a>, <a href="http://wg21.link/p0059r2">r2</a>, <a href="http://wg21.link/p0059r1">r1</a>, <a href="http://wg21.link/p0059r0">r0</a>).<br />
+[2] [WG21-SG14/SG14](https://github.com/WG21-SG14/SG14/). Reference implementation of <a href="https://github.com/WG21-SG14/SG14/blob/master/SG14/ring.h"><code>std::ring_span</code></a> by <a href="https://github.com/hatcat">Guy Davidson</a> and <a href="https://github.com/Quuxplusone">Arthur O'Dwyer</a>.<br />
+[3] [Arthur O'Dwyer](https://github.com/Quuxplusone). Reference implementation of <a href="https://github.com/Quuxplusone/ring_view"><code>std::ring_span</code></a>.<br />
+[4] Arthur O’Dwyer. <a href="https://quuxplusone.github.io/blog/2018/05/30/reference-types-with-metadata-cause-problems/">Reference types with metadata cause problems</a>. 30 May 2018.<br />
+[5] Phillip Johnston. <a href="https://embeddedartistry.com/blog/2017/4/6/circular-buffers-in-cc">Creating a Circular Buffer in C and C++</a>. 17 May 2017.<br />
+[6] Jan Gaspar. <a href="http://www.boost.org/libs/circular_buffer">Boost.Circular Buffer</a>.</p>
+<h2 id="appendix">Appendix</h2>
+<p><strong>Contents</strong><br />
+- <a href="#a1">A.1 Applets</a> - <a href="#a2">A.2 Compile-time information</a> - <a href="#a3">A.3 Ring-span lite test specification</a></p>
+<p><a id="a1"></a> ### A.1 Applets</p>
+<p>Applets demonstrate a specific use case. They are available via tag <code>[.applet]</code>.</p>
+<pre><code>&gt; ring-span-main.t.exe -l .applet
+ring_span: filter[.applet]</code></pre>
+<p><a id="a2"></a> ### A.2 Compile-time information</p>
+<p>The version of <em>ring-span lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<p><a id="a3"></a> ### A.3 Ring-span lite test specification</p>
+<p>Note: test cases that assert are tagged with <code>[.assert]</code> and only run when [.assert] is included on the command line, like: <code>test [.assert] partial-test-name</code>.</p>
+<pre><code>ring_span: Allows to construct an empty span from an iterator pair
+ring_span: Allows to construct a partially filled span from an iterator pair and iterator, size
+ring_span: Disallows to copy-construct from a ring_span (compile-time)
+ring_span: Disallows to copy-assign from a ring_span (compile-time)
+ring_span: Allows to move-construct from a ring_span (C++11)
+ring_span: Allows to move-assign from a ring_span (C++11)
+ring_span: Allows to obtain the capacity of a span
+ring_span: Allows to obtain the number of elements in a span (size)
+ring_span: Allows to check for an empty span
+ring_span: Allows to check for a full span
+ring_span: Allows to observe the element at the front
+ring_span: Allows to observe the element at the back
+ring_span: Allows to obtain and remove the element at the front
+ring_span: Allows to obtain and remove the element at the back
+ring_span: Allows to copy-insert an element at the front
+ring_span: Allows to move-insert an element at the front (C++11)
+ring_span: Allows to emplace an element at the front (C++11)
+ring_span: Allows to copy-insert an element at the back
+ring_span: Allows to move-insert an element at the back (C++11)
+ring_span: Allows to emplace an element at the back (C++11)
+ring_span: Adding an element to an empty span makes it non-empty (front)
+ring_span: Adding an element to an empty span makes it non-empty (back)
+ring_span: Adding an element to an empty span doesn&#39;t change its capacity (front)
+ring_span: Adding an element to an empty span doesn&#39;t change its capacity (back)
+ring_span: Adding an element to a full span leaves it full (front)
+ring_span: Adding an element to a full span leaves it full (back)
+ring_span: Adding an element to a full span doesn&#39;t change its capacity (front)
+ring_span: Adding an element to a full span doesn&#39;t change its capacity (back)
+ring_span: Removing an element from an empty span asserts !empty (front)[.assert]
+ring_span: Removing an element from an empty span asserts !empty (back)[.assert]
+ring_span: Removing an element from a span with one element makes it empty (front)
+ring_span: Removing an element from a span with one element makes it empty (back)
+ring_span: Removing an element from a span with one element doesn&#39;t change its capacity (front)
+ring_span: Removing an element from a span with one element doesn&#39;t change its capacity (back)
+ring_span: Removing an element from a full span makes it not full (front)
+ring_span: Removing an element from a full span makes it not full (back)
+ring_span: Removing an element from a full span doesn&#39;t change its capacity (front)
+ring_span: Removing an element from a full span doesn&#39;t change its capacity (back)
+ring_span: Allows to swap spans (member)
+ring_span: Allows to swap spans (non-member)
+ring_span: Allows to appear in range-for (C++11)
+ring_span: Allows iteration (non-const)
+ring_span: Allows iteration (const)
+ring_span: Allows iteration (mixed const-non-const)
+ring_span: Allows reverse iteration (non-const)
+ring_span: Allows reverse iteration (const)
+ring_span: Allows reverse iteration (mixed const-non-const)
+ring_span: A span with capacity zero is both empty and full
+ring_span: A full span is a delay-line of capacity elements (back-front)
+ring_span: A full span is a delay-line of capacity elements (front-back)
+ring_span: A non-full span is a stack of capacity elements (back)
+ring_span: A non-full span is a stack of capacity elements (front)
+ring_span: A non-full span behaves like an harmonica (back-front)
+ring_span: A non-full span behaves like an harmonica (front-back)
+ring_iterator: Allows conversion to const ring_iterator
+ring_iterator: Allows to dereference iterator
+ring_iterator: Allows to increment iterator (prefix)
+ring_iterator: Allows to increment iterator (postfix)
+ring_iterator: Allows to decrement iterator (prefix)
+ring_iterator: Allows to decrement iterator (postfix)
+ring_iterator: Allows to advance iterator (+=)
+ring_iterator: Allows to advance iterator (-=)
+ring_iterator: Allows to offset iterator (+)
+ring_iterator: Allows to offset iterator (-)
+ring_iterator: Allows to obtain difference of iterators
+ring_iterator: Allows to compare iterators (==)
+ring_iterator: Allows to compare iterators (!=)
+ring_iterator: Allows to compare iterators (&lt;)
+ring_iterator: Allows to compare iterators (&lt;=)
+ring_iterator: Allows to compare iterators (&gt;)
+ring_iterator: Allows to compare iterators (&gt;=)
+ring_iterator: Allows to compare iterators (mixed const-non-const)
+null_popper: A null popper returns void
+null_popper: A null popper leaves the original element unchanged
+default_popper: A default popper returns the element
+default_popper: A default popper moves the element (C++11)
+default_popper: A default popper leaves the original element unchanged
+copy_popper: A copy popper returns the element
+copy_popper: A copy popper replaces the original element</code></pre>

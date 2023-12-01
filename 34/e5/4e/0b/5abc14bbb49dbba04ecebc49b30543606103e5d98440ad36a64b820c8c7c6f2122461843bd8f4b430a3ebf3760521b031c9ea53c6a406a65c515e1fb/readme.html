@@ -1,0 +1,69 @@
+<h1 id="dbg"><code>dbg(…)</code></h1>
+<p><a href="https://travis-ci.org/sharkdp/dbg-macro"><img src="https://travis-ci.org/sharkdp/dbg-macro.svg?branch=master" alt="Build Status" /></a> <a href="https://repl.it/@sharkdp/dbg-macro-demo"><img src="https://img.shields.io/badge/try-online-f34b7d.svg" alt="Try it online" /></a> <a href="dbg.h"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a></p>
+<p><em>A macro for <code>printf</code>-style debugging fans.</em></p>
+<p>Debuggers are great. But sometimes you just don't have the time and nerve to set up everything correctly and just want a quick way to inspect some values at runtime.</p>
+<p>This projects provides a <a href="dbg.h">single header file</a> with a <code>dbg(…)</code> macro that can be used in all circumstances where you would typically write <code>printf(&quot;…&quot;, …)</code> or <code>std::cout &lt;&lt; … &lt;&lt; std::endl;</code>, but with a few extras.</p>
+<h2 id="examples">Examples</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;dbg.h&gt;</span>
+
+<span class="co">// You can use &quot;dbg(..)&quot; in expressions:</span>
+<span class="dt">int</span> factorial(<span class="dt">int</span> n) {
+  <span class="cf">if</span> (dbg(n &lt;= <span class="dv">1</span>)) {
+    <span class="cf">return</span> dbg(<span class="dv">1</span>);
+  } <span class="cf">else</span> {
+    <span class="cf">return</span> dbg(n * factorial(n - <span class="dv">1</span>));
+  }
+}
+
+<span class="dt">int</span> main() {
+  <span class="bu">std::</span>string message = <span class="st">&quot;hello&quot;</span>;
+  dbg(message);  <span class="co">// [example.cpp:15 (main)] message = &quot;hello&quot; (std::string)</span>
+
+  <span class="at">const</span> <span class="dt">int</span> a = <span class="dv">2</span>;
+  <span class="at">const</span> <span class="dt">int</span> b = dbg(<span class="dv">3</span> * a) + <span class="dv">1</span>;  <span class="co">// [example.cpp:18 (main)] 3 * a = 6 (int)</span>
+
+  <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; numbers{b, <span class="dv">13</span>, <span class="dv">42</span>};
+  dbg(numbers);  <span class="co">// [example.cpp:21 (main)] numbers = {7, 13, 42} (size: 3) (std::vector&lt;int&gt;)</span>
+
+  dbg(<span class="st">&quot;this line is executed&quot;</span>);  <span class="co">// [example.cpp:23 (main)] this line is executed</span>
+
+  factorial(<span class="dv">4</span>);
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The code above produces this output (<a href="https://repl.it/@sharkdp/dbg-macro-demo">try it yourself</a>):</p>
+<div class="figure">
+<img src="https://i.imgur.com/NHEYk9A.png" alt="dbg(…) macro output" />
+<p class="caption">dbg(…) macro output</p>
+</div>
+<h2 id="features">Features</h2>
+<ul>
+<li>Easy to read, colorized output (colors auto-disable when the output is not an interactive terminal)</li>
+<li>Prints file name, line number, function name and the original expression</li>
+<li>Adds type information for the printed-out value</li>
+<li>Specialized pretty-printers for containers, pointers, string literals, enums, <code>std::optional</code>, etc.</li>
+<li>Can be used inside expressions</li>
+<li>The <code>dbg.h</code> header issues a compiler warning when included (so you don't forget to remove)</li>
+<li>C++11 compatible</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>To make this actually usable, the <code>dbg.h</code> header should to be available from all kinds of different places and in all kinds of environments. The quick &amp; dirty way is to actually copy the header file to <code>/usr/include</code> or to clone the repository and symlink <code>dbg.h</code> to <code>/usr/include/dbg.h</code>.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/sharkdp/dbg-macro
+<span class="fu">sudo</span> ln -s <span class="va">$(</span><span class="fu">readlink</span> -f dbg-macro/dbg.h<span class="va">)</span> /usr/include/dbg.h</code></pre></div>
+<p>Ideally, if this turns out to be a good idea, we would ship packages for various distributions so you don't have to make untracked changes to your filesystem.</p>
+<h2 id="customization">Customization</h2>
+<p>If you want <code>dbg(…)</code> to work for your custom datatype, you can simply overload <code>operator&lt;&lt;</code> for <code>std::ostream&amp;</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>ostream&amp; <span class="kw">operator</span>&lt;&lt;(<span class="bu">std::</span>ostream&amp; out, <span class="at">const</span> <span class="dt">user_defined_type</span>&amp; v) {
+  out &lt;&lt; <span class="st">&quot;…&quot;</span>;
+  <span class="cf">return</span> out;
+}</code></pre></div>
+<p>If you want to modify the type name that is printed by <code>dbg(…)</code>, you can add a custom <code>get_type_name</code> overload:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Customization point for type information</span>
+<span class="kw">namespace</span> dbg_macro {
+    <span class="bu">std::</span>string get_type_name(type_tag&lt;<span class="dt">bool</span>&gt;) {
+        <span class="cf">return</span> <span class="st">&quot;truth value&quot;</span>;
+    }
+}</code></pre></div>
+<h2 id="acknowledgement">Acknowledgement</h2>
+<p>This project is inspired by Rusts <a href="https://doc.rust-lang.org/std/macro.dbg.html"><code>dbg!(…)</code> macro</a>.</p>

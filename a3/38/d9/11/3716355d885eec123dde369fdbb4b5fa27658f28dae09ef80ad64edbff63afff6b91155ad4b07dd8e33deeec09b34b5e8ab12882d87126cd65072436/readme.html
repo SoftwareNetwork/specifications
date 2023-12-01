@@ -1,0 +1,188 @@
+<p><a href="https://travis-ci.com/CathalT/Cerializer"><img src="https://travis-ci.com/CathalT/Cerializer.svg?branch=master" alt="Build Status" /></a></p>
+<h1 id="what-is-cerializer-c14">What is Cerializer (C++14) ?</h1>
+<p>Cerializer is a set of headers that help take the pain out of JSON serialization in C++ with the help of compile time 'reflection'.</p>
+<p>You no longer need to waste time manually parsing JSON. All you need is your favourite JSON library.</p>
+<p>So far the following implmentations are supported:</p>
+<ul>
+<li>Qt</li>
+<li>Cpprestsdk</li>
+<li>RapidJson</li>
+<li>nlohmann::json</li>
+</ul>
+<p>After the performance results I'm probably going to hold off on adding any other libaries for now. In the future I'll have a look at some of the more performant ones and see if I can find a more efficient solution.</p>
+<h2 id="getting-started">Getting started:</h2>
+<p>Copy the Cerializer folder into your project and include the JsonObj file of your choice.</p>
+<p>Builds on VS2017, Clang and GCC. C++ 14 is required. It will not compile on VS2015.</p>
+<h2 id="example-usage-cpprest">Example Usage (cpprest):</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;Cerializer\CppRestJsonObj.h&quot;</span>
+
+<span class="kw">class</span> Hand : <span class="kw">public</span> Cerial::CppRestJsonObj&lt;Hand&gt;
+{
+<span class="kw">public</span>:
+    <span class="dt">int</span> fingers{ <span class="dv">0</span> };
+    
+   S_PROPERTIES_BEGIN
+        CPPREST_S_PROPERTY(Hand, fingers),
+   S_PROPERTIES_END
+};
+
+<span class="kw">class</span> Person : <span class="kw">public</span> Cerial::CppRestJsonObj&lt;Person&gt;
+{
+<span class="kw">public</span>:
+    <span class="bu">std::</span>string name;
+    <span class="dt">int</span> age{ <span class="dv">0</span> };
+    <span class="bu">std::</span>vector&lt;Hand&gt; hands{ <span class="dv">0</span> };
+
+    
+   S_PROPERTIES_BEGIN
+        <span class="co">//Note for other JSON serializers use S_PROPERTY instead, see tests for examples.</span>
+        CPPREST_S_PROPERTY(Person, name),
+        CPPREST_S_PROPERTY(Person, age),
+        CPPREST_S_PROPERTY(Person, hands),
+   S_PROPERTIES_END
+};</code></pre></div>
+<h2 id="example-usage-rapidjson">Example Usage (rapidjson):</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;Cerializer\RapidJsonObj.h&quot;</span>
+
+<span class="kw">class</span> Hand : <span class="kw">public</span> Cerial::RapidJsonObj&lt;Hand&gt;
+{
+<span class="kw">public</span>:
+    <span class="dt">int</span> fingers{ <span class="dv">0</span> };
+    
+   S_PROPERTIES_BEGIN
+       S_PROPERTY(Hand, fingers),
+   S_PROPERTIES_END
+};
+
+<span class="kw">class</span> Person : <span class="kw">public</span> Cerial::RapidJsonObj&lt;Person&gt;
+{
+<span class="kw">public</span>:
+    <span class="bu">std::</span>string name;
+    <span class="dt">int</span> age{ <span class="dv">0</span> };
+    <span class="bu">std::</span>vector&lt;Hand&gt; hands{ <span class="dv">0</span> };
+
+    
+   S_PROPERTIES_BEGIN
+        S_PROPERTY(Person, name),
+        S_PROPERTY(Person, age),
+        S_PROPERTY(Person, hands),
+   S_PROPERTIES_END
+};
+
+...
+
+Person bob;
+
+bob.name = <span class="st">&quot;bob&quot;</span>;
+bob.age = <span class="dv">35</span>;
+bob.hands = { {<span class="dv">5</span>}, {<span class="dv">5</span>} };
+
+
+<span class="bu">std::</span>string bobJsonStr = bob.toJsonStr();
+rapidjson::Document bobJsonDocClone;
+bobJsonDocClone.Parse(bobJsonStr.c_str());
+Person bobsClone = Person::fromJson(bobJsonDocClone);
+
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Clone&#39;s name: &quot;</span> &lt;&lt; <span class="co">// bob</span>
+bobsClone.name &lt;&lt; <span class="st">&quot; Age: &quot;</span> &lt;&lt;    <span class="co">// 35</span>
+bobsClone.age &lt;&lt; <span class="st">&quot; Hands: &quot;</span> &lt;&lt;   <span class="co">// 2</span>
+bobsClone.hands.size() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<h2 id="basic-performance-tests">Basic Performance Tests:</h2>
+<p>Adding Cerializer to the original nativejson-benchmark tests proved to be more work than I was willing to put in. So instead I forked the codebase and created a stripped down <a href="https://github.com/CathalT/nativejson-benchmark/tree/cerializer_tests">version</a>, it still gives a general idea of how much overhead is involved. Only two tests were benchmarked , parse and stringify, everything else should be the exact same, i.e. handled by the JSON library.</p>
+<h3 id="parse-string---json-dom-object---c-struct">Parse ( String -&gt; JSON DOM object -&gt; C++ Struct )</h3>
+<p>Note: I used two JSON files of pre-generated (using Cerializer) data 1,582KB and 17,877KB.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Total Time</th>
+<th>Base Parse Time</th>
+<th>Cerializer Time</th>
+<th>Additional Overhead</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cpprestsdk</td>
+<td>619ms</td>
+<td>235ms</td>
+<td>384ms</td>
+<td>x1.63</td>
+</tr>
+<tr class="even">
+<td>nlohmann</td>
+<td>492ms</td>
+<td>167ms</td>
+<td>325ms</td>
+<td>x1.95</td>
+</tr>
+<tr class="odd">
+<td>Qt</td>
+<td>230ms</td>
+<td>103ms</td>
+<td>127ms</td>
+<td>x1.23</td>
+</tr>
+<tr class="even">
+<td>RapidJson</td>
+<td>66ms</td>
+<td>34ms</td>
+<td>32ms</td>
+<td>x0.94</td>
+</tr>
+</tbody>
+</table>
+<div class="figure">
+<img src="https://github.com/CathalT/nativejson-benchmark/blob/cerializer_tests/sample/performance_unknown_win32_vc2013_1.%20Parse_Time%20(ms).jpeg" alt="Parse time" />
+<p class="caption">Parse time</p>
+</div>
+<p>Not as fast as I would have hoped, but I can't tell if its the underlying library calls that are slow or if I'm using the APIs inefficiently, but I don't think its the glue code itself. The RapidJson implementation gives me the results I would expect, almost a 1:1 ratio, I'm essentially building the JSON object in memory twice, once for the DOM and once for the struct.</p>
+<h3 id="stringify-c-struct---build-json-dom---string">Stringify (C++ Struct -&gt; Build JSON DOM -&gt; String)</h3>
+<p>Note: RapidJson writes directly to StringBuffer using the Writer class.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Total Time</th>
+<th>Base Stringify Time</th>
+<th>Cerializer Time</th>
+<th>Additional Overhead</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cpprestsdk</td>
+<td>587ms</td>
+<td>78ms</td>
+<td>509ms</td>
+<td>x6.53</td>
+</tr>
+<tr class="even">
+<td>nlohmann</td>
+<td>565ms</td>
+<td>195ms</td>
+<td>370ms</td>
+<td>x1.90</td>
+</tr>
+<tr class="odd">
+<td>Qt</td>
+<td>421ms</td>
+<td>271ms</td>
+<td>150ms</td>
+<td>x0.55</td>
+</tr>
+<tr class="even">
+<td>RapidJson</td>
+<td>80ms</td>
+<td>26ms</td>
+<td>57ms</td>
+<td>x2.19</td>
+</tr>
+</tbody>
+</table>
+<div class="figure">
+<img src="https://github.com/CathalT/nativejson-benchmark/blob/cerializer_tests/sample/performance_unknown_win32_vc2013_2.%20Stringify_Time%20(ms).jpeg" alt="Stringify time" />
+<p class="caption">Stringify time</p>
+</div>
+<p>Some interesting results, the main issue is creating the in-memory representation seems quite slow. (Again, could be my usage of the APIs that is the issue) I don't believe the original nativejson benchmarks actually measure generating the DOM from C++. Quite surprised at the RapidJson result as I am using their Writer and String buffer, assuming there are some improvements to be made on my side.</p>
+<p><strong>Conclusion:</strong> In future Im probably going to use a combination of Cerializer and RapidJson as it still performs well enough for my needs. The ideal scenario would to have Cerializer parse directly from a string -&gt; C++ struct, but thats a different story altogether.</p>

@@ -1,0 +1,227 @@
+<h1 id="header-only-runtime-reflection-system-in-c">Header-only runtime reflection system in C++</h1>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<p><a href="http://badge.fury.io/gh/skypjack%2Fmeta"><img src="https://badge.fury.io/gh/skypjack%2Fmeta.svg" alt="GitHub version" /></a> <a href="https://github.com/skypjack/meta"><img src="https://tokei.rs/b1/github/skypjack/meta" alt="LoC" /></a> <a href="https://travis-ci.org/skypjack/meta"><img src="https://travis-ci.org/skypjack/meta.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/skypjack/meta"><img src="https://ci.appveyor.com/api/projects/status/xs3bos4xl06y0wyv?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/github/skypjack/meta?branch=master"><img src="https://coveralls.io/repos/github/skypjack/meta/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://www.paypal.me/skypjack"><img src="https://img.shields.io/badge/Donate-PayPal-green.svg" alt="Donate" /></a></p>
+<p><a href="https://www.patreon.com/bePatron?c=1772573"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Patreon" /></a></p>
+<blockquote>
+<p>The reflection system was born within <a href="https://github.com/skypjack/entt">EnTT</a> and is developed and enriched there. This project is designed for those who are interested only in a header-only, full-featured, non-intrusive and macro free reflection system which certainly deserves to be treated also separately due to its quality and its rather peculiar features.</p>
+</blockquote>
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#build-instructions">Build Instructions</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#library">Library</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#tests">Tests</a></li>
+<li><a href="#crash-course">Crash course</a></li>
+<li><a href="#reflection-in-a-nutshell">Reflection in a nutshell</a></li>
+<li><a href="#any-as-in-any-type">Any as in any type</a></li>
+<li><a href="#enjoy-the-runtime">Enjoy the runtime</a></li>
+<li><a href="#named-constants-and-enums">Named constants and enums</a></li>
+<li><a href="#properties-and-meta-objects">Properties and meta objects</a></li>
+<li><a href="#unregister-types">Unregister types</a></li>
+<li><a href="#contributors">Contributors</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#support">Support</a></li>
+<li><a href="#patreon">Patreon</a></li>
+<li><a href="#donation">Donation</a></li>
+<li><a href="#hire-me">Hire me</a> <!--
+@endcond TURN_OFF_DOXYGEN
+--></li>
+</ul>
+<h1 id="introduction">Introduction</h1>
+<p>Reflection (or rather, its lack) is a trending topic in the C++ world. I looked for a third-party library that met my needs on the subject, but I always came across some details that I didn't like: macros, being intrusive, too many allocations.<br/> In one word: <strong>unsatisfactory</strong>.</p>
+<p>I finally decided to write a built-in, non-intrusive and macro-free runtime reflection system for my own.<br/> Maybe I didn't do better than others or maybe yes. Time will tell me.</p>
+<h1 id="build-instructions">Build Instructions</h1>
+<h2 id="requirements">Requirements</h2>
+<p>To be able to use <code>meta</code>, users must provide a full-featured compiler that supports at least C++17.<br/> The requirements below are mandatory to compile the tests and to extract the documentation:</p>
+<ul>
+<li>CMake version 3.2 or later.</li>
+<li>Doxygen version 1.8 or later.</li>
+</ul>
+<p>If you are looking for a C++14 version of <code>meta</code>, feel free to <a href="https://github.com/skypjack">contact me</a>.</p>
+<h2 id="library">Library</h2>
+<p><code>meta</code> is a header-only library. This means that including the <code>factory.hpp</code> and <code>meta.hpp</code> headers is enough to include the library as a whole and use it.<br/> It's a matter of adding the following lines to the top of a file:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;meta/factory.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;meta/meta.hpp&gt;</span></code></pre></div>
+<p>Then pass the proper <code>-I</code> argument to the compiler to add the <code>src</code> directory to the include paths.</p>
+<h2 id="documentation">Documentation</h2>
+<p>The documentation is based on <a href="http://www.stack.nl/~dimitri/doxygen/">doxygen</a>. To build it:</p>
+<pre><code>$ cd build
+$ cmake .. -DBUILD_DOCS=ON
+$ make</code></pre>
+<p>The API reference will be created in HTML format within the directory <code>build/docs/html</code>. To navigate it with your favorite browser:</p>
+<pre><code>$ cd build
+$ your_favorite_browser docs/html/index.html</code></pre>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<p>It's also available <a href="https://skypjack.github.io/meta/">online</a> for the latest version. <!--
+@endcond TURN_OFF_DOXYGEN
+--></p>
+<h2 id="tests">Tests</h2>
+<p>To compile and run the tests, <code>meta</code> requires <em>googletest</em>.<br/> <code>cmake</code> will download and compile the library before compiling anything else. In order to build without tests set CMake option <code>BUILD_TESTING=OFF</code>.</p>
+<p>To build the most basic set of tests:</p>
+<ul>
+<li><code>$ cd build</code></li>
+<li><code>$ cmake ..</code></li>
+<li><code>$ make</code></li>
+<li><code>$ make test</code></li>
+</ul>
+<h1 id="crash-course">Crash course</h1>
+<h2 id="reflection-in-a-nutshell">Reflection in a nutshell</h2>
+<p>Reflection always starts from real types (users cannot reflect imaginary types and it would not make much sense, we wouldn't be talking about reflection anymore).<br/> To <em>reflect</em> a type, the library provides the <code>reflect</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::factory factory = meta::reflect&lt;<span class="dt">my_type</span>&gt;(<span class="st">&quot;reflected_type&quot;</span>);</code></pre></div>
+<p>It accepts the type to reflect as a template parameter and an optional name as an argument. Names are important because users can retrieve meta types at runtime by searching for them by name. However, there are cases in which users can be interested in adding features to a reflected type so that the reflection system can use it correctly under the hood, but they don't want to allow searching the type by name.<br/> In both cases, the returned value is a factory object to use to continue building the meta type.</p>
+<p>A factory is such that all its member functions returns the factory itself. It can be used to extend the reflected type and add the following:</p>
+<ul>
+<li><em>Constructors</em>. Actual constructors can be assigned to a reflected type by specifying their list of arguments. Free functions (namely, factories) can be used as well, as long as the return type is the expected one. From a client's point of view, nothing changes if a constructor is a free function or an actual constructor.<br/> Use the <code>ctor</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;my_type&gt;(&quot;reflected&quot;).ctor&lt;int, char&gt;().ctor&lt;&amp;factory&gt;();</code></p>
+<ul>
+<li><em>Destructors</em>. Free functions can be set as destructors of reflected types. The purpose is to give users the ability to free up resources that require special treatment before an object is actually destroyed.<br/> Use the <code>dtor</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;my_type&gt;(&quot;reflected&quot;).dtor&lt;&amp;destroy&gt;();</code></p>
+<ul>
+<li><em>Data members</em>. Both real data members of the underlying type and static and global variables, as well as constants of any kind, can be attached to a meta type. From a client's point of view, all the variables associated with the reflected type will appear as if they were part of the type itself.<br/> Use the <code>data</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;my_type&gt;(&quot;reflected&quot;)       .data&lt;&amp;my_type::static_variable&gt;(&quot;static&quot;)       .data&lt;&amp;my_type::data_member&gt;(&quot;member&quot;)       .data&lt;&amp;global_variable&gt;(&quot;global&quot;);</code></p>
+<p>This function requires as an argument the name to give to the meta data once created. Users can then access meta data at runtime by searching for them by name.<br/> Data members can be set also by means of a couple of functions, namely a setter and a getter. Setters and getters can be either free functions, member functions or mixed ones, as long as they respect the required signatures.<br/> Refer to the inline documentation for all the details.</p>
+<ul>
+<li><em>Member functions</em>. Both real member functions of the underlying type and free functions can be attached to a meta type. From a client's point of view, all the functions associated with the reflected type will appear as if they were part of the type itself.<br/> Use the <code>func</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;my_type&gt;(&quot;reflected&quot;)       .func&lt;&amp;my_type::static_function&gt;(&quot;static&quot;)       .func&lt;&amp;my_type::member_function&gt;(&quot;member&quot;)       .func&lt;&amp;free_function&gt;(&quot;free&quot;);</code></p>
+<p>This function requires as an argument the name to give to the meta function once created. Users can then access meta functions at runtime by searching for them by name.</p>
+<ul>
+<li><em>Base classes</em>. A base class is such that the underlying type is actually derived from it. In this case, the reflection system tracks the relationship and allows for implicit casts at runtime when required.<br/> Use the <code>base</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;derived_type&gt;(&quot;derived&quot;).base&lt;base_type&gt;();</code></p>
+<p>From now on, wherever a <code>base_type</code> is required, an instance of <code>derived_type</code> will also be accepted.</p>
+<ul>
+<li><em>Conversion functions</em>. Actual types can be converted, this is a fact. Just think of the relationship between a <code>double</code> and an <code>int</code> to see it. Similar to bases, conversion functions allow users to define conversions that will be implicitly performed by the reflection system when required.<br/> Use the <code>conv</code> member function for this purpose:</li>
+</ul>
+<p><code>cpp   meta::reflect&lt;double&gt;().conv&lt;int&gt;();</code></p>
+<p>That's all, everything users need to create meta types and enjoy the reflection system. At first glance it may not seem that much, but users usually learn to appreciate it over time.<br/> Also, do not forget what these few lines hide under the hood: a built-in, non-intrusive and macro-free system for reflection in C++. Features that are definitely worth the price, at least for me.</p>
+<h2 id="any-as-in-any-type">Any as in any type</h2>
+<p>The reflection system comes with its own meta any type. It may seem redundant since C++17 introduced <code>std::any</code>, but it is not.<br/> In fact, the <em>type</em> returned by an <code>std::any</code> is a const reference to an <code>std::type_info</code>, an implementation defined class that's not something everyone wants to see in a software. Furthermore, the class <code>std::type_info</code> suffers from some design flaws and there is even no way to <em>convert</em> an <code>std::type_info</code> into a meta type, thus linking the two worlds.</p>
+<p>A meta any object provides an API similar to that of its most famous counterpart and serves the same purpose of being an opaque container for any type of value.<br/> It minimizes the allocations required, which are almost absent thanks to <em>SBO</em> techniques. In fact, unless users deal with <em>fat types</em> and create instances of them though the reflection system, allocations are at zero.</p>
+<p>A meta any object can be created by any other object or as an empty container to initialize later:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// a meta any object that contains an int</span>
+meta::any any{<span class="dv">0</span>};
+
+<span class="co">// an empty meta any object</span>
+meta::any empty{};</code></pre></div>
+<p>It can be constructed or assigned by copy and move and it takes the burden of destroying the contained object when required.<br/> A meta any object has a <code>type</code> member function that returns the meta type of the contained value, if any. The member functions <code>can_cast</code> and <code>can_convert</code> are used to know if the underlying object has a given type as a base or if it can be converted implicitly to it. Similarly, <code>cast</code> and <code>convert</code> do what they promise and return the expected value.</p>
+<h2 id="enjoy-the-runtime">Enjoy the runtime</h2>
+<p>Once the web of reflected types has been constructed, it's a matter of using it at runtime where required.</p>
+<p>To search for a reflected type there are two options: by type or by name. In both cases, the search can be done by means of the <code>resolve</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// search for a reflected type by type</span>
+meta::type <span class="dt">by_type</span> = meta::resolve&lt;<span class="dt">my_type</span>&gt;();
+
+<span class="co">// search for a reflected type by name</span>
+meta::type by_name = meta::resolve(<span class="st">&quot;reflected_type&quot;</span>);</code></pre></div>
+<p>There exits also a third overload of the <code>resolve</code> function to use to iterate all the reflected types at once:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">resolve([](meta::type type) {
+    <span class="co">// ...</span>
+});</code></pre></div>
+<p>In all cases, the returned value is an instance of <code>type</code>. This type of objects offer an API to know the <em>runtime name</em> of the type, to iterate all the meta objects associated with them and even to build or destroy instances of the underlying type.<br/> Refer to the inline documentation for all the details.</p>
+<p>The meta objects that compose a meta type are accessed in the following ways:</p>
+<ul>
+<li><em>Meta constructors</em>. They are accessed by types of arguments:</li>
+</ul>
+<p><code>cpp   meta::ctor ctor = meta::resolve&lt;my_type&gt;().ctor&lt;int, char&gt;();</code></p>
+<p>The returned type is <code>ctor</code> and may be invalid if there is no constructor that accepts the supplied arguments or at least some types from which they are derived or to which they can be converted.<br/> A meta constructor offers an API to know the number of arguments, the expected meta types and to invoke it, therefore to construct a new instance of the underlying type.</p>
+<ul>
+<li><em>Meta destructor</em>. It's returned by a dedicated function:</li>
+</ul>
+<p><code>cpp   meta::dtor dtor = meta::resolve&lt;my_type&gt;().dtor();</code></p>
+<p>The returned type is <code>dtor</code> and may be invalid if there is no custom destructor set for the given meta type.<br/> All what a meta destructor has to offer is a way to invoke it on a given instance. Be aware that the result may not be what is expected.</p>
+<ul>
+<li><em>Meta data</em>. They are accessed by name:</li>
+</ul>
+<p><code>cpp   meta::data data = meta::resolve&lt;my_type&gt;().data(&quot;member&quot;);</code></p>
+<p>The returned type is <code>data</code> and may be invalid if there is no meta data object associated with the given name.<br/> A meta data object offers an API to query the underlying type (ie to know if it's a const or a static one), to get the meta type of the variable and to set or get the contained value.</p>
+<ul>
+<li><em>Meta functions</em>. They are accessed by name:</li>
+</ul>
+<p><code>cpp   meta::func func = meta::resolve&lt;my_type&gt;().func(&quot;member&quot;);</code></p>
+<p>The returned type is <code>func</code> and may be invalid if there is no meta function object associated with the given name.<br/> A meta function object offers an API to query the underlying type (ie to know if it's a const or a static function), to know the number of arguments, the meta return type and the meta types of the parameters. In addition, a meta function object can be used to invoke the underlying function and then get the return value in the form of meta any object.</p>
+<ul>
+<li><em>Meta bases</em>. They are accessed through the name of the base types:</li>
+</ul>
+<p><code>cpp   meta::base base = meta::resolve&lt;derived_type&gt;().base(&quot;base&quot;);</code></p>
+<p>The returned type is <code>base</code> and may be invalid if there is no meta base object associated with the given name.<br/> Meta bases aren't meant to be used directly, even though they are freely accessible. They expose only a few methods to use to know the meta type of the base class and to convert a raw pointer between types.</p>
+<ul>
+<li><em>Meta conversion functions</em>. They are accessed by type:</li>
+</ul>
+<p><code>cpp   meta::conv conv = meta::resolve&lt;double&gt;().conv&lt;int&gt;();</code></p>
+<p>The returned type is <code>conv</code> and may be invalid if there is no meta conversion function associated with the given type.<br/> The meta conversion functions are as thin as the meta bases and with a very similar interface. The sole difference is that they return a newly created instance wrapped in a meta any object when they convert between different types.</p>
+<p>All the objects thus obtained as well as the meta types can be explicitly converted to a boolean value to check if they are valid:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::func func = meta::resolve&lt;<span class="dt">my_type</span>&gt;().func(<span class="st">&quot;member&quot;</span>);
+
+<span class="cf">if</span>(func) {
+    <span class="co">// ...</span>
+}</code></pre></div>
+<p>Furthermore, all meta objects with the exception of meta destructors can be iterated through an overload that accepts a callback through which to return them. As an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::resolve&lt;<span class="dt">my_type</span>&gt;().data([](meta::data data) {
+    <span class="co">// ...</span>
+});</code></pre></div>
+<p>A meta type can also be used to <code>construct</code> or <code>destroy</code> actual instances of the underlying type.<br/> In particular, the <code>construct</code> member function accepts a variable number of arguments and searches for a match. It returns a <code>any</code> object that may or may not be initialized, depending on whether a suitable constructor has been found or not. On the other side, the <code>destroy</code> member function accepts instances of <code>any</code> as well as actual objects by reference and invokes the registered destructor if any or a default one.<br/> Be aware that the result of a call to <code>destroy</code> may not be what is expected.</p>
+<p>Meta types and meta objects in general contain much more than what is said: a plethora of functions in addition to those listed whose purposes and uses go unfortunately beyond the scope of this document.<br/> I invite anyone interested in the subject to look at the code, experiment and read the official documentation to get the best out of this powerful tool.</p>
+<h2 id="named-constants-and-enums">Named constants and enums</h2>
+<p>A special mention should be made for constant values and enums. It wouldn't be necessary, but it will help distracted readers.</p>
+<p>As mentioned, the <code>data</code> member function can be used to reflect constants of any type among the other things.<br/> This allows users to create meta types for enums that will work exactly like any other meta type built from a class. Similarly, arithmetic types can be enriched with constants of special meaning where required.<br/> Personally, I find it very useful not to export what is the difference between enums and classes in C++ directly in the space of the reflected types.</p>
+<p>All the values thus exported will appear to users as if they were constant data members of the reflected types.</p>
+<p>Exporting constant values or elements from an enum is as simple as ever:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::reflect&lt;my_enum&gt;()
+        .data&lt;my_enum::a_value&gt;(<span class="st">&quot;a_value&quot;</span>)
+        .data&lt;my_enum::another_value&gt;(<span class="st">&quot;another_value&quot;</span>);
+
+meta::reflect&lt;<span class="dt">int</span>&gt;().data&lt;<span class="dv">2048</span>&gt;(<span class="st">&quot;max_int&quot;</span>);</code></pre></div>
+<p>It goes without saying that accessing them is trivial as well. It's a matter of doing the following, as with any other data member of a meta type:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">my_enum value = meta::resolve&lt;my_enum&gt;().data(<span class="st">&quot;a_value&quot;</span>).get({}).cast&lt;my_enum&gt;();
+<span class="dt">int</span> max = meta::resolve&lt;<span class="dt">int</span>&gt;().data(<span class="st">&quot;max_int&quot;</span>).get({}).cast&lt;<span class="dt">int</span>&gt;();</code></pre></div>
+<p>As a side note, remember that all this happens behind the scenes without any allocation because of the small object optimization performed by the meta any class.</p>
+<h2 id="properties-and-meta-objects">Properties and meta objects</h2>
+<p>Sometimes (ie when it comes to creating an editor) it might be useful to be able to attach properties to the meta objects created. Fortunately, this is possible for most of them.<br/> To attach a property to a meta object, no matter what as long as it supports properties, it is sufficient to provide an object at the time of construction such that <code>std::get&lt;0&gt;</code> and <code>std::get&lt;1&gt;</code> are valid for it. In other terms, the properties are nothing more than key/value pairs users can put in an <code>std::pair</code>. As an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::reflect&lt;<span class="dt">my_type</span>&gt;(<span class="st">&quot;reflected&quot;</span>, <span class="bu">std::</span>make_pair(<span class="st">&quot;tooltip&quot;_hs</span>, <span class="st">&quot;message&quot;</span>));</code></pre></div>
+<p>The meta objects that support properties offer then a couple of member functions named <code>prop</code> to iterate them at once and to search a specific property by key:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// iterate all the properties of a meta type</span>
+meta::resolve&lt;<span class="dt">my_type</span>&gt;().prop([](meta::prop prop) {
+    <span class="co">// ...</span>
+});
+
+<span class="co">// search for a given property by name</span>
+meta::prop prop = meta::resolve&lt;<span class="dt">my_type</span>&gt;().prop(<span class="st">&quot;tooltip&quot;_hs</span>);</code></pre></div>
+<p>Meta properties are objects having a fairly poor interface, all in all. They only provide the <code>key</code> and the <code>value</code> member functions to be used to retrieve the key and the value contained in the form of meta any objects, respectively.</p>
+<h2 id="unregister-types">Unregister types</h2>
+<p>A type registered with the reflection system can also be unregistered. This means unregistering all its data members, member functions, conversion functions and so on. However, the base classes won't be unregistered, since they don't necessarily depend on it. Similarly, implicitly generated types (as an example, the meta types implicitly generated for function parameters when needed) won't be unregistered.</p>
+<p>To unregister a type, users can use the <code>unregister</code> function from the global namespace:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::unregister&lt;<span class="dt">my_type</span>&gt;();</code></pre></div>
+<p>This function returns a boolean value that is true if the type is actually registered with the reflection system, false otherwise.<br/> The type can be re-registered later with a completely different name and form.</p>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<h1 id="contributors">Contributors</h1>
+<p>Requests for features, PR, suggestions ad feedback are highly appreciated.</p>
+<p>If you find you can help me and want to contribute to the project with your experience or you do want to get part of the project for some other reasons, feel free to contact me directly (you can find the mail in the <a href="https://github.com/skypjack">profile</a>).<br/> I can't promise that each and every contribution will be accepted, but I can assure that I'll do my best to take them all seriously.</p>
+<p>If you decide to participate, please see the guidelines for <a href="docs/CONTRIBUTING.md">contributing</a> before to create issues or pull requests.<br/> Take also a look at the <a href="https://github.com/skypjack/meta/blob/master/AUTHORS">contributors list</a> to know who has participated so far. <!--
+@endcond TURN_OFF_DOXYGEN
+--></p>
+<h1 id="license">License</h1>
+<p>Code and documentation Copyright (c) 2018-2019 Michele Caini.</p>
+<p>Code released under <a href="https://github.com/skypjack/meta/blob/master/LICENSE">the MIT license</a>. Documentation released under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.<br/></p>
+<!--
+@cond TURN_OFF_DOXYGEN
+-->
+<h1 id="support">Support</h1>
+<h2 id="patreon">Patreon</h2>
+<p>Become a <a href="https://www.patreon.com/bePatron?c=1772573">patron</a> and get access to extra content, help me spend more time on the projects you love and create new ones for you. Your support will help me to continue the work done so far and make it more professional and feature-rich every day.<br/> It takes very little to <a href="https://www.patreon.com/bePatron?c=1772573">become a patron</a> and thus help the software you use every day. Don't miss the chance.</p>
+<h2 id="donation">Donation</h2>
+<p>If you want to support this project, you can offer me an espresso. I'm from Italy, we're used to turning the best coffee ever in code. If you find that it's not enough, feel free to support me the way you prefer.<br/> Take a look at the donation button at the top of the page for more details or just click <a href="https://www.paypal.me/skypjack">here</a>.</p>
+<h2 id="hire-me">Hire me</h2>
+<p>If you start using <code>meta</code> and need help, if you want a new feature and want me to give it the highest priority, if you have any other reason to contact me: do not hesitate. I'm available for hiring.<br/> Feel free to take a look at my <a href="https://github.com/skypjack">profile</a> and contact me by mail. <!--
+@endcond TURN_OFF_DOXYGEN
+--></p>

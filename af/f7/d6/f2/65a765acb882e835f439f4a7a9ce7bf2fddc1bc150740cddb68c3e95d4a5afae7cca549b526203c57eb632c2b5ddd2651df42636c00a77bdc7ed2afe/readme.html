@@ -1,0 +1,117 @@
+<h1 id="libheif">libheif</h1>
+<p><a href="https://github.com/strukturag/libheif/actions"><img src="https://github.com/strukturag/libheif/workflows/build/badge.svg" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/strukturag/libheif"><img src="https://ci.appveyor.com/api/projects/status/github/strukturag/libheif?svg=true" alt="Build Status" /></a> <a href="https://scan.coverity.com/projects/strukturag-libheif"><img src="https://scan.coverity.com/projects/16641/badge.svg" alt="Coverity Scan Build Status" /></a></p>
+<p>libheif is an ISO/IEC 23008-12:2017 HEIF and AVIF (AV1 Image File Format) file format decoder and encoder.</p>
+<p>HEIF and AVIF are new image file formats employing HEVC (h.265) or AV1 image coding, respectively, for the best compression ratios currently possible.</p>
+<p>libheif makes use of <a href="https://github.com/strukturag/libde265">libde265</a> for HEIF image decoding and x265 for encoding. For AVIF, libaom, dav1d, or rav1e are used as codecs.</p>
+<h2 id="supported-features">Supported features</h2>
+<p>libheif has support for decoding * tiled images * alpha channels * thumbnails * reading EXIF and XMP metadata * reading the depth channel * multiple images in a file * image transformations (crop, mirror, rotate) * overlay images * plugin interface to add alternative codecs for additional formats (AVC, JPEG) * decoding of files while downloading (e.g. extract image size before file has been completely downloaded) * reading color profiles * heix images (10 and 12 bit, chroma 4:2:2)</p>
+<p>The encoder supports: * lossy compression with adjustable quality * lossless compression * alpha channels * thumbnails * save multiple images to a file * save EXIF and XMP metadata * writing color profiles * 10 and 12 bit images * monochrome images</p>
+<h2 id="api">API</h2>
+<p>The library has a C API for easy integration and wide language support. Note that the API is still work in progress and may still change.</p>
+<p>The decoder automatically supports both HEIF and AVIF through the same API. No changes are required to existing code to support AVIF. The encoder can be switched between HEIF and AVIF simply by setting <code>heif_compression_HEVC</code> or <code>heif_compression_AV1</code> to <code>heif_context_get_encoder_for_format()</code>.</p>
+<p>Loading the primary image in an HEIF file is as easy as this:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>heif_context<span class="op">*</span> ctx <span class="op">=</span> heif_context_alloc<span class="op">();</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>heif_context_read_from_file<span class="op">(</span>ctx<span class="op">,</span> input_filename<span class="op">,</span> nullptr<span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// get a handle to the primary image</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>heif_image_handle<span class="op">*</span> handle<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>heif_context_get_primary_image_handle<span class="op">(</span>ctx<span class="op">,</span> <span class="op">&amp;</span>handle<span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">// decode the image and convert colorspace to RGB, saved as 24bit interleaved</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>heif_image<span class="op">*</span> img<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>heif_decode_image<span class="op">(</span>handle<span class="op">,</span> <span class="op">&amp;</span>img<span class="op">,</span> heif_colorspace_RGB<span class="op">,</span> heif_chroma_interleaved_RGB<span class="op">,</span> nullptr<span class="op">);</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> stride<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">uint8_t</span><span class="op">*</span> data <span class="op">=</span> heif_image_get_plane_readonly<span class="op">(</span>img<span class="op">,</span> heif_channel_interleaved<span class="op">,</span> <span class="op">&amp;</span>stride<span class="op">);</span></span></code></pre></div>
+<p>Writing an HEIF file can be done like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>heif_context<span class="op">*</span> ctx <span class="op">=</span> heif_context_alloc<span class="op">();</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// get the default encoder</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>heif_encoder<span class="op">*</span> encoder<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>heif_context_get_encoder_for_format<span class="op">(</span>ctx<span class="op">,</span> heif_compression_HEVC<span class="op">,</span> <span class="op">&amp;</span>encoder<span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// set the encoder parameters</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>heif_encoder_set_lossy_quality<span class="op">(</span>encoder<span class="op">,</span> <span class="dv">50</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">// encode the image</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>heif_image<span class="op">*</span> image<span class="op">;</span> <span class="co">// code to fill in the image omitted in this example</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>heif_context_encode_image<span class="op">(</span>ctx<span class="op">,</span> image<span class="op">,</span> encoder<span class="op">,</span> nullptr<span class="op">,</span> nullptr<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>heif_encoder_release<span class="op">(</span>encoder<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>heif_context_write_to_file<span class="op">(</span>context<span class="op">,</span> <span class="st">&quot;output.heic&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>See the header file <code>heif.h</code> for the complete C API.</p>
+<p>There is also a C++ API which is a header-only wrapper to the C API. Hence, you can use the C++ API and still be binary compatible. Code using the C++ API is much less verbose than using the C API directly.</p>
+<p>There is also an experimental Go API, but this is not stable yet.</p>
+<h2 id="compiling">Compiling</h2>
+<p>This library uses either a standard autoconf/automake build system or CMake.</p>
+<p>When using autoconf, run <code>./autogen.sh</code> to build the configuration scripts, then call <code>./configure</code> and <code>make</code>. Make sure that you compile and install <a href="https://github.com/strukturag/libde265">libde265</a> first, so that the configuration script will find this. Preferably, download the <code>frame-parallel</code> branch of libde265, as this uses a more recent API than the version in the <code>master</code> branch. Also install x265 and its development files if you want to use HEIF encoding.</p>
+<p>For AVIF support, make sure that libaom is installed.</p>
+<h3 id="macos">macOS</h3>
+<ol type="1">
+<li><p>Install dependencies with Homebrew</p>
+<pre><code>brew install automake make pkg-config x265 libde265 libjpeg</code></pre></li>
+<li><p>Configure and build project</p>
+<pre><code>./autogen.sh
+./configure
+make</code></pre></li>
+</ol>
+<h3 id="windows">Windows</h3>
+<p>Libheif is included in <a href="https://github.com/Microsoft/vcpkg/">Vcpkg</a>.</p>
+<h3 id="adding-rav1e-encoder-for-avif">Adding rav1e encoder for AVIF</h3>
+<ul>
+<li>Install <code>cargo</code>.</li>
+<li>Install <code>cargo-c</code> by executing</li>
+</ul>
+<pre><code>cargo install --force cargo-c</code></pre>
+<ul>
+<li>Run the <code>rav1e.cmd</code> script in directory <code>third-party</code> to download rav1e and compile it.</li>
+</ul>
+<p>When running <code>cmake</code> or <code>configure</code>, make sure that the environment variable <code>PKG_CONFIG_PATH</code> includes the absolute path to <code>third-party/rav1e/dist/lib/pkgconfig</code>.</p>
+<h3 id="adding-dav1d-decoder-for-avif">Adding dav1d decoder for AVIF</h3>
+<ul>
+<li>Install <a href="https://mesonbuild.com/"><code>meson</code></a>.</li>
+<li>Run the <code>dav1d.cmd</code> script in directory <code>third-party</code> to download dav1d and compile it.</li>
+</ul>
+<p>When running <code>cmake</code> or <code>configure</code>, make sure that the environment variable <code>PKG_CONFIG_PATH</code> includes the absolute path to <code>third-party/dav1d/dist/lib/x86_64-linux-gnu/pkgconfig</code>.</p>
+<h2 id="language-bindings">Language bindings</h2>
+<ul>
+<li>.NET Platform (C#, F#, and other languages): <a href="https://github.com/0xC0000054/libheif-sharp">libheif-sharp</a></li>
+<li>C++: part of libheif</li>
+<li>Go: part of libheif</li>
+<li>JavaScript: by compilation with emscripten (see below)</li>
+<li>NodeJS module: <a href="https://www.npmjs.com/package/libheif-js">libheif-js</a></li>
+<li>Python: <a href="https://pypi.org/project/pyheif/">pyheif</a></li>
+<li>Rust: <a href="https://github.com/Cykooz/libheif-sys">libheif-sys</a></li>
+</ul>
+<p>Languages that can directly interface with C libraries (e.g., Swift, C#) should work out of the box.</p>
+<h2 id="compiling-to-javascript">Compiling to JavaScript</h2>
+<p>libheif can also be compiled to JavaScript using <a href="http://kripken.github.io/emscripten-site/">emscripten</a>. See the <code>build-emscripten.sh</code> for further information.</p>
+<h2 id="online-demo">Online demo</h2>
+<p>Check out this <a href="https://strukturag.github.io/libheif/">online demo</a>. This is <code>libheif</code> running in JavaScript in your browser.</p>
+<h2 id="example-programs">Example programs</h2>
+<p>Some example programs are provided in the <code>examples</code> directory. The program <code>heif-convert</code> converts all images stored in an HEIF/AVIF file to JPEG or PNG. <code>heif-enc</code> lets you convert JPEG files to HEIF/AVIF. The program <code>heif-info</code> is a simple, minimal decoder that dumps the file structure to the console.</p>
+<p>For example convert <code>example.heic</code> to JPEGs and one of the JPEGs back to HEIF:</p>
+<pre><code>cd examples/
+./heif-convert example.heic example.jpeg
+./heif-enc example-1.jpeg -o example.heif</code></pre>
+<p>In order to convert <code>example-1.jpeg</code> to AVIF use:</p>
+<pre><code>./heif-enc example-1.jpeg -A -o example.avif</code></pre>
+<p>There is also a GIMP plugin using libheif <a href="https://github.com/strukturag/heif-gimp-plugin">here</a>.</p>
+<h2 id="heifavif-thumbnails-for-the-gnome-desktop">HEIF/AVIF thumbnails for the Gnome desktop</h2>
+<p>The program <code>heif-thumbnailer</code> can be used as an HEIF/AVIF thumbnailer for the Gnome desktop. The matching Gnome configuration files are in the <code>gnome</code> directory. Place the files <code>heif.xml</code> and <code>avif.xml</code> into <code>/usr/share/mime/packages</code> and <code>heif.thumbnailer</code> into <code>/usr/share/thumbnailers</code>. You may have to run <code>update-mime-database /usr/share/mime</code> to update the list of known MIME types.</p>
+<h2 id="gdk-pixbuf-loader">gdk-pixbuf loader</h2>
+<p>libheif also includes a gdk-pixbuf loader for HEIF/AVIF images. ‘make install’ will copy the plugin into the system directories. However, you will still have to run <code>gdk-pixbuf-query-loaders --update-cache</code> to update the gdk-pixbuf loader database.</p>
+<h2 id="software-using-libheif">Software using libheif</h2>
+<ul>
+<li>GIMP</li>
+<li>Krita</li>
+<li>ImageMagick</li>
+<li>digiKam 7.0.0</li>
+<li>libvips</li>
+<li><a href="https://kodi.wiki/view/Add-on:HEIF_image_decoder">Kodi HEIF image decoder plugin</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>The libheif is distributed under the terms of the GNU Lesser General Public License. The sample applications are distributed under the terms of the MIT License.</p>
+<p>See COPYING for more details.</p>
+<p>Copyright (c) 2017-2020 Struktur AG Contact: Dirk Farin <a href="mailto:dirk.farin@gmail.com" class="email">dirk.farin@gmail.com</a></p>

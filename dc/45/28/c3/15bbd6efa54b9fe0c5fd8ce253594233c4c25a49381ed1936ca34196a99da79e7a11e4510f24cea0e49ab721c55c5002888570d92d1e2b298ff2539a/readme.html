@@ -1,0 +1,231 @@
+<p><a href="https://travis-ci.org/Tessil/robin-map"><img src="https://travis-ci.org/Tessil/robin-map.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/Tessil/robin-map/branch/master"><img src="https://ci.appveyor.com/api/projects/status/lo79n4ya4nta79q4/branch/master?svg=true" alt="Build status" /></a></p>
+<h2 id="a-c-implementation-of-a-fast-hash-map-and-hash-set-using-robin-hood-hashing">A C++ implementation of a fast hash map and hash set using robin hood hashing</h2>
+<p>The robin-map library is a C++ implementation of a fast hash map and hash set using open-addressing and linear robin hood hashing with backward shift deletion to resolve collisions.</p>
+<p>Four classes are provided: <code>tsl::robin_map</code>, <code>tsl::robin_set</code>, <code>tsl::robin_pg_map</code> and <code>tsl::robin_pg_set</code>. The first two are faster and use a power of two growth policy, the last two use a prime growth policy instead and are able to cope better with a poor hash function. Use the prime version if there is a chance of repeating patterns in the lower bits of your hash (e.g. you are storing pointers with an identity hash function). See <a href="#growth-policy">GrowthPolicy</a> for details.</p>
+<p>A <strong>benchmark</strong> of <code>tsl::robin_map</code> against other hash maps may be found <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">here</a>. This page also gives some advices on which hash table structure you should try for your use case (useful if you are a bit lost with the multiple hash tables implementations in the <code>tsl</code> namespace).</p>
+<h3 id="key-features">Key features</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a> directory to your include path and you are ready to go. If you use CMake, you can also use the <code>tsl::robin_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a>.</li>
+<li>Fast hash table, check the <a href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">benchmark</a> for some numbers.</li>
+<li>Support for move-only and non-default constructible key/value.</li>
+<li>Support for heterogeneous lookups allowing the usage of <code>find</code> with a type different than <code>Key</code> (e.g. if you have a map that uses <code>std::unique_ptr&lt;foo&gt;</code> as key, you can use a <code>foo*</code> or a <code>std::uintptr_t</code> as key parameter to <code>find</code> without constructing a <code>std::unique_ptr&lt;foo&gt;</code>, see <a href="#heterogeneous-lookups">example</a>).</li>
+<li>No need to reserve any sentinel value from the keys.</li>
+<li>Possibility to store the hash value alongside the stored key-value for faster rehash and lookup if the hash or the key equal functions are expensive to compute. Note that hash may be stored even if not asked explicitly when the library can detect that it will have no impact on the size of the structure in memory due to alignment. See the <a href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">StoreHash</a> template parameter for details.</li>
+<li>If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see <code>precalculated_hash</code> parameter in <a href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#a35021b11aabb61820236692a54b3a0f8">API</a>).</li>
+<li>The library can be used with exceptions disabled (through <code>-fno-exceptions</code> option on Clang and GCC, without an <code>/EH</code> option on MSVC or simply by defining <code>TSL_NO_EXCEPTIONS</code>). <code>std::terminate</code> is used in replacement of the <code>throw</code> instruction when exceptions are disabled.</li>
+<li>API closely similar to <code>std::unordered_map</code> and <code>std::unordered_set</code>.</li>
+</ul>
+<h3 id="differences-compared-to-stdunordered_map">Differences compared to <code>std::unordered_map</code></h3>
+<p><code>tsl::robin_map</code> tries to have an interface similar to <code>std::unordered_map</code>, but some differences exist. - The <strong>strong exception guarantee only holds</strong> if the following statement is true <code>std::is_nothrow_swappable&lt;value_type&gt;::value &amp;&amp; std::is_nothrow_move_constructible&lt;value_type&gt;::value</code> (where <code>value_type</code> is <code>Key</code> for <code>tsl::robin_set</code> and <code>std::pair&lt;Key, T&gt;</code> for <code>tsl::robin_map</code>). Otherwise if an exception is thrown during the swap or the move, the structure may end up in a undefined state. Note that per the standard, a <code>value_type</code> with a noexcept copy constructor and no move constructor also satisfies this condition and will thus guarantee the strong exception guarantee for the structure (see <a href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">API</a> for details). - The type <code>Key</code>, and also <code>T</code> in case of map, must be swappable. They must also be copy and/or move constructible. - Iterator invalidation doesn't behave in the same way, any operation modifying the hash table invalidate them (see <a href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">API</a> for details). - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values. - For iterators of <code>tsl::robin_map</code>, <code>operator*()</code> and <code>operator-&gt;()</code> return a reference and a pointer to <code>const std::pair&lt;Key, T&gt;</code> instead of <code>std::pair&lt;const Key, T&gt;</code> making the value <code>T</code> not modifiable. To modify the value you have to call the <code>value()</code> method of the iterator to get a mutable reference. Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tsl::robin_map&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; map = {{<span class="dv">1</span>, <span class="dv">1</span>}, {<span class="dv">2</span>, <span class="dv">1</span>}, {<span class="dv">3</span>, <span class="dv">1</span>}};
+<span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+    <span class="co">//it-&gt;second = 2; // Illegal</span>
+    it.value() = <span class="dv">2</span>; <span class="co">// Ok</span>
+}</code></pre></div>
+<ul>
+<li>No support for some buckets related methods (like <code>bucket_size</code>, <code>bucket</code>, ...).</li>
+</ul>
+<p>These differences also apply between <code>std::unordered_set</code> and <code>tsl::robin_set</code>.</p>
+<p>Thread-safety guarantees are the same as <code>std::unordered_map/set</code> (i.e. possible to have multiple readers with no writer).</p>
+<h3 id="growth-policy">Growth policy</h3>
+<p>The library supports multiple growth policies through the <code>GrowthPolicy</code> template parameter. Three policies are provided by the library but you can easily implement your own if needed.</p>
+<ul>
+<li><strong><a href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1power__of__two__growth__policy.html">tsl::rh::power_of_two_growth_policy.</a></strong> Default policy used by <code>tsl::robin_map/set</code>. This policy keeps the size of the bucket array of the hash table to a power of two. This constraint allows the policy to avoid the usage of the slow modulo operation to map a hash to a bucket, instead of <code>hash % 2<sup>n</sup></code>, it uses <code>hash &amp; (2<sup>n</sup> - 1)</code> (see <a href="https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues">fast modulo</a>). Fast but this may cause a lot of collisions with a poor hash function as the modulo with a power of two only masks the most significant bits in the end.</li>
+<li><strong><a href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1prime__growth__policy.html">tsl::rh::prime_growth_policy.</a></strong> Default policy used by <code>tsl::robin_pg_map/set</code>. The policy keeps the size of the bucket array of the hash table to a prime number. When mapping a hash to a bucket, using a prime number as modulo will result in a better distribution of the hash across the buckets even with a poor hash function. To allow the compiler to optimize the modulo operation, the policy use a lookup table with constant primes modulos (see <a href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1prime__growth__policy.html#details">API</a> for details). Slower than <code>tsl::rh::power_of_two_growth_policy</code> but more secure.</li>
+<li><strong><a href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1mod__growth__policy.html">tsl::rh::mod_growth_policy.</a></strong> The policy grows the map by a customizable growth factor passed in parameter. It then just use the modulo operator to map a hash to a bucket. Slower but more flexible.</li>
+</ul>
+<p>To implement your own policy, you have to implement the following interface.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> custom_policy {
+    <span class="co">// Called on hash table construction and rehash, min_bucket_count_in_out is the minimum buckets</span>
+    <span class="co">// that the hash table needs. The policy can change it to a higher number of buckets if needed </span>
+    <span class="co">// and the hash table will use this value as bucket count. If 0 bucket is asked, then the value</span>
+    <span class="co">// must stay at 0.</span>
+    <span class="kw">explicit</span> custom_policy(<span class="bu">std::</span>size_t&amp; min_bucket_count_in_out);
+    
+    <span class="co">// Return the bucket [0, bucket_count()) to which the hash belongs. </span>
+    <span class="co">// If bucket_count() is 0, it must always return 0.</span>
+    <span class="bu">std::</span>size_t bucket_for_hash(<span class="bu">std::</span>size_t hash) <span class="at">const</span> <span class="kw">noexcept</span>;
+    
+    <span class="co">// Return the number of buckets that should be used on next growth</span>
+    <span class="bu">std::</span>size_t next_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Maximum number of buckets supported by the policy</span>
+    <span class="bu">std::</span>size_t max_bucket_count() <span class="at">const</span>;
+    
+    <span class="co">// Reset the growth policy as if the policy was created with a bucket count of 0.</span>
+    <span class="co">// After a clear, the policy must always return 0 when bucket_for_hash() is called.</span>
+    <span class="dt">void</span> clear() <span class="kw">noexcept</span>;
+}</code></pre></div>
+<h3 id="installation">Installation</h3>
+<p>To use robin-map, just add the <a href="include/">include</a> directory to your include path. It is a <strong>header-only</strong> library.</p>
+<p>If you use CMake, you can also use the <code>tsl::robin_map</code> exported target from the <a href="CMakeLists.txt" class="uri">CMakeLists.txt</a> with <code>target_link_libraries</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="co"># Example where the robin-map project is stored in a third-party directory</span>
+<span class="kw">add_subdirectory</span>(third-party/robin-map)
+<span class="kw">target_link_libraries</span>(your_target <span class="ot">PRIVATE</span> tsl::robin_map)  </code></pre></div>
+<p>If the project has been installed through <code>make install</code>, you can also use <code>find_package(tsl-robin-map REQUIRED)</code> instead of <code>add_subdirectory</code>.</p>
+<p>The library is available in <a href="https://github.com/Microsoft/vcpkg/tree/master/ports/robin-map">vcpkg</a> and <a href="https://bintray.com/tessil/tsl/tsl-robin-map%3Atessil">conan</a>. It's also present in <a href="https://packages.debian.org/buster/robin-map-dev">Debian</a>, <a href="https://packages.ubuntu.com/disco/robin-map-dev">Ubuntu</a> and <a href="https://apps.fedoraproject.org/packages/robin-map-devel">Fedora</a> package repositories.</p>
+<p>The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Tessil/robin-map.git
+<span class="bu">cd</span> robin-map/tests
+<span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build .
+<span class="ex">./tsl_robin_map_tests</span></code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a href="https://tessil.github.io/robin-map/">here</a>.</p>
+<p>All methods are not documented yet, but they replicate the behavior of the ones in <code>std::unordered_map</code> and <code>std::unordered_set</code>, except if specified otherwise.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/robin_set.h&gt;</span>
+
+<span class="dt">int</span> main() {
+    tsl::robin_map&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt; map = {{<span class="st">&quot;a&quot;</span>, <span class="dv">1</span>}, {<span class="st">&quot;b&quot;</span>, <span class="dv">2</span>}};
+    map[<span class="st">&quot;c&quot;</span>] = <span class="dv">3</span>;
+    map[<span class="st">&quot;d&quot;</span>] = <span class="dv">4</span>;
+    
+    map.insert({<span class="st">&quot;e&quot;</span>, <span class="dv">5</span>});
+    map.erase(<span class="st">&quot;b&quot;</span>);
+    
+    <span class="cf">for</span>(<span class="kw">auto</span> it = map.begin(); it != map.end(); ++it) {
+        <span class="co">//it-&gt;second += 2; // Not valid.</span>
+        it.value() += <span class="dv">2</span>;
+    }
+    
+    <span class="co">// {d, 6} {a, 3} {e, 7} {c, 5}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key_value : map) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_value.first &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; key_value.second &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+        
+    <span class="cf">if</span>(map.find(<span class="st">&quot;a&quot;</span>) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st">.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    <span class="at">const</span> <span class="bu">std::</span>size_t precalculated_hash = <span class="bu">std::</span>hash&lt;<span class="bu">std::</span>string&gt;()(<span class="st">&quot;a&quot;</span>);
+    <span class="co">// If we already know the hash beforehand, we can pass it in parameter to speed-up lookups.</span>
+    <span class="cf">if</span>(map.find(<span class="st">&quot;a&quot;</span>, precalculated_hash) != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st"> with hash &quot;</span> &lt;&lt; precalculated_hash &lt;&lt; <span class="st">&quot;.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    <span class="co">/*</span>
+<span class="co">     * Calculating the hash and comparing two std::string may be slow. </span>
+<span class="co">     * We can store the hash of each std::string in the hash map to make </span>
+<span class="co">     * the inserts and lookups faster by setting StoreHash to true.</span>
+<span class="co">     */</span> 
+    tsl::robin_map&lt;<span class="bu">std::</span>string, <span class="dt">int</span>, <span class="bu">std::</span>hash&lt;<span class="bu">std::</span>string&gt;, 
+                   <span class="bu">std::</span>equal_to&lt;<span class="bu">std::</span>string&gt;,
+                   <span class="bu">std::</span>allocator&lt;<span class="bu">std::</span>pair&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt;&gt;,
+                   <span class="kw">true</span>&gt; map2;
+                       
+    map2[<span class="st">&quot;a&quot;</span>] = <span class="dv">1</span>;
+    map2[<span class="st">&quot;b&quot;</span>] = <span class="dv">2</span>;
+    
+    <span class="co">// {a, 1} {b, 2}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key_value : map2) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key_value.first &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; key_value.second &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    
+    
+    
+    
+    tsl::robin_set&lt;<span class="dt">int</span>&gt; set;
+    set.insert({<span class="dv">1</span>, <span class="dv">9</span>, <span class="dv">0</span>});
+    set.insert({<span class="dv">2</span>, <span class="dv">-1</span>, <span class="dv">9</span>});
+    
+    <span class="co">// {0} {1} {2} {9} {-1}</span>
+    <span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; key : set) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; key &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}  </code></pre></div>
+<h4 id="heterogeneous-lookups">Heterogeneous lookups</h4>
+<p>Heterogeneous overloads allow the usage of other types than <code>Key</code> for lookup and erase operations as long as the used types are hashable and comparable to <code>Key</code>.</p>
+<p>To activate the heterogeneous overloads in <code>tsl::robin_map/set</code>, the qualified-id <code>KeyEqual::is_transparent</code> must be valid. It works the same way as for <a href="http://en.cppreference.com/w/cpp/container/map/find"><code>std::map::find</code></a>. You can either use <a href="http://en.cppreference.com/w/cpp/utility/functional/equal_to_void"><code>std::equal_to&lt;&gt;</code></a> or define your own function object.</p>
+<p>Both <code>KeyEqual</code> and <code>Hash</code> will need to be able to deal with the different types.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;functional&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span>
+
+
+<span class="kw">struct</span> employee {
+    employee(<span class="dt">int</span> id, <span class="bu">std::</span>string name) : <span class="va">m_id</span>(id), <span class="va">m_name</span>(<span class="bu">std::</span>move(name)) {
+    }
+    
+    <span class="co">// Either we include the comparators in the class and we use `std::equal_to&lt;&gt;`...</span>
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+    
+    
+    <span class="dt">int</span> <span class="va">m_id</span>;
+    <span class="bu">std::</span>string <span class="va">m_name</span>;
+};
+
+<span class="co">// ... or we implement a separate class to compare employees.</span>
+<span class="kw">struct</span> equal_employee {
+    <span class="kw">using</span> is_transparent = <span class="dt">void</span>;
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl, <span class="dt">int</span> empl_id) <span class="at">const</span> {
+        <span class="cf">return</span> empl.<span class="va">m_id</span> == empl_id;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="dt">int</span> empl_id, <span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> empl_id == empl.<span class="va">m_id</span>;
+    }
+    
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl1, <span class="at">const</span> employee&amp; empl2) <span class="at">const</span> {
+        <span class="cf">return</span> empl1.<span class="va">m_id</span> == empl2.<span class="va">m_id</span>;
+    }
+};
+
+<span class="kw">struct</span> hash_employee {
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="at">const</span> employee&amp; empl) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(empl.<span class="va">m_id</span>);
+    }
+    
+    <span class="bu">std::</span>size_t <span class="kw">operator</span>()(<span class="dt">int</span> id) <span class="at">const</span> {
+        <span class="cf">return</span> <span class="bu">std::</span>hash&lt;<span class="dt">int</span>&gt;()(id);
+    }
+};
+
+
+<span class="dt">int</span> main() {
+    <span class="co">// Use std::equal_to&lt;&gt; which will automatically deduce and forward the parameters</span>
+    tsl::robin_map&lt;employee, <span class="dt">int</span>, hash_employee, <span class="bu">std::</span>equal_to&lt;&gt;&gt; map; 
+    map.insert({employee(<span class="dv">1</span>, <span class="st">&quot;John Doe&quot;</span>), <span class="dv">2001</span>});
+    map.insert({employee(<span class="dv">2</span>, <span class="st">&quot;Jane Doe&quot;</span>), <span class="dv">2002</span>});
+    map.insert({employee(<span class="dv">3</span>, <span class="st">&quot;John Smith&quot;</span>), <span class="dv">2003</span>});
+
+    <span class="co">// John Smith 2003</span>
+    <span class="kw">auto</span> it = map.find(<span class="dv">3</span>);
+    <span class="cf">if</span>(it != map.end()) {
+        <span class="bu">std::</span>cout &lt;&lt; it-&gt;first.<span class="va">m_name</span> &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; it-&gt;second &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+    map.erase(<span class="dv">1</span>);
+
+
+
+    <span class="co">// Use a custom KeyEqual which has an is_transparent member type</span>
+    tsl::robin_map&lt;employee, <span class="dt">int</span>, hash_employee, equal_employee&gt; map2;
+    map2.insert({employee(<span class="dv">4</span>, <span class="st">&quot;Johnny Doe&quot;</span>), <span class="dv">2004</span>});
+
+    <span class="co">// 2004</span>
+    <span class="bu">std::</span>cout &lt;&lt; map2.at(<span class="dv">4</span>) &lt;&lt; <span class="bu">std::</span>endl;
+}  </code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a href="LICENSE">LICENSE file</a> for details.</p>

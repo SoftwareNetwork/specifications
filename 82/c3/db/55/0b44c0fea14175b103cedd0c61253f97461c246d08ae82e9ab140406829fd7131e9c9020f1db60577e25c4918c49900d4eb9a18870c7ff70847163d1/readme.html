@@ -1,0 +1,62 @@
+<h1 id="stdspan-implementation-for-c11-and-later"><code>std::span</code> implementation for C++11 and later</h1>
+<p>This repository contains a single-header implementation of C++20's <code>std::span</code>, conforming to <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0122r7.pdf">P0122R7</a>. It is compatible with C++11, but will use newer language features if they are available.</p>
+<p>It differs from the implementation in the <a href="https://github.com/Microsoft/GSL/">Microsoft GSL</a> in that it is single-header and does not depend on any other GSL facilities. It also works with C++11, while the GSL version requires C++14. Finally, it provides various extensions (detailed below) which are currently not part of the standard specification.</p>
+<h2 id="usage">Usage</h2>
+<p>The recommended way to use the implementation simply copy the file <code>span.hpp</code> from <code>include/tcb/</code> into your own sources and <code>#include</code> it like any other header. By default, it lives in namespace <code>tcb</code>, but this can be customised by setting the macro <code>TCB_SPAN_NAMESPACE_NAME</code> to an appropriate string before <code>#include</code>-ing the header -- or simply edit the source code.</p>
+<p>The rest of the repository contains testing machinery, and is not required for use.</p>
+<h2 id="implementation-notes">Implementation Notes</h2>
+<h3 id="bounds-checking">Bounds Checking</h3>
+<p>This implementation of <code>span</code> includes optional bounds checking, which is handled either by throwing an exception or by calling <code>std::terminate()</code>.</p>
+<p>The default behaviour with C++14 and later is to check the macro <code>NDEBUG</code>: if this is set, bounds checking is disabled. Otherwise, <code>std::terminate()</code> will be called if there is a precondition violation (i.e. the same behaviour as <code>assert()</code>). If you wish to terminate on errors even if <code>NDEBUG</code> is set, define the symbol <code>TCB_SPAN_TERMINATE_ON_CONTRACT_VIOLATION</code> before <code>#include</code>-ing the header.</p>
+<p>Alternatively, if you want to throw on a contract violation, define <code>TCB_SPAN_THROW_ON_CONTRACT_VIOLATION</code>. This will throw an exception of an implementation-defined type (deriving from <code>std::logic_error</code>), allowing cleanup to happen. Note that defining this symbol will cause the checks to be run even if <code>NDEBUG</code> is set.</p>
+<p>Lastly, if you wish to disable contract checking even in debug builds, <code>#define TCB_SPAN_NO_CONTRACT_CHECKING</code>.</p>
+<p>Under C++11, due to the restrictions on <code>constexpr</code> functions, contract checking is disabled by default even if <code>NDEBUG</code> is not set. You can change this by defining either of the above symbols, but this will result in most of <code>span</code>'s interface becoming non-<code>constexpr</code>.</p>
+<h3 id="constexpr"><code>constexpr</code></h3>
+<p>This implementation is fully <code>constexpr</code> under C++17 and later. Under earlier versions, it is &quot;as <code>constexpr</code> as possible&quot;.</p>
+<p>Note that even in C++17, it is generally not possible to declare a <code>span</code> as non-default constructed <code>constexpr</code> variable, for the same reason that you cannot form a <code>constexpr</code> pointer to a value: it involves taking the address of a compile-time variable in a way that would be visible at run-time. You can however use a <code>span</code> freely in a <code>constexpr</code> function. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Okay, even in C++11</span>
+<span class="kw">constexpr</span> <span class="bu">std::</span>ptrdiff_t get_span_size(span&lt;<span class="at">const</span> <span class="dt">int</span>&gt; span)
+{
+    <span class="cf">return</span> span.size();
+}
+
+<span class="kw">constexpr</span> <span class="dt">int</span> arr[] = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>};
+<span class="kw">constexpr</span> <span class="kw">auto</span> size = get_span_size(arr); <span class="co">// Okay</span>
+<span class="kw">constexpr</span> span&lt;<span class="at">const</span> <span class="dt">int</span>&gt; span{arr}; <span class="co">// ERROR -- not a constant expression</span>
+<span class="kw">constexpr</span> <span class="at">const</span> <span class="dt">int</span>* p = arr; <span class="co">// ERROR -- same</span></code></pre></div>
+<p>Constructor deduction guides are provided if the compiler supports them. For older compilers, a <code>make_span()</code> function is provided as an extension which uses the same logic.</p>
+<h2 id="extensions">Extensions</h2>
+<p>This implementation provides several extensions to the current specification.</p>
+<ul>
+<li>Added <code>make_span()</code> factory functions</li>
+</ul>
+<p>These perform the same function as the C++17 deduction guides, and allow you to construct a <code>span</code> without needing to specify the template arguments. For example:</p>
+<p>```cpp constexpr int c_array[] = {1, 2, 3}; std::array<int, 3> std_array{1, 2, 3}; const std::vector<int> vec{1, 2, 3};</p>
+<p>auto s1 = make_span(c_array); // returns span<const int, 3> auto s2 = make_span(std_array); // returns span<int, 3> auto s3 = make_span(vec); // returns span<const int, dynamic_extent> ```</p>
+<ul>
+<li>Added <code>front()</code> and <code>back()</code> member functions</li>
+</ul>
+<p>These are provided for consistency with the standard containers. They return references to the first and last elements of the <code>span</code> respectively. The effect of calling these functions on an empty <code>span</code> is undefined.</p>
+<ul>
+<li>Added bounds-checking <code>at(index_type i)</code> member function</li>
+</ul>
+<p>Again, added for consistency with standard constainers. Returns the <code>i</code>th member of the <code>span</code>. Throws <code>std::out_of_range</code> if <code>i &lt; 0</code> or <code>i &gt;= span.size()</code>.</p>
+<p>If you wish to disable exceptions, define the macro <code>TCB_SPAN_NO_EXCEPTIONS</code> before <code>#include</code>-ing <code>span.hpp</code>. The <code>at()</code> member function will still be available, but no bounds checking will be performed. The header will also try to detect <code>-fno-exceptions</code> and the like and disable bounds checking in this case.</p>
+<ul>
+<li>Adds non-member subview operations, <code>first()</code> <code>last()</code> and <code>subspan()</code></li>
+</ul>
+<p>The member versions of these functions can require the awkward &quot;dot template&quot; syntax to be used when the <code>span</code> is a dependent type, for example:</p>
+<p><code>cpp    template &lt;typename T&gt;    span&lt;T, 3&gt; get_first_three(span&lt;T&gt; s)    {        return s.template first&lt;3&gt;(); // Urgh!    }</code></p>
+<p>Making these functions non-members avoids this syntactic ugliness. In addition, it allows forming subviews of containers directly without constructing an intermediate <code>span</code>, for example:</p>
+<p>```cpp std::vector<int> vec{1, 2, 3, 4, 5};</p>
+<p>auto ugly = span{vec}.first&lt;3&gt;(); auto nicer = first&lt;3&gt;(vec); ```</p>
+<ul>
+<li><code>operator()</code> is <code>[[deprecated]]</code></li>
+</ul>
+<p>The currently-specified version of <code>span</code> includes an overload of <code>operator()</code>, duplicating the functionality of <code>operator[]</code>. This rather odd addition is marked as <code>[[deprecated]]</code> in this version by default. You can disable this warning by defining the macro <code>TCB_SPAN_NO_DEPRECATION_WARNINGS</code> before <code>#include</code>-ing <code>span.hpp</code>, or remove the definition entirely by defining <code>TCB_SPAN_NO_FUNCTION_CALL_OPERATOR</code>.</p>
+<ul>
+<li>Add structured bindings support for fixed-size <code>span</code>s</li>
+</ul>
+<p>This implementation includes a <code>get()</code> non-member function and specialisations of <code>std::tuple_size</code> and <code>std::tuple_element</code>, which allows <code>span</code>s to be used with C++17 structured bindings.</p>
+<p>Note that dynamically-sized <code>span</code>s cannot be decomposed, because the size is not known at run time.</p>
+<p>To disable all extensions, define the macro <code>TCB_SPAN_STD_COMPLIANT_MODE</code>. This will also disable deprecation warnings.</p>

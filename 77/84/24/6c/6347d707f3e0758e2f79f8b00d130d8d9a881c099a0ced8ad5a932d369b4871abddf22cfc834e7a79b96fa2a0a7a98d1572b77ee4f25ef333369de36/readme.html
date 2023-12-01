@@ -1,0 +1,205 @@
+<h1 id="spotify-json">spotify-json</h1>
+<p><a href="LICENSE"><img src="https://img.shields.io/github/license/spotify/spotify-json.svg" alt="License" /></a> <a href="https://travis-ci.org/spotify/spotify-json"><img src="https://img.shields.io/travis/spotify/spotify-json/master.svg?style=flat" alt="macOS &amp; Linux Builds" /></a> <a href="https://ci.appveyor.com/project/fxb/spotify-json"><img src="https://ci.appveyor.com/api/projects/status/github/spotify/spotify-json?svg=true" alt="Windows Build" /></a></p>
+<p>A C++11 JSON writer and parser library. It</p>
+<ul>
+<li>parses and serializes directly to and from statically typed C++ objects,</li>
+<li>requires very little boilerplate code,</li>
+<li>is fast and makes use of vectorization,</li>
+<li>supports UTF-8,</li>
+<li>comes with <a href="test">a good suite of tests</a>,</li>
+<li>is deployed and in active use on well over 100 million devices,</li>
+<li>and <a href="doc/api.md">has API documentation</a>.</li>
+</ul>
+<p>spotify-json depends on <a href="https://github.com/google/double-conversion">Google's double-conversion library</a>, which must be linked in to the code that uses spotify-json.</p>
+<h2 id="example">Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;map&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;spotify/json.hpp&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> spotify::json;
+
+<span class="kw">struct</span> Track {
+  <span class="bu">std::</span>string uri;
+  <span class="bu">std::</span>string uid;
+  <span class="bu">std::</span>map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt; metadata;
+};
+
+<span class="kw">namespace</span> spotify {
+<span class="kw">namespace</span> json {
+
+<span class="co">// Specialize spotify::json::default_codec_t to specify default behavior when</span>
+<span class="co">// encoding and decoding objects of certain types.</span>
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">struct</span> <span class="dt">default_codec_t</span>&lt;Track&gt; {
+  <span class="at">static</span> <span class="dt">object_t</span>&lt;Track&gt; codec() {
+    <span class="kw">auto</span> codec = object&lt;Track&gt;();
+    codec.required(<span class="st">&quot;uri&quot;</span>, &amp;Track::uri);
+    codec.optional(<span class="st">&quot;uid&quot;</span>, &amp;Track::uid);
+    codec.optional(<span class="st">&quot;metadata&quot;</span>, &amp;Track::metadata);
+    <span class="cf">return</span> codec;
+  }
+};
+
+}  <span class="co">// namespace json</span>
+}  <span class="co">// namespace spotify</span>
+
+<span class="dt">int</span> main() {
+  <span class="at">const</span> <span class="kw">auto</span> parsed_track = decode&lt;Track&gt;(<span class="st">R&quot;({ &quot;uri&quot;: &quot;spotify:track:xyz&quot;, &quot;metadata&quot;: { &quot;a&quot;: &quot;b&quot; } })&quot;</span>);
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Parsed track with uri &quot;</span> &lt;&lt; parsed_track.uri &lt;&lt; <span class="bu">std::</span>endl;
+
+  Track track;
+  track.uri = <span class="st">&quot;spotify:track:abc&quot;</span>;
+  track.uid = <span class="st">&quot;a-uid&quot;</span>;
+  <span class="at">const</span> <span class="kw">auto</span> json = encode(track);
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Encoded the track into &quot;</span> &lt;&lt; json &lt;&lt; <span class="bu">std::</span>endl;
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="usage">Usage</h2>
+<p>spotify-json offers <a href="doc/api.md#the-codec">a range of codec types</a> that can serialize and parse specific JSON values. There are codecs for each of the basic data types that JSON offers: <a href="doc/api.md#string_t">strings</a>, <a href="doc/api.md#number_t">numbers</a>, <a href="doc/api.md#array_t">arrays</a>, <a href="doc/api.md#boolean_t">booleans</a>, <a href="doc/api.md#object_t">objects</a> and <a href="doc/api.md#null_t">null</a>.</p>
+<h3 id="constructing-and-composing-codecs">Constructing and composing codecs</h3>
+<p>A codec for integers can be made using <a href="doc/api.md#number_t"><code>codec::number&lt;int&gt;()</code></a>. The codec for strings can be instantiated with <a href="doc/api.md#string_t"><code>codec::string()</code></a>.</p>
+<p>Codecs are composable. It is for example possible to construct a codec for parsing and serialization of JSON arrays of numbers, such as <code>[1,4,2]</code>: <a href="doc/api.md#array_t"><code>codec::array&lt;std::vector&lt;int&gt;&gt;(codec::number&lt;int&gt;())</code></a>.</p>
+<p>Constructing deeply nested codecs manually as above can become tedious. To ease this pain, <a href="doc/api.md#default_codec_t"><code>default_codec</code></a> is a helper function that makes it easy to construct codecs for built-in types. For example, <code>default_codec&lt;int&gt;()</code> is a codec that can parse and serialize numbers, and <code>default_codec&lt;std::vector&lt;int&gt;&gt;()</code> is one that works on arrays of numbers.</p>
+<p>It is possible to work with JSON objects with arbitrary keys. For example, <code>default_codec&lt;std::map&lt;std::string, bool&gt;&gt;()</code> is a codec for JSON objects with strings as keys and booleans as values.</p>
+<h3 id="parsing-and-serialization">Parsing and serialization</h3>
+<p>Parsing is done using the <a href="doc/api.md#decode"><code>decode</code></a> function:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">try</span> {
+  decode(codec::number&lt;<span class="dt">int</span>&gt;(), <span class="st">&quot;123&quot;</span>) == <span class="dv">123</span>;
+  decode&lt;<span class="dt">int</span>&gt;(<span class="st">&quot;123&quot;</span>) == <span class="dv">123</span>;  <span class="co">// Shortcut for decode(default_codec&lt;int&gt;(), &quot;123&quot;)</span>
+  decode&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(<span class="st">&quot;[1,2,3]&quot;</span>) == <span class="bu">std::</span>vector{ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> };
+} <span class="cf">catch</span> (<span class="at">const</span> decode_exception &amp;e) {
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Failed to decode: &quot;</span> &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p><a href="doc/api.md#decode"><code>decode</code></a> throws <a href="doc/api.md#decode_exception"><code>decode_exception</code></a> when parsing fails. There is also a function <a href="doc/api.md#try_decode"><code>try_decode</code></a> that doesn't throw on parse errors:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> result = <span class="dv">0</span>;
+<span class="cf">if</span> (try_decode(result, <span class="st">&quot;123&quot;</span>)) {
+  result == <span class="dv">123</span>;
+} <span class="cf">else</span> {
+  <span class="co">// Decoding failed!</span>
+}</code></pre></div>
+<p>Similarly, serialization is done using <a href="doc/api.md#encode"><code>encode</code></a>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">encode(codec::number&lt;<span class="dt">int</span>&gt;(), <span class="dv">123</span>) == <span class="st">&quot;123&quot;</span>;
+encode(<span class="dv">123</span>) == <span class="st">&quot;123&quot;</span>;  <span class="co">// Shortcut for encode(default_codec&lt;int&gt;(), 123)</span>
+encode(<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;{ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> }) == <span class="st">&quot;[1,2,3]&quot;</span>;</code></pre></div>
+<h3 id="working-with-rich-objects">Working with rich objects</h3>
+<p>Working with basic types such as numbers, strings, booleans and arrays is all nice and dandy, but most practical applications need to deal with rich JSON schemas that involve objects.</p>
+<p>Many JSON libraries work by parsing JSON strings into a tree structure that can be read by the application. In our experience, this approach often leads to large amounts of boilerplate code to extract the information in this tree object into statically typed counterparts that are practical to use in C++. This boilerplate is painful to write, bug-prone and slow due to unnecessary copying. SAX-style event based libraries such as <a href="http://lloyd.github.io/yajl/">yajl</a> avoid the slowdown but require even more boilerplate.</p>
+<p>spotify-json avoids these issues by parsing the JSON directly into statically typed data structures. To explain how, let's use the example of a basic two-dimensional coordinate, represented in JSON as <code>{&quot;x&quot;:1,&quot;y&quot;:2}</code>. In C++, such a coordinate may be represented as a struct:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Coordinate {
+  Coordinate() = <span class="cf">default</span>;
+  Coordinate(<span class="dt">int</span> x, <span class="dt">int</span> y) : x(x), y(y) {}
+
+  <span class="dt">int</span> x = <span class="dv">0</span>;
+  <span class="dt">int</span> y = <span class="dv">0</span>;
+};</code></pre></div>
+<p>With spotify-json, it is possible to construct a codec that can convert <code>Coordinate</code> directly to and from JSON:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> coordinate_codec = object&lt;Coordinate&gt;();
+coordinate_codec.required(<span class="st">&quot;x&quot;</span>, &amp;Coordinate::x);
+coordinate_codec.required(<span class="st">&quot;y&quot;</span>, &amp;Coordinate::y);</code></pre></div>
+<p>The use of <code>required</code> will cause parsing to fail if the fields are missing. There is also an <code>optional</code> method. For more information, see <a href="https://ghe.spotify.net/spotify-sdk/spotify-json/blob/master/doc/api.md#object_t"><code>object_t</code>'s API documentation</a>.</p>
+<p>This codec can be used with <code>encode</code> and <code>decode</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">encode(coordinate_codec, Coordinate(<span class="dv">10</span>, <span class="dv">0</span>)) == <span class="st">R&quot;({&quot;x&quot;:10,&quot;y&quot;:0})&quot;</span>;
+
+<span class="at">const</span> Coordinate coord = decode(coordinate_codec, <span class="st">R&quot;({ &quot;x&quot;: 12, &quot;y&quot;: 13 })&quot;</span>);
+coord.x == <span class="dv">12</span>;
+coord.y == <span class="dv">13</span>;</code></pre></div>
+<p>Objects can be nested. To demonstrate this, let's introduce another data type:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Player {
+  <span class="bu">std::</span>string name;
+  <span class="bu">std::</span>string instrument;
+  Coordinate position;
+};</code></pre></div>
+<p>A codec for <code>Player</code> might be created with</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> player_codec = object&lt;Player&gt;();
+player_codec.required(<span class="st">&quot;name&quot;</span>, &amp;Player::name);
+player_codec.required(<span class="st">&quot;instrument&quot;</span>, &amp;Player::instrument);
+<span class="co">// Because there is no default_codec for Coordinate, we need to pass in the</span>
+<span class="co">// codec explicitly:</span>
+player_codec.required(<span class="st">&quot;position&quot;</span>, &amp;Player::position, coordinate_codec);
+
+<span class="co">// Let&#39;s use it:</span>
+Player player;
+player.name = <span class="st">&quot;Daniel&quot;</span>;
+player.instrument = <span class="st">&quot;guitar&quot;</span>;
+encode(player_codec, player) == <span class="st">R&quot;({&quot;name&quot;:&quot;Daniel&quot;,&quot;instrument&quot;:&quot;guitar&quot;,&quot;position&quot;:{&quot;x&quot;:0,&quot;y&quot;:0}})&quot;</span>;</code></pre></div>
+<p>Since codecs are just normal objects, it is possible to create and use several different codecs for any given data type. This makes it possibile to parameterize parsing and do other fancy things, but for most data types there will only really exist one codec. For these cases, it is possible to extend the <code>default_codec</code> helper to support your own data types.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> spotify {
+<span class="kw">namespace</span> json {
+
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">struct</span> <span class="dt">default_codec_t</span>&lt;Coordinate&gt; {
+  <span class="at">static</span> <span class="dt">object_t</span>&lt;Coordinate&gt; codec() {
+    <span class="kw">auto</span> codec = object&lt;Coordinate&gt;();
+    codec.required(<span class="st">&quot;x&quot;</span>, &amp;Coordinate::x);
+    codec.required(<span class="st">&quot;y&quot;</span>, &amp;Coordinate::y);
+    <span class="cf">return</span> codec;
+  }
+};
+
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">struct</span> <span class="dt">default_codec_t</span>&lt;Player&gt; {
+  <span class="at">static</span> <span class="dt">object_t</span>&lt;Player&gt; codec() {
+    <span class="kw">auto</span> codec = object&lt;Player&gt;();
+    codec.required(<span class="st">&quot;name&quot;</span>, &amp;Player::name);
+    codec.required(<span class="st">&quot;instrument&quot;</span>, &amp;Player::instrument);
+    codec.required(<span class="st">&quot;position&quot;</span>, &amp;Player::position);
+    <span class="cf">return</span> codec;
+  }
+};
+
+}  <span class="co">// namespace json</span>
+}  <span class="co">// namespace spotify</span></code></pre></div>
+<p><code>Coordinate</code> and <code>Player</code> can now be used like any other type that spotify-json supports out of the box:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">encode(Coordinate(<span class="dv">10</span>, <span class="dv">0</span>)) == <span class="st">R&quot;({&quot;x&quot;:10,&quot;y&quot;:0})&quot;</span>;
+decode&lt;<span class="bu">std::</span>vector&lt;Coordinate&gt;&gt;(<span class="st">R&quot;([{ &quot;x&quot;: 1, &quot;y&quot;: -1 }])&quot;</span>) == <span class="bu">std::</span>vector&lt;Coordinate&gt;{ Coordinate(<span class="dv">1</span>, <span class="dv">-1</span>) };
+
+Player player;
+player.name = <span class="st">&quot;Martin&quot;</span>;
+player.instrument = <span class="st">&quot;drums&quot;</span>;
+encode(player) == <span class="st">R&quot;({&quot;name&quot;:&quot;Martin&quot;,&quot;instrument&quot;:&quot;drums&quot;,&quot;position&quot;:{&quot;x&quot;:0,&quot;y&quot;:0}})&quot;</span>;</code></pre></div>
+<h3 id="advanced-usage">Advanced usage</h3>
+<p>The examples above cover the most commonly used parts of spotify-json. The library supports more things that sometimes come in handy:</p>
+<ul>
+<li>Most STL containers, including <a href="doc/api.md#array_t"><code>array</code>, <code>vector</code>, <code>deque</code>, <code>list</code>, <code>set</code>, <code>unordered_set</code></a>, <a href="doc/api.md#tuple_t"><code>pair</code>, <code>tuple</code></a>, <a href="doc/api.md#map_t"><code>map</code> and <code>unordered_map</code></a></li>
+<li><a href="doc/api.md#enumeration_t">C++ <code>enum</code>s and similar types</a></li>
+<li><a href="doc/api.md#transform_t">Arbitrary conversion logic</a>, for example when a raw binary hash in C++ is represented as a hex coded string in JSON</li>
+<li><a href="doc/api.md#eq_t">Dealing with versioning</a></li>
+<li><a href="doc/api.md#handling-missing-empty-null-and-invalid-values">Ignoring values that are of the wrong type instead of failing the parse</a></li>
+<li>Values wrapped in <a href="doc/api.md#unique_ptr_t"><code>unique_ptr</code>s</a> and <a href="doc/api.md#shared_ptr_t"><code>shared_ptr</code>s</a></li>
+<li><a href="doc/api.md#optional"><code>boost::optional</code></a></li>
+<li><a href="doc/api.md#chrono"><code>boost::chrono</code> and <code>std::chrono</code> types</a></li>
+<li><a href="doc/api.md#cast_t">Dealing with virtual classes / type erasure</a></li>
+<li><a href="doc/api.md#number_t">Floating point numbers with lossless serialize/parse roundtrip</a></li>
+</ul>
+<h2 id="detailed-api-documentation"><a href="doc/api.md">Detailed API documentation</a></h2>
+<h2 id="linking-against-the-library-in-a-project">Linking against the library in a project</h2>
+<p>If your project is built with CMake, it is easy to use spotify-json. Here is an example of how it can be done:</p>
+<ol style="list-style-type: decimal">
+<li>Add spotify-json as a git submodule under <code>vendor/</code></li>
+<li>Add the following lines to the <code>CMakeLists.txt</code> of your project:</li>
+</ol>
+<pre><code>add_subdirectory(vendor/spotify-json)
+target_link_libraries([YOUR TARGET] spotify-json)</code></pre>
+<h2 id="building-and-running-tests">Building and running tests</h2>
+<h3 id="requirements">Requirements</h3>
+<ul>
+<li>CMake (<a href="http://www.cmake.org/">http://www.cmake.org</a>)</li>
+<li>Boost (<a href="http://www.boost.org/">http://www.boost.org</a>)</li>
+</ul>
+<h3 id="make-cmake-find-boost">1. Make CMake find Boost</h3>
+<pre><code>export BOOST_ROOT=/path/to/boost
+export BOOST_LIBRARYDIR=/path/to/boost/lib/</code></pre>
+<h3 id="run-cmake">2. Run CMake</h3>
+<pre><code>mkdir build
+cd build
+cmake -G &lt;generator-name&gt; ..</code></pre>
+<p>Run &quot;cmake --help&quot; for a list of generators available on your system.</p>
+<h3 id="build-project-with-visual-studio-xcode-ninja">3. Build project with Visual Studio / Xcode / Ninja</h3>
+<h3 id="run-ctest">4. Run CTest</h3>
+<pre><code>cd build
+ctest -j 8</code></pre>
+<h2 id="code-of-conduct">Code of conduct</h2>
+<p>This project adheres to the <a href="https://github.com/spotify/code-of-conduct/blob/master/code-of-conduct.md">Open Code of Conduct</a>. By participating, you are expected to honor this code.</p>

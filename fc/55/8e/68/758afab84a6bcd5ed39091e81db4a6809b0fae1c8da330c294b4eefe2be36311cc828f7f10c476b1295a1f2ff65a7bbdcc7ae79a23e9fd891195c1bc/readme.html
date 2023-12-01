@@ -1,0 +1,196 @@
+<p><a href="https://github.com/zeromq/cppzmq/actions"><img
+src="https://github.com/zeromq/cppzmq/actions/workflows/ci.yml/badge.svg"
+alt="CI" /></a> <a
+href="https://coveralls.io/github/zeromq/cppzmq?branch=master"><img
+src="https://coveralls.io/repos/github/zeromq/cppzmq/badge.svg?branch=master"
+alt="Coverage Status" /></a> <a
+href="https://github.com/zeromq/cppzmq/blob/master/LICENSE"><img
+src="https://img.shields.io/github/license/zeromq/cppzmq.svg"
+alt="License" /></a></p>
+<h1 id="introduction-design-goals">Introduction &amp; Design Goals</h1>
+<p>cppzmq is a C++ binding for libzmq. It has the following design
+goals: - cppzmq maps the libzmq C API to C++ concepts. In particular: -
+it is type-safe (the libzmq C API exposes various class-like concepts as
+void*) - it provides exception-based error handling (the libzmq C API
+provides errno-based error handling) - it provides RAII-style classes
+that automate resource management (the libzmq C API requires the user to
+take care to free resources explicitly) - cppzmq is a light-weight,
+header-only binding. You only need to include the header file zmq.hpp
+(and maybe zmq_addon.hpp) to use it. - zmq.hpp is meant to contain
+direct mappings of the abstractions provided by the libzmq C API, while
+zmq_addon.hpp provides additional higher-level abstractions.</p>
+<p>There are other C++ bindings for ZeroMQ with different design goals.
+In particular, none of the following bindings are header-only: - <a
+href="https://github.com/zeromq/zmqpp">zmqpp</a> is a high-level binding
+to libzmq. - <a href="https://github.com/zeromq/czmqpp">czmqpp</a> is a
+binding based on the high-level czmq API. - <a
+href="https://github.com/facebook/fbzmq">fbzmq</a> is a binding that
+integrates with Apache Thrift and provides higher-level abstractions in
+addition. It requires C++14.</p>
+<h1 id="supported-platforms">Supported platforms</h1>
+<ul>
+<li>Only a subset of the platforms that are supported by libzmq itself
+are supported. Some features already require a compiler supporting
+C++11. In the future, probably all features will require C++11. To build
+and run the tests, CMake and Catch are required.</li>
+<li>Any libzmq 4.x version is expected to work. DRAFT features may only
+work for the most recent tested version. Currently explicitly tested
+libzmq versions are
+<ul>
+<li>4.2.0 (without DRAFT API)</li>
+<li>4.3.4 (with and without DRAFT API)</li>
+</ul></li>
+<li>Platforms with full support (i.e. CI executing build and tests)
+<ul>
+<li>Ubuntu 18.04 x64 (with gcc 4.8.5, 5.5.0, 7.5.0)</li>
+<li>Ubuntu 20.04 x64 (with gcc 9.3.0, 10.3.0 and clang 12)</li>
+<li>Visual Studio 2017 x64</li>
+<li>Visual Studio 2019 x64</li>
+<li>macOS 10.15 (with clang 12, without DRAFT API)</li>
+</ul></li>
+<li>Additional platforms that are known to work:
+<ul>
+<li>We have no current reports on additional platforms that are known to
+work yet. Please add your platform here. If CI can be provided for them
+with a cloud-based CI service working with GitHub, you are invited to
+add CI, and make it possible to be included in the list above.</li>
+</ul></li>
+<li>Additional platforms that probably work:
+<ul>
+<li>Any platform supported by libzmq that provides a sufficiently recent
+gcc (4.8.1 or newer) or clang (3.4.1 or newer)</li>
+<li>Visual Studio 2012+ x86/x64</li>
+</ul></li>
+</ul>
+<h1 id="examples">Examples</h1>
+<p>These examples require at least C++11.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;zmq.hpp&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    zmq<span class="op">::</span><span class="dt">context_t</span> ctx<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    zmq<span class="op">::</span><span class="dt">socket_t</span> sock<span class="op">(</span>ctx<span class="op">,</span> zmq<span class="op">::</span><span class="dt">socket_type</span><span class="op">::</span>push<span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    sock<span class="op">.</span>bind<span class="op">(</span><span class="st">&quot;inproc://test&quot;</span><span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    sock<span class="op">.</span>send<span class="op">(</span>zmq<span class="op">::</span>str_buffer<span class="op">(</span><span class="st">&quot;Hello, world&quot;</span><span class="op">),</span> zmq<span class="op">::</span>send_flags<span class="op">::</span>dontwait<span class="op">);</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This a more complex example where we send and receive multi-part
+messages over TCP with a wildcard port.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;zmq_addon.hpp&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    zmq<span class="op">::</span><span class="dt">context_t</span> ctx<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    zmq<span class="op">::</span><span class="dt">socket_t</span> sock1<span class="op">(</span>ctx<span class="op">,</span> zmq<span class="op">::</span><span class="dt">socket_type</span><span class="op">::</span>push<span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    zmq<span class="op">::</span><span class="dt">socket_t</span> sock2<span class="op">(</span>ctx<span class="op">,</span> zmq<span class="op">::</span><span class="dt">socket_type</span><span class="op">::</span>pull<span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    sock1<span class="op">.</span>bind<span class="op">(</span><span class="st">&quot;tcp://127.0.0.1:*&quot;</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="bu">std::</span>string<span class="op"> </span>last_endpoint <span class="op">=</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        sock1<span class="op">.</span>get<span class="op">(</span>zmq<span class="op">::</span>sockopt<span class="op">::</span>last_endpoint<span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Connecting to &quot;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>              <span class="op">&lt;&lt;</span> last_endpoint <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    sock2<span class="op">.</span><span class="fu">connect</span><span class="op">(</span>last_endpoint<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>array<span class="op">&lt;</span>zmq<span class="op">::</span>const_buffer<span class="op">,</span> <span class="dv">2</span><span class="op">&gt;</span> send_msgs <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        zmq<span class="op">::</span>str_buffer<span class="op">(</span><span class="st">&quot;foo&quot;</span><span class="op">),</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        zmq<span class="op">::</span>str_buffer<span class="op">(</span><span class="st">&quot;bar!&quot;</span><span class="op">)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>zmq<span class="op">::</span>send_multipart<span class="op">(</span>sock1<span class="op">,</span> send_msgs<span class="op">))</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span>zmq<span class="op">::</span><span class="dt">message_t</span><span class="op">&gt;</span> recv_msgs<span class="op">;</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="kw">auto</span> ret <span class="op">=</span> zmq<span class="op">::</span>recv_multipart<span class="op">(</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        sock2<span class="op">,</span> <span class="bu">std::</span>back_inserter<span class="op">(</span>recv_msgs<span class="op">));</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>ret<span class="op">)</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;Got &quot;</span> <span class="op">&lt;&lt;</span> <span class="op">*</span>ret</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>              <span class="op">&lt;&lt;</span> <span class="st">&quot; messages&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See the <code>examples</code> directory for more examples. When the
+project is compiled with tests enabled, each example gets compiled to an
+executable.</p>
+<h1 id="api-overview">API Overview</h1>
+<p>For an extensive overview of the <code>zmq.hpp</code> API in use, see
+this <a href="https://brettviren.github.io/cppzmq-tour/index.html">Tour
+of CPPZMQ by <span class="citation"
+data-cites="brettviren">@brettviren</span></a>.</p>
+<p>Bindings for libzmq in <code>zmq.hpp</code>:</p>
+<p>Types: * class <code>zmq::context_t</code> * enum
+<code>zmq::ctxopt</code> * class <code>zmq::socket_t</code> * class
+<code>zmq::socket_ref</code> * enum <code>zmq::socket_type</code> * enum
+<code>zmq::sockopt</code> * enum <code>zmq::send_flags</code> * enum
+<code>zmq::recv_flags</code> * class <code>zmq::message_t</code> * class
+<code>zmq::const_buffer</code> * class <code>zmq::mutable_buffer</code>
+* struct <code>zmq::recv_buffer_size</code> * alias
+<code>zmq::send_result_t</code> * alias <code>zmq::recv_result_t</code>
+* alias <code>zmq::recv_buffer_result_t</code> * class
+<code>zmq::error_t</code> * class <code>zmq::monitor_t</code> * struct
+<code>zmq_event_t</code>, * alias <code>zmq::free_fn</code>, * alias
+<code>zmq::pollitem_t</code>, * alias <code>zmq::fd_t</code> * class
+<code>zmq::poller_t</code> DRAFT * enum <code>zmq::event_flags</code>
+DRAFT * enum <code>zmq::poller_event</code> DRAFT</p>
+<p>Functions: * <code>zmq::version</code> * <code>zmq::poll</code> *
+<code>zmq::proxy</code> * <code>zmq::proxy_steerable</code> *
+<code>zmq::buffer</code> * <code>zmq::str_buffer</code></p>
+<p>Extra high-level types and functions <code>zmq_addon.hpp</code>:</p>
+<p>Types: * class <code>zmq::multipart_t</code> * class
+<code>zmq::active_poller_t</code> DRAFT</p>
+<p>Functions: * <code>zmq::recv_multipart</code> *
+<code>zmq::send_multipart</code> * <code>zmq::send_multipart_n</code> *
+<code>zmq::encode</code> * <code>zmq::decode</code></p>
+<h1 id="compatibility-guidelines">Compatibility Guidelines</h1>
+<p>The users of cppzmq are expected to follow the guidelines below to
+ensure not to break when upgrading cppzmq to newer versions
+(non-exhaustive list):</p>
+<ul>
+<li>Do not depend on any macros defined in cppzmq unless explicitly
+declared public here.</li>
+</ul>
+<p>The following macros may be used by consumers of cppzmq:
+<code>CPPZMQ_VERSION</code>, <code>CPPZMQ_VERSION_MAJOR</code>,
+<code>CPPZMQ_VERSION_MINOR</code>,
+<code>CPPZMQ_VERSION_PATCH</code>.</p>
+<h1 id="contribution-policy">Contribution policy</h1>
+<p>The contribution policy is at: http://rfc.zeromq.org/spec:22</p>
+<h1 id="build-instructions">Build instructions</h1>
+<p>Build steps:</p>
+<ol type="1">
+<li>Build <a href="https://github.com/zeromq/libzmq">libzmq</a> via
+cmake. This does an out of source build and installs the build files
+<ul>
+<li>download and unzip the lib, cd to directory</li>
+<li>mkdir build</li>
+<li>cd build</li>
+<li>cmake ..</li>
+<li>sudo make -j4 install</li>
+</ul></li>
+<li>Build cppzmq via cmake. This does an out of source build and
+installs the build files
+<ul>
+<li>download and unzip the lib, cd to directory</li>
+<li>mkdir build</li>
+<li>cd build</li>
+<li>cmake ..</li>
+<li>sudo make -j4 install</li>
+</ul></li>
+<li>Build cppzmq via <a
+href="https://github.com/Microsoft/vcpkg/">vcpkg</a>. This does an out
+of source build and installs the build files
+<ul>
+<li>git clone https://github.com/Microsoft/vcpkg.git</li>
+<li>cd vcpkg</li>
+<li>./bootstrap-vcpkg.sh # bootstrap-vcpkg.bat for Powershell</li>
+<li>./vcpkg integrate install</li>
+<li>./vcpkg install cppzmq</li>
+</ul></li>
+</ol>
+<p>Using this:</p>
+<p>A cmake find package scripts is provided for you to easily include
+this library. Add these lines in your CMakeLists.txt to include the
+headers and library files of cpp zmq (which will also include libzmq for
+you).</p>
+<pre><code>#find cppzmq wrapper, installed by make of cppzmq
+find_package(cppzmq)
+target_link_libraries(*Your Project Name* cppzmq)</code></pre>

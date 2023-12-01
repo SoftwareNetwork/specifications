@@ -1,0 +1,1158 @@
+<h1 id="toml11">toml11</h1>
+<p><a href="https://github.com/ToruNiina/toml11/actions"><img src="https://github.com/ToruNiina/toml11/workflows/build/badge.svg" alt="Build Status on GitHub Actions" /></a> <a href="https://travis-ci.org/ToruNiina/toml11"><img src="https://travis-ci.org/ToruNiina/toml11.svg?branch=master" alt="Build Status on TravisCI" /></a> <a href="https://ci.appveyor.com/project/ToruNiina/toml11/branch/master"><img src="https://ci.appveyor.com/api/projects/status/m2n08a926asvg5mg/branch/master?svg=true" alt="Build status on Appveyor" /></a> <a href="https://circleci.com/gh/ToruNiina/toml11/tree/master"><img src="https://circleci.com/gh/ToruNiina/toml11/tree/master.svg?style=svg" alt="Build status on CircleCI" /></a> <a href="https://github.com/ToruNiina/toml11/releases"><img src="https://img.shields.io/github/release/ToruNiina/toml11.svg?style=flat" alt="Version" /></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/ToruNiina/toml11.svg?style=flat" alt="License" /></a> <a href="https://doi.org/10.5281/zenodo.1209136"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.1209136.svg" alt="DOI" /></a></p>
+<p>toml11 is a C++11 (or later) header-only toml parser/encoder depending only on C++ standard library.</p>
+<ul>
+<li>It is compatible to the latest version of <a href="https://github.com/toml-lang/toml/blob/master/versions/en/toml-v1.0.0-rc.1.md">TOML v1.0.0-rc.1</a>.</li>
+<li>It is one of the most TOML standard compliant libraries, tested with <a href="https://github.com/BurntSushi/toml-test">the language agnostic test suite for TOML parsers by BurntSushi</a>.</li>
+<li>It shows highly informative error messages. You can see the error messages about invalid files at <a href="https://circleci.com/gh/ToruNiina/toml11">CircleCI</a>.</li>
+<li>It has configurable container. You can use any random-access containers and key-value maps as backend containers.</li>
+<li>It optionally preserves comments without any overhead.</li>
+<li>It has configurable serializer that supports comments, inline tables, literal strings and multiline strings.</li>
+<li>It supports user-defined type conversion from/into toml values.</li>
+<li>It correctly handles UTF-8 sequences, with or without BOM, both on posix and Windows.</li>
+</ul>
+<h2 id="example">Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;toml.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;example.toml&quot;</span>);
+
+    <span class="co">// find a value with the specified type from a table</span>
+    <span class="bu">std::</span>string title = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;title&quot;</span>);
+
+    <span class="co">// convert the whole array into any container automatically</span>
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; nums = toml::find&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(data, <span class="st">&quot;nums&quot;</span>);
+
+    <span class="co">// access with STL-like manner</span>
+    <span class="cf">if</span>(<span class="kw">not</span> data.at(<span class="st">&quot;a&quot;</span>).contains(<span class="st">&quot;b&quot;</span>))
+    {
+        data[<span class="st">&quot;a&quot;</span>][<span class="st">&quot;b&quot;</span>] = <span class="st">&quot;c&quot;</span>;
+    }
+
+    <span class="co">// pass a fallback</span>
+    <span class="bu">std::</span>string name = toml::find_or&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;name&quot;</span>, <span class="st">&quot;not found&quot;</span>);
+
+    <span class="co">// width-dependent formatting</span>
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setw(<span class="dv">80</span>) &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#integration">Integration</a></li>
+<li><a href="#decoding-a-toml-file">Decoding a toml file</a></li>
+<li><a href="#in-the-case-of-syntax-error">In the case of syntax error</a></li>
+<li><a href="#invalid-utf-8-codepoints">Invalid UTF-8 Codepoints</a></li>
+<li><a href="#finding-a-toml-value">Finding a toml value</a></li>
+<li><a href="#finding-a-value-in-a-table">Finding a value in a table</a></li>
+<li><a href="#in-case-of-error">In case of error</a></li>
+<li><a href="#dotted-keys">Dotted keys</a></li>
+<li><a href="#casting-a-toml-value">Casting a toml value</a></li>
+<li><a href="#checking-value-type">Checking value type</a></li>
+<li><a href="#more-about-conversion">More about conversion</a></li>
+<li><a href="#converting-an-array">Converting an array</a></li>
+<li><a href="#converting-a-table">Converting a table</a></li>
+<li><a href="#getting-an-array-of-tables">Getting an array of tables</a></li>
+<li><a href="#cost-of-conversion">Cost of conversion</a></li>
+<li><a href="#converting-datetime-and-its-variants">Converting datetime and its variants</a></li>
+<li><a href="#getting-with-a-fallback">Getting with a fallback</a></li>
+<li><a href="#expecting-conversion">Expecting conversion</a></li>
+<li><a href="#visiting-a-tomlvalue">Visiting a toml::value</a></li>
+<li><a href="#constructing-a-tomlvalue">Constructing a toml::value</a></li>
+<li><a href="#preserving-comments">Preserving Comments</a></li>
+<li><a href="#customizing-containers">Customizing containers</a></li>
+<li><a href="#toml-literal">TOML literal</a></li>
+<li><a href="#conversion-between-toml-value-and-arbitrary-types">Conversion between toml value and arbitrary types</a></li>
+<li><a href="#formatting-user-defined-error-messages">Formatting user-defined error messages</a></li>
+<li><a href="#obtaining-location-information">Obtaining location information</a></li>
+<li><a href="#exceptions">Exceptions</a></li>
+<li><a href="#colorize-error-messages">Colorize Error Messages</a></li>
+<li><a href="#serializing-toml-data">Serializing TOML data</a></li>
+<li><a href="#underlying-types">Underlying types</a></li>
+<li><a href="#unreleased-toml-features">Unreleased TOML features</a></li>
+<li><a href="#breaking-changes-from-v2">Breaking Changes from v2</a></li>
+<li><a href="#running-tests">Running Tests</a></li>
+<li><a href="#contributors">Contributors</a></li>
+<li><a href="#licensing-terms">Licensing Terms</a></li>
+</ul>
+<h2 id="integration">Integration</h2>
+<p>Just include the file after adding it to the include path.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;toml11/toml.hpp&gt;</span><span class="pp"> </span><span class="co">// that&#39;s all! now you can use it.</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="at">const</span> <span class="kw">auto</span> data  = toml::parse(<span class="st">&quot;example.toml&quot;</span>);
+    <span class="at">const</span> <span class="kw">auto</span> title = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;title&quot;</span>);
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;the title is &quot;</span> &lt;&lt; title &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The convenient way is to add this repository as a git-submodule or to install it in your system by CMake.</p>
+<h2 id="decoding-a-toml-file">Decoding a toml file</h2>
+<p>To parse a toml file, the only thing you have to do is to pass a filename to the <code>toml::parse</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="bu">std::</span>string fname(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> toml::value data = toml::parse(fname);</code></pre></div>
+<p>As required by the TOML specification, the top-level value is always a table. You can find a value inside it, cast it into a table explicitly, and insert it as a value into other <code>toml::value</code>.</p>
+<p>If it encounters an error while opening a file, it will throw <code>std::runtime_error</code>.</p>
+<p>You can also pass a <code>std::istream</code> to the <code>toml::parse</code> function. To show a filename in an error message, however, it is recommended to pass the filename with the stream.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>ifstream ifs(<span class="st">&quot;sample.toml&quot;</span>, <span class="bu">std::</span>ios_base<span class="bu">::</span>binary);
+assert(ifs.good());
+<span class="at">const</span> <span class="kw">auto</span> data = toml::parse(ifs, <span class="co">/*optional -&gt; */</span> <span class="st">&quot;sample.toml&quot;</span>);</code></pre></div>
+<p><strong>Note</strong>: When you are <strong>on Windows, open a file in binary mode</strong>. If a file is opened in text-mode, CRLF (&quot;&quot;) will automatically be converted to LF (&quot;&quot;) and this causes inconsistency between file size and the contents that would be read. This causes weird error.</p>
+<h3 id="in-the-case-of-syntax-error">In the case of syntax error</h3>
+<p>If there is a syntax error in a toml file, <code>toml::parse</code> will throw <code>toml::syntax_error</code> that inherits <code>std::exception</code>.</p>
+<p>toml11 has clean and informative error messages inspired by Rust and it looks like the following.</p>
+<pre class="console"><code>terminate called after throwing an instance of &#39;toml::syntax_error&#39;
+  what():  [error] toml::parse_table: invalid line format # error description
+ --&gt; example.toml                                         # file name
+ 3 | a = 42 = true                                        # line num and content
+   |        ^------ expected newline, but got &#39;=&#39;.        # error reason</code></pre>
+<p>If you (mistakenly) duplicate tables and got an error, it is helpful to see where they are. toml11 shows both at the same time like the following.</p>
+<pre class="console"><code>terminate called after throwing an instance of &#39;toml::syntax_error&#39;
+  what():  [error] toml::insert_value: table (&quot;table&quot;) already exists.
+ --&gt; duplicate-table.toml
+ 1 | [table]
+   | ~~~~~~~ table already exists here
+ ...
+ 3 | [table]
+   | ~~~~~~~ table defined twice</code></pre>
+<p>When toml11 encounters a malformed value, it tries to detect what type it is. Then it shows hints to fix the format. An error message while reading one of the malformed files in <a href="https://github.com/BurntSushi/toml-test">the language agnostic test suite</a>. is shown below.</p>
+<pre class="console"><code>what(): [error] bad time: should be HH:MM:SS.subsec
+ --&gt; ./datetime-malformed-no-secs.toml
+ 1 | no-secs = 1987-07-05T17:45Z
+   |                     ^------- HH:MM:SS.subsec
+   |
+Hint: pass: 1979-05-27T07:32:00, 1979-05-27 07:32:00.999999
+Hint: fail: 1979-05-27T7:32:00, 1979-05-27 17:32</code></pre>
+<p>You can find other examples in a job named <code>output_result</code> on <a href="https://circleci.com/gh/ToruNiina/toml11">CircleCI</a>.</p>
+<p>Since the error message generation is generally a difficult task, the current status is not ideal. If you encounter a weird error message, please let us know and contribute to improve the quality!</p>
+<h3 id="invalid-utf-8-codepoints">Invalid UTF-8 codepoints</h3>
+<p>It throws <code>syntax_error</code> if a value of an escape sequence representing unicode character is not a valid UTF-8 codepoint.</p>
+<pre class="console"><code>  what():  [error] toml::read_utf8_codepoint: input codepoint is too large.
+ --&gt; utf8.toml
+ 1 | exceeds_unicode = &quot;\U0011FFFF example&quot;
+   |                              ^--------- should be in [0x00..0x10FFFF]</code></pre>
+<h2 id="finding-a-toml-value">Finding a toml value</h2>
+<p>After parsing successfully, you can obtain the values from the result of <code>toml::parse</code> using <code>toml::find</code> function.</p>
+<pre class="toml"><code># sample.toml
+answer  = 42
+pi      = 3.14
+numbers = [1,2,3]
+time    = 1979-05-27T07:32:00Z</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data      = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> answer    = toml::find&lt;<span class="bu">std::</span>int64_t    &gt;(data, <span class="st">&quot;answer&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> pi        = toml::find&lt;<span class="dt">double</span>          &gt;(data, <span class="st">&quot;pi&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> numbers   = toml::find&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(data, <span class="st">&quot;numbers&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> timepoint = toml::find&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;(data, <span class="st">&quot;time&quot;</span>);</code></pre></div>
+<p>By default, <code>toml::find</code> returns a <code>toml::value</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value&amp; answer = toml::find(data, <span class="st">&quot;answer&quot;</span>);</code></pre></div>
+<p>When you pass an exact TOML type that does not require type conversion, <code>toml::find</code> returns a reference without copying the value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>  data   = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>&amp; answer = toml::find&lt;toml::integer&gt;(data, <span class="st">&quot;answer&quot;</span>);</code></pre></div>
+<p>If the specified type requires conversion, you can't take a reference to the value. See also <a href="#underlying-types">underlying types</a>.</p>
+<p><strong>NOTE</strong>: For some technical reason, automatic conversion between <code>integer</code> and <code>floating</code> is not supported. If you want to get a floating value even if a value has integer value, you need to convert it manually after obtaining a value, like the followings.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> vx = toml::find(data, <span class="st">&quot;x&quot;</span>);
+<span class="dt">double</span> x = vx.is_floating() ? vx.as_floating(<span class="bu">std::</span>nothrow) :
+           <span class="kw">static_cast</span>&lt;<span class="dt">double</span>&gt;(vx.as_integer()); <span class="co">// it throws if vx is neither</span>
+                                                 <span class="co">// floating nor integer.</span></code></pre></div>
+<h3 id="finding-a-value-in-a-table">Finding a value in a table</h3>
+<p>There are several way to get a value defined in a table. First, you can get a table as a normal value and find a value from the table.</p>
+<pre class="toml"><code>[fruit]
+name = &quot;apple&quot;
+[fruit.physical]
+color = &quot;red&quot;
+shape = &quot;round&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>  data  = toml::parse(<span class="st">&quot;fruit.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>&amp; fruit = toml::find(data, <span class="st">&quot;fruit&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>  name  = toml::find&lt;<span class="bu">std::</span>string&gt;(fruit, <span class="st">&quot;name&quot;</span>);
+
+<span class="at">const</span> <span class="kw">auto</span>&amp; physical = toml::find(fruit, <span class="st">&quot;physical&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>  color    = toml::find&lt;<span class="bu">std::</span>string&gt;(physical, <span class="st">&quot;color&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>  shape    = toml::find&lt;<span class="bu">std::</span>string&gt;(physical, <span class="st">&quot;shape&quot;</span>);</code></pre></div>
+<p>Here, variable <code>fruit</code> is a <code>toml::value</code> and can be used as the first argument of <code>toml::find</code>.</p>
+<p>Second, you can pass as many arguments as the number of subtables to <code>toml::find</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data  = toml::parse(<span class="st">&quot;fruit.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> color = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;fruit&quot;</span>, <span class="st">&quot;physical&quot;</span>, <span class="st">&quot;color&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> shape = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;fruit&quot;</span>, <span class="st">&quot;physical&quot;</span>, <span class="st">&quot;shape&quot;</span>);</code></pre></div>
+<h3 id="finding-a-value-in-an-array">Finding a value in an array</h3>
+<p>You can find n-th value in an array by <code>toml::find</code>.</p>
+<pre class="toml"><code>values = [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;]</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data   = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> values = toml::find(data, <span class="st">&quot;values&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> bar    = toml::find&lt;<span class="bu">std::</span>string&gt;(values, <span class="dv">1</span>);</code></pre></div>
+<p><code>toml::find</code> can also search array recursively.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;fruit.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> bar  = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;values&quot;</span>, <span class="dv">1</span>);</code></pre></div>
+<p>Before calling <code>toml::find</code>, you can check if a value corresponding to a key exists. You can use both <code>bool toml::value::contains(const key&amp;) const</code> and <code>std::size_t toml::value::count(const key&amp;) const</code>. Those behaves like the <code>std::map::contains</code> and <code>std::map::count</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;fruit.toml&quot;</span>);
+<span class="cf">if</span>(data.contains(<span class="st">&quot;fruit&quot;</span>) &amp;&amp; data.at(<span class="st">&quot;fruit&quot;</span>).count(<span class="st">&quot;physical&quot;</span>) != <span class="dv">0</span>)
+{
+    <span class="co">// ...</span>
+}</code></pre></div>
+<h3 id="in-case-of-error">In case of error</h3>
+<p>If the value does not exist, <code>toml::find</code> throws <code>std::out_of_range</code> with the location of the table.</p>
+<pre class="console"><code>terminate called after throwing an instance of &#39;std::out_of_range&#39;
+  what():  [error] key &quot;answer&quot; not found
+ --&gt; example.toml
+ 6 | [tab]
+   | ~~~~~ in this table</code></pre>
+<hr />
+<p>If the specified type differs from the actual value contained, it throws <code>toml::type_error</code> that inherits <code>std::exception</code>.</p>
+<p>Similar to the case of syntax error, toml11 also displays clean error messages. The error message when you choose <code>int</code> to get <code>string</code> value would be like this.</p>
+<pre class="console"><code>terminate called after throwing an instance of &#39;toml::type_error&#39;
+  what():  [error] toml::value bad_cast to integer
+ --&gt; example.toml
+ 3 | title = &quot;TOML Example&quot;
+   |         ~~~~~~~~~~~~~~ the actual type is string</code></pre>
+<p><strong>NOTE</strong>: In order to show this kind of error message, all the toml values have a pointer to represent its range in a file. The entire contents of a file is shared by <code>toml::value</code>s and remains on the heap memory. It is recommended to destruct all the <code>toml::value</code> classes after configuring your application if you have a large TOML file compared to the memory resource.</p>
+<h3 id="dotted-keys">Dotted keys</h3>
+<p>TOML v0.5.0 has a new feature named &quot;dotted keys&quot;. You can chain keys to represent the structure of the data.</p>
+<pre class="toml"><code>physical.color = &quot;orange&quot;
+physical.shape = &quot;round&quot;</code></pre>
+<p>This is equivalent to the following.</p>
+<pre class="toml"><code>[physical]
+color = &quot;orange&quot;
+shape = &quot;round&quot;</code></pre>
+<p>You can get both of the above tables with the same c++ code.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> physical = toml::find(data, <span class="st">&quot;physical&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> color    = toml::find&lt;<span class="bu">std::</span>string&gt;(physical, <span class="st">&quot;color&quot;</span>);</code></pre></div>
+<p>The following code does not work for the above toml file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// XXX this does not work!</span>
+<span class="at">const</span> <span class="kw">auto</span> color = toml::find&lt;<span class="bu">std::</span>string&gt;(data, <span class="st">&quot;physical.color&quot;</span>);</code></pre></div>
+<p>The above code works with the following toml file.</p>
+<pre class="toml"><code>&quot;physical.color&quot; = &quot;orange&quot;
+# equivalent to {&quot;physical.color&quot;: &quot;orange&quot;},
+# NOT {&quot;physical&quot;: {&quot;color&quot;: &quot;orange&quot;}}.</code></pre>
+<h2 id="casting-a-toml-value">Casting a toml value</h2>
+<h3 id="tomlget"><code>toml::get</code></h3>
+<p><code>toml::parse</code> returns <code>toml::value</code>. <code>toml::value</code> is a union type that can contain one of the following types.</p>
+<ul>
+<li><code>toml::boolean</code> (<code>bool</code>)</li>
+<li><code>toml::integer</code> (<code>std::int64_t</code>)</li>
+<li><code>toml::floating</code> (<code>double</code>)</li>
+<li><code>toml::string</code> (a type convertible to std::string)</li>
+<li><code>toml::local_date</code></li>
+<li><code>toml::local_time</code></li>
+<li><code>toml::local_datetime</code></li>
+<li><code>toml::offset_datetime</code></li>
+<li><code>toml::array</code> (by default, <code>std::vector&lt;toml::value&gt;</code>)</li>
+<li>It depends. See <a href="#customizing-containers">customizing containers</a> for detail.</li>
+<li><code>toml::table</code> (by default, <code>std::unordered_map&lt;toml::key, toml::value&gt;</code>)</li>
+<li>It depends. See <a href="#customizing-containers">customizing containers</a> for detail.</li>
+</ul>
+<p>To get a value inside, you can use <code>toml::get&lt;T&gt;()</code>. The usage is the same as <code>toml::find&lt;T&gt;</code> (actually, <code>toml::find</code> internally uses <code>toml::get</code> after casting a value to <code>toml::table</code>).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value  data    = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> toml::value  <span class="va">answer_</span> = toml::get&lt;toml::table &gt;(data).at(<span class="st">&quot;answer&quot;</span>);
+<span class="at">const</span> <span class="bu">std::</span>int64_t answer  = toml::get&lt;<span class="bu">std::</span>int64_t&gt;(<span class="va">answer_</span>);</code></pre></div>
+<p>When you pass an exact TOML type that does not require type conversion, <code>toml::get</code> returns a reference through which you can modify the content (if the <code>toml::value</code> is <code>const</code>, it returns <code>const</code> reference).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value   data    = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+toml::value   <span class="va">answer_</span> = toml::get&lt;toml::table &gt;(data).at(<span class="st">&quot;answer&quot;</span>);
+toml::integer&amp; answer = toml::get&lt;toml::integer&gt;(<span class="va">answer_</span>);
+answer = <span class="dv">6</span> * <span class="dv">9</span>; <span class="co">// write to data.answer. now `answer_` contains 54.</span></code></pre></div>
+<p>If the specified type requires conversion, you can't take a reference to the value. See also <a href="#underlying-types">underlying types</a>.</p>
+<p>It also throws a <code>toml::type_error</code> if the type differs.</p>
+<h3 id="as_xxx"><code>as_xxx</code></h3>
+<p>You can also use a member function to cast a value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="bu">std::</span>int64_t answer = data.as_table().at(<span class="st">&quot;answer&quot;</span>).as_integer();</code></pre></div>
+<p>It also throws a <code>toml::type_error</code> if the type differs. If you are sure that the value <code>v</code> contains a value of the specified type, you can suppress checking by passing <code>std::nothrow</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>&amp; answer = data.as_table().at(<span class="st">&quot;answer&quot;</span>);
+<span class="cf">if</span>(answer.is_integer() &amp;&amp; answer.as_integer(<span class="bu">std::</span>nothrow) == <span class="dv">42</span>)
+{
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;value is 42&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>If <code>std::nothrow</code> is passed, the functions are marked as noexcept.</p>
+<p>By casting a <code>toml::value</code> into an array or a table, you can iterate over the elements.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;example.toml&quot;</span>);
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;keys in the top-level table are the following: </span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; [k, v] : data.as_table())
+{
+    <span class="bu">std::</span>cout &lt;&lt; k &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+}
+
+<span class="at">const</span> <span class="kw">auto</span>&amp; fruits = toml::find(data, <span class="st">&quot;fruits&quot;</span>);
+<span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; v : fruits.as_array())
+{
+    <span class="bu">std::</span>cout &lt;&lt; toml::find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;name&quot;</span>) &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+}</code></pre></div>
+<p>The full list of the functions is below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> toml {
+<span class="kw">class</span> value {
+    <span class="co">// ...</span>
+    <span class="at">const</span> boolean&amp;         as_boolean()         <span class="at">const</span>&amp;;
+    <span class="at">const</span> integer&amp;         as_integer()         <span class="at">const</span>&amp;;
+    <span class="at">const</span> floating&amp;        as_floating()        <span class="at">const</span>&amp;;
+    <span class="at">const</span> string&amp;          as_string()          <span class="at">const</span>&amp;;
+    <span class="at">const</span> offset_datetime&amp; as_offset_datetime() <span class="at">const</span>&amp;;
+    <span class="at">const</span> local_datetime&amp;  as_local_datetime()  <span class="at">const</span>&amp;;
+    <span class="at">const</span> local_date&amp;      as_local_date()      <span class="at">const</span>&amp;;
+    <span class="at">const</span> local_time&amp;      as_local_time()      <span class="at">const</span>&amp;;
+    <span class="at">const</span> array&amp;           as_array()           <span class="at">const</span>&amp;;
+    <span class="at">const</span> table&amp;           as_table()           <span class="at">const</span>&amp;;
+    <span class="co">// --------------------------------------------------------</span>
+    <span class="co">// non-const version</span>
+    boolean&amp;               as_boolean()         &amp;;
+    <span class="co">// ditto...</span>
+    <span class="co">// --------------------------------------------------------</span>
+    <span class="co">// rvalue version</span>
+    boolean&amp;&amp;              as_boolean()         &amp;&amp;;
+    <span class="co">// ditto...</span>
+
+    <span class="co">// --------------------------------------------------------</span>
+    <span class="co">// noexcept versions ...</span>
+    <span class="at">const</span> boolean&amp;         as_boolean(<span class="at">const</span> <span class="bu">std::</span>nothrow_t&amp;) <span class="at">const</span>&amp; <span class="kw">noexcept</span>;
+    boolean&amp;               as_boolean(<span class="at">const</span> <span class="bu">std::</span>nothrow_t&amp;) &amp;      <span class="kw">noexcept</span>;
+    boolean&amp;&amp;              as_boolean(<span class="at">const</span> <span class="bu">std::</span>nothrow_t&amp;) &amp;&amp;     <span class="kw">noexcept</span>;
+    <span class="co">// ditto...</span>
+};
+} <span class="co">// toml</span></code></pre></div>
+<h3 id="at"><code>at()</code></h3>
+<p>You can access to the element of a table and an array by <code>toml::basic_value::at</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>};
+<span class="bu">std::</span>cout &lt;&lt; v.at(<span class="dv">2</span>).as_integer() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// 3</span>
+
+<span class="at">const</span> toml::value v{{<span class="st">&quot;foo&quot;</span>, <span class="dv">42</span>}, {<span class="st">&quot;bar&quot;</span>, <span class="fl">3.14</span>}};
+<span class="bu">std::</span>cout &lt;&lt; v.at(<span class="st">&quot;foo&quot;</span>).as_integer() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// 42</span></code></pre></div>
+<p>If an invalid key (integer for a table, string for an array), it throws <code>toml::type_error</code> for the conversion. If the provided key is out-of-range, it throws <code>std::out_of_range</code>.</p>
+<p>Note that, although <code>std::string</code> has <code>at()</code> member function, <code>toml::value::at</code> throws if the contained type is a string. Because <code>std::string</code> does not contain <code>toml::value</code>.</p>
+<h3 id="operator"><code>operator[]</code></h3>
+<p>You can also access to the element of a table and an array by <code>toml::basic_value::operator[]</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>};
+<span class="bu">std::</span>cout &lt;&lt; v[<span class="dv">2</span>].as_integer() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// 3</span>
+
+<span class="at">const</span> toml::value v{{<span class="st">&quot;foo&quot;</span>, <span class="dv">42</span>}, {<span class="st">&quot;bar&quot;</span>, <span class="fl">3.14</span>}};
+<span class="bu">std::</span>cout &lt;&lt; v[<span class="st">&quot;foo&quot;</span>].as_integer() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// 42</span></code></pre></div>
+<p>When you access to a <code>toml::value</code> that is not initialized yet via <code>operator[](const std::string&amp;)</code>, the <code>toml::value</code> will be a table, just like the <code>std::map</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v; <span class="co">// not initialized as a table.</span>
+v[<span class="st">&quot;foo&quot;</span>] = <span class="dv">42</span>; <span class="co">// OK. `v` will be a table.</span></code></pre></div>
+<p>Contrary, if you access to a <code>toml::value</code> that contains an array via <code>operator[]</code>, it does not check anything. It converts <code>toml::value</code> without type check and then access to the n-th element without boundary check, just like the <code>std::vector::operator[]</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v; <span class="co">// not initialized as an array</span>
+v[<span class="dv">2</span>] = <span class="dv">42</span>;     <span class="co">// error! UB</span></code></pre></div>
+<p>Please make sure that the <code>toml::value</code> has an array inside when you access to its element via <code>operator[]</code>.</p>
+<h2 id="checking-value-type">Checking value type</h2>
+<p>You can check the type of a value by <code>is_xxx</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v = <span class="co">/* ... */</span>;
+<span class="cf">if</span>(v.is_integer())
+{
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;value is an integer&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>The complete list of the functions is below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> toml {
+<span class="kw">class</span> value {
+    <span class="co">// ...</span>
+    <span class="dt">bool</span> is_boolean()         <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_integer()         <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_floating()        <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_string()          <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_offset_datetime() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_local_datetime()  <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_local_date()      <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_local_time()      <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_array()           <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_table()           <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_uninitialized()   <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="co">// ...</span>
+};
+} <span class="co">// toml</span></code></pre></div>
+<p>Also, you can get <code>enum class value_t</code> from <code>toml::value::type()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">switch</span>(data.at(<span class="st">&quot;something&quot;</span>).type())
+{
+    <span class="cf">case</span> toml::<span class="dt">value_t</span>::integer:  <span class="co">/*do some stuff*/</span> ; <span class="cf">break</span>;
+    <span class="cf">case</span> toml::<span class="dt">value_t</span>::floating: <span class="co">/*do some stuff*/</span> ; <span class="cf">break</span>;
+    <span class="cf">case</span> toml::<span class="dt">value_t</span>::string :  <span class="co">/*do some stuff*/</span> ; <span class="cf">break</span>;
+    <span class="cf">default</span> : <span class="cf">throw</span> <span class="bu">std::</span>runtime_error(
+        <span class="st">&quot;unexpected type : &quot;</span> + toml::stringize(data.at(<span class="st">&quot;something&quot;</span>).type()));
+}</code></pre></div>
+<p>The complete list of the <code>enum</code>s can be found in the section <a href="#underlying-types">underlying types</a>.</p>
+<p>The <code>enum</code>s can be used as a parameter of <code>toml::value::is</code> function like the following.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v = <span class="co">/* ... */</span>;
+<span class="cf">if</span>(v.is(toml::<span class="dt">value_t</span>::boolean)) <span class="co">// ...</span></code></pre></div>
+<h2 id="more-about-conversion">More about conversion</h2>
+<p>Since <code>toml::find</code> internally uses <code>toml::get</code>, all the following examples work with both <code>toml::get</code> and <code>toml::find</code>.</p>
+<h3 id="converting-an-array">Converting an array</h3>
+<p>You can get any kind of <code>container</code> class from a <code>toml::array</code> except for <code>map</code>-like classes.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// # sample.toml</span>
+<span class="co">// numbers = [1,2,3]</span>
+
+<span class="at">const</span> <span class="kw">auto</span> numbers = toml::find(data, <span class="st">&quot;numbers&quot;</span>);
+
+<span class="at">const</span> <span class="kw">auto</span> vc  = toml::get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;  &gt;(numbers);
+<span class="at">const</span> <span class="kw">auto</span> ls  = toml::get&lt;<span class="bu">std::</span>list&lt;<span class="dt">int</span>&gt;    &gt;(numbers);
+<span class="at">const</span> <span class="kw">auto</span> dq  = toml::get&lt;<span class="bu">std::</span>deque&lt;<span class="dt">int</span>&gt;   &gt;(numbers);
+<span class="at">const</span> <span class="kw">auto</span> ar  = toml::get&lt;<span class="bu">std::</span>array&lt;<span class="dt">int</span>, <span class="dv">3</span>&gt;&gt;(numbers);
+<span class="co">// if the size of data.at(&quot;numbers&quot;) is larger than that of std::array,</span>
+<span class="co">// it will throw toml::type_error because std::array is not resizable.</span></code></pre></div>
+<p>Surprisingly, you can convert <code>toml::array</code> into <code>std::pair</code> and <code>std::tuple</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// numbers = [1,2,3]</span>
+<span class="at">const</span> <span class="kw">auto</span> tp = toml::get&lt;<span class="bu">std::</span>tuple&lt;<span class="dt">short</span>, <span class="dt">int</span>, <span class="dt">unsigned</span> <span class="dt">int</span>&gt;&gt;(numbers);</code></pre></div>
+<p>This functionality is helpful when you have a toml file like the following.</p>
+<pre class="toml"><code>array_of_arrays = [[1, 2, 3], [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;]] # toml allows this</code></pre>
+<p>What is the corresponding C++ type? Obviously, it is a <code>std::pair</code> of <code>std::vector</code>s.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> array_of_arrays = toml::find(data, <span class="st">&quot;array_of_arrays&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> aofa = toml::get&lt;
+    <span class="bu">std::</span>pair&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;, <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;
+    &gt;(array_of_arrays);</code></pre></div>
+<p>If you don't know the type of the elements, you can use <code>toml::array</code>, which is a <code>std::vector</code> of <code>toml::value</code>, instead.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> a_of_a = toml::get&lt;toml::array&gt;(array_of_arrays);
+<span class="at">const</span> <span class="kw">auto</span> first  = toml::get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(a_of_a.at(<span class="dv">0</span>));</code></pre></div>
+<p>You can change the implementation of <code>toml::array</code> with <code>std::deque</code> or some other array-like container. See <a href="#customizing-containers">Customizing containers</a> for detail.</p>
+<h3 id="converting-a-table">Converting a table</h3>
+<p>When all the values of the table have the same type, toml11 allows you to convert a <code>toml::table</code> to a <code>map</code> that contains the convertible type.</p>
+<pre class="toml"><code>[tab]
+key1 = &quot;foo&quot; # all the values are
+key2 = &quot;bar&quot; # toml String</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> tab = toml::find&lt;<span class="bu">std::</span>map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt;&gt;(data, <span class="st">&quot;tab&quot;</span>);
+<span class="bu">std::</span>cout &lt;&lt; tab[<span class="st">&quot;key1&quot;</span>] &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// foo</span>
+<span class="bu">std::</span>cout &lt;&lt; tab[<span class="st">&quot;key2&quot;</span>] &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// bar</span></code></pre></div>
+<p>But since <code>toml::table</code> is just an alias of <code>std::unordered_map&lt;toml::key, toml::value&gt;</code>, normally you don't need to convert it because it has all the functionalities that <code>std::unordered_map</code> has (e.g. <code>operator[]</code>, <code>count</code>, and <code>find</code>). In most cases <code>toml::table</code> is sufficient.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::table tab = toml::get&lt;toml::table&gt;(data);
+<span class="cf">if</span>(data.count(<span class="st">&quot;title&quot;</span>) != <span class="dv">0</span>)
+{
+    data[<span class="st">&quot;title&quot;</span>] = <span class="bu">std::</span>string(<span class="st">&quot;TOML example&quot;</span>);
+}</code></pre></div>
+<p>You can change the implementation of <code>toml::table</code> with <code>std::map</code> or some other map-like container. See <a href="#customizing-containers">Customizing containers</a> for detail.</p>
+<h3 id="getting-an-array-of-tables">Getting an array of tables</h3>
+<p>An array of tables is just an array of tables. You can get it in completely the same way as the other arrays and tables.</p>
+<pre class="toml"><code># sample.toml
+array_of_inline_tables = [{key = &quot;value1&quot;}, {key = &quot;value2&quot;}, {key = &quot;value3&quot;}]
+
+[[array_of_tables]]
+key = &quot;value4&quot;
+[[array_of_tables]]
+key = &quot;value5&quot;
+[[array_of_tables]]
+key = &quot;value6&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> aot1 = toml::find&lt;<span class="bu">std::</span>vector&lt;toml::table&gt;&gt;(data, <span class="st">&quot;array_of_inline_tables&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> aot2 = toml::find&lt;<span class="bu">std::</span>vector&lt;toml::table&gt;&gt;(data, <span class="st">&quot;array_of_tables&quot;</span>);</code></pre></div>
+<h3 id="cost-of-conversion">Cost of conversion</h3>
+<p>Although conversion through <code>toml::(get|find)</code> is convenient, it has additional copy-cost because it copies data contained in <code>toml::value</code> to the user-specified type. Of course in some cases this overhead is not ignorable.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// the following code constructs a std::vector.</span>
+<span class="co">// it requires heap allocation for vector and element conversion.</span>
+<span class="at">const</span> <span class="kw">auto</span> array = toml::find&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(data, <span class="st">&quot;foo&quot;</span>);</code></pre></div>
+<p>By passing the exact types, <code>toml::get</code> returns reference that has no overhead.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>&amp; tab     = toml::find&lt;toml::table&gt;(data, <span class="st">&quot;tab&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span>&amp; numbers = toml::find&lt;toml::array&gt;(data, <span class="st">&quot;numbers&quot;</span>);</code></pre></div>
+<p>Also, <code>as_xxx</code> are zero-overhead because they always return a reference.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>&amp; tab     = toml::find(data, <span class="st">&quot;tab&quot;</span>    ).as_table();
+<span class="at">const</span> <span class="kw">auto</span>&amp; numbers = toml::find(data, <span class="st">&quot;numbers&quot;</span>).as_array();</code></pre></div>
+<p>In this case you need to call <code>toml::get</code> each time you access to the element of <code>toml::array</code> because <code>toml::array</code> is an array of <code>toml::value</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>&amp; num0 = toml::get&lt;toml::integer&gt;(numbers.at(<span class="dv">0</span>));
+<span class="at">const</span> <span class="kw">auto</span>&amp; num1 = toml::get&lt;toml::integer&gt;(numbers.at(<span class="dv">1</span>));
+<span class="at">const</span> <span class="kw">auto</span>&amp; num2 = toml::get&lt;toml::integer&gt;(numbers.at(<span class="dv">2</span>));</code></pre></div>
+<h3 id="converting-datetime-and-its-variants">Converting datetime and its variants</h3>
+<p>TOML v0.5.0 has 4 different datetime objects, <code>local_date</code>, <code>local_time</code>, <code>local_datetime</code>, and <code>offset_datetime</code>.</p>
+<p>Since <code>local_date</code>, <code>local_datetime</code>, and <code>offset_datetime</code> represent a time point, you can convert them to <code>std::chrono::system_clock::time_point</code>.</p>
+<p>Contrary, <code>local_time</code> does not represents a time point because they lack a date information, but it can be converted to <code>std::chrono::duration</code> that represents a duration from the beginning of the day, <code>00:00:00.000</code>.</p>
+<pre class="toml"><code># sample.toml
+date = 2018-12-23
+time = 12:30:00
+l_dt = 2018-12-23T12:30:00
+o_dt = 2018-12-23T12:30:00+09:30</code></pre>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;sample.toml&quot;</span>);
+
+<span class="at">const</span> <span class="kw">auto</span> date = toml::get&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;(data.at(<span class="st">&quot;date&quot;</span>));
+<span class="at">const</span> <span class="kw">auto</span> l_dt = toml::get&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;(data.at(<span class="st">&quot;l_dt&quot;</span>));
+<span class="at">const</span> <span class="kw">auto</span> o_dt = toml::get&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;(data.at(<span class="st">&quot;o_dt&quot;</span>));
+
+<span class="at">const</span> <span class="kw">auto</span> time = toml::get&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>minutes&gt;(data.at(<span class="st">&quot;time&quot;</span>)); <span class="co">// 12 * 60 + 30 min</span></code></pre></div>
+<p><code>local_date</code> and <code>local_datetime</code> are assumed to be in the local timezone when they are converted into <code>time_point</code>. On the other hand, <code>offset_datetime</code> only uses the offset part of the data and it does not take local timezone into account.</p>
+<p>To contain datetime data, toml11 defines its own datetime types. For more detail, you can see the definitions in <a href="toml/datetime.hpp" class="uri">toml/datetime.hpp</a>.</p>
+<h2 id="getting-with-a-fallback">Getting with a fallback</h2>
+<p><code>toml::find_or</code> returns a default value if the value is not found or has a different type.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;example.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> num  = toml::find_or(data, <span class="st">&quot;num&quot;</span>, <span class="dv">42</span>);</code></pre></div>
+<p>Also, <code>toml::get_or</code> returns a default value if <code>toml::get&lt;T&gt;</code> failed.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v(<span class="st">&quot;foo&quot;</span>); <span class="co">// v contains String</span>
+<span class="at">const</span> <span class="dt">int</span> value = toml::get_or(v, <span class="dv">42</span>); <span class="co">// conversion fails. it returns 42.</span></code></pre></div>
+<p>These functions automatically deduce what type you want to get from the default value you passed.</p>
+<p>To get a reference through this function, take care about the default value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v(<span class="st">&quot;foo&quot;</span>); <span class="co">// v contains String</span>
+toml::integer&amp; i = toml::get_or(v, <span class="dv">42</span>); <span class="co">// does not work because binding `42`</span>
+                                        <span class="co">// to `integer&amp;` is invalid</span>
+toml::integer opt = <span class="dv">42</span>;
+toml::integer&amp; i = toml::get_or(v, opt); <span class="co">// this works.</span></code></pre></div>
+<h2 id="expecting-conversion">Expecting conversion</h2>
+<p>By using <code>toml::expect</code>, you will get your expected value or an error message without throwing <code>toml::type_error</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> value = toml::expect&lt;<span class="bu">std::</span>string&gt;(data.at(<span class="st">&quot;title&quot;</span>));
+<span class="cf">if</span>(value.is_ok()) {
+    <span class="bu">std::</span>cout &lt;&lt; value.unwrap() &lt;&lt; <span class="bu">std::</span>endl;
+} <span class="cf">else</span> {
+    <span class="bu">std::</span>cout &lt;&lt; value.unwrap_err() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>Also, you can pass a function object to modify the expected value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> value = toml::expect&lt;<span class="dt">int</span>&gt;(data.at(<span class="st">&quot;number&quot;</span>))
+    .map(<span class="co">// function that receives expected type (here, int)</span>
+    [](<span class="at">const</span> <span class="dt">int</span> number) -&gt; <span class="dt">double</span> {
+        <span class="cf">return</span> number * <span class="fl">1.5</span> + <span class="fl">1.0</span>;
+    }).unwrap_or(<span class="co">/*default value =*/</span> <span class="fl">3.14</span>);</code></pre></div>
+<h2 id="visiting-a-tomlvalue">Visiting a toml::value</h2>
+<p>toml11 provides <code>toml::visit</code> to apply a function to <code>toml::value</code> in the same way as <code>std::variant</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v(<span class="fl">3.14</span>);
+toml::visit([](<span class="at">const</span> <span class="kw">auto</span>&amp; val) -&gt; <span class="dt">void</span> {
+        <span class="bu">std::</span>cout &lt;&lt; val &lt;&lt; <span class="bu">std::</span>endl;
+    }, v);</code></pre></div>
+<p>The function object that would be passed to <code>toml::visit</code> must be able to recieve all the possible TOML types. Also, the result types should be the same each other.</p>
+<h2 id="constructing-a-tomlvalue">Constructing a toml::value</h2>
+<p><code>toml::value</code> can be constructed in various ways.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v(<span class="kw">true</span>);     <span class="co">// boolean</span>
+toml::value v(<span class="dv">42</span>);       <span class="co">// integer</span>
+toml::value v(<span class="fl">3.14</span>);     <span class="co">// floating</span>
+toml::value v(<span class="st">&quot;foobar&quot;</span>); <span class="co">// string</span>
+toml::value v(toml::local_date(<span class="dv">2019</span>, toml::<span class="dt">month_t</span>::Apr, <span class="dv">1</span>)); <span class="co">// date</span>
+toml::value v{<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>};                                 <span class="co">// array</span>
+toml::value v{{<span class="st">&quot;foo&quot;</span>, <span class="dv">42</span>}, {<span class="st">&quot;bar&quot;</span>, <span class="fl">3.14</span>}, {<span class="st">&quot;baz&quot;</span>, <span class="st">&quot;qux&quot;</span>}};    <span class="co">// table</span></code></pre></div>
+<p>When constructing a string, you can choose to use either literal or basic string. By default, it will be a basic string.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v(<span class="st">&quot;foobar&quot;</span>, toml::<span class="dt">string_t</span>::basic  );
+toml::value v(<span class="st">&quot;foobar&quot;</span>, toml::<span class="dt">string_t</span>::literal);</code></pre></div>
+<p>Datetime objects can be constructed from <code>std::tm</code> and <code>std::chrono::system_clock::time_point</code>. But you need to specify what type you use to avoid ambiguity.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> now = <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>now();
+toml::value v(toml::local_date(now));
+toml::value v(toml::local_datetime(now));
+toml::value v(toml::offset_datetime(now));</code></pre></div>
+<p>Since local time is not equivalent to a time point, because it lacks date information, it will be constructed from <code>std::chrono::duration</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v(toml::local_time(<span class="bu">std::</span>chrono<span class="bu">::</span>hours(<span class="dv">10</span>)));</code></pre></div>
+<p>You can construct an array object not only from <code>initializer_list</code>, but also from STL containers. In that case, the element type must be convertible to <code>toml::value</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; vec{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>};
+toml::value v(vec);</code></pre></div>
+<p>When you construct an array value, all the elements of <code>initializer_list</code> must be convertible into <code>toml::value</code>.</p>
+<p>If a <code>toml::value</code> has an array, you can <code>push_back</code> an element in it.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>};
+v.push_back(<span class="dv">6</span>);</code></pre></div>
+<p><code>emplace_back</code> also works.</p>
+<h2 id="preserving-comments">Preserving comments</h2>
+<p>After toml11 v3, you can choose whether comments are preserved or not.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data1 = toml::parse&lt;toml::discard_comments &gt;(<span class="st">&quot;example.toml&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> data2 = toml::parse&lt;toml::preserve_comments&gt;(<span class="st">&quot;example.toml&quot;</span>);</code></pre></div>
+<p>Comments related to a value can be obtained by <code>toml::value::comments()</code>. The return value has the same interface as <code>std::vector&lt;std::string&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span>&amp; com = v.comments();
+<span class="cf">for</span>(<span class="at">const</span> <span class="kw">auto</span>&amp; c : com)
+{
+    <span class="bu">std::</span>cout &lt;&lt; c &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>Comments just before and just after (within the same line) a value are kept in a value.</p>
+<pre class="toml"><code># this is a comment for v1.
+v1 = &quot;foo&quot;
+
+v2 = &quot;bar&quot; # this is a comment for v2.
+# Note that this comment is NOT a comment for v2.
+
+# this comment is not related to any value
+# because there are empty lines between v3.
+# this comment will be ignored even if you set `preserve_comments`.
+
+# this is a comment for v3
+# this is also a comment for v3.
+v3 = &quot;baz&quot; # ditto.</code></pre>
+<p>Each comment line becomes one element of a <code>std::vector</code>.</p>
+<p>Hash signs will be removed, but spaces after hash sign will not be removed.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">v1.comments().at(<span class="dv">0</span>) == <span class="st">&quot; this is a comment for v1.&quot;</span>s;
+
+v2.comments().at(<span class="dv">1</span>) == <span class="st">&quot; this is a comment for v1.&quot;</span>s;
+
+v3.comments().at(<span class="dv">0</span>) == <span class="st">&quot; this is a comment for v3.&quot;</span>s;
+v3.comments().at(<span class="dv">1</span>) == <span class="st">&quot; this is also a comment for v3.&quot;</span>s;
+v3.comments().at(<span class="dv">2</span>) == <span class="st">&quot; ditto.&quot;</span>s;</code></pre></div>
+<p>Note that a comment just after an opening brace of an array will not be a comment for the array.</p>
+<pre class="toml"><code># this is a comment for a.
+a = [ # this is not a comment for a. this will be ignored.
+  1, 2, 3,
+  # this is a comment for `42`.
+  42, # this is also a comment for `42`.
+  5
+] # this is a comment for a.</code></pre>
+<p>You can also append and modify comments. The interfaces are the same as <code>std::vector&lt;std::string&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::basic_value&lt;toml::preserve_comments&gt; v(<span class="dv">42</span>);
+v.comments().push_back(<span class="st">&quot; add this comment.&quot;</span>);
+<span class="co">// # add this comment.</span>
+<span class="co">// i = 42</span></code></pre></div>
+<p>Also, you can pass a <code>std::vector&lt;std::string&gt;</code> when constructing a <code>toml::basic_value&lt;toml::preserve_comments&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; comments{<span class="st">&quot;comment 1&quot;</span>, <span class="st">&quot;comment 2&quot;</span>};
+<span class="at">const</span> toml::basic_value&lt;toml::preserve_comments&gt; v1(<span class="dv">42</span>, <span class="bu">std::</span>move(comments));
+<span class="at">const</span> toml::basic_value&lt;toml::preserve_comments&gt; v2(<span class="dv">42</span>, {<span class="st">&quot;comment 1&quot;</span>, <span class="st">&quot;comment 2&quot;</span>});</code></pre></div>
+<p>When <code>toml::discard_comments</code> is chosen, comments will not be contained in a value. <code>value::comments()</code> will always be kept empty. All the modification on comments would be ignored. All the element access in a <code>discard_comments</code> causes the same error as accessing an element of an empty <code>std::vector</code>.</p>
+<p>The comments will also be serialized. If comments exist, those comments will be added just before the values.</p>
+<p><strong>NOTE</strong>: Result types from <code>toml::parse(...)</code> and <code>toml::parse&lt;toml::preserve_comments&gt;(...)</code> are different.</p>
+<h2 id="customizing-containers">Customizing containers</h2>
+<p>Actually, <code>toml::basic_value</code> has 3 template arguments.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> Comment, <span class="co">// discard/preserve_comment</span>
+         <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> Table = <span class="bu">std::</span>unordered_map,
+         <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> Array = <span class="bu">std::</span>vector&gt;
+<span class="kw">class</span> basic_value;</code></pre></div>
+<p>This enables you to change the containers used inside. E.g. you can use <code>std::map</code> to contain a table object instead of <code>std::unordered_map</code>. And also can use <code>std::deque</code> as a array object instead of <code>std::vector</code>.</p>
+<p>You can set these parameters while calling <code>toml::parse</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> data = toml::parse&lt;
+    toml::preserve_comments, <span class="bu">std::</span>map, <span class="bu">std::</span>deque
+    &gt;(<span class="st">&quot;example.toml&quot;</span>);</code></pre></div>
+<p>Needless to say, the result types from <code>toml::parse(...)</code> and <code>toml::parse&lt;Com, Map, Cont&gt;(...)</code> are different (unless you specify the same types as default).</p>
+<p>Note that, since <code>toml::table</code> and <code>toml::array</code> is an alias for a table and an array of a default <code>toml::value</code>, so it is different from the types actually contained in a <code>toml::basic_value</code> when you customize containers. To get the actual type in a generic way, use <code>typename toml::basic_type&lt;C, T, A&gt;::table_type</code> and <code>typename toml::basic_type&lt;C, T, A&gt;::array_type</code>.</p>
+<h2 id="toml-literal">TOML literal</h2>
+<p>toml11 supports <code>&quot;...&quot;_toml</code> literal. It accept both a bare value and a file content.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> toml::literals::toml_literals;
+
+<span class="co">// `_toml` can convert a bare value without key</span>
+<span class="at">const</span> toml::value v = <span class="st">u8&quot;0xDEADBEEF&quot;_toml</span>;
+<span class="co">// v is an Integer value containing 0xDEADBEEF.</span>
+
+<span class="co">// raw string literal (`R&quot;(...)&quot;` is useful for this purpose)</span>
+<span class="at">const</span> toml::value t = <span class="st">u8R&quot;(</span>
+<span class="st">    title = &quot;this is TOML literal&quot;</span>
+<span class="st">    [table]</span>
+<span class="st">    key = &quot;value&quot;</span>
+<span class="st">)&quot;</span>_toml;
+<span class="co">// the literal will be parsed and the result will be contained in t</span></code></pre></div>
+<p>The literal function is defined in the same way as the standard library literals such as <code>std::literals::string_literals::operator&quot;&quot;s</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> toml
+{
+<span class="kw">inline</span> <span class="kw">namespace</span> literals
+{
+<span class="kw">inline</span> <span class="kw">namespace</span> toml_literals
+{
+toml::value <span class="kw">operator</span><span class="st">&quot;&quot;</span> _toml(<span class="at">const</span> <span class="dt">char</span>* str, <span class="bu">std::</span>size_t len);
+} <span class="co">// toml_literals</span>
+} <span class="co">// literals</span>
+} <span class="co">// toml</span></code></pre></div>
+<p>Access to the operator can be gained with <code>using namespace toml::literals;</code>, <code>using namespace toml::toml_literals</code>, and <code>using namespace toml::literals::toml_literals</code>.</p>
+<p>Note that a key that is composed only of digits is allowed in TOML. And, unlike the file parser, toml-literal allows a bare value without a key. Thus it is difficult to distinguish arrays having integers and definitions of tables that are named as digits. Currently, literal <code>[1]</code> becomes a table named &quot;1&quot;. To ensure a literal to be considered as an array with one element, you need to add a comma after the first element (like <code>[1,]</code>).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="st">&quot;[1,2,3]&quot;_toml</span>;   <span class="co">// This is an array</span>
+<span class="st">&quot;[table]&quot;_toml</span>;   <span class="co">// This is a table that has an empty table named &quot;table&quot; inside.</span>
+<span class="st">&quot;[[1,2,3]]&quot;_toml</span>; <span class="co">// This is an array of arrays</span>
+<span class="st">&quot;[[table]]&quot;_toml</span>; <span class="co">// This is a table that has an array of tables inside.</span>
+
+<span class="st">&quot;[[1]]&quot;_toml</span>;     <span class="co">// This literal is ambiguous.</span>
+                  <span class="co">// Currently, it becomes a table that has array of table &quot;1&quot;.</span>
+<span class="st">&quot;1 = [{}]&quot;_toml</span>;  <span class="co">// This is a table that has an array of table named 1.</span>
+<span class="st">&quot;[[1,]]&quot;_toml</span>;    <span class="co">// This is an array of arrays.</span>
+<span class="st">&quot;[[1],]&quot;_toml</span>;    <span class="co">// ditto.</span></code></pre></div>
+<p>NOTE: <code>_toml</code> literal returns a <code>toml::value</code> that does not have comments.</p>
+<h2 id="conversion-between-toml-value-and-arbitrary-types">Conversion between toml value and arbitrary types</h2>
+<p>You can also use <code>toml::get</code> and other related functions with the types you defined after you implement a way to convert it.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+};
+} <span class="co">// ext</span>
+
+<span class="at">const</span> <span class="kw">auto</span> data = toml::parse(<span class="st">&quot;example.toml&quot;</span>);
+
+<span class="co">// to do this</span>
+<span class="at">const</span> foo f = toml::find&lt;ext::foo&gt;(data, <span class="st">&quot;foo&quot;</span>);</code></pre></div>
+<p>There are 3 ways to use <code>toml::get</code> with the types that you defined.</p>
+<p>The first one is to implement <code>from_toml(const toml::value&amp;)</code> member function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+
+    <span class="dt">void</span> from_toml(<span class="at">const</span> toml::value&amp; v)
+    {
+        <span class="kw">this</span>-&gt;a = toml::find&lt;<span class="dt">int</span>        &gt;(v, <span class="st">&quot;a&quot;</span>);
+        <span class="kw">this</span>-&gt;b = toml::find&lt;<span class="dt">double</span>     &gt;(v, <span class="st">&quot;b&quot;</span>);
+        <span class="kw">this</span>-&gt;c = toml::find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;c&quot;</span>);
+        <span class="cf">return</span>;
+    }
+};
+} <span class="co">// ext</span></code></pre></div>
+<p>In this way, because <code>toml::get</code> first constructs <code>foo</code> without arguments, the type should be default-constructible.</p>
+<p>The second is to implement <code>constructor(const toml::value&amp;)</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="kw">explicit</span> foo(<span class="at">const</span> toml::value&amp; v)
+        : a(toml::find&lt;<span class="dt">int</span>&gt;(v, <span class="st">&quot;a&quot;</span>)), b(toml::find&lt;<span class="dt">double</span>&gt;(v, <span class="st">&quot;b&quot;</span>)),
+          c(toml::find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;c&quot;</span>))
+    {}
+
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+};
+} <span class="co">// ext</span></code></pre></div>
+<p>Note that implicit default constructor declaration will be suppressed when a constructor is defined. If you want to use the struct (here, <code>foo</code>) in a container (e.g. <code>std::vector&lt;foo&gt;</code>), you may need to define default constructor explicitly.</p>
+<p>The third is to implement specialization of <code>toml::from</code> for your type.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+};
+} <span class="co">// ext</span>
+
+<span class="kw">namespace</span> toml
+{
+<span class="kw">template</span>&lt;&gt;
+<span class="kw">struct</span> from&lt;ext::foo&gt;
+{
+    <span class="at">static</span> ext::foo from_toml(<span class="at">const</span> value&amp; v)
+    {
+        ext::foo f;
+        f.a = find&lt;<span class="dt">int</span>        &gt;(v, <span class="st">&quot;a&quot;</span>);
+        f.b = find&lt;<span class="dt">double</span>     &gt;(v, <span class="st">&quot;b&quot;</span>);
+        f.c = find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;c&quot;</span>);
+        <span class="cf">return</span> f;
+    }
+};
+} <span class="co">// toml</span></code></pre></div>
+<p>In this way, since the conversion function is defined outside of the class, you can add conversion between <code>toml::value</code> and classes defined in another library.</p>
+<p>Note that you cannot implement both of the functions because the overload resolution of <code>toml::get</code> will be ambiguous.</p>
+<p>If you want to convert any versions of <code>toml::basic_value</code>, you need to templatize the conversion function as follows.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> foo
+{
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> C, <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> M, <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> A&gt;
+    <span class="dt">void</span> from_toml(<span class="at">const</span> toml::basic_value&lt;C, M, A&gt;&amp; v)
+    {
+        <span class="kw">this</span>-&gt;a = toml::find&lt;<span class="dt">int</span>        &gt;(v, <span class="st">&quot;a&quot;</span>);
+        <span class="kw">this</span>-&gt;b = toml::find&lt;<span class="dt">double</span>     &gt;(v, <span class="st">&quot;b&quot;</span>);
+        <span class="kw">this</span>-&gt;c = toml::find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;c&quot;</span>);
+        <span class="cf">return</span>;
+    }
+};
+<span class="co">// or</span>
+<span class="kw">namespace</span> toml
+{
+<span class="kw">template</span>&lt;&gt;
+<span class="kw">struct</span> from&lt;ext::foo&gt;
+{
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> C, <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> M, <span class="kw">template</span>&lt;<span class="kw">typename</span> ...&gt; <span class="kw">class</span> A&gt;
+    <span class="at">static</span> ext::foo from_toml(<span class="at">const</span> basic_value&lt;C, M, A&gt;&amp; v)
+    {
+        ext::foo f;
+        f.a = find&lt;<span class="dt">int</span>        &gt;(v, <span class="st">&quot;a&quot;</span>);
+        f.b = find&lt;<span class="dt">double</span>     &gt;(v, <span class="st">&quot;b&quot;</span>);
+        f.c = find&lt;<span class="bu">std::</span>string&gt;(v, <span class="st">&quot;c&quot;</span>);
+        <span class="cf">return</span> f;
+    }
+};
+} <span class="co">// toml</span></code></pre></div>
+<hr />
+<p>The opposite direction is also supported in a similar way. You can directly pass your type to <code>toml::value</code>'s constructor by introducing <code>into_toml</code> or <code>toml::into&lt;T&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+
+    toml::table into_toml() <span class="at">const</span> <span class="co">// you need to mark it const.</span>
+    {
+        <span class="cf">return</span> toml::table{{<span class="st">&quot;a&quot;</span>, <span class="kw">this</span>-&gt;a}, {<span class="st">&quot;b&quot;</span>, <span class="kw">this</span>-&gt;b}, {<span class="st">&quot;c&quot;</span>, <span class="kw">this</span>-&gt;c}};
+    }
+};
+} <span class="co">// ext</span>
+
+ext::foo    f{<span class="dv">42</span>, <span class="fl">3.14</span>, <span class="st">&quot;foobar&quot;</span>};
+toml::value v(f);</code></pre></div>
+<p>The definition of <code>toml::into&lt;T&gt;</code> is similar to <code>toml::from&lt;T&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> ext
+{
+<span class="kw">struct</span> foo
+{
+    <span class="dt">int</span>         a;
+    <span class="dt">double</span>      b;
+    <span class="bu">std::</span>string c;
+};
+} <span class="co">// ext</span>
+
+<span class="kw">namespace</span> toml
+{
+<span class="kw">template</span>&lt;&gt;
+<span class="kw">struct</span> into&lt;ext::foo&gt;
+{
+    <span class="at">static</span> toml::table into_toml(<span class="at">const</span> ext::foo&amp; f)
+    {
+        <span class="cf">return</span> toml::table{{<span class="st">&quot;a&quot;</span>, f.a}, {<span class="st">&quot;b&quot;</span>, f.b}, {<span class="st">&quot;c&quot;</span>, f.c}};
+    }
+};
+} <span class="co">// toml</span>
+
+ext::foo    f{<span class="dv">42</span>, <span class="fl">3.14</span>, <span class="st">&quot;foobar&quot;</span>};
+toml::value v(f);</code></pre></div>
+<p>Any type that can be converted to <code>toml::value</code>, e.g. <code>int</code>, <code>toml::table</code> and <code>toml::array</code> are okay to return from <code>into_toml</code>.</p>
+<h2 id="formatting-user-defined-error-messages">Formatting user-defined error messages</h2>
+<p>When you encounter an error after you read the toml value, you may want to show the error with the value.</p>
+<p>toml11 provides you a function that formats user-defined error message with related values. With a code like the following,</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> value = toml::find&lt;<span class="dt">int</span>&gt;(data, <span class="st">&quot;num&quot;</span>);
+<span class="cf">if</span>(value &lt; <span class="dv">0</span>)
+{
+    <span class="bu">std::</span>cerr &lt;&lt; toml::format_error(<span class="st">&quot;[error] value should be positive&quot;</span>,
+                                    data.at(<span class="st">&quot;num&quot;</span>), <span class="st">&quot;positive number required&quot;</span>)
+              &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>you will get an error message like this.</p>
+<pre class="console"><code>[error] value should be positive
+ --&gt; example.toml
+ 3 | num = -42
+   |       ~~~ positive number required</code></pre>
+<p>When you pass two values to <code>toml::format_error</code>,</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> min = toml::find&lt;<span class="dt">int</span>&gt;(range, <span class="st">&quot;min&quot;</span>);
+<span class="at">const</span> <span class="kw">auto</span> max = toml::find&lt;<span class="dt">int</span>&gt;(range, <span class="st">&quot;max&quot;</span>);
+<span class="cf">if</span>(max &lt; min)
+{
+    <span class="bu">std::</span>cerr &lt;&lt; toml::format_error(<span class="st">&quot;[error] max should be larger than min&quot;</span>,
+                                    data.at(<span class="st">&quot;min&quot;</span>), <span class="st">&quot;minimum number here&quot;</span>,
+                                    data.at(<span class="st">&quot;max&quot;</span>), <span class="st">&quot;maximum number here&quot;</span>);
+              &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>you will get an error message like this.</p>
+<pre class="console"><code>[error] max should be larger than min
+ --&gt; example.toml
+ 3 | min = 54
+   |       ~~ minimum number here
+ ...
+ 4 | max = 42
+   |       ~~ maximum number here</code></pre>
+<p>You can print hints at the end of the message.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; hints;
+hints.push_back(<span class="st">&quot;positive number means n &gt;= 0.&quot;</span>);
+hints.push_back(<span class="st">&quot;negative number is not positive.&quot;</span>);
+<span class="bu">std::</span>cerr &lt;&lt; toml::format_error(<span class="st">&quot;[error] value should be positive&quot;</span>,
+                                data.at(<span class="st">&quot;num&quot;</span>), <span class="st">&quot;positive number required&quot;</span>, hints)
+          &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<pre class="console"><code>[error] value should be positive
+ --&gt; example.toml
+ 2 | num = 42
+   |       ~~ positive number required
+   |
+Hint: positive number means n &gt;= 0.
+Hint: negative number is not positive.</code></pre>
+<h2 id="obtaining-location-information">Obtaining location information</h2>
+<p>You can also format error messages in your own way by using <code>source_location</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> source_location
+{
+    <span class="bu">std::</span>uint_least32_t line()      <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>uint_least32_t column()    <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>uint_least32_t region()    <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>string <span class="at">const</span>&amp;  file_name() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>string <span class="at">const</span>&amp;  line_str()  <span class="at">const</span> <span class="kw">noexcept</span>;
+};
+<span class="co">// +-- line()       +--- length of the region (here, region() == 9)</span>
+<span class="co">// v            .---+---.</span>
+<span class="co">// 12 | value = &quot;foo bar&quot; &lt;- line_str() returns the line itself.</span>
+<span class="co">//              ^-------- column() points here</span></code></pre></div>
+<p>You can get this by</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value           v   = <span class="co">/*...*/</span>;
+<span class="at">const</span> toml::source_location loc = v.location();</code></pre></div>
+<h2 id="exceptions">Exceptions</h2>
+<p>The following <code>exception</code> classes inherits <code>toml::exception</code> that inherits <code>std::exception</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> toml {
+<span class="kw">struct</span> exception      : <span class="kw">public</span> <span class="bu">std::</span>exception  {<span class="co">/**/</span>};
+<span class="kw">struct</span> syntax_error   : <span class="kw">public</span> toml::exception {<span class="co">/**/</span>};
+<span class="kw">struct</span> type_error     : <span class="kw">public</span> toml::exception {<span class="co">/**/</span>};
+<span class="kw">struct</span> internal_error : <span class="kw">public</span> toml::exception {<span class="co">/**/</span>};
+} <span class="co">// toml</span></code></pre></div>
+<p><code>toml::exception</code> has <code>toml::exception::location()</code> member function that returns <code>toml::source_location</code>, in addition to <code>what()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> toml {
+<span class="kw">struct</span> exception : <span class="kw">public</span> <span class="bu">std::</span>exception
+{
+    <span class="co">// ...</span>
+    source_location <span class="at">const</span>&amp; location() <span class="at">const</span> <span class="kw">noexcept</span>;
+};
+} <span class="co">// toml</span></code></pre></div>
+<p>It represents where the error occurs.</p>
+<p><code>syntax_error</code> will be thrown from <code>toml::parse</code> and <code>_toml</code> literal. <code>type_error</code> will be thrown from <code>toml::get/find</code>, <code>toml::value::as_xxx()</code>, and other functions that takes a content inside of <code>toml::value</code>.</p>
+<p>Note that, currently, from <code>toml::value::at()</code> and <code>toml::find(value, key)</code> may throw an <code>std::out_of_range</code> that does not inherits <code>toml::exception</code>.</p>
+<p>Also, in some cases, most likely in the file open error, it will throw an <code>std::runtime_error</code>.</p>
+<h2 id="colorize-error-messages">Colorize Error Messages</h2>
+<p>By defining <code>TOML11_COLORIZE_ERROR_MESSAGE</code>, the error messages from <code>toml::parse</code> and <code>toml::find|get</code> will be colorized. By default, this feature is turned off.</p>
+<p>With the following toml file taken from <code>toml-lang/toml/tests/hard_example.toml</code>,</p>
+<pre class="toml"><code>[error]
+array = [
+         &quot;This might most likely happen in multiline arrays&quot;,
+         Like here,
+         &quot;or here,
+         and here&quot;
+        ]     End of array comment, forgot the #</code></pre>
+<p>the error message would be like this.</p>
+<div class="figure">
+<img src="https://github.com/ToruNiina/toml11/blob/misc/misc/toml11-err-msg-1.png" alt="error-message-1" />
+<p class="caption">error-message-1</p>
+</div>
+<p>With the following,</p>
+<pre class="toml"><code>[error]
+# array = [
+#          &quot;This might most likely happen in multiline arrays&quot;,
+#          Like here,
+#          &quot;or here,
+#          and here&quot;
+#         ]     End of array comment, forgot the #
+number = 3.14  pi &lt;--again forgot the #</code></pre>
+<p>the error message would be like this.</p>
+<div class="figure">
+<img src="https://github.com/ToruNiina/toml11/blob/misc/misc/toml11-err-msg-2.png" alt="error-message-2" />
+<p class="caption">error-message-2</p>
+</div>
+<p>The message would be messy when it is written to a file, not a terminal because it uses <a href="https://en.wikipedia.org/wiki/ANSI_escape_code">ANSI escape code</a>.</p>
+<p>Without <code>TOML11_COLORIZE_ERROR_MESSAGE</code>, you can still colorize user-defined error message by passing <code>true</code> to the <code>toml::format_error</code> function. If you define <code>TOML11_COLORIZE_ERROR_MESSAGE</code>, the value is <code>true</code> by default. If not, the defalut value would be <code>false</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>cerr &lt;&lt; toml::format_error(<span class="st">&quot;[error] value should be positive&quot;</span>,
+                                data.at(<span class="st">&quot;num&quot;</span>), <span class="st">&quot;positive number required&quot;</span>,
+                                hints, <span class="co">/*colorize = */</span> <span class="kw">true</span>) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>Note: It colorize <code>[error]</code> in red. That means that it detects <code>[error]</code> prefix at the front of the error message. If there is no <code>[error]</code> prefix, <code>format_error</code> adds it to the error message.</p>
+<h2 id="serializing-toml-data">Serializing TOML data</h2>
+<p>toml11 enables you to serialize data into toml format.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value data{{<span class="st">&quot;foo&quot;</span>, <span class="dv">42</span>}, {<span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>}};
+<span class="bu">std::</span>cout &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// bar = &quot;baz&quot;</span>
+<span class="co">// foo = 42</span></code></pre></div>
+<p>toml11 automatically makes a small table and small array inline. You can specify the width to make them inline by <code>std::setw</code> for streams.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value data{
+    {<span class="st">&quot;qux&quot;</span>,    {{<span class="st">&quot;foo&quot;</span>, <span class="dv">42</span>}, {<span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>}}},
+    {<span class="st">&quot;quux&quot;</span>,   {<span class="st">&quot;small&quot;</span>, <span class="st">&quot;array&quot;</span>, <span class="st">&quot;of&quot;</span>, <span class="st">&quot;strings&quot;</span>}},
+    {<span class="st">&quot;foobar&quot;</span>, {<span class="st">&quot;this&quot;</span>, <span class="st">&quot;array&quot;</span>, <span class="st">&quot;of&quot;</span>, <span class="st">&quot;strings&quot;</span>, <span class="st">&quot;is&quot;</span>, <span class="st">&quot;too&quot;</span>, <span class="st">&quot;long&quot;</span>,
+                <span class="st">&quot;to&quot;</span>, <span class="st">&quot;print&quot;</span>, <span class="st">&quot;into&quot;</span>, <span class="st">&quot;single&quot;</span>, <span class="st">&quot;line&quot;</span>, <span class="st">&quot;isn&#39;t&quot;</span>, <span class="st">&quot;it?&quot;</span>}},
+};
+
+<span class="co">// the threshold becomes 80.</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setw(<span class="dv">80</span>) &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// foobar = [</span>
+<span class="co">// &quot;this&quot;,&quot;array&quot;,&quot;of&quot;,&quot;strings&quot;,&quot;is&quot;,&quot;too&quot;,&quot;long&quot;,&quot;to&quot;,&quot;print&quot;,&quot;into&quot;,</span>
+<span class="co">// &quot;single&quot;,&quot;line&quot;,&quot;isn&#39;t&quot;,&quot;it?&quot;,</span>
+<span class="co">// ]</span>
+<span class="co">// quux = [&quot;small&quot;,&quot;array&quot;,&quot;of&quot;,&quot;strings&quot;]</span>
+<span class="co">// qux = {bar=&quot;baz&quot;,foo=42}</span>
+
+
+<span class="co">// the width is 0. nothing become inline.</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setw(<span class="dv">0</span>) &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// foobar = [</span>
+<span class="co">// &quot;this&quot;,</span>
+<span class="co">// ... (snip)</span>
+<span class="co">// &quot;it?&quot;,</span>
+<span class="co">// ]</span>
+<span class="co">// quux = [</span>
+<span class="co">// &quot;small&quot;,</span>
+<span class="co">// &quot;array&quot;,</span>
+<span class="co">// &quot;of&quot;,</span>
+<span class="co">// &quot;strings&quot;,</span>
+<span class="co">// ]</span>
+<span class="co">// [qux]</span>
+<span class="co">// bar = &quot;baz&quot;</span>
+<span class="co">// foo = 42</span></code></pre></div>
+<p>It is recommended to set width before printing data. Some I/O functions changes width to 0, and it makes all the stuff (including <code>toml::array</code>) multiline. The resulting files becomes too long.</p>
+<p>To control the precision of floating point numbers, you need to pass <code>std::setprecision</code> to stream.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value data{
+    {<span class="st">&quot;pi&quot;</span>, <span class="fl">3.141592653589793</span>},
+    {<span class="st">&quot;e&quot;</span>,  <span class="fl">2.718281828459045</span>}
+};
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setprecision(<span class="dv">17</span>) &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// e = 2.7182818284590451</span>
+<span class="co">// pi = 3.1415926535897931</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>setprecision( <span class="dv">7</span>) &lt;&lt; data &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// e = 2.718282</span>
+<span class="co">// pi = 3.141593</span></code></pre></div>
+<p>There is another way to format toml values, <code>toml::format()</code>. It returns <code>std::string</code> that represents a value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v{{<span class="st">&quot;a&quot;</span>, <span class="dv">42</span>}};
+<span class="at">const</span> <span class="bu">std::</span>string fmt = toml::format(v);
+<span class="co">// a = 42</span></code></pre></div>
+<p>Note that since <code>toml::format</code> formats a value, the resulting string may lack the key value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> toml::value v{<span class="fl">3.14</span>};
+<span class="at">const</span> <span class="bu">std::</span>string fmt = toml::format(v);
+<span class="co">// 3.14</span></code></pre></div>
+<p>To control the width and precision, <code>toml::format</code> receives optional second and third arguments to set them. By default, the witdh is 80 and the precision is <code>std::numeric_limits&lt;double&gt;::max_digit10</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="kw">auto</span> serial = toml::format(data, <span class="co">/*width = */</span> <span class="dv">0</span>, <span class="co">/*prec = */</span> <span class="dv">17</span>);</code></pre></div>
+<p>When you pass a comment-preserving-value, the comment will also be serialized. An array or a table containing a value that has a comment would not be inlined.</p>
+<h2 id="underlying-types">Underlying types</h2>
+<p>The toml types (can be used as <code>toml::*</code> in this library) and corresponding <code>enum</code> names are listed in the table below.</p>
+<table>
+<thead>
+<tr class="header">
+<th>TOML type</th>
+<th>underlying c++ type</th>
+<th>enum class</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Boolean</td>
+<td><code>bool</code></td>
+<td><code>toml::value_t::boolean</code></td>
+</tr>
+<tr class="even">
+<td>Integer</td>
+<td><code>std::int64_t</code></td>
+<td><code>toml::value_t::integer</code></td>
+</tr>
+<tr class="odd">
+<td>Float</td>
+<td><code>double</code></td>
+<td><code>toml::value_t::floating</code></td>
+</tr>
+<tr class="even">
+<td>String</td>
+<td><code>toml::string</code></td>
+<td><code>toml::value_t::string</code></td>
+</tr>
+<tr class="odd">
+<td>LocalDate</td>
+<td><code>toml::local_date</code></td>
+<td><code>toml::value_t::local_date</code></td>
+</tr>
+<tr class="even">
+<td>LocalTime</td>
+<td><code>toml::local_time</code></td>
+<td><code>toml::value_t::local_time</code></td>
+</tr>
+<tr class="odd">
+<td>LocalDatetime</td>
+<td><code>toml::local_datetime</code></td>
+<td><code>toml::value_t::local_datetime</code></td>
+</tr>
+<tr class="even">
+<td>OffsetDatetime</td>
+<td><code>toml::offset_datetime</code></td>
+<td><code>toml::value_t::offset_datetime</code></td>
+</tr>
+<tr class="odd">
+<td>Array</td>
+<td><code>array-like&lt;toml::value&gt;</code></td>
+<td><code>toml::value_t::array</code></td>
+</tr>
+<tr class="even">
+<td>Table</td>
+<td><code>map-like&lt;toml::key, toml::value&gt;</code></td>
+<td><code>toml::value_t::table</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>array-like</code> and <code>map-like</code> are the STL containers that works like a <code>std::vector</code> and <code>std::unordered_map</code>, respectively. By default, <code>std::vector</code> and <code>std::unordered_map</code> are used. See <a href="#customizing-containers">Customizing containers</a> for detail.</p>
+<p><code>toml::string</code> is effectively the same as <code>std::string</code> but has an additional flag that represents a kind of a string, <code>string_t::basic</code> and <code>string_t::literal</code>. Although <code>std::string</code> is not an exact toml type, still you can get a reference that points to internal <code>std::string</code> by using <code>toml::get&lt;std::string&gt;()</code> for convenience. The most important difference between <code>std::string</code> and <code>toml::string</code> is that <code>toml::string</code> will be formatted as a TOML string when outputed with <code>ostream</code>. This feature is introduced to make it easy to write a custom serializer.</p>
+<p><code>Datetime</code> variants are <code>struct</code> that are defined in this library. Because <code>std::chrono::system_clock::time_point</code> is a <strong>time point</strong>, not capable of representing a Local Time independent from a specific day.</p>
+<h2 id="unreleased-toml-features">Unreleased TOML features</h2>
+<p>Since TOML v1.0.0-rc.1 has been released, those features are now activated by default. We no longer need to define <code>TOML11_USE_UNRELEASED_FEATURES</code>.</p>
+<ul>
+<li>Leading zeroes in exponent parts of floats are permitted.</li>
+<li>e.g. <code>1.0e+01</code>, <code>5e+05</code></li>
+<li><a href="https://github.com/toml-lang/toml/pull/656">toml-lang/toml/PR/656</a></li>
+<li>Allow raw tab characters in basic strings and multi-line basic strings.</li>
+<li><a href="https://github.com/toml-lang/toml/pull/627">toml-lang/toml/PR/627</a></li>
+<li>Allow heterogeneous arrays</li>
+<li><a href="https://github.com/toml-lang/toml/pull/676">toml-lang/toml/PR/676</a></li>
+</ul>
+<h2 id="note-about-heterogeneous-arrays">Note about heterogeneous arrays</h2>
+<p>Although <code>toml::parse</code> allows heterogeneous arrays, constructor of <code>toml::value</code> does not. Here the reason is explained.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// this won&#39;t be compiled</span>
+toml::value v{
+    <span class="st">&quot;foo&quot;</span>, <span class="fl">3.14</span>, <span class="dv">42</span>, {<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>}, {{<span class="st">&quot;key&quot;</span>, <span class="st">&quot;value&quot;</span>}}
+}</code></pre></div>
+<p>There is a workaround for this. By explicitly converting values into <code>toml::value</code>, you can initialize <code>toml::value</code> with a heterogeneous array. Also, you can first initialize a <code>toml::value</code> with an array and then <code>push_back</code> into it.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// OK!</span>
+toml::value v{
+    toml::value(<span class="st">&quot;foo&quot;</span>), toml::value(<span class="fl">3.14</span>), toml::value(<span class="dv">42</span>),
+    toml::value{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>}, toml::value{{<span class="st">&quot;key&quot;</span>, <span class="st">&quot;value&quot;</span>}}
+}
+
+<span class="co">// OK!</span>
+toml::value v(toml::array{});
+v.push_back(<span class="st">&quot;foo&quot;</span>);
+v.push_back(<span class="fl">3.14</span>);
+
+<span class="co">// OK!</span>
+toml::array a;
+a.push_back(<span class="st">&quot;foo&quot;</span>);
+a.push_back(<span class="fl">3.14</span>);
+toml::value v(<span class="bu">std::</span>move(a));</code></pre></div>
+<p>The reason why the first example is not allowed is the following. Let's assume that you are initializing a <code>toml::value</code> with a table.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">                    <span class="co">// # expecting TOML table.</span>
+toml::value v{      <span class="co">// [v]</span>
+    {<span class="st">&quot;answer&quot;</span>, <span class="dv">42</span>}, <span class="co">// answer = 42</span>
+    {<span class="st">&quot;pi&quot;</span>,   <span class="fl">3.14</span>}, <span class="co">// pi = 3.14</span>
+    {<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>}  <span class="co">// foo = &quot;bar&quot;</span>
+};</code></pre></div>
+<p>This is indistinguishable from a (heterogeneous) TOML array definition.</p>
+<pre class="toml"><code>v = [
+    [&quot;answer&quot;, 42],
+    [&quot;pi&quot;,   3.14],
+    [&quot;foo&quot;, &quot;bar&quot;],
+]</code></pre>
+<p>This means that the above C++ code makes constructor's overload resolution ambiguous. So a constructor that allows both &quot;table as an initializer-list&quot; and &quot;heterogeneous array as an initializer-list&quot; cannot be implemented.</p>
+<p>Thus, although it is painful, we need to explicitly cast values into <code>toml::value</code> when you initialize heterogeneous array in a C++ code.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">toml::value v{
+    toml::value(<span class="st">&quot;foo&quot;</span>), toml::value(<span class="fl">3.14</span>), toml::value(<span class="dv">42</span>),
+    toml::value{<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>}, toml::value{{<span class="st">&quot;key&quot;</span>, <span class="st">&quot;value&quot;</span>}}
+};</code></pre></div>
+<h2 id="breaking-changes-from-v2">Breaking Changes from v2</h2>
+<p>Although toml11 is relatively new library (it's three years old now), it had some confusing and inconvenient user-interfaces because of historical reasons.</p>
+<p>Between v2 and v3, those interfaces are rearranged.</p>
+<ul>
+<li><code>toml::parse</code> now returns a <code>toml::value</code>, not <code>toml::table</code>.</li>
+<li><code>toml::value</code> is now an alias of <code>toml::basic_value&lt;discard_comment, std::vector, std::unordered_map&gt;</code>.</li>
+<li>See <a href="#customizing-containers">Customizing containers</a> for detail.</li>
+<li>The elements of <code>toml::value_t</code> are renamed as <code>snake_case</code>.</li>
+<li>See <a href="#underlying-types">Underlying types</a> for detail.</li>
+<li>Supports for the CamelCaseNames are dropped.</li>
+<li>See <a href="#underlying-types">Underlying types</a> for detail.</li>
+<li><code>(is|as)_float</code> has been removed to make the function names consistent with others.</li>
+<li>Since <code>float</code> is a keyword, toml11 named a float type as <code>toml::floating</code>.</li>
+<li>Also a <code>value_t</code> corresponds to <code>toml::floating</code> is named <code>value_t::floating</code>.</li>
+<li>So <code>(is|as)_floating</code> is introduced and <code>is_float</code> has been removed.</li>
+<li>See <a href="#casting-a-tomlvalue">Casting a toml::value</a> and <a href="#checking-value-type">Checking value type</a> for detail.</li>
+<li>An overload of <code>toml::find</code> for <code>toml::table</code> has been dropped. Use <code>toml::value</code> version instead.</li>
+<li>Because type conversion between a table and a value causes ambiguity while overload resolution</li>
+<li>Since <code>toml::parse</code> now returns a <code>toml::value</code>, this feature becomes less important.</li>
+<li>Also because <code>toml::table</code> is a normal STL container, implementing utility function is easy.</li>
+<li>See <a href="#finding-a-toml-value">Finding a toml::value</a> for detail.</li>
+<li>An overload of <code>operator&lt;&lt;</code> and <code>toml::format</code> for <code>toml::table</code>s are dropped.</li>
+<li>Use <code>toml::value</code> instead.</li>
+<li>See <a href="#serializing-toml-data">Serializing TOML data</a> for detail.</li>
+<li>Interface around comments.</li>
+<li>See <a href="#preserving-comments">Preserving Comments</a> for detail.</li>
+<li>An ancient <code>from_toml/into_toml</code> has been removed. Use arbitrary type conversion support.</li>
+<li>See <a href="#conversion-between-toml-value-and-arbitrary-types">Conversion between toml value and arbitrary types</a> for detail.</li>
+</ul>
+<p>Such a big change will not happen in the coming years.</p>
+<h2 id="running-tests">Running Tests</h2>
+<p>After cloning this repository, run the following command (thank you <span class="citation">@jwillikers</span> for automating test set fetching!).</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="fu">mkdir</span> build
+$ <span class="bu">cd</span> build
+$ <span class="fu">cmake</span> ..
+$ <span class="fu">make</span>
+$ <span class="fu">make</span> test</code></pre></div>
+<p>To run the language agnostic test suite, you need to compile <code>tests/check_toml_test.cpp</code> and pass it to the tester.</p>
+<h2 id="contributors">Contributors</h2>
+<p>I appreciate the help of the contributors who introduced the great feature to this library.</p>
+<ul>
+<li>Guillaume Fraux (<span class="citation">@Luthaf</span>)</li>
+<li>Windows support and CI on Appvayor</li>
+<li>Intel Compiler support</li>
+<li>Quentin Khan (<span class="citation">@xaxousis</span>)</li>
+<li>Found &amp; Fixed a bug around ODR</li>
+<li>Improved error messages for invaild keys to show the location where the parser fails</li>
+<li>Petr Beneš (<span class="citation">@wbenny</span>)</li>
+<li>Fixed warnings on MSVC</li>
+<li>Ivan Shynkarenka (<span class="citation">@chronoxor</span>)</li>
+<li>Fixed Visual Studio 2019 warnings</li>
+<li><span class="citation">@khoitd1997</span></li>
+<li>Fixed warnings while type conversion</li>
+<li><span class="citation">@KerstinKeller</span></li>
+<li>Added installation script to CMake</li>
+<li>J.C. Moyer (<span class="citation">@jcmoyer</span>)</li>
+<li>Fixed an example code in the documentation</li>
+<li>Jt Freeman (<span class="citation">@blockparty-sh</span>)</li>
+<li>Fixed feature test macro around <code>localtime_s</code></li>
+<li>Suppress warnings in Debug mode</li>
+<li>OGAWA Kenichi (<span class="citation">@kenichiice</span>)</li>
+<li>Suppress warnings on intel compiler</li>
+<li>Jordan Williams (<span class="citation">@jwillikers</span>)</li>
+<li>Fixed clang range-loop-analysis warnings</li>
+<li>Fixed feature test macro to suppress -Wundef</li>
+<li>Use cache variables in CMakeLists.txt</li>
+<li>Automate test set fetching, update and refactor CMakeLists.txt</li>
+</ul>
+<h2 id="licensing-terms">Licensing terms</h2>
+<p>This product is licensed under the terms of the <a href="LICENSE">MIT License</a>.</p>
+<ul>
+<li>Copyright (c) 2017-2020 Toru Niina</li>
+</ul>
+<p>All rights reserved.</p>

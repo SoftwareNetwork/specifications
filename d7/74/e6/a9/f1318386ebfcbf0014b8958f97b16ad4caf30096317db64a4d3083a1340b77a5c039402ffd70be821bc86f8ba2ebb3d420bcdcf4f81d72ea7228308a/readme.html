@@ -1,0 +1,44 @@
+<h1 id="libsdlang">libsdlang</h1>
+<h2 id="about">About</h2>
+<p><code>libsdlang</code> is a compact C library to parse <a href="http://sdlang.org/">SDLang</a> (Simple Declarative Language) text.</p>
+<p>Surprisingly I wasn't able to find a C/C++ implementation of this intriguing little format, so I decided to give it a try.</p>
+<h2 id="usage">Usage</h2>
+<blockquote>
+<p>Note: while implementing the grammar is almost done, I just started working on the library API - so it may change, and be extended and documented (, and become awesome) in the future.</p>
+</blockquote>
+<h3 id="source-code">Source code</h3>
+<p>It's simple. Add <code>sdlang.c</code>, <code>sdlang.inl</code> and <code>sdlang.h</code> to your project.</p>
+<p>The provided <code>CMakeLists.txt</code> is written to be used with <a href="http://floooh.github.io/fips/index.html">fips</a>, <em>the friendly CMake wrapper</em>. It won't work with regular CMake.</p>
+<p>There's a Meson build script too, by courtesy of <a href="https://github.com/handicraftsman">handicraftsman</a>.</p>
+<h3 id="token-api">Token API</h3>
+<p>Have a look at <code>samples/parser.c</code>. In summary, <code>sdlang_parse()</code> takes a stream function as a parameter, and produces a series of callbacks which can be captured with <code>sdlang_set_emit_token()</code> or <code>sdlang_set_emit_functions()</code>.</p>
+<p>You can capture error output <code>sdlang_set_report_error()</code>.</p>
+<h3 id="threading">Threading</h3>
+<p>The parser is thread-safe.</p>
+<h2 id="the-nasty-details">The nasty details</h2>
+<h3 id="grammar">Grammar</h3>
+<p>The SDLang grammar isn't documented particularly well, which opens <em>some</em> room for interpretation. Also, this is the first time I've written a <a href="http://www.colm.net/open-source/ragel/">Ragel</a> state machine, so there might be loopholes in my implementation.</p>
+<p>Additionally, I've made some minor adjustments to the SDLang grammar for convenience (or laziness, or my inability to do it right - feel free to chose one):</p>
+<ul>
+<li>For delimiting single-quoted strings, <code>'</code> is supported in addition to backticks. For real, who enjoys typing backticks?</li>
+<li>Integers and floats optionally start with a <code>+</code> sign. Also, neither the SDLang page nor the VS Code plugin for syntax highlighting care about the existence of negative numbers, so I took the liberty to allow prefixing numbers with the <code>-</code> sign, too.</li>
+<li>Integer and float suffixes can be lower case, so both <code>1.23F</code> and <code>1.23f</code> are supported.</li>
+<li>Floats can also be written in e-notation, for example <code>-2.34e-5f</code>.</li>
+<li>32/64-bit hexadecimal numbers, like <code>0x1234abcd</code> or <code>0xABCD1234FF</code>, are supported.</li>
+</ul>
+<p>Known bugs:</p>
+<ul>
+<li>The end of a node is evaluated rather lazily. Closing brackets and semicolons generate an &quot;end node&quot; token. Non-wrapping newlines do too, but all of them, even for empty lines, which means that there can be multiple &quot;end node&quot; tokens in a row.</li>
+<li>Semicolons to end a node are recognised but not enforced by the parser, which means these two lines are treated the same - basically, a new node name does end the previous node implicitly:</li>
+<li><code>title &quot;some title&quot;; author &quot;John Smith&quot;</code></li>
+<li><code>title &quot;some title&quot; author &quot;John Smith&quot;</code></li>
+</ul>
+<p>Some value formats are not implemented yet:</p>
+<ul>
+<li>date/time formats</li>
+</ul>
+<h3 id="implementation">Implementation</h3>
+<p><code>libsdlang</code> uses the <a href="http://www.colm.net/open-source/ragel/">Ragel State Machine Compiler</a> to create its parser FSM.</p>
+<p>With less than 1.000 lines of code, the generated code is very compact, and has no external dependencies.</p>
+<p>The library doesn't allocate <em>any</em> memory. By default, it only uses a few hundred bytes of stack memory to store state and buffer input. You can predefine <code>SDLANG_PARSE_BUFFERSIZE</code> to increase the buffer size, which is probably only required when using large literals or string values.</p>
+<p>The parser uses a small stack frame for parsing nested SDLang blocks. Stack size can be changed by predefining <code>SDLANG_PARSE_STACKSIZE</code>. The stack frame <strong>does not grow</strong> - the parser will stop with a <code>SDLANG_PARSE_ERROR_STACK_OVERFLOW</code> when it's full.</p>

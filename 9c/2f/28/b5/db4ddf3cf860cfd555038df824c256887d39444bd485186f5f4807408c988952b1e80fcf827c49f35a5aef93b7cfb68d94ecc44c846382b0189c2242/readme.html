@@ -1,0 +1,131 @@
+<h1 id="bitsery">Bitsery</h1>
+<p><a href="https://travis-ci.org/fraillt/bitsery"><img src="https://travis-ci.org/fraillt/bitsery.svg?branch=master" alt="Build Status" /></a> <a href="https://gitter.im/bitsery/Lobby"><img src="https://badges.gitter.im/bitsery/Lobby.svg" alt="Join the chat at https://gitter.im/bitsery/Lobby" /></a></p>
+<p>Header only C++ binary serialization library. It is designed around the networking requirements for real-time data delivery, especially for games.</p>
+<p>All cross-platform requirements are enforced at compile time, so serialized data do not store any meta-data information and is as small as possible.</p>
+<blockquote>
+<p><strong>bitsery</strong> is looking for your feedback on <a href="https://gitter.im/bitsery/Lobby">gitter</a></p>
+</blockquote>
+<h2 id="features">Features</h2>
+<ul>
+<li>Cross-platform compatible.</li>
+<li>Optimized for speed and space.</li>
+<li>No code generation required: no IDL or metadata, just use your types directly.</li>
+<li>Configurable runtime error checking on deserialization.</li>
+<li>Can read/write from any source: stream (file, network stream. etc... ), or buffer (vector, c-array, etc...).</li>
+<li>Don't pay for what you don't use! - customize your serialization via <strong>extensions</strong>. Some notable <em>extensions</em> allow:</li>
+<li>forward/backward compatibility for your types.</li>
+<li>smart and raw pointers with customizable runtime polymorphism support.</li>
+<li>fine-grained bit-level serialization control.</li>
+<li>Easily extendable for any type.</li>
+<li>Allows brief or/and verbose syntax for better serialization control.</li>
+<li>Configurable endianness support.</li>
+<li>No macros.</li>
+</ul>
+<h2 id="why-to-use-bitsery">Why to use bitsery</h2>
+<p>Look at the numbers and features list, and decide yourself.</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th>data size</th>
+<th>serialize</th>
+<th>deserialize</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>bitsery</td>
+<td>6913B</td>
+<td>1252ms</td>
+<td>1170ms</td>
+</tr>
+<tr class="even">
+<td>bitsery_compress</td>
+<td>4213B</td>
+<td>1445ms</td>
+<td>1325ms</td>
+</tr>
+<tr class="odd">
+<td>boost</td>
+<td>11037B</td>
+<td>9952ms</td>
+<td>8767ms</td>
+</tr>
+<tr class="even">
+<td>cereal</td>
+<td>10413B</td>
+<td>6497ms</td>
+<td>5470ms</td>
+</tr>
+<tr class="odd">
+<td>flatbuffers</td>
+<td>14924B</td>
+<td>6762ms</td>
+<td>2173ms</td>
+</tr>
+<tr class="even">
+<td>yas</td>
+<td>10463B</td>
+<td>1352ms</td>
+<td>1109ms</td>
+</tr>
+<tr class="odd">
+<td>yas_compress</td>
+<td>7315B</td>
+<td>1673ms</td>
+<td>1598ms</td>
+</tr>
+</tbody>
+</table>
+<p><em>benchmarked on Ubuntu with GCC 8.3.0, more details can be found <a href="https://github.com/fraillt/cpp_serializers_benchmark.git">here</a></em></p>
+<p>If still not convinced read more in library <a href="doc/design/README.md">motivation</a> section.</p>
+<h2 id="usage-example">Usage example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;bitsery/bitsery.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;bitsery/adapter/buffer.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;bitsery/traits/vector.h&gt;</span>
+
+<span class="kw">enum</span> <span class="kw">class</span> MyEnum:<span class="dt">uint16_t</span> { V1,V2,V3 };
+<span class="kw">struct</span> MyStruct {
+    <span class="dt">uint32_t</span> i;
+    MyEnum e;
+    <span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt; fs;
+};
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> S&gt;
+<span class="dt">void</span> serialize(S&amp; s, MyStruct&amp; o) {
+    s.value4b(o.i);
+    s.value2b(o.e);
+    s.container4b(o.fs, <span class="dv">10</span>);
+}
+
+<span class="kw">using</span> <span class="kw">namespace</span> bitsery;
+
+<span class="kw">using</span> Buffer = <span class="bu">std::</span>vector&lt;<span class="dt">uint8_t</span>&gt;;
+<span class="kw">using</span> OutputAdapter = OutputBufferAdapter&lt;Buffer&gt;;
+<span class="kw">using</span> InputAdapter = InputBufferAdapter&lt;Buffer&gt;;
+
+<span class="dt">int</span> main() {
+    MyStruct data{<span class="dv">8941</span>, MyEnum::V2, {<span class="fl">15.0f</span>, <span class="fl">-8.5f</span>, <span class="fl">0.045f</span>}};
+    MyStruct res{};
+
+    Buffer buffer;
+
+    <span class="kw">auto</span> writtenSize = quickSerialization&lt;OutputAdapter&gt;(buffer, data);
+    <span class="kw">auto</span> state = quickDeserialization&lt;InputAdapter&gt;({buffer.begin(), writtenSize}, res);
+
+    assert(state.first == ReaderError::NoError &amp;&amp; state.second);
+    assert(data.fs == res.fs &amp;&amp; data.i == res.i &amp;&amp; data.e == res.e);
+}</code></pre></div>
+<p>For more details go directly to <a href="doc/tutorial/hello_world.md">quick start</a> tutorial.</p>
+<h2 id="how-to-use-it">How to use it</h2>
+<p>This documentation comprises these parts: * <a href="doc/tutorial/README.md">Tutorial</a> - getting started. * <a href="doc/README.md">Reference section</a> - all the details.</p>
+<p><em>documentation is in progress, most parts are empty, but <a href="CONTRIBUTING.md">contributions</a> are welcome.</em></p>
+<h2 id="requirements">Requirements</h2>
+<p>Works with C++11 compiler, no additional dependencies, include <code>&lt;bitsery/bitsery.h&gt;</code> and you're done.</p>
+<blockquote>
+<p>some <strong>bitsery</strong> extensions might require higher C++ standard (e.g. <code>StdVariant</code>)</p>
+</blockquote>
+<h2 id="platforms">Platforms</h2>
+<p>This library was tested on * Windows: Visual Studio 2015, MinGW (GCC 5.2) * Linux: GCC 5.4, GCC 6.2, Clang 3.9 * OS X Mavericks: AppleClang 8</p>
+<h2 id="license">License</h2>
+<p><strong>bitsery</strong> is licensed under the <a href="LICENSE">MIT license</a>.</p>

@@ -1,0 +1,1091 @@
+<h1 id="celero">Celero</h1>
+<h3 id="c-benchmarking-library">C++ Benchmarking Library</h3>
+<p>Copyright 2017-2018 John Farrier</p>
+<p>Apache 2.0 License</p>
+<h4 id="builds-and-testing">Builds and Testing</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Branch</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>origin/master:</code></td>
+<td><a href="https://travis-ci.org/DigitalInBlue/Celero"><img src="https://travis-ci.org/DigitalInBlue/Celero.svg?branch=master" alt="Build Status (Master)" /></a></td>
+</tr>
+<tr class="even">
+<td><code>origin/develop:</code></td>
+<td><a href="https://travis-ci.org/DigitalInBlue/Celero"><img src="https://travis-ci.org/DigitalInBlue/Celero.svg?branch=develop" alt="Build Status (Develop)" /></a></td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://scan.coverity.com/projects/celero"> <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/910/badge.svg"/> </a></p>
+<h3 id="overview">Overview</h3>
+<p>Developing consistent and meaningful benchmark results for code is a complex task. Measurement tools exist (Intel® VTune™ Amplifier, SmartBear AQTime, Valgrind, etc.) external to applications, but they are sometimes expensive for small teams or cumbersome to utilize. This project, Celero, aims to be a small library which can be added to a C++ project and perform benchmarks on code in a way which is easy to reproduce, share, and compare among individual runs, developers, or projects. Celero uses a framework similar to that of GoogleTest to make its API easier to use and integrate into a project. Make automated benchmarking as much a part of your development process as automated testing.</p>
+<p>Celero uses CMake to provide cross-platform builds. It does require a modern compiler (Visual C++ 2012+, GCC 4.7+, Clang 2.9+) due to its use of C++11.</p>
+<p>Once Celero is added to your project. You can create dedicated benchmark projects and source files. For convenience, there is single header file and a <code>CELERO_MAIN</code> macro that can be used to provide a <code>main()</code> for your benchmark project that will automatically execute all of your benchmark tests.</p>
+<h3 id="key-features">Key Features</h3>
+<ul>
+<li>Supports Windows, Linux, and OSX using C++11.</li>
+<li>The timing utilities can be used directly in production code (independent of benchmarks).</li>
+<li>Console table output is formatted as Markdown to easily copy/paste into documents.</li>
+<li>Archive results to track performance over time.</li>
+<li>Integrates into CI/CT/CD environments with JUnit-formatted output.</li>
+<li>User-defined Experiment Values can scale test results, sample sizes, and user-defined properties for each run.</li>
+<li>User-defined Measurements allow for measuring anything in addition to timing.</li>
+<li>Supports Test Fixtures.</li>
+<li>Supports fixed-time benchmark baselines.</li>
+<li>Capture a rich set of timing statistics to a file.</li>
+<li>Easily installed using CMake, Conan, or VCPkg.</li>
+</ul>
+<h3 id="command-line">Command Line</h3>
+<pre><code>&lt;celeroOutputExecutable&gt; [-g groupNameToRun] [-t resultsTable.csv] [-j junitOutputFile.xml] [-a resultArchive.csv] [-d numberOfIterationsPerDistribution] [-h]</code></pre>
+<ul>
+<li><code>-g</code> Use this option to run only one benchmark group out of all benchmarks contained within a test executable.</li>
+<li><code>-t</code> Writes all results to a CSV file. Very useful when using problem sets to graph performance.</li>
+<li><code>-j</code> Writes JUnit formatted XML output. To utilize JUnit output, benchmarks must use the <code>_TEST</code> version of the macros and specify an expected baseline multiple. When the test exceeds this multiple, the JUnit output will indicate a failure.</li>
+<li><code>-a</code> Builds or updates an archive of historical results, tracking current, best, and worst results for each benchmark.</li>
+<li><code>-d</code> (Experimental) builds a plot of four different sample sizes to investigate the distribution of sample results.</li>
+</ul>
+<h2 id="celero-basics">Celero Basics</h2>
+<h3 id="background">Background</h3>
+<p>The goal, generally, of writing benchmarks is to measure the performance of a piece of code. Benchmarks are useful for comparing multiple solutions to the same problem to select the most appropriate one. Other times, benchmarks can highlight the performance impact of design or algorithm changes and quantify them in a meaningful way.</p>
+<p>By measuring code performance, you eliminate errors in your assumptions about what the &quot;right&quot; solution is for performance. Only through measurement can you confirm that using a lookup table, for example, is faster than computing a value. Such lore (which is often repeated) can lead to bad design decisions and, ultimately, slower code.</p>
+<p>The goal in writing good benchmarking code is to eliminate all of the noise and overhead, and measure just the code under test. Sources of noise in the measurements include clock resolution noise, operating system background operations, test setup/teardown, framework overhead, and other unrelated system activity.</p>
+<p>At a theoretical level we want to measure &quot;t&quot;, the time to execute the code under test. In reality, we measure &quot;t&quot; plus all of this measurement noise.</p>
+<p>These extraneous contributors to our measurement of &quot;t&quot; fluctuate over time. Therefore, we want to try to isolate &quot;t'. The way this is accomplished is by making many measurements, but only keeping the smallest total. The smallest total is necessarily the one with the smallest noise contribution and closest to the actual time &quot;t&quot;.</p>
+<p>Once this measurement is obtained, it has little meaning in isolation. It is important to create a baseline test by which to compare. A baseline should generally be a &quot;classic&quot; or &quot;pure&quot; solution to the problem on which you are measuring a solution. Once you have a baseline, you have a meaningful time to compare your algorithm against. Simply saying that your fancy sorting algorithm (fSort) sorted a million elements in 10 milliseconds is not sufficient by itself. However, compare that to a classic sorting algorithm baseline such as quick sort (qSort) and then you can say that fSort is 50% faster than qSort on a million elements. That is a meaningful and powerful measurement.</p>
+<h3 id="implementation">Implementation</h3>
+<p>Celero heavily utilizes C++11 features that are available in both Visual C++ 2012 and GCC 4.7. This greatly aided in making the code clean and portable. To make adopting the code easier, all definitions needed by a user are defined in a celero namespace within a single include file: <code>Celero.h</code></p>
+<p><code>Celero.h</code> has within it the macro definitions that turn each of the user benchmark cases into its own unique class with the associated test fixture (if any) and then registers the test case within a Factory. The macros automatically associate baseline test cases with their associated test benchmarks so that, at run time, benchmark-relative numbers can be computed. This association is maintained by TestVector.</p>
+<p>The <code>TestVector</code> utilizes the PImpl idiom to help hide implementation and keep the include overhead of <code>Celero.h</code> to a minimum.</p>
+<p>Celero reports its outputs to the command line. Since colors are nice (and perhaps contribute to the human factors/readability of the results), something beyond <code>std::cout</code> was called for. <code>Console.h</code> defines a simple color function, <code>SetConsoleColor</code>, which is utilized by the functions in the <code>celero::print</code> namespace to nicely format the program's output.</p>
+<p>Measuring benchmark execution time takes place in the <code>TestFixture</code> base class, from which all benchmarks written are ultimately derived. First, the test fixture setup code is executed. Then, the start time for the test is retrieved and stored in microseconds using an unsigned long. This is done to reduce floating point error. Next, the specified number of operations (iterations) are executed. When complete, the end time is retrieved, the test fixture is torn down, and the measured time for the execution is returned and the results are saved.</p>
+<p>This cycle is repeated for however many samples were specified. If no samples were specified (zero), then the test is repeated until it as ran for at least one second or at least 30 samples have been taken. While writing this specific part of the code, there was a definite &quot;if-else&quot; relationship. However, the bulk of the code was repeated within the &quot;if&quot; and &quot;else&quot; sections. An old fashioned function could have been used here, but it was very natural to utilize std::function to define a lambda that could be called and keep all of the code clean. (C++11 is a fantastic thing.) Finally, the results are printed to the screen.</p>
+<h3 id="general-program-flow">General Program Flow</h3>
+<p>To summarize, this pseudo-code illustrates how the tests are executed internally:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span>(Each Experiment)
+{
+    <span class="cf">for</span>(Each Sample)
+    {
+        <span class="co">// Call the virtual function</span>
+        <span class="co">// and DO NOT include its time in the measurement.</span>
+        experiment-&gt;setUp();
+
+        <span class="co">// Start the Timer</span>
+        timer-&gt;start();
+
+        <span class="co">// Run all iterations</span>
+        <span class="cf">for</span>(Each Iteration)
+        {
+            <span class="co">// Call the virtual function</span>
+            <span class="co">// and include its time in the measurement.</span>
+            experiment-&gt;onExperimentStart(x);
+
+            <span class="co">// Run the code under test</span>
+            experiment-&gt;run(threads, iterations, experimentValue);
+        
+            <span class="co">// Call the virtual function</span>
+            <span class="co">// and include its time in the measurement.</span>
+            experiment-&gt;onExperimentEnd();
+        }
+
+        <span class="co">// Stop the Timer</span>
+        timer-&gt;stop();
+
+        <span class="co">// Record data...</span>
+
+        <span class="co">// Call the virtual teardown function</span>
+        <span class="co">// and DO NOT include its time in the measurement.</span>
+        experiment-&gt;tearDown();
+    }
+}</code></pre></div>
+<h3 id="using-the-code">Using the Code</h3>
+<p>Celero uses CMake to provide cross-platform builds. It does require a modern compiler (Visual C++ 2012 or GCC 4.7+) due to its use of C++11.</p>
+<p>Once Celero is added to your project. You can create dedicated benchmark projects and source files. For convenience, there is single header file and a <code>CELERO_MAIN</code> macro that can be used to provide a <code>main()</code> for your benchmark project that will automatically execute all of your benchmark tests.</p>
+<p>Here is an example of a simple Celero Benchmark. (Note: This is a complete, runnable example.)</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;celero/Celero.h&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;random&gt;</span>
+
+<span class="pp">#ifndef WIN32</span>
+<span class="pp">#include </span><span class="im">&lt;cmath&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cstdlib&gt;</span>
+<span class="pp">#endif</span>
+
+<span class="co">///</span>
+<span class="co">/// This is the main(int argc, char** argv) for the entire celero program.</span>
+<span class="co">/// You can write your own, or use this macro to insert the standard one into the project.</span>
+<span class="co">///</span>
+CELERO_MAIN
+
+<span class="bu">std::</span>random_device RandomDevice;
+<span class="bu">std::</span>uniform_int_distribution&lt;<span class="dt">int</span>&gt; UniformDistribution(<span class="dv">0</span>, <span class="dv">1024</span>);
+
+<span class="co">///</span>
+<span class="co">/// In reality, all of the &quot;Complex&quot; cases take the same amount of time to run.</span>
+<span class="co">/// The difference in the results is a product of measurement error.</span>
+<span class="co">///</span>
+<span class="co">/// Interestingly, taking the sin of a constant number here resulted in a </span>
+<span class="co">/// great deal of optimization in clang and gcc.</span>
+<span class="co">///</span>
+BASELINE(DemoSimple, Baseline, <span class="dv">10</span>, <span class="dv">1000000</span>)
+{
+    celero::DoNotOptimizeAway(<span class="kw">static_cast</span>&lt;<span class="dt">float</span>&gt;(sin(UniformDistribution(RandomDevice))));
+}
+
+<span class="co">///</span>
+<span class="co">/// Run a test consisting of 1 sample of 710000 operations per measurement.</span>
+<span class="co">/// There are not enough samples here to likely get a meaningful result.</span>
+<span class="co">///</span>
+BENCHMARK(DemoSimple, Complex1, <span class="dv">1</span>, <span class="dv">710000</span>)
+{
+    celero::DoNotOptimizeAway(<span class="kw">static_cast</span>&lt;<span class="dt">float</span>&gt;(sin(fmod(UniformDistribution(RandomDevice), <span class="fl">3.14159265</span>))));
+}
+
+<span class="co">///</span>
+<span class="co">/// Run a test consisting of 30 samples of 710000 operations per measurement.</span>
+<span class="co">/// There are not enough samples here to get a reasonable measurement</span>
+<span class="co">/// It should get a Basline number lower than the previous test.</span>
+<span class="co">///</span>
+BENCHMARK(DemoSimple, Complex2, <span class="dv">30</span>, <span class="dv">710000</span>)
+{
+    celero::DoNotOptimizeAway(<span class="kw">static_cast</span>&lt;<span class="dt">float</span>&gt;(sin(fmod(UniformDistribution(RandomDevice), <span class="fl">3.14159265</span>))));
+}
+
+<span class="co">///</span>
+<span class="co">/// Run a test consisting of 60 samples of 710000 operations per measurement.</span>
+<span class="co">/// There are not enough samples here to get a reasonable measurement</span>
+<span class="co">/// It should get a Basline number lower than the previous test.</span>
+<span class="co">///</span>
+BENCHMARK(DemoSimple, Complex3, <span class="dv">60</span>, <span class="dv">710000</span>)
+{
+    celero::DoNotOptimizeAway(<span class="kw">static_cast</span>&lt;<span class="dt">float</span>&gt;(sin(fmod(UniformDistribution(RandomDevice), <span class="fl">3.14159265</span>))));
+}</code></pre></div>
+<p>The first thing we do in this code is to define a <code>BASELINE</code> test case. This template takes four arguments:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BASELINE(GroupName, BaselineName, Samples, Operations)</code></pre></div>
+<ul>
+<li><code>GroupName</code> - The name of the benchmark group. This is used to batch together runs and results with their corresponding baseline measurement.</li>
+<li><code>BaselineName</code> - The name of this baseline for reporting purposes.</li>
+<li><code>Samples</code> - The total number of times you want to execute the given number of operations on the test code.</li>
+<li><code>Operations</code> - The total number of times you want to execute the test code per sample.</li>
+</ul>
+<p>Samples and operations here are used to measure very fast code. If you know the code in your benchmark would take some time less than 100 milliseconds, for example, your operations number would say to execute the code &quot;operations&quot; number of times before taking a measurement. Samples defines how many measurements to make.</p>
+<p>Celero helps with this by allowing you to specify zero samples. Zero samples will tell Celero to make some statistically significant number of samples based on how long it takes to complete your specified number of operations. These numbers will be reported at run time.</p>
+<p>The <code>celero::DoNotOptimizeAway</code> template is provided to ensure that the optimizing compiler does not eliminate your function or code. Since this feature is used in all of the sample benchmarks and their baseline, it's time overhead is canceled out in the comparisons.</p>
+<p>After the baseline is defined, various benchmarks are then defined. They syntax for the <code>BENCHMARK</code> macro is identical to that of the macro.</p>
+<h3 id="results">Results</h3>
+<p>Running Celero's simple example experiment (<code>celeroDemoSimple.exe</code>) benchmark gave the following output on a PC:</p>
+<pre><code>Celero
+Timer resolution: 0.069841 us
+-----------------------------------------------------------------------------------------------------------------------------------------------
+     Group      |   Experiment    |   Prob. Space   |     Samples     |   Iterations    |    Baseline     |  us/Iteration   | Iterations/sec  |
+-----------------------------------------------------------------------------------------------------------------------------------------------
+DemoSimple      | Baseline        |               0 |              10 |         1000000 |         1.00000 |         0.28789 |      3473512.73 |
+DemoSimple      | Complex1        |               0 |               1 |          710000 |         1.11028 |         0.31964 |      3128497.53 |
+DemoSimple      | Complex2        |               0 |              30 |          710000 |         1.10749 |         0.31884 |      3136388.74 |
+DemoSimple      | Complex3        |               0 |              60 |          710000 |         1.10678 |         0.31863 |      3138398.97 |
+Complete.</code></pre>
+<p>The first test that executes will be the group's baseline. Celero took 10 samples of 1000000 iterations of the code in our test. (Each set of 1000000 iterations was measured, and this was done 10 times and the smallest time was taken.) The &quot;Baseline&quot; value for the baseline measurement itself will always be 1.0.</p>
+<p>After the baseline is complete, each individual test is ran. Each test is executed and measured in the same way, however, there is an additional metric reported: Baseline. This compares the time it takes to compute the benchmark to the baseline. The data here shows that <code>CeleroBenchTest.Complex1</code> takes 1.007949 times longer to execute than the baseline.</p>
+<h4 id="statistically-sound-results">Statistically Sound Results</h4>
+<p>In order to use Celero for real science, there are three primary factors to consider when reviewing results. Firstly, you MUST check the generated assembly for your test. There are different paths to viewing the assembly for different compilers, but essentially this must be done to ensure that you did not optimize out critical code. You must also verify, via assembly, that you are comparing apples to apples.</p>
+<p>Once that is sorted out, you should run just the &quot;Baseline&quot; case several times. The &quot;us/Iteration&quot; and &quot;Iterations/sec&quot; should not fluctuate by any significant degree between runs. If they do, then ensure that your number of iterations is sufficiently large as to overcome the timer resolution on your machine. Once the number of iterations is high enough, ensure that you are performing a statistically significant number of samples. Lore has it that 30 samples is good, but use your own science to figure out the best number for your situation.</p>
+<p>Finally, you need to ensure that the number of iterations and samples is producing stable output for your experiment cases. These numbers may be the same as your now-stable baseline case.</p>
+<p>One factor that can impact the number of samples and iterations required is the amount of work that your experiment is doing. For cases where you are utilizing Celero's &quot;problem space&quot; functionality to scale up the algorithms, you can corresponding scale down the number of iterations. Doing so can reduce the total run time of the larger experiments by doing less iterations, buy while still maintaining a statistically meaningful measurement. (It saves you time.)</p>
+<h3 id="threaded-benchmarks">Threaded Benchmarks</h3>
+<p>Celero can automatically run threaded benchmarks. <code>BASELINE_T</code> and <code>BENCHMARK_T</code> can be used to launch the given code on its own thread using a user-defined number of concurrent executions. <code>celeroDemoMultithread</code> illustrates using this feature. When defining these macros, the use the following format:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BASELINE_T(groupName, baselineName, fixtureName, samples, iterations, threads);
+BASELINE_FIXED_T(groupName, baselineName, fixtureName, samples, iterations, threads, useconds);
+
+BENCHMARK_T(groupName, benchmarkName, fixtureName, samples, iterations, threads);
+BENCHMARK_TEST_T(groupName, benchmarkName, fixtureName, samples, iterations, threads, target);</code></pre></div>
+<h3 id="fixed-measurement-benchmarks">Fixed Measurement Benchmarks</h3>
+<p>While Celero normally measures the baseline time and then executes benchmark cases for comparison, you can also specify a fixed measurement time. This is useful for measuring performance against a real-time requirement. To use, utilize the <code>_FIXED_</code> version of the <code>BASELINE</code> and <code>BENCHMARK</code> macros.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// No threads or test fixtures.</span>
+BASELINE_FIXED(groupName, baselineName, samples, iterations, useconds);
+
+<span class="co">// For using test fixtures:</span>
+BASELINE_FIXED_F(groupName, baselineName, fixtureName, samples, iterations, useconds);
+
+<span class="co">// For using threads and test fixtures.</span>
+BASELINE_FIXED_T(groupName, baselineName, fixtureName, samples, iterations, threads, useconds);</code></pre></div>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BASELINE_FIXED_F(DemoTransform, FixedTime, DemoTransformFixture, <span class="dv">30</span>, <span class="dv">10000</span>, <span class="dv">100</span>)
+{ <span class="co">/* Nothing to do */</span> }</code></pre></div>
+<h3 id="user-defined-measurements-udm">User-Defined Measurements (UDM)</h3>
+<p>Celero, by default, measures the execution time of your experiments. If you want to measure anything else, say for example the number of page faults via <a href="http://icl.cs.utk.edu/projects/papi/wiki/PAPIC:Overview">PAPI</a>, <em>user-defined measurements</em> are for you.</p>
+<p>Adding user-defined measurements consists of three steps:</p>
+<ul>
+<li>Define a class for your user-defined measurement. (One per type of measurement.) This class must derive from <code>celero::UserDefinedMeasurement</code>. Celero provides a convenience class <code>celero::UserDefinedMeasurementTemplate&lt;&gt;</code> which will be sufficient for most uses.</li>
+<li>Add (an) instance(s) of your class(es) to your test fixture. Implement <code>getUserDefinedMeasurements</code> to return these instances.</li>
+<li>At the appropriate point (most likely <code>tearDown()</code>), record your measurements in your user-defined measurement instances.</li>
+</ul>
+<p>As a rough example, say you want to measure the number of page faults. The class for your user-defined measurement could be as simple as this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> PageFaultUDM : <span class="kw">public</span> celero::UserDefinedMeasurementTemplate&lt;<span class="dt">size_t</span>&gt; 
+{
+  <span class="kw">virtual</span> <span class="bu">std::</span>string getName() <span class="at">const</span> <span class="kw">override</span> 
+  {
+    <span class="cf">return</span> <span class="st">&quot;Page Faults&quot;</span>;
+  }
+
+  <span class="co">// Optionally turn off some statistical reporting.</span>
+  <span class="kw">virtual</span> <span class="dt">bool</span> reportKurtosis() <span class="at">const</span> <span class="kw">override</span>
+  {
+    <span class="cf">return</span> <span class="kw">false</span>;
+  }
+};</code></pre></div>
+<p>The only thing you <em>need</em> to implement in this case is a unique name. Other virtual functions are available inside <code>celero::UserDefinedMeasurementTemplate</code> and <code>celero::UserDefinedMeasurement</code> that you can leverage as needed. There are optional virtual functions that you can override to turn off specific statistical measurements in the output. These are:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">    <span class="kw">virtual</span> <span class="dt">bool</span> reportSize() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportMean() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportVariance() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportStandardDeviation() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportSkewness() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportKurtosis() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportZScore() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportMin() <span class="at">const</span>;
+    <span class="kw">virtual</span> <span class="dt">bool</span> reportMax() <span class="at">const</span>;</code></pre></div>
+<p>(By default, all of the <code>report</code> functions inside <code>UserDefinedMeasurementTemplate</code> return <code>true</code>.)</p>
+<p>Now, add it to your regular Celero test fixure:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> SortFixture : <span class="kw">public</span> celero::TestFixture
+{
+<span class="kw">public</span>:
+    SortFixture()
+    {
+        <span class="kw">this</span>-&gt;pageFaultUDM.reset(<span class="kw">new</span> PageFaultUDM());
+    }
+    
+    [...]
+    
+    <span class="kw">virtual</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>shared_ptr&lt;celero::UserDefinedMeasurement&gt;&gt; getUserDefinedMeasurements() <span class="at">const</span> <span class="kw">override</span>
+    {
+        <span class="cf">return</span> { <span class="kw">this</span>-&gt;pageFaultUDM };
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>shared_ptr&lt;CopyCountUDM&gt; pageFaultUDM;
+};</code></pre></div>
+<p>Finally, you need to record your results. For this pseud-code example, assume two functions exist: <code>resetPageFaultCounter()</code> and <code>getPageFaults()</code>. These reset the number of page faults and return the number of page faults since last reset, respectively. Then, add these to the <code>setUp</code> and <code>tearDown</code> methods:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> SortFixture : <span class="kw">public</span> celero::TestFixture
+{
+<span class="kw">public</span>:
+    SortFixture()
+    {
+        <span class="kw">this</span>-&gt;pageFaultUDM.reset(<span class="kw">new</span> PageFaultUDM());
+    }
+
+    [...]
+    
+    <span class="co">// Gather page fault statistics inside the UDM.</span>
+    <span class="kw">virtual</span> <span class="dt">void</span> onExperimentEnd() <span class="kw">override</span>
+    {
+        [...]
+        <span class="kw">this</span>-&gt;pageFaultUDM-&gt;addValue(<span class="kw">this</span>-&gt;getPageFaults());
+    }
+
+    [...] 
+    
+    <span class="co">// Reset the page fault counter.</span>
+    <span class="kw">virtual</span> <span class="dt">void</span> setUp(<span class="at">const</span> celero::TestFixture::ExperimentValue&amp; experimentValue) <span class="kw">override</span>
+    {
+        [...]
+        <span class="kw">this</span>-&gt;resetPageFaultCounter();
+    }
+    
+    [...]
+
+    <span class="kw">virtual</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>shared_ptr&lt;celero::UserDefinedMeasurement&gt;&gt; getUserDefinedMeasurements() <span class="at">const</span> <span class="kw">override</span>
+    {
+        <span class="cf">return</span> { <span class="kw">this</span>-&gt;pageFaultUDM };
+    }
+
+<span class="kw">private</span>:
+    <span class="bu">std::</span>shared_ptr&lt;CopyCountUDM&gt; pageFaultUDM;
+    [...]
+};</code></pre></div>
+<p>You will now be reporting statistics on the number of page faults that occurred during your experiments. See the <code>ExperimentSortingRandomIntsWithUDM</code> example for a complete example.</p>
+<p>A note on User Defined Measurements: This capability was introduced well after the creation of Celero. While it is a great enhancement to the library, it was not designed-in to the library. As such, the next major release of the library (v3.x) may change the way this is implemented and exposed to the library's users.</p>
+<h3 id="notes">Notes</h3>
+<ul>
+<li>Benchmarks should always be performed on Release builds. Never measure the performance of a Debug build and make changes based on the results. The (optimizing) compiler is your friend with respect to code performance.</li>
+<li>Accuracy is tied very closely to the total number of samples and the sample sizes. As a general rule, you should aim to execute your baseline code for about as long as your longest benchmark test. Further, it is helpful if all of the benchmark tests take about the same order of magnitude of execution time. (Don't compare a baseline that executed in 0.1 seconds with benchmarks that take 60 seconds and an hour, respectively.)</li>
+<li>Celero has Doxygen documentation of its API.</li>
+<li>Celero supports test fixtures for each baseline group.</li>
+</ul>
+<h2 id="celero-charts">Celero Charts</h2>
+<h3 id="background-1">Background</h3>
+<p>It has been noted many times that writing an algorithm to solve small problems is relatively easy. &quot;Brute force&quot; methods tend to function just as well as more graceful approaches. However, as the size of data increases, truly effective algorithms scale their performance to match.</p>
+<p>Theoretically, the best we can hope for with an algorithm is that is scales lineally (Order N, O(N) complexity) with respect to the problem size. That is to say that if the problem set doubles, the time it takes for the algorithm to execute doubles. While this seems obvious, it is often an elusive goal.</p>
+<p>Even well performing algorithms eventually run into problems with available memory or CPU cache. When making decisions within our software about algorithms and improvements to existing code, only through measurement and experimentation can we know our complex algorithms perform acceptably.</p>
+<h3 id="using-the-code-1">Using the Code</h3>
+<p>While Celero offers simple benchmarking of code and algorithms, it also offers a more complex method or directly producing performance graphs of how the benchmarks change with respect to some independent variable, referred to here as the Problem Set.</p>
+<p>Within Celero, a test fixture can push integers into a <code>ProblemSetValues</code> vector which allows for the fixture's own SetUp function to scale a problem set for the benchmarks to run against. For each value pushed into the <code>ProblemSetValues</code> vector, a complete set of benchmarks is executed. These measured values are then stored and can be written out to a CSV file for easy plotting of results.</p>
+<p>To demonstrate, we will study the performance of three common sorting algorithms: BubbleSort, SelectionSort, and std::sort. (The source code to this demo is distributed with Celero, available on <a href="https://github.com/DigitalInBlue/Celero">GitHub</a>.) First, we will write a test fixture for Celero.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> SortFixture : <span class="kw">public</span> celero::TestFixture
+{
+<span class="kw">public</span>:
+    SortFixture()
+    {
+    }
+
+    <span class="kw">virtual</span> <span class="bu">std::</span>vector&lt;celero::TestFixture::ExperimentValue&gt; getExperimentValues() <span class="at">const</span> <span class="kw">override</span>
+    {
+        <span class="bu">std::</span>vector&lt;celero::TestFixture::ExperimentValue&gt; problemSpace;
+
+        <span class="co">// We will run some total number of sets of tests all together. </span>
+        <span class="co">// Each one growing by a power of 2.</span>
+        <span class="at">const</span> <span class="dt">int</span> totalNumberOfTests = <span class="dv">6</span>;
+
+        <span class="cf">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; totalNumberOfTests; i++)
+        {
+            <span class="co">// ExperimentValues is part of the base class and allows us to specify</span>
+            <span class="co">// some values to control various test runs to end up building a nice graph.</span>
+            problemSpace.push_back({<span class="dt">int64_t</span>(pow(<span class="dv">2</span>, i<span class="dv">+1</span>)});
+        }
+
+        <span class="cf">return</span> problemSpace;
+    }
+
+    <span class="co">/// Before each run, build a vector of random integers.</span>
+    <span class="kw">virtual</span> <span class="dt">void</span> setUp(<span class="at">const</span> celero::TestFixture::ExperimentValue&amp; experimentValue)
+    {
+        <span class="kw">this</span>-&gt;arraySize = experimentValue.Value;
+        <span class="kw">this</span>-&gt;array.reserve(<span class="kw">this</span>-&gt;arraySize);
+    }
+
+    <span class="co">/// Before each iteration. A common utility function to push back random ints to sort.</span>
+    <span class="dt">void</span> randomize()
+    {
+        <span class="cf">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="kw">this</span>-&gt;arraySize; i++)
+        {
+            <span class="kw">this</span>-&gt;array.push_back(rand());
+        }
+    }
+
+    <span class="co">/// After each iteration, clear the vector of random integers.</span>
+    <span class="dt">void</span> clear()
+    {
+        <span class="kw">this</span>-&gt;array.clear();
+    }
+
+    <span class="bu">std::</span>vector&lt;<span class="dt">int64_t</span>&gt; array;
+    <span class="dt">int64_t</span> arraySize;
+};</code></pre></div>
+<p>Before the test fixture is utilized by a benchmark, Celero will create an instanciation of the class and call its &quot;getExperimentValues()&quot; function. The test fixture can then build a vector of TestFixture::ExperimentValue values. For each value added to this array, benchmarks will be executed following calls to the &quot;setUp&quot; virtual function. A new test fixture is created for each measurement.</p>
+<p>The <code>SetUp()</code> virtual function is called before each benchmark test is executed. When using a problem space values vector, the function will be given a value that was previously pushed into the array within the constructor. The function's code can then decide what to do with it. Here, we are using the value to indicate how many elements should be in the array that we intend to sort. For each of the array elements, we simply add a pseudo-random integer.</p>
+<p>Now for implementing the actual sorting algorithms. For the baseline case, I implemented the first sorting algorithm I ever learned in school: Bubble Sort. The code for bubble sort is straight forward.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// For a baseline, I&#39;ll choose Bubble Sort.</span>
+BASELINE_F(SortRandInts, BubbleSort, SortFixture, <span class="dv">30</span>, <span class="dv">10000</span>)
+{
+    <span class="kw">this</span>-&gt;randomize();
+
+    <span class="cf">for</span>(<span class="dt">int</span> x = <span class="dv">0</span>; x &lt; <span class="kw">this</span>-&gt;arraySize; x++)
+    {
+        <span class="cf">for</span>(<span class="dt">int</span> y = <span class="dv">0</span>; y &lt; <span class="kw">this</span>-&gt;arraySize - <span class="dv">1</span>; y++)
+        {
+            <span class="cf">if</span>(<span class="kw">this</span>-&gt;array[y] &gt; <span class="kw">this</span>-&gt;array[y<span class="dv">+1</span>])
+            {
+                <span class="bu">std::</span>swap(<span class="kw">this</span>-&gt;array[y], <span class="kw">this</span>-&gt;array[y<span class="dv">+1</span>]);
+            }
+        }
+    }
+
+    <span class="kw">this</span>-&gt;clear();
+}</code></pre></div>
+<p>Celero will use the values from this baseline when computing a base lined measurement for the other two algorithms in the test group <em>DemoSort</em>. However, when we run this at the command line, we will specify an output file. The output file will contain the measured number of seconds the algorithm took to execute on the given array size.</p>
+<p>Next, we will implement the Selection Sort algorithm.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK_F(SortRandInts, SelectionSort, SortFixture, <span class="dv">30</span>, <span class="dv">10000</span>)
+{
+    <span class="kw">this</span>-&gt;randomize();
+
+    <span class="cf">for</span>(<span class="dt">int</span> x = <span class="dv">0</span>; x &lt; <span class="kw">this</span>-&gt;arraySize; x++)
+    {
+        <span class="kw">auto</span> minIdx = x;
+
+        <span class="cf">for</span>(<span class="dt">int</span> y = x; y &lt; <span class="kw">this</span>-&gt;arraySize; y++)
+        {
+            <span class="cf">if</span>(<span class="kw">this</span>-&gt;array[minIdx] &gt; <span class="kw">this</span>-&gt;array[y])
+            {
+                minIdx = y;
+            }
+        }
+
+        <span class="bu">std::</span>swap(<span class="kw">this</span>-&gt;array[x], <span class="kw">this</span>-&gt;array[minIdx]);
+    }
+
+    <span class="kw">this</span>-&gt;clear();
+}</code></pre></div>
+<p>Finally, for good measure, we will simply use the Standard Library's sorting algorithm: <code>Introsort</code>. We only need write a single line of code, but here it is for completeness.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">BENCHMARK_F(SortRandInts, stdSort, SortFixture, <span class="dv">30</span>, <span class="dv">10000</span>)
+{
+    <span class="kw">this</span>-&gt;randomize();
+    <span class="bu">std::</span>sort(<span class="kw">this</span>-&gt;array.begin(), <span class="kw">this</span>-&gt;array.end());
+    <span class="kw">this</span>-&gt;clear();
+}</code></pre></div>
+<h3 id="results-1">Results</h3>
+<p>This test was ran on a 4.00 GHz AMD with four cores, eight logical processors, and 32 GB of memory. (Hardware aside, the relative performance of these algorithms should be the same on any modern hardware.)</p>
+<p>Celero outputs timing and benchmark references for each test automatically. However, to write to an output file for easy plotting, simply specify an output file on the command line.</p>
+<pre><code>celeroExperimentSortingRandomInts.exe -t results.csv</code></pre>
+<p>While not particularly surprising std::sort is by far the best option with any meaningful problem set size. The results are summarized in the following table output written directly by Celero:</p>
+<pre><code>Celero
+Celero: CPU processor throttling disabled.
+Timer resolution: 0.254288 us
+Writing results to: results.csv
+-----------------------------------------------------------------------------------------------------------------------------------------------
+     Group      |   Experiment    |   Prob. Space   |     Samples     |   Iterations    |    Baseline     |  us/Iteration   | Iterations/sec  |
+-----------------------------------------------------------------------------------------------------------------------------------------------
+SortRandInts    | BubbleSort      |               2 |              30 |           10000 |         1.00000 |         0.05270 |     18975332.07 |
+SortRandInts    | BubbleSort      |               4 |              30 |           10000 |         1.00000 |         0.12060 |      8291873.96 |
+SortRandInts    | BubbleSort      |               8 |              30 |           10000 |         1.00000 |         0.31420 |      3182686.19 |
+SortRandInts    | BubbleSort      |              16 |              30 |           10000 |         1.00000 |         1.09130 |       916338.31 |
+SortRandInts    | BubbleSort      |              32 |              30 |           10000 |         1.00000 |         3.23470 |       309147.68 |
+SortRandInts    | BubbleSort      |              64 |              30 |           10000 |         1.00000 |        10.82530 |        92376.19 |
+SortRandInts    | SelectionSort   |               2 |              30 |           10000 |         1.09108 |         0.05750 |     17391304.35 |
+SortRandInts    | SelectionSort   |               4 |              30 |           10000 |         1.03317 |         0.12460 |      8025682.18 |
+SortRandInts    | SelectionSort   |               8 |              30 |           10000 |         1.01464 |         0.31880 |      3136762.86 |
+SortRandInts    | SelectionSort   |              16 |              30 |           10000 |         0.72253 |         0.78850 |      1268230.82 |
+SortRandInts    | SelectionSort   |              32 |              30 |           10000 |         0.63771 |         2.06280 |       484777.97 |
+SortRandInts    | SelectionSort   |              64 |              30 |           10000 |         0.54703 |         5.92180 |       168867.57 |
+SortRandInts    | InsertionSort   |               2 |              30 |           10000 |         1.07021 |         0.05640 |     17730496.45 |
+SortRandInts    | InsertionSort   |               4 |              30 |           10000 |         1.05970 |         0.12780 |      7824726.13 |
+SortRandInts    | InsertionSort   |               8 |              30 |           10000 |         1.00382 |         0.31540 |      3170577.05 |
+SortRandInts    | InsertionSort   |              16 |              30 |           10000 |         0.74104 |         0.80870 |      1236552.49 |
+SortRandInts    | InsertionSort   |              32 |              30 |           10000 |         0.61508 |         1.98960 |       502613.59 |
+SortRandInts    | InsertionSort   |              64 |              30 |           10000 |         0.45097 |         4.88190 |       204838.28 |
+SortRandInts    | QuickSort       |               2 |              30 |           10000 |         1.18027 |         0.06220 |     16077170.42 |
+SortRandInts    | QuickSort       |               4 |              30 |           10000 |         1.16169 |         0.14010 |      7137758.74 |
+SortRandInts    | QuickSort       |               8 |              30 |           10000 |         1.01400 |         0.31860 |      3138731.95 |
+SortRandInts    | QuickSort       |              16 |              30 |           10000 |         0.65060 |         0.71000 |      1408450.70 |
+SortRandInts    | QuickSort       |              32 |              30 |           10000 |         0.48542 |         1.57020 |       636861.55 |
+SortRandInts    | QuickSort       |              64 |              30 |           10000 |         0.34431 |         3.72730 |       268290.72 |
+SortRandInts    | stdSort         |               2 |              30 |           10000 |         1.08539 |         0.05720 |     17482517.48 |
+SortRandInts    | stdSort         |               4 |              30 |           10000 |         0.94776 |         0.11430 |      8748906.39 |
+SortRandInts    | stdSort         |               8 |              30 |           10000 |         0.76926 |         0.24170 |      4137360.36 |
+SortRandInts    | stdSort         |              16 |              30 |           10000 |         0.45954 |         0.50150 |      1994017.95 |
+SortRandInts    | stdSort         |              32 |              30 |           10000 |         0.33573 |         1.08600 |       920810.31 |
+SortRandInts    | stdSort         |              64 |              30 |           10000 |         0.23979 |         2.59580 |       385237.69 |</code></pre>
+<p>The data shows first the test group name. Next, all of the data sizes are output. Then each row shows the baseline or benchmark name and the corresponding time for the algorithm to complete measured in useconds. This data, in CSV format, can be directly read by programs such as Microsoft Excel and plotted without any modification. The CSV contains the following data:</p>
+<table style="width:100%;">
+<colgroup>
+<col width="3%" />
+<col width="6%" />
+<col width="8%" />
+<col width="4%" />
+<col width="6%" />
+<col width="5%" />
+<col width="7%" />
+<col width="8%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="11%" />
+<col width="5%" />
+<col width="5%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Group</th>
+<th>Experiment</th>
+<th>Problem Space</th>
+<th>Samples</th>
+<th>Iterations</th>
+<th>Baseline</th>
+<th>us/Iteration</th>
+<th>Iterations/sec</th>
+<th>Min (us)</th>
+<th>Mean (us)</th>
+<th>Max (us)</th>
+<th>Variance</th>
+<th>Standard Deviation</th>
+<th>Skewness</th>
+<th>Kurtosis</th>
+<th>Z Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>2</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>0.0527</td>
+<td>1.89753e+07</td>
+<td>527</td>
+<td>532.533</td>
+<td>582</td>
+<td>118.74</td>
+<td>10.8968</td>
+<td>3.64316</td>
+<td>13.0726</td>
+<td>0.507794</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>4</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>0.1206</td>
+<td>8.29187e+06</td>
+<td>1206</td>
+<td>1230.77</td>
+<td>1455</td>
+<td>1941.22</td>
+<td>44.0593</td>
+<td>4.60056</td>
+<td>20.9542</td>
+<td>0.562122</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>8</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>0.3142</td>
+<td>3.18269e+06</td>
+<td>3142</td>
+<td>3195.73</td>
+<td>3425</td>
+<td>3080.41</td>
+<td>55.5014</td>
+<td>2.48383</td>
+<td>7.72605</td>
+<td>0.968143</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>16</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>1.0913</td>
+<td>916338</td>
+<td>10913</td>
+<td>11022.1</td>
+<td>11228</td>
+<td>5450.26</td>
+<td>73.8259</td>
+<td>0.71778</td>
+<td>0.387441</td>
+<td>1.47825</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>32</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>3.2347</td>
+<td>309148</td>
+<td>32347</td>
+<td>32803.9</td>
+<td>36732</td>
+<td>650545</td>
+<td>806.563</td>
+<td>4.1236</td>
+<td>17.2616</td>
+<td>0.566519</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>BubbleSort</td>
+<td>64</td>
+<td>30</td>
+<td>10000</td>
+<td>1</td>
+<td>10.8253</td>
+<td>92376.2</td>
+<td>108253</td>
+<td>110999</td>
+<td>133389</td>
+<td>2.8152e+07</td>
+<td>5305.85</td>
+<td>3.15455</td>
+<td>9.60246</td>
+<td>0.517542</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>2</td>
+<td>30</td>
+<td>10000</td>
+<td>1.09108</td>
+<td>0.0575</td>
+<td>1.73913e+07</td>
+<td>575</td>
+<td>620.167</td>
+<td>753</td>
+<td>2170.97</td>
+<td>46.5937</td>
+<td>1.33794</td>
+<td>1.19871</td>
+<td>0.969373</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>4</td>
+<td>30</td>
+<td>10000</td>
+<td>1.03317</td>
+<td>0.1246</td>
+<td>8.02568e+06</td>
+<td>1246</td>
+<td>1339.57</td>
+<td>1413</td>
+<td>2261.7</td>
+<td>47.5574</td>
+<td>-0.263592</td>
+<td>-0.727621</td>
+<td>1.96745</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>8</td>
+<td>30</td>
+<td>10000</td>
+<td>1.01464</td>
+<td>0.3188</td>
+<td>3.13676e+06</td>
+<td>3188</td>
+<td>3500.63</td>
+<td>3742</td>
+<td>20181.2</td>
+<td>142.061</td>
+<td>-0.438792</td>
+<td>-0.522354</td>
+<td>2.2007</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>16</td>
+<td>30</td>
+<td>10000</td>
+<td>0.722533</td>
+<td>0.7885</td>
+<td>1.26823e+06</td>
+<td>7885</td>
+<td>8504.67</td>
+<td>9482</td>
+<td>322584</td>
+<td>567.965</td>
+<td>0.274438</td>
+<td>-1.43741</td>
+<td>1.09103</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>32</td>
+<td>30</td>
+<td>10000</td>
+<td>0.63771</td>
+<td>2.0628</td>
+<td>484778</td>
+<td>20628</td>
+<td>20826.7</td>
+<td>21378</td>
+<td>26307.7</td>
+<td>162.196</td>
+<td>1.64431</td>
+<td>2.96239</td>
+<td>1.22526</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>SelectionSort</td>
+<td>64</td>
+<td>30</td>
+<td>10000</td>
+<td>0.547033</td>
+<td>5.9218</td>
+<td>168868</td>
+<td>59218</td>
+<td>59517.7</td>
+<td>60308</td>
+<td>55879.5</td>
+<td>236.389</td>
+<td>1.42419</td>
+<td>2.38341</td>
+<td>1.26783</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>2</td>
+<td>30</td>
+<td>10000</td>
+<td>1.07021</td>
+<td>0.0564</td>
+<td>1.77305e+07</td>
+<td>564</td>
+<td>585.4</td>
+<td>814</td>
+<td>2239.42</td>
+<td>47.3225</td>
+<td>4.06868</td>
+<td>16.6254</td>
+<td>0.452216</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>4</td>
+<td>30</td>
+<td>10000</td>
+<td>1.0597</td>
+<td>0.1278</td>
+<td>7.82473e+06</td>
+<td>1278</td>
+<td>1312</td>
+<td>1574</td>
+<td>3857.17</td>
+<td>62.1061</td>
+<td>3.06791</td>
+<td>9.38706</td>
+<td>0.54745</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>8</td>
+<td>30</td>
+<td>10000</td>
+<td>1.00382</td>
+<td>0.3154</td>
+<td>3.17058e+06</td>
+<td>3154</td>
+<td>3208.57</td>
+<td>3617</td>
+<td>8053.91</td>
+<td>89.7436</td>
+<td>3.40649</td>
+<td>12.5161</td>
+<td>0.608029</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>16</td>
+<td>30</td>
+<td>10000</td>
+<td>0.741043</td>
+<td>0.8087</td>
+<td>1.23655e+06</td>
+<td>8087</td>
+<td>8198.43</td>
+<td>8556</td>
+<td>11392.8</td>
+<td>106.737</td>
+<td>1.66984</td>
+<td>3.10417</td>
+<td>1.044</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>32</td>
+<td>30</td>
+<td>10000</td>
+<td>0.61508</td>
+<td>1.9896</td>
+<td>502614</td>
+<td>19896</td>
+<td>20088.9</td>
+<td>20593</td>
+<td>20955.8</td>
+<td>144.761</td>
+<td>1.97818</td>
+<td>4.12296</td>
+<td>1.33254</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>InsertionSort</td>
+<td>64</td>
+<td>30</td>
+<td>10000</td>
+<td>0.450971</td>
+<td>4.8819</td>
+<td>204838</td>
+<td>48819</td>
+<td>49152</td>
+<td>50253</td>
+<td>129327</td>
+<td>359.62</td>
+<td>1.7583</td>
+<td>2.51588</td>
+<td>0.925884</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>2</td>
+<td>30</td>
+<td>10000</td>
+<td>1.18027</td>
+<td>0.0622</td>
+<td>1.60772e+07</td>
+<td>622</td>
+<td>647.4</td>
+<td>836</td>
+<td>2492.52</td>
+<td>49.9252</td>
+<td>2.83628</td>
+<td>7.08836</td>
+<td>0.508761</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>4</td>
+<td>30</td>
+<td>10000</td>
+<td>1.16169</td>
+<td>0.1401</td>
+<td>7.13776e+06</td>
+<td>1401</td>
+<td>1450</td>
+<td>1655</td>
+<td>4476.21</td>
+<td>66.9045</td>
+<td>1.94538</td>
+<td>2.90363</td>
+<td>0.732388</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>8</td>
+<td>30</td>
+<td>10000</td>
+<td>1.014</td>
+<td>0.3186</td>
+<td>3.13873e+06</td>
+<td>3186</td>
+<td>3245.8</td>
+<td>3549</td>
+<td>5043.89</td>
+<td>71.0203</td>
+<td>2.88396</td>
+<td>9.36231</td>
+<td>0.842012</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>16</td>
+<td>30</td>
+<td>10000</td>
+<td>0.6506</td>
+<td>0.71</td>
+<td>1.40845e+06</td>
+<td>7100</td>
+<td>7231.07</td>
+<td>7670</td>
+<td>17248.2</td>
+<td>131.332</td>
+<td>1.93858</td>
+<td>3.21011</td>
+<td>0.997977</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>32</td>
+<td>30</td>
+<td>10000</td>
+<td>0.485424</td>
+<td>1.5702</td>
+<td>636862</td>
+<td>15702</td>
+<td>15863.2</td>
+<td>16469</td>
+<td>33518</td>
+<td>183.079</td>
+<td>2.01833</td>
+<td>3.2763</td>
+<td>0.880494</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>QuickSort</td>
+<td>64</td>
+<td>30</td>
+<td>10000</td>
+<td>0.344314</td>
+<td>3.7273</td>
+<td>268291</td>
+<td>37273</td>
+<td>37554.4</td>
+<td>37999</td>
+<td>34113.3</td>
+<td>184.698</td>
+<td>0.822276</td>
+<td>-0.0186633</td>
+<td>1.52339</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>2</td>
+<td>30</td>
+<td>10000</td>
+<td>1.08539</td>
+<td>0.0572</td>
+<td>1.74825e+07</td>
+<td>572</td>
+<td>591.233</td>
+<td>764</td>
+<td>1863.15</td>
+<td>43.1642</td>
+<td>2.86875</td>
+<td>7.63924</td>
+<td>0.445585</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>4</td>
+<td>30</td>
+<td>10000</td>
+<td>0.947761</td>
+<td>0.1143</td>
+<td>8.74891e+06</td>
+<td>1143</td>
+<td>1185.33</td>
+<td>1385</td>
+<td>3435.4</td>
+<td>58.6123</td>
+<td>2.53277</td>
+<td>5.69826</td>
+<td>0.72226</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>8</td>
+<td>30</td>
+<td>10000</td>
+<td>0.769255</td>
+<td>0.2417</td>
+<td>4.13736e+06</td>
+<td>2417</td>
+<td>2459.47</td>
+<td>2838</td>
+<td>6555.84</td>
+<td>80.9682</td>
+<td>3.78132</td>
+<td>14.5264</td>
+<td>0.524486</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>16</td>
+<td>30</td>
+<td>10000</td>
+<td>0.459544</td>
+<td>0.5015</td>
+<td>1.99402e+06</td>
+<td>5015</td>
+<td>5120.97</td>
+<td>5283</td>
+<td>6486.65</td>
+<td>80.5398</td>
+<td>0.55161</td>
+<td>-0.798651</td>
+<td>1.31571</td>
+</tr>
+<tr class="odd">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>32</td>
+<td>30</td>
+<td>10000</td>
+<td>0.335734</td>
+<td>1.086</td>
+<td>920810</td>
+<td>10860</td>
+<td>13398</td>
+<td>24592</td>
+<td>8.85889e+06</td>
+<td>2976.39</td>
+<td>2.1597</td>
+<td>4.93241</td>
+<td>0.852722</td>
+</tr>
+<tr class="even">
+<td>SortRandInts</td>
+<td>stdSort</td>
+<td>64</td>
+<td>30</td>
+<td>10000</td>
+<td>0.23979</td>
+<td>2.5958</td>
+<td>385238</td>
+<td>25958</td>
+<td>27384.8</td>
+<td>35800</td>
+<td>4.88819e+06</td>
+<td>2210.92</td>
+<td>2.24632</td>
+<td>5.15422</td>
+<td>0.645326</td>
+</tr>
+</tbody>
+</table>
+<p>The point here is not that std::sort is better than more elementary sorting methods, but how easily measurable results can be obtained. In making such measurements more accessible and easier to code, they can become part of the way we code just as automated testing has become.</p>
+<p>Test early and test often!</p>
+<h3 id="notes-1">Notes</h3>
+<ul>
+<li>Because I like explicitness as much as the next programmer, I want to note that the actual sorting algorithm used by <code>std::sort</code> is not defined in the standard, but references cite Introsort as a likely contender for how an STL implementation would approach std::sort. http://en.wikipedia.org/wiki/Introsort.</li>
+<li>When choosing a sorting algorithm, start with std::sort and see if you can make improvements from there.</li>
+<li>Don't just trust your experience, measure your code!</li>
+</ul>
+<h2 id="faq">FAQ</h2>
+<h3 id="q-i-asked-for-n-iterations-but-celero-ran-n1-iterations.">Q: I asked for <code>N</code> iterations, but Celero ran <code>N+1</code> iterations.</h3>
+<p>The internal code will do one un-measured &quot;warm up&quot; pass. This helps account for caching which may otherwise influence measurements.</p>
+<h3 id="q-as-my-problem-space-increases-in-size-my-runs-take-longer-and-longer.-how-do-i-account-for-the-increased-complexity">Q: As my problem space increases in size, my runs take longer and longer. How do I account for the increased complexity?</h3>
+<p>When defining a problem space, you set up a <code>celero::TestFixture::ExperimentValue</code>. If the <code>Iterations</code> member in the class is greater than zero, that number will be used to control the number of iterations for the corresponding <code>celero::TestFixture::ExperimentValue</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> MyFixture : <span class="kw">public</span> celero::TestFixture
+{
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>pair&lt;<span class="dt">int64_t</span>, <span class="dt">uint64_t</span>&gt;&gt; getExperimentValues() <span class="at">const</span> <span class="kw">override</span>
+    {
+        <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>pair&lt;<span class="dt">int64_t</span>, <span class="dt">uint64_t</span>&gt;&gt; problemSpaceValues;
+
+        <span class="co">// We will run some total number of sets of tests all together.</span>
+        <span class="co">// Each one growing by a power of 2.</span>
+        <span class="at">const</span> <span class="dt">int</span> totalNumberOfTests = <span class="dv">12</span>;
+
+        <span class="cf">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; totalNumberOfTests; i++)
+        {
+            <span class="co">// ExperimentValues is part of the base class and allows us to specify</span>
+            <span class="co">// some values to control various test runs to end up building a nice graph.</span>
+            <span class="co">// We make the number of iterations decrease as the size of our problem space increases</span>
+            <span class="co">// to demonstrate how to adjust the number of iterations per sample based on the</span>
+            <span class="co">// problem space size.</span>
+            problemSpaceValues.push_back(<span class="bu">std::</span>make_pair(<span class="dt">int64_t</span>(pow(<span class="dv">2</span>, i + <span class="dv">1</span>)), <span class="dt">uint64_t</span>(pow(<span class="dv">2</span>, totalNumberOfTests - i))));
+        }
+
+        <span class="cf">return</span> problemSpaceValues;
+    }</code></pre></div>
+<h2 id="example-and-demo-code">Example and Demo Code</h2>
+<p>Example and demonstration code is provided under Celero's &quot;experiments&quot; folder. There are two types of projects. The first are &quot;Demo&quot; projects. These are useful for illustrating techniques and ideas, but may not be interesting from a computer-science perspective. Experiments, on the other hand, have been added which demonstrate real-world questions.</p>
+<p>The addition of real use cases of Celero are encouraged to be submitted to Celero's development branch for inclusion in the Demo and Experiment library.</p>

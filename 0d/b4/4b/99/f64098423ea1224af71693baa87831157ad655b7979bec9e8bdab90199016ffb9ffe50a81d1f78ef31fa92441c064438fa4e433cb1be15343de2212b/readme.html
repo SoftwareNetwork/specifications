@@ -1,0 +1,75 @@
+<h1 id="fixed_storage_arrays">fixed_storage_arrays</h1>
+<p>A set of fixed-sized C++ storage arrays with various features.</p>
+<p><a href="https://lgtm.com/projects/g/recatek/fixed_storage_arrays/alerts/"><img src="https://img.shields.io/lgtm/alerts/g/recatek/fixed_storage_arrays.svg?logo=lgtm&amp;logoWidth=18" alt="Total alerts" /></a></p>
+<h2 id="purpose">Purpose</h2>
+<p>This header-only library provides the following fixed-sized data structures:</p>
+<h6 id="nonstdpush_arrayt-n"><code>nonstd::push_array&lt;T, N&gt;</code></h6>
+<p>A reduced &quot;array and a counter&quot; fixed sized data structure for writing data to once and then copying. Trivially copyable. Nothing very fancy.</p>
+<h6 id="nonstdraw_buffert-n"><code>nonstd::raw_buffer&lt;T, N&gt;</code></h6>
+<p>An array built around <code>std::aligned_storage</code> for a given type. Abstracts the process of creating and destroying elements with placement new in otherwise uninitialized data. Does not keep track of which cells are occupied with what, and as such does <em>not</em> provide RAII safety. Serves as the backbone for the following structures.</p>
+<h6 id="nonstdslot_arrayt-n"><code>nonstd::slot_array&lt;T, N&gt;</code></h6>
+<p>A fixed sized, pared down implementation of the <a href="https://www.youtube.com/watch?v=SHaAR7XPtNU">Slot Map data structure</a>, which provides the following properties:</p>
+<ul>
+<li><p>O(1) emplacement and deletion*.</p></li>
+<li><p>O(1) lookup.</p></li>
+<li><p>Data is stored contiguously but unordered and can be iterated as such.</p></li>
+<li><p>Access is done via versioned keys to avoid dangling references.</p></li>
+<li><p>Does not perform or require default element construction for unused slots.</p></li>
+<li><p>Elements are automatically cleaned up upon deletion of the structure, similar to an <code>std::vector</code>.</p></li>
+</ul>
+<p>(* - On deletion, some iteration may be done to clean up the free slot list.)</p>
+<h6 id="nonstdkeyed_arrayt-n"><code>nonstd::keyed_array&lt;T, N&gt;</code></h6>
+<p>A deconstruction of the <code>slot_array</code> structure, intended for storing random access resources safely.</p>
+<ul>
+<li><p>O(1) emplacement and deletion.</p></li>
+<li><p>O(1) lookup.</p></li>
+<li><p>Data is not stored contiguously and can not be natively iterated.</p></li>
+<li><p>Access is done via versioned keys to avoid dangling references.</p></li>
+<li><p>Unlike <code>slot_array</code>, no elements are moved or rearranged upon deletion (good for large storage).</p></li>
+<li><p>Does not perform or require default element construction for unused slots.</p></li>
+<li><p>Elements are automatically cleaned up upon deletion of the structure, similar to an <code>std::vector</code>.</p></li>
+</ul>
+<h6 id="nonstdpacked_arrayt-n"><code>nonstd::packed_array&lt;T, N&gt;</code></h6>
+<p>An ordered static/fixed vector of sorts. Provides contiguous data in-place.</p>
+<ul>
+<li><p>O(1) emplacement and deletion <em>from end</em>.</p></li>
+<li><p>O(1) lookup.</p></li>
+<li><p>Data is contiguous and ordered and can be natively iterated.</p></li>
+<li><p>Access is done via index. This structure does not use keys or versioning.</p></li>
+<li><p>Does not perform or require default element construction for unused slots.</p></li>
+<li><p>Elements are automatically cleaned up upon deletion of the structure, similar to an <code>std::vector</code>.</p></li>
+</ul>
+<h6 id="nonstdversioned_key"><code>nonstd::versioned_key</code></h6>
+<p>A generic generational pointer key used for <code>slot_array</code> and <code>keyed_array</code>. Used to prevent dangling references. Can store a few bytes of &quot;metadata&quot; internally as a result of some spare room from alignment. The purpose of this data is left to the user.</p>
+<h2 id="usage">Usage</h2>
+<p>This is a header-only library with no nonstandard dependencies. Simply use the files provided in the <code>include/</code> directory as desired.</p>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>TBD.</p>
+<h2 id="testing">Testing</h2>
+<p>This repository uses Catch2 for testing. You can learn more about Catch2 <a href="https://github.com/catchorg/Catch2">here</a>. Test coverage is <em>reasonably</em> acceptable but could be improved for corner cases.</p>
+<h3 id="building-tests-on-windows">Building Tests on Windows</h3>
+<p>This repository is tested with VS2017 and VS2019.</p>
+<h5 id="clone-or-download-the-repository.">1. Clone or download the repository.</h5>
+<h5 id="get-premake-5-and-drop-the-executable-in-the-repository-root.">2. Get Premake 5 and drop the executable in the repository root.</h5>
+<p>You can download Premake 5 <a href="https://premake.github.io/download.html">here</a>.</p>
+<h5 id="generate-solution-and-project-files-with-premake.">3. Generate solution and project files with Premake.</h5>
+<pre><code>premake5 vs2017</code></pre>
+<h5 id="open-build-and-test-in-visual-studio.">4. Open, build, and test in Visual Studio.</h5>
+<pre><code>===============================================================================
+All tests passed (6214 assertions in 28 test cases)</code></pre>
+<h3 id="building-tests-on-linux">Building Tests on Linux</h3>
+<p>This repository is tested with <strong>GCC 8.3</strong> and <strong>Clang-8</strong> under Ubuntu. Older compiler versions may have issues with the use of some language features (such as <code>std::launder</code>).</p>
+<h5 id="clone-or-download-the-repository.-1">1. Clone or download the repository.</h5>
+<pre><code>$ git clone https://github.com/recatek/fixed_storage_arrays</code></pre>
+<h5 id="get-premake-5-and-drop-the-executable-in-the-repository-root.-1">2. Get Premake 5 and drop the executable in the repository root.</h5>
+<p>You can download Premake 5 <a href="https://premake.github.io/download.html">here</a>.</p>
+<h5 id="generate-the-makefiles-with-premake.">3. Generate the Makefiles with Premake.</h5>
+<pre><code>$ ./premake5 gmake</code></pre>
+<h5 id="make-either-debug-or-release-using-your-choice-of-compiler.">4. Make either debug or release using your choice of compiler.</h5>
+<pre><code>$ make config=release</code></pre>
+<h5 id="run-tests.">5. Run tests.</h5>
+<pre><code>$ ./build/bin/release/tests
+===============================================================================
+All tests passed (6214 assertions in 28 test cases)</code></pre>
+<h2 id="license">License</h2>
+<p>MIT. Go nuts. Don't blame me.</p>

@@ -1,0 +1,723 @@
+<h1 id="pgcc-postgres-c-client">PgCC (Postgres C++ Client)</h1>
+<p>PgCC is a C++17 client library for working with PostgreSQL databases. This library is a wrapper around libpq designed to make your work with Postgres easier. Features: * C++17. * Minimal dependencies. * Connection pool. * Asynchronous and row-by-row modes. * Statements generation. * Prepared statements. * Transactions. * Passing arguments in binary format. * Working with timestamps and NULLs.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#cmake-subproject">CMake Subproject</a></li>
+<li><a href="#prebuilt-library">Prebuilt Library</a></li>
+<li><a href="#running-the-tests">Running the Tests</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#get-started-with-a-connection">Get Started with a Connection</a></li>
+<li><a href="#get-started-with-a-connection-pool">Get Started with a Connection Pool</a></li>
+<li><a href="#what-to-include">What To Include</a></li>
+<li><a href="#configuring">Configuring</a></li>
+<li><a href="#error-handling">Error Handling</a></li>
+<li><a href="#statement-execution">Statement Execution</a></li>
+<li><a href="#prepared-statements">Prepared Statements</a></li>
+<li><a href="#multiple-statements-in-one">Multiple Statements in One</a></li>
+<li><a href="#transactions">Transactions</a></li>
+<li><a href="#reading-the-result">Reading the Result</a></li>
+<li><a href="#escaping">Escaping</a></li>
+<li><a href="#asynchronous-interface">Asynchronous Interface</a></li>
+<li><a href="#generating-statements">Generating Statements</a></li>
+<li><a href="#connection-pool">Connection Pool</a></li>
+</ul>
+<p><a name="getting-started"/></p>
+<h2 id="getting-started">Getting Started</h2>
+<p>Prerequisites: * CMake 3.8 or newer. * A C++17-compliant compiler. * libpq-dev and postgresql-server-dev-all. * Google Test (only to run the tests).</p>
+<p>The project is built and tested using GCC 7.3 and Clang 6.0 on a machine running Linux. As there is no platform specific code, it should also work on other platforms as well, but the author cannot guarantee this.</p>
+<p>You can integrate PgCC into your project in two ways: * As a CMake subproject. * As a prebuilt library.</p>
+<p>If you're experienced with CMake you probably already know what to do. Anyway, let’s go through the process step-by-step. First, we'll create a new CMake-based project which will serve us as an example. Initially, the project will have the following structure:</p>
+<pre><code>.
+├── CMakeLists.txt
+└── main.cpp</code></pre>
+<p>Let’s fill out the CMakeLists.txt with:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.8)
+<span class="kw">project</span>(MyProject)
+
+<span class="kw">add_executable</span>(MyProject main.cpp)</code></pre></div>
+<p>and write some code using the library in the main.cpp:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;postgres/Connection.h&gt;</span>
+
+<span class="dt">int</span> main() {
+    <span class="cf">return</span> postgres::Connection::ping();
+}</code></pre></div>
+<p>Now we have two ways to make the project compile as mentioned a bit earlier. Let’s consider each of them in turn.</p>
+<p><a name="cmake-subproject"/></p>
+<h3 id="cmake-subproject">CMake Subproject</h3>
+<p>We have to bring the PgCC files into our project somehow. How to achieve this is up to you. We could just download the repository or use a package manager, but we'll utilize git submodules for this purpose:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">git</span> init
+$ <span class="fu">git</span> submodule add \
+    https://github.com/anatoliifrolov/postgres-cxx-client.git \
+    ./deps/postgres-cxx-client/</code></pre></div>
+<p>Now we're able to add the library to our project dependencies in the CMakeLists.txt:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.8)
+<span class="kw">project</span>(MyProject)
+
+<span class="kw">add_executable</span>(MyProject main.cpp)
+
+<span class="kw">add_subdirectory</span>(deps/postgres-cxx-client)
+<span class="kw">target_link_libraries</span>(MyProject PostgresCxxClient::PostgresCxxClient)</code></pre></div>
+<p>There are two new lines at the bottom doing the job. And that's it, our project is ready to run.</p>
+<p><a name="prebuilt-library"/></p>
+<h3 id="prebuilt-library">Prebuilt Library</h3>
+<p>Let’s say we keep libraries in <code>~/lib/</code> directory. Then the steps are as follows:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> ~/lib/
+$ <span class="fu">git</span> clone https://github.com/anatoliifrolov/postgres-cxx-client.git
+$ <span class="bu">cd</span> postgres-cxx-client/
+$ <span class="fu">cmake</span> \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=~/lib/ \
+    -B./build/release/ \
+    -H.
+$ <span class="fu">cmake</span> --build ./build/release/ --target install</code></pre></div>
+<p>Next we'll modify the CMakeLists.txt to look like:</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> 3.8)
+<span class="kw">project</span>(MyProject)
+
+<span class="kw">add_executable</span>(MyProject main.cpp)
+
+<span class="kw">find_package</span>(PostgresCxxClient)
+<span class="kw">target_link_libraries</span>(MyProject PostgresCxxClient::PostgresCxxClient)</code></pre></div>
+<p>What's left is just to tell CMake where to look up for the libraries using the option <code>-DCMAKE_PREFIX_PATH=~/lib/</code>. After this step our project is able to compile and run.</p>
+<p><a name="running-the-tests"/></p>
+<h3 id="running-the-tests">Running the Tests</h3>
+<p>To run the tests locally, create a database and a role both with a name &quot;cxx_client&quot;. Set the password &quot;cxx_client&quot; for the role and make the role be owner of the database. How to do that is beyond the scope of this document. Make sure that PostgreSQL server is up and ready to accept connections. Then go to the library directory and type the following from the command line:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">git</span> submodule update --init --recursive
+$ <span class="fu">cmake</span> -DPOSTGRES_CXX_BUILD_TESTS=ON -B./build/ -H.
+$ <span class="fu">cmake</span> --build ./build/
+$ <span class="bu">cd</span> ./build/
+$ <span class="va">PGUSER=</span>cxx_client <span class="va">PGPASSWORD=</span>cxx_client <span class="va">PGDATABASE=</span>cxx_client <span class="ex">ctest</span> -V</code></pre></div>
+<p>Pass any additional parameters you need to the CTest. For instance, you may have to specify the database address with <code>PGHOST</code> or <code>PGHOSTADDR</code> variables. On success you should see something similar to:</p>
+<pre><code>1/1 Test #1: PostgresCxxClientTest ............   Passed    0.79 sec
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.79 sec</code></pre>
+<p><a name="license"/></p>
+<h2 id="license">License</h2>
+<p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
+<p><a name="usage"/></p>
+<h2 id="usage">Usage</h2>
+<p>This section shows how to actually write code using PgCC. All the examples are built and run as part of a CI process and are guaranteed to work.</p>
+<p><a name="get-started-with-a-connection"/></p>
+<h3 id="get-started-with-a-connection">Get Started with a Connection</h3>
+<p>The following example gives you the basic idea of how to use the library. Each feature is explained in detail in its corresponding section below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;chrono&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;postgres/Postgres.h&gt;</span>
+
+<span class="kw">using</span> postgres::Command;
+<span class="kw">using</span> postgres::Connection;
+<span class="kw">using</span> postgres::Time;
+
+<span class="kw">struct</span> MyTable {
+    <span class="dt">int</span>                                   id;
+    <span class="bu">std::</span>string                           info;
+    <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point create_time;
+
+    POSTGRES_CXX_TABLE(<span class="st">&quot;my_table&quot;</span>, id, info, create_time);
+};
+
+<span class="dt">void</span> getStarted() {
+    <span class="co">// Connect to a database.</span>
+    Connection conn{};
+
+    <span class="co">// Create my_table.</span>
+    conn.create&lt;MyTable&gt;();
+
+    <span class="kw">auto</span> now = <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>now();
+
+    <span class="co">// Populate the table with data.</span>
+    <span class="bu">std::</span>vector&lt;MyTable&gt; data{{<span class="dv">1</span>, <span class="st">&quot;foo&quot;</span>, now},
+                              {<span class="dv">2</span>, <span class="st">&quot;bar&quot;</span>, now},
+                              {<span class="dv">3</span>, <span class="st">&quot;baz&quot;</span>, now}};
+    conn.insert(data.begin(), data.end());
+
+    <span class="co">// Retrieve some data from the table.</span>
+    <span class="kw">auto</span> query = <span class="st">&quot;SELECT info, create_time FROM my_table WHERE $1 &lt; id&quot;</span>;
+
+    <span class="cf">for</span> (<span class="kw">auto</span> <span class="at">const</span>&amp; row : conn.exec(Command{query, <span class="dv">1</span>})) {
+        <span class="bu">std::</span>cout
+            &lt;&lt; row[<span class="st">&quot;create_time&quot;</span>].as&lt;Time&gt;().toString()
+            &lt;&lt; <span class="st">&quot; &quot;</span>
+            &lt;&lt; row[<span class="st">&quot;info&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;()
+            &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<p><a name="get-started-with-a-connection-pool"/></p>
+<h3 id="get-started-with-a-connection-pool">Get Started with a Connection Pool</h3>
+<p>Here is one more example to get you started. At this time a connection pool usage is demonstrated.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;postgres/Postgres.h&gt;</span>
+
+<span class="kw">using</span> postgres::Client;
+<span class="kw">using</span> postgres::Command;
+<span class="kw">using</span> postgres::Connection;
+<span class="kw">using</span> postgres::Result;
+
+<span class="dt">void</span> getStartedPool() {
+    <span class="co">// Create a connection pool.</span>
+    Client client{};
+
+    <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>future&lt;Result&gt;&gt; results{};
+    results.reserve(<span class="dv">10</span>);
+
+    <span class="co">// Send queries to separate threads.</span>
+    <span class="cf">for</span> (<span class="kw">auto</span> i = <span class="dv">0</span>; i &lt; <span class="dv">10</span>; ++i) {
+        results.push_back(client.query([i](Connection&amp; conn) {
+            <span class="cf">return</span> conn.exec(Command{<span class="st">&quot;SELECT $1::INT&quot;</span>, i});
+        }));
+    }
+
+    <span class="co">// Wait for the results to be ready and handle them.</span>
+    <span class="cf">for</span> (<span class="kw">auto</span>&amp; res : results) {
+        <span class="bu">std::</span>cout &lt;&lt; res.get()[<span class="dv">0</span>][<span class="dv">0</span>].as&lt;<span class="dt">int</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<p><a name="what-to-include"/></p>
+<h3 id="what-to-include">What To Include</h3>
+<p>PgCC provides the all-in-one header file &quot;postgres/Postgres.h&quot;, the one with forward declarations - &quot;postgres/Fwd.h&quot;, and also every class that is a part of a public API has its own header which you can include. It is strongly discouraged to declare any of the library types in your project code. Include the &quot;postgres/Fwd.h&quot; instead when you need just a declaration, say in a function signature. If compilation time is not a paramount concern use the &quot;postgres/Postgres.h&quot; in implementation, otherwise include only needed files from the &quot;postgres&quot; directory. The examples in this document use the &quot;postgres/Postgres.h&quot; for brevity.</p>
+<p><a name="configuring"/></p>
+<h3 id="configuring">Configuring</h3>
+<p>You can find a comprehensive description of Postgres configuration options in the official libpq documentation at https://www.postgresql.org/docs/11/libpq-connect.html. Here we will focus on the interface PgCC provides to make it more convenient configuring a database connection.</p>
+<p>Postgres has default values for all of its configuration parameters. For instance, a username defaults to the operating system name of the user running the app, and a database name is the same as the username. There are several ways to override the defaults: - environment variables; - connection string; - URL; - configuration builder.</p>
+<p>Let’s consider each one in turn with the examples.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> config() {
+    Connection conn{};
+}</code></pre></div>
+<p>Here we connect to a database using the default values and environment variables. This is a good choice to pass sensitive information like passwords. For example, the project is tested assuming that PGUSER, PGPASSWORD and PGDATABASE variables are set.</p>
+<p>Alternatively, we can use a connection string:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> configStr() {
+    Connection conn{<span class="st">&quot;user=cxx_client password=cxx_client dbname=cxx_client&quot;</span>};
+}</code></pre></div>
+<p>...or URL:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> configUrl() {
+    Connection conn{<span class="st">&quot;postgresql://cxx_client:cxx_client@/cxx_client&quot;</span>};
+}</code></pre></div>
+<p>And the last approach is to exploit a configuration builder:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Config;
+
+<span class="dt">void</span> configBuilder() {
+    Connection conn{Config::Builder{}.user(<span class="st">&quot;cxx_client&quot;</span>)
+                                     .password(<span class="st">&quot;cxx_client&quot;</span>)
+                                     .dbname(<span class="st">&quot;cxx_client&quot;</span>)
+                                     .build()};
+}</code></pre></div>
+<p>The <code>Config::Builder</code> provides setter methods for all parameters available (and not deprecated) at the moment of writing. Method names are in <em>snake_case</em> to exactly mirror corresponding parameter names. There are quite a few options, e.g:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;
+<span class="kw">using</span> postgres::SslMode;
+
+<span class="dt">void</span> configBuilderExtra() {
+    Connection conn{Config::Builder{}.application_name(<span class="st">&quot;APP&quot;</span>)
+                                     .keepalives(<span class="kw">true</span>)
+                                     .keepalives_count(<span class="dv">2</span>)
+                                     .keepalives_idle(<span class="er">3min</span>)
+                                     .sslmode(SslMode::DISABLE)
+                                     .build()};
+}</code></pre></div>
+<p>We can also do the same thing with general purpose setters of the <code>Config::Builder</code>, but their use is not recommended unless there is some brand new parameter that has not yet been supported by the library. Just in case:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> configBuilderManual() {
+    Connection conn{Config::Builder{}.set(<span class="st">&quot;application_name&quot;</span>, <span class="st">&quot;APP&quot;</span>)
+                                     .enable(<span class="st">&quot;keepalives&quot;</span>, <span class="kw">true</span>)
+                                     .setNumber(<span class="st">&quot;keepalives_count&quot;</span>, <span class="dv">2</span>)
+                                     .setInterval(<span class="st">&quot;keepalives_idle&quot;</span>, <span class="er">3min</span>)
+                                     .set(<span class="st">&quot;sslmode&quot;</span>, <span class="st">&quot;disable&quot;</span>)
+                                     .build()};
+}</code></pre></div>
+<p><a name="error-handling"/></p>
+<h3 id="error-handling">Error Handling</h3>
+<p>One of PgCC goals was to eliminate some sorts of bugs by design and at compile time, but of course runtime errors are unavoidable.</p>
+<p>An exception classes hierarchy consists of a base class <code>postgres::Error</code> and two classes derived from it: <code>postgres::LogicError</code> and <code>postgres::RuntimeError</code>. The <code>Error</code> in turn is a child of <code>std::exception</code>. The <code>LogicError</code> is triggered to indicate a bug in your code such as trying to access a row that is out of bounds or misusing the library in some other way. Invalid SQL-query and broken connection are examples of a runtime error.</p>
+<p>Some errors might stem from a connection loss. When the connection breaks, it can be easily reset without the need to reconfigure it anew, but the state including prepared statements is gone.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> connectReset(Connection&amp; conn) {
+    <span class="cf">if</span> (!conn.isOk()) {
+        conn.reset();
+    }
+}</code></pre></div>
+<p><a name="statement-execution"/></p>
+<h3 id="statement-execution">Statement Execution</h3>
+<p>Now that we've learned how to connect to a database let’s execute some SQL-statements:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> exec(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT 1&quot;</span>);
+    <span class="co">// Handle the result...</span>
+}</code></pre></div>
+<p>The <code>exec()</code> returns an object of type <code>Result</code>. The result is completely detached from the connection - it is safe to use it even after the connection has been closed. The method throws an instance of the <code>RuntimeError</code> if statement execution fails.</p>
+<p>It is often needed to parametrize a statement with values computed at runtime. You have an option to embed those values directly into the statement text, but it is a bad choice for several reasons: - your app could get vulnerable to an SQL-injection attack; - you have to deal with escaping; - data is passed as text instead of binary format.</p>
+<p>PgCC provides a better solution:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Command;
+
+<span class="dt">void</span> args(Connection&amp; conn) {
+    conn.exec(Command{<span class="st">&quot;SELECT $1, $2&quot;</span>, <span class="dv">42</span>, <span class="st">&quot;foo&quot;</span>});
+}</code></pre></div>
+<p>Under the hood argument types are passed to Postgres along with their values. The <code>Command</code> automatically detects those types, but sometimes you have to be explicit. In the example below if we hadn't specified the type of the argument it would've been guessed to be plain text instead of JSON:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::bindOid;
+
+<span class="dt">void</span> argsOid(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> json = <span class="st">R&quot;({&quot;foo&quot;: &quot;bar&quot;})&quot;</span>;
+    conn.exec(Command{<span class="st">&quot;SELECT $1&quot;</span>, bindOid(json, JSONOID)});
+}</code></pre></div>
+<p>If there are arguments possibly having NULL values, use pointers or <code>std::optional</code> type. In the following example both <code>ptr</code> and <code>opt</code> will be treated as NULLs:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> argsNull(Connection&amp; conn) {
+    <span class="dt">int</span>* ptr = <span class="kw">nullptr</span>;
+    <span class="bu">std::</span>optional&lt;<span class="dt">int</span>&gt; opt;
+    conn.exec(Command{<span class="st">&quot;SELECT $1, $2&quot;</span>, ptr, opt});
+}</code></pre></div>
+<p>The <code>Command</code> stores all the arguments into its internal buffer. But there are cases when it is desirable to avoid copying, e.g. for a large piece of text. This can be achieved by passing pointer to underlying C-style string or by using a <code>std::string_view</code>, but keep an eye on lifetimes. The same is true for statements as well. The both ways are shown below:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> argsLarge(Connection&amp; conn) {
+    <span class="bu">std::</span>string      text = <span class="st">&quot;SOME VERY LONG TEXT...&quot;</span>;
+    <span class="bu">std::</span>string_view view = text;
+    conn.exec(Command{<span class="st">&quot;SELECT $1, $2&quot;</span>, text.data(), view});
+}</code></pre></div>
+<p>That's how you can pass arguments stored in a container:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> argsRange(Connection&amp; conn) {
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; args{<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>};
+    conn.exec(Command{<span class="st">&quot;SELECT $1, $2, $3&quot;</span>, <span class="bu">std::</span>pair{args.begin(), args.end()}});
+}</code></pre></div>
+<p>Also there is an ability to add arguments afterwards:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> argsAfter(Connection&amp; conn) {
+    Command cmd{<span class="st">&quot;SELECT $1, $2&quot;</span>};
+    cmd &lt;&lt; <span class="dv">42</span> &lt;&lt; <span class="st">&quot;foo&quot;</span>;
+    conn.exec(cmd);
+}</code></pre></div>
+<p>And a final note about timestamps. The recommended way is to use a database type called <code>TIMESTAMP</code>, which represents a number of microseconds since Postgres epoch in UTC. Instances of <code>std::chrono::system_clock::time_point</code> are easily converted to that type and are accepted by the <code>Command</code> as arguments. Of course you can work with timestamps that include time zone information as well, but PgCC won't help you here, just pass them as strings. Well, almost won't help - actually you can preserve your local time zone:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Time;
+
+<span class="dt">void</span> argsTime(Connection&amp; conn) {
+    <span class="kw">auto</span> now = <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>now();
+    conn.exec(Command{<span class="st">&quot;SELECT $1&quot;</span>, Time{now, <span class="kw">true</span>}});
+}</code></pre></div>
+<p><a name="prepared-statements"/></p>
+<h3 id="prepared-statements">Prepared Statements</h3>
+<p>Using prepared statements is quite trivial. To prepare a statement you have to specify its name, body and argument types if present. Then you can use the name to actually execute the statement and bind argument values. Consider an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::PreparedCommand;
+<span class="kw">using</span> postgres::PrepareData;
+
+<span class="dt">void</span> prepare(Connection&amp; conn) {
+    conn.exec(PrepareData{<span class="st">&quot;my_select&quot;</span>, <span class="st">&quot;SELECT $1&quot;</span>, {INT4OID}});
+    conn.exec(PreparedCommand{<span class="st">&quot;my_select&quot;</span>, <span class="dv">123</span>});
+}</code></pre></div>
+<p>Beware that the <code>Connection</code> is intentionally just a thin wrapper around native libpq handle and doesn't keep any additional state. Consequently, statements must be prepared again every time a connection's been reestablished. Also using PgBouncer can lead to errors depending on its configuration: if you're certain you've successfully prepared a statement and your code is correct, but Postgres complains that the prepared statement doesn't exist, then setting <code>pool_mode=session</code> in pgbouncer.ini is likely to solve the problem.</p>
+<p><a name="multiple-statements-in-one"/></p>
+<h3 id="multiple-statements-in-one">Multiple Statements in One</h3>
+<p>The <code>exec()</code> method described earlier allows to execute only one statement at a time, which means that the following is a runtime error:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Error;
+
+<span class="dt">void</span> execMultiBad(Connection&amp; conn) {
+    <span class="cf">try</span> {
+        conn.exec(<span class="st">&quot;SELECT 1; SELECT 2&quot;</span>);
+    } <span class="cf">catch</span> (Error <span class="at">const</span>&amp; err) {
+    }
+}</code></pre></div>
+<p>But what if we have a migration file with plenty of statements which we want to apply all at once? Or, generalizing the problem, just want to join several statements into one for some reason? Here is the solution:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> execMultiOk(Connection&amp; conn) {
+    conn.execRaw(<span class="st">&quot;SELECT 1; SELECT 2&quot;</span>);
+}</code></pre></div>
+<p>That's not an error anymore, but there are a couple of limitations. The first one is that there is technically no way to pass arguments, only a statement. Moreover, you are not allowed to obtain data. Don't be confused by the example - it is quite silly and just for demonstration purposes, normally there won't be any selects. The second limitation is due to PgCC sends and receives arguments in a binary format, but when multiple statements are passed there is no way to tell Postgres to enable binary mode. Also when a select-statement is embedded somewhere between the other statements, it is impossible to get the selected data because only the result of the last statement is returned from a database. Therefore, it was decided to completely disable data read and avoid aforementioned issues.</p>
+<p><a name="transactions"/></p>
+<h3 id="transactions">Transactions</h3>
+<p>Each statement is executed as a separate transaction. Multiple statements separated with semicolons as described in the previous section are a single transaction as well. There are two more approaches to treat multiple statements as a transaction. Let’s start with the simplest one:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> transact(Connection&amp; conn) {
+    conn.transact(<span class="st">&quot;SELECT 1&quot;</span>,
+                  Command{<span class="st">&quot;SELECT $1&quot;</span>, <span class="dv">2</span>},
+                  PreparedCommand{<span class="st">&quot;my_select&quot;</span>, <span class="dv">3</span>},
+                  PrepareData{<span class="st">&quot;my_select2&quot;</span>, <span class="st">&quot;SELECT $1&quot;</span>});
+}</code></pre></div>
+<p>The <code>transact()</code> accepts anything the <code>exec()</code> does: strings, <code>Command</code><em>s</em>, <code>PreparedCommand</code><em>s</em> and <code>PrepareData</code> in any combination. Either all of them succeed or none have any effect. Again the example is a bit ridiculous, but imagine statements to be more meaningful, for instance, inserting data to two different tables when one insert without the other would leave a system in inconsistent state.</p>
+<p>The second way gives more fine-grained control over transaction execution:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> transactManual(Connection&amp; conn) {
+    <span class="kw">auto</span> tx = conn.begin();
+    conn.exec(<span class="st">&quot;SELECT 1&quot;</span>);
+    conn.exec(<span class="st">&quot;SELECT 2&quot;</span>);
+    tx.commit();
+}</code></pre></div>
+<p>This way allows to put some logic between statement execution and build more complex and flexible transactions. When a transaction handle goes out of scope it rollbacks the transaction unless it has been explicitly committed already.</p>
+<p><a name="reading-the-result"/></p>
+<h3 id="reading-the-result">Reading the Result</h3>
+<p>Now it's time to talk about queries and how to access their results. As mentioned above the <code>exec()</code> method returns an object of type <code>Result</code>. Iterating over it will produce a <code>Row</code> instance on each iteration. The <code>Row</code> in turn consists of a number of <code>Field</code><em>s</em> accessible by their index or name. Finally, you can read the value of the <code>Field</code> into a new variable or an existing one. That is probably expressed a bit less verbosely in code:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> result(Connection&amp; conn) {
+    <span class="cf">for</span> (<span class="kw">auto</span> <span class="at">const</span>&amp; row : conn.exec(<span class="st">&quot;SELECT &#39;foo&#39; AS foo, &#39;bar&#39; AS bar&quot;</span>)) {
+        <span class="bu">std::</span>cout
+            &lt;&lt; row[<span class="st">&quot;foo&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;()
+            &lt;&lt; <span class="st">&quot; &quot;</span>
+            &lt;&lt; row[<span class="st">&quot;bar&quot;</span>].as&lt;<span class="bu">std::</span>string&gt;()
+            &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<p>Now let’s store the same values into variables:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultVars(Connection&amp; conn) {
+    <span class="bu">std::</span>string foo, bar;
+
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT &#39;foo&#39; AS foo, &#39;bar&#39; AS bar&quot;</span>);
+    <span class="cf">if</span> (res.isEmpty()) {
+        <span class="co">// Normally this case should be covered as well...</span>
+    }
+
+    res[<span class="dv">0</span>][<span class="st">&quot;foo&quot;</span>] &gt;&gt; foo;
+    res[<span class="dv">0</span>][<span class="st">&quot;bar&quot;</span>] &gt;&gt; bar;
+
+    <span class="bu">std::</span>cout &lt;&lt; foo &lt;&lt; <span class="st">&quot; &quot;</span> &lt;&lt; bar &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>In the last example it was evident that the result could not be empty. In practice you should usually make a check before trying to access the data or you will end up with a chance of going out of bounds. Iterating eliminates this risk and therefore is safer and more preferable.</p>
+<p>Similarly to the <code>Command</code> NULLs are represented with pointers or an <code>std::optional</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultNull(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT NULL::TEXT&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="co">// Bad idea.</span>
+    <span class="bu">std::</span>string s;
+    <span class="cf">try</span> {
+        fld &gt;&gt; s;
+    } <span class="cf">catch</span> (Error <span class="at">const</span>&amp; err) {
+    }
+
+    <span class="co">// Ok.</span>
+    <span class="kw">auto</span> opt = fld.as&lt;<span class="bu">std::</span>optional&lt;<span class="bu">std::</span>string&gt;&gt;();
+
+    <span class="co">// Also ok.</span>
+    <span class="kw">auto</span> ptr = &amp;s;
+    fld &gt;&gt; ptr;
+}</code></pre></div>
+<p>You can cast the field to arithmetic type, but the rules are quite strict. In particular, the following is prohibited: - loss of precision (casting from floating point value to integral one and vice versa); - narrowing (casting larger type to smaller); - underflow (reading negative values into variables of unsigned types).</p>
+<p>Let’s look how those three cases may appear in code:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultBadCast(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT -1::BIGINT&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="cf">try</span> {
+        <span class="co">// Loss of precision.</span>
+        fld.as&lt;<span class="dt">double</span>&gt;();
+
+        <span class="co">// Narrowing.</span>
+        fld.as&lt;<span class="dt">int32_t</span>&gt;();
+
+        <span class="co">// Underflow.</span>
+        fld.as&lt;<span class="dt">uint64_t</span>&gt;();
+    } <span class="cf">catch</span> (Error <span class="at">const</span>&amp; err) {
+    }
+}</code></pre></div>
+<p>Also the library is able to read timestamps without time zones:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultTime(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT &#39;2017-08-25T13:03:35&#39;::TIMESTAMP&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="co">// C++11 way.</span>
+    fld.as&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;();
+
+    <span class="co">// Getting time_t.</span>
+    fld.as&lt;Time&gt;().toUnix();
+}</code></pre></div>
+<p>Timestamps <strong>with</strong> time zone have to be converted to <code>TEXT</code> and then read into <code>std::string</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultTimeZone(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT now()::TEXT&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="co">// Prints something like &#39;2019-03-21 12:58:13.256812+03&#39;.</span>
+    <span class="bu">std::</span>cout &lt;&lt; fld.as&lt;<span class="bu">std::</span>string&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>And a small caveat about <code>extract(EPOCH FROM ...</code>-like statements. Working with such a statement be aware that it yields the result of type <code>DOUBLE PRECISION</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultExtractEpoch(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT extract(EPOCH FROM now())&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="co">// Nope!</span>
+    <span class="cf">try</span> {
+        fld.as&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point&gt;();
+    } <span class="cf">catch</span> (Error <span class="at">const</span>&amp; err) {
+    }
+
+    <span class="co">// Ok.</span>
+    <span class="bu">std::</span>cout &lt;&lt; fld.as&lt;<span class="dt">double</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>Finally you can read absolutely anything into <code>std::string</code>. This doesn't perform any checks and just gives you a raw content of the field. There is also an option to avoid copying data with help of a <code>std::string_view</code>, but make sure the result is staying alive long enough.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> resultData(Connection&amp; conn) {
+    <span class="kw">auto</span> <span class="at">const</span> res = conn.exec(<span class="st">&quot;SELECT &#39;DATA&#39;&quot;</span>);
+    <span class="kw">auto</span> <span class="at">const</span> fld = res[<span class="dv">0</span>][<span class="dv">0</span>];
+
+    <span class="co">// Copying...</span>
+    <span class="bu">std::</span>cout &lt;&lt; fld.as&lt;<span class="bu">std::</span>string&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="co">// ...and non-copying variants.</span>
+    <span class="bu">std::</span>cout &lt;&lt; fld.as&lt;<span class="bu">std::</span>string_view&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p><a name="escaping"/></p>
+<h3 id="escaping">Escaping</h3>
+<p>Thanks to the <code>Command</code>, it should be extremely rare when you have to deal with escaping. But just in case there are a couple of methods performing that kind of task.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> escape(Connection&amp; conn) {
+    <span class="co">// Literals.</span>
+    <span class="bu">std::</span>cout &lt;&lt; conn.esc(<span class="st">&quot;E&#39;SCAPE_ME&quot;</span>) &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="co">// Identifiers.</span>
+    <span class="bu">std::</span>cout &lt;&lt; conn.escId(<span class="st">&quot;escape me&quot;</span>) &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p><a name="asynchronous-interface"/></p>
+<h3 id="asynchronous-interface">Asynchronous Interface</h3>
+<p>Statement execution methods considered so far are synchronous, meaning that the calling thread is blocked until a database gives back the result. Now let’s look at an asynchronous family of methods allowing you to split the execution process into sending and receiving phases. Don't confuse it with multithreaded mode of a connection pool which is covered later. That's what it looks like:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> send(Connection&amp; conn) {
+    <span class="co">// Sending doesn&#39;t block.</span>
+    <span class="kw">auto</span> receiver = conn.send(<span class="st">&quot;SELECT 123::INT&quot;</span>);
+
+    <span class="cf">while</span> (receiver.isBusy()) {
+        <span class="co">// Do some other job here...</span>
+    }
+
+    <span class="co">// But receiving does block unless the result is ready.</span>
+    <span class="kw">auto</span> <span class="at">const</span> res = receiver.receive();
+    <span class="bu">std::</span>cout &lt;&lt; res[<span class="dv">0</span>][<span class="dv">0</span>].as&lt;<span class="dt">int</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="co">// No more results.</span>
+    <span class="bu">std::</span>cout &lt;&lt; receiver.receive().isDone() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>Calling the <code>send()</code> method returns an instance of type <code>Receiver</code> which allows to obtain the result later. It is a RAII-type which performs some cleanup in its destructor to leave the connection in a valid state ready for reuse. As a consequence, the destructor can block for a short period of time until all the results are taken, but it normally shouldn't be an issue assuming the proper use of PgCC.</p>
+<p>You can't have multiple active sends simultaneously. Either receive the results until <code>isDone()</code> gives true or let the receiver go out of scope.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> sendTWice(Connection&amp; conn) {
+    <span class="kw">auto</span> rec1 = conn.send(<span class="st">&quot;SELECT 1&quot;</span>);
+
+    <span class="co">// Error!</span>
+    <span class="cf">try</span> {
+        <span class="kw">auto</span> rec2 = conn.send(<span class="st">&quot;SELECT 2&quot;</span>);
+    } <span class="cf">catch</span> (Error <span class="at">const</span>&amp; err) {
+    }
+}</code></pre></div>
+<p>There are also asynchronous counterparts for prepared and raw statements. There is nothing special about them so we won't waste our time on examples. What's more interesting is a so-called &quot;single-row mode&quot;, the primary goal of which is to receive large datasets. You may think of it as establishing a stream of rows. As always there is a tradeoff - the single-row mode works a bit slower. Let’s look at an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> sendRowByRow(Connection&amp; conn) {
+    <span class="co">// Imagine this query to end up with billions of rows.</span>
+    <span class="kw">auto</span> <span class="at">const</span> query = <span class="st">&quot;SELECT 1::INT&quot;</span>
+                       <span class="st">&quot; UNION ALL SELECT 2::INT&quot;</span>
+                       <span class="st">&quot; UNION ALL SELECT 3::INT&quot;</span>;
+
+    <span class="co">// Receive the result one row at a time.</span>
+    <span class="cf">for</span> (<span class="kw">auto</span> <span class="at">const</span>&amp; res : conn.iter(query)) {
+        <span class="cf">if</span> (res.isEmpty()) {
+            <span class="cf">continue</span>;
+        }
+
+        <span class="bu">std::</span>cout &lt;&lt; res[<span class="dv">0</span>][<span class="dv">0</span>].as&lt;<span class="dt">int</span>&gt;() &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<p>Notice that the result is checked for emptiness inside the loop body - this is because of how libpq works, and you always have to do the same thing.</p>
+<p><a name="generating-statements"/></p>
+<h3 id="generating-statements">Generating Statements</h3>
+<p>Since PgCC was not intended to be a fully-fledged ORM, it is capable of producing just the most basic statements for you. It is possible to create and drop tables, perform inserts, selects and updates having no extra clauses.</p>
+<p>This feature may come in handy when testing or prototyping, but real-world applications often require more sophisticated SQL-statements, and you can find some helpers in the library to construct them. Remember the very first code example? We've created a table called &quot;my_table&quot; there to demonstrate basic statement generation facilities.</p>
+<p>Now let’s use that table to show how we can perform an upsert. The so-called &quot;upsert&quot; is a special kind of Postgres statement consisting of an insert which on conflict turns into an update. The starting example left our table in the following state:</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>info</th>
+<th>create_time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>foo</td>
+<td>2019-03-21 13:01:25.729536</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>bar</td>
+<td>2019-03-21 13:01:25.729536</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>baz</td>
+<td>2019-03-21 13:01:25.729536</td>
+</tr>
+</tbody>
+</table>
+<p>Lets update it:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Statement;
+<span class="kw">using</span> postgres::RangeStatement;
+
+<span class="dt">void</span> myTableUpdate(Connection&amp; conn) {
+    <span class="co">// Needed for the example to work.</span>
+    conn.exec(<span class="st">&quot;ALTER TABLE my_table ADD PRIMARY KEY (id)&quot;</span>);
+
+    <span class="kw">auto</span> <span class="at">const</span> now = <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>now();
+
+    <span class="co">// 2 and 3 collide with existing ids.</span>
+    <span class="bu">std::</span>vector&lt;MyTable&gt; data{{<span class="dv">2</span>, <span class="st">&quot;spam&quot;</span>, now},
+                              {<span class="dv">3</span>, <span class="st">&quot;ham&quot;</span>,  now},
+                              {<span class="dv">4</span>, <span class="st">&quot;eggs&quot;</span>, now}};
+
+    <span class="kw">auto</span> <span class="at">const</span> range = <span class="bu">std::</span>pair{data.begin(), data.end()};
+
+    <span class="co">// Generate an upsert statement.</span>
+    <span class="kw">auto</span> <span class="at">const</span> upsert = <span class="st">&quot;INSERT INTO &quot;</span>
+                        + Statement&lt;MyTable&gt;::table()
+                        + <span class="st">&quot; (&quot;</span>
+                        + Statement&lt;MyTable&gt;::fields()
+                        + <span class="st">&quot;) VALUES &quot;</span>
+                        + RangeStatement::placeholders(range.first, range.second)
+                        + <span class="st">&quot; ON CONFLICT (id) DO UPDATE SET info = EXCLUDED.info&quot;</span>;
+
+    conn.exec(Command{upsert, range});
+}</code></pre></div>
+<p>We've just changed the content to the following:</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>info</th>
+<th>create_time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>foo</td>
+<td>2019-03-21 13:01:25.729536</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>spam</td>
+<td>2019-03-21 13:46:04.580402</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>ham</td>
+<td>2019-03-21 13:46:04.580402</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>eggs</td>
+<td>2019-03-21 13:46:04.693358</td>
+</tr>
+</tbody>
+</table>
+<p>Recall the definition of MyTable:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> MyTable {
+    <span class="dt">int</span>                                   id;
+    <span class="bu">std::</span>string                           info;
+    <span class="bu">std::</span>chrono<span class="bu">::</span>system_clock<span class="bu">::</span>time_point create_time;
+
+    POSTGRES_CXX_TABLE(<span class="st">&quot;my_table&quot;</span>, id, info, create_time);
+};</code></pre></div>
+<p>It is the <code>POSTGRES_CXX_TABLE</code> macro that does the magic. Once we've added it to a type definition it becomes possible to visit all the data members along with their names using generated methods. Those methods are <code>visitPostgresDefinition()</code> and <code>visitPostgresFields()</code>, and you can use them to produce SQL-statements for your custom data types. Here is a code skeleton to start with:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Generator {
+    <span class="co">// Called by visitPostgresDefinition.</span>
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+    <span class="dt">void</span> accept(<span class="dt">char</span> <span class="at">const</span>* column_name) {
+        <span class="bu">std::</span>cout &lt;&lt; column_name &lt;&lt; <span class="bu">std::</span>endl;
+    }
+
+    <span class="co">// Called by visitPostgresFields.</span>
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+    <span class="dt">void</span> accept(<span class="dt">char</span> <span class="at">const</span>* column_name, T <span class="at">const</span>&amp; value) {
+        <span class="bu">std::</span>cout &lt;&lt; column_name &lt;&lt; <span class="bu">std::</span>endl;
+    }
+};
+
+<span class="dt">void</span> myTableVisit(Connection&amp; conn) {
+    Generator gen{};
+    MyTable::visitPostgresDefinition(gen);
+
+    MyTable data{<span class="dv">1</span>, <span class="st">&quot;foo&quot;</span>};
+    data.visitPostgresFields(gen);
+}</code></pre></div>
+<p>You might be wondering, how did the library figure out the field types when we asked it to create a table for the definition of <code>MyTable</code>? The rules are summarized here:</p>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="75%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>PostgreSQL type</th>
+<th>C++ types (with possible example for 64-bit machine)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>BOOL</td>
+<td>bool</td>
+</tr>
+<tr class="even">
+<td>REAL</td>
+<td>Floating point numbers fitting in 4 bytes (float).</td>
+</tr>
+<tr class="odd">
+<td>DOUBLE PRECISION</td>
+<td>Floating point numbers fitting in 8 bytes (double).</td>
+</tr>
+<tr class="even">
+<td>SMALLINT</td>
+<td>Signed integral numbers fitting in 2 bytes (short).</td>
+</tr>
+<tr class="odd">
+<td>INT</td>
+<td>Signed integral numbers fitting in 4 bytes (int).</td>
+</tr>
+<tr class="even">
+<td>BIGINT</td>
+<td>Signed integral numbers fitting in 8 bytes (long).</td>
+</tr>
+<tr class="odd">
+<td>SMALLSERIAL</td>
+<td>Unsigned integral numbers fitting in 2 bytes (unsigned short).</td>
+</tr>
+<tr class="even">
+<td>SERIAL</td>
+<td>Unsigned integral numbers fitting in 4 bytes (unsigned int).</td>
+</tr>
+<tr class="odd">
+<td>BIGSERIAL</td>
+<td>Unsigned integral numbers fitting in 8 bytes (unsigned long).</td>
+</tr>
+<tr class="even">
+<td>TEXT</td>
+<td>std::string</td>
+</tr>
+<tr class="odd">
+<td>TIMESTAMP</td>
+<td>std::chrono::system_clock::time_point</td>
+</tr>
+</tbody>
+</table>
+<p>Be careful working with unsigned integers since the SQL standard doesn't support them and neither do Postgres. Moreover, it is considered to be a good practice in C++ to use signed numbers for arithmetic and unsigned ones for bitmasks. The design decision for table generation was to utilize unsigned integers to create auto-incremented fields, which are useful for producing unique identifiers.</p>
+<p><a name="connection-pool"/></p>
+<h3 id="connection-pool">Connection Pool</h3>
+<p>Now that you know how to use a connection let’s move on to a higher-level feature. Connection pool was designed to execute multiple statements concurrently. You've seen it in the &quot;Get started with connection pool&quot; section. Here we'll explore all the details and nuances. To start using the pool create an instance of a <code>Client</code> class. An interface is rather compact: you can invoke either <code>exec()</code> or <code>query()</code>, passing any callable object accepting a reference to a connection as its parameter. Which one to use depends on the connection method which is going to do the job.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> pool() {
+    Client cl{};
+
+    <span class="co">// The result is of type std::future&lt;Result&gt;.</span>
+    <span class="kw">auto</span> res = cl.query([](Connection&amp; conn) {
+        <span class="cf">return</span> conn.exec(<span class="st">&quot;SELECT 1&quot;</span>);
+    });
+
+    <span class="bu">std::</span>cout &lt;&lt; res.get().size() &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>The <code>Client</code> implements single-producer-multiple-consumers pattern and is not thread-safe by itself: protect it with a mutex for concurrent access. The interface is quite straightforward to use, however, a lot of flexibility is hidden in a connection pool's configuration, so let’s discover it.</p>
+<p>First of all, any available connection option can be passed to a client to let it know how to establish a connection. We've covered how to configure a connection in the corresponding section. The only difference is that a config or URL must be wrapped in a <code>Context</code> to be passed to a client.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::Context;
+
+<span class="dt">void</span> poolConfig() {
+    <span class="kw">auto</span> cfg = Config::Builder{}.user(<span class="st">&quot;cxx_client&quot;</span>)
+                                .password(<span class="st">&quot;cxx_client&quot;</span>)
+                                .dbname(<span class="st">&quot;cxx_client&quot;</span>)
+                                .build();
+
+    Client cl{Context::Builder{}.config(<span class="bu">std::</span>move(cfg)).build()};
+}</code></pre></div>
+<p>The same technique is used for prepared statements:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> poolPrepare() {
+    Client cl{Context::Builder{}.prepare({<span class="st">&quot;my_select&quot;</span>, <span class="st">&quot;SELECT 1&quot;</span>}).build()};
+}</code></pre></div>
+<p>And finally there are parameters affecting the behaviour of a connection pool:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> postgres::ShutdownPolicy;
+
+<span class="dt">void</span> poolBehaviour() {
+    Client cl{Context::Builder{}.idleTimeout(<span class="er">1min</span>)
+                                .maxConcurrency(<span class="dv">2</span>)
+                                .maxQueueSize(<span class="dv">30</span>)
+                                .shutdownPolicy(ShutdownPolicy::DROP)
+                                .build()};
+}</code></pre></div>
+<p>Idle timeout causes a thread to stop and close its connection to a database after specified duration of inactivity. Its primary purpose is to reduce the number of allocated resources back to the usual level after a load spike has gone. This feature is disabled by default.</p>
+<p>Maximum concurrency specifies the number of threads/connections and defaults to hardware concurrency. Also the internal queue size can be limited. Exceeding the limit results in an exception in a thread calling the client methods. By default the queue is allowed to grow until application runs out of memory and crashes.</p>
+<p>Shutdown policy regulates how to handle the queue on shutdown. Default policy is to stop gracefully: all requests waiting in the queue will be executed. You can alternatively choose to drop the queue, but active requests are not canceled and can take some time to complete anyway. And the last one policy is to abort, resulting in an undefined behaviour.</p>

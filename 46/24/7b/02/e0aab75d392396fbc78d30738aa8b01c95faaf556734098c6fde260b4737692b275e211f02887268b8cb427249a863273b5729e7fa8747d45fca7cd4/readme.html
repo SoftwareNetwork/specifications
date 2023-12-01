@@ -1,0 +1,64 @@
+<h1 id="webcc">webcc</h1>
+<p>C++ client and server library for HTTP and REST based on <em>Boost Asio</em>.</p>
+<p>Please turn to our <a href="https://github.com/sprinfall/webcc/wiki">Wiki</a> (under construction) for more tutorials and guides.</p>
+<p>Wondering how to build Webcc? Click <a href="https://github.com/sprinfall/webcc/wiki/Build-Instructions">Build Instructions</a>.</p>
+<h2 id="client-api-examples">Client API Examples</h2>
+<p>A complete client example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="pp">#include </span><span class="im">&quot;webcc/client_session.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;webcc/logger.h&quot;</span>
+
+<span class="dt">int</span> main() {
+  <span class="co">// Configure logger.</span>
+  WEBCC_LOG_INIT(<span class="st">&quot;&quot;</span>, webcc::LOG_CONSOLE);
+  
+  <span class="co">// Session provides convenient request APIs, stores request configurations</span>
+  <span class="co">// and manages persistent connenction.</span>
+  webcc::ClientSession session;
+
+  <span class="co">// Catch exceptions for error handling.</span>
+  <span class="cf">try</span> {
+    <span class="co">// Send a HTTP GET request.</span>
+    <span class="kw">auto</span> r = session.Get(<span class="st">&quot;http://httpbin.org/get&quot;</span>);
+
+    <span class="co">// Print the response content data.</span>
+    <span class="bu">std::</span>cout &lt;&lt; r-&gt;content() &lt;&lt; <span class="bu">std::</span>endl;
+
+  } <span class="cf">catch</span> (<span class="at">const</span> webcc::Exception&amp; e) {
+    <span class="bu">std::</span>cout &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;
+  }
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The <code>Get()</code> method is nothing but a shortcut of <code>Request()</code>. Using <code>Request()</code> directly is more complicated:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> r = session.Request(webcc::RequestBuilder{}.Get().
+                         Url(<span class="st">&quot;http://httpbin.org/get&quot;</span>)
+                         ());</code></pre></div>
+<p>As you can see, a helper class named <code>RequestBuilder</code> is used to chain the parameters and finally build (don't miss the <code>()</code> operator) a request object.</p>
+<p>Both the shortcut and <code>Request()</code> accept URL query parameters:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Query parameters are passed using a std::vector. </span>
+session.Get(<span class="st">&quot;http://httpbin.org/get&quot;</span>, { <span class="st">&quot;key1&quot;</span>, <span class="st">&quot;value1&quot;</span>, <span class="st">&quot;key2&quot;</span>, <span class="st">&quot;value2&quot;</span> });
+
+session.Request(webcc::RequestBuilder{}.Get().
+                Url(<span class="st">&quot;http://httpbin.org/get&quot;</span>).
+                Query(<span class="st">&quot;key1&quot;</span>, <span class="st">&quot;value1&quot;</span>).
+                Query(<span class="st">&quot;key2&quot;</span>, <span class="st">&quot;value2&quot;</span>)
+                ());</code></pre></div>
+<p>Adding additional headers is also easy:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">session.Get(<span class="st">&quot;http://httpbin.org/get&quot;</span>,
+            {<span class="st">&quot;key1&quot;</span>, <span class="st">&quot;value1&quot;</span>, <span class="st">&quot;key2&quot;</span>, <span class="st">&quot;value2&quot;</span>},
+            {<span class="st">&quot;Accept&quot;</span>, <span class="st">&quot;application/json&quot;</span>});  <span class="co">// Also a std::vector</span>
+                
+session.Request(webcc::RequestBuilder{}.Get().
+                Url(<span class="st">&quot;http://httpbin.org/get&quot;</span>).
+                Query(<span class="st">&quot;key1&quot;</span>, <span class="st">&quot;value1&quot;</span>).
+                Query(<span class="st">&quot;key2&quot;</span>, <span class="st">&quot;value2&quot;</span>).
+                Header(<span class="st">&quot;Accept&quot;</span>, <span class="st">&quot;application/json&quot;</span>)
+                ());</code></pre></div>
+<p>Accessing HTTPS has no difference from HTTP:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">session.Get(<span class="st">&quot;https://httpbin.org/get&quot;</span>);</code></pre></div>
+<p><em>NOTE: The HTTPS/SSL support requires the build option <code>WEBCC_ENABLE_SSL</code> to be enabled.</em></p>
+<p>Listing GitHub public events is not a big deal:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> r = session.Get(<span class="st">&quot;https://api.github.com/events&quot;</span>);</code></pre></div>
+<p>You can then parse <code>r-&gt;content()</code> to JSON object with your favorite JSON library. My choice for the examples is <a href="https://github.com/open-source-parsers/jsoncpp">jsoncpp</a>. But the library itself doesn't understand JSON nor require one. It's up to you to choose the most appropriate JSON library.</p>

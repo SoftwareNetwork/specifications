@@ -1,0 +1,951 @@
+<h1 id="expected-lite-expected-objects-for-c11-and-later">expected lite: expected objects for C++11 and later</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/expected-lite"><img src="https://travis-ci.org/martinmoene/expected-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/expected-lite"><img src="https://ci.appveyor.com/api/projects/status/sle31w7obrm8lhe1?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/expected-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fexpected-lite.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/expected-lite/master/include/nonstd/expected.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/martinmoene/nonstd-lite/expected-lite%3Anonstd-lite/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/MnnwqOtE8ZQ4rRsv"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it online" /></a></p>
+<p><em>expected lite</em> is a single-file header-only library for objects that either represent a valid value or an error that you can pass by value. It is intended for use with C++11 and later. The library is based on the <a href="http://wg21.link/p0323">std::expected</a> proposal [1] .</p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#comparison">Comparison with like types</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#implementation-notes">Implementation notes</a> - <a href="#other-implementations-of-expected">Other implementations of expected</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;nonstd/expected.hpp&quot;</span>
+
+<span class="pp">#include </span><span class="im">&lt;cstdlib&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> nonstd;
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>literals;
+
+<span class="kw">auto</span> to_int( <span class="dt">char</span> <span class="at">const</span> * <span class="at">const</span> text ) -&gt; expected&lt;<span class="dt">int</span>, <span class="bu">std::</span>string&gt; 
+{
+    <span class="dt">char</span> * pos = <span class="kw">nullptr</span>;
+    <span class="kw">auto</span> value = strtol( text, &amp;pos, <span class="dv">0</span> );
+
+    <span class="cf">if</span> ( pos != text ) <span class="cf">return</span> value;
+    <span class="cf">else</span>               <span class="cf">return</span> make_unexpected( <span class="st">&quot;&#39;&quot;</span>s + text + <span class="st">&quot;&#39; isn&#39;t a number&quot;</span> );
+}
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> * argv[] )
+{
+    <span class="kw">auto</span> text = argc &gt; <span class="dv">1</span> ? argv[<span class="dv">1</span>] : <span class="st">&quot;42&quot;</span>;
+
+    <span class="kw">auto</span> ei = to_int( text );
+
+    <span class="cf">if</span> ( ei ) <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;&#39;&quot;</span> &lt;&lt; text &lt;&lt; <span class="st">&quot;&#39; is &quot;</span> &lt;&lt; *ei &lt;&lt; <span class="st">&quot;, &quot;</span>;
+    <span class="cf">else</span>      <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Error: &quot;</span> &lt;&lt; ei.error();
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt; g++ -std=c++14 -Wall -I../include -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe 123 &amp;&amp; 01-basic.exe abc
+&#39;123&#39; is 123, Error: &#39;abc&#39; isn&#39;t a number</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>expected lite</strong> is a single-file header-only library to represent value objects that either contain a valid value or an error. The library is a partly implementation of the proposal for <a href="http://wg21.link/p0323">std::expected</a> [1,2,3] for use with C++11 and later.</p>
+<p><strong>Some Features and properties of expected lite</strong> are ease of installation (single header), default and explicit construction of an expected, construction and assignment from a value that is convertible to the underlying type, copy- and move-construction and copy- and move-assignment from another expected of the same type, testing for the presence of a value, operators for unchecked access to the value or the error (pointer or reference), value() and value_or() for checked access to the value, relational operators, swap() and various factory functions.</p>
+<p><em>expected lite</em> shares the approach to in-place tags with <a href="https://github.com/martinmoene/any-lite">any-lite</a>, <a href="https://github.com/martinmoene/optional-lite">optional-lite</a> and with <a href="https://github.com/martinmoene/variant-lite">variant-lite</a> and these libraries can be used together.</p>
+<p><strong>Not provided</strong> are reference-type expecteds. <em>expected lite</em> doesn't honour triviality of value and error types. <em>expected lite</em> doesn't handle overloaded <em>address of</em> operators.</p>
+<p>For more examples, see [1].</p>
+<h2 id="license">License</h2>
+<p><em>expected lite</em> is distributed under the <a href="https://github.com/martinmoene/XXXX-lite/blob/master/LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>expected lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>expected lite</em> is a single-file header-only library. Put <code>expected.hpp</code> directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#configuration-macros">Configuration macros</a> - <a href="#types-in-namespace-nonstd">Types in namespace nonstd</a><br />
+- <a href="#interface-of-expected">Interface of expected</a><br />
+- <a href="#algorithms-for-expected">Algorithms for expected</a><br />
+- <a href="#interface-of-unexpected_type">Interface of unexpected_type</a><br />
+- <a href="#algorithms-for-unexpected_type">Algorithms for unexpected_type</a></p>
+<h3 id="configuration-macros">Configuration macros</h3>
+<h4 id="standard-selection-macro">Standard selection macro</h4>
+<p>-D<b>nsel_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, or if your compiler does not set the <code>__cplusplus</code> macro correctly.</p>
+<h4 id="select-stdexpected-or-nonstdexpected">Select <code>std::expected</code> or <code>nonstd::expected</code></h4>
+<p>At default, <em>expected lite</em> uses <code>std::expected</code> if it is available and lets you use it via namespace <code>nonstd</code>. You can however override this default and explicitly request to use <code>std::expected</code> or expected lite's <code>nonstd::expected</code> as <code>nonstd::expected</code> via the following macros.</p>
+<p>-D<b>nsel_CONFIG_SELECT_EXPECTED</b>=nsel_EXPECTED_DEFAULT<br />
+Define this to <code>nsel_EXPECTED_STD</code> to select <code>std::expected</code> as <code>nonstd::expected</code>. Define this to <code>nsel_EXPECTED_NONSTD</code> to select <code>nonstd::expected</code> as <code>nonstd::expected</code>. Default is undefined, which has the same effect as defining to <code>nsel_EXPECTED_DEFAULT</code>.</p>
+<p>-D<b>nsel_P0323R</b>=7 <em>(default)</em><br />
+Define this to the proposal revision number to control the presence and behavior of features (see tables). Default is 7 for the latest revision.</p>
+<h4 id="enable-compilation-errors">Enable compilation errors</h4>
+<p>-D<b>nsel_CONFIG_CONFIRMS_COMPILATION_ERRORS</b>=0<br />
+Define this macro to 1 to experience the by-design compile-time errors of the library in the test suite. Default is 0.</p>
+<h3 id="types-in-namespace-nonstd">Types in namespace nonstd</h3>
+<table style="width:57%;">
+<colgroup>
+<col width="25%" />
+<col width="9%" />
+<col width="22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Purpose</th>
+<th>Type</th>
+<th>Note / Object</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Expected</td>
+<td>template&lt;typename T, typename E = std::exception_ptr&gt;<br>class <strong>expected</strong>;</td>
+<td>nsel_P0323 &lt;= 2</td>
+</tr>
+<tr class="even">
+<td>Expected</td>
+<td>template&lt;typename T, typename E&gt;<br>class <strong>expected</strong>;</td>
+<td>nsel_P0323 &gt; 2</td>
+</tr>
+<tr class="odd">
+<td>Error type</td>
+<td>template&lt;typename E&gt;<br>class <strong>unexpected_type</strong>;</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Error type</td>
+<td>template&lt;&gt;<br>class <strong>unexpected_type</strong>&lt;std::exception_ptr&gt;;</td>
+<td>nsel_P0323 &lt;= 2</td>
+</tr>
+<tr class="odd">
+<td>Error type</td>
+<td>template&lt;typename E&gt;<br>class <strong>unexpected</strong>;</td>
+<td>&gt;= C++17</td>
+</tr>
+<tr class="even">
+<td>Traits</td>
+<td>template&lt;typename E&gt;<br>struct <strong>is_unexpected</strong>;</td>
+<td>nsel_P0323 &lt;= 3</td>
+</tr>
+<tr class="odd">
+<td>In-place value construction</td>
+<td>struct <strong>in_place_t</strong>;</td>
+<td>in_place_t in_place{};</td>
+</tr>
+<tr class="even">
+<td>In-place error construction</td>
+<td>struct <strong>in_place_unexpected_t</strong>;</td>
+<td>in_place_unexpected_t<br>unexpect{};</td>
+</tr>
+<tr class="odd">
+<td>In-place error construction</td>
+<td>struct <strong>in_place_unexpected_t</strong>;</td>
+<td>in_place_unexpected_t<br>in_place_unexpected{};</td>
+</tr>
+<tr class="even">
+<td>Error reporting</td>
+<td>class <strong>bad_expected_access</strong>;</td>
+<td> </td>
+</tr>
+</tbody>
+</table>
+<h3 id="interface-of-expected">Interface of expected</h3>
+<table style="width:100%;">
+<colgroup>
+<col width="15%" />
+<col width="75%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Construction</td>
+<td>[constexpr] <strong>expected</strong>() noexcept(...)</td>
+<td>an object with default value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( expected const &amp; other )</td>
+<td>initialize to contents of other</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( expected &amp;&amp; other )</td>
+<td>move contents from other</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( value_type const &amp; value )</td>
+<td>initialize to value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( value_type &amp;&amp; value ) noexcept(...)</td>
+<td>move from value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>[constexpr] explicit <strong>expected</strong>( in_place_t, Args&amp;&amp;... args )</td>
+<td>construct value in-place from args</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>[constexpr] explicit <strong>expected</strong>( in_place_t,<br> std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>construct value in-place from args</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( unexpected_type<E> const &amp; error )</td>
+<td>initialize to error</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>[constexpr] <strong>expected</strong>( unexpected_type<E> &amp;&amp; error )</td>
+<td>move from error</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>[constexpr] explicit <strong>expected</strong>( in_place_unexpected_t,<br> Args&amp;&amp;... args )</td>
+<td>construct error in-place from args</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>[constexpr] explicit <strong>expected</strong>( in_place_unexpected_t,<br> std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>construct error in-place from args</td>
+</tr>
+<tr class="even">
+<td>Destruction</td>
+<td>~<strong>expected</strong>()</td>
+<td>destruct current content</td>
+</tr>
+<tr class="odd">
+<td>Assignment</td>
+<td>expected <strong>operator=</strong>( expected const &amp; other )</td>
+<td>assign contents of other;<br>destruct current content, if any</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>expected &amp; <strong>operator=</strong>( expected &amp;&amp; other ) noexcept(...)</td>
+<td>move contents of other</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>expected &amp; <strong>operator=</strong>( U &amp;&amp; v )</td>
+<td>move value from v</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>expected &amp; <strong>operator=</strong>( unexpected_type<E> const &amp; u )</td>
+<td>initialize to unexpected</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>expected &amp; <strong>operator=</strong>( unexpected_type<E> &amp;&amp; u )</td>
+<td>move from unexpected</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>template&lt;typename... Args&gt;<br>void <strong>emplace</strong>( Args &amp;&amp;... args )</td>
+<td>emplace from args</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>template&lt;typename U, typename... Args&gt;<br>void <strong>emplace</strong>( std::initializer_list&lt;U&gt; il, Args &amp;&amp;... args )</td>
+<td>emplace from args</td>
+</tr>
+<tr class="even">
+<td>Swap</td>
+<td>void <strong>swap</strong>( expected &amp; other ) noexcept</td>
+<td>swap with other</td>
+</tr>
+<tr class="odd">
+<td>Observers</td>
+<td>constexpr value_type const * <strong>operator-&gt;</strong>() const</td>
+<td>pointer to current content (const);<br>must contain value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>value_type * <strong>operator-&gt;</strong>()</td>
+<td>pointer to current content (non-const);<br>must contain value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr value_type const &amp; <strong>operator *</strong>() const &amp;</td>
+<td>the current content (const ref);<br>must contain value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>constexpr value_type &amp;&amp; <strong>operator *</strong>() &amp;&amp;</td>
+<td>the current content (non-const ref);<br>must contain value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr explicit operator <strong>bool</strong>() const noexcept</td>
+<td>true if contains value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>constexpr <strong>has_value</strong>() const noexcept</td>
+<td>true if contains value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr value_type const &amp; <strong>value</strong>() const &amp;</td>
+<td>current content (const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>value_type &amp; <strong>value</strong>() &amp;</td>
+<td>current content (non-const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr value_type &amp;&amp; <strong>value</strong>() &amp;&amp;</td>
+<td>move from current content;<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>constexpr error_type const &amp; <strong>error</strong>() const &amp;</td>
+<td>current error (const ref);<br>must contain error</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>error_type &amp; <strong>error</strong>() &amp;</td>
+<td>current error (non-const ref);<br>must contain error</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>constexpr error_type &amp;&amp; <strong>error</strong>() &amp;&amp;</td>
+<td>move from current error;<br>must contain error</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr unexpected_type<E> <strong>get_unexpected</strong>() const</td>
+<td>the error as unexpected&lt;&gt;;<br>must contain error</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>template&lt;typename Ex&gt;<br>bool <strong>has_exception</strong>() const</td>
+<td>true of contains exception (as base)</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>value_type <strong>value_or</strong>( U &amp;&amp; v ) const &amp;</td>
+<td>value or move from v</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>value_type <strong>value_or</strong>( U &amp;&amp; v ) &amp;&amp;</td>
+<td>move from value or move from v</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>...</td>
+<td> </td>
+</tr>
+</tbody>
+</table>
+<p><a id="note1"></a>Note 1: checked access: if no content, for std::exception_ptr rethrows error(), otherwise throws bad_expected_access(error()).</p>
+<h3 id="algorithms-for-expected">Algorithms for expected</h3>
+<table style="width:62%;">
+<colgroup>
+<col width="47%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Comparison with expected</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>== !=</td>
+<td>template&lt;typename T1, typename E1, typename T2, typename E2&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T1,E1&gt; const &amp; x,<br> expected&lt;T2,E2&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with expected</td>
+<td>nsel_P0323R &lt;= 2</td>
+</tr>
+<tr class="even">
+<td>&lt; &gt; &lt;= &gt;=</td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T,E&gt; const &amp; x,<br> expected&lt;T,E&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with unexpected_type</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>== !=</td>
+<td>template&lt;typename T1, typename E1, typename E2&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T1,E1&gt; const &amp; x,<br> unexpected_type&lt;E2&gt; const &amp; u )</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>template&lt;typename T1, typename E1, typename E2&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;E2&gt; const &amp; u,<br> expected&lt;T1,E1&gt; const &amp; x )</td>
+</tr>
+<tr class="even">
+<td>Comparison with unexpected_type</td>
+<td>nsel_P0323R &lt;= 2</td>
+</tr>
+<tr class="odd">
+<td>&lt; &gt; &lt;= &gt;=</td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T,E&gt; const &amp; x,<br> unexpected_type&lt;E&gt; const &amp; u )</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;E&gt; const &amp; u,<br> expected&lt;T,E&gt; const &amp; x )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with T</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>== !=</td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T,E&gt; const &amp; x,<br> T const &amp; v )</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> T const &amp; v,<br> expected&lt;T,E&gt; const &amp; x )</td>
+</tr>
+<tr class="even">
+<td>Comparison with T</td>
+<td>nsel_P0323R &lt;= 2</td>
+</tr>
+<tr class="odd">
+<td>&lt; &gt; &lt;= &gt;=</td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> expected&lt;T,E&gt; const &amp; x,<br> T const &amp; v )</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> T const &amp; v,<br> expected&lt;T,E&gt; const &amp; x )</td>
+</tr>
+<tr class="odd">
+<td>Specialized algorithms</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Swap</td>
+<td>template&lt;typename T, typename E&gt;<br>void <strong>swap</strong>(<br> expected&lt;T,E&gt; &amp; x,<br> expected&lt;T,E&gt; &amp; y ) noexcept( noexcept( x.swap(y) ) )</td>
+</tr>
+<tr class="odd">
+<td>Make expected from</td>
+<td>nsel_P0323R &lt;= 3</td>
+</tr>
+<tr class="even">
+<td> Value</td>
+<td>template&lt;typename T&gt;<br>constexpr auto <strong>make_expected</strong>( T &amp;&amp; v ) -&gt;<br> expected&lt; typename std::decay&lt;T&gt;::type&gt;</td>
+</tr>
+<tr class="odd">
+<td> Nothing</td>
+<td>auto <strong>make_expected</strong>() -&gt; expected&lt;void&gt;</td>
+</tr>
+<tr class="even">
+<td> Current exception</td>
+<td>template&lt;typename T&gt;<br>constexpr auto <strong>make_expected_from_current_exception</strong>() -&gt; expected&lt;T&gt;</td>
+</tr>
+<tr class="odd">
+<td> Exception</td>
+<td>template&lt;typename T&gt;<br>auto <strong>make_expected_from_exception</strong>( std::exception_ptr v ) -&gt; expected&lt;T&gt;</td>
+</tr>
+<tr class="even">
+<td> Error</td>
+<td>template&lt;typename T, typename E&gt;<br>constexpr auto <strong>make_expected_from_error</strong>( E e ) -&gt;<br> expected&lt;T, typename std::decay&lt;E&gt;::type&gt;</td>
+</tr>
+<tr class="odd">
+<td> Call</td>
+<td>template&lt;typename F&gt;<br>auto <strong>make_expected_from_call</strong>( F f ) -&gt;<br> expected&lt; typename std::result_of&lt;F()&gt;::type&gt;</td>
+</tr>
+<tr class="even">
+<td> Call, void specialization</td>
+<td>template&lt;typename F&gt;<br>auto <strong>make_expected_from_call</strong>( F f ) -&gt; expected&lt;void&gt;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="interface-of-unexpected_type">Interface of unexpected_type</h3>
+<table>
+<colgroup>
+<col width="17%" />
+<col width="71%" />
+<col width="10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Construction</td>
+<td><strong>unexpected_type</strong>() = delete;</td>
+<td>no default construction</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>constexpr explicit <strong>unexpected_type</strong>( E const &amp; error )</td>
+<td>copy-constructed from an E</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>constexpr explicit <strong>unexpected_type</strong>( E &amp;&amp; error )</td>
+<td>move-constructed from an E</td>
+</tr>
+<tr class="even">
+<td>Observers</td>
+<td>constexpr error_type const &amp; <strong>value</strong>() const</td>
+<td>can observe contained error</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>error_type &amp; <strong>value</strong>()</td>
+<td>can modify contained error</td>
+</tr>
+</tbody>
+</table>
+<h3 id="algorithms-for-unexpected_type">Algorithms for unexpected_type</h3>
+<table style="width:60%;">
+<colgroup>
+<col width="44%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Comparison with unexpected</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>== !=</td>
+<td>template&lt;typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;E&gt; const &amp; x,<br> unexpected_type&lt;E&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with unexpected</td>
+<td>nsel_P0323R &lt;= 2</td>
+</tr>
+<tr class="even">
+<td>&lt; &gt; &lt;= &gt;=</td>
+<td>template&lt;typename E&gt;<br>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;E&gt; const &amp; x,<br> unexpected_type&lt;E&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with exception_ptr</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>== !=</td>
+<td>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;std::exception_ptr&gt; const &amp; x,<br> unexpected_type&lt;std::exception_ptr&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Comparison with exception_ptr</td>
+<td>nsel_P0323R &lt;= 2</td>
+</tr>
+<tr class="even">
+<td>&lt; &gt; &lt;= &gt;=</td>
+<td>constexpr bool operator <strong><em>op</em></strong>(<br> unexpected_type&lt;std::exception_ptr&gt; const &amp; x,<br> unexpected_type&lt;std::exception_ptr&gt; const &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>Specialized algorithms</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Make unexpected from</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> Error</td>
+<td>template&lt;typename E&gt;<br>[constexpr] auto <strong>make_unexpected</strong>( E &amp;&amp; v) -&gt;<br> unexpected_type&lt; typename std::decay&lt;E&gt;::type&gt;</td>
+</tr>
+<tr class="even">
+<td>Make unexpected from</td>
+<td>nsel_P0323R &lt;= 3</td>
+</tr>
+<tr class="odd">
+<td> Current exception</td>
+<td>[constexpr] auto <strong>make_unexpected_from_current_exception</strong>() -&gt;<br> unexpected_type&lt; std::exception_ptr&gt;</td>
+</tr>
+</tbody>
+</table>
+<p><a id="comparison"></a> Comparison with like types --------------------------</p>
+<table>
+<colgroup>
+<col width="14%" />
+<col width="9%" />
+<col width="10%" />
+<col width="10%" />
+<col width="12%" />
+<col width="11%" />
+<col width="10%" />
+<col width="11%" />
+<col width="10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th><br>std::pair</th>
+<th>std:: optional</th>
+<th>std:: expected</th>
+<th>nonstd:: expected</th>
+<th>Boost. Expected</th>
+<th>Nonco expected</th>
+<th>Andrei Expected</th>
+<th>Hagan required</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>More information</td>
+<td>see [14]</td>
+<td>see [5]</td>
+<td>see [1]</td>
+<td>this work</td>
+<td>see [4]</td>
+<td>see [7]</td>
+<td>see [8]</td>
+<td>see [13]</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>C++03</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no/not yet</td>
+<td>no (union)</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>C++11</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>C++14</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>C++17</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>DefaultConstructible</td>
+<td>T param</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>In-place construction</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>Literal type</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Disengaged information</td>
+<td>possible</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>Vary disengaged type</td>
+<td>yes</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>Engaged nonuse throws</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+<td>error_traits</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>Disengaged use throws</td>
+<td>no</td>
+<td>yes, value()</td>
+<td>yes, value()</td>
+<td>yes, value()</td>
+<td>yes,<br>value()</td>
+<td>yes,<br>get()</td>
+<td>yes,<br>get()</td>
+<td>n/a</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Proxy (rel.ops)</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>References</td>
+<td>no</td>
+<td>yes</td>
+<td>no/not yet</td>
+<td>no/not yet</td>
+<td>no/not yet</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>Chained visitor(s)</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+<td>maybe</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p>Note 1: std::<em>experimental</em>::expected</p>
+<p>Note 2: sources for <a href="https://github.com/martinmoene/spike-expected/tree/master/nonco">Nonco expected</a>, <a href="https://github.com/martinmoene/spike-expected/tree/master/alexandrescu">Andrei Expected</a> and <a href="https://github.com/martinmoene/spike-expected/tree/master/hagan">Hagan required</a> can befound in the <a href="https://github.com/martinmoene/spike-expected">spike-expected</a> repository.</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<h2 id="implementation-notes">Implementation notes</h2>
+<h2 id="other-implementations-of-expected">Other implementations of expected</h2>
+<ul>
+<li>Simon Brand. <a href="https://github.com/TartanLlama/expected">C++11/14/17 std::expected with functional-style extensions</a>. Single-header.</li>
+<li>Isabella Muerte. <a href="https://github.com/mnmlstc/core">MNMLSTC Core</a> (C++11).</li>
+<li>Vicente J. Botet Escriba. <a href="https://github.com/viboes/std-make/tree/master/include/experimental/fundamental/v3/expected">stdmake's expected</a> (C++17).</li>
+<li>Facebook. <a href="https://github.com/facebook/folly/blob/master/folly/Expected.h">Folly's Expected.h</a> (C++14).</li>
+</ul>
+<h2 id="notes-and-references">Notes and references</h2>
+<p>[1] Vicente J. Botet Escriba. <a href="http://wg21.link/p0323">p0323 - A proposal to add a utility class to represent expected object (latest)</a> (HTML). (<a href="http://wg21.link/p0323r7">r7</a>, <a href="http://wg21.link/p0323r6">r6</a>, <a href="http://wg21.link/p0323r5">r5</a>, <a href="http://wg21.link/p0323r4">r4</a>, <a href="http://wg21.link/p0323r3">r3</a>, <a href="http://wg21.link/p0323r2">r2</a>, <a href="http://wg21.link/n4109">r1</a>, <a href="http://wg21.link/n4015">r0</a>, <a href="https://github.com/viboes/std-make/blob/master/doc/proposal/expected/DXXXXR0_expected.pdf">draft</a>).</p>
+<p>[2] Vicente J. Botet Escriba. <a href="https://github.com/viboes/std-make">JASEL: Just a simple experimental library for C++</a>. Reference implementation of <a href="https://github.com/viboes/std-make/tree/master/include/experimental/fundamental/v3/expected">expected</a>.</p>
+<p>[3] Vicente J. Botet Escriba. <a href="https://www.youtube.com/watch?v=Zdlt1rgYdMQ">Expected - An exception-friendly Error Monad</a>. C++Now 2014. 24 September 2014.</p>
+<p>[4] Pierre Talbot. <a href="http://www.google-melange.com/gsoc/proposal/review/google/gsoc2013/trademark/25002">Boost.Expected. Unofficial Boost candidate</a>. 5 May 2013. <a href="https://github.com/TrademarkPewPew/Boost.Expected">GitHub</a>, <a href="http://www.google-melange.com/gsoc/proposal/review/google/gsoc2013/trademark/25002">GSoC 2013 Proposal</a>, <a href="http://permalink.gmane.org/gmane.comp.lib.boost.devel/240056">boost@lists.boost.org</a>.</p>
+<p>[5] Fernando Cacciola and Andrzej Krzemieński. <a href="http://isocpp.org/files/papers/N3672.html">A proposal to add a utility class to represent optional objects (Revision 4)</a>. ISO/IEC JTC1 SC22 WG21 N3672 2013-04-19.</p>
+<p>[6] Andrzej Krzemieński, <a href="https://github.com/akrzemi1/Optional/">Optional library implementation in C++11</a>.</p>
+<p>[7] Anto Nonco. <a href="http://anto-nonco.blogspot.nl/2013/03/extending-expected-to-deal-with.html">Extending expected<T> to deal with references</a>. 27 May 2013.</p>
+<p>[8] Andrei Alexandrescu. Systematic Error Handling in C++. Prepared for The C++and Beyond Seminar 2012. <a href="http://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C">Video</a>. <a href="http://sdrv.ms/RXjNPR">Slides</a>.</p>
+<p>[9] Andrei Alexandrescu. <a href="http://accu.org/content/conf2007/Alexandrescu-Choose_Your_Poison.pdf">Choose your Poison: Exceptions or Error Codes? (PDF)</a>. ACCU Conference 2007.</p>
+<p>[10] Andrei Alexandrescu. <a href="http://nwcpp.org/static/talks/2006/The_Power_of_None.ppt">The Power of None (PPT)</a>. Northwest C++ Users' Group. <a href="http://nwcpp.org/may-2006.html">May 17th, 2006</a>.</p>
+<p>[11] Jon Jagger. <a href="http://accu.org/var/uploads/journals/overload53-FINAL.pdf#page=18">A Return Type That Doesn't Like Being Ignored</a>. Overload issue 53, February 2003.</p>
+<p>[12] Andrei Alexandrescu. <a href="http://accu.org/index.php/conferences/2002/speakers2002">Error Handling in C++: Are we inching towards a total solution?</a>. ACCU Conference 2002.</p>
+<p>[13] Ken Hagan et al. <a href="https://groups.google.com/d/msg/comp.lang.c++.moderated/BkZqPfoq3ys/H_PMR8Sat4oJ">Exploding return codes</a>. comp.lang.c++.moderated. 11 February 2000.</p>
+<p>[14] [std::pair](http://en.cppreference.com/w/cpp/utility/pair). cppreference.com</p>
+<p>[15] Niall Douglas. <a href="https://ned14.github.io/outcome/">Outcome</a>. Very lightweight outcome&lt;T&gt; and result&lt;T&gt; (non-Boost edition).</p>
+<p>[16] Niall Douglas. <a href="http://wg21.link/p0762">p0762 - Concerns about expected&lt;T, E&gt; from the Boost.Outcome peer review</a>. 15 October 2017.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a.1-compile-time-information">A.1 Compile-time information</h3>
+<p>The version of <em>expected lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<h3 id="a.2-expected-lite-test-specification">A.2 Expected lite test specification</h3>
+<pre><code>unexpected_type: Disallows default construction
+unexpected_type: Allows to copy-construct from unexpected_type, default
+unexpected_type: Allows to move-construct from unexpected_type, default
+unexpected_type: Allows to in-place-construct
+unexpected_type: Allows to in-place-construct from initializer_list
+unexpected_type: Allows to copy-construct from error_type
+unexpected_type: Allows to move-construct from error_type
+unexpected_type: Allows to copy-construct from unexpected_type, explicit converting
+unexpected_type: Allows to copy-construct from unexpected_type, non-explicit converting
+unexpected_type: Allows to move-construct from unexpected_type, explicit converting
+unexpected_type: Allows to move-construct from unexpected_type, non-explicit converting
+unexpected_type: Allows to copy-assign from unexpected_type, default
+unexpected_type: Allows to move-assign from unexpected_type, default
+unexpected_type: Allows to copy-assign from unexpected_type, converting
+unexpected_type: Allows to move-assign from unexpected, converting
+unexpected_type: Allows to observe its value via a l-value reference
+unexpected_type: Allows to observe its value via a r-value reference
+unexpected_type: Allows to modify its value via a l-value reference
+unexpected_type: Allows to be swapped
+unexpected_type&lt;std::exception_ptr&gt;: Disallows default construction
+unexpected_type&lt;std::exception_ptr&gt;: Allows to copy-construct from error_type
+unexpected_type&lt;std::exception_ptr&gt;: Allows to move-construct from error_type
+unexpected_type&lt;std::exception_ptr&gt;: Allows to copy-construct from an exception
+unexpected_type&lt;std::exception_ptr&gt;: Allows to observe its value
+unexpected_type&lt;std::exception_ptr&gt;: Allows to modify its value
+unexpected_type: Provides relational operators
+unexpected_type: Provides relational operators, std::exception_ptr specialization
+make_unexpected(): Allows to create an unexpected_type&lt;E&gt; from an E
+unexpected: C++17 and later provide unexpected_type as unexpected
+bad_expected_access: Disallows default construction
+bad_expected_access: Allows construction from error_type
+bad_expected_access: Allows to observe its error
+bad_expected_access: Allows to change its error
+bad_expected_access: Provides non-empty what()
+expected: Allows to default construct
+expected: Allows to copy-construct from expected: value
+expected: Allows to copy-construct from expected: error
+expected: Allows to move-construct from expected: value
+expected: Allows to move-construct from expected: error
+expected: Allows to copy-construct from expected; value, explicit converting
+expected: Allows to copy-construct from expected; error, explicit converting
+expected: Allows to copy-construct from expected; value, non-explicit converting
+expected: Allows to copy-construct from expected; error, non-explicit converting
+expected: Allows to move-construct from expected; value, explicit converting
+expected: Allows to move-construct from expected; error, explicit converting
+expected: Allows to move-construct from expected; value, non-explicit converting
+expected: Allows to move-construct from expected; error, non-explicit converting
+expected: Allows to forward-construct from value, explicit converting
+expected: Allows to forward-construct from value, non-explicit converting
+expected: Allows to in-place-construct value
+expected: Allows to in-place-construct value from initializer_list
+expected: Allows to copy-construct from unexpected, explicit converting
+expected: Allows to copy-construct from unexpected, non-explicit converting
+expected: Allows to move-construct from unexpected, explicit converting
+expected: Allows to move-construct from unexpected, non-explicit converting
+expected: Allows to in-place-construct error
+expected: Allows to in-place-construct error from initializer_list
+expected: Allows to copy-assign from expected, value
+expected: Allows to copy-assign from expected, error
+expected: Allows to move-assign from expected, value
+expected: Allows to move-assign from expected, error
+expected: Allows to forward-assign from value
+expected: Allows to copy-assign from unexpected
+expected: Allows to move-assign from unexpected
+expected: Allows to emplace value
+expected: Allows to emplace value from initializer_list
+expected: Allows to be swapped
+expected: Allows to observe its value via a pointer
+expected: Allows to observe its value via a pointer to constant
+expected: Allows to modify its value via a pointer
+expected: Allows to observe its value via a l-value reference
+expected: Allows to observe its value via a r-value reference
+expected: Allows to modify its value via a l-value reference
+expected: Allows to modify its value via a r-value reference
+expected: Allows to observe if it contains a value (or error)
+expected: Allows to observe its value
+expected: Allows to modify its value
+expected: Allows to move its value
+expected: Allows to observe its error
+expected: Allows to modify its error
+expected: Allows to move its error
+expected: Allows to observe its error as unexpected
+expected: Allows to query if it contains an exception of a specific base type
+expected: Allows to observe its value if available, or obtain a specified value otherwise
+expected: Allows to move its value if available, or obtain a specified value otherwise
+expected: Throws bad_expected_access on value access when disengaged
+expected&lt;void&gt;: Allows to default-construct
+expected&lt;void&gt;: Allows to copy-construct from expected&lt;void&gt;: value
+expected&lt;void&gt;: Allows to copy-construct from expected&lt;void&gt;: error
+expected&lt;void&gt;: Allows to move-construct from expected&lt;void&gt;: value
+expected&lt;void&gt;: Allows to move-construct from expected&lt;void&gt;: error
+expected&lt;void&gt;: Allows to in-place-construct
+expected&lt;void&gt;: Allows to copy-construct from unexpected, explicit converting
+expected&lt;void&gt;: Allows to copy-construct from unexpected, non-explicit converting
+expected&lt;void&gt;: Allows to move-construct from unexpected, explicit converting
+expected&lt;void&gt;: Allows to move-construct from unexpected, non-explicit converting
+expected&lt;void&gt;: Allows to in-place-construct unexpected_type
+expected&lt;void&gt;: Allows to in-place-construct error from initializer_list
+expected&lt;void&gt;: Allows to copy-assign from expected, value
+expected&lt;void&gt;: Allows to copy-assign from expected, error
+expected&lt;void&gt;: Allows to move-assign from expected, value
+expected&lt;void&gt;: Allows to move-assign from expected, error
+expected&lt;void&gt;: Allows to emplace value
+expected&lt;void&gt;: Allows to be swapped
+expected&lt;void&gt;: Allows to observe if it contains a value (or error)
+expected&lt;void&gt;: Allows to observe its value
+expected&lt;void&gt;: Allows to observe its error
+expected&lt;void&gt;: Allows to modify its error
+expected&lt;void&gt;: Allows to move its error
+expected&lt;void&gt;: Allows to observe its error as unexpected
+expected&lt;void&gt;: Allows to query if it contains an exception of a specific base type
+expected&lt;void&gt;: Throws bad_expected_access on value access when disengaged
+operators: Provides expected relational operators
+swap: Allows expected to be swapped
+std::hash: Allows to compute hash value for expected</code></pre>

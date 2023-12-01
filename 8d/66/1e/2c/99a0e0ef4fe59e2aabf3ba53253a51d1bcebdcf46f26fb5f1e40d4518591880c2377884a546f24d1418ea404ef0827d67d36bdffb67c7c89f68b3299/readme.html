@@ -1,0 +1,88 @@
+<p>[Subprocessing in C++]</p>
+<h2 id="design-goals">Design Goals</h2>
+<p>The only goal was to develop something that is as close as python2.7 subprocess module in dealing with processes. Could not find anything similar done for C++ and here we are.</p>
+<p>This library had these design goals: - <strong>Intuitive Interface</strong>. Using modern C++ features, made the API usage as simple as that in python in most cases and even better in some (See pipiing example).</p>
+<ul>
+<li><p><strong>Correctness</strong>. Dealing with processes is not a simple job. It has many low level details that needs to be taken care of. This library takes care of dealing with those low level details making it easier to launch processes.</p></li>
+<li><p><strong>Error Handling</strong>. Currently the error handling is achieved via the use of exceptions. It is important that no errors are ignored silently. I am working towards achieving this goal, but most of the error conditions have been taken care of.</p></li>
+</ul>
+<h2 id="supported-platforms">Supported Platforms</h2>
+<p>Unlike python2.7 subprocess module, this library currently only supports MAC OS and Linux. It has no support for Windows in its current state.</p>
+<h2 id="integration">Integration</h2>
+<p>Subprocess library has just a single source <code>subprocess.hpp</code> present at the top directory of this repository. All you need to do is add</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="er">#inlcude &quot;subprocess.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> subprocess;
+<span class="co">// OR</span>
+<span class="co">// namespace sp = subprocess; </span>
+<span class="co">// Or give any other alias you like.</span></code></pre></div>
+<p>to the files where you want to make use of subprocessing. Make sure to add necessary switches to add C++11 support (-std=c++11 in g++ and clang).</p>
+<p>Checkout http://templated-thoughts.blogspot.in/2016/03/sub-processing-with-modern-c.html as well.</p>
+<h2 id="compiler-support">Compiler Support</h2>
+<p>Linux - g++ 4.8 and above Mac OS - Clang 3.4 and later</p>
+<h2 id="examples">Examples</h2>
+<p>Here are few examples to show how to get started:</p>
+<ol style="list-style-type: decimal">
+<li><p>Executing simple unix commands The easy way:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> obuf = check_output({<span class="st">&quot;ls&quot;</span>, <span class="st">&quot;-l&quot;</span>});
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Data : &quot;</span> &lt;&lt; obuf.buf.data() &lt;&lt; <span class="bu">std::</span>endl;
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Data len: &quot;</span> &lt;&lt; obuf.length &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div></li>
+</ol>
+<p>More detailed way:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> p = Popen({<span class="st">&quot;ls&quot;</span>, <span class="st">&quot;-l&quot;</span>});
+<span class="kw">auto</span> obuf = p.communicate().first;
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Data : &quot;</span> &lt;&lt; obuf.buf.data() &lt;&lt; <span class="bu">std::</span>endl;
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Data len: &quot;</span> &lt;&lt; obuf.length &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<ol start="2" style="list-style-type: decimal">
+<li>Output redirection Redirecting a message input to <code>cat</code> command to a file.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> p = Popen({<span class="st">&quot;cat&quot;</span>, <span class="st">&quot;-&quot;</span>}, input{PIPE}, output{<span class="st">&quot;cat_fredirect.txt&quot;</span>});
+<span class="kw">auto</span> msg = <span class="st">&quot;through stdin to stdout&quot;</span>;
+p.send(msg, strlen(msg));
+p.wait();</code></pre></div>
+<p>OR</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> p = Popen({<span class="st">&quot;cat&quot;</span>, <span class="st">&quot;-&quot;</span>}, input{PIPE}, output{<span class="st">&quot;cat_fredirect.txt&quot;</span>});
+<span class="kw">auto</span> msg = <span class="st">&quot;through stdin to stdout&quot;</span>;
+p.communicate(msg, strlen(msg))</code></pre></div>
+<p>OR Reading redirected output from stdout</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> p = Popen({<span class="st">&quot;grep&quot;</span>, <span class="st">&quot;f&quot;</span>}, output{PIPE}, input{PIPE});
+<span class="kw">auto</span> msg = <span class="st">&quot;one</span><span class="sc">\n</span><span class="st">two</span><span class="sc">\n</span><span class="st">three</span><span class="sc">\n</span><span class="st">four</span><span class="sc">\n</span><span class="st">five</span><span class="sc">\n</span><span class="st">&quot;</span>;
+p.send(msg, strlen(msg));
+<span class="kw">auto</span> res = p.communicate();
+
+<span class="bu">std::</span>cout &lt;&lt; res.first.buf.data() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<ol start="3" style="list-style-type: decimal">
+<li>Piping Support Your regular unix command piping</li>
+</ol>
+<p>Ex: cat subprocess.hpp | grep template | cut -d, -f 1</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> cat = Popen({<span class="st">&quot;cat&quot;</span>, <span class="st">&quot;../subprocess.hpp&quot;</span>}, output{PIPE});
+<span class="kw">auto</span> grep = Popen({<span class="st">&quot;grep&quot;</span>, <span class="st">&quot;template&quot;</span>}, input{cat.output()}, output{PIPE});
+<span class="kw">auto</span> cut = Popen({<span class="st">&quot;cut&quot;</span>, <span class="st">&quot;-d,&quot;</span>, <span class="st">&quot;-f&quot;</span>, <span class="st">&quot;1&quot;</span>}, input{grep.output()}, output{PIPE});
+<span class="kw">auto</span> res = cut.communicate().first;
+<span class="bu">std::</span>cout &lt;&lt; res.buf.data() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<ol start="4" style="list-style-type: decimal">
+<li>Easy Piping There is another way to do piping for simple commands like above:</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> res = pipeline(<span class="st">&quot;cat ../subprocess.hpp&quot;</span>, <span class="st">&quot;grep Args&quot;</span>, <span class="st">&quot;grep template&quot;</span>);
+<span class="bu">std::</span>cout &lt;&lt; res.buf.data() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>The commands provided to the <code>pipeline</code> function is in the order that would have appeared in your regular unix command.</p>
+<ol start="5" style="list-style-type: decimal">
+<li>Environment variables</li>
+</ol>
+<p>For example, if a shell script requires some new environment variables to be defined, you can provide it with the below easy to use syntax.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> st= Popen(<span class="st">&quot;./env_script.sh&quot;</span>, environment{{
+                                   {<span class="st">&quot;NEW_ENV1&quot;</span>, <span class="st">&quot;VALUE-1&quot;</span>},
+                                   {<span class="st">&quot;NEW_ENV2&quot;</span>, <span class="st">&quot;VALUE-2&quot;</span>},
+                                   {<span class="st">&quot;NEW_ENV3&quot;</span>, <span class="st">&quot;VALUE-3&quot;</span>}
+             }}).wait();
+assert (st == <span class="dv">0</span>);</code></pre></div>
+<ol start="5" style="list-style-type: decimal">
+<li>Other examples There are lots of other examples in the tests with lot more overloaded API's to support most of the functionalities supported by python2.7.</li>
+</ol>
+<h2 id="license">License</h2>
+<p><img align="right" src="http://opensource.org/trademarks/opensource/OSI-Approved-License-100x137.png"></p>
+<p>The class is licensed under the <a href="http://opensource.org/licenses/MIT">MIT License</a>:</p>
+<p>Copyright © 2016-2018 [Arun Muralidharan]</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>

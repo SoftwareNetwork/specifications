@@ -1,0 +1,228 @@
+<div class="figure">
+<img src="assets/argh_logo_small.png" alt="logo" />
+<p class="caption">logo</p>
+</div>
+<blockquote>
+<p><em>Frustration-free command line processing</em></p>
+</blockquote>
+<p><a href="https://isocpp.org/"><img src="https://img.shields.io/badge/language-C++-blue.svg" alt="Language" /></a> <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="Standard" /></a> <a href="https://opensource.org/licenses/BSD-3-Clause"><img src="https://img.shields.io/badge/license-BSD-blue.svg" alt="License" /></a> <a href="http://melpon.org/wandbox/permlink/ralxPN49F7cUY2yw"><img src="https://img.shields.io/badge/try%20it-online-orange.svg" alt="Try it online" /></a> <a href="https://travis-ci.org/adishavit/argh"><img src="https://travis-ci.org/adishavit/argh.svg?branch=master" alt="Build Status" /></a></p>
+<p>So many different command line processing libraries out there and none of them just work!<br />
+Some bring their whole extended family of related and unrelated external dependencies (<em>yes, I'm looking at you Boost</em>).<br />
+Some require quirky syntax and/or very verbose setups that sacrifice simplicity for the generation of a cute usage message and validation. Many come to dominate your <code>main()</code> file and yet others do not build on multiple plaforms - for some even their own tests and trivial usage cause crashes on some systems. <em>Argh!</em></p>
+<p>If you're writing a highly-sophisticated command line tool, then <code>Boost.Program_options</code> and its kind might give you many advanced options. However, if you need to get up and running quickly, effectively and with minimal fuss, give the single header-file <code>argh</code> a try.</p>
+<h2 id="tldr">TL;DR</h2>
+<p>It doesn't get much simpler than this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;argh.h&quot;</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span>, <span class="dt">char</span>* argv[])
+{
+    argh::parser cmdl(argv);
+
+    <span class="cf">if</span> (cmdl[{ <span class="st">&quot;-v&quot;</span>, <span class="st">&quot;--verbose&quot;</span> }])
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Verbose, I am.</span><span class="sc">\n</span><span class="st">&quot;</span>;
+
+    <span class="cf">return</span> EXIT_SUCCESS;
+}</code></pre></div>
+<h2 id="philosophy">Philosophy</h2>
+<p>Contrary to many alternatives, <code>argh</code> takes a minimalist <em>laissez-faire</em> approach, very suitable for fuss-less prototyping with the following rules:</p>
+<p>The API is: - Minimalistic but expressive: - No getters nor binders - Just the <code>[]</code> and <code>()</code> operators - Easy iteration (range-<code>for</code> too) - You don't pay for what you don't use - Conversion to typed variables happens (via <code>std::istream &gt;&gt;</code>) on the user side <em>after</em> the parsing phase - No exceptions thrown for failures - Liberal BSD license - Single header file - No non-<code>std</code> dependencies</p>
+<p><code>argh</code> does <strong>not</strong> care about:</p>
+<ul>
+<li>How many '<code>-</code>' preceded your option</li>
+<li>Which flags and options you support - that is your responsibility</li>
+<li>Syntax validation: <em>any</em> command line is a valid (<em>not necessarily unique</em>) combination of positional <em>parameters</em>, <em>flags</em> and <em>options</em></li>
+<li>Automatically producing a usage message</li>
+</ul>
+<h2 id="tutorial">Tutorial</h2>
+<p>Create parser:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> cmdl = argh::parser(argc, argv);</code></pre></div>
+<p>In fact, you can even drop <code>argc</code>. This will also work:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argh::parser cmdl(argv);</code></pre></div>
+<p>Positional argument access by (integer) index with <code>[&lt;size_t&gt;]</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cout &lt;&lt; <span class="st">&quot;Exe name is: &quot;</span> &lt;&lt; cmdl[<span class="dv">0</span>] &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+                               ^^^
+assert(cmdl[<span class="dv">10000</span>].empty()); <span class="co">// out-of-bound index returns empty string</span>
+            ^^^^^</code></pre></div>
+<p>Boolean flag argument access by (string) name with <code>[&lt;std::string&gt;]</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cout &lt;&lt; <span class="st">&quot;Verbose mode is &quot;</span> &lt;&lt; ( cmdl[<span class="st">&quot;verbose&quot;</span>] ? <span class="st">&quot;ON&quot;</span> : <span class="st">&quot;OFF&quot;</span> ) &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+                                    ^^^^^^^^^^^</code></pre></div>
+<p>Any dashes are trimmed so are not required.</p>
+<p>Your flag can have several alternatives, just list them with <code>[{ &quot;&lt;name-1&gt;&quot;, &quot;&lt;name-2&gt;&quot;, ... }]</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cout &lt;&lt; <span class="st">&quot;Verbose mode is &quot;</span> &lt;&lt; ( cmdl[{ <span class="st">&quot;-v&quot;</span>, <span class="st">&quot;--verbose&quot;</span> }] ? <span class="st">&quot;ON&quot;</span> : <span class="st">&quot;OFF&quot;</span> ) &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+                                    ^^^^^^^^^^^^^^^^^^^^^^^</code></pre></div>
+<p>Beyond <code>bool</code> and <code>std::string</code> access with <code>[]</code>, as shown above, we can also access the argument values as an <code>std::istream</code>. This is very useful for type conversions.</p>
+<p><code>std::istream</code> positional argument access by (integer) index with <code>(&lt;size_t&gt;)</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>string my_app_name;
+cmdl(<span class="dv">0</span>) &gt;&gt; my_app_name; <span class="co">// streaming into a string</span>
+    ^^^
+cout &lt;&lt; <span class="st">&quot;Exe name is: &quot;</span> &lt;&lt; my_app_name &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>We can also check if a particular positional arg was given or not (this is like using <code>[&lt;std::string&gt;]</code> above):</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">if</span> (!cmdl(<span class="dv">10</span>))
+  cerr &lt;&lt; <span class="st">&quot;Must provide at least 10 arguments!&quot;</span> &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+<span class="cf">else</span> <span class="cf">if</span> (cmdl(<span class="dv">11</span>))
+  cout &lt;&lt; <span class="st">&quot;11th argument  is: &quot;</span> &lt;&lt; cmdl[<span class="dv">11</span>] &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>But we can also set default values for positional arguments. These are passed as the second argument:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">float</span> scale_factor;
+cmdl(<span class="dv">2</span>, <span class="fl">1.0f</span>) &gt;&gt; scale_factor;
+     ^^^^^^^</code></pre></div>
+<p>If the position argument was not given or the streaming conversion failed, the default value will be used.</p>
+<p>Similarly, parameters can be accessed by name(s) (i.e. by string or list of string literals) with:<br />
+<code>(&lt;std::string&gt; [, &lt;default value&gt;])</code> or <code>({ &quot;&lt;name-1&gt;&quot;, &quot;&lt;name-2&gt;&quot;, ... } [, &lt;default value&gt;])</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">float</span> scale_factor;
+cmdl(<span class="st">&quot;scale&quot;</span>, <span class="fl">1.0f</span>) &gt;&gt; scale_factor; <span class="co">// Use 1.0f as default value</span>
+     ^^^^^^^^^^^^^
+
+<span class="dt">float</span> threshold;
+<span class="cf">if</span> (!(cmdl({ <span class="st">&quot;-t&quot;</span>, <span class="st">&quot;--threshold&quot;</span>}) &gt;&gt; threshold)) <span class="co">// Check for missing param and/or bad (inconvertible) param value</span>
+  cerr &lt;&lt; <span class="st">&quot;Must provide a valid threshold value! Got &#39;&quot;</span> &lt;&lt; cmdl(<span class="st">&quot;threshold&quot;</span>).str() &lt;&lt; <span class="st">&quot;&#39;&quot;</span> &lt;&lt; endl;
+<span class="cf">else</span>                                                                        ^^^^^^
+  cout &lt;&lt; <span class="st">&quot;Threshold set to: &quot;</span> &lt;&lt; threshold &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>As shown above, use <code>std::istream::str()</code> to get the param value as a <code>std:string</code> or just stream the value into a variable of a suitable type. Standard stream state indicates failure, including when the argument was not given.<br />
+When using multiple names, the first value found will be returned.</p>
+<p>Positional arguments can be iterated upon directly using <em>range-for</em>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cout &lt;&lt; <span class="st">&quot;Positional args:</span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; pos_arg : cmdl)
+  cout &lt;&lt; <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span> &lt;&lt; pos_arg &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>Similarly, <code>cmdl.size()</code> will return the count of <em>positional</em> arguments.</p>
+<p>Positional arguments, flags <em>and</em> parameters are accessible as &quot;ranges&quot;:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cout &lt;&lt; <span class="st">&quot;Positional args:</span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; pos_arg : cmdl.pos_args())
+  cout &lt;&lt; <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span> &lt;&lt; pos_arg &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+
+cout &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Flags:</span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; flag : cmdl.flags())
+  cout &lt;&lt; <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span> &lt;&lt; flag &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+
+cout &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Parameters:</span><span class="sc">\n</span><span class="st">&quot;</span>;
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; param : cmdl.params())
+  cout &lt;&lt; <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span> &lt;&lt; param.first &lt;&lt; <span class="st">&quot; : &quot;</span> &lt;&lt; param.second &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>By default, options are assumed to be boolean flags. When this is not what you want, there are several ways to specify when an option is a parameter with an associated value.</p>
+<p>Specify <strong><code>PREFER_PARAM_FOR_UNREG_OPTION</code></strong> mode to interpret <em>any</em> <code>&lt;option&gt; &lt;non-option&gt;</code> as <code>&lt;parameter-name&gt; &lt;parameter-value&gt;</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> argh;
+<span class="kw">auto</span> cmdl = parser(argc, argv, parser::PREFER_PARAM_FOR_UNREG_OPTION);
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+cout &lt;&lt; cmdl(<span class="st">&quot;--threshold&quot;</span>).str() &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>Pre-register an expected parameter name with <code>add_param()</code> (before calling <code>parse()</code>):</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argh::parser cmdl;
+cmdl.add_param(<span class="st">&quot;threshold&quot;</span>); <span class="co">// pre-register &quot;threshold&quot; as a param: name + value</span>
+cmdl.parse(argc, argv);
+cout &lt;&lt; cmdl(<span class="st">&quot;threshold&quot;</span>).str() &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>You can also <em>batch</em> pre-register multiple options as parameters with <code>add_params({ ... })</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argh::parser cmdl;
+cmdl.add_params({ <span class="st">&quot;-t&quot;</span>, <span class="st">&quot;--threshold&quot;</span>, <span class="st">&quot;-s&quot;</span>, <span class="st">&quot;--scale&quot;</span> }); <span class="co">// batch pre-register multiple params: name + value</span>
+cmdl.parse(argc, argv);
+cout &lt;&lt; cmdl(<span class="st">&quot;threshold&quot;</span>).str() &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>Since pre-registration has to be done <em>before</em> parsing, we might as well just use the ctor:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argh::parser cmdl({ <span class="st">&quot;-t&quot;</span>, <span class="st">&quot;--threshold&quot;</span>, <span class="st">&quot;-s&quot;</span>, <span class="st">&quot;--scale&quot;</span> }); <span class="co">// batch pre-register multiple params: name + value</span>
+cmdl.parse(argc, argv);
+cout &lt;&lt; cmdl(<span class="st">&quot;threshold&quot;</span>).str() &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>Use a <code>=</code> (with no spaces around it) within the option when <em>calling</em> the app:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">&gt;&gt; my_app --threshold=<span class="dv">42</span>
+<span class="dv">42</span></code></pre></div>
+<h3 id="tips">Tips</h3>
+<ul>
+<li>By default, arguments of the form <code>--&lt;name&gt;=&lt;value&gt;</code> (with no spaces, one or more dashes), e.g. <code>--answer=42</code>, will be parsed as <code>&lt;parameter-name&gt; &lt;parameter-value&gt;</code>. To disable this specify the <strong><code>NO_SPLIT_ON_EQUALSIGN</code></strong> mode.</li>
+<li>Specifying the <strong><code>SINGLE_DASH_IS_MULTIFLAG</code></strong> mode will split a single-hyphen argument into multiple single-character flags (as is common in various POSIX tools).</li>
+<li>When using <strong><code>SINGLE_DASH_IS_MULTIFLAG</code></strong>, you can still pre-register the last character as a param with the value, such that if we pre-register <code>f</code> as a param, <code>&gt;&gt; myapp -xvf 42</code> will be parsed with two boolean flags <code>x</code> and <code>v</code> and a one param <code>f</code>=<code>42</code>.</li>
+<li>When parsing parameter values as strings that may contain spaces (e.g. <code>--config=&quot;C:\Folder\With Space\Config.ini&quot;</code>), prefer using <code>.str()</code> instead of <code>&gt;&gt;</code> to avoid the default automatic whitespace input stream tokenization:<br />
+<code>cout &lt;&lt; cmdl({ &quot;-c&quot;, &quot;--config&quot; }).str()</code>.</li>
+</ul>
+<h2 id="terminology">Terminology</h2>
+<p>Any command line is composed of <strong>2</strong> types of <em>Args</em>:</p>
+<ol style="list-style-type: decimal">
+<li><strong><em>Positional Args</em></strong>:<br />
+Free standing, in-order, values<br />
+e.g. <code>config.json</code><br />
+</li>
+<li><strong><em>Options</em></strong>:<br />
+Args beginning with <code>-</code> (and that are not negative numbers).<br />
+We identify <strong><em>2</em></strong> kinds of <em>Options</em>:
+<ol style="list-style-type: decimal">
+<li><strong><em>Flags</em></strong>:<br />
+Boolean options =&gt; (appear ? true : false)<br />
+e.g. <code>-v</code>, <code>--verbose</code><br />
+</li>
+<li><strong><em>Parameters</em></strong>:<br />
+A named value followed by a <em>non</em>-option value<br />
+e.g. <code>--gamma 2.2</code></li>
+</ol></li>
+</ol>
+<p>Thus, any command line can always be broken into some combination of <em>(1) positional args</em> <em>(2) flags</em> and <em>(3) parameters</em>.</p>
+<h2 id="api-summary">API Summary</h2>
+<h3 id="parsing">Parsing</h3>
+<p>Parse the command line using either - The <code>parse()</code> method: <code>parser::parse([argc,] argv [, mode])</code>; or - The shorter form using the ctor directly: <code>argh::parser([argc,] argv [, mode]);</code> - The shortest form does not even require <code>argc</code>, so in default <code>mode</code> just use:<br />
+<code>parser(argv);</code></p>
+<h3 id="special-parsing-modes">Special Parsing Modes</h3>
+<p>Extra flexibility can be added be specifying parsing modes: - <strong><code>NO_SPLIT_ON_EQUALSIGN</code></strong>: By default, an option of the form <code>--pi=22/7</code> will be parsed as a <em>parameter</em> <code>pi</code> with an associated value <code>&quot;22/7&quot;</code>. By setting this mode, it will be not be broken at the <code>=</code>. - <strong><code>PREFER_FLAG_FOR_UNREG_OPTION</code></strong>: Split <code>&lt;option&gt; &lt;non-option&gt;</code> into <code>&lt;flag&gt;</code> and <code>&lt;pos_arg&gt;</code>. e.g. <code>myapp -v config.json</code> will have <code>v</code> as a lit flag and <code>config.json</code> as a positional arg. <em>This is the default mode.</em> - <strong><code>PREFER_PARAM_FOR_UNREG_OPTION</code></strong>: Interpret <code>&lt;option&gt; &lt;non-option&gt;</code> as <code>&lt;parameter-name&gt; &lt;parameter-value&gt;</code>. e.g. <code>myapp --gamma 2.2</code> will have <code>gamma</code> as a parameter with the value &quot;2.2&quot;. - <strong><code>SINGLE_DASH_IS_MULTIFLAG</code></strong>: Splits an option with a <em>single</em> dash into separate boolean flags, one for each letter. e.g. in this mode, <code>-xvf</code> will be parsed as 3 separate flags: <code>x</code>, <code>v</code>, <code>f</code>.</p>
+<h3 id="argument-access">Argument Access</h3>
+<ul>
+<li>Use <em>bracket operators</em> to access <em>flags</em> and <em>positional</em> args:
+<ul>
+<li>Use <code>operator[index]</code> to access <em>position</em> arg strings by <em>index</em>:
+<ul>
+<li>e.g. <code>assert(cmdl[0] == argv[0])</code>, the app name.</li>
+</ul></li>
+<li>Use <code>operator[string]</code> to access boolean <em>flags</em> by <em>name</em>:
+<ul>
+<li>e.g. <code>if (cmdl[&quot;v&quot;]) make_verbose();</code></li>
+</ul></li>
+<li>Use <code>operator[{...}]</code> to access boolean <em>flags</em> by <em>multiple names</em>:
+<ul>
+<li>e.g. <code>if (cmdl[{ &quot;v&quot;, &quot;verbose&quot; }]) make_verbose();</code></li>
+</ul></li>
+</ul></li>
+<li>Use the <em>parenthesis operators</em> to get an <code>std::istream</code> to stream values from <em>parameters</em> and <em>positional</em> args:
+<ul>
+<li>Use <code>operator(index)</code> to access position arg <code>istream</code> by index:
+<ul>
+<li>e.g. <code>cmdl(0) &gt;&gt; my_app_name</code>.</li>
+</ul></li>
+<li>Use <code>operator(string)</code> to access <em>parameter</em> values by <em>name</em>:
+<ul>
+<li>e.g. <code>cmdl(&quot;scale&quot;) &gt;&gt; scale_factor;</code></li>
+</ul></li>
+<li>Use <code>operator({...})</code> to access <em>parameter</em> values by <em>multiple names</em>:
+<ul>
+<li>e.g. <code>cmdl({ &quot;-s&quot;, &quot;--scale&quot; }) &gt;&gt; scale_factor;</code><br />
+</li>
+</ul></li>
+<li>Use <code>operator(index, &lt;default&gt;)</code> and <code>operator(string/{list}, &lt;default&gt;)</code> to stream a default value if the arg did not appear on the command line:
+<ul>
+<li>e.g. <code>cmdl(&quot;scale&quot;, 1.0f) &gt;&gt; scale_factor;</code></li>
+</ul></li>
+</ul></li>
+</ul>
+<p>The streaming happens at the user's side, so conversion failure can be checked there: e.g</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">if</span> (!(cmdl(<span class="st">&quot;scale&quot;</span>) &gt;&gt; scale_factor))
+  cerr &lt;&lt; <span class="st">&quot;Must provide valid scale factor!&quot;</span> &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;</code></pre></div>
+<p>Use the <code>.str()</code> method to get the parameter value as a string: e.g. <code>cmdl(&quot;name&quot;).str();</code></p>
+<h3 id="more-methods">More Methods</h3>
+<ul>
+<li>Use <code>parser::add_param()</code>, <code>parser::add_params()</code> or the <code>parser({...})</code> constructor to <em>optionally</em> pre-register a parameter name when in <code>PREFER_FLAG_FOR_UNREG_OPTION</code> mode.</li>
+<li>Use <code>parser</code>, <code>parser::pos_args()</code>, <code>parser::flags()</code> and <code>parser::params()</code> to access and iterate over the Arg containers directly.</li>
+</ul>
+<h2 id="finding-argh">Finding Argh!</h2>
+<ul>
+<li>copy <code>argh.h</code> somewhere into your projects directories</li>
+<li><strong>or</strong> include the repository as a <em>submodule</em></li>
+<li><strong>or</strong> use <em>CMake</em>!</li>
+</ul>
+<h4 id="finding-argh---cmake">Finding Argh! - CMake</h4>
+<p>The provided <code>CMakeLists.txt</code> generates targets for tests, a demo application and an install target to install <code>argh</code> system-wide and make it known to CMake. <em>You can control generation of</em> test <em>and</em> example <em>targets using the options <code>BUILD_TESTS</code> and <code>BUILD_EXAMPLES</code>. Only <code>argh</code> alongside its license and readme will be installed - not tests and demo!</em></p>
+<p>Add <code>argh</code> to your CMake-project by using</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(argh)</code></pre></div>
+<p>The package exports <code>argh</code> <em>INTERFACE</em> library target and <code>argh_INCLUDE_DIR</code> variable. Make <code>argh.h</code> known to your compiler by using one of the following methods; both will make the location of <code>argh.h</code> known to the compiler, not link in a precompiled library - even when using <code>target_link_libraries()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">target_include_directories</span>(<span class="va">${MY_TARGET_NAME}</span> <span class="ot">PRIVATE</span> <span class="st">&quot;</span><span class="va">${argh_INCLUDE_DIR}</span><span class="st">&quot;</span>)
+<span class="co">#OR</span>
+<span class="kw">target_link_libraries</span>(<span class="va">${MY_TARGET_NAME}</span> argh)</code></pre></div>
+<h2 id="buck">Buck</h2>
+<p>The <a href="https://buckbuild.com/">Buck</a> build system is also supported.</p>
+<p>Run the example:</p>
+<pre class="bash="><code>buck run :example</code></pre>
+<p>Run the tests:</p>
+<pre class="bash="><code>buck run :tests
+buck run test_package</code></pre>
+<p>If you take <code>argh</code> as a submodule, then the visible target is <code>//:argh</code>.</p>
+<h2 id="colophon">Colophon</h2>
+<p>I ❤ your feedback. If you found Argh! useful - do Tweet about it to let <a href="https://twitter.com/AdiShavit">me</a> know. If you found it lacking, please post an <a href="https://github.com/adishavit/argh/issues">issue</a>.</p>

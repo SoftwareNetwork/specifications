@@ -1,0 +1,290 @@
+<h1 id="winlamb">WinLamb</h1>
+<p>A lightweight modern C++ library for <a href="https://en.wikipedia.org/wiki/Windows_API">Win32 API</a>, using <a href="https://www.cprogramming.com/c++11/c++11-lambda-closures.html">C++11 lambdas</a> to handle Windows messages.</p>
+<ol style="list-style-type: decimal">
+<li><a href="#1-overview">Overview</a></li>
+<li><a href="#2-setup">Setup</a></li>
+<li><a href="#3-example">Example</a></li>
+<li><a href="#4-classes-summary">Classes summary</a></li>
+<li><a href="#5-license">License</a></li>
+</ol>
+<h2 id="overview">1. Overview</h2>
+<p>As far as I can remember, around 2002 I started wrapping all my Win32 routines in classes, to make them reusable to myself, to save my time. Through all these years it took the form of a real library, a thin abstraction layer over raw Win32. People who saw it often commented that it was good, so in 2017 I decided to publish it on GitHub.</p>
+<p>Then I wrote <a href="https://www.codeproject.com/Articles/1184175/WinLamb-using-Cplusplus-lambdas-to-handle-Win-mess">CodeProject - WinLamb: using C++11 lambdas to handle Win32 messages</a>, a comprehensive article explaining WinLamb's message handling model, with <a href="https://docs.microsoft.com/pt-br/windows/desktop/dlgbox/dialog-boxes">dialogs</a> and also <a href="https://docs.microsoft.com/pt-br/windows/desktop/winmsg/windows">ordinary windows</a>. Actually, features from C++14 and C++17 are used as well, as much as my compiler (Visual C++) allows it.</p>
+<p>Beyond dialog/window message handling, WinLamb also has wrappers for most native Windows controls (<a href="https://docs.microsoft.com/pt-br/windows/desktop/Controls/edit-controls">textbox</a>, <a href="https://docs.microsoft.com/pt-br/windows/desktop/Controls/list-view-control-reference">listview</a>, etc.), along with other utility classes (strings, file I/O, COM wrappers, etc.) which play nice together. These controls and utilities, however, are <em>not</em> mandatory: you can use your own classes upon the basic dialog/window infrastructure.</p>
+<p>WinLamb by no means covers the whole Win32 API, simply because it's too huge. It just wraps some things. New features are constantly being added, though.</p>
+<h2 id="setup">2. Setup</h2>
+<p>WinLamb is a header-only library. You can clone the repository or simply <a href="https://github.com/rodrigocfd/winlamb/archive/master.zip">download</a> the files; once referenced in your source code, it should work right away.</p>
+<p>It has been tested with Visual C++ 2017.</p>
+<h3 id="windows-10-manifest-file">2.1. Windows 10 manifest file</h3>
+<p>There's an included <code>win10.exe.manifest</code> file, which you can <a href="https://stackoverflow.com/a/18115255/6923555">add to your Visual Studio project</a>. This manifest includes Common Controls and gives you <a href="https://docs.microsoft.com/pt-br/windows/desktop/SysInfo/targeting-your-application-at-windows-8-1">Windows 10 support</a>.</p>
+<h2 id="example">3. Example</h2>
+<p>This is a simple Win32 program written with WinLamb. Each window has a class, and messages are handled with C++11 lambdas using <a href="internals/params_wm.h#L20">message crackers</a>. There's no need to write a message loop or window registering.</p>
+<p><em>Declaration:</em> My_Window.h</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;winlamb/window_main.h&quot;</span>
+
+<span class="kw">class</span> My_Window : <span class="kw">public</span> wl::window_main {
+<span class="kw">public</span>:
+    My_Window();
+};</code></pre></div>
+<p><em>Implementation:</em> My_Window.cpp</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;My_Window.h&quot;</span>
+
+RUN(My_Window) <span class="co">// optional, generate WinMain call and instantiate My_Window</span>
+
+My_Window::My_Window()
+{
+    setup.wndClassEx.lpszClassName = <span class="st">L&quot;SOME_CLASS_NAME&quot;</span>; <span class="co">// class name to be registered</span>
+    setup.title = <span class="st">L&quot;This is my window&quot;</span>;
+    setup.style |= wl::ws::MINIMIZEBOX;
+
+    on_message(WM_CREATE, [<span class="kw">this</span>](wl::wm::create p) -&gt; LRESULT
+    {
+        set_text(<span class="st">L&quot;A new title for the window&quot;</span>);
+        <span class="cf">return</span> <span class="dv">0</span>;
+    });
+
+    on_message(WM_LBUTTONDOWN, [](wl::wm::lbuttondown p) -&gt; LRESULT
+    {
+        <span class="dt">bool</span> isCtrlDown = p.has_ctrl();
+        <span class="dt">long</span> xPos = p.pos().x;
+        <span class="cf">return</span> <span class="dv">0</span>;
+    });
+}</code></pre></div>
+<h3 id="project-examples">3.1. Project examples</h3>
+<p>I've written the following examples showcasing different things:</p>
+<ul>
+<li><a href="https://github.com/rodrigocfd/click-lines">Click lines</a> (very simple example)</li>
+<li><a href="https://github.com/rodrigocfd/flac-lame-frontend">FLAC/LAME frontend</a></li>
+<li><a href="https://github.com/rodrigocfd/chromium-peeker">Chromium Peeker</a></li>
+</ul>
+<p>More projects can be seen browsing <a href="https://github.com/topics/winlamb">winlamb topic</a>.</p>
+<h2 id="classes-summary">4. Classes summary</h2>
+<p>Most files are named after the class they contain; for example, file &quot;button.h&quot; contains <code>button</code> class.</p>
+<p>To create your windows, you inherit from these classes below. See the <a href="https://www.codeproject.com/Articles/1184175/WinLamb-using-Cplusplus-lambdas-to-handle-Win-mess">article</a> and the <a href="#3-example">examples</a> to learn how to use them:</p>
+<table style="width:14%;">
+<colgroup>
+<col width="6%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Class</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="dialog_control.h"><code>dialog_control</code></a></td>
+<td align="left">Inherit from this class to have a dialog to be used as a control within a parent window.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="dialog_main.h"><code>dialog_main</code></a></td>
+<td align="left">Inherit from this class to have a dialog as the main window for your application.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="dialog_modal.h"><code>dialog_modal</code></a></td>
+<td align="left">Inherit from this class to have a modal dialog popup.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="dialog_modeless.h"><code>dialog_modeless</code></a></td>
+<td align="left">Inherit from this class to have a dialog modeless popup.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="window_control.h"><code>window_control</code></a></td>
+<td align="left">Inherit from this class to have an user-custom window control.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="window_main.h"><code>window_main</code></a></td>
+<td align="left">Inherit from this class to have an ordinary main window for your application.</td>
+</tr>
+</tbody>
+</table>
+<p>Wrappers and utilities:</p>
+<table style="width:14%;">
+<colgroup>
+<col width="6%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Class</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="button.h"><code>button</code></a></td>
+<td align="left">Wrapper to native button control.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="checkbox.h"><code>checkbox</code></a></td>
+<td align="left">Wrapper to native checkbox control.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="internals/com_bstr.h#L18"><code>com::bstr</code></a></td>
+<td align="left">Wrapper to BSTR string, used with COM.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="internals/com_lib.h#L18"><code>com::lib</code></a></td>
+<td align="left">Smart class to automate CoInitialize and CoUninitialize calls.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="internals/com_ptr.h#L16"><code>com::ptr</code></a></td>
+<td align="left">Wrapper to a COM pointer.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="internals/com_variant.h#L18"><code>com::variant</code></a></td>
+<td align="left">Wrapper to VARIANT object, used with COM.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="combobox.h"><code>combobox</code></a></td>
+<td align="left">Wrapper to native combobox control.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="datetime.h"><code>datetime</code></a></td>
+<td align="left">Wrapper to SYSTEMTIME structure.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="datetime_picker.h"><code>datetime_picker</code></a></td>
+<td align="left">Wrapper to datetime picker control from Common Controls library.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="gdi.h#L19"><code>gdi::dc</code></a></td>
+<td align="left">Wrapper to device context.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="gdi.h#L252"><code>gdi::dc_painter</code></a></td>
+<td align="left">Wrapper to device context which calls BeginPaint/EndPaint automatically.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="gdi.h#L306"><code>gdi::dc_painter_buffered</code></a></td>
+<td align="left">Wrapper to device context which calls BeginPaint/EndPaint automatically with double-buffer.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="download.h"><code>download</code></a></td>
+<td align="left">Automates internet download operations.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="executable.h"><code>executable</code></a></td>
+<td align="left">Executable-related utilities.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="file.h"><code>file</code></a></td>
+<td align="left">Wrapper to a low-level HANDLE of a file.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="file_ini.h"><code>file_ini</code></a></td>
+<td align="left">Wrapper to INI file.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="file_mapped.h"><code>file_mapped</code></a></td>
+<td align="left">Wrapper to a memory-mapped file.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="font.h"><code>font</code></a></td>
+<td align="left">Wrapper to HFONT handle.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="icon.h"><code>icon</code></a></td>
+<td align="left">Wrapper to HICON handle.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="image_list.h"><code>image_list</code></a></td>
+<td align="left">Wrapper to image list object from Common Controls library.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="insert_order_map.h"><code>insert_order_map</code></a></td>
+<td align="left">Vector-based associative container which keeps the insertion order.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="label.h"><code>label</code></a></td>
+<td align="left">Wrapper to native static text control.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="listview.h"><code>listview</code></a></td>
+<td align="left">Wrapper to listview control from Common Controls library.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="menu.h"><code>menu</code></a></td>
+<td align="left">Wrapper to HMENU handle.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="path.h"><code>path</code></a></td>
+<td align="left">Utilities to file path operations with std::wstring.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="progress_taskbar.h"><code>progress_taskbar</code></a></td>
+<td align="left">Allows to show a progress bar in the taskbar button of the window, in green, yellow or red.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="progressbar.h"><code>progressbar</code></a></td>
+<td align="left">Wrapper to progressbar control from Common Controls library.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="radio.h"><code>radio</code></a></td>
+<td align="left">Wrapper to native radio button control.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="radio_group.h"><code>radio_group</code></a></td>
+<td align="left">Automates a group of native radio buttons.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="resizer.h"><code>resizer</code></a></td>
+<td align="left">Allows the resizing of multiple controls when the parent window is resized.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="scrollinfo.h"><code>scrollinfo</code></a></td>
+<td align="left">Automates SCROLLINFO operations.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="statusbar.h"><code>statusbar</code></a></td>
+<td align="left">Wrapper to status control from Common Controls library.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="str.h"><code>str</code></a></td>
+<td align="left">Utilities to std::wstring.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="subclass.h"><code>subclass</code></a></td>
+<td align="left">Manages window subclassing for a window.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="sysdlg.h"><code>sysdlg</code></a></td>
+<td align="left">Wrappers to system dialogs.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="syspath.h"><code>syspath</code></a></td>
+<td align="left">Retrieves system paths.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="textbox.h"><code>textbox</code></a></td>
+<td align="left">Wrapper to native edit box control.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="treeview.h"><code>treeview</code></a></td>
+<td align="left">Wrapper to treeview control from Common Controls library.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="vec.h"><code>vec</code></a></td>
+<td align="left">Utilities to std::vector.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="version.h"><code>version</code></a></td>
+<td align="left">Parses version information from an EXE or DLL.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="wnd.h"><code>wnd</code></a></td>
+<td align="left">Simple HWND wrapper, base to all dialog and window classes.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="xml.h"><code>xml</code></a></td>
+<td align="left">XML wrapper class to MSXML2 Windows library.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="zip.h"><code>zip</code></a></td>
+<td align="left">Utilities to work with zipped files.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="license">5. License</h2>
+<p>Licensed under <a href="https://opensource.org/licenses/MIT">MIT license</a>, see <a href="LICENSE.txt" class="uri">LICENSE.txt</a> for details.</p>

@@ -1,0 +1,223 @@
+<h1 id="spdlog">spdlog</h1>
+<p>Very fast, header-only/compiled, C++ logging library. <a href="https://travis-ci.org/gabime/spdlog"><img src="https://travis-ci.org/gabime/spdlog.svg?branch=master" alt="Build Status" /></a>  <a href="https://ci.appveyor.com/project/gabime/spdlog"><img src="https://ci.appveyor.com/api/projects/status/d2jnxclg20vd0o50?svg=true" alt="Build status" /></a></p>
+<h2 id="install">Install</h2>
+<h4 id="header-only-version">Header only version</h4>
+<p>Copy the source <a href="https://github.com/gabime/spdlog/tree/v1.x/include/spdlog">folder</a> to your build tree and use a C++11 compiler.</p>
+<h4 id="static-lib-version-recommended---much-faster-compile-times-v1.4.0">Static lib version (recommended - much faster compile times, v1.4.0)</h4>
+<pre class="console"><code>$ git clone https://github.com/gabime/spdlog.git
+$ cd spdlog &amp;&amp; mkdir build &amp;&amp; cd build
+$ cmake .. &amp;&amp; make -j</code></pre>
+<p>see example <a href="https://github.com/gabime/spdlog/blob/v1.x/example/CMakeLists.txt">CMakeLists.txt</a> on how to use.</p>
+<h2 id="platforms">Platforms</h2>
+<ul>
+<li>Linux, FreeBSD, OpenBSD, Solaris, AIX</li>
+<li>Windows (msvc 2013+, cygwin)</li>
+<li>macOS (clang 3.5+)</li>
+<li>Android</li>
+</ul>
+<h2 id="package-managers">Package managers:</h2>
+<ul>
+<li>Homebrew: <code>brew install spdlog</code></li>
+<li>FreeBSD: <code>cd /usr/ports/devel/spdlog/ &amp;&amp; make install clean</code></li>
+<li>Fedora: <code>yum install spdlog</code></li>
+<li>Gentoo: <code>emerge dev-libs/spdlog</code></li>
+<li>Arch Linux: <code>yaourt -S spdlog-git</code></li>
+<li>vcpkg: <code>vcpkg install spdlog</code></li>
+</ul>
+<h2 id="features">Features</h2>
+<ul>
+<li>Very fast (see <a href="#benchmarks">benchmarks</a> below).</li>
+<li>Headers only, just copy and use. Or use as a compiled library.</li>
+<li>Feature rich formatting, using the excellent <a href="https://github.com/fmtlib/fmt">fmt</a> library.</li>
+<li><strong>New!</strong> <a href="#backtrace-support">Backtrace</a> support - store debug or other messages in a ring buffer and display later on demand.</li>
+<li>Fast asynchronous mode (optional)</li>
+<li><a href="https://github.com/gabime/spdlog/wiki/3.-Custom-formatting">Custom</a> formatting.</li>
+<li>Multi/Single threaded loggers.</li>
+<li>Various log targets:
+<ul>
+<li>Rotating log files.</li>
+<li>Daily log files.</li>
+<li>Console logging (colors supported).</li>
+<li>syslog.</li>
+<li>Windows debugger (<code>OutputDebugString(..)</code>)</li>
+<li>Easily extendable with custom log targets (just implement a single function in the <a href="include/spdlog/sinks/sink.h">sink</a> interface).</li>
+</ul></li>
+<li>Severity based filtering - threshold levels can be modified in runtime as well as in compile time.</li>
+</ul>
+<h2 id="usage-samples">Usage samples</h2>
+<h4 id="basic-usage">Basic usage</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/spdlog.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span>
+
+<span class="dt">int</span> main() 
+{
+    spdlog::info(<span class="st">&quot;Welcome to spdlog!&quot;</span>);
+    spdlog::error(<span class="st">&quot;Some error message with arg: {}&quot;</span>, <span class="dv">1</span>);
+    
+    spdlog::warn(<span class="st">&quot;Easy padding in numbers like {:08d}&quot;</span>, <span class="dv">12</span>);
+    spdlog::critical(<span class="st">&quot;Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}&quot;</span>, <span class="dv">42</span>);
+    spdlog::info(<span class="st">&quot;Support for floats {:03.2f}&quot;</span>, <span class="fl">1.23456</span>);
+    spdlog::info(<span class="st">&quot;Positional args are {1} {0}..&quot;</span>, <span class="st">&quot;too&quot;</span>, <span class="st">&quot;supported&quot;</span>);
+    spdlog::info(<span class="st">&quot;{:&lt;30}&quot;</span>, <span class="st">&quot;left aligned&quot;</span>);
+    
+    spdlog::set_level(spdlog::level::debug); <span class="co">// Set global log level to debug</span>
+    spdlog::debug(<span class="st">&quot;This message should be displayed..&quot;</span>);    
+    
+    <span class="co">// change log pattern</span>
+    spdlog::set_pattern(<span class="st">&quot;[</span><span class="sc">%H:%</span><span class="st">M:%S %z] [%n] [</span><span class="sc">%^---%</span><span class="st">L---%$] [thread %t] %v&quot;</span>);
+    
+    <span class="co">// Compile time log levels</span>
+    <span class="co">// define SPDLOG_ACTIVE_LEVEL to desired level</span>
+    SPDLOG_TRACE(<span class="st">&quot;Some trace message with param {}&quot;</span>, {});
+    SPDLOG_DEBUG(<span class="st">&quot;Some debug message&quot;</span>);
+    
+    <span class="co">// Set the default logger to file logger</span>
+    <span class="kw">auto</span> file_logger = spdlog::basic_logger_mt(<span class="st">&quot;basic_logger&quot;</span>, <span class="st">&quot;logs/basic.txt&quot;</span>);
+    spdlog::set_default_logger(file_logger);            
+}</code></pre></div>
+<h4 id="create-stdoutstderr-logger-object">create stdout/stderr logger object</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/spdlog.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/stdout_color_sinks.h&quot;</span>
+<span class="dt">void</span> stdout_example()
+{
+    <span class="co">// create color multi threaded logger</span>
+    <span class="kw">auto</span> console = spdlog::stdout_color_mt(<span class="st">&quot;console&quot;</span>);    
+    <span class="kw">auto</span> err_logger = spdlog::stderr_color_mt(<span class="st">&quot;stderr&quot;</span>);    
+    spdlog::get(<span class="st">&quot;console&quot;</span>)-&gt;info(<span class="st">&quot;loggers can be retrieved from a global registry using the spdlog::get(logger_name)&quot;</span>);
+}</code></pre></div>
+<h4 id="rotating-files">Rotating files</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/rotating_file_sink.h&quot;</span>
+<span class="dt">void</span> rotating_example()
+{
+    <span class="co">// Create a file rotating logger with 5mb size max and 3 rotated files</span>
+    <span class="kw">auto</span> rotating_logger = spdlog::rotating_logger_mt(<span class="st">&quot;some_logger_name&quot;</span>, <span class="st">&quot;logs/rotating.txt&quot;</span>, <span class="dv">1048576</span> * <span class="dv">5</span>, <span class="dv">3</span>);
+}</code></pre></div>
+<h4 id="backtrace-support">Backtrace support</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Loggers can store in a ring buffer all messages (including debug/trace) and display later on demand.</span>
+<span class="co">// When needed, call dump_backtrace() to see them</span>
+spdlog::enable_backtrace(<span class="dv">32</span>); <span class="co">// create ring buffer with capacity of 32  messages</span>
+<span class="co">// or my_logger-&gt;enable_backtrace(32)..</span>
+<span class="cf">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">100</span>; i++)
+{
+  spdlog::debug(<span class="st">&quot;Backtrace message {}&quot;</span>, i); <span class="co">// not logged yet..</span>
+}
+<span class="co">// e.g. if some error happened:</span>
+spdlog::dump_backtrace(); <span class="co">// log them now! show the last 32 messages</span>
+
+<span class="co">// or my_logger-&gt;dump_backtrace(32)..</span></code></pre></div>
+<h4 id="log-binary-data-in-hex">Log binary data in hex</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// many types of std::container&lt;char&gt; types can be used.</span>
+<span class="co">// ranges are supported too.</span>
+<span class="co">// format flags:</span>
+<span class="co">// {:X} - print in uppercase.</span>
+<span class="co">// {:s} - don&#39;t separate each byte with space.</span>
+<span class="co">// {:p} - don&#39;t print the position on each line start.</span>
+<span class="co">// {:n} - don&#39;t split the output to lines.</span>
+
+<span class="pp">#include </span><span class="im">&quot;spdlog/fmt/bin_to_hex.h&quot;</span>
+
+<span class="dt">void</span> binary_example()
+{
+    <span class="kw">auto</span> console = spdlog::get(<span class="st">&quot;console&quot;</span>);
+    <span class="bu">std::</span>array&lt;<span class="dt">char</span>, <span class="dv">80</span>&gt; buf;
+    console-&gt;info(<span class="st">&quot;Binary example: {}&quot;</span>, spdlog::to_hex(buf));
+    console-&gt;info(<span class="st">&quot;Another binary example:{:n}&quot;</span>, spdlog::to_hex(<span class="bu">std::</span>begin(buf), <span class="bu">std::</span>begin(buf) + <span class="dv">10</span>));
+    <span class="co">// more examples:</span>
+    <span class="co">// logger-&gt;info(&quot;uppercase: {:X}&quot;, spdlog::to_hex(buf));</span>
+    <span class="co">// logger-&gt;info(&quot;uppercase, no delimiters: {:Xs}&quot;, spdlog::to_hex(buf));</span>
+    <span class="co">// logger-&gt;info(&quot;uppercase, no delimiters, no position info: {:Xsp}&quot;, spdlog::to_hex(buf));</span>
+}</code></pre></div>
+<h4 id="asynchronous-logging">Asynchronous logging</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/async.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span>
+<span class="dt">void</span> async_example()
+{
+    <span class="co">// default thread pool settings can be modified *before* creating the async logger:</span>
+    <span class="co">// spdlog::init_thread_pool(8192, 1); // queue with 8k items and 1 backing thread.</span>
+    <span class="kw">auto</span> async_file = spdlog::basic_logger_mt&lt;spdlog::async_factory&gt;(<span class="st">&quot;async_file_logger&quot;</span>, <span class="st">&quot;logs/async_log.txt&quot;</span>);
+    <span class="co">// alternatively:</span>
+    <span class="co">// auto async_file = spdlog::create_async&lt;spdlog::sinks::basic_file_sink_mt&gt;(&quot;async_file_logger&quot;, &quot;logs/async_log.txt&quot;);   </span>
+}</code></pre></div>
+<h4 id="user-defined-types">User defined types</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// user defined types logging by implementing operator&lt;&lt;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/fmt/ostr.h&quot;</span><span class="pp"> </span><span class="co">// must be included</span>
+<span class="kw">struct</span> <span class="dt">my_type</span>
+{
+    <span class="dt">int</span> i;
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> OStream&gt;
+    <span class="kw">friend</span> OStream &amp;<span class="kw">operator</span>&lt;&lt;(OStream &amp;os, <span class="at">const</span> <span class="dt">my_type</span> &amp;c)
+    {
+        <span class="cf">return</span> os &lt;&lt; <span class="st">&quot;[my_type i=&quot;</span> &lt;&lt; c.i &lt;&lt; <span class="st">&quot;]&quot;</span>;
+    }
+};
+
+<span class="dt">void</span> user_defined_example()
+{
+    spdlog::get(<span class="st">&quot;console&quot;</span>)-&gt;info(<span class="st">&quot;user defined type: {}&quot;</span>, <span class="dt">my_type</span>{<span class="dv">14</span>});
+}</code></pre></div>
+<h4 id="syslog">syslog</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/syslog_sink.h&quot;</span>
+<span class="dt">void</span> syslog_example()
+{
+    <span class="bu">std::</span>string ident = <span class="st">&quot;spdlog-example&quot;</span>;
+    <span class="kw">auto</span> syslog_logger = spdlog::syslog_logger_mt(<span class="st">&quot;syslog&quot;</span>, ident, LOG_PID);
+    syslog_logger-&gt;warn(<span class="st">&quot;This is warning that will end up in syslog.&quot;</span>);
+}</code></pre></div>
+<hr />
+<h4 id="android-example">Android example</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/android_sink.h&quot;</span>
+<span class="dt">void</span> android_example()
+{
+    <span class="bu">std::</span>string tag = <span class="st">&quot;spdlog-android&quot;</span>;
+    <span class="kw">auto</span> android_logger = spdlog::android_logger_mt(<span class="st">&quot;android&quot;</span>, tag);
+    android_logger-&gt;critical(<span class="st">&quot;Use </span><span class="sc">\&quot;</span><span class="st">adb shell logcat</span><span class="sc">\&quot;</span><span class="st"> to view this message.&quot;</span>);
+}</code></pre></div>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Below are some <a href="https://github.com/gabime/spdlog/blob/v1.x/bench/bench.cpp">benchmarks</a> done in Ubuntu 64 bit, Intel i7-4770 CPU @ 3.40GHz</p>
+<h4 id="synchronous-mode">Synchronous mode</h4>
+<pre><code>[info] **************************************************************
+[info] Single thread, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_st         Elapsed: 0.17 secs        5,777,626/sec
+[info] rotating_st      Elapsed: 0.18 secs        5,475,894/sec
+[info] daily_st         Elapsed: 0.20 secs        5,062,659/sec
+[info] empty_logger     Elapsed: 0.07 secs       14,127,300/sec
+[info] **************************************************************
+[info] C-string (400 bytes). Single thread, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_st         Elapsed: 0.41 secs        2,412,483/sec
+[info] rotating_st      Elapsed: 0.72 secs        1,389,196/sec
+[info] daily_st         Elapsed: 0.42 secs        2,393,298/sec
+[info] null_st          Elapsed: 0.04 secs       27,446,957/sec
+[info] **************************************************************
+[info] 10 threads sharing same logger, 1,000,000 iterations
+[info] **************************************************************
+[info] basic_mt         Elapsed: 0.60 secs        1,659,613/sec
+[info] rotating_mt      Elapsed: 0.62 secs        1,612,493/sec
+[info] daily_mt         Elapsed: 0.61 secs        1,638,305/sec
+[info] null_mt          Elapsed: 0.16 secs        6,272,758/sec</code></pre>
+<h4 id="asynchronous-mode">ASynchronous mode</h4>
+<pre><code>[info] -------------------------------------------------
+[info] Messages     : 1,000,000
+[info] Threads      : 10
+[info] Queue        : 8,192 slots
+[info] Queue memory : 8,192 x 272 = 2,176 KB 
+[info] Total iters  : 3
+[info] -------------------------------------------------
+[info] 
+[info] *********************************
+[info] Queue Overflow Policy: block
+[info] *********************************
+[info] Elapsed: 1.70784 secs     585,535/sec
+[info] Elapsed: 1.69805 secs     588,910/sec
+[info] Elapsed: 1.7026 secs      587,337/sec
+[info] 
+[info] *********************************
+[info] Queue Overflow Policy: overrun
+[info] *********************************
+[info] Elapsed: 0.372816 secs    2,682,285/sec
+[info] Elapsed: 0.379758 secs    2,633,255/sec
+[info] Elapsed: 0.373532 secs    2,677,147/sec
+</code></pre>
+<h2 id="documentation">Documentation</h2>
+<p>Documentation can be found in the <a href="https://github.com/gabime/spdlog/wiki/1.-QuickStart">wiki</a> pages.</p>

@@ -1,0 +1,47 @@
+<p>Snappy, a fast compressor/decompressor.</p>
+<p><a href="https://travis-ci.org/google/snappy"><img src="https://travis-ci.org/google/snappy.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/pwnall/leveldb"><img src="https://ci.appveyor.com/api/projects/status/t9nubcqkwo8rw8yn/branch/master?svg=true" alt="Build status" /></a></p>
+<h1 id="introduction">Introduction</h1>
+<p>Snappy is a compression/decompression library. It does not aim for maximum compression, or compatibility with any other compression library; instead, it aims for very high speeds and reasonable compression. For instance, compared to the fastest mode of zlib, Snappy is an order of magnitude faster for most inputs, but the resulting compressed files are anywhere from 20% to 100% bigger. (For more information, see “Performance”, below.)</p>
+<p>Snappy has the following properties:</p>
+<ul>
+<li>Fast: Compression speeds at 250 MB/sec and beyond, with no assembler code. See “Performance” below.</li>
+<li>Stable: Over the last few years, Snappy has compressed and decompressed petabytes of data in Google’s production environment. The Snappy bitstream format is stable and will not change between versions.</li>
+<li>Robust: The Snappy decompressor is designed not to crash in the face of corrupted or malicious input.</li>
+<li>Free and open source software: Snappy is licensed under a BSD-type license. For more information, see the included COPYING file.</li>
+</ul>
+<p>Snappy has previously been called “Zippy” in some Google presentations and the like.</p>
+<h1 id="performance">Performance</h1>
+<p>Snappy is intended to be fast. On a single core of a Core i7 processor in 64-bit mode, it compresses at about 250 MB/sec or more and decompresses at about 500 MB/sec or more. (These numbers are for the slowest inputs in our benchmark suite; others are much faster.) In our tests, Snappy usually is faster than algorithms in the same class (e.g. LZO, LZF, QuickLZ, etc.) while achieving comparable compression ratios.</p>
+<p>Typical compression ratios (based on the benchmark suite) are about 1.5-1.7x for plain text, about 2-4x for HTML, and of course 1.0x for JPEGs, PNGs and other already-compressed data. Similar numbers for zlib in its fastest mode are 2.6-2.8x, 3-7x and 1.0x, respectively. More sophisticated algorithms are capable of achieving yet higher compression rates, although usually at the expense of speed. Of course, compression ratio will vary significantly with the input.</p>
+<p>Although Snappy should be fairly portable, it is primarily optimized for 64-bit x86-compatible processors, and may run slower in other environments. In particular:</p>
+<ul>
+<li>Snappy uses 64-bit operations in several places to process more data at once than would otherwise be possible.</li>
+<li>Snappy assumes unaligned 32 and 64-bit loads and stores are cheap. On some platforms, these must be emulated with single-byte loads and stores, which is much slower.</li>
+<li>Snappy assumes little-endian throughout, and needs to byte-swap data in several places if running on a big-endian platform.</li>
+</ul>
+<p>Experience has shown that even heavily tuned code can be improved. Performance optimizations, whether for 64-bit x86 or other platforms, are of course most welcome; see “Contact”, below.</p>
+<h1 id="building">Building</h1>
+<p>You need the CMake version specified in <a href="./CMakeLists.txt">CMakeLists.txt</a> or later to build:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="fu">git</span> submodule update --init</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="fu">mkdir</span> build</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="bu">cd</span> build <span class="kw">&amp;&amp;</span> <span class="fu">cmake</span> ../ <span class="kw">&amp;&amp;</span> <span class="fu">make</span></span></code></pre></div>
+<h1 id="usage">Usage</h1>
+<p>Note that Snappy, both the implementation and the main interface, is written in C++. However, several third-party bindings to other languages are available; see the <a href="docs/README.md">home page</a> for more information. Also, if you want to use Snappy from C code, you can use the included C bindings in snappy-c.h.</p>
+<p>To use Snappy from your own C++ program, include the file “snappy.h” from your calling file, and link against the compiled library.</p>
+<p>There are many ways to call Snappy, but the simplest possible is</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>snappy::Compress(input.data(), input.size(), &amp;output);</span></code></pre></div>
+<p>and similarly</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>snappy::Uncompress(input.data(), input.size(), &amp;output);</span></code></pre></div>
+<p>where “input” and “output” are both instances of std::string.</p>
+<p>There are other interfaces that are more flexible in various ways, including support for custom (non-array) input sources. See the header file for more information.</p>
+<h1 id="tests-and-benchmarks">Tests and benchmarks</h1>
+<p>When you compile Snappy, the following binaries are compiled in addition to the library itself. You do not need them to use the compressor from your own library, but they are useful for Snappy development.</p>
+<ul>
+<li><code>snappy_benchmark</code> contains microbenchmarks used to tune compression and decompression performance.</li>
+<li><code>snappy_unittests</code> contains unit tests, verifying correctness on your machine in various scenarios.</li>
+<li><code>snappy_test_tool</code> can benchmark Snappy against a few other compression libraries (zlib, LZO, LZF, and QuickLZ), if they were detected at configure time. To benchmark using a given file, give the compression algorithm you want to test Snappy against (e.g. –zlib) and then a list of one or more file names on the command line.</li>
+</ul>
+<p>If you want to change or optimize Snappy, please run the tests and benchmarks to verify you have not broken anything.</p>
+<p>The testdata/ directory contains the files used by the microbenchmarks, which should provide a reasonably balanced starting point for benchmarking. (Note that baddata[1-3].snappy are not intended as benchmarks; they are used to verify correctness in the presence of corrupted data in the unit test.)</p>
+<h1 id="contact">Contact</h1>
+<p>Snappy is distributed through GitHub. For the latest version and other information, see https://github.com/google/snappy.</p>

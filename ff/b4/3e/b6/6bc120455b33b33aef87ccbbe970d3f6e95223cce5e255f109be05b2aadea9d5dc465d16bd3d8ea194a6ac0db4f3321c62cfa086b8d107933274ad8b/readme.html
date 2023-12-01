@@ -1,0 +1,289 @@
+<h1 id="vivid">vivid 🌈</h1>
+<p>A simple-to-use <code>cpp</code> color library</p>
+<ul>
+<li><strong>strongly-typed</strong> colors</li>
+<li>safe color space <strong>conversions</strong></li>
+<li>perceptual color <strong>interpolation</strong></li>
+<li>popular and custom <strong>color maps</strong></li>
+<li><strong>xterm</strong> names and <strong>ansi</strong> codes</li>
+<li>ansi <strong>escape sequences</strong> and <strong>html</strong> encoding</li>
+<li>(somewhat™) <strong>unit tested</strong> in itself and against <code>QColor</code></li>
+<li><strong>qmake</strong> and <strong>cmake</strong> support</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> vivid;
+
+<span class="co">//  create and interpolate colors</span>
+Color c1( <span class="st">&quot;indianred&quot;</span> );
+Color c2( { <span class="fl">0.f</span>, <span class="fl">0.4f</span>, <span class="fl">0.5f</span> }, Color::Space::Hsl );
+
+<span class="kw">auto</span> interp = lerpLch( c1, c2, <span class="fl">0.5f</span> );   <span class="co">//  perceptual interpolation in L*C*h(ab)</span>
+<span class="bu">std::</span>string hex = interp.hex();
+
+<span class="co">//  quick access to popular colormaps for data visualization</span>
+ColorMap cmap( ColorMap::Preset::Viridis );
+Color mid = cmap.at( <span class="fl">0.5f</span> );
+
+<span class="co">//  ansi and html encodings</span>
+<span class="bu">std::</span>cout &lt;&lt; ansi::subtleText &lt;&lt; <span class="st">&quot;woah&quot;</span> &lt;&lt; ansi::fg( c1 ) &lt;&lt; <span class="st">&quot;!!&quot;</span> &lt;&lt; ansi::reset;
+fout &lt;&lt; html::bg( <span class="st">&quot;#abc123&quot;</span> ) &lt;&lt; <span class="st">&quot;styled background color&quot;</span> &lt;&lt; html::close;</code></pre></div>
+<h2 id="content">Content</h2>
+<!-- TOC depthFrom:2 depthTo:2 withLinks:1 updateOnSave:1 orderedList:0 -->
+<ul>
+<li><a href="#content">Content</a></li>
+<li><a href="#motivation">Motivation</a></li>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#dependencies">Dependencies</a></li>
+<li><a href="#types">Types</a></li>
+<li><a href="#color-spaces">Color Spaces</a></li>
+<li><a href="#interpolation">Interpolation</a></li>
+<li><a href="#color-maps">Color Maps</a></li>
+<li><a href="#encodings">Encodings</a></li>
+<li><a href="#attributions">Attributions</a></li>
+</ul>
+<!-- /TOC -->
+<h2 id="motivation">Motivation</h2>
+<p>Things we create should be beautiful. Be it a console log message or a real-time volumetric data plot. I'm working with colors quite often, but found the available means to work with them lacking. Especially if you want to just get stuff (he said stuff) done and your ideas down in code. Over time, I gathered all the little snippets and helpers I had created, and thus this project was born.</p>
+<p><code>vivid</code> allows you to quickly create, lookup and convert colors. It provides perceptual color interpolation, easy access to color names, ascii escape codes and to some of the great data visualization color palettes out there.</p>
+<h2 id="getting-started">Getting Started</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone git@github.com:gurki/vivid.git
+<span class="fu">git</span> submodule update --init</code></pre></div>
+<p>This repository comes with support for both <code>qmake</code> (<em>vivid.pri</em>) and <code>cmake</code> projects. You can try it out by simply opening up <code>examples/qmake/vivid.pro</code> in <code>Qt Creator</code>, or running</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build
+<span class="fu">cmake</span> .. <span class="kw">&amp;&amp;</span> <span class="fu">make</span>
+<span class="ex">./examples/cmake/vivid_example</span></code></pre></div>
+<h2 id="dependencies">Dependencies</h2>
+<p><code>vivid</code> depends on a small number of header-only libraries, which are mostly included as submodules.</p>
+<ul>
+<li>Nlohmann's great <a href="https://github.com/nlohmann/json">Json for Modern C++</a> to load color names and color maps</li>
+<li><a href="https://github.com/g-truc/glm">OpenGL Mathematics (GLM)</a> for vector type and operations</li>
+<li><a href="https://github.com/catchorg/Catch2/tree/master/examples">Catch2</a> for testing</li>
+</ul>
+<h2 id="types">Types</h2>
+<p><code>vivid</code> provides a convenient high-level <code>Color</code> class, which is intended to be flexible and easy to use. It stores the <code>value</code> (<em>col_t</em>) and its associated <code>space</code> <em>∈ {<code>RGB</code>, <code>HSV</code>, <code>HSL</code>, <code>LCH</code>}</em> of the underlying type. <code>Colors</code> can be implicitly constructed from any of above native color spaces and their representations (c.f. <em>include/vivid/color.h</em>).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  instantiation</span>
+Color col1( <span class="st">&quot;#abcdef&quot;</span> );
+Color col2 = { <span class="dv">255</span>, <span class="dv">0</span>, <span class="dv">128</span> };
+Color col3 = { { <span class="fl">1.f</span>, <span class="fl">0.3f</span>, <span class="fl">0.6f</span> }, Color::SpaceHsl };</code></pre></div>
+<p>Conversions to other color spaces are directly available using e.g. <code>col.hsl()</code> or <code>col.hex()</code>. Moving to one of the four native spaces will return another <code>Color</code> instance with its <code>value</code> converted and <code>space</code> set accordingly.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  native conversion</span>
+Color conv = col1.hsl();    <span class="co">//  convert to hsl, whatever the current space</span>
+col1.spaceInfo();   <span class="co">//  rgb</span>
+conv.spaceInfo();   <span class="co">//  hsl</span></code></pre></div>
+<p><code>8-bit</code> colors are represented using either byte-triplets (<em>col8_t</em>) or compactly as <code>ARGB</code> (<em>uint32_t</em>), where alpha is set to <code>0xff</code> by default. Lossy conversion, e.g. getting the name or index of some non-xterm color, will return the closest valid color/value in that space.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  lossy conversion</span>
+Color original( <span class="st">&quot;#a1b2c3&quot;</span> );
+Color lossy = original.index(); <span class="co">//  clamps to nearest ansi color code</span>
+original.hex(); <span class="co">//  #a1b2c3</span>
+lossy.hex();    <span class="co">//  #afafd7</span></code></pre></div>
+<h3 id="strong-typing">Strong Typing</h3>
+<p>Under the hood, <code>vivid</code> uses <em>inheritance-based strong typing</em>. This means, that the compiler will give you a heads-up if e.g. you're trying to convert from the wrong color. This also enables <code>Colors</code> to be implicitly initialized from the native spaces.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  type-safe conversions</span>
+<span class="dt">rgb_t</span> col1 = { <span class="fl">1.f</span>, <span class="fl">0.f</span>, <span class="fl">0.4f</span> };
+<span class="dt">hsl_t</span> col2 = hsl::fromHsv( col1 );
+<span class="co">//  [...] error: no viable conversion from &#39;vivid::rgb_t&#39; to &#39;const vivid::hsv_t&#39;</span>
+
+<span class="co">//  implicit initialization from native spaces</span>
+Color col3 = <span class="dt">lch_t</span>( <span class="fl">93.f</span>, <span class="fl">104.5f</span>, <span class="fl">272.3f</span> );
+Color col4 = <span class="dt">xyz_t</span>( <span class="fl">0.f</span>, <span class="fl">0.f</span>, <span class="fl">1.f</span> );
+<span class="co">//  [...] error: no viable conversion from &#39;vivid::xyz_t&#39; to &#39;vivid::Color&#39;</span></code></pre></div>
+<p>If need be, you can always explicitly cast <code>col_t</code> to other spaces. This simplifies color handling and allows for some flexibility, but also introduces the risk of manually circumventing the type system, so use with care.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  explicit type casts</span>
+<span class="kw">auto</span> srgb = <span class="dt">srgb_t</span>( col1 ); <span class="co">//  init child from parent</span>
+
+glm::vec3 src = { <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span> };
+<span class="kw">auto</span> xyz = <span class="kw">static_cast</span>&lt;<span class="dt">xyz_t</span>&gt;( src );   <span class="co">//  init from external source</span></code></pre></div>
+<h3 id="color-math">Color Math</h3>
+<p>The base type <em>col_t</em> aliases directly to <em>glm::vec&lt;3, float&gt;</em> (c.f. <em>include/vivid/types.h</em>). This allows effective and efficient use of colors, providing all of <code>glm</code>'s vector goodness right out of the box.</p>
+<details><summary>Click to expand example</summary>
+<p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  some uses of _glm_ in _vivid_</span>
+
+<span class="dt">rgb_t</span> saturate( <span class="at">const</span> <span class="dt">rgb_t</span>&amp; rgb ) {
+    <span class="cf">return</span> glm::clamp( rgb, <span class="fl">0.f</span>, <span class="fl">1.f</span> );
+}
+
+<span class="kw">inline</span> glm::mat3 workingSpaceMatrix( ... ) {
+    <span class="co">//  ...</span>
+    <span class="at">const</span> glm::vec3 S = glm::inverse( K ) * XYZ;
+    <span class="cf">return</span> K * glm::diagonal3x3( S );
+}</code></pre></div>
+</p>
+<p></details></p>
+<h2 id="color-spaces">Color Spaces</h2>
+<p>Under the hood, <code>vivid</code> uses an extensive set of strongly-typed conversions between color spaces (c.f. <em>include/vivid/conversion.h</em>). All of these methods are built in a functional way, where colors get passed through converters, yielding new colors in different spaces. The following direct conversions are currently available.</p>
+<pre><code>adobe ← xyz
+hex ← rgb8
+hsl ← rgb
+hsv ← rgb
+index ← name, rgb8
+lab ← lch, xyz
+lch ← lab
+lrgb ← srgb
+name ← index
+rgb ← hsl, hsv, rgb8
+rgb32 ← hex, rgb
+rgb8 ← rgb, rgb32
+srgb ← index, lrgb, xyz
+xyz ← adobe, lab, srgb</code></pre>
+<h3 id="working-spaces">Working Spaces</h3>
+<pre><code>Note: You can use this library as high- or low-level as you like!</code></pre>
+<details><summary>Click to expand section</summary>
+<p>
+<p>The <code>Color</code> class assumes a default <code>sRGB</code> working space. Specifically, the conversion between <code>RGB</code> and <code>XYZ</code> applies <code>sRGB</code> compounding and inverse compounding. You can however extend this freely and work with custom color spaces using the low-level API. If you have no idea what I just said, don't worry - I didn't either a couple weeks ago :).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  manual wide-gamut rgb to xyz conversion</span>
+
+<span class="dt">rgb_t</span> wg = { <span class="fl">1.f</span>, <span class="fl">0.f</span>, <span class="fl">0.f</span> };
+
+<span class="co">//  working space matrix from primary color chromaticities and white point</span>
+<span class="at">const</span> glm::vec3 ciex = { <span class="fl">0.7347f</span>, <span class="fl">0.1152f</span>, <span class="fl">0.1566f</span> };
+<span class="at">const</span> glm::vec3 ciey = { <span class="fl">0.2653f</span>, <span class="fl">0.8264f</span>, <span class="fl">0.0177f</span> };
+<span class="at">const</span> <span class="kw">auto</span> wg_to_xyz = workingSpaceMatrix( profiles::xy_d50, ciex, ciey );
+
+<span class="co">//  linearized rgb via inverse gamma compounding</span>
+<span class="at">const</span> <span class="dt">float</span> gamma = <span class="fl">2.19921875f</span>;
+<span class="kw">auto</span> linear = rgb::gamma( wg, gamma );
+
+<span class="co">//  xyz with d50 white point using above linear transformation</span>
+<span class="kw">auto</span> xyz50 = <span class="dt">xyz_t</span>( wg_to_xyz * linear );
+
+<span class="co">//  xyz with d65 white point via chromatic adaptation</span>
+<span class="kw">auto</span> xyz65 = chromaticAdaptation( xyz50, profiles::xy_d50, profiles::xy_d65 );</code></pre></div>
+<p>Note that <code>vivid</code> uses the <em>D65</em> white point and <em>2° Standard Observer</em>, which is why we apply chromatic adaptation in the example above. This let's us subsequently use e.g. <code>srgb::fromXyz( xyz65 )</code>.</p>
+</p>
+<p></details></p>
+<h2 id="interpolation">Interpolation</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  pseudo-code to generate the images in this section</span>
+<span class="cf">for</span> ( <span class="kw">auto</span>&amp; pixel : image ) {
+    <span class="at">const</span> <span class="dt">float</span> t = pixel.x / image.width;
+    <span class="at">const</span> Color col = lerpLch( c1, c2, t );
+    image.setColor( pixel, col );
+}</code></pre></div>
+<p>Color interpolation is an interesting topic. What should the color halfway in-between <span style="color:rgb(178, 76, 76)">red</span> and <span style="color:rgb(25, 153, 102)">green</span> look like? There is a great article introducing this topic by Grego Aisch [^1]. In order to do a perceptually linear transition from one color to another, we can't simply linearly interpolate two <code>RGB</code>-vectors. Rather, we move to a more suitable color space, interpolate there, and then move back again. Namely, we use the <code>CIE L*C*h(ab)</code> space, or <code>LCH</code>, which matches the human visual system rather well. There are more suitable color spaces nowadays to do so, but <code>LCH</code> has a nice balance between complexity (code and computation) and outcome.</p>
+<p>Compare the following table to get an idea of interpolating in different color spaces.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Color Space</th>
+<th>Linear Interpolation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>RGB</td>
+<td><img src="docs/images/interpolations/lerpRgb.png" alt="lerp-rgb" /></td>
+</tr>
+<tr class="even">
+<td>LCH</td>
+<td><img src="docs/images/interpolations/lerpLch.png" alt="lerp-lch" /></td>
+</tr>
+<tr class="odd">
+<td>HSV</td>
+<td><img src="docs/images/interpolations/lerpHsv.png" alt="lerp-hsv" /></td>
+</tr>
+<tr class="even">
+<td>HSL (Clamped)</td>
+<td><img src="docs/images/interpolations/lerpHslClamped.png" alt="lerp-hsl-clamped" /></td>
+</tr>
+</tbody>
+</table>
+<p><code>vivid</code> provides color interpolations in the four main spaces <code>RGB</code>, <code>HSL</code>, <code>HSV</code>, <code>LCH</code>. They can be accessed directly via e.g. <code>lch_t::lerp( const lch_t&amp;, const lch_t&amp;, const float )</code>, or more conveniently via e.g. <code>lerpLch( const Color&amp;, const Color&amp;, const float )</code>.</p>
+<p>[^1] [Grego Aisch (2011) - How To Avoid Equidistant HSV Colors](https://www.vis4.net/blog/2011/12/avoid-equidistant-hsv-colors/)</p>
+<h2 id="color-maps">Color Maps</h2>
+<p><code>vivid</code> comes with a set of pre-defined color maps, which I conveniently gathered under one umbrella. Thanks to the awesome community out there for their great work! [^2,^3] As shown in the example in the beginning, it's quick and easy to query colors from a certain color map. You can also create your own maps by simply loading an according <em>*.json</em> file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//  loading a custom color map</span>
+ColorMap cmap( <span class="st">&quot;res/colormaps/mycolormap.json&quot;</span> );
+<span class="kw">auto</span> mid = cmap.at( <span class="fl">0.5f</span> );</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Image</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Inferno</td>
+<td><img src="docs/images/colormaps/inferno.png" alt="inferno" /></td>
+</tr>
+<tr class="even">
+<td>Magma</td>
+<td><img src="docs/images/colormaps/magma.png" alt="magma" /></td>
+</tr>
+<tr class="odd">
+<td>Plasma</td>
+<td><img src="docs/images/colormaps/plasma.png" alt="plasma" /></td>
+</tr>
+<tr class="even">
+<td>Viridis</td>
+<td><img src="docs/images/colormaps/viridis.png" alt="viridis" /></td>
+</tr>
+<tr class="odd">
+<td>Vivid</td>
+<td><img src="docs/images/colormaps/vivid.png" alt="vivid" /></td>
+</tr>
+<tr class="even">
+<td>Rainbow</td>
+<td><img src="docs/images/colormaps/rainbow.png" alt="vivid" /></td>
+</tr>
+<tr class="odd">
+<td>Hsl</td>
+<td><img src="docs/images/colormaps/hsl.png" alt="hsl" /></td>
+</tr>
+<tr class="even">
+<td>Hsl Pastel</td>
+<td><img src="docs/images/colormaps/hsl-pastel.png" alt="hsl-pastel" /></td>
+</tr>
+<tr class="odd">
+<td>Blue-Yellow</td>
+<td><img src="docs/images/colormaps/blue-yellow.png" alt="vivid" /></td>
+</tr>
+<tr class="even">
+<td>Cool-Warm</td>
+<td><img src="docs/images/colormaps/cool-warm.png" alt="vivid" /></td>
+</tr>
+</tbody>
+</table>
+<p>[^2] [Stefan &amp; Nathaniel - MPL Colormaps](http://bids.github.io/colormap/) <br> [^3] [SciVisColor](https://sciviscolor.org/)</p>
+<h2 id="encodings">Encodings</h2>
+<p><code>vivid</code> provides encodings for <strong>ansi</strong> escape codes (pretty console &lt;3) and <strong>html</strong> using spans.</p>
+<h3 id="console">Console</h3>
+<p>You can colorize console messages using the <code>ansi::fg()</code> and <code>ansi::bg()</code> helpers, or using one of the pre-defined constants, e.g. <code>ansi::white</code>. There's also a hand-picked set of the most useful™ and some of my favorite colors in there for you! You can take a look via <code>ansi::printColorPresets()</code>. Note, that for all of those your console must support <code>8-bit</code> colors, which however almost all modern consoles do.</p>
+<details><summary>Click to expand example</summary>
+<p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>cout &lt;&lt; ansi::fg( <span class="dv">228</span> )  &lt;&lt; <span class="st">&quot;and tada, colorized font &quot;</span>;
+<span class="bu">std::</span>cout &lt;&lt; ansi::lightRed &lt;&lt; <span class="st">&quot;(so pretty &quot;</span> &lt;&lt; ansi::red &lt;&lt; <span class="st">&quot;&lt;3&quot;</span> &lt;&lt; ansi::lightRed &lt;&lt; <span class="st">&quot;) </span><span class="sc">\n\n</span><span class="st">&quot;</span>;
+<span class="bu">std::</span>cout &lt;&lt; ansi::reset;  <span class="co">//  resets all formatting, i.e. white font, no backgorund</span>
+ansi::printColorPresets();</code></pre></div>
+<div class="figure">
+<img src="docs/images/console/color-output.png" alt="colorpresets" />
+<p class="caption">colorpresets</p>
+</div>
+</p>
+<p></details></p>
+<p>To get an overview of all available xterm colors and associated codes or quickly check if your console has 8-bit color support, you can call <code>ansi::printColorTable()</code> (shoutout to Gawin [^4] for the layout idea).</p>
+<div class="figure">
+<img src="docs/images/console/color-table.png" alt="colortable" />
+<p class="caption">colortable</p>
+</div>
+<h3 id="debugging">Debugging</h3>
+<p><code>vivid</code> in fact makes use of colored output itself! Any <code>Color</code> can be debugged using a one-line <code>Color::quickInfo()</code> or the more extensive <code>Color::info()</code>.</p>
+<div class="figure">
+<img src="docs/images/console/color-infos.png" alt="colorinfo" />
+<p class="caption">colorinfo</p>
+</div>
+<p><code>ColorMaps</code> can also be quickly visualized directly in the terminal, or used to create some joyful text effects.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">ColorMap rainbowMap( ColorMap::Preset::Rainbow );
+<span class="bu">std::</span>string text = <span class="st">&quot;How can you tell? - Raaaaaaiiiinbooooooowwws.&quot;</span>;
+<span class="bu">std::</span>cout &lt;&lt; ansi::colorize( text, rainbowMap ) &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<div class="figure">
+<img src="docs/images/console/rainbow-text.png" alt="rainbows" />
+<p class="caption">rainbows</p>
+</div>
+<h3 id="html">HTML</h3>
+<p>One of my side projects is a tagged logging system, where one of the sinks goes to html. This has become very handy.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Color col( <span class="st">&quot;LightSteelBlue&quot;</span> );
+fout &lt;&lt; html::fg( col ) &lt;&lt; <span class="st">&quot;colorized html text!&quot;</span> &lt;&lt; html::close;
+<span class="co">//  &lt;span style=&#39;color:rgb(175, 175, 255)&#39;&gt;colorized html text!&lt;/span&gt;</span></code></pre></div>
+<p>[^4] <a href="https://github.com/gawin/bash-colors-256">Gawin's xterm color demo</a></p>
+<h2 id="attributions">Attributions</h2>
+<p>Massive thanks to all the colour enthusiasts out there for references and material, without which this project would not have been possible. Shoutout and thanks to the community over at <a href="https://www.reddit.com/r/cpp/comments/bpu0hl/vivid_a_simpletouse_cpp_color_library">r/cpp</a> for comments, feedback and suggestions! &lt;3</p>

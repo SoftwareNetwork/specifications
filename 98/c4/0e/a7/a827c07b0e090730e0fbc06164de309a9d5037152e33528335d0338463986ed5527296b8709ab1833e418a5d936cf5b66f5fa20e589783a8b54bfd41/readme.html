@@ -1,0 +1,84 @@
+<h1 id="fmi4cpp-work-in-progress">FMI4cpp (work in progress)</h1>
+<p><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a> <a href="https://github.com/NTNU-IHB/FMU-proxy/issues"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions welcome" /></a> <a href="https://gitter.im/NTNU-IHB/FMI4cpp?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/NTNU-IHB/FMI4cpp.svg" alt="Join the chat at https://gitter.im/NTNU-IHB/FMI4cpp" /></a></p>
+<p><a href="https://circleci.com/gh/NTNU-IHB/FMI4cpp/tree/master"><img src="https://circleci.com/gh/NTNU-IHB/FMI4cpp/tree/master.svg?style=svg" alt="CircleCI" /></a> <a href="https://dev.azure.com/laht/laht/_build/latest?definitionId=3&amp;branchName=master"><embed src="https://dev.azure.com/laht/laht/_apis/build/status/NTNU-IHB.FMI4cpp?branchName=master" /></a></p>
+<p>FMI4cpp is a cross-platform <a href="https://fmi-standard.org/">FMI</a> 2.0 implementation written in modern C++.</p>
+<p>Influenced by it's spiritual brother <a href="https://github.com/NTNU-IHB/FMI4j">FMI4j</a>, it aims to be an easy to install, easy to use, object oriented and fast FMI implementation for C++.</p>
+<p>FMI4cpp supports both <strong>Co-simulation</strong> and <strong>Model Exchange</strong>. <br/> For Model Exchange, solvers from <a href="http://headmyshoulder.github.io/odeint-v2/doc/boost_numeric_odeint/getting_started/overview.html">odeint</a> can be used.</p>
+<h3 id="why-should-i-use-this-over-other-cc-fmi-libraries">Why should I use this over other C/C++ FMI Libraries</h3>
+<p>Because it provides a clean, easy to use API and is easy to install (through vcpkg). It perform just as good as FMI Library, provides more features and is significantly easier to both build and use.</p>
+<h2 id="install-instructions">Install instructions</h2>
+<p>Refer to <a href="INSTALL.md" class="uri">INSTALL.md</a></p>
+<h2 id="build-instructions">Build instructions</h2>
+<p>Refer to <a href="BUILDING.md" class="uri">BUILDING.md</a></p>
+<h4 id="api">API</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span><span class="pp"> </span>
+<span class="pp">#include </span><span class="im">&lt;fmi4cpp/fmi4cpp.hpp&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+<span class="kw">using</span> <span class="kw">namespace</span> fmi4cpp;
+
+<span class="at">const</span> <span class="dt">double</span> stop = ...;
+<span class="at">const</span> <span class="dt">double</span> stepSize = ...;
+
+<span class="dt">int</span> main() {
+
+    fmi2::fmu fmu(<span class="st">&quot;path/to/fmu.fmu&quot;</span>);
+    <span class="co">// or (with -DFMI4CPP_WITH_CURL=ON)</span>
+    <span class="co">// auto fmu = fmi2::fmu::from_url(&quot;http://somewebsite.org/somefmu.fmu&quot;)</span>
+    
+    <span class="kw">auto</span> cs_fmu = fmu.as_cs_fmu();
+    <span class="kw">auto</span> me_fmu = fmu.as_me_fmu();
+    
+    <span class="kw">auto</span> cs_md = cs_fmu-&gt;get_model_description(); <span class="co">//smart pointer to a cs_model_description instance</span>
+    cout &lt;&lt; <span class="st">&quot;model_identifier=&quot;</span> &lt;&lt; cs_md-&gt;model_identifier &lt;&lt; endl;
+    
+    <span class="kw">auto</span> me_md = me_fmu-&gt;get_model_description(); <span class="co">//smart pointer to a me_model_description instance</span>
+    cout &lt;&lt; <span class="st">&quot;model_identifier=&quot;</span> &lt;&lt; me_md-&gt;model_identifier &lt;&lt; endl;
+    
+    <span class="kw">auto</span> var = cs_md-&gt;get_variable_by_name(<span class="st">&quot;my_var&quot;</span>).asReal();
+    cout &lt;&lt; <span class="st">&quot;Name=&quot;</span> &lt;&lt; var.name() &lt;&lt;  <span class="st">&quot;, start=&quot;</span> &lt;&lt; var.start().value_or(<span class="dv">0</span>) &lt;&lt; endl;
+              
+    <span class="kw">auto</span> slave = cs_fmu-&gt;new_instance();
+    
+    <span class="co">// or (with -DFMI4CPP_WITH_ODEINT=ON)</span>
+    <span class="co">// auto solver = make_solver&lt;rk4_classic_solver&gt;(1E-3);</span>
+    <span class="co">// auto slave = me_fmu-&gt;new_instance(solver);</span>
+         
+    slave-&gt;setup_experiment();
+    slave-&gt;enter_initialization_mode();
+    slave-&gt;exit_initialization_mode();
+    
+    <span class="dt">double</span> t;
+    <span class="dt">double</span> value;
+    <span class="cf">while</span> ( (t = slave-&gt;get_simulation_time()) &lt;= stop) {
+
+        <span class="cf">if</span> (!slave-&gt;step(stepSize)) {
+            cerr &lt;&lt; <span class="st">&quot;Error! step() returned with status: &quot;</span> &lt;&lt; to_string(slave-&gt;last_status()) &lt;&lt; endl;
+            <span class="cf">break</span>;
+        }
+        
+        <span class="cf">if</span> (!var.read(*slave, value)) {
+            cerr &lt;&lt; <span class="st">&quot;Error! step() returned with status: &quot;</span> &lt;&lt; to_string(slave-&gt;last_status()) &lt;&lt; endl;
+            <span class="cf">break</span>;
+        }
+        cout &lt;&lt; <span class="st">&quot;t=&quot;</span> &lt;&lt; t &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; var.name() &lt;&lt; <span class="st">&quot;=&quot;</span> &lt;&lt; value &lt;&lt; endl;
+     
+    }
+    
+    slave-&gt;terminate();
+    
+    <span class="cf">return</span> <span class="dv">0</span>;
+    
+}</code></pre></div>
+<hr />
+<h3 id="fmu_driver">fmu_driver</h3>
+<p>FMI4cpp comes with a simple CLI for testing FMUs, called <em>fmu_driver</em>.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">Options</span>:
+  <span class="ex">-h</span> [ --help ]          Print this help message and quits.
+  <span class="ex">-f</span> [ --fmu ] arg       Path to FMU.
+  <span class="ex">-o</span> [ --output ] arg    Where to store the generated CSV results.
+  <span class="ex">--start</span> arg            Start time.
+  <span class="ex">--stop</span> arg             Stop time.
+  <span class="ex">--stepsize</span> arg         StepSize.
+  <span class="ex">--me</span>                   Treat FMU as an Model Exchange FMU.
+  <span class="ex">-v</span> [ --variables ] arg Variables to print.</code></pre></div>

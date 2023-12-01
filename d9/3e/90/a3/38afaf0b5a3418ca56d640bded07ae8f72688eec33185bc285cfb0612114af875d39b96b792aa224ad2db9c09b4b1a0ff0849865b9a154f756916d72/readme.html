@@ -1,0 +1,78 @@
+<h1 id="cpp-linenoise">cpp-linenoise</h1>
+<p>Multi-platfrom (Unix, Windows) C++ header-only linenoise-based readline library.</p>
+<p>This library gathered code from following excellent libraries, clean it up, and put it into a C++ header file for convenience.</p>
+<ul>
+<li><code>linenoise.h</code> and <code>linenose.c</code> (<a href="https://github.com/antirez/linenoise">antirez/linenoise</a>)</li>
+<li><code>ANSI.c</code> (<a href="https://github.com/adoxa/ansicon">adoxa/ansicon</a>)</li>
+<li><code>Win32_ANSI.h</code> and <code>Win32_ANSI.c</code> (<a href="https://github.com/MSOpenTech/redis">MSOpenTech/redis</a>)</li>
+</ul>
+<p>The licenses for the libraries are included in <code>linenoise.hpp</code>.</p>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;linenoise.hpp&quot;</span>
+
+...
+
+<span class="at">const</span> <span class="kw">auto</span> path = <span class="st">&quot;history.txt&quot;</span>;
+
+<span class="co">// Setup completion words every time when a user types</span>
+linenoise::SetCompletionCallback([](<span class="at">const</span> <span class="dt">char</span>* editBuffer, <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&amp; completions) {
+    <span class="cf">if</span> (editBuffer[<span class="dv">0</span>] == <span class="st">&#39;h&#39;</span>) {
+        completions.push_back(<span class="st">&quot;hello&quot;</span>);
+        completions.push_back(<span class="st">&quot;hello there&quot;</span>);
+    }
+});
+
+<span class="co">// Enable the multi-line mode</span>
+linenoise::SetMultiLine(<span class="kw">true</span>);
+
+<span class="co">// Set max length of the history</span>
+linenoise::SetHistoryMaxLen(<span class="dv">4</span>);
+
+<span class="co">// Load history</span>
+linenoise::LoadHistory(path);
+
+<span class="cf">while</span> (<span class="kw">true</span>) {
+    <span class="co">// Read line</span>
+    <span class="bu">std::</span>string line;
+    <span class="kw">auto</span> quit = linenoise::Readline(<span class="st">&quot;hello&gt; &quot;</span>, line);
+
+    <span class="cf">if</span> (quit) {
+        <span class="cf">break</span>;
+    }
+
+    cout &lt;&lt;  <span class="st">&quot;echo: &#39;&quot;</span> &lt;&lt; line &lt;&lt; <span class="st">&quot;&#39;&quot;</span> &lt;&lt; endl;
+
+    <span class="co">// Add text to history</span>
+    linenoise::AddHistory(line.c_str());
+}
+
+<span class="co">// Save history</span>
+linenoise::SaveHistory(path);</code></pre></div>
+<h2 id="api">API</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> linenoise;
+
+<span class="bu">std::</span>string Readline(<span class="at">const</span> <span class="dt">char</span>* prompt);
+
+<span class="dt">void</span> SetMultiLine(<span class="dt">bool</span> multiLineMode);
+
+<span class="kw">typedef</span> <span class="bu">std::</span>function&lt;<span class="dt">void</span> (<span class="at">const</span> <span class="dt">char</span>* editBuffer, <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&amp; completions)&gt; CompletionCallback;
+
+<span class="dt">void</span> SetCompletionCallback(CompletionCallback fn);
+
+<span class="dt">bool</span> SetHistoryMaxLen(<span class="dt">size_t</span> len);
+
+<span class="dt">bool</span> LoadHistory(<span class="at">const</span> <span class="dt">char</span>* path);
+
+<span class="dt">bool</span> SaveHistory(<span class="at">const</span> <span class="dt">char</span>* path);
+
+<span class="dt">bool</span> AddHistory(<span class="at">const</span> <span class="dt">char</span>* line);
+
+<span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&amp; GetHistory();</code></pre></div>
+<h2 id="tested-compilers">Tested compilers</h2>
+<ul>
+<li>Visual Studio 2015</li>
+<li>Clang 3.5</li>
+<li>GCC 6.3.1</li>
+</ul>
+<h2 id="license">License</h2>
+<p>BSD license (© 2015 Yuji Hirose)</p>

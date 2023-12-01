@@ -1,0 +1,187 @@
+<h1 id="ecs">ECS</h1>
+<p>This is a simple C++ header-only type-safe entity component system library. It makes heavy use of C++11 constructs, so make sure you have an up to date compiler. It isn't meant to do absolutely everything, so please feel free to modify it when using. There's a VS2015 solution provided, but it should compile on any standard compiler with C++11 support (C++14 is more ideal, however, as it lets you use <code>auto</code> parameters in lambdas).</p>
+<p>Again, this is meant for quick prototyping or as a starting point for a more advanced ECS toolkit. It works and it works well, but it isn't optimized for speed or anything.</p>
+<p>This has been tested on the following compilers:</p>
+<ul>
+<li>Visual Studio 2015 on Windows 10 (x64)</li>
+<li>G++ 5.4.1 (using -std=c++11 and -std=c++14) on Ubuntu 14.04 (x64)</li>
+</ul>
+<p>Contributions are welcome! Submit a pull request, or if you find a problem (or have a feature request) make a new issue!</p>
+<h2 id="tutorial">Tutorial</h2>
+<p>This ECS library is based on the <a href="http://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/">Evolve Your Hierarchy</a> article. If you haven't read it, please do or else things won't make much sense. This is a data-driven entity component system library, and to know how to work with it you need to know what that entails (this is <em>not</em> the same as Unity's components so don't expect it to be).</p>
+<h3 id="your-first-components">Your first components</h3>
+<p>Components in ECS can be any data type, but generally they'll be a struct containing some plain old data. For now, let's define two components:</p>
+<pre><code>struct Position
+{
+    Position(float x, float y) : x(x), y(y) {}
+    Position() : x(0.f), y(0.f) {}
+
+    float x;
+    float y;
+}
+
+struct Rotation
+{
+    Rotation(float angle) : angle(angle) {}
+    Rotation() : angle(0) {}
+    float angle;
+}</code></pre>
+<p>This isn't the most realistic example - normally you'd just have a single transform component for a game but this should help illustrate some functionality later. Also note that we don't have to do anything special for these structs to act as components, though there is the requirement for at least a default constructor.</p>
+<h3 id="create-a-system">Create a system</h3>
+<p>Now we need some logic to act on that data. Let's make a simple gravity system:</p>
+<pre><code>class GravitySystem : public EntitySystem
+{
+public:
+    GravitySystem(float amount)
+    {
+        gravityAmount = amount;
+    }
+    
+    virtual ~GravitySystem() {}
+    
+    virtual void tick(World* world, float deltaTime) override
+    {
+        world-&gt;each&lt;Position&gt;([&amp;](Entity* ent, ComponentHandle&lt;Position&gt; position) {
+            position-&gt;y += gravityAmount * deltaTime;
+        });
+    }
+    
+private:
+    float gravityAmount;
+}</code></pre>
+<p>This is a pretty standard class definition. We subclass <code>EntitySystem</code> and implement the <code>tick()</code> method. The world provides the <code>each</code> method, which takes a list of component types and runs a given function (in this case a lambda) on every entity that has those components. Note that the lambda is passed a <code>ComponentHandle</code>, and not the component itself.</p>
+<h4 id="alternate-iteration-methods">Alternate iteration methods</h4>
+<p>In addition to the lambda-based each, there's also an iterator-based each, made to be used with the range based for loop. Lambda-based each isn't a true loop, and as such you can't break from it. Instead, you can use a range based for loop. The downside is that it will not directly expose components as arguments, but you can combine it with <code>Entity::with</code> for a similar result:</p>
+<pre><code>for (Entity* ent : world-&gt;each&lt;Position&gt;())
+{
+    ent-&gt;with&lt;Position&gt;([&amp;](ComponentHandle&lt;Position&gt; position) {
+        position-&gt;y += gravityAmount * deltaTime;
+    });
+}</code></pre>
+<p>Alternatively, you may retrieve a single component at a time with <code>Entity::get</code>, though this will return an invalid component handle (see <code>ComponentHandle&lt;T&gt;::isValid</code> and <code>ComponentHandle&lt;T&gt;::operator bool()</code>) if there isn't a component of that type attached:</p>
+<pre><code>ComponentHandle&lt;Position&gt; position = ent-&gt;get&lt;Position&gt;();
+position-&gt;y += gravityAmount * deltaTime; // this will crash if there is no position component on the entity</code></pre>
+<p><code>with&lt;T&gt;()</code> only runs the given function if the entity has the listed components. It also returns true if all components were found, or false if not all components were on the entity.</p>
+<p>Finally, if you want to run a function on all entities, regardless of components, then use the <code>all</code> function in the same way as <code>each</code>:</p>
+<pre><code>world-&gt;all([](Entity* ent) {
+    // do something with ent
+});</code></pre>
+<p>You may also use <code>all</code> in a range based for loop in a similar fashion to <code>each</code>.</p>
+<h3 id="create-the-world">Create the world</h3>
+<p>Next, inside a <code>main()</code> function somewhere, you can add the following code to create the world, setup the system, and create an entity:</p>
+<pre><code>World* world = World::createWorld();
+world-&gt;registerSystem(new GravitySystem(-9.8f));
+
+Entity* ent = world-&gt;create();
+ent-&gt;assign&lt;Position&gt;(0.f, 0.f); // assign() takes arguments and passes them to the constructor
+ent-&gt;assign&lt;Rotation&gt;(35.f);</code></pre>
+<p>Now you can call the tick function on the world in order to tick all systems that have been registered with the world:</p>
+<pre><code>world-&gt;tick(deltaTime);</code></pre>
+<p>Once you are done with the world, make sure to destroy it (this will also deallocate the world).</p>
+<pre><code>world-&gt;destroyWorld();</code></pre>
+<h4 id="custom-allocators">Custom Allocators</h4>
+<p>You may use any standards-compliant custom allocator. The world handles all allocations and deallocations for entities and components.</p>
+<p>In order to use a custom allocator, define <code>ECS_ALLOCATOR_TYPE</code> before including <code>ECS.h</code>:</p>
+<pre><code>#define ECS_ALLOCATOR_TYPE MyAllocator&lt;Entity&gt;
+#include &quot;ECS.h&quot;</code></pre>
+<p>Allocators must have a default constructor. When creating the world with <code>World::createWorld</code>, you may pass in your custom allocator if you need to initialize it first. Additionally, custom allocators must be rebindable via <code>std::allocator_traits</code>.</p>
+<p>The default implementation uses <code>std::allocator&lt;Entity&gt;</code>. Note that the world will rebind allocators for different types.</p>
+<h3 id="working-with-components">Working with components</h3>
+<p>You may retrieve a component handle (for example, to print out the position of your entity) with <code>get</code>:</p>
+<pre><code>ComponentHandle&lt;Position&gt; pos = ent-&gt;get&lt;Position&gt;();
+std::cout &lt;&lt; &quot;My position is &quot; &lt;&lt; pos-&gt;x &lt;&lt; &quot;, &quot; &lt;&lt; pos-&gt;y &lt;&lt; std::endl;</code></pre>
+<p>If an entity doesn't have a component and you try to retrieve that type from it, <code>get</code> will return an invalid component handle:</p>
+<pre><code>ComponentHandle&lt;Position&gt; pos = otherEnt-&gt;get&lt;Position&gt;(); // assume otherEnt doesn&#39;t have a Position component
+pos.isValid(); // returns false, note the . instead of the -&gt;</code></pre>
+<p>Alternatively, you may use a handle's bool conversion operator instead of <code>isValid</code>:</p>
+<pre><code>if (pos)
+{
+    // pos is valid
+}
+else
+{
+    // pos is not valid
+}</code></pre>
+<h3 id="events">Events</h3>
+<p>For communication between systems (and with other objects outside of ECS) there is an event system. Events can be any type of object, and you can subscribe to specific types of events by subclassing <code>EventSubscriber</code> and calling <code>subscribe</code> on the world:</p>
+<pre><code>struct MyEvent
+{
+    int foo;
+    float bar;
+}
+
+class MyEventSubscriber : public EventSubscriber&lt;MyEvent&gt;
+{
+public:
+    virtual ~MyEventSubscriber() {}
+    
+    virtual void receive(World* world, const MyEvent&amp; event) override
+    {
+        std::cout &lt;&lt; &quot;MyEvent was emitted!&quot; &lt;&lt; std::endl;
+    }
+}
+
+// ...
+
+MyEventSubscriber* mySubscriber = new MyEventSubscriber();
+world-&gt;subscribe&lt;MyEvent&gt;(mySubscriber);</code></pre>
+<p>Then, to emit an event:</p>
+<pre><code>world-&gt;emit&lt;MyEvent&gt;({ 123, 45.67f }); // you can use initializer syntax if you want, this sets foo = 123 and bar = 45.67f</code></pre>
+<p>Make sure you call <code>unsubscribe</code> or <code>unsubscribeAll</code> on your subscriber before deleting it, or else emitting the event may cause a crash or other undesired behavior.</p>
+<h3 id="systems-and-events">Systems and events</h3>
+<p>Often, your event subscribers will also be systems. Systems have <code>configure</code> and <code>unconfigure</code> functions that are called when they are added to/removed from the world and which you may use to subscribe and unsubscribe from events:</p>
+<pre><code>class MySystem : public EntitySystem, public EventSubscriber&lt;MyEvent&gt;
+{
+    // ...
+    
+    virtual void configure(World* world) override
+    {
+        world-&gt;subscribe&lt;MyEvent&gt;(this);
+    }
+    
+    virtual void unconfigure(World* world) override
+    {
+        world-&gt;unsubscribeAll(this);
+        // You may also unsubscribe from specific events with world-&gt;unsubscribe&lt;MyEvent&gt;(this), but
+        // when unconfigure is called you usually want to unsubscribe from all events.
+    }
+    
+    // ...
+}</code></pre>
+<h3 id="built-in-events">Built-in events</h3>
+<p>There are a handful of built-in events. Here is the list:</p>
+<ul>
+<li><code>OnEntityCreated</code> - called when an entity has been created.</li>
+<li><code>OnEntityDestroyed</code> - called when an entity is being destroyed (including when a world is beind deleted).</li>
+<li><code>OnComponentAssigned</code> - called when a component is assigned to an entity. This might mean the component is new to the entity, or there's just a new assignment of the component to that entity overwriting an old one.</li>
+<li><code>OnComponentRemoved</code> - called when a component is removed from an entity. This happens upon manual removal (via <code>Entity::remove()</code> and <code>Entity::removeAll()</code>) or upon entity destruction (which can also happen as a result of the world being destroyed).</li>
+</ul>
+<h2 id="avoiding-rtti">Avoiding RTTI</h2>
+<p>If you wish to avoid using RTTI for any reason, you may define the ECS_NO_RTTI macro before including ECS.h. When doing so, you must also add a couple of macros to your component and event types:</p>
+<pre><code>// in a header somewhere
+struct MyComponent
+{
+    ECS_DECLARE_TYPE; // add this at the top of the structure, make sure to include the semicolon!
+
+    // ...
+};
+
+// in a cpp somewhere
+ECS_DEFINE_TYPE(MyComponent);</code></pre>
+<p>Again, make sure you do this with events as well.</p>
+<p>Additionally, you will have to put the following in a cpp file:</p>
+<pre><code>#include &quot;ECS.h&quot;
+ECS_TYPE_IMPLEMENTATION;</code></pre>
+<p>If you have any templated events, you may do the following:</p>
+<pre><code>template&lt;typename T&gt;
+struct MyEvent
+{
+    ECS_DECLARE_TYPE;
+
+    T someField;
+
+    // ...
+}
+
+template&lt;typename T&gt;
+ECS_DEFINE_TYPE(MyEvent&lt;T&gt;);</code></pre>

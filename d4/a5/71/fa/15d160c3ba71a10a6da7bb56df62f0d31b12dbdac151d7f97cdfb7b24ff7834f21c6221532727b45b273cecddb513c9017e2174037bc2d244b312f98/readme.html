@@ -1,0 +1,58 @@
+<h1 id="snmalloc">snmalloc</h1>
+<p>snmalloc is a research allocator. Its key design features are:</p>
+<ul>
+<li>Memory that is freed by the same thread that allocated it does not require any synchronising operations.</li>
+<li>Freeing memory in a different thread to initially allocated it, does not take any locks and instead uses a novel message passing scheme to return the memory to the original allocator, where it is recycled.</li>
+<li>The allocator uses large ranges of pages to reduce the amount of meta-data required.</li>
+</ul>
+<p>Details about snmalloc's design can be found in the <a href="snmalloc.pdf">accompanying paper</a>. Differences between the paper and the current implementation are <a href="difference.md">described here</a>.</p>
+<p><a href="https://dev.azure.com/snmalloc/snmalloc/_build/latest?definitionId=1?branchName=master"><embed src="https://dev.azure.com/snmalloc/snmalloc/_apis/build/status/Microsoft.snmalloc?branchName=master" /></a></p>
+<h1 id="building-on-windows">Building on Windows</h1>
+<p>The Windows build currently depends on Visual Studio 2017. To build with Visual Studio:</p>
+<pre><code>mkdir build
+cd build
+cmake -G &quot;Visual Studio 15 2017 Win64&quot; ..
+cmake --build . --config Debug
+cmake --build . --config Release
+cmake --build . --config RelWithDebInfo</code></pre>
+<p>You can also omit the last three steps and build from the IDE. Visual Studio builds use a separate directory to keep the binaries for each build configuration.</p>
+<p>Alternatively, you can follow the steps in the next section to build with Ninja using the Visual Studio compiler.</p>
+<h1 id="building-on-macos-linux-or-freebsd">Building on macOS, Linux or FreeBSD</h1>
+<p>Snmalloc has very few dependencies, CMake, Ninja, Clang 6.0 or later and a C++17 standard library. Building with GCC is currently not recommended because GCC lacks support for the <code>selectany</code> attribute to specify variables in a COMDAT.<br />
+It will, however, build with GCC-7, but some of global variables will be preemptible.</p>
+<p>To build a debug configuration:</p>
+<pre><code>mkdir build
+cd build
+cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug
+ninja</code></pre>
+<p>To build a release configuration:</p>
+<pre><code>mkdir build
+cd build
+cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Release
+ninja</code></pre>
+<p>To build with optimizations on, but with debug information:</p>
+<pre><code>mkdir build
+cd build
+cmake -G Ninja .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+ninja</code></pre>
+<p>On ELF platforms, The build produces a binary <code>libsnmallocshim.so</code>. This file can be <code>LD_PRELOAD</code>ed to use the allocator in place of the system allocator, for example, you can run the build script using the snmalloc as the allocator for your toolchain:</p>
+<pre><code>LD_PRELOAD=/usr/local/lib/libsnmallocshim.so ninja</code></pre>
+<h1 id="cmake-feature-flags">CMake Feature Flags</h1>
+<p>These can be added to your cmake command line.</p>
+<pre><code>-DUSE_SNMALLOC_STATS=ON // Track allocation stats
+-DUSE_MEASURE=ON // Measure performance with histograms</code></pre>
+<h1 id="using-snmalloc-as-header-only-library">Using snmalloc as header-only library</h1>
+<p>In this section we show how to compile snmalloc into your project such that it replaces the standard allocator functions such as free and malloc. The following instructions were tested with CMake and Clang running on Ubuntu 18.04.</p>
+<p>Add these lines to your CMake file.</p>
+<pre><code>set(SNMALLOC_ONLY_HEADER_LIBRARY ON)
+add_subdirectory(snmalloc EXCLUDE_FROM_ALL)</code></pre>
+<p>In addition make sure your executable is compiled to support 128 bit atomic operations. This may require you to add the following to your CMake file.</p>
+<pre><code>target_link_libraries([lib_name] PRIVATE snmalloc_lib)</code></pre>
+<p>You will also need to compile the relavent parts of snmalloc itself. Create a new file with the following contents and compile it with the rest of your application.</p>
+<pre><code>#define NO_BOOTSTRAP_ALLOCATOR
+
+#include &quot;snmalloc/src/override/malloc.cc&quot;</code></pre>
+<h1 id="contributing">Contributing</h1>
+<p>This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.</p>
+<p>When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.</p>
+<p>This project has adopted the <a href="https://opensource.microsoft.com/codeofconduct/">Microsoft Open Source Code of Conduct</a>. For more information see the <a href="https://opensource.microsoft.com/codeofconduct/faq/">Code of Conduct FAQ</a> or contact <a href="mailto:opencode@microsoft.com">opencode@microsoft.com</a> with any additional questions or comments.</p>

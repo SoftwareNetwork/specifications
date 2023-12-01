@@ -1,0 +1,840 @@
+<h1 id="utf8-cpp-utf-8-with-c-in-a-portable-way">UTF8-CPP: UTF-8 with C++ in a Portable Way</h1>
+<h2 id="introduction">Introduction</h2>
+<p>C++ developers miss an easy and portable way of handling Unicode encoded strings. The original C++ Standard (known as C++98 or C++03) is Unicode agnostic. C++11 provides some support for Unicode on core language and library level: u8, u, and U character and string literals, char16_t and char32_t character types, u16string and u32string library classes, and codecvt support for conversions between Unicode encoding forms. In the meantime, developers use third party libraries like ICU, OS specific capabilities, or simply roll out their own solutions.</p>
+<p>In order to easily handle UTF-8 encoded Unicode strings, I came up with a small, C++98 compatible generic library. For anybody used to work with STL algorithms and iterators, it should be easy and natural to use. The code is freely available for any purpose - check out the <a href="./LICENSE">license</a>. The library has been used a lot in the past ten years both in commercial and open-source projects and is considered feature-complete now. If you run into bugs or performance issues, please let me know and I’ll do my best to address them.</p>
+<p>The purpose of this article is not to offer an introduction to Unicode in general, and UTF-8 in particular. If you are not familiar with Unicode, be sure to check out <a href="http://www.unicode.org/">Unicode Home Page</a> or some other source of information for Unicode. Also, it is not my aim to advocate the use of UTF-8 encoded strings in C++ programs; if you want to handle UTF-8 encoded strings from C++, I am sure you have good reasons for it.</p>
+<h2 id="examples-of-use">Examples of use</h2>
+<h3 id="introductionary-sample">Introductionary Sample</h3>
+<p>To illustrate the use of the library, let’s start with a small but complete program that opens a file containing UTF-8 encoded text, reads it line by line, checks each line for invalid UTF-8 byte sequences, and converts it to UTF-16 encoding and back to UTF-8:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;utf8.h&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> std<span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span><span class="op">**</span> argv<span class="op">)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        cout <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Usage: docsample filename</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">char</span><span class="op">*</span> test_file_path <span class="op">=</span> argv<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Open the test file (must be UTF-8 encoded)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    ifstream fs8<span class="op">(</span>test_file_path<span class="op">);</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>fs8<span class="op">.</span>is_open<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Could not open &quot;</span> <span class="op">&lt;&lt;</span> test_file_path <span class="op">&lt;&lt;</span> endl<span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">unsigned</span> line_count <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    string line<span class="op">;</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Play with all the lines in the file</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>getline<span class="op">(</span>fs8<span class="op">,</span> line<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// check for invalid utf-8 (for a simple yes/no check, there is also utf8::is_valid function)</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="pp">#if </span><span class="ot">__cplusplus</span><span class="pp"> &gt;= 201103L </span><span class="co">// C++ 11 or later</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> end_it <span class="op">=</span> utf8<span class="op">::</span>find_invalid<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> line<span class="op">.</span>end<span class="op">());</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        string<span class="op">::</span>iterator end_it <span class="op">=</span> utf8<span class="op">::</span>find_invalid<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> line<span class="op">.</span>end<span class="op">());</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// C++ 11</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>end_it <span class="op">!=</span> line<span class="op">.</span>end<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>            cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Invalid UTF-8 encoding detected at line &quot;</span> <span class="op">&lt;&lt;</span> line_count <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            cout <span class="op">&lt;&lt;</span> <span class="st">&quot;This part is fine: &quot;</span> <span class="op">&lt;&lt;</span> string<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> end_it<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get the line length (at least for the valid part)</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> length <span class="op">=</span> utf8<span class="op">::</span>distance<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> end_it<span class="op">);</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Length of line &quot;</span> <span class="op">&lt;&lt;</span> line_count <span class="op">&lt;&lt;</span> <span class="st">&quot; is &quot;</span> <span class="op">&lt;&lt;</span> length <span class="op">&lt;&lt;</span>  <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Convert it to utf-16</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="pp">#if </span><span class="ot">__cplusplus</span><span class="pp"> &gt;= 201103L </span><span class="co">// C++ 11 or later</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>        u16string utf16line <span class="op">=</span> utf8<span class="op">::</span>utf8to16<span class="op">(</span>line<span class="op">);</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>        vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">short</span><span class="op">&gt;</span> utf16line<span class="op">;</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>        utf8<span class="op">::</span>utf8to16<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> end_it<span class="op">,</span> back_inserter<span class="op">(</span>utf16line<span class="op">));</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// C++ 11</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// And back to utf-8;</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="pp">#if </span><span class="ot">__cplusplus</span><span class="pp"> &gt;= 201103L </span><span class="co">// C++ 11 or later</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>        string utf8line <span class="op">=</span> utf8<span class="op">::</span>utf16to8<span class="op">(</span>utf16line<span class="op">);</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>        string utf8line<span class="op">;</span> </span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>        utf8<span class="op">::</span>utf16to8<span class="op">(</span>utf16line<span class="op">.</span>begin<span class="op">(),</span> utf16line<span class="op">.</span>end<span class="op">(),</span> back_inserter<span class="op">(</span>utf8line<span class="op">));</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif </span><span class="co">// C++ 11</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Confirm that the conversion went OK:</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>utf8line <span class="op">!=</span> string<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> end_it<span class="op">))</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>            cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Error in UTF-16 conversion at line: &quot;</span> <span class="op">&lt;&lt;</span> line_count <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span>        </span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>        line_count<span class="op">++;</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> </span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In the previous code sample, for each line we performed a detection of invalid UTF-8 sequences with <code>find_invalid</code>; the number of characters (more precisely - the number of Unicode code points, including the end of line and even BOM if there is one) in each line was determined with a use of <code>utf8::distance</code>; finally, we have converted each line to UTF-16 encoding with <code>utf8to16</code> and back to UTF-8 with <code>utf16to8</code>.</p>
+<p>Note a different pattern of usage for old compilers. For instance, this is how we convert a UTF-8 encoded string to a UTF-16 encoded one with a pre - C++11 compiler:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>    vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">short</span><span class="op">&gt;</span> utf16line<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    utf8<span class="op">::</span>utf8to16<span class="op">(</span>line<span class="op">.</span>begin<span class="op">(),</span> end_it<span class="op">,</span> back_inserter<span class="op">(</span>utf16line<span class="op">));</span></span></code></pre></div>
+<p>With a more modern compiler, the same operation would look like:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>    u16string utf16line <span class="op">=</span> utf8<span class="op">::</span>utf8to16<span class="op">(</span>line<span class="op">);</span></span></code></pre></div>
+<p>If <code>__cplusplus</code> macro points to a C++ 11 or later, the library exposes API that takes into account C++ standard Unicode strings and move semantics. With an older compiler, it is still possible to use the same functionality, just in a little less convenient way</p>
+<p>In case you do not trust the <code>__cplusplus</code> macro or, for instance, do not want to include the C++ 11 helper functions even with a modern compiler, define <code>UTF_CPP_CPLUSPLUS</code> macro before including <code>utf8.h</code> and assign it a value for the standard you want to use - the values are the same as for the <code>__cplusplus</code> macro. This can be also useful with compilers that are conservative in setting the <code>__cplusplus</code> macro even if they have a good support for a recent standard edition - Microsoft’s Visual C++ is one example.</p>
+<h3 id="checking-if-a-file-contains-valid-utf-8-text">Checking if a file contains valid UTF-8 text</h3>
+<p>Here is a function that checks whether the content of a file is valid UTF-8 encoded text without reading the content into the memory:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> valid_utf8_file<span class="op">(</span><span class="at">const</span> <span class="dt">char</span><span class="op">*</span> file_name<span class="op">)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    ifstream ifs<span class="op">(</span>file_name<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>ifs<span class="op">)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// even better, throw here</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    istreambuf_iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">&gt;</span> it<span class="op">(</span>ifs<span class="op">.</span>rdbuf<span class="op">());</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    istreambuf_iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">&gt;</span> eos<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> utf8<span class="op">::</span>is_valid<span class="op">(</span>it<span class="op">,</span> eos<span class="op">);</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Because the function <code>utf8::is_valid()</code> works with input iterators, we were able to pass an <code>istreambuf_iterator</code> to <code>it</code> and read the content of the file directly without loading it to the memory first.</p>
+<p>Note that other functions that take input iterator arguments can be used in a similar way. For instance, to read the content of a UTF-8 encoded text file and convert the text to UTF-16, just do something like:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>    utf8<span class="op">::</span>utf8to16<span class="op">(</span>it<span class="op">,</span> eos<span class="op">,</span> back_inserter<span class="op">(</span>u16string<span class="op">));</span></span></code></pre></div>
+<h3 id="ensure-that-a-string-contains-valid-utf-8-text">Ensure that a string contains valid UTF-8 text</h3>
+<p>If we have some text that “probably” contains UTF-8 encoded text and we want to replace any invalid UTF-8 sequence with a replacement character, something like the following function may be used:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> fix_utf8_string<span class="op">(</span><span class="bu">std::</span>string<span class="op">&amp;</span> str<span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string<span class="op"> </span>temp<span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    utf8<span class="op">::</span>replace_invalid<span class="op">(</span>str<span class="op">.</span>begin<span class="op">(),</span> str<span class="op">.</span>end<span class="op">(),</span> back_inserter<span class="op">(</span>temp<span class="op">));</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    str <span class="op">=</span> temp<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The function will replace any invalid UTF-8 sequence with a Unicode replacement character. There is an overloaded function that enables the caller to supply their own replacement character.</p>
+<h2 id="points-of-interest">Points of interest</h2>
+<h4 id="design-goals-and-decisions">Design goals and decisions</h4>
+<p>The library was designed to be:</p>
+<ol type="1">
+<li>Generic: for better or worse, there are many C++ string classes out there, and the library should work with as many of them as possible.</li>
+<li>Portable: the library should be portable both accross different platforms and compilers. The only non-portable code is a small section that declares unsigned integers of different sizes: three typedefs. They can be changed by the users of the library if they don’t match their platform. The default setting should work for Windows (both 32 and 64 bit), and most 32 bit and 64 bit Unix derivatives. Support for post C++03 language features is included for modern compilers at API level only, so the library should work even with pretty old compilers.</li>
+<li>Lightweight: follow the “pay only for what you use” guideline.</li>
+<li>Unintrusive: avoid forcing any particular design or even programming style on the user. This is a library, not a framework.</li>
+</ol>
+<h4 id="alternatives">Alternatives</h4>
+<p>In case you want to look into other means of working with UTF-8 strings from C++, here is the list of solutions I am aware of:</p>
+<ol type="1">
+<li><a href="http://icu.sourceforge.net/">ICU Library</a>. It is very powerful, complete, feature-rich, mature, and widely used. Also big, intrusive, non-generic, and doesn’t play well with the Standard Library. I definitelly recommend looking at ICU even if you don’t plan to use it.</li>
+<li>C++11 language and library features. Still far from complete, and not easy to use.</li>
+<li><a href="http://www.gtkmm.org/gtkmm2/docs/tutorial/html/ch03s04.html">Glib::ustring</a>. A class specifically made to work with UTF-8 strings, and also feel like <code>std::string</code>. If you prefer to have yet another string class in your code, it may be worth a look. Be aware of the licensing issues, though.</li>
+<li>Platform dependent solutions: Windows and POSIX have functions to convert strings from one encoding to another. That is only a subset of what my library offers, but if that is all you need it may be good enough.</li>
+</ol>
+<h2 id="reference">Reference</h2>
+<h3 id="functions-from-utf8-namespace">Functions From utf8 Namespace</h3>
+<h4 id="utf8append">utf8::append</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Encodes a 32 bit code point as a UTF-8 sequence of octets and appends the sequence to a UTF-8 string.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> append<span class="op">(</span><span class="dt">char32_t</span> cp<span class="op">,</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>cp</code>: a code point to append to the string.<br />
+<code>s</code>: a utf-8 encoded string to append the code point to.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>u<span class="op">;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>append<span class="op">(</span><span class="bn">0x0448</span><span class="op">,</span> u<span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>u<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0xd1</span><span class="op">)</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0x88</span><span class="op">)</span> <span class="op">&amp;&amp;</span> u<span class="op">.</span>length<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid code point, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8append-1">utf8::append</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Encodes a 32 bit code point as a UTF-8 sequence of octets and appends the sequence to a UTF-8 string.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>octet_iterator append<span class="op">(</span><span class="dt">uint32_t</span> cp<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an output iterator.<br />
+<code>cp</code>: a 32 bit integer representing a code point to append to the sequence.<br />
+<code>result</code>: an output iterator to the place in the sequence where to append the code point.<br />
+Return value: an iterator pointing to the place after the newly appended sequence.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span> u<span class="op">[</span><span class="dv">5</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">};</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">*</span> end <span class="op">=</span> append<span class="op">(</span><span class="bn">0x0448</span><span class="op">,</span> u<span class="op">);</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>u<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd1</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0x88</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">4</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p>Note that <code>append</code> does not allocate any memory - it is the burden of the caller to make sure there is enough memory allocated for the operation. To make things more interesting, <code>append</code> can add anywhere between 1 and 4 octets to the sequence. In practice, you would most often want to use <code>std::back_inserter</code> to ensure that the necessary memory is allocated.</p>
+<p>In case of an invalid code point, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8next">utf8::next</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Given the iterator to the beginning of the UTF-8 sequence, it returns the code point and moves the iterator to the next position.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> next<span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>it</code>: a reference to an iterator pointing to the beginning of an UTF-8 encoded code point. After the function returns, it is incremented to point to the beginning of the next code point.<br />
+<code>end</code>: end of the UTF-8 sequence to be processed. If <code>it</code> gets equal to <code>end</code> during the extraction of a code point, an <code>utf8::not_enough_room</code> exception is thrown.<br />
+Return value: the 32 bit representation of the processed UTF-8 code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> next<span class="op">(</span>w<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">6</span><span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars <span class="op">+</span> <span class="dv">3</span><span class="op">);</span></span></code></pre></div>
+<p>This function is typically used to iterate through a UTF-8 encoded string.</p>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8peek_next">utf8::peek_next</h4>
+<p>Available in version 2.1 and later.</p>
+<p>Given the iterator to the beginning of the UTF-8 sequence, it returns the code point for the following sequence without changing the value of the iterator.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> peek_next<span class="op">(</span>octet_iterator it<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>it</code>: an iterator pointing to the beginning of an UTF-8 encoded code point.<br />
+<code>end</code>: end of the UTF-8 sequence to be processed. If <code>it</code> gets equal to <code>end</code> during the extraction of a code point, an <code>utf8::not_enough_room</code> exception is thrown.<br />
+Return value: the 32 bit representation of the processed UTF-8 code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> peek_next<span class="op">(</span>w<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">6</span><span class="op">);</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars<span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8prior">utf8::prior</h4>
+<p>Available in version 1.02 and later.</p>
+<p>Given a reference to an iterator pointing to an octet in a UTF-8 sequence, it decreases the iterator until it hits the beginning of the previous UTF-8 encoded code point and returns the 32 bits representation of the code point.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> prior<span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">,</span> octet_iterator start<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: a bidirectional iterator.<br />
+<code>it</code>: a reference pointing to an octet within a UTF-8 encoded string. After the function returns, it is decremented to point to the beginning of the previous code point.<br />
+<code>start</code>: an iterator to the beginning of the sequence where the search for the beginning of a code point is performed. It is a safety measure to prevent passing the beginning of the string in the search for a UTF-8 lead octet.<br />
+Return value: the 32 bit representation of the previous code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars <span class="op">+</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> prior <span class="op">(</span>w<span class="op">,</span> twochars<span class="op">);</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars<span class="op">);</span></span></code></pre></div>
+<p>This function has two purposes: one is two iterate backwards through a UTF-8 encoded string. Note that it is usually a better idea to iterate forward instead, since <code>utf8::next</code> is faster. The second purpose is to find a beginning of a UTF-8 sequence if we have a random position within a string. Note that in that case <code>utf8::prior</code> may not detect an invalid UTF-8 sequence in some scenarios: for instance if there are superfluous trail octets, it will just skip them.</p>
+<p><code>it</code> will typically point to the beginning of a code point, and <code>start</code> will point to the beginning of the string to ensure we don’t go backwards too far. <code>it</code> is decreased until it points to a lead UTF-8 octet, and then the UTF-8 sequence beginning with that octet is decoded to a 32 bit representation and returned.</p>
+<p>In case <code>start</code> is reached before a UTF-8 lead octet is hit, or if an invalid UTF-8 sequence is started by the lead octet, an <code>invalid_utf8</code> exception is thrown.</p>
+<p>In case <code>start</code> equals <code>it</code>, a <code>not_enough_room</code> exception is thrown.</p>
+<h4 id="utf8advance">utf8::advance</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Advances an iterator by the specified number of code points within an UTF-8 sequence.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> <span class="dt">distance_type</span><span class="op">&gt;</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> advance <span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">,</span> <span class="dt">distance_type</span> n<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>distance_type</code>: an integral type convertible to <code>octet_iterator</code>’s difference type.<br />
+<code>it</code>: a reference to an iterator pointing to the beginning of an UTF-8 encoded code point. After the function returns, it is incremented to point to the nth following code point.<br />
+<code>n</code>: number of code points <code>it</code> should be advanced. A negative value means decrement.<br />
+<code>end</code>: limit of the UTF-8 sequence to be processed. If <code>n</code> is positive and <code>it</code> gets equal to <code>end</code> during the extraction of a code point, an <code>utf8::not_enough_room</code> exception is thrown. If <code>n</code> is negative and <code>it</code> reaches <code>end</code> while <code>it</code> points t a trail byte of a UTF-8 sequence, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>advance <span class="op">(</span>w<span class="op">,</span> <span class="dv">2</span><span class="op">,</span> twochars <span class="op">+</span> <span class="dv">6</span><span class="op">);</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>advance <span class="op">(</span>w<span class="op">,</span> <span class="op">-</span><span class="dv">2</span><span class="op">,</span> twochars<span class="op">);</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars<span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid code point, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8distance">utf8::distance</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Given the iterators to two UTF-8 encoded code points in a seqence, returns the number of code points between them.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">typename</span> <span class="bu">std::</span>iterator_traits<span class="op">&lt;</span>octet_iterator<span class="op">&gt;::</span><span class="dt">difference_type</span> distance <span class="op">(</span>octet_iterator first<span class="op">,</span> octet_iterator last<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>first</code>: an iterator to a beginning of a UTF-8 encoded code point.<br />
+<code>last</code>: an iterator to a “post-end” of the last UTF-8 encoded code point in the sequence we are trying to determine the length. It can be the beginning of a new code point, or not.<br />
+Return value the distance between the iterators, in code points.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> dist <span class="op">=</span> utf8<span class="op">::</span>distance<span class="op">(</span>twochars<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>dist <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>This function is used to find the length (in code points) of a UTF-8 encoded string. The reason it is called <em>distance</em>, rather than, say, <em>length</em> is mainly because developers are used that <em>length</em> is an O(1) function. Computing the length of an UTF-8 string is a linear operation, and it looked better to model it after <code>std::distance</code> algorithm.</p>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown. If <code>last</code> does not point to the past-of-end of a UTF-8 seqence, a <code>utf8::not_enough_room</code> exception is thrown.</p>
+<h4 id="utf8utf16to8">utf8::utf16to8</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Converts a UTF-16 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>utf16to8<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>u16string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-16 encoded string. Return value: A UTF-8 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>    u16string utf16string <span class="op">=</span> <span class="op">{</span><span class="bn">0x41</span><span class="op">,</span> <span class="bn">0x0448</span><span class="op">,</span> <span class="bn">0x65e5</span><span class="op">,</span> <span class="bn">0xd834</span><span class="op">,</span> <span class="bn">0xdd1e</span><span class="op">};</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    string u <span class="op">=</span> utf16to8<span class="op">(</span>utf16string<span class="op">);</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span> <span class="op">(</span>u<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">10</span><span class="op">);</span></span></code></pre></div>
+<p>In case of invalid UTF-16 sequence, a <code>utf8::invalid_utf16</code> exception is thrown.</p>
+<h4 id="utf8utf16to8-1">utf8::utf16to8</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Converts a UTF-16 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>utf16to8<span class="op">(</span><span class="bu">std::</span>u16string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-16 encoded string. Return value: A UTF-8 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>    u16string utf16string <span class="op">=</span> <span class="op">{</span><span class="bn">0x41</span><span class="op">,</span> <span class="bn">0x0448</span><span class="op">,</span> <span class="bn">0x65e5</span><span class="op">,</span> <span class="bn">0xd834</span><span class="op">,</span> <span class="bn">0xdd1e</span><span class="op">};</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    u16string_view utf16stringview<span class="op">(</span>u16string<span class="op">);</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    string u <span class="op">=</span> utf16to8<span class="op">(</span>utf16string<span class="op">);</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span> <span class="op">(</span>u<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">10</span><span class="op">);</span></span></code></pre></div>
+<p>In case of invalid UTF-16 sequence, a <code>utf8::invalid_utf16</code> exception is thrown.</p>
+<h4 id="utf8utf16to8-2">utf8::utf16to8</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-16 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> u16bit_iterator<span class="op">,</span> <span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>octet_iterator utf16to8 <span class="op">(</span>u16bit_iterator start<span class="op">,</span> u16bit_iterator end<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>u16bit_iterator</code>: an input iterator.<br />
+<code>octet_iterator</code>: an output iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-16 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-16 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-8 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-8 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">short</span> utf16string<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="bn">0x41</span><span class="op">,</span> <span class="bn">0x0448</span><span class="op">,</span> <span class="bn">0x65e5</span><span class="op">,</span> <span class="bn">0xd834</span><span class="op">,</span> <span class="bn">0xdd1e</span><span class="op">};</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">&gt;</span> utf8result<span class="op">;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>utf16to8<span class="op">(</span>utf16string<span class="op">,</span> utf16string <span class="op">+</span> <span class="dv">5</span><span class="op">,</span> back_inserter<span class="op">(</span>utf8result<span class="op">));</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">10</span><span class="op">);</span>    </span></code></pre></div>
+<p>In case of invalid UTF-16 sequence, a <code>utf8::invalid_utf16</code> exception is thrown.</p>
+<h4 id="utf8utf8to16">utf8::utf8to16</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Converts an UTF-8 encoded string to UTF-16.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>u16string<span class="op"> </span>utf8to16<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: an UTF-8 encoded string to convert.<br />
+Return value: A UTF-16 encoded string</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>string utf8_with_surrogates <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xf0\x9d\x84\x9e</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>u16string utf16result <span class="op">=</span> utf8to16<span class="op">(</span>utf8_with_surrogates<span class="op">);</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">.</span>length<span class="op">()</span> <span class="op">==</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd834</span><span class="op">);</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xdd1e</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8utf8to16-1">utf8::utf8to16</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Converts an UTF-8 encoded string to UTF-16.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>u16string<span class="op"> </span>utf8to16<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: an UTF-8 encoded string to convert.<br />
+Return value: A UTF-16 encoded string</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>string_view utf8_with_surrogates <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xf0\x9d\x84\x9e</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>u16string utf16result <span class="op">=</span> utf8to16<span class="op">(</span>utf8_with_surrogates<span class="op">);</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">.</span>length<span class="op">()</span> <span class="op">==</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd834</span><span class="op">);</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xdd1e</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8utf8to16-2">utf8::utf8to16</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts an UTF-8 encoded string to UTF-16</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> u16bit_iterator<span class="op">,</span> <span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>u16bit_iterator utf8to16 <span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> u16bit_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>u16bit_iterator</code>: an output iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 encoded string to convert. &lt; br /&gt; <code>end</code>: an iterator pointing to pass-the-end of the UTF-8 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-16 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-16 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> utf8_with_surrogates<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xf0\x9d\x84\x9e</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>vector <span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">short</span><span class="op">&gt;</span> utf16result<span class="op">;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>utf8to16<span class="op">(</span>utf8_with_surrogates<span class="op">,</span> utf8_with_surrogates <span class="op">+</span> <span class="dv">9</span><span class="op">,</span> back_inserter<span class="op">(</span>utf16result<span class="op">));</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd834</span><span class="op">);</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xdd1e</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown. If <code>end</code> does not point to the past-of-end of a UTF-8 seqence, a <code>utf8::not_enough_room</code> exception is thrown.</p>
+<h4 id="utf8utf32to8">utf8::utf32to8</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Converts a UTF-32 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>utf32to8<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>u32string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-32 encoded string.<br />
+Return value: a UTF-8 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>u32string utf32string <span class="op">=</span> <span class="op">{</span><span class="bn">0x448</span><span class="op">,</span> <span class="bn">0x65E5</span><span class="op">,</span> <span class="bn">0x10346</span><span class="op">};</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>string utf8result <span class="op">=</span> utf32to8<span class="op">(</span>utf32string<span class="op">);</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">9</span><span class="op">);</span></span></code></pre></div>
+<p>In case of invalid UTF-32 string, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8utf32to8-1">utf8::utf32to8</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Converts a UTF-32 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>utf32to8<span class="op">(</span><span class="bu">std::</span>u32string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-32 encoded string.<br />
+Return value: a UTF-8 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>u32string utf32string <span class="op">=</span> <span class="op">{</span><span class="bn">0x448</span><span class="op">,</span> <span class="bn">0x65E5</span><span class="op">,</span> <span class="bn">0x10346</span><span class="op">};</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>u32string_view utf32stringview<span class="op">(</span>utf32string<span class="op">);</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>string utf8result <span class="op">=</span> utf32to8<span class="op">(</span>utf32stringview<span class="op">);</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">9</span><span class="op">);</span></span></code></pre></div>
+<p>In case of invalid UTF-32 string, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8utf32to8-2">utf8::utf32to8</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-32 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> u32bit_iterator<span class="op">&gt;</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>octet_iterator utf32to8 <span class="op">(</span>u32bit_iterator start<span class="op">,</span> u32bit_iterator end<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an output iterator.<br />
+<code>u32bit_iterator</code>: an input iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-32 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-32 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-8 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-8 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> utf32string<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="bn">0x448</span><span class="op">,</span> <span class="bn">0x65E5</span><span class="op">,</span> <span class="bn">0x10346</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">&gt;</span> utf8result<span class="op">;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>utf32to8<span class="op">(</span>utf32string<span class="op">,</span> utf32string <span class="op">+</span> <span class="dv">3</span><span class="op">,</span> back_inserter<span class="op">(</span>utf8result<span class="op">));</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">9</span><span class="op">);</span></span></code></pre></div>
+<p>In case of invalid UTF-32 string, a <code>utf8::invalid_code_point</code> exception is thrown.</p>
+<h4 id="utf8utf8to32">utf8::utf8to32</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Converts a UTF-8 encoded string to UTF-32.</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>u32string<span class="op"> </span>utf8to32<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: a UTF-32 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>u32string utf32result <span class="op">=</span> utf8to32<span class="op">(</span>twochars<span class="op">);</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf32result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8utf8to32-1">utf8::utf8to32</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Converts a UTF-8 encoded string to UTF-32.</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>u32string<span class="op"> </span>utf8to32<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: a UTF-32 encoded string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>string_view twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>u32string utf32result <span class="op">=</span> utf8to32<span class="op">(</span>twochars<span class="op">);</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf32result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown.</p>
+<h4 id="utf8utf8to32-2">utf8::utf8to32</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-8 encoded string to UTF-32.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> u32bit_iterator<span class="op">&gt;</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>u32bit_iterator utf8to32 <span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> u32bit_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>u32bit_iterator</code>: an output iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-32 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-32 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> utf32result<span class="op">;</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>utf8to32<span class="op">(</span>twochars<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">,</span> back_inserter<span class="op">(</span>utf32result<span class="op">));</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf32result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>In case of an invalid UTF-8 seqence, a <code>utf8::invalid_utf8</code> exception is thrown. If <code>end</code> does not point to the past-of-end of a UTF-8 seqence, a <code>utf8::not_enough_room</code> exception is thrown.</p>
+<h4 id="utf8find_invalid">utf8::find_invalid</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Detects an invalid sequence within a UTF-8 string.</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>size_t<span class="op"> </span>find_invalid<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: the index of the first invalid octet in the UTF-8 string. In case none were found, equals <code>std::string::npos</code>.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>string utf_invalid <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> invalid <span class="op">=</span> find_invalid<span class="op">(</span>utf_invalid<span class="op">);</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>invalid <span class="op">==</span> <span class="dv">5</span><span class="op">);</span></span></code></pre></div>
+<p>This function is typically used to make sure a UTF-8 string is valid before processing it with other functions. It is especially important to call it if before doing any of the <em>unchecked</em> operations on it.</p>
+<h4 id="utf8find_invalid-1">utf8::find_invalid</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Detects an invalid sequence within a UTF-8 string.</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>size_t<span class="op"> </span>find_invalid<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: the index of the first invalid octet in the UTF-8 string. In case none were found, equals <code>std::string_view::npos</code>.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>string_view utf_invalid <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> invalid <span class="op">=</span> find_invalid<span class="op">(</span>utf_invalid<span class="op">);</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>invalid <span class="op">==</span> <span class="dv">5</span><span class="op">);</span></span></code></pre></div>
+<p>This function is typically used to make sure a UTF-8 string is valid before processing it with other functions. It is especially important to call it if before doing any of the <em>unchecked</em> operations on it.</p>
+<h4 id="utf8find_invalid-2">utf8::find_invalid</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Detects an invalid sequence within a UTF-8 string.</p>
+<div class="sourceCode" id="cb49"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>octet_iterator find_invalid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 string to test for validity.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 string to test for validity.<br />
+Return value: an iterator pointing to the first invalid octet in the UTF-8 string. In case none were found, equals <code>end</code>.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb50"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> utf_invalid<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> invalid <span class="op">=</span> find_invalid<span class="op">(</span>utf_invalid<span class="op">,</span> utf_invalid <span class="op">+</span> <span class="dv">6</span><span class="op">);</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>invalid <span class="op">==</span> utf_invalid <span class="op">+</span> <span class="dv">5</span><span class="op">);</span></span></code></pre></div>
+<p>This function is typically used to make sure a UTF-8 string is valid before processing it with other functions. It is especially important to call it if before doing any of the <em>unchecked</em> operations on it.</p>
+<h4 id="utf8is_valid">utf8::is_valid</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Checks whether a string object contains valid UTF-8 encoded text.</p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> is_valid<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string.<br />
+Return value: <code>true</code> if the string contains valid UTF-8 encoded text; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb52"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> utf_invalid<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bvalid <span class="op">=</span> is_valid<span class="op">(</span>utf_invalid<span class="op">);</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid <span class="op">==</span> <span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p>You may want to use <code>is_valid</code> to make sure that a string contains valid UTF-8 text without the need to know where it fails if it is not valid.</p>
+<h4 id="utf8is_valid-1">utf8::is_valid</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Checks whether a string object contains valid UTF-8 encoded text.</p>
+<div class="sourceCode" id="cb53"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> is_valid<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string.<br />
+Return value: <code>true</code> if the string contains valid UTF-8 encoded text; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb54"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>string_view utf_invalid <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bvalid <span class="op">=</span> is_valid<span class="op">(</span>utf_invalid<span class="op">);</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid <span class="op">==</span> <span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p>You may want to use <code>is_valid</code> to make sure that a string contains valid UTF-8 text without the need to know where it fails if it is not valid.</p>
+<h4 id="utf8is_valid-2">utf8::is_valid</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Checks whether a sequence of octets is a valid UTF-8 string.</p>
+<div class="sourceCode" id="cb55"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> is_valid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 string to test for validity.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 string to test for validity.<br />
+Return value: <code>true</code> if the sequence is a valid UTF-8 string; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb56"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> utf_invalid<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xfa</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bvalid <span class="op">=</span> is_valid<span class="op">(</span>utf_invalid<span class="op">,</span> utf_invalid <span class="op">+</span> <span class="dv">6</span><span class="op">);</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid <span class="op">==</span> <span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p><code>is_valid</code> is a shorthand for <code>find_invalid(start, end) == end;</code>. You may want to use it to make sure that a byte seqence is a valid UTF-8 string without the need to know where it fails if it is not valid.</p>
+<h4 id="utf8replace_invalid">utf8::replace_invalid</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Replaces all invalid UTF-8 sequences within a string with a replacement marker.</p>
+<div class="sourceCode" id="cb57"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>replace_invalid<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">,</span> <span class="dt">char32_t</span> replacement<span class="op">);</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>replace_invalid<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string.<br />
+<code>replacement</code>: A Unicode code point for the replacement marker. The version without this parameter assumes the value <code>0xfffd</code><br />
+Return value: A UTF-8 encoded string with replaced invalid sequences.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb58"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>string invalid_sequence <span class="op">=</span> <span class="st">&quot;a</span><span class="sc">\x80\xe0\xa0\xc0\xaf\xed\xa0\x80</span><span class="st">z&quot;</span><span class="op">;</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>string replace_invalid_result <span class="op">=</span> replace_invalid<span class="op">(</span>invalid_sequence<span class="op">,</span> <span class="ch">&#39;?&#39;</span><span class="op">);</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>bvalid <span class="op">=</span> is_valid<span class="op">(</span>replace_invalid_result<span class="op">);</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid<span class="op">);</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> string fixed_invalid_sequence <span class="op">=</span> <span class="st">&quot;a????z&quot;</span><span class="op">;</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>fixed_invalid_sequence <span class="op">==</span> replace_invalid_result<span class="op">);</span></span></code></pre></div>
+<h4 id="utf8replace_invalid-1">utf8::replace_invalid</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Replaces all invalid UTF-8 sequences within a string with a replacement marker.</p>
+<div class="sourceCode" id="cb59"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>replace_invalid<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">,</span> <span class="dt">char32_t</span> replacement<span class="op">);</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>replace_invalid<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string.<br />
+<code>replacement</code>: A Unicode code point for the replacement marker. The version without this parameter assumes the value <code>0xfffd</code><br />
+Return value: A UTF-8 encoded string with replaced invalid sequences.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb60"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>string_view invalid_sequence <span class="op">=</span> <span class="st">&quot;a</span><span class="sc">\x80\xe0\xa0\xc0\xaf\xed\xa0\x80</span><span class="st">z&quot;</span><span class="op">;</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>string replace_invalid_result <span class="op">=</span> replace_invalid<span class="op">(</span>invalid_sequence<span class="op">,</span> <span class="ch">&#39;?&#39;</span><span class="op">);</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bvalid <span class="op">=</span> is_valid<span class="op">(</span>replace_invalid_result<span class="op">);</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid<span class="op">);</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> string fixed_invalid_sequence <span class="op">=</span> <span class="st">&quot;a????z&quot;</span><span class="op">;</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span><span class="op">(</span>fixed_invalid_sequence<span class="op">,</span> replace_invalid_result<span class="op">);</span></span></code></pre></div>
+<h4 id="utf8replace_invalid-2">utf8::replace_invalid</h4>
+<p>Available in version 2.0 and later.</p>
+<p>Replaces all invalid UTF-8 sequences within a string with a replacement marker.</p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> output_iterator<span class="op">&gt;</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>output_iterator replace_invalid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> output_iterator out<span class="op">,</span> <span class="dt">uint32_t</span> replacement<span class="op">);</span></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> output_iterator<span class="op">&gt;</span></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>output_iterator replace_invalid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> output_iterator out<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>output_iterator</code>: an output iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 string to look for invalid UTF-8 sequences.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 string to look for invalid UTF-8 sequences.<br />
+<code>out</code>: An output iterator to the range where the result of replacement is stored.<br />
+<code>replacement</code>: A Unicode code point for the replacement marker. The version without this parameter assumes the value <code>0xfffd</code><br />
+Return value: An iterator pointing to the place after the UTF-8 string with replaced invalid sequences.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb62"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> invalid_sequence<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;a</span><span class="sc">\x80\xe0\xa0\xc0\xaf\xed\xa0\x80</span><span class="st">z&quot;</span><span class="op">;</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">char</span><span class="op">&gt;</span> replace_invalid_result<span class="op">;</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>replace_invalid <span class="op">(</span>invalid_sequence<span class="op">,</span> invalid_sequence <span class="op">+</span> <span class="kw">sizeof</span><span class="op">(</span>invalid_sequence<span class="op">),</span> back_inserter<span class="op">(</span>replace_invalid_result<span class="op">),</span> <span class="ch">&#39;?&#39;</span><span class="op">);</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>bvalid <span class="op">=</span> is_valid<span class="op">(</span>replace_invalid_result<span class="op">.</span>begin<span class="op">(),</span> replace_invalid_result<span class="op">.</span>end<span class="op">());</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid<span class="op">);</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> fixed_invalid_sequence <span class="op">=</span> <span class="st">&quot;a????z&quot;</span><span class="op">;</span></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span><span class="bu">std::</span>equal<span class="op">(</span>replace_invalid_result<span class="op">.</span>begin<span class="op">(),</span> replace_invalid_result<span class="op">.</span>end<span class="op">(),</span> fixed_invalid_sequence<span class="op">));</span></span></code></pre></div>
+<p><code>replace_invalid</code> does not perform in-place replacement of invalid sequences. Rather, it produces a copy of the original string with the invalid sequences replaced with a replacement marker. Therefore, <code>out</code> must not be in the <code>[start, end]</code> range.</p>
+<h4 id="utf8starts_with_bom">utf8::starts_with_bom</h4>
+<p>Available in version 3.0 and later. Requires a C++ 11 compliant compiler.</p>
+<p>Checks whether a string starts with a UTF-8 byte order mark (BOM)</p>
+<div class="sourceCode" id="cb63"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> starts_with_bom<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: <code>true</code> if the string starts with a UTF-8 byte order mark; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb64"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>string byte_order_mark <span class="op">=</span> <span class="op">{</span><span class="dt">char</span><span class="op">(</span><span class="bn">0xef</span><span class="op">),</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0xbb</span><span class="op">),</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0xbf</span><span class="op">)};</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bbom <span class="op">=</span> starts_with_bom<span class="op">(</span>byte_order_mark<span class="op">);</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bbom <span class="op">==</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>string threechars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xf0\x90\x8d\x86\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> no_bbom <span class="op">=</span> starts_with_bom<span class="op">(</span>threechars<span class="op">);</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>no_bbom <span class="op">==</span> <span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p>The typical use of this function is to check the first three bytes of a file. If they form the UTF-8 BOM, we want to skip them before processing the actual UTF-8 encoded text.</p>
+<h4 id="utf8starts_with_bom-1">utf8::starts_with_bom</h4>
+<p>Available in version 3.2 and later. Requires a C++ 17 compliant compiler.</p>
+<p>Checks whether a string starts with a UTF-8 byte order mark (BOM)</p>
+<div class="sourceCode" id="cb65"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> starts_with_bom<span class="op">(</span><span class="bu">std::</span>string_view<span class="op"> </span>s<span class="op">);</span></span></code></pre></div>
+<p><code>s</code>: a UTF-8 encoded string. Return value: <code>true</code> if the string starts with a UTF-8 byte order mark; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb66"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>string byte_order_mark <span class="op">=</span> <span class="op">{</span><span class="dt">char</span><span class="op">(</span><span class="bn">0xef</span><span class="op">),</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0xbb</span><span class="op">),</span> <span class="dt">char</span><span class="op">(</span><span class="bn">0xbf</span><span class="op">)};</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>string_view byte_order_mark_view<span class="op">(</span>byte_order_mark<span class="op">);</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bbom <span class="op">=</span> starts_with_bom<span class="op">(</span>byte_order_mark_view<span class="op">);</span></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bbom<span class="op">);</span></span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>string_view threechars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xf0\x90\x8d\x86\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> no_bbom <span class="op">=</span> starts_with_bom<span class="op">(</span>threechars<span class="op">);</span></span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(!</span>no_bbom<span class="op">);</span></span></code></pre></div>
+<p>The typical use of this function is to check the first three bytes of a file. If they form the UTF-8 BOM, we want to skip them before processing the actual UTF-8 encoded text.</p>
+<h4 id="utf8starts_with_bom-2">utf8::starts_with_bom</h4>
+<p>Available in version 2.3 and later.</p>
+<p>Checks whether an octet sequence starts with a UTF-8 byte order mark (BOM)</p>
+<div class="sourceCode" id="cb67"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span> </span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> starts_with_bom <span class="op">(</span>octet_iterator it<span class="op">,</span> octet_iterator end<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>it</code>: beginning of the octet sequence to check<br />
+<code>end</code>: pass-end of the sequence to check<br />
+Return value: <code>true</code> if the sequence starts with a UTF-8 byte order mark; <code>false</code> if not.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb68"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span> byte_order_mark<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="bn">0xef</span><span class="op">,</span> <span class="bn">0xbb</span><span class="op">,</span> <span class="bn">0xbf</span><span class="op">};</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> bbom <span class="op">=</span> starts_with_bom<span class="op">(</span>byte_order_mark<span class="op">,</span> byte_order_mark <span class="op">+</span> <span class="kw">sizeof</span><span class="op">(</span>byte_order_mark<span class="op">));</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bbom <span class="op">==</span> <span class="kw">true</span><span class="op">);</span></span></code></pre></div>
+<p>The typical use of this function is to check the first three bytes of a file. If they form the UTF-8 BOM, we want to skip them before processing the actual UTF-8 encoded text.</p>
+<h3 id="types-from-utf8-namespace">Types From utf8 Namespace</h3>
+<h4 id="utf8exception">utf8::exception</h4>
+<p>Available in version 2.3 and later.</p>
+<p>Base class for the exceptions thrown by UTF CPP library functions.</p>
+<div class="sourceCode" id="cb69"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> exception <span class="op">:</span> <span class="kw">public</span> <span class="bu">std::</span>exception<span class="op"> {};</span></span></code></pre></div>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb70"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>  code_that_uses_utf_cpp_library<span class="op">();</span></span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span><span class="op">(</span><span class="at">const</span> utf8<span class="op">::</span>exception<span class="op">&amp;</span> utfcpp_ex<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  cerr <span class="op">&lt;&lt;</span> utfcpp_ex<span class="op">.</span>what<span class="op">();</span></span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="utf8invalid_code_point">utf8::invalid_code_point</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Thrown by UTF8 CPP functions such as <code>advance</code> and <code>next</code> if an UTF-8 sequence represents and invalid code point.</p>
+<div class="sourceCode" id="cb71"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> invalid_code_point <span class="op">:</span> <span class="kw">public</span> exception <span class="op">{</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span> </span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint32_t</span> code_point<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Member function <code>code_point()</code> can be used to determine the invalid code point that caused the exception to be thrown.</p>
+<h4 id="utf8invalid_utf8">utf8::invalid_utf8</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Thrown by UTF8 CPP functions such as <code>next</code> and <code>prior</code> if an invalid UTF-8 sequence is detected during decoding.</p>
+<div class="sourceCode" id="cb72"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> invalid_utf8 <span class="op">:</span> <span class="kw">public</span> exception <span class="op">{</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span> </span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint8_t</span> utf8_octet<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Member function <code>utf8_octet()</code> can be used to determine the beginning of the byte sequence that caused the exception to be thrown.</p>
+<h4 id="utf8invalid_utf16">utf8::invalid_utf16</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Thrown by UTF8 CPP function <code>utf16to8</code> if an invalid UTF-16 sequence is detected during decoding.</p>
+<div class="sourceCode" id="cb73"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> invalid_utf16 <span class="op">:</span> <span class="kw">public</span> exception <span class="op">{</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span> </span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint16_t</span> utf16_word<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Member function <code>utf16_word()</code> can be used to determine the UTF-16 code unit that caused the exception to be thrown.</p>
+<h4 id="utf8not_enough_room">utf8::not_enough_room</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Thrown by UTF8 CPP functions such as <code>next</code> if the end of the decoded UTF-8 sequence was reached before the code point was decoded.</p>
+<div class="sourceCode" id="cb74"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> not_enough_room <span class="op">:</span> <span class="kw">public</span> exception <span class="op">{};</span></span></code></pre></div>
+<h4 id="utf8iterator">utf8::iterator</h4>
+<p>Available in version 2.0 and later.</p>
+<p>Adapts the underlying octet iterator to iterate over the sequence of code points, rather than raw octets.</p>
+<div class="sourceCode" id="cb75"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> iterator<span class="op">;</span></span></code></pre></div>
+<h5 id="member-functions">Member functions</h5>
+<p><code>iterator();</code> the deafult constructor; the underlying octet_iterator is constructed with its default constructor.</p>
+<p><code>explicit iterator (const octet_iterator&amp; octet_it, const octet_iterator&amp; range_start, const octet_iterator&amp; range_end);</code> a constructor that initializes the underlying octet_iterator with octet_it and sets the range in which the iterator is considered valid.</p>
+<p><code>octet_iterator base () const;</code> returns the underlying octet_iterator.</p>
+<p><code>uint32_t operator * () const;</code> decodes the utf-8 sequence the underlying octet_iterator is pointing to and returns the code point.</p>
+<p><code>bool operator == (const iterator&amp; rhs) const;</code> returns <code>true</code> if the two underlaying iterators are equal.</p>
+<p><code>bool operator != (const iterator&amp; rhs) const;</code> returns <code>true</code> if the two underlaying iterators are not equal.</p>
+<p><code>iterator&amp; operator ++ ();</code> the prefix increment - moves the iterator to the next UTF-8 encoded code point.</p>
+<p><code>iterator operator ++ (int);</code> the postfix increment - moves the iterator to the next UTF-8 encoded code point and returns the current one.</p>
+<p><code>iterator&amp; operator -- ();</code> the prefix decrement - moves the iterator to the previous UTF-8 encoded code point.</p>
+<p><code>iterator operator -- (int);</code> the postfix decrement - moves the iterator to the previous UTF-8 encoded code point and returns the current one.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb76"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> threechars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xf0\x90\x8d\x86\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> it<span class="op">(</span>threechars<span class="op">,</span> threechars<span class="op">,</span> threechars <span class="op">+</span> <span class="dv">9</span><span class="op">);</span></span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> it2 <span class="op">=</span> it<span class="op">;</span></span>
+<span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>it2 <span class="op">==</span> it<span class="op">);</span></span>
+<span id="cb76-5"><a href="#cb76-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>it <span class="op">==</span> <span class="bn">0x10346</span><span class="op">);</span></span>
+<span id="cb76-6"><a href="#cb76-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*(++</span>it<span class="op">)</span> <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb76-7"><a href="#cb76-7" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">((*</span>it<span class="op">++)</span> <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb76-8"><a href="#cb76-8" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>it <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb76-9"><a href="#cb76-9" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>it <span class="op">!=</span> it2<span class="op">);</span></span>
+<span id="cb76-10"><a href="#cb76-10" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> endit <span class="op">(</span>threechars <span class="op">+</span> <span class="dv">9</span><span class="op">,</span> threechars<span class="op">,</span> threechars <span class="op">+</span> <span class="dv">9</span><span class="op">);</span>  </span>
+<span id="cb76-11"><a href="#cb76-11" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(++</span>it <span class="op">==</span> endit<span class="op">);</span></span>
+<span id="cb76-12"><a href="#cb76-12" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*(--</span>it<span class="op">)</span> <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb76-13"><a href="#cb76-13" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">((*</span>it<span class="op">--)</span> <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb76-14"><a href="#cb76-14" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>it <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb76-15"><a href="#cb76-15" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(--</span>it <span class="op">==</span> utf8<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;(</span>threechars<span class="op">,</span> threechars<span class="op">,</span> threechars <span class="op">+</span> <span class="dv">9</span><span class="op">));</span></span>
+<span id="cb76-16"><a href="#cb76-16" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>it <span class="op">==</span> <span class="bn">0x10346</span><span class="op">);</span></span></code></pre></div>
+<p>The purpose of <code>utf8::iterator</code> adapter is to enable easy iteration as well as the use of STL algorithms with UTF-8 encoded strings. Increment and decrement operators are implemented in terms of <code>utf8::next()</code> and <code>utf8::prior()</code> functions.</p>
+<p>Note that <code>utf8::iterator</code> adapter is a checked iterator. It operates on the range specified in the constructor; any attempt to go out of that range will result in an exception. Even the comparison operators require both iterator object to be constructed against the same range - otherwise an exception is thrown. Typically, the range will be determined by sequence container functions <code>begin</code> and <code>end</code>, i.e.:</p>
+<div class="sourceCode" id="cb77"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>s <span class="op">=</span> <span class="st">&quot;example&quot;</span><span class="op">;</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>iterator i <span class="op">(</span>s<span class="op">.</span>begin<span class="op">(),</span> s<span class="op">.</span>begin<span class="op">(),</span> s<span class="op">.</span>end<span class="op">());</span></span></code></pre></div>
+<h3 id="functions-from-utf8unchecked-namespace">Functions From utf8::unchecked Namespace</h3>
+<h4 id="utf8uncheckedappend">utf8::unchecked::append</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Encodes a 32 bit code point as a UTF-8 sequence of octets and appends the sequence to a UTF-8 string.</p>
+<div class="sourceCode" id="cb78"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>octet_iterator append<span class="op">(</span><span class="dt">uint32_t</span> cp<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>cp</code>: A 32 bit integer representing a code point to append to the sequence.<br />
+<code>result</code>: An output iterator to the place in the sequence where to append the code point.<br />
+Return value: An iterator pointing to the place after the newly appended sequence.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb79"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span> u<span class="op">[</span><span class="dv">5</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">,</span><span class="dv">0</span><span class="op">};</span></span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">*</span> end <span class="op">=</span> unchecked<span class="op">::</span>append<span class="op">(</span><span class="bn">0x0448</span><span class="op">,</span> u<span class="op">);</span></span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>u<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd1</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0x88</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> u<span class="op">[</span><span class="dv">4</span><span class="op">]</span> <span class="op">==</span> <span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::append</code>. It does not check for validity of the supplied code point, and may produce an invalid UTF-8 sequence.</p>
+<h4 id="utf8uncheckednext">utf8::unchecked::next</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Given the iterator to the beginning of a UTF-8 sequence, it returns the code point and moves the iterator to the next position.</p>
+<div class="sourceCode" id="cb80"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> next<span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">);</span></span></code></pre></div>
+<p><code>it</code>: a reference to an iterator pointing to the beginning of an UTF-8 encoded code point. After the function returns, it is incremented to point to the beginning of the next code point.<br />
+Return value: the 32 bit representation of the processed UTF-8 code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb81"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> unchecked<span class="op">::</span>next<span class="op">(</span>w<span class="op">);</span></span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb81-5"><a href="#cb81-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars <span class="op">+</span> <span class="dv">3</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::next</code>. It does not check for validity of the supplied UTF-8 sequence.</p>
+<h4 id="utf8uncheckedpeek_next">utf8::unchecked::peek_next</h4>
+<p>Available in version 2.1 and later.</p>
+<p>Given the iterator to the beginning of a UTF-8 sequence, it returns the code point.</p>
+<div class="sourceCode" id="cb82"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> peek_next<span class="op">(</span>octet_iterator it<span class="op">);</span></span></code></pre></div>
+<p><code>it</code>: an iterator pointing to the beginning of an UTF-8 encoded code point.<br />
+Return value: the 32 bit representation of the processed UTF-8 code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb83"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> unchecked<span class="op">::</span>peek_next<span class="op">(</span>w<span class="op">);</span></span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars<span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::peek_next</code>. It does not check for validity of the supplied UTF-8 sequence.</p>
+<h4 id="utf8uncheckedprior">utf8::unchecked::prior</h4>
+<p>Available in version 1.02 and later.</p>
+<p>Given a reference to an iterator pointing to an octet in a UTF-8 seqence, it decreases the iterator until it hits the beginning of the previous UTF-8 encoded code point and returns the 32 bits representation of the code point.</p>
+<div class="sourceCode" id="cb84"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uint32_t</span> prior<span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">);</span></span></code></pre></div>
+<p><code>it</code>: a reference pointing to an octet within a UTF-8 encoded string. After the function returns, it is decremented to point to the beginning of the previous code point.<br />
+Return value: the 32 bit representation of the previous code point.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb85"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars <span class="op">+</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> cp <span class="op">=</span> unchecked<span class="op">::</span>prior <span class="op">(</span>w<span class="op">);</span></span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>cp <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars<span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::prior</code>. It does not check for validity of the supplied UTF-8 sequence and offers no boundary checking.</p>
+<h4 id="utf8uncheckedadvance">utf8::unchecked::advance</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Advances an iterator by the specified number of code points within an UTF-8 sequence.</p>
+<div class="sourceCode" id="cb86"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> <span class="dt">distance_type</span><span class="op">&gt;</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> advance <span class="op">(</span>octet_iterator<span class="op">&amp;</span> it<span class="op">,</span> <span class="dt">distance_type</span> n<span class="op">);</span></span></code></pre></div>
+<p><code>it</code>: a reference to an iterator pointing to the beginning of an UTF-8 encoded code point. After the function returns, it is incremented to point to the nth following code point. <code>n</code>: number of code points <code>it</code> should be advanced. A negative value means decrement.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb87"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> w <span class="op">=</span> twochars<span class="op">;</span></span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>unchecked<span class="op">::</span>advance <span class="op">(</span>w<span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>w <span class="op">==</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::advance</code>. It does not check for validity of the supplied UTF-8 sequence and offers no boundary checking.</p>
+<h4 id="utf8uncheckeddistance">utf8::unchecked::distance</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Given the iterators to two UTF-8 encoded code points in a seqence, returns the number of code points between them.</p>
+<div class="sourceCode" id="cb88"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a><span class="kw">typename</span> <span class="bu">std::</span>iterator_traits<span class="op">&lt;</span>octet_iterator<span class="op">&gt;::</span><span class="dt">difference_type</span> distance <span class="op">(</span>octet_iterator first<span class="op">,</span> octet_iterator last<span class="op">);</span></span></code></pre></div>
+<p><code>first</code>: an iterator to a beginning of a UTF-8 encoded code point.<br />
+<code>last</code>: an iterator to a “post-end” of the last UTF-8 encoded code point in the sequence we are trying to determine the length. It can be the beginning of a new code point, or not.<br />
+Return value: the distance between the iterators, in code points.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb89"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> dist <span class="op">=</span> utf8<span class="op">::</span>unchecked<span class="op">::</span>distance<span class="op">(</span>twochars<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>dist <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::distance</code>. It does not check for validity of the supplied UTF-8 sequence.</p>
+<h4 id="utf8uncheckedutf16to8">utf8::unchecked::utf16to8</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-16 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb90"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> u16bit_iterator<span class="op">,</span> <span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>octet_iterator utf16to8 <span class="op">(</span>u16bit_iterator start<span class="op">,</span> u16bit_iterator end<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>start</code>: an iterator pointing to the beginning of the UTF-16 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-16 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-8 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-8 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb91"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">short</span> utf16string<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="bn">0x41</span><span class="op">,</span> <span class="bn">0x0448</span><span class="op">,</span> <span class="bn">0x65e5</span><span class="op">,</span> <span class="bn">0xd834</span><span class="op">,</span> <span class="bn">0xdd1e</span><span class="op">};</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">&gt;</span> utf8result<span class="op">;</span></span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>unchecked<span class="op">::</span>utf16to8<span class="op">(</span>utf16string<span class="op">,</span> utf16string <span class="op">+</span> <span class="dv">5</span><span class="op">,</span> back_inserter<span class="op">(</span>utf8result<span class="op">));</span></span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">10</span><span class="op">);</span>    </span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::utf16to8</code>. It does not check for validity of the supplied UTF-16 sequence.</p>
+<h4 id="utf8uncheckedutf8to16">utf8::unchecked::utf8to16</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts an UTF-8 encoded string to UTF-16</p>
+<div class="sourceCode" id="cb92"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> u16bit_iterator<span class="op">,</span> <span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>u16bit_iterator utf8to16 <span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> u16bit_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>start</code>: an iterator pointing to the beginning of the UTF-8 encoded string to convert. &lt; br /&gt; <code>end</code>: an iterator pointing to pass-the-end of the UTF-8 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-16 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-16 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb93"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> utf8_with_surrogates<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88\xf0\x9d\x84\x9e</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>vector <span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">short</span><span class="op">&gt;</span> utf16result<span class="op">;</span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>unchecked<span class="op">::</span>utf8to16<span class="op">(</span>utf8_with_surrogates<span class="op">,</span> utf8_with_surrogates <span class="op">+</span> <span class="dv">9</span><span class="op">,</span> back_inserter<span class="op">(</span>utf16result<span class="op">));</span></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">4</span><span class="op">);</span></span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xd834</span><span class="op">);</span></span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf16result<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="bn">0xdd1e</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::utf8to16</code>. It does not check for validity of the supplied UTF-8 sequence.</p>
+<h4 id="utf8uncheckedutf32to8">utf8::unchecked::utf32to8</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-32 encoded string to UTF-8.</p>
+<div class="sourceCode" id="cb94"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> u32bit_iterator<span class="op">&gt;</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>octet_iterator utf32to8 <span class="op">(</span>u32bit_iterator start<span class="op">,</span> u32bit_iterator end<span class="op">,</span> octet_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>start</code>: an iterator pointing to the beginning of the UTF-32 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-32 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-8 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-8 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb95"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> utf32string<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="bn">0x448</span><span class="op">,</span> <span class="bn">0x65e5</span><span class="op">,</span> <span class="bn">0x10346</span><span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">unsigned</span> <span class="dt">char</span><span class="op">&gt;</span> utf8result<span class="op">;</span></span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>utf32to8<span class="op">(</span>utf32string<span class="op">,</span> utf32string <span class="op">+</span> <span class="dv">3</span><span class="op">,</span> back_inserter<span class="op">(</span>utf8result<span class="op">));</span></span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf8result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">9</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::utf32to8</code>. It does not check for validity of the supplied UTF-32 sequence.</p>
+<h4 id="utf8uncheckedutf8to32">utf8::unchecked::utf8to32</h4>
+<p>Available in version 1.0 and later.</p>
+<p>Converts a UTF-8 encoded string to UTF-32.</p>
+<div class="sourceCode" id="cb96"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> u32bit_iterator<span class="op">&gt;</span></span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>u32bit_iterator utf8to32 <span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> u32bit_iterator result<span class="op">);</span></span></code></pre></div>
+<p><code>start</code>: an iterator pointing to the beginning of the UTF-8 encoded string to convert.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 encoded string to convert.<br />
+<code>result</code>: an output iterator to the place in the UTF-32 string where to append the result of conversion.<br />
+Return value: An iterator pointing to the place after the appended UTF-32 string.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb97"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> twochars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> utf32result<span class="op">;</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>unchecked<span class="op">::</span>utf8to32<span class="op">(</span>twochars<span class="op">,</span> twochars <span class="op">+</span> <span class="dv">5</span><span class="op">,</span> back_inserter<span class="op">(</span>utf32result<span class="op">));</span></span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>utf32result<span class="op">.</span>size<span class="op">()</span> <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span></code></pre></div>
+<p>This is a faster but less safe version of <code>utf8::utf8to32</code>. It does not check for validity of the supplied UTF-8 sequence.</p>
+<h4 id="utf8uncheckedreplace_invalid">utf8::unchecked::replace_invalid</h4>
+<p>Available in version 3.1 and later.</p>
+<p>Replaces all invalid UTF-8 sequences within a string with a replacement marker.</p>
+<div class="sourceCode" id="cb98"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> output_iterator<span class="op">&gt;</span></span>
+<span id="cb98-2"><a href="#cb98-2" aria-hidden="true" tabindex="-1"></a>output_iterator replace_invalid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> output_iterator out<span class="op">,</span> <span class="dt">uint32_t</span> replacement<span class="op">);</span></span>
+<span id="cb98-3"><a href="#cb98-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">,</span> <span class="kw">typename</span> output_iterator<span class="op">&gt;</span></span>
+<span id="cb98-4"><a href="#cb98-4" aria-hidden="true" tabindex="-1"></a>output_iterator replace_invalid<span class="op">(</span>octet_iterator start<span class="op">,</span> octet_iterator end<span class="op">,</span> output_iterator out<span class="op">);</span></span></code></pre></div>
+<p><code>octet_iterator</code>: an input iterator.<br />
+<code>output_iterator</code>: an output iterator.<br />
+<code>start</code>: an iterator pointing to the beginning of the UTF-8 string to look for invalid UTF-8 sequences.<br />
+<code>end</code>: an iterator pointing to pass-the-end of the UTF-8 string to look for invalid UTF-8 sequences.<br />
+<code>out</code>: An output iterator to the range where the result of replacement is stored.<br />
+<code>replacement</code>: A Unicode code point for the replacement marker. The version without this parameter assumes the value <code>0xfffd</code><br />
+Return value: An iterator pointing to the place after the UTF-8 string with replaced invalid sequences.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb99"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> invalid_sequence<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;a</span><span class="sc">\x80\xe0\xa0\xc0\xaf\xed\xa0\x80</span><span class="st">z&quot;</span><span class="op">;</span></span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>vector<span class="op">&lt;</span><span class="dt">char</span><span class="op">&gt;</span> replace_invalid_result<span class="op">;</span></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>unchecked<span class="op">::</span>replace_invalid <span class="op">(</span>invalid_sequence<span class="op">,</span> invalid_sequence <span class="op">+</span> <span class="kw">sizeof</span><span class="op">(</span>invalid_sequence<span class="op">),</span> back_inserter<span class="op">(</span>replace_invalid_result<span class="op">),</span> <span class="ch">&#39;?&#39;</span><span class="op">);</span></span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a>bvalid <span class="op">=</span> utf8<span class="op">::</span>is_valid<span class="op">(</span>replace_invalid_result<span class="op">.</span>begin<span class="op">(),</span> replace_invalid_result<span class="op">.</span>end<span class="op">());</span></span>
+<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>bvalid<span class="op">);</span></span>
+<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> fixed_invalid_sequence <span class="op">=</span> <span class="st">&quot;a????z&quot;</span><span class="op">;</span></span>
+<span id="cb99-7"><a href="#cb99-7" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span><span class="bu">std::</span>equal<span class="op">(</span>replace_invalid_result<span class="op">.</span>begin<span class="op">(),</span> replace_invalid_result<span class="op">.</span>end<span class="op">(),</span> fixed_invalid_sequence<span class="op">));</span></span></code></pre></div>
+<p><code>replace_invalid</code> does not perform in-place replacement of invalid sequences. Rather, it produces a copy of the original string with the invalid sequences replaced with a replacement marker. Therefore, <code>out</code> must not be in the <code>[start, end]</code> range.</p>
+<p>Unlike <code>utf8::replace_invalid</code>, this function does not verify validity of the replacement marker.</p>
+<h3 id="types-from-utf8unchecked-namespace">Types From utf8::unchecked Namespace</h3>
+<h4 id="utf8iterator-1">utf8::iterator</h4>
+<p>Available in version 2.0 and later.</p>
+<p>Adapts the underlying octet iterator to iterate over the sequence of code points, rather than raw octets.</p>
+<div class="sourceCode" id="cb100"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> octet_iterator<span class="op">&gt;</span></span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> iterator<span class="op">;</span></span></code></pre></div>
+<h5 id="member-functions-1">Member functions</h5>
+<p><code>iterator();</code> the deafult constructor; the underlying octet_iterator is constructed with its default constructor.</p>
+<p><code>explicit iterator (const octet_iterator&amp; octet_it);</code> a constructor that initializes the underlying octet_iterator with <code>octet_it</code>.</p>
+<p><code>octet_iterator base () const;</code> returns the underlying octet_iterator.</p>
+<p><code>uint32_t operator * () const;</code> decodes the utf-8 sequence the underlying octet_iterator is pointing to and returns the code point.</p>
+<p><code>bool operator == (const iterator&amp; rhs) const;</code> returns <code>true</code> if the two underlaying iterators are equal.</p>
+<p><code>bool operator != (const iterator&amp; rhs) const;</code> returns <code>true</code> if the two underlaying iterators are not equal.</p>
+<p><code>iterator&amp; operator ++ ();</code> the prefix increment - moves the iterator to the next UTF-8 encoded code point.</p>
+<p><code>iterator operator ++ (int);</code> the postfix increment - moves the iterator to the next UTF-8 encoded code point and returns the current one.</p>
+<p><code>iterator&amp; operator -- ();</code> the prefix decrement - moves the iterator to the previous UTF-8 encoded code point.</p>
+<p><code>iterator operator -- (int);</code> the postfix decrement - moves the iterator to the previous UTF-8 encoded code point and returns the current one.</p>
+<p>Example of use:</p>
+<div class="sourceCode" id="cb101"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span><span class="op">*</span> threechars <span class="op">=</span> <span class="st">&quot;</span><span class="sc">\xf0\x90\x8d\x86\xe6\x97\xa5\xd1\x88</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>unchecked<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> un_it<span class="op">(</span>threechars<span class="op">);</span></span>
+<span id="cb101-3"><a href="#cb101-3" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::</span>unchecked<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> un_it2 <span class="op">=</span> un_it<span class="op">;</span></span>
+<span id="cb101-4"><a href="#cb101-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>un_it2 <span class="op">==</span> un_it<span class="op">);</span></span>
+<span id="cb101-5"><a href="#cb101-5" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>un_it <span class="op">==</span> <span class="bn">0x10346</span><span class="op">);</span></span>
+<span id="cb101-6"><a href="#cb101-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*(++</span>un_it<span class="op">)</span> <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb101-7"><a href="#cb101-7" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">((*</span>un_it<span class="op">++)</span> <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb101-8"><a href="#cb101-8" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>un_it <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb101-9"><a href="#cb101-9" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(</span>un_it <span class="op">!=</span> un_it2<span class="op">);</span></span>
+<span id="cb101-10"><a href="#cb101-10" aria-hidden="true" tabindex="-1"></a>utf8<span class="op">::::</span>unchecked<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;</span> un_endit <span class="op">(</span>threechars <span class="op">+</span> <span class="dv">9</span><span class="op">);</span>  </span>
+<span id="cb101-11"><a href="#cb101-11" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(++</span>un_it <span class="op">==</span> un_endit<span class="op">);</span></span>
+<span id="cb101-12"><a href="#cb101-12" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*(--</span>un_it<span class="op">)</span> <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb101-13"><a href="#cb101-13" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">((*</span>un_it<span class="op">--)</span> <span class="op">==</span> <span class="bn">0x0448</span><span class="op">);</span></span>
+<span id="cb101-14"><a href="#cb101-14" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>un_it <span class="op">==</span> <span class="bn">0x65e5</span><span class="op">);</span></span>
+<span id="cb101-15"><a href="#cb101-15" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(--</span>un_it <span class="op">==</span> utf8<span class="op">::</span>unchecked<span class="op">::</span>iterator<span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;(</span>threechars<span class="op">));</span></span>
+<span id="cb101-16"><a href="#cb101-16" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span> <span class="op">(*</span>un_it <span class="op">==</span> <span class="bn">0x10346</span><span class="op">);</span></span></code></pre></div>
+<p>This is an unchecked version of <code>utf8::iterator</code>. It is faster in many cases, but offers no validity or range checks.</p>
+<h2 id="links">Links</h2>
+<ol type="1">
+<li><a href="http://www.unicode.org/">The Unicode Consortium</a>.</li>
+<li><a href="http://icu.sourceforge.net/">ICU Library</a>.</li>
+<li><a href="http://en.wikipedia.org/wiki/UTF-8">UTF-8 at Wikipedia</a></li>
+<li><a href="http://www.cl.cam.ac.uk/~mgk25/unicode.html">UTF-8 and Unicode FAQ for Unix/Linux</a></li>
+</ol>

@@ -1,0 +1,669 @@
+<h1 id="cpp-httplib">cpp-httplib</h1>
+<p><a href="https://github.com/yhirose/cpp-httplib/actions"><img src="https://github.com/yhirose/cpp-httplib/workflows/test/badge.svg" /></a></p>
+<p>A C++11 single-file header-only cross platform HTTP/HTTPS library.</p>
+<p>It’s extremely easy to setup. Just include the <strong>httplib.h</strong> file in your code!</p>
+<p>NOTE: This library uses ‘blocking’ socket I/O. If you are looking for a library with ‘non-blocking’ socket I/O, this is not the one that you want.</p>
+<h2 id="simple-examples">Simple examples</h2>
+<h4 id="server-multi-threaded">Server (Multi-threaded)</h4>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define CPPHTTPLIB_OPENSSL_SUPPORT</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;path/to/httplib.h&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// HTTP</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Server svr<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">// HTTPS</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>SSLServer svr<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="at">const</span> httplib<span class="op">::</span>Request <span class="op">&amp;,</span> httplib<span class="op">::</span>Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_content<span class="op">(</span><span class="st">&quot;Hello World!&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>listen<span class="op">(</span><span class="st">&quot;0.0.0.0&quot;</span><span class="op">,</span> <span class="dv">8080</span><span class="op">);</span></span></code></pre></div>
+<h4 id="client">Client</h4>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define CPPHTTPLIB_OPENSSL_SUPPORT</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;path/to/httplib.h&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// HTTP</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;http://cpp-httplib-server.yhirose.repl.co&quot;</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// HTTPS</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;https://cpp-httplib-server.yhirose.repl.co&quot;</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>res<span class="op">-&gt;</span>status<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>res<span class="op">-&gt;</span>body<span class="op">;</span></span></code></pre></div>
+<h2 id="ssl-support">SSL Support</h2>
+<p>SSL support is available with <code>CPPHTTPLIB_OPENSSL_SUPPORT</code>. <code>libssl</code> and <code>libcrypto</code> should be linked.</p>
+<p>NOTE: cpp-httplib currently supports only version 1.1.1 and 3.0.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define CPPHTTPLIB_OPENSSL_SUPPORT</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;path/to/httplib.h&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Server</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>SSLServer svr<span class="op">(</span><span class="st">&quot;./cert.pem&quot;</span><span class="op">,</span> <span class="st">&quot;./key.pem&quot;</span><span class="op">);</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Client</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;https://localhost:1234&quot;</span><span class="op">);</span> <span class="co">// scheme + host</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>SSLClient cli<span class="op">(</span><span class="st">&quot;localhost:1234&quot;</span><span class="op">);</span> <span class="co">// host</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>SSLClient cli<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">,</span> <span class="dv">1234</span><span class="op">);</span> <span class="co">// host, port</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">// Use your CA bundle</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_ca_cert_path<span class="op">(</span><span class="st">&quot;./ca-bundle.crt&quot;</span><span class="op">);</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">// Disable cert verification</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>enable_server_certificate_verification<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span></code></pre></div>
+<p>Note: When using SSL, it seems impossible to avoid SIGPIPE in all cases, since on some operating systems, SIGPIPE can only be suppressed on a per-message basis, but there is no way to make the OpenSSL library do so for its internal communications. If your program needs to avoid being terminated on SIGPIPE, the only fully general way might be to set up a signal handler for SIGPIPE to handle or ignore it yourself.</p>
+<h2 id="server">Server</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> <span class="kw">namespace</span> httplib<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  Server svr<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="at">const</span> Request<span class="op">&amp;</span> req<span class="op">,</span> Response<span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    res<span class="op">.</span>set_content<span class="op">(</span><span class="st">&quot;Hello World!&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  svr<span class="op">.</span>Get<span class="op">(</span><span class="st">R&quot;(/numbers/(\d+))&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> Request<span class="op">&amp;</span> req<span class="op">,</span> Response<span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> numbers <span class="op">=</span> req<span class="op">.</span>matches<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    res<span class="op">.</span>set_content<span class="op">(</span>numbers<span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/body-header-param&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="at">const</span> Request<span class="op">&amp;</span> req<span class="op">,</span> Response<span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>req<span class="op">.</span>has_header<span class="op">(</span><span class="st">&quot;Content-Length&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>      <span class="kw">auto</span> val <span class="op">=</span> req<span class="op">.</span>get_header_value<span class="op">(</span><span class="st">&quot;Content-Length&quot;</span><span class="op">);</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>req<span class="op">.</span>has_param<span class="op">(</span><span class="st">&quot;key&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>      <span class="kw">auto</span> val <span class="op">=</span> req<span class="op">.</span>get_param_value<span class="op">(</span><span class="st">&quot;key&quot;</span><span class="op">);</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    res<span class="op">.</span>set_content<span class="op">(</span>req<span class="op">.</span>body<span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/stop&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> Request<span class="op">&amp;</span> req<span class="op">,</span> Response<span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    svr<span class="op">.</span>stop<span class="op">();</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  svr<span class="op">.</span>listen<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">,</span> <span class="dv">1234</span><span class="op">);</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>Post</code>, <code>Put</code>, <code>Delete</code> and <code>Options</code> methods are also supported.</p>
+<h3 id="bind-a-socket-to-multiple-interfaces-and-any-available-port">Bind a socket to multiple interfaces and any available port</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> port <span class="op">=</span> svr<span class="op">.</span>bind_to_any_port<span class="op">(</span><span class="st">&quot;0.0.0.0&quot;</span><span class="op">);</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>listen_after_bind<span class="op">();</span></span></code></pre></div>
+<h3 id="static-file-server">Static File Server</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mount / to ./www directory</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ret <span class="op">=</span> svr<span class="op">.</span>set_mount_point<span class="op">(</span><span class="st">&quot;/&quot;</span><span class="op">,</span> <span class="st">&quot;./www&quot;</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span>ret<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">// The specified base directory doesn&#39;t exist...</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Mount /public to ./www directory</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> svr<span class="op">.</span>set_mount_point<span class="op">(</span><span class="st">&quot;/public&quot;</span><span class="op">,</span> <span class="st">&quot;./www&quot;</span><span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Mount /public to ./www1 and ./www2 directories</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> svr<span class="op">.</span>set_mount_point<span class="op">(</span><span class="st">&quot;/public&quot;</span><span class="op">,</span> <span class="st">&quot;./www1&quot;</span><span class="op">);</span> <span class="co">// 1st order to search</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> svr<span class="op">.</span>set_mount_point<span class="op">(</span><span class="st">&quot;/public&quot;</span><span class="op">,</span> <span class="st">&quot;./www2&quot;</span><span class="op">);</span> <span class="co">// 2nd order to search</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Remove mount /</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> svr<span class="op">.</span>remove_mount_point<span class="op">(</span><span class="st">&quot;/&quot;</span><span class="op">);</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">// Remove mount /public</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>ret <span class="op">=</span> svr<span class="op">.</span>remove_mount_point<span class="op">(</span><span class="st">&quot;/public&quot;</span><span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// User defined file extension and MIME type mappings</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_file_extension_and_mimetype_mapping<span class="op">(</span><span class="st">&quot;cc&quot;</span><span class="op">,</span> <span class="st">&quot;text/x-c&quot;</span><span class="op">);</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_file_extension_and_mimetype_mapping<span class="op">(</span><span class="st">&quot;cpp&quot;</span><span class="op">,</span> <span class="st">&quot;text/x-c&quot;</span><span class="op">);</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_file_extension_and_mimetype_mapping<span class="op">(</span><span class="st">&quot;hh&quot;</span><span class="op">,</span> <span class="st">&quot;text/x-h&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>The followings are built-in mappings:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Extension</th>
+<th style="text-align: left;">MIME Type</th>
+<th style="text-align: left;">Extension</th>
+<th style="text-align: left;">MIME Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">css</td>
+<td style="text-align: left;">text/css</td>
+<td style="text-align: left;">mpga</td>
+<td style="text-align: left;">audio/mpeg</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">csv</td>
+<td style="text-align: left;">text/csv</td>
+<td style="text-align: left;">weba</td>
+<td style="text-align: left;">audio/webm</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">txt</td>
+<td style="text-align: left;">text/plain</td>
+<td style="text-align: left;">wav</td>
+<td style="text-align: left;">audio/wave</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">vtt</td>
+<td style="text-align: left;">text/vtt</td>
+<td style="text-align: left;">otf</td>
+<td style="text-align: left;">font/otf</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">html, htm</td>
+<td style="text-align: left;">text/html</td>
+<td style="text-align: left;">ttf</td>
+<td style="text-align: left;">font/ttf</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">apng</td>
+<td style="text-align: left;">image/apng</td>
+<td style="text-align: left;">woff</td>
+<td style="text-align: left;">font/woff</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">avif</td>
+<td style="text-align: left;">image/avif</td>
+<td style="text-align: left;">woff2</td>
+<td style="text-align: left;">font/woff2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bmp</td>
+<td style="text-align: left;">image/bmp</td>
+<td style="text-align: left;">7z</td>
+<td style="text-align: left;">application/x-7z-compressed</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gif</td>
+<td style="text-align: left;">image/gif</td>
+<td style="text-align: left;">atom</td>
+<td style="text-align: left;">application/atom+xml</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">png</td>
+<td style="text-align: left;">image/png</td>
+<td style="text-align: left;">pdf</td>
+<td style="text-align: left;">application/pdf</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">svg</td>
+<td style="text-align: left;">image/svg+xml</td>
+<td style="text-align: left;">mjs, js</td>
+<td style="text-align: left;">application/javascript</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">webp</td>
+<td style="text-align: left;">image/webp</td>
+<td style="text-align: left;">json</td>
+<td style="text-align: left;">application/json</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ico</td>
+<td style="text-align: left;">image/x-icon</td>
+<td style="text-align: left;">rss</td>
+<td style="text-align: left;">application/rss+xml</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">tif</td>
+<td style="text-align: left;">image/tiff</td>
+<td style="text-align: left;">tar</td>
+<td style="text-align: left;">application/x-tar</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">tiff</td>
+<td style="text-align: left;">image/tiff</td>
+<td style="text-align: left;">xhtml, xht</td>
+<td style="text-align: left;">application/xhtml+xml</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">jpeg, jpg</td>
+<td style="text-align: left;">image/jpeg</td>
+<td style="text-align: left;">xslt</td>
+<td style="text-align: left;">application/xslt+xml</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mp4</td>
+<td style="text-align: left;">video/mp4</td>
+<td style="text-align: left;">xml</td>
+<td style="text-align: left;">application/xml</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mpeg</td>
+<td style="text-align: left;">video/mpeg</td>
+<td style="text-align: left;">gz</td>
+<td style="text-align: left;">application/gzip</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">webm</td>
+<td style="text-align: left;">video/webm</td>
+<td style="text-align: left;">zip</td>
+<td style="text-align: left;">application/zip</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mp3</td>
+<td style="text-align: left;">audio/mp3</td>
+<td style="text-align: left;">wasm</td>
+<td style="text-align: left;">application/wasm</td>
+</tr>
+</tbody>
+</table>
+<h3 id="file-request-handler">File request handler</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// The handler is called right before the response is sent to a client</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_file_request_handler<span class="op">([](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>NOTE: These static file server methods are not thread-safe.</p>
+<h3 id="logging">Logging</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_logger<span class="op">([](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  your_logger<span class="op">(</span>req<span class="op">,</span> res<span class="op">);</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="error-handler">Error handler</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_error_handler<span class="op">([](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> fmt <span class="op">=</span> <span class="st">&quot;&lt;p&gt;Error Status: &lt;span style=&#39;color:red;&#39;&gt;</span><span class="sc">%d</span><span class="st">&lt;/span&gt;&lt;/p&gt;&quot;</span><span class="op">;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">char</span> buf<span class="op">[</span>BUFSIZ<span class="op">];</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  snprintf<span class="op">(</span>buf<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>buf<span class="op">),</span> fmt<span class="op">,</span> res<span class="op">.</span>status<span class="op">);</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_content<span class="op">(</span>buf<span class="op">,</span> <span class="st">&quot;text/html&quot;</span><span class="op">);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="exception-handler">Exception handler</h3>
+<p>The exception handler gets called if a user routing handler throws an error.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_exception_handler<span class="op">([](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">,</span> <span class="bu">std::</span>exception_ptr<span class="op"> </span>ep<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> fmt <span class="op">=</span> <span class="st">&quot;&lt;h1&gt;Error 500&lt;/h1&gt;&lt;p&gt;</span><span class="sc">%s</span><span class="st">&lt;/p&gt;&quot;</span><span class="op">;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">char</span> buf<span class="op">[</span>BUFSIZ<span class="op">];</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>rethrow_exception<span class="op">(</span>ep<span class="op">);</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">std::</span>exception<span class="op"> &amp;</span>e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    snprintf<span class="op">(</span>buf<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>buf<span class="op">),</span> fmt<span class="op">,</span> e<span class="op">.</span>what<span class="op">());</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="cf">catch</span> <span class="op">(...)</span> <span class="op">{</span> <span class="co">// See the following </span><span class="al">NOTE</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    snprintf<span class="op">(</span>buf<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>buf<span class="op">),</span> fmt<span class="op">,</span> <span class="st">&quot;Unknown Exception&quot;</span><span class="op">);</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_content<span class="op">(</span>buf<span class="op">,</span> <span class="st">&quot;text/html&quot;</span><span class="op">);</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>status <span class="op">=</span> <span class="dv">500</span><span class="op">;</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>NOTE: if you don’t provide the <code>catch (...)</code> block for a rethrown exception pointer, an uncaught exception will end up causing the server crash. Be careful!</p>
+<h3 id="pre-routing-handler">Pre routing handler</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_pre_routing_handler<span class="op">([](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>req<span class="op">.</span>path <span class="op">==</span> <span class="st">&quot;/hello&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    res<span class="op">.</span>set_content<span class="op">(</span><span class="st">&quot;world&quot;</span><span class="op">,</span> <span class="st">&quot;text/html&quot;</span><span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Server<span class="op">::</span>HandlerResponse<span class="op">::</span>Handled<span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> Server<span class="op">::</span>HandlerResponse<span class="op">::</span>Unhandled<span class="op">;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="post-routing-handler">Post routing handler</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_post_routing_handler<span class="op">([](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_header<span class="op">(</span><span class="st">&quot;ADDITIONAL_HEADER&quot;</span><span class="op">,</span> <span class="st">&quot;value&quot;</span><span class="op">);</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="multipartform-data-post-data">‘multipart/form-data’ POST data</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/multipart&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> req<span class="op">,</span> <span class="kw">auto</span><span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> size <span class="op">=</span> req<span class="op">.</span>files<span class="op">.</span>size<span class="op">();</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> ret <span class="op">=</span> req<span class="op">.</span>has_file<span class="op">(</span><span class="st">&quot;name1&quot;</span><span class="op">);</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> file <span class="op">=</span> req<span class="op">.</span>get_file_value<span class="op">(</span><span class="st">&quot;name1&quot;</span><span class="op">);</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">// file.filename;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">// file.content_type;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">// file.content;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="receive-content-with-a-content-receiver">Receive content with a content receiver</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/content_receiver&quot;</span><span class="op">,</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">[&amp;](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">,</span> <span class="at">const</span> ContentReader <span class="op">&amp;</span>content_reader<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>req<span class="op">.</span>is_multipart_form_data<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>      <span class="co">// </span><span class="al">NOTE</span><span class="co">: `content_reader` is blocking until every form data field is read</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>      MultipartFormDataItems files<span class="op">;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>      content_reader<span class="op">(</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">[&amp;](</span><span class="at">const</span> MultipartFormData <span class="op">&amp;</span>file<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>          files<span class="op">.</span>push_back<span class="op">(</span>file<span class="op">);</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>          <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">},</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">[&amp;](</span><span class="at">const</span> <span class="dt">char</span> <span class="op">*</span>data<span class="op">,</span> <span class="dt">size_t</span> data_length<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>          files<span class="op">.</span>back<span class="op">().</span>content<span class="op">.</span>append<span class="op">(</span>data<span class="op">,</span> data_length<span class="op">);</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>          <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">});</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string<span class="op"> </span>body<span class="op">;</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>      content_reader<span class="op">([&amp;](</span><span class="at">const</span> <span class="dt">char</span> <span class="op">*</span>data<span class="op">,</span> <span class="dt">size_t</span> data_length<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        body<span class="op">.</span>append<span class="op">(</span>data<span class="op">,</span> data_length<span class="op">);</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>      <span class="op">});</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span></code></pre></div>
+<h3 id="send-content-with-the-content-provider">Send content with the content provider</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> DATA_CHUNK_SIZE <span class="op">=</span> <span class="dv">4</span><span class="op">;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/stream&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> data <span class="op">=</span> <span class="kw">new</span> <span class="bu">std::</span>string<span class="op">(</span><span class="st">&quot;abcdefg&quot;</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_content_provider<span class="op">(</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    data<span class="op">-&gt;</span>size<span class="op">(),</span> <span class="co">// Content length</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;text/plain&quot;</span><span class="op">,</span> <span class="co">// Content type</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>data<span class="op">](</span><span class="dt">size_t</span> offset<span class="op">,</span> <span class="dt">size_t</span> length<span class="op">,</span> DataSink <span class="op">&amp;</span>sink<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">const</span> <span class="kw">auto</span> <span class="op">&amp;</span>d <span class="op">=</span> <span class="op">*</span>data<span class="op">;</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      sink<span class="op">.</span>write<span class="op">(&amp;</span>d<span class="op">[</span>offset<span class="op">],</span> <span class="bu">std::</span>min<span class="op">(</span>length<span class="op">,</span> DATA_CHUNK_SIZE<span class="op">));</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the process.</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>data<span class="op">](</span><span class="dt">bool</span> success<span class="op">)</span> <span class="op">{</span> <span class="kw">delete</span> data<span class="op">;</span> <span class="op">});</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<p>Without content length:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/stream&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_content_provider<span class="op">(</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;text/plain&quot;</span><span class="op">,</span> <span class="co">// Content type</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[&amp;](</span><span class="dt">size_t</span> offset<span class="op">,</span> DataSink <span class="op">&amp;</span>sink<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> <span class="op">(</span><span class="co">/* there is still data */</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">char</span><span class="op">&gt;</span> data<span class="op">;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// prepare data...</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        sink<span class="op">.</span>write<span class="op">(</span>data<span class="op">.</span>data<span class="op">(),</span> data<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        sink<span class="op">.</span>done<span class="op">();</span> <span class="co">// No more data</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the process.</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="chunked-transfer-encoding">Chunked transfer encoding</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/chunked&quot;</span><span class="op">,</span> <span class="op">[&amp;](</span><span class="at">const</span> Request<span class="op">&amp;</span> req<span class="op">,</span> Response<span class="op">&amp;</span> res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  res<span class="op">.</span>set_chunked_content_provider<span class="op">(</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;text/plain&quot;</span><span class="op">,</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="dt">size_t</span> offset<span class="op">,</span> DataSink <span class="op">&amp;</span>sink<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>      sink<span class="op">.</span>write<span class="op">(</span><span class="st">&quot;123&quot;</span><span class="op">,</span> <span class="dv">3</span><span class="op">);</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>      sink<span class="op">.</span>write<span class="op">(</span><span class="st">&quot;345&quot;</span><span class="op">,</span> <span class="dv">3</span><span class="op">);</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>      sink<span class="op">.</span>write<span class="op">(</span><span class="st">&quot;789&quot;</span><span class="op">,</span> <span class="dv">3</span><span class="op">);</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>      sink<span class="op">.</span>done<span class="op">();</span> <span class="co">// No more data</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the process.</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">);</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="expect-100-continue-handler">‘Expect: 100-continue’ handler</h3>
+<p>By default, the server sends a <code>100 Continue</code> response for an <code>Expect: 100-continue</code> header.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Send a &#39;417 Expectation Failed&#39; response.</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_expect_100_continue_handler<span class="op">([](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">417</span><span class="op">;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Send a final status without reading the message body.</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_expect_100_continue_handler<span class="op">([](</span><span class="at">const</span> Request <span class="op">&amp;</span>req<span class="op">,</span> Response <span class="op">&amp;</span>res<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> res<span class="op">.</span>status <span class="op">=</span> <span class="dv">401</span><span class="op">;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span></code></pre></div>
+<h3 id="keep-alive-connection">Keep-Alive connection</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_keep_alive_max_count<span class="op">(</span><span class="dv">2</span><span class="op">);</span> <span class="co">// Default is 5</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_keep_alive_timeout<span class="op">(</span><span class="dv">10</span><span class="op">);</span>  <span class="co">// Default is 5</span></span></code></pre></div>
+<h3 id="timeout">Timeout</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_read_timeout<span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span> <span class="co">// 5 seconds</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_write_timeout<span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span> <span class="co">// 5 seconds</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_idle_interval<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">100000</span><span class="op">);</span> <span class="co">// 100 milliseconds</span></span></code></pre></div>
+<h3 id="set-maximum-payload-length-for-reading-a-request-body">Set maximum payload length for reading a request body</h3>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>set_payload_max_length<span class="op">(</span><span class="dv">1024</span> <span class="op">*</span> <span class="dv">1024</span> <span class="op">*</span> <span class="dv">512</span><span class="op">);</span> <span class="co">// 512MB</span></span></code></pre></div>
+<h3 id="server-sent-events">Server-Sent Events</h3>
+<p>Please see <a href="https://github.com/yhirose/cpp-httplib/blob/master/example/ssesvr.cc">Server example</a> and <a href="https://github.com/yhirose/cpp-httplib/blob/master/example/ssecli.cc">Client example</a>.</p>
+<h3 id="default-thread-pool-support">Default thread pool support</h3>
+<p><code>ThreadPool</code> is used as a <strong>default</strong> task queue, and the default thread count is 8, or <code>std::thread::hardware_concurrency()</code>. You can change it with <code>CPPHTTPLIB_THREAD_POOL_COUNT</code>.</p>
+<p>If you want to set the thread count at runtime, there is no convenient way… But here is how.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>new_task_queue <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span> <span class="cf">return</span> <span class="kw">new</span> ThreadPool<span class="op">(</span><span class="dv">12</span><span class="op">);</span> <span class="op">};</span></span></code></pre></div>
+<h3 id="override-the-default-thread-pool-with-yours">Override the default thread pool with yours</h3>
+<p>You can supply your own thread pool implementation according to your need.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourThreadPoolTaskQueue <span class="op">:</span> <span class="kw">public</span> TaskQueue <span class="op">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  YourThreadPoolTaskQueue<span class="op">(</span><span class="dt">size_t</span> n<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">pool_</span><span class="op">.</span>start_with_thread_count<span class="op">(</span>n<span class="op">);</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="dt">void</span> enqueue<span class="op">(</span><span class="bu">std::</span>function<span class="op">&lt;</span><span class="dt">void</span><span class="op">()&gt;</span> fn<span class="op">)</span> <span class="kw">override</span> <span class="op">{</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">pool_</span><span class="op">.</span>enqueue<span class="op">(</span>fn<span class="op">);</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">virtual</span> <span class="dt">void</span> shutdown<span class="op">()</span> <span class="kw">override</span> <span class="op">{</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    <span class="va">pool_</span><span class="op">.</span>shutdown_gracefully<span class="op">();</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>  YourThreadPool <span class="va">pool_</span><span class="op">;</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>svr<span class="op">.</span>new_task_queue <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">new</span> YourThreadPoolTaskQueue<span class="op">(</span><span class="dv">12</span><span class="op">);</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h2 id="client-1">Client</h2>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">,</span> <span class="dv">1234</span><span class="op">);</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>res<span class="op">-&gt;</span>status <span class="op">==</span> <span class="dv">200</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> res<span class="op">-&gt;</span>body <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> err <span class="op">=</span> res<span class="op">.</span>error<span class="op">();</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout<span class="op"> &lt;&lt;</span> <span class="st">&quot;HTTP error: &quot;</span> <span class="op">&lt;&lt;</span> httplib<span class="op">::</span>to_string<span class="op">(</span>err<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>NOTE: Constructor with scheme-host-port string is now supported!</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">);</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;localhost:8080&quot;</span><span class="op">);</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;http://localhost&quot;</span><span class="op">);</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;http://localhost:8080&quot;</span><span class="op">);</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;https://localhost&quot;</span><span class="op">);</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>SSLClient cli<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="error-code">Error code</h3>
+<p>Here is the list of errors from <code>Result::error()</code>.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> Error <span class="op">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  Success <span class="op">=</span> <span class="dv">0</span><span class="op">,</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  Unknown<span class="op">,</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  Connection<span class="op">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  BindIPAddress<span class="op">,</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  Read<span class="op">,</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  Write<span class="op">,</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  ExceedRedirectCount<span class="op">,</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  Canceled<span class="op">,</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  SSLConnection<span class="op">,</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  SSLLoadingCerts<span class="op">,</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  SSLServerVerification<span class="op">,</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  UnsupportedMultipartBoundaryChars<span class="op">,</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  Compression<span class="op">,</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  ConnectionTimeout<span class="op">,</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h3 id="get-with-http-headers">GET with HTTP headers</h3>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Headers headers <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;Accept-Encoding&quot;</span><span class="op">,</span> <span class="st">&quot;gzip, deflate&quot;</span> <span class="op">}</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">,</span> headers<span class="op">);</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_default_headers<span class="op">({</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;Accept-Encoding&quot;</span><span class="op">,</span> <span class="st">&quot;gzip, deflate&quot;</span> <span class="op">}</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hi&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="post">POST</h3>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/post&quot;</span><span class="op">,</span> <span class="st">&quot;text&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/person&quot;</span><span class="op">,</span> <span class="st">&quot;name=john1&amp;note=coder&quot;</span><span class="op">,</span> <span class="st">&quot;application/x-www-form-urlencoded&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="post-with-parameters">POST with parameters</h3>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Params params<span class="op">;</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>params<span class="op">.</span>emplace<span class="op">(</span><span class="st">&quot;name&quot;</span><span class="op">,</span> <span class="st">&quot;john&quot;</span><span class="op">);</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>params<span class="op">.</span>emplace<span class="op">(</span><span class="st">&quot;note&quot;</span><span class="op">,</span> <span class="st">&quot;coder&quot;</span><span class="op">);</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/post&quot;</span><span class="op">,</span> params<span class="op">);</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Params params<span class="op">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;name&quot;</span><span class="op">,</span> <span class="st">&quot;john&quot;</span> <span class="op">},</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;note&quot;</span><span class="op">,</span> <span class="st">&quot;coder&quot;</span> <span class="op">}</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/post&quot;</span><span class="op">,</span> params<span class="op">);</span></span></code></pre></div>
+<h3 id="post-with-multipart-form-data">POST with Multipart Form Data</h3>
+<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>MultipartFormDataItems items <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;text1&quot;</span><span class="op">,</span> <span class="st">&quot;text default&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span> <span class="op">},</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;text2&quot;</span><span class="op">,</span> <span class="st">&quot;aωb&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span> <span class="op">},</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;file1&quot;</span><span class="op">,</span> <span class="st">&quot;h</span><span class="sc">\n</span><span class="st">e</span><span class="sc">\n\n</span><span class="st">l</span><span class="sc">\n</span><span class="st">l</span><span class="sc">\n</span><span class="st">o</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> <span class="st">&quot;hello.txt&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span> <span class="op">},</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;file2&quot;</span><span class="op">,</span> <span class="st">&quot;{</span><span class="sc">\n</span><span class="st">  </span><span class="sc">\&quot;</span><span class="st">world</span><span class="sc">\&quot;</span><span class="st">, true</span><span class="sc">\n</span><span class="st">}</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> <span class="st">&quot;world.json&quot;</span><span class="op">,</span> <span class="st">&quot;application/json&quot;</span> <span class="op">},</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="st">&quot;file3&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;application/octet-stream&quot;</span> <span class="op">},</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/multipart&quot;</span><span class="op">,</span> items<span class="op">);</span></span></code></pre></div>
+<h3 id="put">PUT</h3>
+<div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Put<span class="op">(</span><span class="st">&quot;/resource/foo&quot;</span><span class="op">,</span> <span class="st">&quot;text&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="delete">DELETE</h3>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Delete<span class="op">(</span><span class="st">&quot;/resource/foo&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="options">OPTIONS</h3>
+<div class="sourceCode" id="cb37"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Options<span class="op">(</span><span class="st">&quot;*&quot;</span><span class="op">);</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Options<span class="op">(</span><span class="st">&quot;/resource/foo&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="timeout-1">Timeout</h3>
+<div class="sourceCode" id="cb38"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_connection_timeout<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">300000</span><span class="op">);</span> <span class="co">// 300 milliseconds</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_read_timeout<span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span> <span class="co">// 5 seconds</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_write_timeout<span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span> <span class="co">// 5 seconds</span></span></code></pre></div>
+<h3 id="receive-content-with-a-content-receiver-1">Receive content with a content receiver</h3>
+<div class="sourceCode" id="cb39"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>body<span class="op">;</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/large-data&quot;</span><span class="op">,</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">[&amp;](</span><span class="at">const</span> <span class="dt">char</span> <span class="op">*</span>data<span class="op">,</span> <span class="dt">size_t</span> data_length<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    body<span class="op">.</span>append<span class="op">(</span>data<span class="op">,</span> data_length<span class="op">);</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>body<span class="op">;</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;/stream&quot;</span><span class="op">,</span> Headers<span class="op">(),</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">[&amp;](</span><span class="at">const</span> Response <span class="op">&amp;</span>response<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    EXPECT_EQ<span class="op">(</span><span class="dv">200</span><span class="op">,</span> response<span class="op">.</span>status<span class="op">);</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the request.</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">[&amp;](</span><span class="at">const</span> <span class="dt">char</span> <span class="op">*</span>data<span class="op">,</span> <span class="dt">size_t</span> data_length<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    body<span class="op">.</span>append<span class="op">(</span>data<span class="op">,</span> data_length<span class="op">);</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the request.</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span></code></pre></div>
+<h3 id="send-content-with-a-content-provider">Send content with a content provider</h3>
+<div class="sourceCode" id="cb41"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string<span class="op"> </span>body <span class="op">=</span> <span class="op">...;</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;/stream&quot;</span><span class="op">,</span> body<span class="op">.</span>size<span class="op">(),</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">[](</span><span class="dt">size_t</span> offset<span class="op">,</span> <span class="dt">size_t</span> length<span class="op">,</span> DataSink <span class="op">&amp;</span>sink<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    sink<span class="op">.</span>write<span class="op">(</span>body<span class="op">.</span>data<span class="op">()</span> <span class="op">+</span> offset<span class="op">,</span> length<span class="op">);</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the request.</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="chunked-transfer-encoding-1">Chunked transfer encoding</h3>
+<div class="sourceCode" id="cb42"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;/stream&quot;</span><span class="op">,</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">[](</span><span class="dt">size_t</span> offset<span class="op">,</span> DataSink <span class="op">&amp;</span>sink<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    sink<span class="op">.</span>os <span class="op">&lt;&lt;</span> <span class="st">&quot;chunked data 1&quot;</span><span class="op">;</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    sink<span class="op">.</span>os <span class="op">&lt;&lt;</span> <span class="st">&quot;chunked data 2&quot;</span><span class="op">;</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    sink<span class="op">.</span>os <span class="op">&lt;&lt;</span> <span class="st">&quot;chunked data 3&quot;</span><span class="op">;</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    sink<span class="op">.</span>done<span class="op">();</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the request.</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="with-progress-callback">With Progress Callback</h3>
+<div class="sourceCode" id="cb43"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client client<span class="op">(</span>url<span class="op">,</span> port<span class="op">);</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="co">// prints: 0 / 000 bytes =&gt; 50% complete</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="dt">uint64_t</span> len<span class="op">,</span> <span class="dt">uint64_t</span> total<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  printf<span class="op">(</span><span class="st">&quot;</span><span class="sc">%lld</span><span class="st"> / </span><span class="sc">%lld</span><span class="st"> bytes =&gt; </span><span class="sc">%d%%</span><span class="st"> complete</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    len<span class="op">,</span> total<span class="op">,</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span><span class="dt">int</span><span class="op">)(</span>len<span class="op">*</span><span class="dv">100</span><span class="op">/</span>total<span class="op">));</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// return &#39;false&#39; if you want to cancel the request.</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<figure>
+<img src="https://user-images.githubusercontent.com/236374/33138910-495c4ecc-cf86-11e7-8693-2fc6d09615c4.gif" alt="progress" /><figcaption aria-hidden="true">progress</figcaption>
+</figure>
+<h3 id="authentication">Authentication</h3>
+<div class="sourceCode" id="cb44"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Basic Authentication</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_basic_auth<span class="op">(</span><span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="st">&quot;pass&quot;</span><span class="op">);</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Digest Authentication</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_digest_auth<span class="op">(</span><span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="st">&quot;pass&quot;</span><span class="op">);</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Bearer Token Authentication</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_bearer_token_auth<span class="op">(</span><span class="st">&quot;token&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>NOTE: OpenSSL is required for Digest Authentication.</p>
+<h3 id="proxy-server-support">Proxy server support</h3>
+<div class="sourceCode" id="cb45"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_proxy<span class="op">(</span><span class="st">&quot;host&quot;</span><span class="op">,</span> port<span class="op">);</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Basic Authentication</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_proxy_basic_auth<span class="op">(</span><span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="st">&quot;pass&quot;</span><span class="op">);</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Digest Authentication</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_proxy_digest_auth<span class="op">(</span><span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="st">&quot;pass&quot;</span><span class="op">);</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="co">// Bearer Token Authentication</span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_proxy_bearer_token_auth<span class="op">(</span><span class="st">&quot;pass&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>NOTE: OpenSSL is required for Digest Authentication.</p>
+<h3 id="range">Range</h3>
+<div class="sourceCode" id="cb46"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;httpbin.org&quot;</span><span class="op">);</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/range/32&quot;</span><span class="op">,</span> <span class="op">{</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  httplib<span class="op">::</span>make_range_header<span class="op">({{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">10</span><span class="op">}})</span> <span class="co">// &#39;Range: bytes=1-10&#39;</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a><span class="co">// res-&gt;status should be 206.</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a><span class="co">// res-&gt;body should be &quot;bcdefghijk&quot;.</span></span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>make_range_header<span class="op">({{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">10</span><span class="op">},</span> <span class="op">{</span><span class="dv">20</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">}})</span>      <span class="co">// &#39;Range: bytes=1-10, 20-&#39;</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>make_range_header<span class="op">({{</span><span class="dv">100</span><span class="op">,</span> <span class="dv">199</span><span class="op">},</span> <span class="op">{</span><span class="dv">500</span><span class="op">,</span> <span class="dv">599</span><span class="op">}})</span> <span class="co">// &#39;Range: bytes=100-199, 500-599&#39;</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>make_range_header<span class="op">({{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">},</span> <span class="op">{-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">}})</span>        <span class="co">// &#39;Range: bytes=0-0, -1&#39;</span></span></code></pre></div>
+<h3 id="keep-alive-connection-1">Keep-Alive connection</h3>
+<div class="sourceCode" id="cb48"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;localhost&quot;</span><span class="op">,</span> <span class="dv">1234</span><span class="op">);</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/hello&quot;</span><span class="op">);</span>         <span class="co">// with &quot;Connection: close&quot;</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_keep_alive<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/world&quot;</span><span class="op">);</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_keep_alive<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/last-request&quot;</span><span class="op">);</span>  <span class="co">// with &quot;Connection: close&quot;</span></span></code></pre></div>
+<h3 id="redirect">Redirect</h3>
+<div class="sourceCode" id="cb49"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>httplib<span class="op">::</span>Client cli<span class="op">(</span><span class="st">&quot;yahoo.com&quot;</span><span class="op">);</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/&quot;</span><span class="op">);</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>res<span class="op">-&gt;</span>status<span class="op">;</span> <span class="co">// 301</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_follow_location<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/&quot;</span><span class="op">);</span></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>res<span class="op">-&gt;</span>status<span class="op">;</span> <span class="co">// 200</span></span></code></pre></div>
+<h3 id="use-a-specific-network-interface">Use a specific network interface</h3>
+<p>NOTE: This feature is not available on Windows, yet.</p>
+<div class="sourceCode" id="cb50"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_interface<span class="op">(</span><span class="st">&quot;eth0&quot;</span><span class="op">);</span> <span class="co">// Interface name, IP address or host name</span></span></code></pre></div>
+<h2 id="compression">Compression</h2>
+<p>The server can apply compression to the following MIME type contents:</p>
+<ul>
+<li>all text types except text/event-stream</li>
+<li>image/svg+xml</li>
+<li>application/javascript</li>
+<li>application/json</li>
+<li>application/xml</li>
+<li>application/xhtml+xml</li>
+</ul>
+<h3 id="zlib-support">Zlib Support</h3>
+<p>‘gzip’ compression is available with <code>CPPHTTPLIB_ZLIB_SUPPORT</code>. <code>libz</code> should be linked.</p>
+<h3 id="brotli-support">Brotli Support</h3>
+<p>Brotli compression is available with <code>CPPHTTPLIB_BROTLI_SUPPORT</code>. Necessary libraries should be linked. Please see https://github.com/google/brotli for more detail.</p>
+<h3 id="compress-request-body-on-client">Compress request body on client</h3>
+<div class="sourceCode" id="cb51"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_compress<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Post<span class="op">(</span><span class="st">&quot;/resource/foo&quot;</span><span class="op">,</span> <span class="st">&quot;...&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="compress-response-body-on-client">Compress response body on client</h3>
+<div class="sourceCode" id="cb52"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>set_decompress<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> cli<span class="op">.</span>Get<span class="op">(</span><span class="st">&quot;/resource/foo&quot;</span><span class="op">,</span> <span class="op">{{</span><span class="st">&quot;Accept-Encoding&quot;</span><span class="op">,</span> <span class="st">&quot;gzip, deflate, br&quot;</span><span class="op">}});</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>res<span class="op">-&gt;</span>body<span class="op">;</span> <span class="co">// Compressed data</span></span></code></pre></div>
+<h2 id="use-poll-instead-of-select">Use <code>poll</code> instead of <code>select</code></h2>
+<p><code>select</code> system call is used as default since it’s more widely supported. If you want to let cpp-httplib use <code>poll</code> instead, you can do so with <code>CPPHTTPLIB_USE_POLL</code>.</p>
+<h2 id="split-httplib.h-into-.h-and-.cc">Split httplib.h into .h and .cc</h2>
+<pre class="console"><code>$ ./split.py -h
+usage: split.py [-h] [-e EXTENSION] [-o OUT]
+
+This script splits httplib.h into .h and .cc parts.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -e EXTENSION, --extension EXTENSION
+                        extension of the implementation file (default: cc)
+  -o OUT, --out OUT     where to write the files (default: out)
+
+$ ./split.py
+Wrote out/httplib.h and out/httplib.cc</code></pre>
+<h2 id="note">NOTE</h2>
+<h3 id="g">g++</h3>
+<p>g++ 4.8 and below cannot build this library since <code>&lt;regex&gt;</code> in the versions are <a href="https://stackoverflow.com/questions/12530406/is-gcc-4-8-or-earlier-buggy-about-regular-expressions">broken</a>.</p>
+<h3 id="windows">Windows</h3>
+<p>Include <code>httplib.h</code> before <code>Windows.h</code> or include <code>Windows.h</code> by defining <code>WIN32_LEAN_AND_MEAN</code> beforehand.</p>
+<div class="sourceCode" id="cb54"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Windows.h&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define WIN32_LEAN_AND_MEAN</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Windows.h&gt;</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span></span></code></pre></div>
+<p>Note: cpp-httplib officially supports only the latest Visual Studio. It might work with former versions of Visual Studio, but I can no longer verify it. Pull requests are always welcome for the older versions of Visual Studio unless they break the C++11 conformance.</p>
+<p>Note: Windows 8 or lower, Visual Studio 2013 or lower, and Cygwin on Windows are not supported.</p>
+<h2 id="license">License</h2>
+<p>MIT license (© 2022 Yuji Hirose)</p>
+<h2 id="special-thanks-to">Special Thanks To</h2>
+<p><a href="https://github.com/yhirose/cpp-httplib/graphs/contributors">These folks</a> made great contributions to polish this library to totally another level from a simple toy!</p>

@@ -1,0 +1,383 @@
+<h1 id="cpp_cli">cpp_cli</h1>
+<p><a href="https://www.codacy.com/app/TheLandfill/cpp_cli?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheLandfill/cpp_cli&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/7f047f6cbe31451f87096d6a64e277fa" alt="Codacy Badge" /></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a></p>
+<h2 id="quick-version">Quick Version</h2>
+<p>If you just want to get something up and running, read here.</p>
+<h3 id="how-to-use">How to Use</h3>
+<ol style="list-style-type: decimal">
+<li>Download the latest release.</li>
+<li>Include &quot;cpp_cli.h&quot; wherever you call any function of Parser.</li>
+<li>Create a new scope (this is just so the local variables you need to create disappear, but it's not necessary).</li>
+<li>Inside that scope, create your <code>Var&lt;T&gt;</code>s, create your <code>Value&lt;T&gt;</code>s, create your <code>Vector&lt;T&gt;</code>s, add your subcommands, and set help information (syntax specified below).</li>
+<li>If you want to generate a help message, run the function <code>Parser::generate_help(argv[0])</code>, which will create a text file with a help message.</li>
+<li>Once you've created all the <code>Var</code>s, run the function <code>Parser::parse(argc, argv);</code>.</li>
+<li>All the variables will be set after hash finishes.</li>
+<li>Any non-flagged argument or ignored argument will be returned in a vector of &quot;non_options&quot; in the order in which they appear in the command line.</li>
+</ol>
+<h3 id="example-usage">Example Usage</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;cpp_cli.h&quot;</span>
+
+<span class="dt">void</span> sample_subcommand(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv, <span class="dt">void</span> * data);
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv){
+  <span class="bu">std::</span>string filename = <span class="st">&quot;&quot;</span>;
+  <span class="dt">int</span> recursion_level = <span class="dv">0</span>;
+  <span class="bu">std::</span>string show_output = <span class="st">&quot;&quot;</span>;
+  <span class="dt">bool</span> standard_input = <span class="kw">false</span>;
+  <span class="dt">char</span> c_version_of_string[<span class="dv">20</span>];
+  <span class="dt">char</span> <span class="dt">file_type</span> = <span class="st">&#39;</span><span class="sc">\0</span><span class="st">&#39;</span>;
+  <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; list_of_ints;
+  <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; non_options;
+
+  <span class="kw">using</span> <span class="kw">namespace</span> cli;
+  
+  Parser p;
+    
+  <span class="co">// Set filename to the argument of &quot;-o&quot;, &quot;--output=&quot;, or &quot;--out=&quot;</span>
+  <span class="co">// These are variables with throwaway names.</span>
+  Var&lt;<span class="bu">std::</span>string&gt; fv(filename, { <span class="st">&quot;o&quot;</span>, <span class="st">&quot;output&quot;</span>, <span class="st">&quot;out&quot;</span> }, <span class="kw">true</span>);
+  Var&lt;<span class="dt">int</span>&gt; rlv(recursion_level, { <span class="st">&quot;r&quot;</span>, <span class="st">&quot;recursion&quot;</span>, <span class="st">&quot;max_depth&quot;</span> }, <span class="kw">true</span>);
+  
+  <span class="co">// Set show_output to &quot;show_output&quot;, &quot;s&quot;, &quot;no_out&quot;, or &quot;half_out&quot;.</span>
+  Var&lt;<span class="bu">std::</span>string&gt; sov(show_output, { <span class="st">&quot;show_output&quot;</span>, <span class="st">&quot;s&quot;</span>, <span class="st">&quot;no_out&quot;</span>, <span class="st">&quot;half_out&quot;</span> }, <span class="kw">false</span>);
+  
+  <span class="co">// Used for arguments like &quot;-vvvvv&quot; for levels of verboseness</span>
+  Var&lt;<span class="dt">char</span>&gt; vv(c_version_of_string, { <span class="st">&quot;v&quot;</span> }, <span class="kw">false</span>, <span class="dv">20</span>);
+  
+  Value&lt;<span class="dt">bool</span>&gt; siv(standard_input, { <span class="st">&quot;-&quot;</span> }, <span class="kw">true</span>);
+  Value&lt;<span class="dt">char</span>&gt; ftfv(<span class="dt">file_type</span>, { <span class="st">&quot;file&quot;</span>, <span class="st">&quot;f&quot;</span> }, <span class="st">&#39;f&#39;</span>);
+  Value&lt;<span class="dt">char</span>&gt; ftdv(<span class="dt">file_type</span>, { <span class="st">&quot;d&quot;</span>, <span class="st">&quot;dir&quot;</span>, <span class="st">&quot;directory&quot;</span> }, <span class="st">&#39;d&#39;</span>);
+  Value&lt;<span class="dt">char</span>&gt; ftlv(<span class="dt">file_type</span>, { <span class="st">&quot;l&quot;</span>, <span class="st">&quot;link&quot;</span> }, <span class="st">&#39;l&#39;</span>);
+  
+  <span class="co">// Every instance of -L will add its argument to the vector &quot;list_of_ints&quot;</span>
+  Vector&lt;<span class="dt">int</span>&gt; loiv(list_of_ints, { <span class="st">&quot;list&quot;</span>, <span class="st">&quot;L&quot;</span> });
+    
+  p.add_subcommand(sample_subcommand, <span class="st">&quot;test&quot;</span>);
+
+  <span class="co">// The third argument argument isn&#39;t necessary to set in this simple example.</span>
+  non_options = Parser::parse(argc, argv);
+  
+  <span class="co">// Other code. At this point, all variables are set and the &quot;test&quot; subcommand has been run if it was on the command line.</span>
+}</code></pre></div>
+<p>If you want to provide a help message for anything, just add it to the end of the arguments to the function. The next section will display the more generic syntax.</p>
+<h3 id="generic-syntax">Generic Syntax</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; non_options;
+
+<span class="kw">using</span> <span class="kw">namespace</span> cli;
+
+Parser p;
+Var&lt;T&gt; generic_syntax(T&amp; variable_to_set, <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; flags, <span class="dt">bool</span> takes_args, <span class="at">const</span> <span class="dt">char</span> * help_mess = <span class="st">&quot;&quot;</span>)
+Value&lt;T&gt; generic_syntax(T&amp; variable_to_set, <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; flags, T value_to_set_variable, <span class="at">const</span> <span class="dt">char</span> * help_mess = <span class="st">&quot;&quot;</span>);
+Vector&lt;T&gt; generic_syntax(<span class="bu">std::</span>vector&lt;T&gt;&amp; vector_to_add_to, <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; flags, <span class="at">const</span> <span class="dt">char</span> * help_mess = <span class="st">&quot;&quot;</span>);
+
+p.add_subcommand(<span class="at">const</span> <span class="dt">char</span> * name_of_subcommand, subcommand, <span class="at">const</span> <span class="dt">char</span> * help_mess = <span class="st">&quot;&quot;</span>);
+<span class="co">// subcommand is a function of type &quot;void function(int argc, char ** argv, void * data)&quot;</span>
+
+p.set_usage(<span class="st">&quot;[options] non-option0 non-option1&quot;</span>);
+p.set_header(<span class="st">&quot;Here is a description of what your program does and so on.&quot;</span>);
+p.set_footer(<span class="st">&quot;For more information, contact us at the.landfill.coding@gmail.com.&quot;</span>);
+<span class="co">// Must be set to a folder you can access.</span>
+p.set_help_file_path(<span class="st">&quot;/usr/local/bin/folder_you_can_access/&quot;</span>);
+
+<span class="co">// Should be called after everything else is set and before Parser::parse</span>
+p.generate_help(argv[<span class="dv">0</span>]);
+
+<span class="co">// data is an object/literal with data you want to pass to the subcommand.</span>
+non_options = p.parse(argc, argv, &amp;data);</code></pre></div>
+<p>where <code>T</code> is the type of the variable and <code>variable_name_var</code> is a stack allocated variable. Single char flags have a dash while multichar flags have two dashes. Supports any flag syntax you would expect from a POSIX standard program, including</p>
+<ul>
+<li><p><code>-fValue</code></p></li>
+<li><p><code>-f Value</code></p></li>
+<li><p><code>-abc</code></p></li>
+<li><p><code>-abcf Value</code></p></li>
+<li><p><code>--long-opt</code></p></li>
+<li><p><code>--long-opt=Value</code></p></li>
+</ul>
+<p>The first argument to a <code>Var</code> is either the variable you want to set, its address (as long as it isn't a <code>Var&lt;char&gt;</code>), or a <code>nullptr</code>, the second variable is an array/vector of strings corresponding to flags that control the value of the variable, the third argument is a bool that determines whether or not the flags take arguments themselves, and the last argument is an optional help message. If you don't provide one, the flags will still show up in the help message so that you don't forget about documenting a flag. To have a set of flags ignored, pass in anything starting with a backtick (`) for the help message. <code>Var&lt;char&gt;</code>s have an additional argument before the help message to declare the buffer size.</p>
+<p>The only difference between a <code>Value</code> and a <code>Var</code> is that the third argument is what you want the variable to be set to if the flag is found. <code>Value</code>s do not take arguments.</p>
+<p><code>Vector</code>s take in a vector of type <code>T</code> and only take three arguments instead of four like a <code>Var</code> or a <code>Value</code>.</p>
+<p><code>parse</code> returns an <code>std::vector&lt;const char *&gt;</code> consisting of all the arguments that are not flags or arguments to flags, including the initial command name and all subcommands. Every subcommand has a nullptr immediately before it in the vector so that you know that the argument is a subcommand.</p>
+<p>If a <code>nullptr</code> is provided for the first argument of a Var or Value, the parser will just treat it as if it were a non-option.</p>
+<p>Valid subcommands have the syntax <code>void function(int argc, char ** argv, void * data)</code>. The third argument is what you choose to pass in when you call <code>parse</code>, and all three arguments will be passed by <code>parse</code> once the subcommand is found.</p>
+<h2 id="long-version">Long Version</h2>
+<p>cpp_cli is a library designed to make parsing command line arguments for c++ easy, needing only one line per variable you want to set and one line to parse, and efficient, running in linear time with respect to the number of arguments passed to the command line.</p>
+<p>Currently, this library has a stable release with all the functionality you could want from a CLI library, including subcommand handling and automatic help generation.</p>
+<p>While the source code itself is standard c++11, the test program's Makefile uses the GNU/Linux tools make and g++.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol style="list-style-type: decimal">
+<li><p><a href="#why-i-wrote-this-library">Why I Wrote This Library</a></p></li>
+<li><p><a href="#getting-started">Getting Started</a></p>
+<ol style="list-style-type: decimal">
+<li><p><a href="#prerequisites">Prerequisites</a></p></li>
+<li><p><a href="#install">Install</a></p></li>
+</ol></li>
+<li><p><a href="#parsing-rules">Parsing Rules</a></p>
+<ol style="list-style-type: decimal">
+<li><p><a href="#how-parsing-works-with-subcommands">How Parsing Works With Subcommands</a></p></li>
+<li><p><a href="#types-the-library-can-handle">Types the Library Can Handle</a></p>
+<ol style="list-style-type: decimal">
+<li><a href="#how-to-handle-a-char-array">How to Handle a <code>char</code> Array</a></li>
+</ol></li>
+<li><p><a href="#using-options-whose-locations-matter">Using Options Whose Locations Matter</a></p></li>
+</ol></li>
+<li><p><a href="#exception-throwing">Exception Throwing</a></p></li>
+<li><p><a href="#help-message">Help Message</a></p></li>
+<li><p><a href="#more-complex-command-line-parsing">More Complex Command Line Parsing</a></p>
+<ol style="list-style-type: decimal">
+<li><p><a href="#subcommands">Subcommands</a></p>
+<ol style="list-style-type: decimal">
+<li><a href="#subcommands-example">Subcommands Example</a></li>
+</ol></li>
+<li><p><a href="#values"><code>Value</code>s</a></p></li>
+<li><p><a href="#vectors"><code>Vector</code>s</a></p></li>
+<li><p><a href="#wspecialization">WSpecialization</a></p>
+<ol style="list-style-type: decimal">
+<li><a href="#wspecialization-example">WSpecialization Example</a></li>
+</ol></li>
+<li><p><a href="#adding-your-own-extensions">Adding Your Own Extensions</a></p></li>
+</ol></li>
+<li><p><a href="#goals">Goals</a></p></li>
+<li><p><a href="#goals-completed">Goals Completed</a></p></li>
+<li><p><a href="#license">License</a></p></li>
+</ol>
+<h2 id="why-i-wrote-this-library">Why I Wrote This Library</h2>
+<ul>
+<li><p>Every non-trivial program has to parse command line arguments, which leaves programmers often writing their own parsers for each individual project even though they are often writing the same inefficient, rigid, and unnecessarily complex algorithms.</p></li>
+<li><p>Current CLI parsers either do far too little, such as GetOpt, or far too much, such as CLI11. Programs should do one thing and do it well. This library takes the data in the command line and puts it into your variables.</p></li>
+<li><p>I wanted to contribute to the open source community and familiarize myself with GitHub.</p></li>
+<li><p>After actually using some of the other competitors (<a href="https://github.com/CLIUtils/CLI11">CLI11</a> has a good list) to test how my library stacks up to theirs, I'm starting to remember more why I made this library.</p>
+<ul>
+<li><p>For starters, I don't include half the STL to parse the command line, which keeps executables much smaller than other CLI libraries.</p></li>
+<li><p>This library is also way more flexible than most other libraries. It understands that its only job is to organize data on the command line so that it becomes much easier for you to read. It also documents itself using the automatic help generation.</p></li>
+</ul></li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<p>As it currently stands, the entire product is valid c++11 except for the makefiles for compiling the projects.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>The library requires nothing but c++11. The test program already has symlinks to the required library and header file.</p>
+<h3 id="install">Install</h3>
+<p>No installation required. Just download the current release and include &quot;cpp_cli.h&quot; in your cpp source code wherever you want to parse the command line.</p>
+<h2 id="parsing-rules">Parsing Rules</h2>
+<p><a href="https://stackoverflow.com/a/14738273/6629221">This answer</a> on stackexchange does a good job of summarizing the standard for command line argument syntax, and the library follows these rules, which are copied below for convenience.</p>
+<blockquote>
+<ul>
+<li><p>Arguments are divided into options and non-options. Options start with a dash, non-options don't.</p></li>
+<li><p>Options, as the name implies, are supposed to be optional. If your program requires some command-line arguments to do anything at all useful, those arguments should be non-options (i.e. they should not start with a dash).</p></li>
+<li><p>Options can be further divided into short options, which are a single dash followed by a single letter (-r, -f), and long options, which are two dashes followed by one or more dash-separated words (--recursive, --frobnicate-the-gourds). Short options can be glommed together into one argument (-rf) as long as none of them takes arguments (see below).</p>
+<ul>
+<li><p>Options may themselves take arguments.</p></li>
+<li><p>The argument to a short option -x is either the remainder of the argv entry, or if there is no further text in that entry, the very next argv entry whether or not it starts with a dash.</p></li>
+</ul></li>
+<li><p>The argument to a long option is set off with an equals sign: --output=outputfile.txt.</p></li>
+<li><p>If at all possible, the relative ordering of distinct options (with their arguments) should have no observable effect.</p></li>
+<li><p>The special option -- means &quot;do not treat anything after this point on the command line as an option, even if it looks like one.&quot; This is so, for instance, you can remove a file named '-f' by typing rm -- -f.</p></li>
+<li><p>The special option - means &quot;read standard input&quot;.</p></li>
+</ul>
+</blockquote>
+<p>Note that this library does not force you to use any of the commonly reserved short options at the bottom of the list, nor does it treat them any differently than any other options, nor does it reserve them. It is up to the user to maintain this standard. Furthermore, the special option &quot;-&quot; is treated just like any other option, so it is not reserved for standard input either. Finally, the special argument &quot;--&quot; will turn any arguments that come after it into non-options.</p>
+<h3 id="how-parsing-works-with-subcommands">How Parsing Works With Subcommands</h3>
+<p>When any word that can be identified as a valid subcommand shows up, the parser will then call that subcommand, add a <code>nullptr</code> to the list of non_options, then add the subcommand, and then it will then run the subcommand. Each subcommand has its own totally independent set of flags, but they all share the same non_options. This functionality is modeled after the functionality of the <code>git</code> command and its subcommands.</p>
+<h3 id="types-the-library-can-handle">Types the Library Can Handle</h3>
+<p>As it currently stands, this library can handle standard types that can be converted from a <code>char *</code>, which include all numeric types, std::string, and <code>char *</code>. To extend the library to handle other types, you need to either add a template specialization, which is what I have done for the numeric types, or overload the &quot;=&quot; operator to take in <code>char *</code>, which is what std::string has done.</p>
+<p>When using a <code>Var</code> that does not take subarguments, the variable will be set to whatever the subargument is. For instance, if the flag &quot;-s&quot; does not take arguments, it will set its corresponding variable to &quot;s&quot;. Likewise, &quot;--stop-early&quot; will set its corresponding variable to &quot;stop-early&quot; or however many characters allocated if the variable is a <code>char *</code>. If the argument can be stacked (such as -vvvv), then it will set its variable to &quot;vvvv&quot;.</p>
+<p>The default template version takes the form</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">virtual</span> <span class="dt">void</span> set_base_variable(<span class="at">const</span> <span class="dt">char</span> * b_v) {
+    *(T *)base_variable = b_v;
+}</code></pre></div>
+<h4 id="how-to-handle-a-char-array">How to Handle a <code>char</code> Array</h4>
+<p>To create a <code>Var</code> with a <code>char *</code> variable:</p>
+<ol style="list-style-type: decimal">
+<li><p>Use a template type of <code>char</code>.</p></li>
+<li><p>Provide a fourth argument with the size of the buffer.</p></li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="dt">int</span> example_string_bf_size = <span class="dv">20</span>;
+<span class="dt">char</span> example_string[example_string_bf_size];
+Var&lt;<span class="dt">char</span>&gt; example_string_var(example_string, ..., ..., example_string_bf_size, optional_help_string);</code></pre></div>
+<p>Furthermore, you should allocate enough memory to store the longest argument you expect to receive. If you do not, you run the risk of a segmentation fault, and there is nothing the library can do to fix it or notify you that your buffer is too small.</p>
+<p>If you just want to set a singular <code>char</code>, passing it in as a normal variable works and you do not need to specify a buffer size.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">char</span> example_char = <span class="st">&#39;x&#39;</span>;
+Var&lt;<span class="dt">char</span>&gt; example_char_var(example_char, ..., ...);</code></pre></div>
+<h3 id="using-options-whose-locations-matter">Using Options Whose Locations Matter</h3>
+<p>Without going into too much detail, the <code>-l</code> flag in <code>gcc</code> and <code>g++</code> has to come after other arguments in gcc, but the library destroys the order of options in most cases. To keep a flag in the list of non-options, provide <code>nullptr</code> for the first argument in the Var constructor where the address of a variable would normally go. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Var&lt;<span class="dt">int</span>&gt; example_ignored_variable(<span class="kw">nullptr</span>, { <span class="st">&quot;l&quot;</span>, <span class="st">&quot;library&quot;</span>}, <span class="kw">true</span>);</code></pre></div>
+<p>Any flag that starts with <code>-l</code> or <code>--library</code> will be considered as if it were a non-option. Note that the templated type was an int in this example, but the type doesn't matter.</p>
+<p>Having a <code>-l</code> in a group of multiple short arguments such as <code>-albc</code> will throw an exception identifying the flag.</p>
+<h2 id="exception-throwing">Exception Throwing</h2>
+<p>The library will throw exceptions (<code>std::invalid_argument</code>) when you provide a flag on the command line that you did not specify (except for the single hyphen flag for standard input), provide an argument to a flag that does not take arguments, leave out an argument to a flag that does take arguments, or try to use a short option whose location on the command line matters inside a group of short options. When the library throws an argument, it will tell you the error and which flag caused the error.</p>
+<p>The library will also throw an <code>std::runtime_error</code> if there is a problem with writing the help files.</p>
+<h2 id="help-message">Help Message</h2>
+<p>This library can automatically generate a help message by calling <code>Parser::generate_help(argv[0])</code>, which will generate a help message and store it in a file within the directory you specify named &quot;.X_help_message&quot;, where &quot;X&quot; is the name of each subcommand leading up to and including the current subcommand. For instance, if git used this library, the command &quot;git push&quot; would produce the file &quot;.git_push_help_message&quot; while just &quot;git&quot; would produce &quot;.git_help_message&quot;.</p>
+<p>To print out the current help message, use <code>Parser::print_help()</code>, which will print out the last help message of the last subcommand that called <code>generate_help(argv[0])</code>. It will only generate the help message if there is no help message file corresponding to the current subcommand, meaning you should delete all help message files on compiling. This library has no automatic trigger for a help message, so you'll still need to create a <code>Value&lt;bool&gt;</code> for each help message display. You may need to set the filename if you want a help message from a supercommand to be displayed. If <code>Parser::print_help()</code> is called without calling <code>Parser::generate_help(argv[0])</code>, the program will throw a runtime exception detailing which subcommand needs to have the <code>generate_help(argv[0])</code> added.</p>
+<p>The help file path can either be relative or absolute, but you should only make it relative if you can guarantee that the executable will only be run from one unchanging directory. Otherwise, running it in multiple locations will produce a new help file in each of those new locations. <code>Parser::set_help_file_path(&quot;&quot;)</code> will set the file path to the current directory.</p>
+<p>If the help file path you specify does not exist or you do not have permission to create a file in the directory, then the program will throw a runtime exception and notify you of the error. Either rerun the command with the proper privileges, make the directory, or use another directory.</p>
+<h2 id="more-complex-command-line-parsing">More Complex Command Line Parsing</h2>
+<h3 id="subcommands">Subcommands</h3>
+<p>Subcommands are commands embedded inside a single command. The classic example of a command with subcommands is <code>git</code>, which has a huge list of subcommands that do completely different things but all use the same functionality of <code>git</code>. In this library, each subcommand is treated like a different main function that allows you to pass data from a supercommand into it. Other than the data passed to the subcommand (or data shared by a class if the supercommand and the subcommand have access to the same data), each subcommand is entirely different from the rest of the program, including its supercommand, its subcommands, and any other subcommand, meaning that each subcommand can also have different flags, the same flags, the same flags but referring to different things, etc. Subcommands are declared with the syntax <code>Parser::add_subcommand(&quot;Command Name&quot;, subcommand_function)</code>, where <code>void subcommand_function(int argc, char ** argv, void * data)</code> is the style of the subcommand function. It is important to note that each subcommand will treat itself as if it were its own program and completely ignore everything before it on the command line.</p>
+<h4 id="subcommands-example">Subcommands Example</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;cpp_cli.h&quot;</span>
+
+<span class="dt">void</span> push_subcommand(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv, <span class="dt">void</span> * data);
+<span class="dt">void</span> pull_subcommand(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv, <span class="dt">void</span> * data);
+
+<span class="kw">struct</span> Data_From_Principle_Subcommand {
+    <span class="bu">std::</span>string file_path;
+    <span class="dt">int</span> level;
+};
+
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv) {
+    <span class="kw">using</span> <span class="kw">namespace</span> cpp_cli;
+    Data_For_Push_Subcommand dfps;
+
+    Parser::add_subcommand(<span class="st">&quot;push&quot;</span>, push_subcommand);
+    Parser::add_subcommand(<span class="st">&quot;pull&quot;</span>, pull_subcommand);
+    <span class="co">// Other stuff like flags</span>
+    Var&lt;<span class="bu">std::</span>string&gt; file_path_var(dfps.file_path, { <span class="st">&quot;p&quot;</span>, <span class="st">&quot;path&quot;</span> }, <span class="kw">true</span>);
+    Vat&lt;<span class="dt">int</span>&gt; level_var(dfps.level, { <span class="st">&quot;l&quot;</span>, <span class="st">&quot;level&quot;</span> }, <span class="kw">true</span>);
+    
+    <span class="co">// A void pointer to dfps will be passed to any subcommand used.</span>
+    Parser::parse(argc, argv, &amp;dfps);
+}
+
+<span class="dt">void</span> push_subcommand(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv, <span class="dt">void</span> * data_ptr) {
+    Data_For_Push_Subcommand data = *((Data_For_Push_Subcommand *)data_ptr);
+    <span class="co">// Do whatever</span>
+}</code></pre></div>
+<h3 id="values"><code>Value</code>s</h3>
+<p>A <code>Value</code> has the same syntax as the <code>Var</code>, except the third argument is what you want the value to be set to when the flag appears. For instance: <code>Value&lt;char&gt; some_var(some, { &quot;some&quot;, &quot;not-nothing&quot;, &quot;s&quot;, &quot;less-than-all&quot; }, 's')</code> will set <code>some</code> to <code>'s'</code> if any of the flags in the list are found. These are better suited to options that do not take args than <code>Var</code>s.</p>
+<h3 id="vectors"><code>Vector</code>s</h3>
+<p>A <code>Vector</code> has a similar syntax to the <code>Var</code>, except the third argument is removed entirely because you always need to provide an argument to the flags and it has no default value. It has the syntax:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;T&gt; list;
+
+Vector&lt;T&gt; list_var(list, { <span class="st">&quot;f&quot;</span>, <span class="st">&quot;flag&quot;</span> }, <span class="st">&quot;Help String&quot;</span>);</code></pre></div>
+<p>This will take a vector of type <code>T</code> as the first argument. Whenever one of its flags are found, it will use <code>Var&lt;T&gt;::set_base_variable(const char * b_v)</code> to convert the argument to the type and push it back to the end of the vector unless <code>T = const char *</code>, <code>T = char *</code>, or <code>T = char</code>. If <code>T = const char *</code>, then the vector will be filled with pointers to the command line arguments themselves, which should work fine since they're <code>const</code>. If <code>T = char *</code> on the other hand, the program will throw an exception if you try to run it because you can't set a <code>char *</code> to a <code>const char *</code> and because you can't fill a vector with bare <code>char *</code>s beforehand and tell the program what the buffer size is. Finally, if <code>T = char</code>, it will push back every <code>char</code> in <code>b_v</code> in order because you should be using strings and I'm going to make you feel bad for it.</p>
+<h3 id="wspecialization">WSpecialization</h3>
+<p>This is where things get more complicated, though not by as much as you would expect.</p>
+<p>I have implemented a general system to handle gcc-style flags called <code>WSpecialization</code> after gcc's <code>-W</code> argument. <code>WSpecialization</code> is in its own separate header file, &quot;w_specialization.h&quot;, which must be included for you to use. You must still include &quot;cpp_cli.h&quot;. The syntax for <code>WSpecialization</code> is intentionally similar to the syntax for a <code>Var</code>. Note that you are not in any way required to use this type of argument if you don't want to, and can use the simpler versions above.</p>
+<p><code>WSpecialization</code> also works normally with other command flags and with other <code>WSpecializationS</code>.</p>
+<p>Unlike a <code>Var</code>, <code>Wvalue</code>s and <code>Warg</code>s prevent you from providing more than one subalias, though you could if you just made multiple <code>Wvalue</code>s or <code>WargS</code>.</p>
+<h4 id="wspecialization-example">WSpecialization Example</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;cpp_cli.h&quot;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> ** argv){
+    <span class="dt">bool</span> w_sign_conversion = <span class="kw">true</span>;
+    <span class="dt">bool</span> w_all = <span class="kw">false</span>;
+    <span class="dt">int</span> w_error_level = <span class="dv">1</span>;
+    <span class="dt">char</span> <span class="dt">w_type</span> = <span class="st">&#39;x&#39;</span>;
+    
+    <span class="bu">std::</span>string regular_c_string;
+    
+  {
+    <span class="kw">using</span> <span class="kw">namespace</span> cpp_cli;
+    WSpecialization w_options(<span class="dv">100</span>);
+    
+    Wvalue&lt;<span class="dt">bool</span>&gt; w_sign_conversion_var(w_sign_conversion, w_options, <span class="st">&quot;sign-conversion&quot;</span>, <span class="kw">true</span>);
+    Wvalue&lt;<span class="dt">bool</span>&gt; w_no_sign_conversion_var(w_sign_conversion, w_options, <span class="st">&quot;no-sign-conversion&quot;</span> , <span class="kw">false</span>);
+    Wvalue&lt;<span class="dt">bool</span>&gt; w_all_var(w_all, w_options, <span class="st">&quot;all&quot;</span>, <span class="kw">true</span>);
+    
+    Warg&lt;<span class="dt">int</span>&gt; w_error_level_var(w_error_level, w_options, <span class="st">&quot;error-level&quot;</span>);
+    
+    Wvalue&lt;<span class="dt">char</span>&gt; w_type_a_var(<span class="dt">w_type</span>, w_options, <span class="st">&quot;file&quot;</span>, <span class="st">&#39;f&#39;</span>);
+    Wvalue&lt;<span class="dt">char</span>&gt; w_type_b_var(<span class="dt">w_type</span>, w_options, <span class="st">&quot;dir&quot;</span>, <span class="st">&#39;d&#39;</span>);
+    Wvalue&lt;<span class="dt">char</span>&gt; w_type_c_var(<span class="dt">w_type</span>, w_options, <span class="st">&quot;link&quot;</span>, <span class="st">&#39;l&#39;</span>);
+    Wvalue&lt;<span class="dt">char</span>&gt; w_type_d_var(<span class="dt">w_type</span>, w_options, <span class="st">&quot;any&quot;</span>, <span class="st">&#39;a&#39;</span>);
+    
+    Var&lt;WSpecialization&gt; w_options_var(&amp;w_options, { <span class="st">&quot;W&quot;</span> }, <span class="kw">true</span>);
+    
+    Var&lt;<span class="bu">std::</span>string&gt; regular_c_string_var(regular_c_string, { <span class="st">&quot;f&quot;</span>, <span class="st">&quot;file&quot;</span>, <span class="st">&quot;filename&quot;</span> }, <span class="kw">true</span>);=
+    non_options = Parser::parse(argc, argv);
+  }
+  
+  <span class="co">// Other code. At this point, all variables are set.</span>
+}</code></pre></div>
+<p>This might look a little daunting, but bear in mind that we're linking somewhere around twenty flags to twelve variables while imposing a superstucture on the flags by using multiple <code>WSpecialization</code>s. Four of these links come from setting <code>w_type</code> alone. It's also now to around three lines per variable, which isn't that much of an increase.</p>
+<h3 id="adding-your-own-extensions">Adding Your Own Extensions</h3>
+<p>You can implement more complex parsing by defining your own class or struct and overriding the template for a <code>Var</code> and writing your own version of <code>set_base_variable</code>. Below is the template specialization for <code>char</code> which allows it to act like a <code>char *</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// args_parser_templates.h</span>
+
+<span class="kw">template</span>&lt;&gt;
+<span class="kw">class</span> Var&lt;<span class="dt">char</span>&gt; : <span class="kw">public</span> Var_Interface {
+<span class="kw">private</span>:
+        <span class="dt">int</span> buffer_size;
+<span class="kw">public</span>:
+        Var(<span class="dt">void</span> * b_v, <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; a, <span class="dt">bool</span> ta, <span class="dt">int</span> b_s);
+        <span class="kw">virtual</span> <span class="dt">void</span> set_base_variable(<span class="at">const</span> <span class="dt">char</span> * b_v);
+};
+
+<span class="co">// cpp_cli.h</span>
+<span class="pp">#include </span><span class="im">&quot;args_parser_templates.h&quot;</span>
+
+<span class="co">// Other code</span>
+
+<span class="kw">inline</span> Var&lt;<span class="dt">char</span>&gt;::Var(<span class="dt">void</span> * b_v, <span class="bu">std::</span>vector&lt;<span class="at">const</span> <span class="dt">char</span> *&gt; a, <span class="dt">bool</span> ta, <span class="dt">int</span> b_s) : Var_Interface(b_v, a, ta), buffer_size(b_s) {}
+
+inilne <span class="dt">void</span> Var&lt;<span class="dt">char</span>&gt;::set_base_variable(<span class="at">const</span> <span class="dt">char</span> * b_v) {
+        <span class="dt">char</span> * base_variable_string = (<span class="dt">char</span> *)base_variable;
+        <span class="dt">int</span> i = <span class="dv">0</span>;
+        <span class="cf">while</span> (b_v[i] != <span class="st">&#39;</span><span class="sc">\0</span><span class="st">&#39;</span> &amp;&amp; i &lt; buffer_size) {
+                base_variable_string[i] = b_v[i];
+                i++;
+        }
+        base_variable_string[i] = <span class="st">&#39;</span><span class="sc">\0</span><span class="st">&#39;</span>;
+}</code></pre></div>
+<p>Note that: - The template specialization for <code>char</code> extends <code>public Var_Interface</code>. - It includes a new variable <code>buffer_size</code>, which prevents it from going beyond its buffer. Because it has more variables than a <code>Var_Interface</code>, it needs to define its own constructor. Normally, if you don't have extra variables or don't need to do anything besides setting variables in the constructor, you don't need to define a constructor. - <code>set_base_variable</code> is a virtual function takes in a <code>const char *</code> and returns <code>void</code>. This function must be implemented to make the template specialization behave differently. You should convert the variable <code>base_variable</code> to a pointer to whatever type you're trying to implement.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> Var&lt;T&gt;::set_base_variable(<span class="at">const</span> <span class="dt">char</span> * b_v) {
+    T&amp; variable = *(T *)base_variable;
+    <span class="co">// set variable to whatever.</span>
+}</code></pre></div>
+<p>To specialize the template, you must include the header file <code>args_parser_templates.h</code>.</p>
+<h2 id="goals">Goals</h2>
+<ol style="list-style-type: decimal">
+<li><p>Add ability to run a function from the command line and early exit.</p></li>
+<li><p>Refactor the code so that help file generation is more flexible and its own class so it doesn't clutter up cpp_cli.h.</p></li>
+<li><p>Make Windows specific compilation.</p>
+<ol style="list-style-type: decimal">
+<li>Either convert Makefiles to CMake or roll my own Project for Visual Studio.</li>
+</ol></li>
+<li><p>Add helpful error messages.</p>
+<ol style="list-style-type: decimal">
+<li><p>Currently, the program will convert strings into 0 if the argument takes a numeric argument. For example, <code>--prob=test</code> will set prob to 0.0, because prob is a double.</p></li>
+<li><p>Other examples will come up whenever I encounter more errors.</p></li>
+</ol></li>
+<li><p>See if I can't move <code>base_variable</code> from <code>Var_Interface</code> to the templated subclass of <code>Var</code>, which would really just reduce the typecast.</p>
+<ol style="list-style-type: decimal">
+<li>Not really a priority.</li>
+</ol></li>
+<li><p>Run more tests, specifically trying to simulate command line response in standard Linux tools.</p>
+<ol style="list-style-type: decimal">
+<li><p><code>wget</code> in particular looks perfect for this, with the notable exception of non-standard command-line arguments, such as -nc, which the library would treat as --nc.</p></li>
+<li><p>It is not a good idea for me to try to implement all the flags for <code>gcc</code>, but it does have a more complex parsing algorithm I could try to simulate at least part of.</p></li>
+</ol></li>
+</ol>
+<h2 id="goals-completed">Goals Completed</h2>
+<ol style="list-style-type: decimal">
+<li><p>Added ability to create a vector of arguments passed to a flag by creating <code>Vector</code>s.</p></li>
+<li><p>Add autogenerated help.</p></li>
+<li><p>Add a help message for the test programs.</p>
+<ol style="list-style-type: decimal">
+<li>Using the autogenerated help, no less.</li>
+</ol></li>
+<li><p>Add subcommands, which are things like <code>git commit</code>, where <code>git</code> is the main program and <code>commit</code> is a subcommand.</p></li>
+<li><p>Add example of template class specialization as specified in the section in test program.</p></li>
+<li><p>Single <code>char</code> arguments work. You could now type something like <code>Var&lt;char&gt; single_char_var(single_char, { &quot;A&quot;, &quot;a&quot;, &quot;B&quot;, &quot;b&quot; }, false)</code> and it will work.</p></li>
+<li><p>Fix segmentation fault from having ignored flag in list of flags.</p></li>
+<li><p>Add way to allow user to automatically move flags to non-options by default.</p>
+<ol style="list-style-type: decimal">
+<li>This is most important when dealing with flags that need to be in order, like gcc's -l library flag.</li>
+</ol></li>
+<li><p>Convert library to a single file for the user to include.</p>
+<ol style="list-style-type: decimal">
+<li><p>Doing so would solve the issue of Windows specific compilation, as it would automatically be taken care of by the compiler.</p></li>
+<li><p>Because of the nature of the algorithm, it has a one time use so it should only be included once, meaning the hit from making the functions inline shouldn't be any worse than just having the library. However, users might not want to recompile everything everytime, so I have to provide the functionality in its own header file.</p></li>
+<li><p>It makes the algorithm easier for the user to include and use.</p></li>
+</ol></li>
+<li><p>Make sure that symlinks work on Windows.</p></li>
+<li><p>Fix response to nonexistant flags. Right now, it just crashes the program with a seg fault. I can either make it ignore them or treat them as non-options.</p></li>
+<li><p>Fix response to providing arguments to options that do not take arguments.</p></li>
+<li><p>Fix the potential seg fault of writing outside the valid range for <code>char *</code>.</p></li>
+<li><p>Add support for repeated single flags, such as <code>-vvvv</code> meaning level four verboseness.</p></li>
+<li><p>Add helpful error messages for using invalid flags.</p></li>
+<li><p>Add helpful error messages for providing arguments to flags that do not take arguments.</p></li>
+</ol>
+<h2 id="license">License</h2>
+<p>This project is licensed under the MIT License - see the LICENSE.md file for details.</p>

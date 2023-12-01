@@ -1,0 +1,152 @@
+<h1 id="xxhash_cpp">xxhash_cpp</h1>
+<p>Port of the xxHash library to C++17.</p>
+<p><a href="https://travis-ci.org/RedSpah/xxhash_cpp"><img src="https://travis-ci.org/RedSpah/xxhash_cpp.svg?branch=master" alt="Build Status" /></a></p>
+<h2 id="compatibility">Compatibility</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Compiler</th>
+<th align="center">Min. Version</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>MSVC (Visual Studio)</td>
+<td align="center">19.1 (VS 2017.3 P2)</td>
+</tr>
+<tr class="even">
+<td>clang</td>
+<td align="center">3.9</td>
+</tr>
+<tr class="odd">
+<td>gcc</td>
+<td align="center">7</td>
+</tr>
+<tr class="even">
+<td>EDG eccp</td>
+<td align="center">4.14</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example-usage">Example Usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// standalone hash</span>
+<span class="bu">std::</span>array&lt;<span class="dt">int</span>, <span class="dv">4</span>&gt; input {<span class="dv">322</span>, <span class="dv">2137</span>, <span class="dv">42069</span>, <span class="dv">65536</span>};
+xxh::<span class="dt">hash_t</span>&lt;<span class="dv">32</span>&gt; hash = xxh::xxhash&lt;<span class="dv">32</span>&gt;(input); 
+
+<span class="co">// hash streaming</span>
+<span class="bu">std::</span>array&lt;<span class="dt">unsigned</span> <span class="dt">char</span>, <span class="dv">512</span>&gt; buffer;
+xxh::<span class="dt">hash_state_t</span>&lt;<span class="dv">64</span>&gt; hash_stream; 
+<span class="cf">while</span> (fill_buffer(buffer))
+{
+  hash_stream.update(buffer);
+}
+xxh::<span class="dt">hash_t</span>&lt;<span class="dv">64</span>&gt; final_hash = hash_stream.digest();</code></pre></div>
+<p>The template argument specifies whether the algorithm will use the 32 or 64 bit version. Other values are not allowed. Typedefs <code>hash32_t</code>, <code>hash64_t</code>, <code>hash_state32_t</code> and <code>hash_state64_t</code> are provided.</p>
+<p><code>xxh::xxhash</code> and <code>xxh::hash_state_t::update</code> provide several convenient overloads, all accepting optional <code>seed</code> and <code>endianness</code> arguments: * C-style <code>const void*</code> + <code>size_t</code> pair * <code>const T*</code> + <code>size_t</code> pair, for passing C arrays * <code>const std::vector&lt;T&gt;&amp;</code> * <code>const std::basic_string&lt;T&gt;&amp;</code> * A pair of templated iterators * <code>const std::array&lt;T, N&gt;&amp;</code> * <code>const std::initializer_list&lt;T&gt;&amp;</code></p>
+<h2 id="build-instructions">Build Instructions</h2>
+<p>The library is provided as a single standalone header, for static linking only. No build instructions are nessessary.</p>
+<h1 id="xxhash---extremely-fast-hash-algorithm">xxHash - Extremely fast hash algorithm</h1>
+<p>xxHash is an Extremely fast Hash algorithm, running at RAM speed limits. It successfully completes the <a href="http://code.google.com/p/smhasher/wiki/SMHasher">SMHasher</a> test suite which evaluates collision, dispersion and randomness qualities of hash functions. Code is highly portable, and hashes are identical on all platforms (little / big endian).</p>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>The benchmark uses SMHasher speed test, compiled with Visual 2010 on a Windows Seven 32-bits box. The reference system uses a Core 2 Duo <span class="citation">@3GHz</span></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Speed</th>
+<th align="center">Quality</th>
+<th>Author</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="http://www.xxhash.com">xxHash</a></td>
+<td>5.4 GB/s</td>
+<td align="center">10</td>
+<td>Y.C.</td>
+</tr>
+<tr class="even">
+<td>MurmurHash 3a</td>
+<td>2.7 GB/s</td>
+<td align="center">10</td>
+<td>Austin Appleby</td>
+</tr>
+<tr class="odd">
+<td>SBox</td>
+<td>1.4 GB/s</td>
+<td align="center">9</td>
+<td>Bret Mulvey</td>
+</tr>
+<tr class="even">
+<td>Lookup3</td>
+<td>1.2 GB/s</td>
+<td align="center">9</td>
+<td>Bob Jenkins</td>
+</tr>
+<tr class="odd">
+<td>CityHash64</td>
+<td>1.05 GB/s</td>
+<td align="center">10</td>
+<td>Pike &amp; Alakuijala</td>
+</tr>
+<tr class="even">
+<td>FNV</td>
+<td>0.55 GB/s</td>
+<td align="center">5</td>
+<td>Fowler, Noll, Vo</td>
+</tr>
+<tr class="odd">
+<td>CRC32</td>
+<td>0.43 GB/s</td>
+<td align="center">9</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MD5-32</td>
+<td>0.33 GB/s</td>
+<td align="center">10</td>
+<td>Ronald L.Rivest</td>
+</tr>
+<tr class="odd">
+<td>SHA1-32</td>
+<td>0.28 GB/s</td>
+<td align="center">10</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Q.Score is a measure of quality of the hash function. It depends on successfully passing SMHasher test set. 10 is a perfect score. Algorithms with a score &lt; 5 are not listed on this table.</p>
+<p>A more recent version, XXH64, has been created thanks to <a href="https://github.com/JCash">Mathias Westerdahl</a>, which offers superior speed and dispersion for 64-bits systems. Note however that 32-bits applications will still run faster using the 32-bits version.</p>
+<p>SMHasher speed test, compiled using GCC 4.8.2, on Linux Mint 64-bits. The reference system uses a Core i5-3340M <span class="citation">@2.7GHz</span></p>
+<table>
+<thead>
+<tr class="header">
+<th>Version</th>
+<th>Speed on 64-bits</th>
+<th>Speed on 32-bits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>XXH64</td>
+<td>13.8 GB/s</td>
+<td>1.9 GB/s</td>
+</tr>
+<tr class="even">
+<td>XXH32</td>
+<td>6.8 GB/s</td>
+<td>6.0 GB/s</td>
+</tr>
+</tbody>
+</table>
+<h3 id="license">License</h3>
+<p>The library file <code>xxhash.hpp</code> is BSD licensed.</p>
+<h3 id="build-modifiers">Build modifiers</h3>
+<p>The following macros influence xxhash behavior. They are all disabled by default.</p>
+<ul>
+<li><p><code>XXH_FORCE_NATIVE_FORMAT</code> : on big-endian systems : use native number representation, resulting in system-specific results. Breaks consistency with little-endian results.</p></li>
+<li><p><code>XXH_CPU_LITTLE_ENDIAN</code> : if defined to 0, sets the native endianness to big endian, if defined to 1, sets the native endianness to little endian, if left undefined, the endianness is resolved at runtime, before <code>main</code> is called, at the cost of endianness not being <code>constexpr</code>.</p></li>
+<li><p><code>XXH_FORCE_MEMORY_ACCESS</code> : if defined to 2, enables unaligned reads as an optimization, this is not standard compliant, if defined to 1, enables the use of <code>packed</code> attribute for optimization, only defined for gcc and icc otherwise, uses the default fallback method (<code>memcpy</code>)</p></li>
+</ul>
+<h3 id="other-languages">Other languages</h3>
+<p>Beyond the C reference version, xxHash is also available on many programming languages, thanks to great contributors. They are <a href="http://www.xxhash.com/#other-languages">listed here</a>.</p>

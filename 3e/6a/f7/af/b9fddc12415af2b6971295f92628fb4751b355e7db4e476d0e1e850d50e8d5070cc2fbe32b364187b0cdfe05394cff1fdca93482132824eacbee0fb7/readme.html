@@ -1,0 +1,184 @@
+<h1 id="spdlog">spdlog</h1>
+<p>Very fast, header-only/compiled, C++ logging library. <a href="https://travis-ci.org/gabime/spdlog"><img src="https://travis-ci.org/gabime/spdlog.svg?branch=v1.x" alt="Build Status" /></a>  <a href="https://ci.appveyor.com/project/gabime/spdlog"><img src="https://ci.appveyor.com/api/projects/status/d2jnxclg20vd0o50?svg=true" alt="Build status" /></a> <a href="https://github.com/gabime/spdlog/releases/latest"><img src="https://img.shields.io/github/release/gabime/spdlog.svg" alt="Release" /></a></p>
+<h2 id="install">Install</h2>
+<h4 id="header-only-version">Header only version</h4>
+<p>Copy the source <a href="https://github.com/gabime/spdlog/tree/v1.x/include/spdlog">folder</a> to your build tree and use a C++11 compiler.</p>
+<h4 id="static-lib-version-recommended---much-faster-compile-times">Static lib version (recommended - much faster compile times)</h4>
+<pre class="console"><code>$ git clone https://github.com/gabime/spdlog.git
+$ cd spdlog &amp;&amp; mkdir build &amp;&amp; cd build
+$ cmake .. &amp;&amp; make -j</code></pre>
+<p>see example <a href="https://github.com/gabime/spdlog/blob/v1.x/example/CMakeLists.txt">CMakeLists.txt</a> on how to use.</p>
+<h2 id="platforms">Platforms</h2>
+<ul>
+<li>Linux, FreeBSD, OpenBSD, Solaris, AIX</li>
+<li>Windows (msvc 2013+, cygwin)</li>
+<li>macOS (clang 3.5+)</li>
+<li>Android</li>
+</ul>
+<h2 id="package-managers">Package managers:</h2>
+<ul>
+<li>Homebrew: <code>brew install spdlog</code></li>
+<li>MacPorts: <code>sudo port install spdlog</code></li>
+<li>FreeBSD: <code>cd /usr/ports/devel/spdlog/ &amp;&amp; make install clean</code></li>
+<li>Fedora: <code>yum install spdlog</code></li>
+<li>Gentoo: <code>emerge dev-libs/spdlog</code></li>
+<li>Arch Linux: <code>pacman -S spdlog</code></li>
+<li>vcpkg: <code>vcpkg install spdlog</code></li>
+<li>conan: <code>spdlog/[&gt;=1.4.1]</code></li>
+<li>conda: <code>conda install -c conda-forge spdlog</code></li>
+</ul>
+<h2 id="features">Features</h2>
+<ul>
+<li>Very fast (see <a href="#benchmarks">benchmarks</a> below).</li>
+<li>Headers only or compiled</li>
+<li>Feature rich formatting, using the excellent <a href="https://github.com/fmtlib/fmt">fmt</a> library.</li>
+<li>Asynchronous mode (optional)</li>
+<li><a href="https://github.com/gabime/spdlog/wiki/3.-Custom-formatting">Custom</a> formatting.</li>
+<li>Multi/Single threaded loggers.</li>
+<li>Various log targets:
+<ul>
+<li>Rotating log files.</li>
+<li>Daily log files.</li>
+<li>Console logging (colors supported).</li>
+<li>syslog.</li>
+<li>Windows debugger (<code>OutputDebugString(..)</code>)</li>
+<li>Easily extendable with custom log targets (just implement a single function in the <a href="include/spdlog/sinks/sink.h">sink</a> interface).</li>
+</ul></li>
+<li>Log filtering - log levels can be modified in runtime as well as in compile time.</li>
+<li>Support for loading log levels from argv or from environment var.</li>
+<li><a href="#backtrace-support">Backtrace</a> support - store debug messages in a ring buffer and display later on demand.</li>
+</ul>
+<h2 id="usage-samples">Usage samples</h2>
+<h4 id="basic-usage">Basic usage</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/spdlog.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span>
+
+<span class="dt">int</span> main() 
+{
+    spdlog::info(<span class="st">&quot;Welcome to spdlog!&quot;</span>);
+    spdlog::error(<span class="st">&quot;Some error message with arg: {}&quot;</span>, <span class="dv">1</span>);
+    
+    spdlog::warn(<span class="st">&quot;Easy padding in numbers like {:08d}&quot;</span>, <span class="dv">12</span>);
+    spdlog::critical(<span class="st">&quot;Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}&quot;</span>, <span class="dv">42</span>);
+    spdlog::info(<span class="st">&quot;Support for floats {:03.2f}&quot;</span>, <span class="fl">1.23456</span>);
+    spdlog::info(<span class="st">&quot;Positional args are {1} {0}..&quot;</span>, <span class="st">&quot;too&quot;</span>, <span class="st">&quot;supported&quot;</span>);
+    spdlog::info(<span class="st">&quot;{:&lt;30}&quot;</span>, <span class="st">&quot;left aligned&quot;</span>);
+    
+    spdlog::set_level(spdlog::level::debug); <span class="co">// Set global log level to debug</span>
+    spdlog::debug(<span class="st">&quot;This message should be displayed..&quot;</span>);    
+    
+    <span class="co">// change log pattern</span>
+    spdlog::set_pattern(<span class="st">&quot;[</span><span class="sc">%H:%</span><span class="st">M:%S %z] [%n] [</span><span class="sc">%^---%</span><span class="st">L---%$] [thread %t] %v&quot;</span>);
+    
+    <span class="co">// Compile time log levels</span>
+    <span class="co">// define SPDLOG_ACTIVE_LEVEL to desired level</span>
+    SPDLOG_TRACE(<span class="st">&quot;Some trace message with param {}&quot;</span>, <span class="dv">42</span>);
+    SPDLOG_DEBUG(<span class="st">&quot;Some debug message&quot;</span>);
+    
+    <span class="co">// Set the default logger to file logger</span>
+    <span class="kw">auto</span> file_logger = spdlog::basic_logger_mt(<span class="st">&quot;basic_logger&quot;</span>, <span class="st">&quot;logs/basic.txt&quot;</span>);
+    spdlog::set_default_logger(file_logger);            
+}</code></pre></div>
+<h4 id="basic-file-logger">Basic file logger</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/basic_file_sink.h&quot;</span>
+<span class="dt">void</span> basic_logfile_example()
+{
+    <span class="cf">try</span> 
+    {
+        <span class="kw">auto</span> logger = spdlog::basic_logger_mt(<span class="st">&quot;basic_logger&quot;</span>, <span class="st">&quot;logs/basic-log.txt&quot;</span>);
+    }
+    <span class="cf">catch</span> (<span class="at">const</span> spdlog::spdlog_ex &amp;ex)
+    {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Log init failed: &quot;</span> &lt;&lt; ex.what() &lt;&lt; <span class="bu">std::</span>endl;
+    }
+}</code></pre></div>
+<h4 id="daily-files">Daily files</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/daily_file_sink.h&quot;</span>
+<span class="dt">void</span> daily_example()
+{
+    <span class="co">// Create a daily logger - a new file is created every day on 2:30am</span>
+    <span class="kw">auto</span> logger = spdlog::daily_logger_mt(<span class="st">&quot;daily_logger&quot;</span>, <span class="st">&quot;logs/daily.txt&quot;</span>, <span class="dv">2</span>, <span class="dv">30</span>);
+}</code></pre></div>
+<h4 id="periodic-flush">Periodic flush</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// periodically flush all *registered* loggers every 3 seconds:</span>
+<span class="co">// warning: only use if all your loggers are thread safe (&quot;_mt&quot; loggers)</span>
+spdlog::flush_every(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">3</span>));</code></pre></div>
+<h4 id="logger-with-multi-sinks---each-with-different-format-and-log-level">Logger with multi sinks - each with different format and log level</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="co">// create logger with 2 targets with different log levels and formats.</span>
+<span class="co">// the console will show only warnings or errors, while the file will log all.</span>
+<span class="dt">void</span> multi_sink_example()
+{
+    <span class="kw">auto</span> console_sink = <span class="bu">std::</span>make_shared&lt;spdlog::sinks::stdout_color_sink_mt&gt;();
+    console_sink-&gt;set_level(spdlog::level::warn);
+    console_sink-&gt;set_pattern(<span class="st">&quot;[multi_sink_example] [</span><span class="sc">%^%</span><span class="st">l%$] %v&quot;</span>);
+
+    <span class="kw">auto</span> file_sink = <span class="bu">std::</span>make_shared&lt;spdlog::sinks::basic_file_sink_mt&gt;(<span class="st">&quot;logs/multisink.txt&quot;</span>, <span class="kw">true</span>);
+    file_sink-&gt;set_level(spdlog::level::trace);
+
+    spdlog::logger logger(<span class="st">&quot;multi_sink&quot;</span>, {console_sink, file_sink});
+    logger.set_level(spdlog::level::debug);
+    logger.warn(<span class="st">&quot;this should appear in both console and file&quot;</span>);
+    logger.info(<span class="st">&quot;this message should not appear in the console, only in the file&quot;</span>);
+}</code></pre></div>
+<h4 id="asynchronous-logger-with-multi-sinks">Asynchronous logger with multi sinks</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/stdout_color_sinks.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/sinks/rotating_file_sink.h&quot;</span>
+
+<span class="dt">void</span> multi_sink_example2()
+{
+    spdlog::init_thread_pool(<span class="dv">8192</span>, <span class="dv">1</span>);
+    <span class="kw">auto</span> stdout_sink = <span class="bu">std::</span>make_shared&lt;spdlog::sinks::stdout_color_sink_mt &gt;();
+    <span class="kw">auto</span> rotating_sink = <span class="bu">std::</span>make_shared&lt;spdlog::sinks::rotating_file_sink_mt&gt;(<span class="st">&quot;mylog.txt&quot;</span>, <span class="dv">1024</span>*<span class="dv">1024</span>*<span class="dv">10</span>, <span class="dv">3</span>);
+    <span class="bu">std::</span>vector&lt;spdlog::sink_ptr&gt; sinks {stdout_sink, rotating_sink};
+    <span class="kw">auto</span> logger = <span class="bu">std::</span>make_shared&lt;spdlog::async_logger&gt;(<span class="st">&quot;loggername&quot;</span>, sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+    spdlog::register_logger(logger);
+}</code></pre></div>
+<h4 id="user-defined-flags-in-the-log-pattern">User defined flags in the log pattern</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Log patterns can contain custom flags.</span>
+<span class="co">// the following example will add new flag &#39;%*&#39; - which will be bound to a &lt;my_formatter_flag&gt; instance.</span>
+<span class="pp">#include </span><span class="im">&quot;spdlog/pattern_formatter.h&quot;</span>
+<span class="kw">class</span> my_formatter_flag : <span class="kw">public</span> spdlog::custo<span class="va">m_flag_formatter</span>
+{
+<span class="kw">public</span>:
+    <span class="dt">void</span> format(<span class="at">const</span> spdlog::details::log_msg &amp;, <span class="at">const</span> <span class="bu">std::</span>tm &amp;, spdlog::<span class="dt">memory_buf_t</span> &amp;dest) <span class="kw">override</span>
+    {
+        <span class="bu">std::</span>string some_txt = <span class="st">&quot;custom-flag&quot;</span>;
+        dest.append(some_txt.data(), some_txt.data() + some_txt.size());
+    }
+
+    <span class="bu">std::</span>unique_ptr&lt;custom_flag_formatter&gt; clone() <span class="at">const</span> <span class="kw">override</span>
+    {
+        <span class="cf">return</span> spdlog::details::make_unique&lt;my_formatter_flag&gt;();
+    }
+};
+
+<span class="dt">void</span> custom_flags_example()
+{    
+    <span class="kw">auto</span> formatter = <span class="bu">std::</span>make_unique&lt;spdlog::pattern_formatter&gt;();
+    formatter-&gt;add_flag&lt;my_formatter_flag&gt;(<span class="st">&#39;*&#39;</span>).set_pattern(<span class="st">&quot;[%n] [%*] [</span><span class="sc">%^%</span><span class="st">l%$] %v&quot;</span>);
+    spdlog::set_formatter(<span class="bu">std::</span>move(formatter));
+}</code></pre></div>
+<h4 id="syslog">syslog</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/sinks/syslog_sink.h&quot;</span>
+<span class="dt">void</span> syslog_example()
+{
+    <span class="bu">std::</span>string ident = <span class="st">&quot;spdlog-example&quot;</span>;
+    <span class="kw">auto</span> syslog_logger = spdlog::syslog_logger_mt(<span class="st">&quot;syslog&quot;</span>, ident, LOG_PID);
+    syslog_logger-&gt;warn(<span class="st">&quot;This is warning that will end up in syslog.&quot;</span>);
+}</code></pre></div>
+<h4 id="load-log-levels-from-env-variable-or-from-argv">Load log levels from env variable or from argv</h4>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;spdlog/cfg/env.h&quot;</span>
+<span class="dt">int</span> main (<span class="dt">int</span> argc, <span class="dt">char</span> *argv[])
+{
+    spdlog::cfg::load_env_levels();
+    <span class="co">// or from command line:</span>
+    <span class="co">// ./example SPDLOG_LEVEL=info,mylogger=trace</span>
+    <span class="co">// #include &quot;spdlog/cfg/argv.h&quot; // for loading levels from argv</span>
+    <span class="co">// spdlog::cfg::load_argv_levels(argc, argv);</span>
+}</code></pre></div>
+<p>So then you can:</p>
+<pre class="console"><code>$ export SPDLOG_LEVEL=info,mylogger=trace
+$ ./example</code></pre>
+<p>Thanks to <a href="https://www.jetbrains.com/?from=spdlog">JetBrains</a> for donating product licenses to help develop <strong>spdlog</strong> <a href="https://www.jetbrains.com/?from=spdlog"><img src="logos/jetbrains-variant-4.svg" width="94" align="center" /></a></p>

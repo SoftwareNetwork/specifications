@@ -1,0 +1,133 @@
+<h1 id="msgpack-for-cc"><code>msgpack</code> for C/C++</h1>
+<p>Version 3.2.1 <a href="https://travis-ci.org/msgpack/msgpack-c"><img src="https://travis-ci.org/msgpack/msgpack-c.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/redboltz/msgpack-c/branch/master"><img src="https://ci.appveyor.com/api/projects/status/8kstcgt79qj123mw/branch/master?svg=true" alt="Build status" /></a></p>
+<p>It's like JSON but smaller and faster.</p>
+<h2 id="overview">Overview</h2>
+<p><a href="http://msgpack.org/">MessagePack</a> is an efficient binary serialization format, which lets you exchange data among multiple languages like JSON, except that it's faster and smaller. Small integers are encoded into a single byte and short strings require only one extra byte in addition to the strings themselves.</p>
+<h2 id="example">Example</h2>
+<p>In C:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&lt;msgpack.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">void</span>)
+{
+    <span class="co">/* msgpack::sbuffer is a simple buffer implementation. */</span>
+    msgpack_sbuffer sbuf;
+    msgpack_sbuffer_init(&amp;sbuf);
+
+    <span class="co">/* serialize values into the buffer using msgpack_sbuffer_write callback function. */</span>
+    msgpack_packer pk;
+    msgpack_packer_init(&amp;pk, &amp;sbuf, msgpack_sbuffer_write);
+
+    msgpack_pack_array(&amp;pk, <span class="dv">3</span>);
+    msgpack_pack_int(&amp;pk, <span class="dv">1</span>);
+    msgpack_pack_true(&amp;pk);
+    msgpack_pack_str(&amp;pk, <span class="dv">7</span>);
+    msgpack_pack_str_body(&amp;pk, <span class="st">&quot;example&quot;</span>, <span class="dv">7</span>);
+
+    <span class="co">/* deserialize the buffer into msgpack_object instance. */</span>
+    <span class="co">/* deserialized object is valid during the msgpack_zone instance alive. */</span>
+    msgpack_zone mempool;
+    msgpack_zone_init(&amp;mempool, <span class="dv">2048</span>);
+
+    msgpack_object deserialized;
+    msgpack_unpack(sbuf.data, sbuf.size, NULL, &amp;mempool, &amp;deserialized);
+
+    <span class="co">/* print the deserialized object. */</span>
+    msgpack_object_print(stdout, deserialized);
+    puts(<span class="st">&quot;&quot;</span>);
+
+    msgpack_zone_destroy(&amp;mempool);
+    msgpack_sbuffer_destroy(&amp;sbuf);
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>See <a href="./QUICKSTART-C.md"><code>QUICKSTART-C.md</code></a> for more details.</p>
+<p>In C++:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;msgpack.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sstream&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    msgpack::type::tuple&lt;<span class="dt">int</span>, <span class="dt">bool</span>, <span class="bu">std::</span>string&gt; src(<span class="dv">1</span>, <span class="kw">true</span>, <span class="st">&quot;example&quot;</span>);
+
+    <span class="co">// serialize the object into the buffer.</span>
+    <span class="co">// any classes that implements write(const char*,size_t) can be a buffer.</span>
+    <span class="bu">std::</span>stringstream buffer;
+    msgpack::pack(buffer, src);
+
+    <span class="co">// send the buffer ...</span>
+    buffer.seekg(<span class="dv">0</span>);
+
+    <span class="co">// deserialize the buffer into msgpack::object instance.</span>
+    <span class="bu">std::</span>string str(buffer.str());
+
+    msgpack::object_handle oh =
+        msgpack::unpack(str.data(), str.size());
+
+    <span class="co">// deserialized object is valid during the msgpack::object_handle instance is alive.</span>
+    msgpack::object deserialized = oh.get();
+
+    <span class="co">// msgpack::object supports ostream.</span>
+    <span class="bu">std::</span>cout &lt;&lt; deserialized &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="co">// convert msgpack::object instance into the original type.</span>
+    <span class="co">// if the type is mismatched, it throws msgpack::type_error exception.</span>
+    msgpack::type::tuple&lt;<span class="dt">int</span>, <span class="dt">bool</span>, <span class="bu">std::</span>string&gt; dst;
+    deserialized.convert(dst);
+
+    <span class="co">// or create the new instance</span>
+    msgpack::type::tuple&lt;<span class="dt">int</span>, <span class="dt">bool</span>, <span class="bu">std::</span>string&gt; dst2 =
+        deserialized.as&lt;msgpack::type::tuple&lt;<span class="dt">int</span>, <span class="dt">bool</span>, <span class="bu">std::</span>string&gt; &gt;();
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>See <a href="./QUICKSTART-CPP.md"><code>QUICKSTART-CPP.md</code></a> for more details.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="c-header-only-library">C++ Header Only Library</h3>
+<p>When you use msgpack on C++, you can just add msgpack-c/include to your include path:</p>
+<pre><code>g++ -I msgpack-c/include your_source_file.cpp</code></pre>
+<p>If you want to use C version of msgpack, you need to build it. You can also install the C and C++ versions of msgpack.</p>
+<h3 id="building-and-installing">Building and Installing</h3>
+<h4 id="install-from-git-repository">Install from git repository</h4>
+<h5 id="using-the-terminal-cli">Using the Terminal (CLI)</h5>
+<p>You will need:</p>
+<ul>
+<li><code>gcc &gt;= 4.1.0</code></li>
+<li><code>cmake &gt;= 2.8.0</code></li>
+</ul>
+<p>C and C++03:</p>
+<pre><code>$ git clone https://github.com/msgpack/msgpack-c.git
+$ cd msgpack-c
+$ cmake .
+$ make
+$ sudo make install</code></pre>
+<p>If you want to setup C++11 or C++17 version of msgpack instead, execute the following commands:</p>
+<pre><code>$ git clone https://github.com/msgpack/msgpack-c.git
+$ cd msgpack-c
+$ cmake -DMSGPACK_CXX[11|17]=ON .
+$ sudo make install</code></pre>
+<p><code>MSGPACK_CXX[11|17]</code> flags are not affected to installing files. Just switching test cases. All files are installed in every settings.</p>
+<p>When you use the C part of <code>msgpack-c</code>, you need to build and link the library. By default, both static/shared libraries are built. If you want to build only static library, set <code>BUILD_SHARED_LIBS=OFF</code> to cmake. If you want to build only shared library, set `BUILD_SHARED_L</p>
+<h4 id="gui-on-windows">GUI on Windows</h4>
+<p>Clone msgpack-c git repository.</p>
+<pre><code>$ git clone https://github.com/msgpack/msgpack-c.git</code></pre>
+<p>or using GUI git client.</p>
+<p>e.g.) tortoise git https://code.google.com/p/tortoisegit/</p>
+<ol style="list-style-type: decimal">
+<li><p>Launch <a href="http://www.cmake.org/cmake/resources/software.html">cmake GUI client</a>.</p></li>
+<li><p>Set 'Where is the source code:' text box and 'Where to build the binaries:' text box.</p></li>
+<li><p>Click 'Configure' button.</p></li>
+<li><p>Choose your Visual Studio version.</p></li>
+<li><p>Click 'Generate' button.</p></li>
+<li><p>Open the created msgpack.sln on Visual Studio.</p></li>
+<li><p>Build all.</p></li>
+</ol>
+<h3 id="documentation">Documentation</h3>
+<p>You can get additional information including the tutorial on the <a href="https://github.com/msgpack/msgpack-c/wiki">wiki</a>.</p>
+<h2 id="contributing">Contributing</h2>
+<p><code>msgpack-c</code> is developed on GitHub at <a href="https://github.com/msgpack/msgpack-c">msgpack/msgpack-c</a>. To report an issue or send a pull request, use the <a href="https://github.com/msgpack/msgpack-c/issues">issue tracker</a>.</p>
+<p>Here's the list of <a href="https://github.com/msgpack/msgpack-c/graphs/contributors">great contributors</a>.</p>
+<h2 id="license">License</h2>
+<p><code>msgpack-c</code> is licensed under the Boost Software License, Version 1.0. See the <a href="./LICENSE_1_0.txt"><code>LICENSE_1_0.txt</code></a> file for details.</p>

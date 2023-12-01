@@ -1,0 +1,43 @@
+<h1 id="documentation">Documentation</h1>
+<p>The most up-to-date documentation is supposed to be available on the <a href="https://www.bearssl.org/">BearSSL Web site</a>.</p>
+<h1 id="disclaimer">Disclaimer</h1>
+<p>BearSSL is considered beta-level software. Most planned functionalities are implemented; new evolution may still break both source and binary compatibility.</p>
+<p>Using BearSSL for production purposes would be a relatively bold but not utterly crazy move. BearSSL is free, open-source software, provided without any guarantee of fitness or reliability. That being said, it appears to behave properly, and only minor issues have been found (and fixed) so far. You are encourage to inspect its API and code for learning, testing and possibly contributing.</p>
+<p>The usage license is explicited in the <code>LICENSE.txt</code> file. This is the &quot;MIT license&quot;. It can be summarised in the following way:</p>
+<ul>
+<li><p>You can use and reuse the library as you wish, and modify it, and integrate it in your own code, and distribute it as is or in any modified form, and so on.</p></li>
+<li><p>The only obligation that the license terms put upon you is that you acknowledge and make it clear that if anything breaks, it is not my fault, and I am not liable for anything, regardless of the type and amount of collateral damage. The license terms say that the copyright notice &quot;shall be included in all copies or substantial portions of the Software&quot;: this is how the disclaimer is &quot;made explicit&quot;. Basically, I have put it in every source file, so just keep it there.</p></li>
+</ul>
+<h1 id="installation">Installation</h1>
+<p>Right now, BearSSL is a simple library, along with a few test and debug command-line tools. There is no installer yet. The library <em>can</em> be compiled as a shared library on some systems, but since the binary API is not fully stabilised, this is not a very good idea to do that right now.</p>
+<p>To compile the code, just type <code>make</code>. This will try to use sane &quot;default&quot; values. On a Windows system with Visual Studio, run a console with the environment initialised for a specific version of the C compiler, and type <code>nmake</code>.</p>
+<p>To override the default settings, create a custom configuration file in the <code>conf</code> directory, and invoke <code>make</code> (or <code>nmake</code>) with an explicit <code>CONF=</code> parameter. For instance, to use the provided <code>samd20.mk</code> configuration file (that targets cross-compilation for an Atmel board that features a Cortex-M0+ CPU), type:</p>
+<pre><code>make CONF=samd20</code></pre>
+<p>The <code>conf/samd20.mk</code> file includes the <code>Unix.mk</code> file and then overrides some of the parameters, including the destination directory. Any custom configuration can be made the same way.</p>
+<p>Some compile-time options can be set through macros, either on the compiler command-line, or in the <code>src/config.h</code> file. See the comments in that file. Some settings are autodetected but they can still be explicitly overridden.</p>
+<p>When compilation is done, the library (static and DLL, when appropriate) and the command-line tools can be found in the designated build directory (by default named <code>build</code>). The public headers (to be used by applications linked against BearSSL) are in the <code>inc/</code> directory.</p>
+<p>To run the tests:</p>
+<ul>
+<li><p><code>testcrypto all</code> runs the cryptographic tests (test vectors on all implemented cryptogaphic functions). It can be slow. You can also run a selection of the tests by providing their names (run <code>testcrypto</code> without any parameter to see the available names).</p></li>
+<li><p><code>testspeed all</code> runs a number of performance benchmarks, there again on cryptographic functions. It gives a taste of how things go on the current platform. As for <code>testcrypto</code>, specific named benchmarks can be executed.</p></li>
+<li><p><code>testx509</code> runs X.509 validation tests. The test certificates are all in <code>test/x509/</code>.</p></li>
+</ul>
+<p>The <code>brssl</code> command-line tool produced in the build directory is a stand-alone binary. It can exercise some of the functionalities of BearSSL, in particular running a test SSL client or server. It is not meant for production purposes (e.g. the SSL client has a mode where it disregards the inability to validate the server's certificate, which is inherently unsafe, but convenient for debug).</p>
+<p><strong>Using the library</strong> means writing some application code that invokes it, and linking with the static library. The header files are all in the <code>inc</code> directory; copy them wherever makes sense (e.g. in the <code>/usr/local/include</code> directory). The library itself (<code>libbearssl.a</code>) is what you link against.</p>
+<p>Alternatively, you may want to copy the source files directly into your own application code. This will make integrating ulterior versions of BearSSL more difficult. If you still want to go down that road, then simply copy all the <code>*.h</code> and <code>*.c</code> files from the <code>src</code> and <code>inc</code> directories into your application source code. In the BearSSL source archive, the source files are segregated into various sub-directories, but this is for my convenience only. There is no technical requirement for that, and all files can be dumped together in a simple directory.</p>
+<p>Dependencies are simple and systematic:</p>
+<ul>
+<li>Each <code>*.c</code> file includes <code>inner.h</code></li>
+<li><code>inner.h</code> includes <code>config.h</code> and <code>bearssl.h</code></li>
+<li><code>bearssl.h</code> includes the other <code>bearssl_*.h</code></li>
+</ul>
+<h1 id="versioning">Versioning</h1>
+<p>I follow this simple version numbering scheme:</p>
+<ul>
+<li><p>Version numbers are <code>x.y</code> or <code>x.y.z</code> where <code>x</code>, <code>y</code> and <code>z</code> are decimal integers (possibly greater than 10). When the <code>.z</code> part is missing, it is equivalent to <code>.0</code>.</p></li>
+<li><p>Backward compatibility is maintained, at both source and binary levels, for each major version: this means that if some application code was designed for version <code>x.y</code>, then it should compile, link and run properly with any version <code>x.y'</code> for any <code>y'</code> greater than <code>y</code>.</p></li>
+</ul>
+<p>The major version <code>0</code> is an exception. You shall not expect that any version that starts with <code>0.</code> offers any kind of compatibility, either source or binary, with any other <code>0.</code> version. (Of course I will try to maintain some decent level of source compatibility, but I make no promise in that respect. Since the API uses caller-allocated context structures, I already know that binary compatibility <em>will</em> be broken.)</p>
+<ul>
+<li>Sub-versions (the <code>y</code> part) are about added functionality. That is, it can be expected that <code>1.3</code> will contain some extra functions when compared to <code>1.2</code>. The next version level (the <code>z</code> part) is for bugfixes that do not add any functionality.</li>
+</ul>

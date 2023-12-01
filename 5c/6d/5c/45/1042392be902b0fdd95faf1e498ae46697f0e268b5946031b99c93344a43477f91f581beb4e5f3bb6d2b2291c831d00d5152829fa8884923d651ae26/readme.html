@@ -1,0 +1,352 @@
+<h1 id="google-logging-library">Google Logging Library</h1>
+<p><a href="https://travis-ci.org/google/glog/builds"><img src="https://img.shields.io/travis/google/glog/master.svg?label=Travis" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/google-admin/glog/history"><img src="https://img.shields.io/appveyor/ci/google-admin/glog/master.svg?label=Appveyor" alt="Grunt status" /></a> <a href="https://github.com/google/glog/actions"><img src="https://github.com/google/glog/actions/workflows/windows-builds.yml/badge.svg" alt="Github actions" /></a></p>
+<p>Google Logging (glog) is a C++98 library that implements application-level logging. The library provides logging APIs based on C++-style streams and various helper macros.</p>
+<h2 id="getting-started">Getting Started</h2>
+<p>You can log a message by simply streaming things to <code>LOG</code>(&lt;a particular <a href="#severity-levels">severity level</a>&gt;), e.g.,</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;glog/logging.h&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>* argv[]) {</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>    <span class="co">// Initialize Google’s logging library.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    google::InitGoogleLogging(argv[<span class="dv">0</span>]);</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    <span class="co">// ...</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>    LOG(INFO) &lt;&lt; <span class="st">&quot;Found &quot;</span> &lt;&lt; num_cookies &lt;&lt; <span class="st">&quot; cookies&quot;</span>;</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>}</span></code></pre></div>
+<p>For a detailed overview of glog features and their usage, please refer to the <a href="#user-guide">user guide</a>.</p>
+<div class="contents">
+<p>Table of Contents</p>
+</div>
+<h2 id="building-from-source">Building from Source</h2>
+<p>glog supports multiple build systems for compiling the project from source: <a href="#bazel">Bazel</a>, <a href="#cmake">CMake</a>, and <a href="#vcpkg">vcpkg</a>.</p>
+<h3 id="bazel">Bazel</h3>
+<p>To use glog within a project which uses the <a href="https://bazel.build/">Bazel</a> build tool, add the following lines to your <code>WORKSPACE</code> file:</p>
+<pre class="bazel"><code>load(&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;, &quot;http_archive&quot;)
+
+http_archive(
+    name = &quot;com_github_gflags_gflags&quot;,
+    sha256 = &quot;34af2f15cf7367513b352bdcd2493ab14ce43692d2dcd9dfc499492966c64dcf&quot;,
+    strip_prefix = &quot;gflags-2.2.2&quot;,
+    urls = [&quot;https://github.com/gflags/gflags/archive/v2.2.2.tar.gz&quot;],
+)
+
+http_archive(
+    name = &quot;com_github_google_glog&quot;,
+    sha256 = &quot;62efeb57ff70db9ea2129a16d0f908941e355d09d6d83c9f7b18557c0a7ab59e&quot;,
+    strip_prefix = &quot;glog-d516278b1cd33cd148e8989aec488b6049a4ca0b&quot;,
+    urls = [&quot;https://github.com/google/glog/archive/d516278b1cd33cd148e8989aec488b6049a4ca0b.zip&quot;],
+)</code></pre>
+<p>You can then add <code class="bazel starlark">@com_github_google_glog//:glog</code> to the deps section of a <code class="bazel starlark">cc_binary</code> or <code class="bazel starlark">cc_library</code> rule, and <code>#include
+&lt;glog/logging.h&gt;</code> to include it in your source code. Here’s a simple example:</p>
+<pre class="bazel"><code>cc_binary(
+    name = &quot;main&quot;,
+    srcs = [&quot;main.cc&quot;],
+    deps = [&quot;@com_github_google_glog//:glog&quot;],
+)</code></pre>
+<h3 id="cmake">CMake</h3>
+<p>glog also supports CMake that can be used to build the project on a wide range of platforms. If you don’t have CMake installed already, you can download it for from CMake’s <a href="http://www.cmake.org">official website</a>.</p>
+<p>CMake works by generating native makefiles or build projects that can be used in the compiler environment of your choice. You can either build glog with CMake as a standalone project or it can be incorporated into an existing CMake build for another project.</p>
+<h4 id="building-glog-with-cmake">Building glog with CMake</h4>
+<p>When building glog as a standalone project, on Unix-like systems with GNU Make as build tool, the typical workflow is:</p>
+<ol type="1">
+<li>Get the source code and change to it. e.g., cloning with git:</li>
+</ol>
+<blockquote>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/google/glog.git</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="bu">cd</span> glog</span></code></pre></div>
+</blockquote>
+<ol start="2" type="1">
+<li>Run CMake to configure the build tree.</li>
+</ol>
+<blockquote>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="fu">cmake</span> -S . -B build -G <span class="st">&quot;Unix Makefiles&quot;</span></span></code></pre></div>
+<p>CMake provides different generators, and by default will pick the most relevant one to your environment. If you need a specific version of Visual Studio, use <code class="sourceCode bash"><span class="fu">cmake</span> . -G <span class="op">&lt;</span>generator-name<span class="op">&gt;</span></code>, and see <code class="sourceCode bash"><span class="fu">cmake</span> --help</code> for the available generators. Also see <code class="sourceCode bash"><span class="ex">-T</span> <span class="op">&lt;</span>toolset-name<span class="op">&gt;</span></code>, which can be used to request the native x64 toolchain with <code class="sourceCode bash"><span class="ex">-T</span> host=x64</code>.</p>
+</blockquote>
+<ol start="3" type="1">
+<li>Afterwards, generated files can be used to compile the project.</li>
+</ol>
+<blockquote>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="fu">cmake</span> --build build</span></code></pre></div>
+</blockquote>
+<ol start="4" type="1">
+<li>Test the build software (optional).</li>
+</ol>
+<blockquote>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="fu">cmake</span> --build build --target test</span></code></pre></div>
+</blockquote>
+<ol start="5" type="1">
+<li>Install the built files (optional).</li>
+</ol>
+<blockquote>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="fu">cmake</span> --build build --target install</span></code></pre></div>
+</blockquote>
+<h4 id="consuming-glog-in-a-cmake-project">Consuming glog in a CMake Project</h4>
+<p>If you have glog installed in your system, you can use the CMake command <code class="sourceCode cmake"><span class="kw">find_package</span></code> to build against glog in your CMake Project as follows:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">cmake_minimum_required</span> (<span class="ot">VERSION</span> 3.0.2)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="kw">project</span> (myproj <span class="ot">VERSION</span> 1.0)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="kw">find_package</span> (glog 0.5.0 <span class="ot">REQUIRED</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a><span class="kw">add_executable</span> (myapp main.cpp)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a><span class="kw">target_link_libraries</span> (myapp glog::glog)</span></code></pre></div>
+<p>Compile definitions and options will be added automatically to your target as needed.</p>
+<h4 id="incorporating-glog-into-a-cmake-project">Incorporating glog into a CMake Project</h4>
+<p>You can also use the CMake command <code class="sourceCode cmake"><span class="kw">add_subdirectory</span></code> to include glog directly from a subdirectory of your project by replacing the <code class="sourceCode cmake"><span class="kw">find_package</span></code> call from the previous example by <code class="sourceCode cmake"><span class="kw">add_subdirectory</span></code>. The <code class="sourceCode cmake"><span class="fu">glog::glog</span></code> target is in this case an <code class="sourceCode cmake"><span class="fu">ALIAS</span></code> library target for the <code>glog</code> library target.</p>
+<p>Again, compile definitions and options will be added automatically to your target as needed.</p>
+<h3 id="vcpkg">vcpkg</h3>
+<p>You can download and install glog using the <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> dependency manager:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/Microsoft/vcpkg.git</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="bu">cd</span> vcpkg</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="ex">./bootstrap-vcpkg.sh</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="ex">./vcpkg</span> integrate install</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="ex">./vcpkg</span> install glog</span></code></pre></div>
+<p>The glog port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please create an issue or pull request on the vcpkg repository.</p>
+<h2 id="user-guide">User Guide</h2>
+<p>glog defines a series of macros that simplify many common logging tasks. You can log messages by severity level, control logging behavior from the command line, log based on conditionals, abort the program when expected conditions are not met, introduce your own verbose logging levels, customize the prefix attached to log messages, and more.</p>
+<p>Following sections describe the functionality supported by glog. Please note this description may not be complete but limited to the most useful ones. If you want to find less common features, please check header files under <a href="src/glog">src/glog</a> directory.</p>
+<h3 id="severity-levels">Severity Levels</h3>
+<p>You can specify one of the following severity levels (in increasing order of severity): <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>FATAL</code>. Logging a <code>FATAL</code> message terminates the program (after the message is logged). Note that messages of a given severity are logged not only in the logfile for that severity, but also in all logfiles of lower severity. E.g., a message of severity <code>FATAL</code> will be logged to the logfiles of severity <code>FATAL</code>, <code>ERROR</code>, <code>WARNING</code>, and <code>INFO</code>.</p>
+<p>The <code>DFATAL</code> severity logs a <code>FATAL</code> error in debug mode (i.e., there is no <code>NDEBUG</code> macro defined), but avoids halting the program in production by automatically reducing the severity to <code>ERROR</code>.</p>
+<p>Unless otherwise specified, glog writes to the filename <code>/tmp/\&lt;program name\&gt;.\&lt;hostname\&gt;.\&lt;user name\&gt;.log.\&lt;severity level\&gt;.\&lt;date\&gt;.\&lt;time\&gt;.\&lt;pid\&gt;</code> (e.g., <code>/tmp/hello_world.example.com.hamaji.log.INFO.20080709-222411.10474</code>). By default, glog copies the log messages of severity level <code>ERROR</code> or <code>FATAL</code> to standard error (<code>stderr</code>) in addition to log files.</p>
+<h3 id="setting-flags">Setting Flags</h3>
+<p>Several flags influence glog’s output behavior. If the <a href="https://github.com/gflags/gflags">Google gflags library</a> is installed on your machine, the build system will automatically detect and use it, allowing you to pass flags on the command line. For example, if you want to turn the flag <code class="sourceCode bash"><span class="ex">--logtostderr</span></code> on, you can start your application with the following command line:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="ex">./your_application</span> --logtostderr=1</span></code></pre></div>
+<p>If the Google gflags library isn’t installed, you set flags via environment variables, prefixing the flag name with <code>GLOG_</code>, e.g.,</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="va">GLOG_logtostderr=</span>1 <span class="ex">./your_application</span></span></code></pre></div>
+<p>The following flags are most commonly used:</p>
+<dl>
+<dt><code>logtostderr</code> (<code>bool</code>, default=<code>false</code>)</dt>
+<dd><p>Log messages to <code>stderr</code> instead of logfiles. Note: you can set binary flags to <code>true</code> by specifying <code>1</code>, <code>true</code>, or <code>yes</code> (case insensitive). Also, you can set binary flags to <code>false</code> by specifying <code>0</code>, <code>false</code>, or <code>no</code> (again, case insensitive).</p>
+</dd>
+<dt><code>stderrthreshold</code> (<code>int</code>, default=2, which is <code>ERROR</code>)</dt>
+<dd><p>Copy log messages at or above this level to stderr in addition to logfiles. The numbers of severity levels <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>FATAL</code> are 0, 1, 2, and 3, respectively.</p>
+</dd>
+<dt><code>minloglevel</code> (<code>int</code>, default=0, which is <code>INFO</code>)</dt>
+<dd><p>Log messages at or above this level. Again, the numbers of severity levels <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>FATAL</code> are 0, 1, 2, and 3, respectively.</p>
+</dd>
+<dt><code>log_dir</code> (<code>string</code>, default="")</dt>
+<dd><p>If specified, logfiles are written into this directory instead of the default logging directory.</p>
+</dd>
+<dt><code>v</code> (<code>int</code>, default=0)</dt>
+<dd><p>Show all <code>VLOG(m)</code> messages for <code>m</code> less or equal the value of this flag. Overridable by <code class="sourceCode bash"><span class="ex">--vmodule</span></code>. See <a href="#verbose">the section about verbose logging</a> for more detail.</p>
+</dd>
+<dt><code>vmodule</code> (<code>string</code>, default="")</dt>
+<dd><p>Per-module verbose level. The argument has to contain a comma-separated list of &lt;module name&gt;=&lt;log level&gt;. &lt;module name&gt; is a glob pattern (e.g., <code>gfs*</code> for all modules whose name starts with "gfs"), matched against the filename base (that is, name ignoring .cc/.h./-inl.h). &lt;log level&gt; overrides any value given by <code class="sourceCode bash"><span class="ex">--v</span></code>. See also <a href="#verbose">the section about verbose logging</a>.</p>
+</dd>
+</dl>
+<p>There are some other flags defined in logging.cc. Please grep the source code for <code>DEFINE_</code> to see a complete list of all flags.</p>
+<p>You can also modify flag values in your program by modifying global variables <code>FLAGS_*</code> . Most settings start working immediately after you update <code>FLAGS_*</code> . The exceptions are the flags related to destination files. For example, you might want to set <code>FLAGS_log_dir</code> before calling <code class="sourceCode cpp">google::InitGoogleLogging</code> . Here is an example:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>LOG(INFO) &lt;&lt; <span class="st">&quot;file&quot;</span>;</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="co">// Most flags work immediately after updating values.</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>FLAGS_logtostderr = <span class="dv">1</span>;</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>LOG(INFO) &lt;&lt; <span class="st">&quot;stderr&quot;</span>;</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>FLAGS_logtostderr = <span class="dv">0</span>;</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a><span class="co">// This won’t change the log destination. If you want to set this</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a><span class="co">// value, you should do this before google::InitGoogleLogging .</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a>FLAGS_log_dir = <span class="st">&quot;/some/log/directory&quot;</span>;</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a>LOG(INFO) &lt;&lt; <span class="st">&quot;the same file&quot;</span>;</span></code></pre></div>
+<h3 id="conditional-occasional-logging">Conditional / Occasional Logging</h3>
+<p>Sometimes, you may only want to log a message under certain conditions. You can use the following macros to perform conditional logging:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a>LOG_IF(INFO, num_cookies &gt; <span class="dv">10</span>) &lt;&lt; <span class="st">&quot;Got lots of cookies&quot;</span>;</span></code></pre></div>
+<p>The "Got lots of cookies" message is logged only when the variable <code>num_cookies</code> exceeds 10. If a line of code is executed many times, it may be useful to only log a message at certain intervals. This kind of logging is most useful for informational messages.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>LOG_EVERY_N(INFO, <span class="dv">10</span>) &lt;&lt; <span class="st">&quot;Got the &quot;</span> &lt;&lt; google::COUNTER &lt;&lt; <span class="st">&quot;th cookie&quot;</span>;</span></code></pre></div>
+<p>The above line outputs a log messages on the 1st, 11th, 21st, ... times it is executed. Note that the special <code>google::COUNTER</code> value is used to identify which repetition is happening.</p>
+<p>You can combine conditional and occasional logging with the following macro.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>LOG_IF_EVERY_N(INFO, (size &gt; <span class="dv">1024</span>), <span class="dv">10</span>) &lt;&lt; <span class="st">&quot;Got the &quot;</span> &lt;&lt; google::COUNTER</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a>                                        &lt;&lt; <span class="st">&quot;th big cookie&quot;</span>;</span></code></pre></div>
+<p>Instead of outputting a message every nth time, you can also limit the output to the first n occurrences:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a>LOG_FIRST_N(INFO, <span class="dv">20</span>) &lt;&lt; <span class="st">&quot;Got the &quot;</span> &lt;&lt; google::COUNTER &lt;&lt; <span class="st">&quot;th cookie&quot;</span>;</span></code></pre></div>
+<p>Outputs log messages for the first 20 times it is executed. Again, the <code>google::COUNTER</code> identifier indicates which repetition is happening.</p>
+<h3 id="debug-mode-support">Debug Mode Support</h3>
+<p>Special "debug mode" logging macros only have an effect in debug mode and are compiled away to nothing for non-debug mode compiles. Use these macros to avoid slowing down your production application due to excessive logging.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a>DLOG(INFO) &lt;&lt; <span class="st">&quot;Found cookies&quot;</span>;</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a>DLOG_IF(INFO, num_cookies &gt; <span class="dv">10</span>) &lt;&lt; <span class="st">&quot;Got lots of cookies&quot;</span>;</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true"></a>DLOG_EVERY_N(INFO, <span class="dv">10</span>) &lt;&lt; <span class="st">&quot;Got the &quot;</span> &lt;&lt; google::COUNTER &lt;&lt; <span class="st">&quot;th cookie&quot;</span>;</span></code></pre></div>
+<h3 id="check-macros"><code>CHECK</code> Macros</h3>
+<p>It is a good practice to check expected conditions in your program frequently to detect errors as early as possible. The <code>CHECK</code> macro provides the ability to abort the application when a condition is not met, similar to the <code>assert</code> macro defined in the standard C library.</p>
+<p><code>CHECK</code> aborts the application if a condition is not true. Unlike <code>assert</code>, it is *not* controlled by <code>NDEBUG</code>, so the check will be executed regardless of compilation mode. Therefore, <code>fp-&gt;Write(x)</code> in the following example is always executed:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a>CHECK(fp-&gt;Write(x) == <span class="dv">4</span>) &lt;&lt; <span class="st">&quot;Write failed!&quot;</span>;</span></code></pre></div>
+<p>There are various helper macros for equality/inequality checks -<code>CHECK_EQ</code>, <code>CHECK_NE</code>, <code>CHECK_LE</code>, <code>CHECK_LT</code>, <code>CHECK_GE</code>, and <code>CHECK_GT</code>. They compare two values, and log a <code>FATAL</code> message including the two values when the result is not as expected. The values must have <code class="sourceCode cpp"><span class="kw">operator</span>&lt;&lt;(ostream, ...)</code> defined.</p>
+<p>You may append to the error message like so:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a>CHECK_NE(<span class="dv">1</span>, <span class="dv">2</span>) &lt;&lt; <span class="st">&quot;: The world must be ending!&quot;</span>;</span></code></pre></div>
+<p>We are very careful to ensure that each argument is evaluated exactly once, and that anything which is legal to pass as a function argument is legal here. In particular, the arguments may be temporary expressions which will end up being destroyed at the end of the apparent statement, for example:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a>CHECK_EQ(string(<span class="st">&quot;abc&quot;</span>)[<span class="dv">1</span>], ’b’);</span></code></pre></div>
+<p>The compiler reports an error if one of the arguments is a pointer and the other is <code class="sourceCode cpp">NULL</code>. To work around this, simply <code class="sourceCode cpp"><span class="kw">static_cast</span></code> <code class="sourceCode cpp">NULL</code> to the type of the desired pointer.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a>CHECK_EQ(some_ptr, <span class="kw">static_cast</span>&lt;SomeType*&gt;(NULL));</span></code></pre></div>
+<p>Better yet, use the <code>CHECK_NOTNULL</code> macro:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a>CHECK_NOTNULL(some_ptr);</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a>some_ptr-&gt;DoSomething();</span></code></pre></div>
+<p>Since this macro returns the given pointer, this is very useful in constructor initializer lists.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="kw">struct</span> S {</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a>    S(Something* ptr) : <span class="va">ptr_</span>(CHECK_NOTNULL(ptr)) {}</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a>    Something* <span class="va">ptr_</span>;</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a>};</span></code></pre></div>
+<p>Note that you cannot use this macro as a C++ stream due to this feature. Please use <code>CHECK_EQ</code> described above to log a custom message before aborting the application.</p>
+<p>If you are comparing C strings (<code class="sourceCode cpp"><span class="dt">char</span> *</code>), a handy set of macros performs case sensitive as well as case insensitive comparisons - <code>CHECK_STREQ</code>, <code>CHECK_STRNE</code>, <code>CHECK_STRCASEEQ</code>, and <code>CHECK_STRCASENE</code>. The CASE versions are case-insensitive. You can safely pass <code class="sourceCode cpp">NULL</code> pointers for this macro. They treat <code class="sourceCode cpp">NULL</code> and any non-<code class="sourceCode cpp">NULL</code> string as not equal. Two <code class="sourceCode cpp">NULL</code>s are equal.</p>
+<p>Note that both arguments may be temporary strings which are destructed at the end of the current "full expression" (e.g., <code class="sourceCode cpp">CHECK_STREQ(Foo().c_str(), Bar().c_str())</code> where <code>Foo</code> and <code>Bar</code> return C++’s <code class="sourceCode cpp"><span class="bu">std::</span>string</code>).</p>
+<p>The <code>CHECK_DOUBLE_EQ</code> macro checks the equality of two floating point values, accepting a small error margin. <code>CHECK_NEAR</code> accepts a third floating point argument, which specifies the acceptable error margin.</p>
+<h3 id="verbose-logging">Verbose Logging</h3>
+<p>When you are chasing difficult bugs, thorough log messages are very useful. However, you may want to ignore too verbose messages in usual development. For such verbose logging, glog provides the <code>VLOG</code> macro, which allows you to define your own numeric logging levels. The <code class="sourceCode bash"><span class="ex">--v</span></code> command line option controls which verbose messages are logged:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>VLOG(<span class="dv">1</span>) &lt;&lt; <span class="st">&quot;I’m printed when you run the program with --v=1 or higher&quot;</span>;</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a>VLOG(<span class="dv">2</span>) &lt;&lt; <span class="st">&quot;I’m printed when you run the program with --v=2 or higher&quot;</span>;</span></code></pre></div>
+<p>With <code>VLOG</code>, the lower the verbose level, the more likely messages are to be logged. For example, if <code class="sourceCode bash"><span class="ex">--v</span>==1</code>, <code>VLOG(1)</code> will log, but <code>VLOG(2)</code> will not log. This is opposite of the severity level, where <code>INFO</code> is 0, and <code>ERROR</code> is 2. <code class="sourceCode bash"><span class="ex">--minloglevel</span></code> of 1 will log <code>WARNING</code> and above. Though you can specify any integers for both <code>VLOG</code> macro and <code class="sourceCode bash"><span class="ex">--v</span></code> flag, the common values for them are small positive integers. For example, if you write <code>VLOG(0)</code>, you should specify <code class="sourceCode bash"><span class="ex">--v</span>=-1</code> or lower to silence it. This is less useful since we may not want verbose logs by default in most cases. The <code>VLOG</code> macros always log at the <code>INFO</code> log level (when they log at all).</p>
+<p>Verbose logging can be controlled from the command line on a per-module basis:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="ex">--vmodule</span>=mapreduce=2,file=1,gfs*=3 --v=0</span></code></pre></div>
+<p>will:</p>
+<ol type="a">
+<li>Print <code>VLOG(2)</code> and lower messages from mapreduce.{h,cc}</li>
+<li>Print <code>VLOG(1)</code> and lower messages from file.{h,cc}</li>
+<li>Print <code>VLOG(3)</code> and lower messages from files prefixed with "gfs"</li>
+<li>Print <code>VLOG(0)</code> and lower messages from elsewhere</li>
+</ol>
+<p>The wildcarding functionality shown by (c) supports both ’*’ (matches 0 or more characters) and ’?’ (matches any single character) wildcards. Please also check the section about <a href="#flags">command line flags</a>.</p>
+<p>There’s also <code>VLOG_IS_ON(n)</code> "verbose level" condition macro. This macro returns true when the <code class="sourceCode bash"><span class="ex">--v</span></code> is equal or greater than <code>n</code>. To be used as</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="cf">if</span> (VLOG_IS_ON(<span class="dv">2</span>)) {</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a>    <span class="co">// do some logging preparation and logging</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a>    <span class="co">// that can’t be accomplished with just VLOG(2) &lt;&lt; ...;</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Verbose level condition macros <code>VLOG_IF</code>, <code>VLOG_EVERY_N</code> and <code>VLOG_IF_EVERY_N</code> behave analogous to <code>LOG_IF</code>, <code>LOG_EVERY_N</code>, <code>LOF_IF_EVERY</code>, but accept a numeric verbosity level as opposed to a severity level.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a>VLOG_IF(<span class="dv">1</span>, (size &gt; <span class="dv">1024</span>))</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a>   &lt;&lt; <span class="st">&quot;I’m printed when size is more than 1024 and when you run the &quot;</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true"></a>      <span class="st">&quot;program with --v=1 or more&quot;</span>;</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true"></a>VLOG_EVERY_N(<span class="dv">1</span>, <span class="dv">10</span>)</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true"></a>   &lt;&lt; <span class="st">&quot;I’m printed every 10th occurrence, and when you run the program &quot;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true"></a>      <span class="st">&quot;with --v=1 or more. Present occurence is &quot;</span> &lt;&lt; google::COUNTER;</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true"></a>VLOG_IF_EVERY_N(<span class="dv">1</span>, (size &gt; <span class="dv">1024</span>), <span class="dv">10</span>)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true"></a>   &lt;&lt; <span class="st">&quot;I’m printed on every 10th occurence of case when size is more &quot;</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true"></a>      <span class="st">&quot; than 1024, when you run the program with --v=1 or more. &quot;</span>;</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true"></a>      <span class="st">&quot;Present occurence is &quot;</span> &lt;&lt; google::COUNTER;</span></code></pre></div>
+<h3 id="custom-log-prefix-format">Custom log prefix format</h3>
+<p>glog supports changing the format of the prefix attached to log messages by receiving a user-provided callback to be used to generate such strings. That feature must be enabled at compile time by the <code>WITH_CUSTOM_PREFIX</code> flag.</p>
+<p>For each log entry, the callback will be invoked with a <code>LogMessageInfo</code> struct containing the severity, filename, line number, thread ID, and time of the event. It will also be given a reference to the output stream, whose contents will be prepended to the actual message in the final log line.</p>
+<p>For example:</p>
+<blockquote>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="co">/* This function writes a prefix that matches glog&#39;s default format.</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a><span class="co"> * (The third parameter can be used to receive user-supplied data, and is</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a><span class="co"> * NULL by default.)</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true"></a><span class="co"> */</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true"></a><span class="dt">void</span> CustomPrefix(<span class="bu">std::</span>ostream &amp;s, <span class="at">const</span> LogMessageInfo &amp;l, <span class="dt">void</span>*) {</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true"></a>   s &lt;&lt; l.severity[<span class="dv">0</span>]</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">4</span>) &lt;&lt; <span class="dv">1900</span> + l.time.year()</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">2</span>) &lt;&lt; <span class="dv">1</span> + l.time.month()</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">2</span>) &lt;&lt; l.time.day()</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true"></a>   &lt;&lt; <span class="ch">&#39; &#39;</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">2</span>) &lt;&lt; l.time.hour() &lt;&lt; <span class="ch">&#39;:&#39;</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">2</span>) &lt;&lt; l.time.min()  &lt;&lt; <span class="ch">&#39;:&#39;</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">2</span>) &lt;&lt; l.time.sec() &lt;&lt; <span class="st">&quot;.&quot;</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true"></a>   &lt;&lt; setw(<span class="dv">6</span>) &lt;&lt; l.time.usec()</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true"></a>   &lt;&lt; <span class="ch">&#39; &#39;</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true"></a>   &lt;&lt; setfill(<span class="ch">&#39; &#39;</span>) &lt;&lt; setw(<span class="dv">5</span>)</span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true"></a>   &lt;&lt; l.thread_id &lt;&lt; setfill(<span class="ch">&#39;0&#39;</span>)</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true"></a>   &lt;&lt; <span class="ch">&#39; &#39;</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true"></a>   &lt;&lt; l.filename &lt;&lt; <span class="ch">&#39;:&#39;</span> &lt;&lt; l.line_number &lt;&lt; <span class="st">&quot;]&quot;</span>;</span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true"></a>}</span></code></pre></div>
+</blockquote>
+<p>To enable the use of <code>CustomPrefix()</code>, simply give glog a pointer to it during initialization: <code>InitGoogleLogging(argv[0], &amp;CustomPrefix);</code>.</p>
+<p>Optionally, <code>InitGoogleLogging()</code> takes a third argument of type <code>void*</code> to pass on to the callback function.</p>
+<h3 id="failure-signal-handler">Failure Signal Handler</h3>
+<p>The library provides a convenient signal handler that will dump useful information when the program crashes on certain signals such as <code>SIGSEGV</code>. The signal handler can be installed by <code class="sourceCode cpp">google::InstallFailureSignalHandler()</code>. The following is an example of output from the signal handler.</p>
+<pre><code>*** Aborted at 1225095260 (unix time) try &quot;date -d @1225095260&quot; if you are using GNU date ***
+*** SIGSEGV (@0x0) received by PID 17711 (TID 0x7f893090a6f0) from PID 0; stack trace: ***
+PC: @           0x412eb1 TestWaitingLogSink::send()
+    @     0x7f892fb417d0 (unknown)
+    @           0x412eb1 TestWaitingLogSink::send()
+    @     0x7f89304f7f06 google::LogMessage::SendToLog()
+    @     0x7f89304f35af google::LogMessage::Flush()
+    @     0x7f89304f3739 google::LogMessage::~LogMessage()
+    @           0x408cf4 TestLogSinkWaitTillSent()
+    @           0x4115de main
+    @     0x7f892f7ef1c4 (unknown)
+    @           0x4046f9 (unknown)</code></pre>
+<p>By default, the signal handler writes the failure dump to the standard error. You can customize the destination by <code class="sourceCode cpp">InstallFailureWriter()</code>.</p>
+<h3 id="performance-of-messages">Performance of Messages</h3>
+<p>The conditional logging macros provided by glog (e.g., <code>CHECK</code>, <code>LOG_IF</code>, <code>VLOG</code>, etc.) are carefully implemented and don’t execute the right hand side expressions when the conditions are false. So, the following check may not sacrifice the performance of your application.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>CHECK(obj.ok) &lt;&lt; obj.CreatePrettyFormattedStringButVerySlow();</span></code></pre></div>
+<h3 id="user-defined-failure-function">User-defined Failure Function</h3>
+<p><code>FATAL</code> severity level messages or unsatisfied <code>CHECK</code> condition terminate your program. You can change the behavior of the termination by <code class="sourceCode cpp">InstallFailureFunction</code>.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="dt">void</span> YourFailureFunction() {</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a>  <span class="co">// Reports something...</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a>  exit(<span class="dv">1</span>);</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true"></a>}</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>* argv[]) {</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true"></a>  google::InstallFailureFunction(&amp;YourFailureFunction);</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true"></a>}</span></code></pre></div>
+<p>By default, glog tries to dump stacktrace and makes the program exit with status 1. The stacktrace is produced only when you run the program on an architecture for which glog supports stack tracing (as of September 2008, glog supports stack tracing for x86 and x86_64).</p>
+<h3 id="raw-logging">Raw Logging</h3>
+<p>The header file <code>&lt;glog/raw_logging.h&gt;</code> can be used for thread-safe logging, which does not allocate any memory or acquire any locks. Therefore, the macros defined in this header file can be used by low-level memory allocation and synchronization code. Please check <a href="src/glog/raw_logging.h.in">src/glog/raw_logging.h.in</a> for detail.</p>
+<h3 id="google-style-perror">Google Style <code>perror()</code></h3>
+<p><code>PLOG()</code> and <code>PLOG_IF()</code> and <code>PCHECK()</code> behave exactly like their <code>LOG*</code> and <code>CHECK</code> equivalents with the addition that they append a description of the current state of errno to their output lines. E.g.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>PCHECK(write(<span class="dv">1</span>, NULL, <span class="dv">2</span>) &gt;= <span class="dv">0</span>) &lt;&lt; <span class="st">&quot;Write NULL failed&quot;</span>;</span></code></pre></div>
+<p>This check fails with the following error message.</p>
+<pre><code>F0825 185142 test.cc:22] Check failed: write(1, NULL, 2) &gt;= 0 Write NULL failed: Bad address [14]</code></pre>
+<h3 id="syslog">Syslog</h3>
+<p><code>SYSLOG</code>, <code>SYSLOG_IF</code>, and <code>SYSLOG_EVERY_N</code> macros are available. These log to syslog in addition to the normal logs. Be aware that logging to syslog can drastically impact performance, especially if syslog is configured for remote logging! Make sure you understand the implications of outputting to syslog before you use these macros. In general, it’s wise to use these macros sparingly.</p>
+<h3 id="strip-logging-messages">Strip Logging Messages</h3>
+<p>Strings used in log messages can increase the size of your binary and present a privacy concern. You can therefore instruct glog to remove all strings which fall below a certain severity level by using the <code>GOOGLE_STRIP_LOG</code> macro:</p>
+<p>If your application has code like this:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true"></a><span class="pp">#define GOOGLE_STRIP_LOG </span><span class="dv">1</span><span class="pp">    </span><span class="co">// this must go before the #include!</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;glog/logging.h&gt;</span></span></code></pre></div>
+<p>The compiler will remove the log messages whose severities are less than the specified integer value. Since <code>VLOG</code> logs at the severity level <code>INFO</code> (numeric value <code>0</code>), setting <code>GOOGLE_STRIP_LOG</code> to 1 or greater removes all log messages associated with <code>VLOG</code>s as well as <code>INFO</code> log statements.</p>
+<h3 id="automatically-remove-old-logs">Automatically Remove Old Logs</h3>
+<p>To enable the log cleaner:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a>google::EnableLogCleaner(<span class="dv">3</span>); <span class="co">// keep your logs for 3 days</span></span></code></pre></div>
+<p>And then glog will check if there are overdue logs whenever a flush is performed. In this example, any log file from your project whose last modified time is greater than 3 days will be unlink()ed.</p>
+<p>This feature can be disabled at any time (if it has been enabled)</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true"></a>google::DisableLogCleaner();</span></code></pre></div>
+<h3 id="notes-for-windows-users">Notes for Windows Users</h3>
+<p>glog defines a severity level <code>ERROR</code>, which is also defined in <code>windows.h</code> . You can make glog not define <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>FATAL</code> by defining <code>GLOG_NO_ABBREVIATED_SEVERITIES</code> before including <code>glog/logging.h</code> . Even with this macro, you can still use the iostream like logging facilities:</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a><span class="pp">#define GLOG_NO_ABBREVIATED_SEVERITIES</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;windows.h&gt;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;glog/logging.h&gt;</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true"></a><span class="co">// ...</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true"></a>LOG(ERROR) &lt;&lt; <span class="st">&quot;This should work&quot;</span>;</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true"></a>LOG_IF(ERROR, x &gt; y) &lt;&lt; <span class="st">&quot;This should be also OK&quot;</span>;</span></code></pre></div>
+<p>However, you cannot use <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, and <code>FATAL</code> anymore for functions defined in <code>glog/logging.h</code> .</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true"></a><span class="pp">#define GLOG_NO_ABBREVIATED_SEVERITIES</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;windows.h&gt;</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;glog/logging.h&gt;</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true"></a><span class="co">// ...</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true"></a></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true"></a><span class="co">// This won’t work.</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true"></a><span class="co">// google::FlushLogFiles(google::ERROR);</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true"></a></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true"></a><span class="co">// Use this instead.</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true"></a>google::FlushLogFiles(google::GLOG_ERROR);</span></code></pre></div>
+<p>If you don’t need <code>ERROR</code> defined by <code>windows.h</code>, there are a couple of more workarounds which sometimes don’t work:</p>
+<ul>
+<li><code>#define WIN32_LEAN_AND_MEAN</code> or <code>NOGDI</code> <strong>before</strong> you <code>#include windows.h</code>.</li>
+<li><code>#undef ERROR</code> <strong>after</strong> you <code>#include windows.h</code> .</li>
+</ul>
+<p>See <a href="http://code.google.com/p/google-glog/issues/detail?id=33">this issue</a> for more detail.</p>
+<h3 id="installation-notes-for-64-bit-linux-systems">Installation Notes for 64-bit Linux Systems</h3>
+<p>The glibc built-in stack-unwinder on 64-bit systems has some problems with glog. (In particular, if you are using <code class="sourceCode cpp">InstallFailureSignalHandler()</code>, the signal may be raised in the middle of malloc, holding some malloc-related locks when they invoke the stack unwinder. The built-in stack unwinder may call malloc recursively, which may require the thread to acquire a lock it already holds: deadlock.)</p>
+<p>For that reason, if you use a 64-bit system and you need <code class="sourceCode cpp">InstallFailureSignalHandler()</code>, we strongly recommend you install <code>libunwind</code> before trying to configure or install google glog. libunwind can be found <a href="http://download.savannah.nongnu.org/releases/libunwind/libunwind-snap-070410.tar.gz">here</a>.</p>
+<p>Even if you already have <code>libunwind</code> installed, you will probably still need to install from the snapshot to get the latest version.</p>
+<p>Caution: if you install libunwind from the URL above, be aware that you may have trouble if you try to statically link your binary with glog: that is, if you link with <code>gcc -static -lgcc_eh ...</code>. This is because both <code>libunwind</code> and <code>libgcc</code> implement the same C++ exception handling APIs, but they implement them differently on some platforms. This is not likely to be a problem on ia64, but may be on x86-64.</p>
+<p>Also, if you link binaries statically, make sure that you add <code class="sourceCode bash"><span class="ex">-Wl</span>,--eh-frame-hdr</code> to your linker options. This is required so that <code>libunwind</code> can find the information generated by the compiler required for stack unwinding.</p>
+<p>Using <code class="sourceCode bash"><span class="ex">-static</span></code> is rare, though, so unless you know this will affect you it probably won’t.</p>
+<p>If you cannot or do not wish to install libunwind, you can still try to use two kinds of stack-unwinder: 1. glibc built-in stack-unwinder and 2. frame pointer based stack-unwinder.</p>
+<ol type="1">
+<li>As we already mentioned, glibc’s unwinder has a deadlock issue. However, if you don’t use <code class="sourceCode cpp">InstallFailureSignalHandler()</code> or you don’t worry about the rare possibilities of deadlocks, you can use this stack-unwinder. If you specify no options and <code>libunwind</code> isn’t detected on your system, the configure script chooses this unwinder by default.</li>
+<li>The frame pointer based stack unwinder requires that your application, the glog library, and system libraries like libc, all be compiled with a frame pointer. This is <em>not</em> the default for x86-64.</li>
+</ol>
+<h2 id="how-to-contribute">How to Contribute</h2>
+<p>We’d love to accept your patches and contributions to this project. There are a just a few small guidelines you need to follow.</p>
+<h3 id="contributor-license-agreement-cla">Contributor License Agreement (CLA)</h3>
+<p>Contributions to any Google project must be accompanied by a Contributor License Agreement. This is not a copyright <strong>assignment</strong>, it simply gives Google permission to use and redistribute your contributions as part of the project.</p>
+<ul>
+<li>If you are an individual writing original source code and you’re sure you own the intellectual property, then you’ll need to sign an <a href="https://developers.google.com/open-source/cla/individual">individual CLA</a>.</li>
+<li>If you work for a company that wants to allow you to contribute your work, then you’ll need to sign a <a href="https://developers.google.com/open-source/cla/corporate">corporate CLA</a>.</li>
+</ul>
+<p>You generally only need to submit a CLA once, so if you’ve already submitted one (even if it was for a different project), you probably don’t need to do it again.</p>
+<p>Once your CLA is submitted (or if you already submitted one for another Google project), make a commit adding yourself to the <a href="./AUTHORS">AUTHORS</a> and <a href="./CONTRIBUTORS">CONTRIBUTORS</a> files. This commit can be part of your first <a href="https://help.github.com/articles/creating-a-pull-request">pull request</a>.</p>
+<h3 id="submitting-a-patch">Submitting a Patch</h3>
+<ol type="1">
+<li>It’s generally best to start by opening a new issue describing the bug or feature you’re intending to fix. Even if you think it’s relatively minor, it’s helpful to know what people are working on. Mention in the initial issue that you are planning to work on that bug or feature so that it can be assigned to you.</li>
+<li>Follow the normal process of <a href="https://help.github.com/articles/fork-a-repo">forking</a> the project, and setup a new branch to work in. It’s important that each group of changes be done in separate branches in order to ensure that a pull request only includes the commits related to that bug or feature.</li>
+<li>Do your best to have <a href="http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">well-formed commit messages</a> for each change. This provides consistency throughout the project, and ensures that commit messages are able to be formatted properly by various git tools.</li>
+<li>Finally, push the commits to your fork and submit a <a href="https://help.github.com/articles/creating-a-pull-request">pull request</a>.</li>
+</ol>

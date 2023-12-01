@@ -1,0 +1,133 @@
+<h1 id="meta-stuff-wip">Meta stuff WIP</h1>
+<p>This is the code I use in my game for all serialization/deserialization/introspection stuff.</p>
+<p><a href="https://eliasdaler.github.io/meta-stuff/">This article</a> explains how it can be used and how it was made in detail.</p>
+<p>See <a href="https://github.com/w0land/metastuff-clang-generator">metastuff-clang-generator</a> for automatic registration of classes in MetaStuff!</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>Strongly typed and doesn't use RTTI or virtual functions in any way</strong>. You can iterate over class members and you still know member's type, there's no type erasure and it's all very fast</li>
+<li><strong>No dependencies</strong>. You have to use modern C++ compiler which supports C++14, though. (VS 2015, GCC 5+, Clang 3.8)</li>
+<li><strong>Serialization is not limited to any format</strong>. There's no standard way of doing serialization. You can implement it yourself for your own format. (See JSON example to see how it can be done)</li>
+<li><strong>You don't need to modify classes that you want to serialize/deserialize</strong>. Everything is done through providing template specializations of MetaStuff's <code>registerMembers&lt;T&gt;</code> function for your classes. No modifications to classes you want to serialize are needed!</li>
+</ul>
+<p>The lib is still in development, so it's not recommended to use it for anything really serious as lots of stuff can change! Still, use it as you like, it's MIT licensed after all.</p>
+<p>All suggestions about improving the lib are welcome. I know it isn't perfect, so let's make it better together. :)</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Compiler with C++14 support (I managed to compile it with Visual Studio 2015, GCC 5.0, Clang 3.8)</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>Just standard library. (<a href="https://github.com/nlohmann/json">JSON for Modern C++</a> is used in example, but you can use any library you want for serialization)</li>
+</ul>
+<h2 id="example">Example</h2>
+<p>See example for complete example of JSON serialization.</p>
+<p>Suppose you have classes like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> Person {
+    <span class="dt">void</span> setAge(<span class="dt">int</span> a)
+    {
+        <span class="cf">if</span> (a &gt;= <span class="dv">0</span> &amp;&amp; a &lt; <span class="dv">128</span>) { <span class="co">// sorry, if you&#39;re older than 128</span>
+            age = a;
+        } <span class="cf">else</span> {
+            <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Can&#39;t set age. &quot;</span> &lt;&lt; a &lt;&lt; <span class="st">&quot; is out of allowed range</span><span class="sc">\n</span><span class="st">&quot;</span>;
+        }
+    }
+
+    <span class="dt">int</span> getAge() <span class="at">const</span> { <span class="cf">return</span> age; }
+    
+    <span class="dt">void</span> setName(<span class="at">const</span> <span class="bu">std::</span>string&amp; name) { <span class="kw">this</span>-&gt;name = name; }
+
+    <span class="at">const</span> <span class="bu">std::</span>string&amp; getName() <span class="at">const</span> { <span class="cf">return</span> name; }
+
+    <span class="dt">int</span> age;
+    <span class="bu">std::</span>string name;
+    <span class="dt">float</span> salary;
+    <span class="bu">std::</span>unordered_map&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>vector&lt;MovieInfo&gt;&gt; favouriteMovies;
+};
+
+<span class="kw">struct</span> MovieInfo {
+    <span class="bu">std::</span>string name;
+    <span class="dt">float</span> rating;
+};</code></pre></div>
+<p>And you want to serialize them to some format (for example, JSON). Or perhaps you want to add some GUI which will let you edit each member easily. No problem, just write these static functions,</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;Meta.h&quot;</span>
+
+<span class="kw">namespace</span> meta
+{
+
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">inline</span> <span class="kw">auto</span> registerMembers&lt;Person&gt;()
+{
+    <span class="cf">return</span> members(
+        member(<span class="st">&quot;age&quot;</span>, &amp;Person::getAge, &amp;Person::setAge), <span class="co">// access through getter/setter only!</span>
+        member(<span class="st">&quot;name&quot;</span>, &amp;Person::getName, &amp;Person::setName), <span class="co">// same, but ref getter/setter</span>
+        member(<span class="st">&quot;salary&quot;</span>, &amp;Person::salary),
+        member(<span class="st">&quot;favouriteMovies&quot;</span>, &amp;Person::favouriteMovies)
+    );
+}
+
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">inline</span> <span class="kw">auto</span> registerMembers&lt;MovieInfo&gt;()
+{
+    <span class="cf">return</span> members(
+        member(<span class="st">&quot;name&quot;</span>, &amp;MovieInfo::name),
+        member(<span class="st">&quot;rating&quot;</span>, &amp;MovieInfo::rating)
+    );
+}
+
+}</code></pre></div>
+<p>Note that you can either use pointers to members or pointers to getters/setters. They will be used for doing stuff with members of registered classes. (for reading and setting values).</p>
+<p>and now you can call do this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta::doForAllMembers&lt;SomeClass&gt;(<span class="co">/* your lambda */</span>);</code></pre></div>
+<p>Your lambda should have one parameter which will be an instance of Member. Calling <code>meta::doForAllMembers&lt;T&gt;</code> gives you ability to do something with each registered member of class T. Inside your lambda you can get member type like this (<code>MemberType</code> = <code>T</code> when <code>decltype(member)</code> = <code>Member&lt;Class, T&gt;</code>): <code>using MemberType = meta::get_member_type&lt;decltype(member)&gt;;</code> (See <strong>example/JsonCast.inl</strong> for examples of such lambdas).</p>
+<h2 id="some-docs-will-be-better-in-future">Some docs (will be better in future!)</h2>
+<p>Member class has the following functions:</p>
+<ul>
+<li><code>const char* getName()</code> - returns <code>const char*</code> of member name you've set during &quot;registration&quot;</li>
+<li><code>const T&amp; get(const Class&amp; obj)</code> - gets const reference to the member</li>
+<li><code>T getCopy(const Class&amp; obj)</code> - gets copy of member (useful to if only value getter is provided, can't return const T&amp; in that case)</li>
+<li><code>void set(const Class&amp; obj, V&amp;&amp; value)</code> - sets value to the member, lvalues and rvalues are accepted</li>
+<li><code>T&amp; getRef(const Class&amp; obj)</code> - gets non const reference to the member</li>
+</ul>
+<p>In general <code>Meta::getMembers&lt;T&gt;()</code> template function specialization should have a following form and should be put in header with you class (see comments in Meta.h for more info)</p>
+<p><strong>It's important for this function to be <code>inline</code> and be defined in header file because the compiler has to figure out return type and you don't want to define the same function in two different compilation units!</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> meta
+{
+
+<span class="kw">template</span> &lt;&gt;
+<span class="kw">inline</span> <span class="kw">auto</span> registerMembers&lt;SomeClass&gt;()
+{
+    <span class="cf">return</span> members(
+        member(...),
+        ...
+    );
+}
+
+}</code></pre></div>
+<p>You can register members by using their data member pointer:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">member(<span class="st">&quot;someMember&quot;</span>, &amp;SomeClass::someMember)</code></pre></div>
+<p>Or use getters/setters:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">member(<span class="st">&quot;someMember&quot;</span>, &amp;SomeClass::getSomeMember, &amp;SomeClass::setSomeMember)</code></pre></div>
+<p>If you provide Member with getters and setters it will use these functions for getting/setting members, otherwise the member will be accessed directly with pointer to member.</p>
+<p>And you can add non-const getter (not necessary):</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">member(...).addNonConstGetter(&amp;SomeClass::getSomeMemberRef)</code></pre></div>
+<p>Getters and setters can be by-value:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// T is member type</span>
+T SomeClass::getSomeMember() <span class="at">const</span> { <span class="cf">return</span> someMember; }
+<span class="dt">void</span> SomeClass::getSomeMember(T value) { someMember = value; }</code></pre></div>
+<p>... or by reference</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// T is member type</span>
+<span class="at">const</span> T&amp; SomeClass::getSomeMember() <span class="at">const</span> { <span class="cf">return</span> someMember; }
+<span class="dt">void</span> SomeClass::getSomeMember(<span class="at">const</span> T&amp; value) { someMember = value; }</code></pre></div>
+<p>Non-const getter has the following form:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// T is member type</span>
+T&amp; SomeClass::getSomeMemberRef() { <span class="cf">return</span> someMember; }</code></pre></div>
+<p>Getters and setters are always called (if they're present) in <code>Member::get/set</code> functions, otherwise the pointer to member is used. The same applies to non-const getter in Member::getRef.</p>
+<p>You can make the template specialization of <code>registerMembers</code> a friend to your registered class to be able to access and add private members. You can do it like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> SomeClass {
+    <span class="kw">friend</span> <span class="kw">auto</span> meta::registerMembers&lt;SomeClass&gt;(); <span class="co">// Visual Studio may produce warning here</span>
+        <span class="co">// Just ignore it, it&#39;s a bug (`#pragma warning (disable : 4396)` is added in Meta.h</span>
+};</code></pre></div>
+<h2 id="inheritance">Inheritance</h2>
+<p>If you have a base class registered, you can combine its members tuple with a one from derived class. See <a href="https://gist.github.com/eliasdaler/45bf3f583cd4a41019b9802c198e6f41">this example</a> of how you can do it.</p>
+<h2 id="license">License</h2>
+<p>This library is licensed under the MIT License, see LICENSE for more information.</p>

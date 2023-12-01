@@ -1,0 +1,62 @@
+<p><a href="https://travis-ci.org/jarro2783/cxxopts"><img src="https://travis-ci.org/jarro2783/cxxopts.svg?branch=master" alt="Build Status" /></a></p>
+<h1 id="release-versions">Release versions</h1>
+<p>Note that <code>master</code> is generally a work in progress, and you probably want to use a tagged release version.</p>
+<h1 id="quick-start">Quick start</h1>
+<p>This is a lightweight C++ option parser library, supporting the standard GNU style syntax for options.</p>
+<p>Options can be given as:</p>
+<pre><code>--long
+--long=argument
+--long argument
+-a
+-ab
+-abc argument</code></pre>
+<p>where c takes an argument, but a and b do not.</p>
+<p>Additionally, anything after <code>--</code> will be parsed as a positional argument.</p>
+<h2 id="basics">Basics</h2>
+<pre><code>#include &lt;cxxopts.hpp&gt;</code></pre>
+<p>Create a cxxopts::Options instance.</p>
+<pre><code>cxxopts::Options options(&quot;MyProgram&quot;, &quot;One line description of MyProgram&quot;);</code></pre>
+<p>Then use <code>add_options</code>.</p>
+<pre><code>options.add_options()
+  (&quot;d,debug&quot;, &quot;Enable debugging&quot;)
+  (&quot;f,file&quot;, &quot;File name&quot;, cxxopts::value&lt;std::string&gt;())
+  ;</code></pre>
+<p>Options are declared with a long and an optional short option. A description must be provided. The third argument is the value, if omitted it is boolean. Any type can be given as long as it can be parsed, with operator&gt;&gt;.</p>
+<p>To parse the command line do:</p>
+<pre><code>auto result = options.parse(argc, argv);</code></pre>
+<p>To retrieve an option use <code>result.count(&quot;option&quot;)</code> to get the number of times it appeared, and</p>
+<pre><code>result[&quot;opt&quot;].as&lt;type&gt;()</code></pre>
+<p>to get its value. If &quot;opt&quot; doesn't exist, or isn't of the right type, then an exception will be thrown.</p>
+<p>Note that the result of <code>options.parse</code> should only be used as long as the <code>options</code> object that created it is in scope.</p>
+<h2 id="exceptions">Exceptions</h2>
+<p>Exceptional situations throw C++ exceptions. There are two types of exceptions: errors defining the options, and errors when parsing a list of arguments. All exceptions derive from <code>cxxopts::OptionException</code>. Errors defining options derive from <code>cxxopts::OptionSpecException</code> and errors parsing arguments derive from <code>cxxopts::OptionParseException</code>.</p>
+<p>All exceptions define a <code>what()</code> function to get a printable string explaining the error.</p>
+<h2 id="help-groups">Help groups</h2>
+<p>Options can be placed into groups for the purposes of displaying help messages. To place options in a group, pass the group as a string to <code>add_options</code>. Then, when displaying the help, pass the groups that you would like displayed as a vector to the <code>help</code> function.</p>
+<h2 id="positional-arguments">Positional Arguments</h2>
+<p>Positional arguments can be optionally parsed into one or more options. To set up positional arguments, call</p>
+<pre><code>options.parse_positional({&quot;first&quot;, &quot;second&quot;, &quot;last&quot;})</code></pre>
+<p>where &quot;last&quot; should be the name of an option with a container type, and the others should have a single value.</p>
+<h2 id="default-and-implicit-values">Default and implicit values</h2>
+<p>An option can be declared with a default or an implicit value, or both.</p>
+<p>A default value is the value that an option takes when it is not specified on the command line. The following specifies a default value for an option:</p>
+<pre><code>cxxopts::value&lt;std::string&gt;()-&gt;default_value(&quot;value&quot;)</code></pre>
+<p>An implicit value is the value that an option takes when it is given on the command line without an argument. The following specifies an implicit value:</p>
+<pre><code>cxxopts::value&lt;std::string&gt;()-&gt;implicit_value(&quot;implicit&quot;)</code></pre>
+<p>If an option had both, then not specifying it would give the value <code>&quot;value&quot;</code>, writing it on the command line as <code>--option</code> would give the value <code>&quot;implicit&quot;</code>, and writing <code>--option=another</code> would give it the value <code>&quot;another&quot;</code>.</p>
+<p>Note that the default and implicit value is always stored as a string, regardless of the type that you want to store it in. It will be parsed as though it was given on the command line.</p>
+<h2 id="boolean-values">Boolean values</h2>
+<p>Boolean options have a default implicit value of <code>&quot;true&quot;</code>, which can be overridden. The effect is that writing <code>-o</code> by itself will set option <code>o</code> to <code>true</code>. However, they can also be written with various strings using <code>=value</code>. There is no way to disambiguate positional arguments from the value following a boolean, so we have chosen that they will be positional arguments, and therefore, <code>-o false</code> does not work.</p>
+<h2 id="stdvectort-values"><code>std::vector&lt;T&gt;</code> values</h2>
+<p>Parsing of list of values in form of an <code>std::vector&lt;T&gt;</code> is also supported, as long as <code>T</code> can be parsed. To separate single values in a list the definition <code>CXXOPTS_VECTOR_DELIMITER</code> is used, which is ',' by default. Ensure that you use no whitespaces between values because those would be interpreted as the next command line option. Example for a command line option that can be parsed as a <code>std::vector&lt;double&gt;</code>:</p>
+<pre><code>--my_list=1,-2.1,3,4.5</code></pre>
+<h2 id="custom-help">Custom help</h2>
+<p>The string after the program name on the first line of the help can be completely replaced by calling <code>options.custom_help</code>. Note that you might also want to override the positional help by calling <code>options.positional_help</code>.</p>
+<h1 id="linking">Linking</h1>
+<p>This is a header only library.</p>
+<h1 id="requirements">Requirements</h1>
+<p>The only build requirement is a C++ compiler that supports C++11 regular expressions. For example GCC &gt;= 4.9 or clang with libc++.</p>
+<h1 id="todo-list">TODO list</h1>
+<ul>
+<li>Allow unrecognised options.</li>
+</ul>

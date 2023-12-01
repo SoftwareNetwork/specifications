@@ -1,0 +1,366 @@
+<p><img align="right" src="SI-logo.jpg"></p>
+<p><a href="https://travis-ci.com/bernedom/SI"><img src="https://travis-ci.com/bernedom/SI.svg?branch=master" alt="Build Status" /></a> <a href="https://github.com/bernedom/SI/releases"><img src="https://img.shields.io/github/release/bernedom/SI.svg" alt="GitHub Releases" /></a> <a href="https://raw.githubusercontent.com/bernedom/SI/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub license" /></a> <a href="https://www.codacy.com/app/bernedom/SI?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bernedom/SI&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/ec7f65662b91480a9968bd77bd32c66c" alt="Codacy Badge" /></a> <a href="https://lgtm.com/projects/g/bernedom/SI/context:cpp"><img src="https://img.shields.io/lgtm/grade/cpp/g/bernedom/SI.svg?logo=lgtm&amp;logoWidth=18" alt="Language grade: C/C++" /></a></p>
+<h1 id="si---type-safety-for-physical-units">SI - Type safety for physical units</h1>
+<p>A header only c++ library that provides type safety and user defined literals for handling pyhsical values defined in the <a href="https://en.wikipedia.org/wiki/International_System_of_Units">International System of Units</a>.</p>
+<p>An illustrative example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;SI/electric_charge.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;SI/mass.h&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> SI::literals;
+
+<span class="kw">constexpr</span> <span class="kw">auto</span> one_kilogramm = <span class="fl">1.0</span>_kg;
+<span class="kw">constexpr</span> <span class="kw">auto</span> ten_coulomb = <span class="fl">5.0</span>_A * <span class="fl">2.0</span>_s;
+<span class="kw">constexpr</span> <span class="kw">auto</span> half_an_ampere = ten_coulomb / <span class="fl">20.0</span>_s;
+
+<span class="dt">void</span> calculate_mass(<span class="at">const</span> SI::<span class="dt">kilo_gram_t</span>&lt;<span class="dt">long</span> <span class="dt">double</span>&gt; &amp;kg) {
+  <span class="co">// do something meaningful here</span>
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span>, <span class="dt">char</span> **) {
+  calculate_mass(one_kilogramm);
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>SI provides conversions and arithmetic operations with values of any of the <a href="https://en.wikipedia.org/wiki/International_System_of_Units">International System of Units</a> with strong <strong>type safety at compile time</strong>. All units are special typedefs of the templated struct <code>SI::unit_t</code>. Only the value of the unit is stored internally, the ratio (i.e. milli, micro, kilo...) is determined as a type trait to allow all units to have the same resolution across the whole implemented ratios. SI handles operations of units of the same ratios as well as when the ratios are different. Operations of between units of the same ratio are overhead-free, else there is additional computation cost to adjust the values to the units. By passing the flag <code>SI_DISABLE_IMPLICIT_RATIO_CONVERSION</code> to the compiler implicit ratio conversion is not done and fails with a compiler error.</p>
+<p>It is possible to supply custom ratios to the built-in types and they are fully compatible for calculation with other units. However the necessary literals or typedefs have to be supplied by the user. For instance <code>SI::velocity_t&lt;double, std::ratio&lt;1000, 36&gt;&gt;</code> would be &quot;kilo metre per one-hundreth-of-an-hour&quot;.</p>
+<h2 id="si-base-units">SI Base units</h2>
+<p>For each Unit the available literals are the implemented ratios prefixed with an underscore. i.e. <code>_mm</code>. <code>_km</code>. Generally the ratios follow <a href="https://en.wikipedia.org/wiki/Metric_prefix">metric prefixes of the internation system of units</a> The typedefs are prefixed (or in rare cases interfixed) with the standard metric prefixes. i.e. <code>metre_t, milli_metre_t, kilo_metre_t</code>. The prefix or interfix is marked with an <code>*</code> in the tables below.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Unit</th>
+<th>Dimension Symbol</th>
+<th>Unit Symbol</th>
+<th>implemented ratios</th>
+<th>unit typedefs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Length</td>
+<td>L</td>
+<td>m</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_metre_t</code></td>
+</tr>
+<tr class="even">
+<td>Time</td>
+<td>T</td>
+<td>s</td>
+<td>10<sup>-18</sup> to 10<sup>0</sup> and 60/1, 3600/1</td>
+<td><code>*_seconds_t, minutes_t, hours_t</code></td>
+</tr>
+<tr class="odd">
+<td>Mass*</td>
+<td>M</td>
+<td>kg</td>
+<td>10<sup>-15</sup> to 10<sup>3</sup></td>
+<td><code>*_gram_t</code>, <code>ton_t</code></td>
+</tr>
+<tr class="even">
+<td>Electric current</td>
+<td>I</td>
+<td>A</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_ampere_t</code></td>
+</tr>
+<tr class="odd">
+<td>Thermodynamic temperature**</td>
+<td>t</td>
+<td>K</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_kelvin_t</code></td>
+</tr>
+<tr class="even">
+<td>Amount of substance</td>
+<td>N</td>
+<td>mol</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_mol_t</code></td>
+</tr>
+<tr class="odd">
+<td>Luminousity</td>
+<td>J</td>
+<td>cd</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_candela_t</code></td>
+</tr>
+</tbody>
+</table>
+<p>* for mass the base ratio is <code>kg</code> (not <code>g</code>) as it is defined in the SI unit table. So there is a mismatch between the literal prefix and the internal representation.</p>
+<p>** The dimension symbol for thermodynamic temperature should be <code>Θ (Theta)</code> but the current implementation does not allow for non-ASCII symbols or multi-char symbols</p>
+<h3 id="special-units">Special Units</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Unit</th>
+<th>Dimension Symbol</th>
+<th>Exponent</th>
+<th>Unit Symbol</th>
+<th>implemented ratios</th>
+<th>unit typedefs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Area</td>
+<td>L</td>
+<td>2</td>
+<td>m2</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>square_*_metre_t</code></td>
+</tr>
+<tr class="even">
+<td>Volume</td>
+<td>L</td>
+<td>3</td>
+<td>m3</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>cubic_*_metre_t</code></td>
+</tr>
+<tr class="odd">
+<td>Frequency</td>
+<td>T</td>
+<td>-1</td>
+<td>Hz</td>
+<td>10<sup>-18</sup> to 10<sup>18</sup></td>
+<td><code>*_hertz_t</code></td>
+</tr>
+<tr class="even">
+<td>Angle*</td>
+<td>r</td>
+<td>1</td>
+<td>rad</td>
+<td>10<sup>-18</sup> to 1</td>
+<td><code>*_radiant_t</code></td>
+</tr>
+<tr class="odd">
+<td>Solid Angle*</td>
+<td>R</td>
+<td>1</td>
+<td>sr</td>
+<td>10<sup>-18</sup> to 1</td>
+<td><code>*_sterradiant_t</code></td>
+</tr>
+</tbody>
+</table>
+<p>* Angle and solid angle are simple containers, not containing any functionality to do angle/room-angle computation such as an overflow after 2*pi.</p>
+<h2 id="derived-units-with-special-names">Derived units with special names</h2>
+<p>All units that can be built from other units are also decayable to the respective units by inversing the mathematical operation. I.e if <code>Q = I * T</code> then <code>Q / I = T</code> and <code>Q / T = I</code></p>
+<table style="width:100%;">
+<colgroup>
+<col width="20%" />
+<col width="16%" />
+<col width="11%" />
+<col width="16%" />
+<col width="20%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Unit</th>
+<th>Dimension Symbol</th>
+<th>Unit Symbol</th>
+<th>builable from</th>
+<th>implemented literals</th>
+<th>unit typedefs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Velocity</td>
+<td>v</td>
+<td>m/s</td>
+<td>L / T</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>Acceleration</td>
+<td>a</td>
+<td>m/s^2</td>
+<td>v / T</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>Electric charge</td>
+<td>Q</td>
+<td>C</td>
+<td>I * T</td>
+<td>aC to EC</td>
+<td><code>*_coulomb_t</code></td>
+</tr>
+<tr class="even">
+<td>Electric potential</td>
+<td>U</td>
+<td>V</td>
+<td>P / I, E/Q</td>
+<td>aV to EV</td>
+<td><code>*_volt_t</code></td>
+</tr>
+<tr class="odd">
+<td>Electric resistance</td>
+<td>O*</td>
+<td>Ohm (Ω)</td>
+<td>U / I, 1/G</td>
+<td>aOhm to EOhm</td>
+<td><code>*_ohm_t</code></td>
+</tr>
+<tr class="even">
+<td>Electric conductance</td>
+<td>G</td>
+<td>S</td>
+<td>I / U, 1/R</td>
+<td>aS to ES</td>
+<td><code>*_siemens_t</code></td>
+</tr>
+<tr class="odd">
+<td>Electric capacity</td>
+<td>C</td>
+<td>F</td>
+<td>Q / U</td>
+<td>aF to EF</td>
+<td><code>*_farad_t</code></td>
+</tr>
+<tr class="even">
+<td>Force</td>
+<td>F</td>
+<td>N</td>
+<td>M * a</td>
+<td>aN to EN</td>
+<td><code>*_newton_t</code></td>
+</tr>
+<tr class="odd">
+<td>Pressure</td>
+<td>p</td>
+<td>pa</td>
+<td>F / L^2</td>
+<td>apa to Epa</td>
+<td><code>*_pascal_t</code></td>
+</tr>
+<tr class="even">
+<td>Energy</td>
+<td>E</td>
+<td>J</td>
+<td>F * L, p * L^3</td>
+<td>aJ to EJ</td>
+<td><code>*_joule_t</code></td>
+</tr>
+<tr class="odd">
+<td>Power</td>
+<td>P</td>
+<td>W</td>
+<td>E/T</td>
+<td>aW to EW</td>
+<td><code>*_watt_t</code></td>
+</tr>
+<tr class="even">
+<td>Magnetic Flux</td>
+<td>f*</td>
+<td>Wb</td>
+<td>U * T</td>
+<td>aWb to EWb</td>
+<td><code>*_weber_t</code></td>
+</tr>
+<tr class="odd">
+<td>Magnetic Field</td>
+<td>B</td>
+<td>T</td>
+<td>f/L^2</td>
+<td>aT to ET</td>
+<td><code>*_tesla_t</code></td>
+</tr>
+<tr class="even">
+<td>Inductance</td>
+<td>l</td>
+<td>H</td>
+<td>f / I</td>
+<td>aH to EH</td>
+<td><code>*_henry_t</code></td>
+</tr>
+<tr class="odd">
+<td>Luminous flux</td>
+<td>m**</td>
+<td>lm</td>
+<td>J * R</td>
+<td>alm to Elm</td>
+<td><code>*_lumen_t</code></td>
+</tr>
+<tr class="even">
+<td>Illuminance</td>
+<td>i*</td>
+<td>lx</td>
+<td>m / a</td>
+<td>alx to Elx</td>
+<td><code>*_lux_t</code></td>
+</tr>
+<tr class="odd">
+<td>Radioactivity</td>
+<td>A</td>
+<td>Bq</td>
+<td></td>
+<td>aBq to EBq</td>
+<td><code>*_becquerel_t</code></td>
+</tr>
+<tr class="even">
+<td>Absorbed Dose</td>
+<td>D</td>
+<td>Gy</td>
+<td></td>
+<td>aGy to EGy</td>
+<td><code>*_gray_t</code></td>
+</tr>
+<tr class="odd">
+<td>Equivalent Dose</td>
+<td>H</td>
+<td>Sv</td>
+<td></td>
+<td>aSv to ESv</td>
+<td><code>*_sievert_t</code></td>
+</tr>
+<tr class="even">
+<td>Catalytic activity</td>
+<td>K</td>
+<td>kat</td>
+<td>N / T</td>
+<td>akat to Ekat</td>
+<td><code>*_katal_t</code></td>
+</tr>
+</tbody>
+</table>
+<p>* These dimensions do not yet have the correct symbols, because the current implementation does not allow for non-ASCII symbols or multi-char symbols. The dimension symbol for electric resistance should be <code>Ω (Ohm)</code> and for magnetic flux <code>Φ (Phi)</code>but. Illuminace should be E<sub>b</sub>.</p>
+<p>** luminous flux should be Φ<sub>v</sub> which is even more less supported than <code>Φ (Phi)</code> itself.</p>
+<h2 id="building-compatibility">Building &amp; compatibility</h2>
+<p>SI is a header only libary that uses <strong>C++17</strong> features. Building is tested using cmake &gt; 3.5 and verified for g++7, g++8, clang5, clang6, clang7, msvc 19, and AppleClang 10.0.</p>
+<p>to build use</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build . --config Debug -- -j <span class="va">$(</span><span class="ex">nproc</span><span class="va">)</span></code></pre></div>
+<p>substitute <code>--config Debug</code> with <code>--config Release</code> for optimized builds</p>
+<h3 id="installing">Installing</h3>
+<p>To install SI use the commands below: this will install SI into <code>/usr/local/lib/cmake/SI</code></p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build 
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build . --config Release --target install -- -j <span class="va">$(</span><span class="ex">nproc</span><span class="va">)</span></code></pre></div>
+<p>Consider running the build/install command with setting the install prefix, if you do not want to install SI system wide</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">-DCMAKE_INSTALL_PREFIX</span>:PATH=<span class="va">${HOME}</span>/SI-install</code></pre></div>
+<p>The folder <code>test/installation-tests</code> contains a standalone sample program to check for succesful installation.</p>
+<h4 id="installing-using-cpack">Installing using <code>cpack</code></h4>
+<p>To build the <code>cpack</code> package use:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">mkdir</span> build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> build
+<span class="fu">cmake</span> ..
+<span class="fu">cmake</span> --build . --config Release --target package -- -j <span class="va">$(</span><span class="ex">nproc</span><span class="va">)</span></code></pre></div>
+<p>This creates gzipped archives containing all files as well as an installation script <code>SI-&lt;version&gt;-&lt;plattform&gt;.sh</code>.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> build
+<span class="fu">mkdir</span> <span class="va">${HOME}</span>/SI-install
+<span class="ex">./SI-1.0.1-Linux.sh</span> --prefix=<span class="va">$HOME</span>/SI-install --skip-license --exclude-subdir</code></pre></div>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>The tests use <a href="https://github.com/catchorg/Catch2">Catch2</a> version 2.7 which relies on libstdc++8</p>
+<p>For ubuntu releases &lt; 18.04 use:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">sudo</span> add-apt-repository ppa:ubuntu-toolchain-r/test
+<span class="fu">sudo</span> apt update
+<span class="fu">sudo</span> apt install libstdc++-8-dev</code></pre></div>
+<h2 id="a-word-on-testing">A word on testing</h2>
+<p>I'm using more or less strict TDD for implementing the functionality. First to check if the code actually does what I want it to do, but also as a way to set examples how SI is used. The nice benefit of it being, that I'm dogfooding the library to myself while developing. I'm using <a href="https://github.com/catchorg/Catch2">Catch2</a> as a unit-testing framework, however since the goal is to be able to do as much as possible during compile time most of the tests are performed with Catch2 <code>STATIC_REQUIRES</code> which contatain <code>static_asserts</code> and run-time <code>REQUIRE</code>s as testing assert.</p>
+<p>This means if the tests compile then the tests are correct. To compile only with runtime check pass <code>-DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE</code> to the compilers.</p>

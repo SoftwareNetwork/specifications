@@ -1,0 +1,2446 @@
+<h1 id="cppcoro---a-coroutine-library-for-c">CppCoro - A coroutine library for C++</h1>
+<p>The 'cppcoro' library provides a set of general-purpose primitives for making use of the coroutines TS proposal described in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4680.pdf">N4680</a>.</p>
+<p>These include: * Coroutine Types * <a href="#taskt"><code>task&lt;T&gt;</code></a> * <a href="#shared_taskt"><code>shared_task&lt;T&gt;</code></a> * <a href="#generatort"><code>generator&lt;T&gt;</code></a> * <a href="#recursive_generatort"><code>recursive_generator&lt;T&gt;</code></a> * <a href="#async_generatort"><code>async_generator&lt;T&gt;</code></a> * Awaitable Types * <a href="#single_consumer_event"><code>single_consumer_event</code></a> * <a href="#single_consumer_async_auto_reset_event"><code>single_consumer_async_auto_reset_event</code></a> * <a href="#async_mutex"><code>async_mutex</code></a> * <a href="#async_manual_reset_event"><code>async_manual_reset_event</code></a> * <a href="#async_auto_reset_event"><code>async_auto_reset_event</code></a> * <a href="#async_latch"><code>async_latch</code></a> * <a href="#sequence_barrier"><code>sequence_barrier</code></a> * <a href="#multi_producer_sequencer"><code>multi_producer_sequencer</code></a> * <a href="#single_producer_sequencer"><code>single_producer_sequencer</code></a> * Functions * <a href="#sync_wait"><code>sync_wait()</code></a> * <a href="#when_all"><code>when_all()</code></a> * <a href="#when_all_ready"><code>when_all_ready()</code></a> * <a href="#fmap"><code>fmap()</code></a> * <a href="#schedule_on"><code>schedule_on()</code></a> * <a href="#resume_on"><code>resume_on()</code></a> * <a href="#Cancellation">Cancellation</a> * <code>cancellation_token</code> * <code>cancellation_source</code> * <code>cancellation_registration</code> * Schedulers and I/O * <a href="#static_thread_pool"><code>static_thread_pool</code></a> * <a href="#io_service-and-io_work_scope"><code>io_service</code> and <code>io_work_scope</code></a> * <a href="#file-readable_file-writable_file"><code>file</code>, <code>readable_file</code>, <code>writable_file</code></a> * <a href="#read_only_file-write_only_file-read_write_file"><code>read_only_file</code>, <code>write_only_file</code>, <code>read_write_file</code></a> * Networking * <a href="#socket"><code>socket</code></a> * <a href="#ip_address-ipv4_address-ipv6_address"><code>ip_address</code>, <code>ipv4_address</code>, <code>ipv6_address</code></a> * <a href="#ip_endpoint-ipv4_endpoint-ipv6_endpoint"><code>ip_endpoint</code>, <code>ipv4_endpoint</code>, <code>ipv6_endpoint</code></a> * Metafunctions * <a href="#is_awaitablet"><code>is_awaitable&lt;T&gt;</code></a> * <a href="#awaitable_traitst"><code>awaitable_traits&lt;T&gt;</code></a> * Concepts * <a href="#Awaitablet-concept"><code>Awaitable&lt;T&gt;</code></a> * <a href="#Awaitert-concept"><code>Awaiter&lt;T&gt;</code></a> * <a href="#Scheduler-concept"><code>Scheduler</code></a> * <a href="#DelayedScheduler-concept"><code>DelayedScheduler</code></a></p>
+<p>This library is an experimental library that is exploring the space of high-performance, scalable asynchronous programming abstractions that can be built on top of the C++ coroutines proposal.</p>
+<p>It has been open-sourced in the hope that others will find it useful and that the C++ community can provide feedback on it and ways to improve it.</p>
+<p>It requires a compiler that supports the coroutines TS: - Windows + Visual Studio 2017 <a href="https://ci.appveyor.com/project/lewissbaker/cppcoro/branch/master"><img src="https://ci.appveyor.com/api/projects/status/github/lewissbaker/cppcoro?branch=master&amp;svg=true&amp;passingText=master%20-%20OK&amp;failingText=master%20-%20Failing&amp;pendingText=master%20-%20Pending" alt="Windows Build Status" /></a> - Linux + Clang 5.0/6.0 + libc++ <a href="https://travis-ci.org/lewissbaker/cppcoro"><img src="https://travis-ci.org/lewissbaker/cppcoro.svg?branch=master" alt="Build Status" /></a></p>
+<p>The Linux version is functional except for the <code>io_context</code> and file I/O related classes which have not yet been implemented for Linux (see issue <a href="https://github.com/lewissbaker/cppcoro/issues/15">#15</a> for more info).</p>
+<h1 id="class-details">Class Details</h1>
+<h2 id="taskt"><code>task&lt;T&gt;</code></h2>
+<p>A task represents an asynchronous computation that is executed lazily in that the execution of the coroutine does not start until the task is awaited.</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cppcoro/read_only_file.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/task.hpp&gt;</span>
+
+cppcoro::task&lt;<span class="dt">int</span>&gt; count_lines(<span class="bu">std::</span>string path)
+{
+  <span class="kw">auto</span> file = co_await cppcoro::read_only_file::open(path);
+
+  <span class="dt">int</span> lineCount = <span class="dv">0</span>;
+
+  <span class="dt">char</span> buffer[<span class="dv">1024</span>];
+  <span class="dt">size_t</span> bytesRead;
+  <span class="bu">std::</span>uint64_t offset = <span class="dv">0</span>;
+  <span class="cf">do</span>
+  {
+    bytesRead = co_await file.read(offset, buffer, <span class="kw">sizeof</span>(buffer));
+    lineCount += <span class="bu">std::</span>count(buffer, buffer + bytesRead, <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>);
+    offset += bytesRead;
+  } <span class="cf">while</span> (bytesRead &gt; <span class="dv">0</span>);
+
+  co_return lineCount;
+}
+
+cppcoro::task&lt;&gt; usage_example()
+{
+  <span class="co">// Calling function creates a new task but doesn&#39;t start</span>
+  <span class="co">// executing the coroutine yet.</span>
+  cppcoro::task&lt;<span class="dt">int</span>&gt; countTask = count_lines(<span class="st">&quot;foo.txt&quot;</span>);
+
+  <span class="co">// ...</span>
+
+  <span class="co">// Coroutine is only started when we later co_await the task.</span>
+  <span class="dt">int</span> lineCount = co_await countTask;
+
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;line count = &quot;</span> &lt;&lt; lineCount &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>API Overview:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/task.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="kw">class</span> task
+  {
+  <span class="kw">public</span>:
+
+    <span class="kw">using</span> <span class="dt">promise_type</span> = &lt;unspecified&gt;;
+    <span class="kw">using</span> <span class="dt">value_type</span> = T;
+
+    task() <span class="kw">noexcept</span>;
+
+    task(task&amp;&amp; other) <span class="kw">noexcept</span>;
+    task&amp; <span class="kw">operator</span>=(task&amp;&amp; other);
+
+    <span class="co">// task is a move-only type.</span>
+    task(<span class="at">const</span> task&amp; other) = <span class="kw">delete</span>;
+    task&amp; <span class="kw">operator</span>=(<span class="at">const</span> task&amp; other) = <span class="kw">delete</span>;
+
+    <span class="co">// Query if the task result is ready.</span>
+    <span class="dt">bool</span> is_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Wait for the task to complete and return the result or rethrow the</span>
+    <span class="co">// exception if the operation completed with an unhandled exception.</span>
+    <span class="co">//</span>
+    <span class="co">// If the task is not yet ready then the awaiting coroutine will be</span>
+    <span class="co">// suspended until the task completes. If the the task is_ready() then</span>
+    <span class="co">// this operation will return the result synchronously without suspending.</span>
+    Awaiter&lt;T&amp;&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> &amp; <span class="kw">noexcept</span>;
+    Awaiter&lt;T&amp;&amp;&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> &amp;&amp; <span class="kw">noexcept</span>;
+
+    <span class="co">// Returns an awaitable that can be co_await&#39;ed to suspend the current</span>
+    <span class="co">// coroutine until the task completes.</span>
+    <span class="co">//</span>
+    <span class="co">// The &#39;co_await t.when_ready()&#39; expression differs from &#39;co_await t&#39; in</span>
+    <span class="co">// that when_ready() only performs synchronization, it does not return</span>
+    <span class="co">// the result or rethrow the exception.</span>
+    <span class="co">//</span>
+    <span class="co">// This can be useful if you want to synchronize with the task without</span>
+    <span class="co">// the possibility of it throwing an exception.</span>
+    Awaitable&lt;<span class="dt">void</span>&gt; when_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> swap(task&lt;T&gt;&amp; a, task&lt;T&gt;&amp; b);
+
+  <span class="co">// Creates a task that yields the result of co_await&#39;ing the specified awaitable.</span>
+  <span class="co">//</span>
+  <span class="co">// This can be used as a form of type-erasure of the concrete awaitable, allowing</span>
+  <span class="co">// different awaitables that return the same await-result type to be stored in</span>
+  <span class="co">// the same task&lt;RESULT&gt; type.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="kw">typename</span> RESULT = <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>&gt;
+  task&lt;RESULT&gt; make_task(AWAITABLE awaitable);
+}</code></pre></div>
+<p>You create a <code>task&lt;T&gt;</code> object by calling a coroutine function that returns a <code>task&lt;T&gt;</code>.</p>
+<p>The coroutine must contain a usage of either <code>co_await</code> or <code>co_return</code>. Note that a <code>task&lt;T&gt;</code> coroutine may not use the <code>co_yield</code> keyword.</p>
+<p>When a coroutine that returns a <code>task&lt;T&gt;</code> is called, a coroutine frame is allocated if necessary and the parameters are captured in the coroutine frame. The coroutine is suspended at the start of the coroutine body and execution is returned to the caller and a <code>task&lt;T&gt;</code> value that represents the asynchronous computation is returned from the function call.</p>
+<p>The coroutine body will start executing when the <code>task&lt;T&gt;</code> value is <code>co_await</code>ed. This will suspend the awaiting coroutine and start execution of the coroutine associated with the awaited <code>task&lt;T&gt;</code> value.</p>
+<p>The awaiting coroutine will later be resumed on the thread that completes execution of the awaited <code>task&lt;T&gt;</code>'s coroutine. ie. the thread that executes the <code>co_return</code> or that throws an unhandled exception that terminates execution of the coroutine.</p>
+<p>If the task has already run to completion then awaiting it again will obtain the already-computed result without suspending the awaiting coroutine.</p>
+<p>If the <code>task</code> object is destroyed before it is awaited then the coroutine never executes and the destructor simply destructs the captured parameters and frees any memory used by the coroutine frame.</p>
+<h2 id="shared_taskt"><code>shared_task&lt;T&gt;</code></h2>
+<p>The <code>shared_task&lt;T&gt;</code> class is a coroutine type that yields a single value asynchronously.</p>
+<p>It is 'lazy' in that execution of the task does not start until it is awaited by some coroutine.</p>
+<p>It is 'shared' in that the task value can be copied, allowing multiple references to the result of the task to be created. It also allows multiple coroutines to concurrently await the result.</p>
+<p>The task will start executing on the thread that first <code>co_await</code>s the task. Subsequent awaiters will either be suspended and be queued for resumption when the task completes or will continue synchronously if the task has already run to completion.</p>
+<p>If an awaiter is suspended while waiting for the task to complete then it will be resumed on the thread that completes execution of the task. ie. the thread that executes the <code>co_return</code> or that throws the unhandled exception that terminates execution of the coroutine.</p>
+<p>API Summary</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T = <span class="dt">void</span>&gt;
+  <span class="kw">class</span> shared_task
+  {
+  <span class="kw">public</span>:
+
+    <span class="kw">using</span> <span class="dt">promise_type</span> = &lt;unspecified&gt;;
+    <span class="kw">using</span> <span class="dt">value_type</span> = T;
+
+    shared_task() <span class="kw">noexcept</span>;
+    shared_task(<span class="at">const</span> shared_task&amp; other) <span class="kw">noexcept</span>;
+    shared_task(shared_task&amp;&amp; other) <span class="kw">noexcept</span>;
+    shared_task&amp; <span class="kw">operator</span>=(<span class="at">const</span> shared_task&amp; other) <span class="kw">noexcept</span>;
+    shared_task&amp; <span class="kw">operator</span>=(shared_task&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> swap(shared_task&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="co">// Query if the task has completed and the result is ready.</span>
+    <span class="dt">bool</span> is_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Returns an operation that when awaited will suspend the</span>
+    <span class="co">// current coroutine until the task completes and the result</span>
+    <span class="co">// is available.</span>
+    <span class="co">//</span>
+    <span class="co">// The type of the result of the &#39;co_await someTask&#39; expression</span>
+    <span class="co">// is an l-value reference to the task&#39;s result value (unless T</span>
+    <span class="co">// is void in which case the expression has type &#39;void&#39;).</span>
+    <span class="co">// If the task completed with an unhandled exception then the</span>
+    <span class="co">// exception will be rethrown by the co_await expression.</span>
+    Awaiter&lt;T&amp;&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Returns an operation that when awaited will suspend the</span>
+    <span class="co">// calling coroutine until the task completes and the result</span>
+    <span class="co">// is available.</span>
+    <span class="co">//</span>
+    <span class="co">// The result is not returned from the co_await expression.</span>
+    <span class="co">// This can be used to synchronize with the task without the</span>
+    <span class="co">// possibility of the co_await expression throwing an exception.</span>
+    Awaiter&lt;<span class="dt">void</span>&gt; when_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> shared_task&lt;T&gt;&amp; a, <span class="at">const</span> shared_task&lt;T&gt;&amp; b) <span class="kw">noexcept</span>;
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> shared_task&lt;T&gt;&amp; a, <span class="at">const</span> shared_task&lt;T&gt;&amp; b) <span class="kw">noexcept</span>;
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> swap(shared_task&lt;T&gt;&amp; a, shared_task&lt;T&gt;&amp; b) <span class="kw">noexcept</span>;
+
+  <span class="co">// Wrap an awaitable value in a shared_task to allow multiple coroutines</span>
+  <span class="co">// to concurrently await the result.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="kw">typename</span> RESULT = <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>&gt;
+  shared_task&lt;RESULT&gt; make_shared_task(AWAITABLE awaitable);
+}</code></pre></div>
+<p>All const-methods on <code>shared_task&lt;T&gt;</code> are safe to call concurrently with other const-methods on the same instance from multiple threads. It is not safe to call non-const methods of <code>shared_task&lt;T&gt;</code> concurrently with any other method on the same instance of a <code>shared_task&lt;T&gt;</code>.</p>
+<h3 id="comparison-to-taskt">Comparison to <code>task&lt;T&gt;</code></h3>
+<p>The <code>shared_task&lt;T&gt;</code> class is similar to <code>task&lt;T&gt;</code> in that the task does not start execution immediately upon the coroutine function being called. The task only starts executing when it is first awaited.</p>
+<p>It differs from <code>task&lt;T&gt;</code> in that the resulting task object can be copied, allowing multiple task objects to reference the same asynchronous result. It also supports multiple coroutines concurrently awaiting the result of the task.</p>
+<p>The trade-off is that the result is always an l-value reference to the result, never an r-value reference (since the result may be shared) which may limit ability to move-construct the result into a local variable. It also has a slightly higher run-time cost due to the need to maintain a reference count and support multiple awaiters.</p>
+<h2 id="generatort"><code>generator&lt;T&gt;</code></h2>
+<p>A <code>generator</code> represents a coroutine type that produces a sequence of values of type, <code>T</code>, where values are produced lazily and synchronously.</p>
+<p>The coroutine body is able to yield values of type <code>T</code> using the <code>co_yield</code> keyword. Note, however, that the coroutine body is not able to use the <code>co_await</code> keyword; values must be produced synchronously.</p>
+<p>For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::generator&lt;<span class="at">const</span> <span class="bu">std::</span>uint64_t&gt; fibonacci()
+{
+  <span class="bu">std::</span>uint64_t a = <span class="dv">0</span>, b = <span class="dv">1</span>;
+  <span class="cf">while</span> (<span class="kw">true</span>)
+  {
+    co_yield b;
+    <span class="kw">auto</span> tmp = a;
+    a = b;
+    b += tmp;
+  }
+}
+
+<span class="dt">void</span> usage()
+{
+  <span class="cf">for</span> (<span class="kw">auto</span> i : fibonacci())
+  {
+    <span class="cf">if</span> (i &gt; <span class="dv">1&#39;000&#39;000</span>) <span class="cf">break</span>;
+    <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="bu">std::</span>endl;
+  }
+}</code></pre></div>
+<p>When a coroutine function returning a <code>generator&lt;T&gt;</code> is called the coroutine is created initially suspended. Execution of the coroutine enters the coroutine body when the <code>generator&lt;T&gt;::begin()</code> method is called and continues until either the first <code>co_yield</code> statement is reached or the coroutine runs to completion.</p>
+<p>If the returned iterator is not equal to the <code>end()</code> iterator then dereferencing the iterator will return a reference to the value passed to the <code>co_yield</code> statement.</p>
+<p>Calling <code>operator++()</code> on the iterator will resume execution of the coroutine and continue until either the next <code>co_yield</code> point is reached or the coroutine runs to completion().</p>
+<p>Any unhandled exceptions thrown by the coroutine will propagate out of the <code>begin()</code> or <code>operator++()</code> calls to the caller.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    <span class="kw">class</span> generator
+    {
+    <span class="kw">public</span>:
+
+        <span class="kw">using</span> <span class="dt">promise_type</span> = &lt;unspecified&gt;;
+
+        <span class="kw">class</span> iterator
+        {
+        <span class="kw">public</span>:
+            <span class="kw">using</span> iterator_category = <span class="bu">std::</span>input_iterator_tag;
+            <span class="kw">using</span> <span class="dt">value_type</span> = <span class="bu">std::</span>remove_reference_t&lt;T&gt;;
+            <span class="kw">using</span> reference = <span class="dt">value_type</span>&amp;;
+            <span class="kw">using</span> pointer = <span class="dt">value_type</span>*;
+            <span class="kw">using</span> <span class="dt">difference_type</span> = <span class="bu">std::</span>size_t;
+
+            iterator(<span class="at">const</span> iterator&amp; other) <span class="kw">noexcept</span>;
+            iterator&amp; <span class="kw">operator</span>=(<span class="at">const</span> iterator&amp; other) <span class="kw">noexcept</span>;
+
+            <span class="co">// If the generator coroutine throws an unhandled exception before producing</span>
+            <span class="co">// the next element then the exception will propagate out of this call.</span>
+            iterator&amp; <span class="kw">operator</span>++();
+
+            reference <span class="kw">operator</span>*() <span class="at">const</span> <span class="kw">noexcept</span>;
+            pointer <span class="kw">operator</span>-&gt;() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+            <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> iterator&amp; other) <span class="at">const</span> <span class="kw">noexcept</span>;
+            <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> iterator&amp; other) <span class="at">const</span> <span class="kw">noexcept</span>;
+        };
+
+        <span class="co">// Constructs to the empty sequence.</span>
+        generator() <span class="kw">noexcept</span>;
+
+        generator(generator&amp;&amp; other) <span class="kw">noexcept</span>;
+        generator&amp; <span class="kw">operator</span>=(generator&amp;&amp; other) <span class="kw">noexcept</span>;
+
+        generator(<span class="at">const</span> generator&amp; other) = <span class="kw">delete</span>;
+        generator&amp; <span class="kw">operator</span>=(<span class="at">const</span> generator&amp;) = <span class="kw">delete</span>;
+
+        ~generator();
+
+        <span class="co">// Starts executing the generator coroutine which runs until either a value is yielded</span>
+        <span class="co">// or the coroutine runs to completion or an unhandled exception propagates out of the</span>
+        <span class="co">// the coroutine.</span>
+        iterator begin();
+
+        iterator end() <span class="kw">noexcept</span>;
+
+        <span class="co">// Swap the contents of two generators.</span>
+        <span class="dt">void</span> swap(generator&amp; other) <span class="kw">noexcept</span>;
+
+    };
+
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+    <span class="dt">void</span> swap(generator&lt;T&gt;&amp; a, generator&lt;T&gt;&amp; b) <span class="kw">noexcept</span>;
+
+    <span class="co">// Apply function, func, lazily to each element of the source generator</span>
+    <span class="co">// and yield a sequence of the results of calls to func().</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> FUNC, <span class="kw">typename</span> T&gt;
+    generator&lt;<span class="bu">std::</span>invoke_result_t&lt;FUNC, T&amp;&gt;&gt; fmap(FUNC func, generator&lt;T&gt; source);
+}</code></pre></div>
+<h2 id="recursive_generatort"><code>recursive_generator&lt;T&gt;</code></h2>
+<p>A <code>recursive_generator</code> is similar to a <code>generator</code> except that it is designed to more efficiently support yielding the elements of a nested sequence as elements of an outer sequence.</p>
+<p>In addition to being able to <code>co_yield</code> a value of type <code>T</code> you can also <code>co_yield</code> a value of type <code>recursive_generator&lt;T&gt;</code>.</p>
+<p>When you <code>co_yield</code> a <code>recursive_generator&lt;T&gt;</code> value the all elements of the yielded generator are yielded as elements of the current generator. The current coroutine is suspended until the consumer has finished consuming all elements of the nested generator, after which point execution of the current coroutine will resume execution to produce the next element.</p>
+<p>The benefit of <code>recursive_generator&lt;T&gt;</code> over <code>generator&lt;T&gt;</code> for iterating over recursive data-structures is that the <code>iterator::operator++()</code> is able to directly resume the leaf-most coroutine to produce the next element, rather than having to resume/suspend O(depth) coroutines for each element. The down-side is that there is additional overhead</p>
+<p>For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Lists the immediate contents of a directory.</span>
+cppcoro::generator&lt;dir_entry&gt; list_directory(<span class="bu">std::</span>filesystem<span class="bu">::</span>path path);
+
+cppcoro::recursive_generator&lt;dir_entry&gt; list_directory_recursive(<span class="bu">std::</span>filesystem<span class="bu">::</span>path path)
+{
+  <span class="cf">for</span> (<span class="kw">auto</span>&amp; entry : list_directory(path))
+  {
+    co_yield entry;
+    <span class="cf">if</span> (entry.is_directory())
+    {
+      co_yield list_directory_recursive(entry.path());
+    }
+  }
+}</code></pre></div>
+<p>Note that applying the <code>fmap()</code> operator to a <code>recursive_generator&lt;T&gt;</code> will yield a <code>generator&lt;U&gt;</code> type rather than a <code>recursive_generator&lt;U&gt;</code>. This is because uses of <code>fmap</code> are generally not used in recursive contexts and we try to avoid the extra overhead incurred by <code>recursive_generator</code>.</p>
+<h2 id="async_generatort"><code>async_generator&lt;T&gt;</code></h2>
+<p>An <code>async_generator</code> represents a coroutine type that produces a sequence of values of type, <code>T</code>, where values are produced lazily and values may be produced asynchronously.</p>
+<p>The coroutine body is able to use both <code>co_await</code> and <code>co_yield</code> expressions.</p>
+<p>Consumers of the generator can use a <code>for co_await</code> range-based for-loop to consume the values.</p>
+<p>Example</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::async_generator&lt;<span class="dt">int</span>&gt; ticker(<span class="dt">int</span> count, threadpool&amp; tp)
+{
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; count; ++i)
+  {
+    co_await tp.delay(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>));
+    co_yield i;
+  }
+}
+
+cppcoro::task&lt;&gt; consumer(threadpool&amp; tp)
+{
+  <span class="kw">auto</span> sequence = ticker(<span class="dv">10</span>, tp);
+  <span class="cf">for</span> co_await(<span class="bu">std::</span>uint32_t i : sequence)
+  {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Tick &quot;</span> &lt;&lt; i &lt;&lt; <span class="bu">std::</span>endl;
+  }
+}</code></pre></div>
+<p>API Summary</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/async_generator.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="kw">class</span> async_generator
+  {
+  <span class="kw">public</span>:
+
+    <span class="kw">class</span> iterator
+    {
+    <span class="kw">public</span>:
+      <span class="kw">using</span> iterator_tag = <span class="bu">std::</span>forward_iterator_tag;
+      <span class="kw">using</span> <span class="dt">difference_type</span> = <span class="bu">std::</span>size_t;
+      <span class="kw">using</span> <span class="dt">value_type</span> = <span class="bu">std::</span>remove_reference_t&lt;T&gt;;
+      <span class="kw">using</span> reference = <span class="dt">value_type</span>&amp;;
+      <span class="kw">using</span> pointer = <span class="dt">value_type</span>*;
+
+      iterator(<span class="at">const</span> iterator&amp; other) <span class="kw">noexcept</span>;
+      iterator&amp; <span class="kw">operator</span>=(<span class="at">const</span> iterator&amp; other) <span class="kw">noexcept</span>;
+
+      <span class="co">// Resumes the generator coroutine if suspended</span>
+      <span class="co">// Returns an operation object that must be awaited to wait</span>
+      <span class="co">// for the increment operation to complete.</span>
+      <span class="co">// If the coroutine runs to completion then the iterator</span>
+      <span class="co">// will subsequently become equal to the end() iterator.</span>
+      <span class="co">// If the coroutine completes with an unhandled exception then</span>
+      <span class="co">// that exception will be rethrown from the co_await expression.</span>
+      Awaitable&lt;iterator&amp;&gt; <span class="kw">operator</span>++() <span class="kw">noexcept</span>;
+
+      <span class="co">// Dereference the iterator.</span>
+      pointer <span class="kw">operator</span>-&gt;() <span class="at">const</span> <span class="kw">noexcept</span>;
+      reference <span class="kw">operator</span>*() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+      <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> iterator&amp; other) <span class="at">const</span> <span class="kw">noexcept</span>;
+      <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> iterator&amp; other) <span class="at">const</span> <span class="kw">noexcept</span>;
+    };
+
+    <span class="co">// Construct to the empty sequence.</span>
+    async_generator() <span class="kw">noexcept</span>;
+    async_generator(<span class="at">const</span> async_generator&amp;) = <span class="kw">delete</span>;
+    async_generator(async_generator&amp;&amp; other) <span class="kw">noexcept</span>;
+    ~async_generator();
+
+    async_generator&amp; <span class="kw">operator</span>=(<span class="at">const</span> async_generator&amp;) = <span class="kw">delete</span>;
+    async_generator&amp; <span class="kw">operator</span>=(async_generator&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> swap(async_generator&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="co">// Starts execution of the coroutine and returns an operation object</span>
+    <span class="co">// that must be awaited to wait for the first value to become available.</span>
+    <span class="co">// The result of co_await&#39;ing the returned object is an iterator that</span>
+    <span class="co">// can be used to advance to subsequent elements of the sequence.</span>
+    <span class="co">//</span>
+    <span class="co">// This method is not valid to be called once the coroutine has</span>
+    <span class="co">// run to completion.</span>
+    Awaitable&lt;iterator&gt; begin() <span class="kw">noexcept</span>;
+    iterator end() <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> swap(async_generator&lt;T&gt;&amp; a, async_generator&lt;T&gt;&amp; b);
+
+  <span class="co">// Apply &#39;func&#39; to each element of the source generator, yielding a sequence of</span>
+  <span class="co">// the results of calling &#39;func&#39; on the source elements.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> FUNC, <span class="kw">typename</span> T&gt;
+  async_generator&lt;<span class="bu">std::</span>invoke_result_t&lt;FUNC, T&amp;&gt;&gt; fmap(FUNC func, async_generator&lt;T&gt; source);
+}</code></pre></div>
+<h3 id="early-termination-of-an-async_generator">Early termination of an async_generator</h3>
+<p>When the <code>async_generator</code> object is destructed it requests cancellation of the underlying coroutine. If the coroutine has already run to completion or is currently suspended in a <code>co_yield</code> expression then the coroutine is destroyed immediately. Otherwise, the coroutine will continue execution until it either runs to completion or reaches the next <code>co_yield</code> expression.</p>
+<p>When the coroutine frame is destroyed the destructors of all variables in scope at that point will be executed to ensure the resources of the generator are cleaned up.</p>
+<p>Note that the caller must ensure that the <code>async_generator</code> object must not be destroyed while a consumer coroutine is executing a <code>co_await</code> expression waiting for the next item to be produced.</p>
+<h2 id="single_consumer_event"><code>single_consumer_event</code></h2>
+<p>This is a simple manual-reset event type that supports only a single coroutine awaiting it at a time. This can be used to</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/single_consumer_event.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> single_consumer_event
+  {
+  <span class="kw">public</span>:
+    single_consumer_event(<span class="dt">bool</span> initiallySet = <span class="kw">false</span>) <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_set() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">void</span> set();
+    <span class="dt">void</span> reset() <span class="kw">noexcept</span>;
+    Awaiter&lt;<span class="dt">void</span>&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+}</code></pre></div>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cppcoro/single_consumer_event.hpp&gt;</span>
+
+cppcoro::single_consumer_event event;
+<span class="bu">std::</span>string value;
+
+cppcoro::task&lt;&gt; consumer()
+{
+  <span class="co">// Coroutine will suspend here until some thread calls event.set()</span>
+  <span class="co">// eg. inside the producer() function below.</span>
+  co_await event;
+
+  <span class="bu">std::</span>cout &lt;&lt; value &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+<span class="dt">void</span> producer()
+{
+  value = <span class="st">&quot;foo&quot;</span>;
+
+  <span class="co">// This will resume the consumer() coroutine inside the call to set()</span>
+  <span class="co">// if it is currently suspended.</span>
+  event.set();
+}</code></pre></div>
+<h2 id="single_consumer_async_auto_reset_event"><code>single_consumer_async_auto_reset_event</code></h2>
+<p>This class provides an async synchronization primitive that allows a single coroutine to wait until the event is signalled by a call to the <code>set()</code> method.</p>
+<p>Once the coroutine that is awaiting the event is released by either a prior or subsequent call to <code>set()</code> the event is automatically reset back to the 'not set' state.</p>
+<p>This class is a more efficient version of <code>async_auto_reset_event</code> that can be used in cases where only a single coroutine will be awaiting the event at a time. If you need to support multiple concurrent awaiting coroutines on the event then use the <code>async_auto_reset_event</code> class instead.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/single_consumer_async_auto_reset_event.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> single_consumer_async_auto_reset_event
+  {
+  <span class="kw">public</span>:
+
+    single_consumer_async_auto_reset_event(
+      <span class="dt">bool</span> initiallySet = <span class="kw">false</span>) <span class="kw">noexcept</span>;
+
+    <span class="co">// Change the event to the &#39;set&#39; state. If a coroutine is awaiting the</span>
+    <span class="co">// event then the event is immediately transitioned back to the &#39;not set&#39;</span>
+    <span class="co">// state and the coroutine is resumed.</span>
+    <span class="dt">void</span> set() <span class="kw">noexcept</span>;
+
+    <span class="co">// Returns an Awaitable type that can be awaited to wait until</span>
+    <span class="co">// the event becomes &#39;set&#39; via a call to the .set() method. If</span>
+    <span class="co">// the event is already in the &#39;set&#39; state then the coroutine</span>
+    <span class="co">// continues without suspending.</span>
+    <span class="co">// The event is automatically reset back to the &#39;not set&#39; state</span>
+    <span class="co">// before resuming the coroutine.</span>
+    Awaiter&lt;<span class="dt">void</span>&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+}</code></pre></div>
+<p>Example Usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>atomic&lt;<span class="dt">int</span>&gt; value;
+cppcoro::single_consumer_async_auto_reset_event valueDecreasedEvent;
+
+cppcoro::task&lt;&gt; wait_until_value_is_below(<span class="dt">int</span> limit)
+{
+  <span class="cf">while</span> (value.load(<span class="bu">std::</span>memory_order_relaxed) &gt;= limit)
+  {
+    <span class="co">// Wait until there has been some change that we&#39;re interested in.</span>
+    co_await valueDecreasedEvent;
+  }
+}
+
+<span class="dt">void</span> change_value(<span class="dt">int</span> delta)
+{
+  value.fetch_add(delta, <span class="bu">std::</span>memory_order_relaxed);
+  <span class="co">// Notify the waiter if there has been some change.</span>
+  <span class="cf">if</span> (delta &lt; <span class="dv">0</span>) valueDecreasedEvent.set();
+}</code></pre></div>
+<h2 id="async_mutex"><code>async_mutex</code></h2>
+<p>Provides a simple mutual exclusion abstraction that allows the caller to 'co_await' the mutex from within a coroutine to suspend the coroutine until the mutex lock is acquired.</p>
+<p>The implementation is lock-free in that a coroutine that awaits the mutex will not block the thread but will instead suspend the coroutine and later resume it inside the call to <code>unlock()</code> by the previous lock-holder.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/async_mutex.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> async_mutex_lock;
+  <span class="kw">class</span> async_mutex_lock_operation;
+  <span class="kw">class</span> async_mutex_scoped_lock_operation;
+
+  <span class="kw">class</span> async_mutex
+  {
+  <span class="kw">public</span>:
+    async_mutex() <span class="kw">noexcept</span>;
+    ~async_mutex();
+
+    async_mutex(<span class="at">const</span> async_mutex&amp;) = <span class="kw">delete</span>;
+    async_mutex&amp; <span class="kw">operator</span>(<span class="at">const</span> async_mutex&amp;) = <span class="kw">delete</span>;
+
+    <span class="dt">bool</span> try_lock() <span class="kw">noexcept</span>;
+    async_mutex_lock_operation lock_async() <span class="kw">noexcept</span>;
+    async_mutex_scoped_lock_operation scoped_lock_async() <span class="kw">noexcept</span>;
+    <span class="dt">void</span> unlock();
+  };
+
+  <span class="kw">class</span> async_mutex_lock_operation
+  {
+  <span class="kw">public</span>:
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter) <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_resume() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">class</span> async_mutex_scoped_lock_operation
+  {
+  <span class="kw">public</span>:
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]] async_mutex_lock await_resume() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">class</span> async_mutex_lock
+  {
+  <span class="kw">public</span>:
+    <span class="co">// Takes ownership of the lock.</span>
+    async_mutex_lock(async_mutex&amp; mutex, <span class="bu">std::</span>adopt_lock_t) <span class="kw">noexcept</span>;
+
+    <span class="co">// Transfer ownership of the lock.</span>
+    async_mutex_lock(async_mutex_lock&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    async_mutex_lock(<span class="at">const</span> async_mutex_lock&amp;) = <span class="kw">delete</span>;
+    async_mutex_lock&amp; <span class="kw">operator</span>=(<span class="at">const</span> async_mutex_lock&amp;) = <span class="kw">delete</span>;
+
+    <span class="co">// Releases the lock by calling unlock() on the mutex.</span>
+    ~async_mutex_lock();
+  };
+}</code></pre></div>
+<p>Example usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cppcoro/async_mutex.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/task.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;set&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+cppcoro::async_mutex mutex;
+<span class="bu">std::</span>set&lt;<span class="bu">std::</span>string&gt; values;
+
+cppcoro::task&lt;&gt; add_item(<span class="bu">std::</span>string value)
+{
+  cppcoro::async_mutex_lock lock = co_await mutex.scoped_lock_async();
+  values.insert(<span class="bu">std::</span>move(value));
+}</code></pre></div>
+<h2 id="async_manual_reset_event"><code>async_manual_reset_event</code></h2>
+<p>A manual-reset event is a coroutine/thread-synchronization primitive that allows one or more threads to wait until the event is signalled by a thread that calls <code>set()</code>.</p>
+<p>The event is in one of two states; <em>'set'</em> and <em>'not set'</em>.</p>
+<p>If the event is in the <em>'set'</em> state when a coroutine awaits the event then the coroutine continues without suspending. However if the coroutine is in the <em>'not set'</em> state then the coroutine is suspended until some thread subsequently calls the <code>set()</code> method.</p>
+<p>Any threads that were suspended while waiting for the event to become <em>'set'</em> will be resumed inside the next call to <code>set()</code> by some thread.</p>
+<p>Note that you must ensure that no coroutines are awaiting a <em>'not set'</em> event when the event is destructed as they will not be resumed.</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::async_manual_reset_event event;
+<span class="bu">std::</span>string value;
+
+<span class="dt">void</span> producer()
+{
+  value = get_some_string_value();
+
+  <span class="co">// Publish a value by setting the event.</span>
+  event.set();
+}
+
+<span class="co">// Can be called many times to create many tasks.</span>
+<span class="co">// All consumer tasks will wait until value has been published.</span>
+cppcoro::task&lt;&gt; consumer()
+{
+  <span class="co">// Wait until value has been published by awaiting event.</span>
+  co_await event;
+
+  consume_value(value);
+}</code></pre></div>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> async_manual_reset_event_operation;
+
+  <span class="kw">class</span> async_manual_reset_event
+  {
+  <span class="kw">public</span>:
+    async_manual_reset_event(<span class="dt">bool</span> initiallySet = <span class="kw">false</span>) <span class="kw">noexcept</span>;
+    ~async_manual_reset_event();
+
+    async_manual_reset_event(<span class="at">const</span> async_manual_reset_event&amp;) = <span class="kw">delete</span>;
+    async_manual_reset_event(async_manual_reset_event&amp;&amp;) = <span class="kw">delete</span>;
+    async_manual_reset_event&amp; <span class="kw">operator</span>=(<span class="at">const</span> async_manual_reset_event&amp;) = <span class="kw">delete</span>;
+    async_manual_reset_event&amp; <span class="kw">operator</span>=(async_manual_reset_event&amp;&amp;) = <span class="kw">delete</span>;
+
+    <span class="co">// Wait until the event becomes set.</span>
+    async_manual_reset_event_operation <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> is_set() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> set() <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> reset() <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> async_manual_reset_event_operation
+  {
+  <span class="kw">public</span>:
+    async_manual_reset_event_operation(async_manual_reset_event&amp; event) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter) <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_resume() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+}</code></pre></div>
+<h2 id="async_auto_reset_event"><code>async_auto_reset_event</code></h2>
+<p>An auto-reset event is a coroutine/thread-synchronization primitive that allows one or more threads to wait until the event is signalled by a thread by calling <code>set()</code>.</p>
+<p>Once a coroutine that is awaiting the event is released by either a prior or subsequent call to <code>set()</code> the event is automatically reset back to the 'not set' state.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/async_auto_reset_event.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> async_auto_reset_event_operation;
+
+  <span class="kw">class</span> async_auto_reset_event
+  {
+  <span class="kw">public</span>:
+
+    async_auto_reset_event(<span class="dt">bool</span> initiallySet = <span class="kw">false</span>) <span class="kw">noexcept</span>;
+
+    ~async_auto_reset_event();
+
+    async_auto_reset_event(<span class="at">const</span> async_auto_reset_event&amp;) = <span class="kw">delete</span>;
+    async_auto_reset_event(async_auto_reset_event&amp;&amp;) = <span class="kw">delete</span>;
+    async_auto_reset_event&amp; <span class="kw">operator</span>=(<span class="at">const</span> async_auto_reset_event&amp;) = <span class="kw">delete</span>;
+    async_auto_reset_event&amp; <span class="kw">operator</span>=(async_auto_reset_event&amp;&amp;) = <span class="kw">delete</span>;
+
+    <span class="co">// Wait for the event to enter the &#39;set&#39; state.</span>
+    <span class="co">//</span>
+    <span class="co">// If the event is already &#39;set&#39; then the event is set to the &#39;not set&#39;</span>
+    <span class="co">// state and the awaiting coroutine continues without suspending.</span>
+    <span class="co">// Otherwise, the coroutine is suspended and later resumed when some</span>
+    <span class="co">// thread calls &#39;set()&#39;.</span>
+    <span class="co">//</span>
+    <span class="co">// Note that the coroutine may be resumed inside a call to &#39;set()&#39;</span>
+    <span class="co">// or inside another thread&#39;s call to &#39;operator co_await()&#39;.</span>
+    async_auto_reset_event_operation <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Set the state of the event to &#39;set&#39;.</span>
+    <span class="co">//</span>
+    <span class="co">// If there are pending coroutines awaiting the event then one</span>
+    <span class="co">// pending coroutine is resumed and the state is immediately</span>
+    <span class="co">// set back to the &#39;not set&#39; state.</span>
+    <span class="co">//</span>
+    <span class="co">// This operation is a no-op if the event was already &#39;set&#39;.</span>
+    <span class="dt">void</span> set() <span class="kw">noexcept</span>;
+
+    <span class="co">// Set the state of the event to &#39;not-set&#39;.</span>
+    <span class="co">//</span>
+    <span class="co">// This is a no-op if the state was already &#39;not set&#39;.</span>
+    <span class="dt">void</span> reset() <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> async_auto_reset_event_operation
+  {
+  <span class="kw">public</span>:
+    <span class="kw">explicit</span> async_auto_reset_event_operation(async_auto_reset_event&amp; event) <span class="kw">noexcept</span>;
+    async_auto_reset_event_operation(<span class="at">const</span> async_auto_reset_event_operation&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter) <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_resume() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+}</code></pre></div>
+<h2 id="async_latch"><code>async_latch</code></h2>
+<p>An async latch is a synchronization primitive that allows coroutines to asynchronously wait until a counter has been decremented to zero.</p>
+<p>The latch is a single-use object. Once the counter reaches zero the latch becomes 'ready' and will remain ready until the latch is destroyed.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/async_latch.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> async_latch
+  {
+  <span class="kw">public</span>:
+
+    <span class="co">// Initialise the latch with the specified count.</span>
+    async_latch(<span class="bu">std::</span>ptrdiff_t initialCount) <span class="kw">noexcept</span>;
+
+    <span class="co">// Query if the count has reached zero yet.</span>
+    <span class="dt">bool</span> is_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Decrement the count by n.</span>
+    <span class="co">// This will resume any waiting coroutines if the count reaches zero</span>
+    <span class="co">// as a result of this call.</span>
+    <span class="co">// It is undefined behaviour to decrement the count below zero.</span>
+    <span class="dt">void</span> count_down(<span class="bu">std::</span>ptrdiff_t n = <span class="dv">1</span>) <span class="kw">noexcept</span>;
+
+    <span class="co">// Wait until the latch becomes ready.</span>
+    <span class="co">// If the latch count is not yet zero then the awaiting coroutine will</span>
+    <span class="co">// be suspended and later resumed by a call to count_down() that decrements</span>
+    <span class="co">// the count to zero. If the latch count was already zero then the coroutine</span>
+    <span class="co">// continues without suspending.</span>
+    Awaiter&lt;<span class="dt">void</span>&gt; <span class="kw">operator</span> co_await() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+}</code></pre></div>
+<h2 id="sequence_barrier"><code>sequence_barrier</code></h2>
+<p>A <code>sequence_barrier</code> is a synchronization primitive that allows a single-producer and multiple consumers to coordinate with respect to a monotonically increasing sequence number.</p>
+<p>A single producer advances the sequence number by publishing new sequence numbers in a monotonically increasing order. One or more consumers can query the last published sequence number and can wait until a particular sequence number has been published.</p>
+<p>A sequence barrier can be used to represent a cursor into a thread-safe producer/consumer ring-buffer</p>
+<p>See the LMAX Disruptor pattern for more background: https://lmax-exchange.github.io/disruptor/files/Disruptor-1.0.pdf</p>
+<p>API Synopsis:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SEQUENCE = <span class="bu">std::</span>size_t,
+           <span class="kw">typename</span> TRAITS = sequence_traits&lt;SEQUENCE&gt;&gt;
+  <span class="kw">class</span> sequence_barrier
+  {
+  <span class="kw">public</span>:
+    sequence_barrier(SEQUENCE initialSequence = TRAITS::initial_sequence) <span class="kw">noexcept</span>;
+    ~sequence_barrier();
+
+    SEQUENCE last_published() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Wait until the specified targetSequence number has been published.</span>
+    <span class="co">//</span>
+    <span class="co">// If the operation does not complete synchronously then the awaiting</span>
+    <span class="co">// coroutine is resumed on the specified scheduler. Otherwise, the</span>
+    <span class="co">// coroutine continues without suspending.</span>
+    <span class="co">//</span>
+    <span class="co">// The co_await expression resumes with the updated last_published()</span>
+    <span class="co">// value, which is guaranteed to be at least &#39;targetSequence&#39;.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;SEQUENCE&gt; wait_until_published(SEQUENCE targetSequence,
+                                             SCHEDULER&amp; scheduler) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> publish(SEQUENCE sequence) <span class="kw">noexcept</span>;
+  };
+}</code></pre></div>
+<h2 id="single_producer_sequencer"><code>single_producer_sequencer</code></h2>
+<p>A <code>single_producer_sequencer</code> is a synchronization primitive that can be used to coordinate access to a ring-buffer for a single producer and one or more consumers.</p>
+<p>A producer first acquires one or more slots in a ring-buffer, writes to the ring-buffer elements corresponding to those slots, and then finally publishes the values written to those slots. A producer can never produce more than 'bufferSize' elements in advance of where the consumer has consumed up to.</p>
+<p>A consumer then waits for certain elements to be published, processes the items and then notifies the producer when it has finished processing items by publishing the sequence number it has finished consuming in a <code>sequence_barrier</code> object.</p>
+<p>API Synopsis:</p>
+<pre><code>// &lt;cppcoro/single_producer_sequencer.hpp&gt;
+namespace cppcoro
+{
+  template&lt;
+    typename SEQUENCE = std::size_t,
+    typename TRAITS = sequence_traits&lt;SEQUENCE&gt;&gt;
+  class single_producer_sequencer
+  {
+  public:
+    using size_type = typename sequence_range&lt;SEQUENCE, TRAITS&gt;::size_type;
+
+    single_producer_sequencer(
+      const sequence_barrier&lt;SEQUENCE, TRAITS&gt;&amp; consumerBarrier,
+      std::size_t bufferSize,
+      SEQUENCE initialSequence = TRAITS::initial_sequence) noexcept;
+
+    // Publisher API:
+
+    template&lt;typename SCHEDULER&gt;
+    [[nodiscard]]
+    Awaitable&lt;SEQUENCE&gt; claim_one(SCHEDULER&amp; scheduler) noexcept;
+
+    template&lt;typename SCHEDULER&gt;
+    [[nodiscard]]
+    Awaitable&lt;sequence_range&lt;SEQUENCE&gt;&gt; claim_up_to(
+      std::size_t count,
+      SCHEDULER&amp; scheduler) noexcept;
+
+    void publish(SEQUENCE sequence) noexcept;
+
+    // Consumer API:
+
+    SEQUENCE last_published() const noexcept;
+
+    template&lt;typename SCHEDULER&gt;
+    [[nodiscard]]
+    Awaitable&lt;SEQUENCE&gt; wait_until_published(
+      SEQUENCE targetSequence,
+      SCHEDULER&amp; scheduler) const noexcept;
+
+  };
+}</code></pre>
+<p>Example usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> cppcoro;
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono;
+
+<span class="kw">struct</span> message
+{
+  <span class="dt">int</span> id;
+  steady_clock::time_point timestamp;
+  <span class="dt">float</span> data;
+};
+
+<span class="kw">constexpr</span> <span class="dt">size_t</span> bufferSize = <span class="dv">16384</span>; <span class="co">// Must be power-of-two</span>
+<span class="kw">constexpr</span> <span class="dt">size_t</span> indexMask = bufferSize - <span class="dv">1</span>;
+message buffer[bufferSize];
+
+task&lt;<span class="dt">void</span>&gt; producer(
+  io_service&amp; ioSvc,
+  single_producer_sequencer&lt;<span class="dt">size_t</span>&gt;&amp; sequencer)
+{
+  <span class="kw">auto</span> start = steady_clock::now();
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">1&#39;000&#39;000</span>; ++i)
+  {
+    <span class="co">// Wait until a slot is free in the buffer.</span>
+    <span class="dt">size_t</span> seq = co_await sequencer.claim_one(ioSvc);
+
+    <span class="co">// Populate the message.</span>
+    <span class="kw">auto</span>&amp; msg = buffer[seq &amp; indexMask];
+    msg.id = i;
+    msg.timestamp = steady_clock::now();
+    msg.data = <span class="dv">123</span>;
+
+    <span class="co">// Publish the message.</span>
+    sequencer.publish(seq);
+  }
+
+  <span class="co">// Publish a sentinel</span>
+  <span class="kw">auto</span> seq = co_await sequencer.claim_one(ioSvc);
+  <span class="kw">auto</span>&amp; msg = buffer[seq &amp; indexMask];
+  msg.id = <span class="dv">-1</span>;
+  sequencer.publish(seq);
+}
+
+task&lt;<span class="dt">void</span>&gt; consumer(
+  static_thread_pool&amp; threadPool,
+  <span class="at">const</span> single_producer_sequencer&lt;<span class="dt">size_t</span>&gt;&amp; sequencer,
+  sequence_barrier&lt;<span class="dt">size_t</span>&gt;&amp; consumerBarrier)
+{
+  <span class="dt">size_t</span> nextToRead = <span class="dv">0</span>;
+  <span class="cf">while</span> (<span class="kw">true</span>)
+  {
+    <span class="co">// Wait until the next message is available</span>
+    <span class="co">// There may be more than one available.</span>
+    <span class="at">const</span> <span class="dt">size_t</span> available = co_await sequencer.wait_until_published(nextToRead, threadPool);
+    <span class="cf">do</span> {
+      <span class="kw">auto</span>&amp; msg = buffer[nextToRead &amp; indexMask];
+      <span class="cf">if</span> (msg.id == <span class="dv">-1</span>)
+      {
+        consumerBarrier.publish(nextToRead);
+        co_return;
+      }
+
+      processMessage(msg);
+    } <span class="cf">while</span> (nextToRead++ != available);
+
+    <span class="co">// Notify the producer that we&#39;ve finished processing</span>
+    <span class="co">// up to &#39;nextToRead - 1&#39;.</span>
+    consumerBarrier.publish(available);
+  }
+}
+
+task&lt;<span class="dt">void</span>&gt; example(io_service&amp; ioSvc, static_thread_pool&amp; threadPool)
+{
+  sequence_barrier&lt;<span class="dt">size_t</span>&gt; barrier;
+  single_producer_sequencer&lt;<span class="dt">size_t</span>&gt; sequencer{barrier, bufferSize};
+
+  co_await when_all(
+    producer(tp, sequencer),
+    consumer(tp, sequencer, barrier));
+}</code></pre></div>
+<h2 id="multi_producer_sequencer"><code>multi_producer_sequencer</code></h2>
+<p>The <code>multi_producer_sequencer</code> class is a synchronization primitive that coordinates access to a ring-buffer for multiple producers and one or more consumers.</p>
+<p>For a single-producer variant see the <code>single_producer_sequencer</code> class.</p>
+<p>Note that the ring-buffer must have a size that is a power-of-two. This is because the implementation uses bitmasks instead of integer division/modulo to calculate the offset into the buffer. Also, this allows the sequence number to safely wrap around the 32-bit/64-bit value.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/multi_producer_sequencer.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SEQUENCE = <span class="bu">std::</span>size_t,
+           <span class="kw">typename</span> TRAITS = sequence_traits&lt;SEQUENCE&gt;&gt;
+  <span class="kw">class</span> multi_producer_sequencer
+  {
+  <span class="kw">public</span>:
+    multi_producer_sequencer(
+      <span class="at">const</span> sequence_barrier&lt;SEQUENCE, TRAITS&gt;&amp; consumerBarrier,
+      SEQUENCE initialSequence = TRAITS::initial_sequence);
+
+    <span class="bu">std::</span>size_t buffer_size() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Consumer interface</span>
+    <span class="co">//</span>
+    <span class="co">// Each consumer keeps track of their own &#39;lastKnownPublished&#39; value</span>
+    <span class="co">// and must pass this to the methods that query for an updated last-known</span>
+    <span class="co">// published sequence number.</span>
+
+    SEQUENCE last_published_after(SEQUENCE lastKnownPublished) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+    Awaitable&lt;SEQUENCE&gt; wait_until_published(
+      SEQUENCE targetSequence,
+      SEQUENCE lastKnownPublished,
+      SCHEDULER&amp; scheduler) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Producer interface</span>
+
+    <span class="co">// Query whether any slots available for claiming (approx.)</span>
+    <span class="dt">bool</span> any_available() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+    Awaitable&lt;SEQUENCE&gt; claim_one(SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+    Awaitable&lt;sequence_range&lt;SEQUENCE, TRAITS&gt;&gt; claim_up_to(
+      <span class="bu">std::</span>size_t count,
+      SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+
+    <span class="co">// Mark the specified sequence number as published.</span>
+    <span class="dt">void</span> publish(SEQUENCE sequence) <span class="kw">noexcept</span>;
+
+    <span class="co">// Mark all sequence numbers in the specified range as published.</span>
+    <span class="dt">void</span> publish(<span class="at">const</span> sequence_range&lt;SEQUENCE, TRAITS&gt;&amp; range) <span class="kw">noexcept</span>;
+  };
+}</code></pre></div>
+<h2 id="cancellation">Cancellation</h2>
+<p>A <code>cancellation_token</code> is a value that can be passed to a function that allows the caller to subsequently communicate a request to cancel the operation to that function.</p>
+<p>To obtain a <code>cancellation_token</code> that is able to be cancelled you must first create a <code>cancellation_source</code> object. The <code>cancellation_source::token()</code> method can be used to manufacture new <code>cancellation_token</code> values that are linked to that <code>cancellation_source</code> object.</p>
+<p>When you want to later request cancellation of an operation you have passed a <code>cancellation_token</code> to you can call <code>cancellation_source::request_cancellation()</code> on an associated <code>cancellation_source</code> object.</p>
+<p>Functions can respond to a request for cancellation in one of two ways: 1. Poll for cancellation at regular intervals by calling either <code>cancellation_token::is_cancellation_requested()</code> or <code>cancellation_token::throw_if_cancellation_requested()</code>. 2. Register a callback to be executed when cancellation is requested using the <code>cancellation_registration</code> class.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> cancellation_source
+  {
+  <span class="kw">public</span>:
+    <span class="co">// Construct a new, independently cancellable cancellation source.</span>
+    cancellation_source();
+
+    <span class="co">// Construct a new reference to the same cancellation state.</span>
+    cancellation_source(<span class="at">const</span> cancellation_source&amp; other) <span class="kw">noexcept</span>;
+    cancellation_source(cancellation_source&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    ~cancellation_source();
+
+    cancellation_source&amp; <span class="kw">operator</span>=(<span class="at">const</span> cancellation_source&amp; other) <span class="kw">noexcept</span>;
+    cancellation_source&amp; <span class="kw">operator</span>=(cancellation_source&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> is_cancellation_requested() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> can_be_cancelled() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">void</span> request_cancellation();
+
+    cancellation_token token() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">class</span> cancellation_token
+  {
+  <span class="kw">public</span>:
+    <span class="co">// Construct a token that can&#39;t be cancelled.</span>
+    cancellation_token() <span class="kw">noexcept</span>;
+
+    cancellation_token(<span class="at">const</span> cancellation_token&amp; other) <span class="kw">noexcept</span>;
+    cancellation_token(cancellation_token&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    ~cancellation_token();
+
+    cancellation_token&amp; <span class="kw">operator</span>=(<span class="at">const</span> cancellation_token&amp; other) <span class="kw">noexcept</span>;
+    cancellation_token&amp; <span class="kw">operator</span>=(cancellation_token&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> is_cancellation_requested() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">void</span> throw_if_cancellation_requested() <span class="at">const</span>;
+
+    <span class="co">// Query if this token can ever have cancellation requested.</span>
+    <span class="co">// Code can use this to take a more efficient code-path in cases</span>
+    <span class="co">// that the operation does not need to handle cancellation.</span>
+    <span class="dt">bool</span> can_be_cancelled() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+  <span class="co">// RAII class for registering a callback to be executed if cancellation</span>
+  <span class="co">// is requested on a particular cancellation token.</span>
+  <span class="kw">class</span> cancellation_registration
+  {
+  <span class="kw">public</span>:
+
+    <span class="co">// Register a callback to be executed if cancellation is requested.</span>
+    <span class="co">// Callback will be called with no arguments on the thread that calls</span>
+    <span class="co">// request_cancellation() if cancellation is not yet requested, or</span>
+    <span class="co">// called immediately if cancellation has already been requested.</span>
+    <span class="co">// Callback must not throw an unhandled exception when called.</span>
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> CALLBACK&gt;
+    cancellation_registration(cancellation_token token, CALLBACK&amp;&amp; callback);
+
+    cancellation_registration(<span class="at">const</span> cancellation_registration&amp; other) = <span class="kw">delete</span>;
+
+    ~cancellation_registration();
+  };
+
+  <span class="kw">class</span> operation_cancelled : <span class="kw">public</span> <span class="bu">std::</span>exception
+  {
+  <span class="kw">public</span>:
+    operation_cancelled();
+    <span class="at">const</span> <span class="dt">char</span>* what() <span class="at">const</span> <span class="kw">override</span>;
+  };
+}</code></pre></div>
+<p>Example: Polling Approach</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::task&lt;&gt; do_something_async(cppcoro::cancellation_token token)
+{
+  <span class="co">// Explicitly define cancellation points within the function</span>
+  <span class="co">// by calling throw_if_cancellation_requested().</span>
+  token.throw_if_cancellation_requested();
+
+  co_await do_step_1();
+
+  token.throw_if_cancellation_requested();
+
+  do_step_2();
+
+  <span class="co">// Alternatively, you can query if cancellation has been</span>
+  <span class="co">// requested to allow yourself to do some cleanup before</span>
+  <span class="co">// returning.</span>
+  <span class="cf">if</span> (token.is_cancellation_requested())
+  {
+    display_message_to_user(<span class="st">&quot;Cancelling operation...&quot;</span>);
+    do_cleanup();
+    <span class="cf">throw</span> cppcoro::operation_cancelled{};
+  }
+
+  do_final_step();
+}</code></pre></div>
+<p>Example: Callback Approach</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Say we already have a timer abstraction that supports being</span>
+<span class="co">// cancelled but it doesn&#39;t support cancellation_tokens natively.</span>
+<span class="co">// You can use a cancellation_registration to register a callback</span>
+<span class="co">// that calls the existing cancellation API. e.g.</span>
+cppcoro::task&lt;&gt; cancellable_timer_wait(cppcoro::cancellation_token token)
+{
+  <span class="kw">auto</span> timer = create_timer(<span class="er">10s</span>);
+
+  cppcoro::cancellation_registration registration(token, [&amp;]
+  {
+    <span class="co">// Call existing timer cancellation API.</span>
+    timer.cancel();
+  });
+
+  co_await timer;
+}</code></pre></div>
+<h2 id="static_thread_pool"><code>static_thread_pool</code></h2>
+<p>The <code>static_thread_pool</code> class provides an abstraction that lets you schedule work on a fixed-size pool of threads.</p>
+<p>This class implements the <strong>Scheduler</strong> concept (see below).</p>
+<p>You can enqueue work to the thread-pool by executing <code>co_await threadPool.schedule()</code>. This operation will suspend the current coroutine, enqueue it for execution on the thread-pool and the thread pool will then resume the coroutine when a thread in the thread-pool is next free to run the coroutine. <strong>This operation is guaranteed not to throw and, in the common case, will not allocate any memory</strong>.</p>
+<p>This class makes use of a work-stealing algorithm to load-balance work across multiple threads. Work enqueued to the thread-pool from a thread-pool thread will be scheduled for execution on the same thread in a LIFO queue. Work enqueued to the thread-pool from a remote thread will be enqueued to a global FIFO queue. When a worker thread runs out of work from its local queue it first tries to dequeue work from the global queue. If that queue is empty then it next tries to steal work from the back of the queues of the other worker threads.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> static_thread_pool
+  {
+  <span class="kw">public</span>:
+    <span class="co">// Initialise the thread-pool with a number of threads equal to</span>
+    <span class="co">// std::thread::hardware_concurrency().</span>
+    static_thread_pool();
+
+    <span class="co">// Initialise the thread pool with the specified number of threads.</span>
+    <span class="kw">explicit</span> static_thread_pool(<span class="bu">std::</span>uint32_t threadCount);
+
+    <span class="bu">std::</span>uint32_t thread_count() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="kw">class</span> schedule_operation
+    {
+    <span class="kw">public</span>:
+      schedule_operation(static_thread_pool* tp) <span class="kw">noexcept</span>;
+
+      <span class="dt">bool</span> await_ready() <span class="kw">noexcept</span>;
+      <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; h) <span class="kw">noexcept</span>;
+      <span class="dt">bool</span> await_resume() <span class="kw">noexcept</span>;
+
+    <span class="kw">private</span>:
+      <span class="co">// unspecified</span>
+    };
+
+    <span class="co">// Return an operation that can be awaited by a coroutine.</span>
+    <span class="co">//</span>
+    <span class="co">//</span>
+    [[<span class="at">nodiscard</span>]]
+    schedule_operation schedule() <span class="kw">noexcept</span>;
+
+  <span class="kw">private</span>:
+
+    <span class="co">// Unspecified</span>
+
+  };
+}</code></pre></div>
+<p>Example usage: Simple</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::task&lt;<span class="bu">std::</span>string&gt; do_something_on_threadpool(cppcoro::static_thread_pool&amp; tp)
+{
+  <span class="co">// First schedule the coroutine onto the threadpool.</span>
+  co_await tp.schedule();
+
+  <span class="co">// When it resumes, this coroutine is now running on the threadpool.</span>
+  do_something();
+}</code></pre></div>
+<p>Example usage: Doing things in parallel - using <code>schedule_on()</code> operator with <code>static_thread_pool</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::task&lt;<span class="dt">double</span>&gt; dot_product(static_thread_pool&amp; tp, <span class="dt">double</span> a[], <span class="dt">double</span> b[], <span class="dt">size_t</span> count)
+{
+  <span class="cf">if</span> (count &gt; <span class="dv">1000</span>)
+  {
+    <span class="co">// Subdivide the work recursively into two equal tasks</span>
+    <span class="co">// The first half is scheduled to the thread pool so it can run concurrently</span>
+    <span class="co">// with the second half which continues on this thread.</span>
+    <span class="dt">size_t</span> halfCount = count / <span class="dv">2</span>;
+    <span class="kw">auto</span> [first, second] = co_await when_all(
+      schedule_on(tp, dot_product(tp, a, b, halfCount),
+      dot_product(tp, a + halfCount, b + halfCount, count - halfCount));
+    co_return first + second;
+  }
+  <span class="cf">else</span>
+  {
+    <span class="dt">double</span> sum = <span class="fl">0.0</span>;
+    <span class="cf">for</span> (<span class="dt">size_t</span> i = <span class="dv">0</span>; i &lt; count; ++i)
+    {
+      sum += a[i] * b[i];
+    }
+    co_return sum;
+  }
+}</code></pre></div>
+<h2 id="io_service-and-io_work_scope"><code>io_service</code> and <code>io_work_scope</code></h2>
+<p>The <code>io_service</code> class provides an abstraction for processing I/O completion events from asynchronous I/O operations.</p>
+<p>When an asynchronous I/O operation completes, the coroutine that was awaiting that operation will be resumed on an I/O thread inside a call to one of the event-processing methods: <code>process_events()</code>, <code>process_pending_events()</code>, <code>process_one_event()</code> or <code>process_one_pending_event()</code>.</p>
+<p>The <code>io_service</code> class does not manage any I/O threads. You must ensure that some thread calls one of the event-processing methods for coroutines awaiting I/O completion events to be dispatched. This can either be a dedicated thread that calls <code>process_events()</code> or mixed in with some other event loop (e.g. a UI event loop) by periodically polling for new events via a call to <code>process_pending_events()</code> or <code>process_one_pending_event()</code>.</p>
+<p>This allows integration of the <code>io_service</code> event-loop with other event loops, such as a user-interface event loop.</p>
+<p>You can multiplex processing of events across multiple threads by having multiple threads call <code>process_events()</code>. You can specify a hint as to the maximum number of threads to have actively processing events via an optional <code>io_service</code> constructor parameter.</p>
+<p>On Windows, the implementation makes use of the Windows I/O Completion Port facility to dispatch events to I/O threads in a scalable manner.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> io_service
+  {
+  <span class="kw">public</span>:
+
+    <span class="kw">class</span> schedule_operation;
+    <span class="kw">class</span> timed_schedule_operation;
+
+    io_service();
+    io_service(<span class="bu">std::</span>uint32_t concurrencyHint);
+
+    io_service(io_service&amp;&amp;) = <span class="kw">delete</span>;
+    io_service(<span class="at">const</span> io_service&amp;) = <span class="kw">delete</span>;
+    io_service&amp; <span class="kw">operator</span>=(io_service&amp;&amp;) = <span class="kw">delete</span>;
+    io_service&amp; <span class="kw">operator</span>=(<span class="at">const</span> io_service&amp;) = <span class="kw">delete</span>;
+
+    ~io_service();
+
+    <span class="co">// Scheduler methods</span>
+
+    [[<span class="at">nodiscard</span>]]
+    schedule_operation schedule() <span class="kw">noexcept</span>;
+
+    <span class="kw">template</span>&lt;<span class="kw">typename</span> REP, <span class="kw">typename</span> RATIO&gt;
+    [[<span class="at">nodiscard</span>]]
+    timed_schedule_operation schedule_after(
+      <span class="bu">std::</span>chrono<span class="bu">::</span>duration&lt;REP, RATIO&gt; delay,
+      cppcoro::cancellation_token cancellationToken = {}) <span class="kw">noexcept</span>;
+
+    <span class="co">// Event-loop methods</span>
+    <span class="co">//</span>
+    <span class="co">// I/O threads must call these to process I/O events and execute</span>
+    <span class="co">// scheduled coroutines.</span>
+
+    <span class="bu">std::</span>uint64_t process_events();
+    <span class="bu">std::</span>uint64_t process_pending_events();
+    <span class="bu">std::</span>uint64_t process_one_event();
+    <span class="bu">std::</span>uint64_t process_one_pending_event();
+
+    <span class="co">// Request that all threads processing events exit their event loops.</span>
+    <span class="dt">void</span> stop() <span class="kw">noexcept</span>;
+
+    <span class="co">// Query if some thread has called stop()</span>
+    <span class="dt">bool</span> is_stop_requested() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// Reset the event-loop after a call to stop() so that threads can</span>
+    <span class="co">// start processing events again.</span>
+    <span class="dt">void</span> reset();
+
+    <span class="co">// Reference-counting methods for tracking outstanding references</span>
+    <span class="co">// to the io_service.</span>
+    <span class="co">//</span>
+    <span class="co">// The io_service::stop() method will be called when the last work</span>
+    <span class="co">// reference is decremented.</span>
+    <span class="co">//</span>
+    <span class="co">// Use the io_work_scope RAII class to manage calling these methods on</span>
+    <span class="co">// entry-to and exit-from a scope.</span>
+    <span class="dt">void</span> notify_work_started() <span class="kw">noexcept</span>;
+    <span class="dt">void</span> notify_work_finished() <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> io_service::schedule_operation
+  {
+  <span class="kw">public</span>:
+    schedule_operation(<span class="at">const</span> schedule_operation&amp;) <span class="kw">noexcept</span>;
+    schedule_operation&amp; <span class="kw">operator</span>=(<span class="at">const</span> schedule_operation&amp;) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter) <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_resume() <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">class</span> io_service::timed_schedule_operation
+  {
+  <span class="kw">public</span>:
+    timed_schedule_operation(timed_schedule_operation&amp;&amp;) <span class="kw">noexcept</span>;
+
+    timed_schedule_operation(<span class="at">const</span> timed_schedule_operation&amp;) = <span class="kw">delete</span>;
+    timed_schedule_operation&amp; <span class="kw">operator</span>=(<span class="at">const</span> timed_schedule_operation&amp;) = <span class="kw">delete</span>;
+    timed_schedule_operation&amp; <span class="kw">operator</span>=(timed_schedule_operation&amp;&amp;) = <span class="kw">delete</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">void</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter);
+    <span class="dt">void</span> await_resume();
+  };
+
+  <span class="kw">class</span> io_work_scope
+  {
+  <span class="kw">public</span>:
+
+    io_work_scope(io_service&amp; ioService) <span class="kw">noexcept</span>;
+
+    io_work_scope(<span class="at">const</span> io_work_scope&amp; other) <span class="kw">noexcept</span>;
+    io_work_scope(io_work_scope&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    ~io_work_scope();
+
+    io_work_scope&amp; <span class="kw">operator</span>=(<span class="at">const</span> io_work_scope&amp; other) <span class="kw">noexcept</span>;
+    io_work_scope&amp; <span class="kw">operator</span>=(io_work_scope&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    io_service&amp; service() <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+
+}</code></pre></div>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cppcoro/task.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/task.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/io_service.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/read_only_file.hpp&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;experimental/filesystem&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;memory&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;algorithm&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="kw">namespace</span> fs = <span class="bu">std::</span>experimental<span class="bu">::</span>filesystem;
+
+cppcoro::task&lt;<span class="bu">std::</span>uint64_t&gt; count_lines(cppcoro::io_service&amp; ioService, fs::path path)
+{
+  <span class="kw">auto</span> file = cppcoro::read_only_file::open(ioService, path);
+
+  <span class="kw">constexpr</span> <span class="dt">size_t</span> bufferSize = <span class="dv">4096</span>;
+  <span class="kw">auto</span> buffer = <span class="bu">std::</span>make_unique&lt;<span class="bu">std::</span>uint8_t[]&gt;(bufferSize);
+
+  <span class="bu">std::</span>uint64_t newlineCount = <span class="dv">0</span>;
+
+  <span class="cf">for</span> (<span class="bu">std::</span>uint64_t offset = <span class="dv">0</span>, fileSize = file.size(); offset &lt; fileSize;)
+  {
+    <span class="at">const</span> <span class="kw">auto</span> bytesToRead = <span class="kw">static_cast</span>&lt;<span class="dt">size_t</span>&gt;(
+      <span class="bu">std::</span>min&lt;<span class="bu">std::</span>uint64_t&gt;(bufferSize, fileSize - offset));
+
+    <span class="at">const</span> <span class="kw">auto</span> bytesRead = co_await file.read(offset, buffer.get(), bytesToRead);
+
+    newlineCount += <span class="bu">std::</span>count(buffer.get(), buffer.get() + bytesRead, <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>);
+
+    offset += bytesRead;
+  }
+
+  co_return newlineCount;
+}
+
+cppcoro::task&lt;&gt; run(cppcoro::io_service&amp; ioService)
+{
+  cppcoro::io_work_scope ioScope(ioService);
+
+  <span class="kw">auto</span> lineCount = co_await count_lines(ioService, fs::path{<span class="st">&quot;foo.txt&quot;</span>});
+
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;foo.txt has &quot;</span> &lt;&lt; lineCount &lt;&lt; <span class="st">&quot; lines.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;;
+}
+
+cppcoro::task&lt;&gt; process_events(cppcoro::io_service&amp; ioService)
+{
+  <span class="co">// Process events until the io_service is stopped.</span>
+  <span class="co">// ie. when the last io_work_scope goes out of scope.</span>
+  ioService.process_events();
+  co_return;
+}
+
+<span class="dt">int</span> main()
+{
+  cppcoro::io_service ioService;
+
+  cppcoro::sync_wait(cppcoro::when_all_ready(
+    run(ioService),
+    process_events(ioService)));
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h3 id="io_service-as-a-scheduler"><code>io_service</code> as a scheduler</h3>
+<p>An <code>io_service</code> class implements the interfaces for the <code>Scheduler</code> and <code>DelayedScheduler</code> concepts.</p>
+<p>This allows a coroutine to suspend execution on the current thread and schedule itself for resumption on an I/O thread associated with a particular <code>io_service</code> object.</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::task&lt;&gt; do_something(cppcoro::io_service&amp; ioService)
+{
+  <span class="co">// Coroutine starts execution on the thread of the task awaiter.</span>
+
+  <span class="co">// A coroutine can transfer execution to an I/O thread by awaiting the</span>
+  <span class="co">// result of io_service::schedule().</span>
+  co_await ioService.schedule();
+
+  <span class="co">// At this point, the coroutine is now executing on an I/O thread</span>
+  <span class="co">// inside a call to one of the io_service event processing methods.</span>
+
+  <span class="co">// A coroutine can also perform a delayed-schedule that will suspend</span>
+  <span class="co">// the coroutine for a specified duration of time before scheduling</span>
+  <span class="co">// it for resumption on an I/O thread.</span>
+  co_await ioService.schedule_after(<span class="er">100ms</span>);
+
+  <span class="co">// At this point, the coroutine is executing on a potentially different I/O thread.</span>
+}</code></pre></div>
+<h2 id="file-readable_file-writable_file"><code>file</code>, <code>readable_file</code>, <code>writable_file</code></h2>
+<p>These types are abstract base-classes for performing concrete file I/O.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> file_read_operation;
+  <span class="kw">class</span> file_write_operation;
+
+  <span class="kw">class</span> file
+  {
+  <span class="kw">public</span>:
+
+    <span class="kw">virtual</span> ~file();
+
+    <span class="bu">std::</span>uint64_t size() <span class="at">const</span>;
+
+  <span class="kw">protected</span>:
+
+    file(file&amp;&amp; other) <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> readable_file : <span class="kw">public</span> <span class="kw">virtual</span> file
+  {
+  <span class="kw">public</span>:
+
+    [[<span class="at">nodiscard</span>]]
+    file_read_operation read(
+      <span class="bu">std::</span>uint64_t offset,
+      <span class="dt">void</span>* buffer,
+      <span class="bu">std::</span>size_t byteCount,
+      cancellation_token ct = {}) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> writable_file : <span class="kw">public</span> <span class="kw">virtual</span> file
+  {
+  <span class="kw">public</span>:
+
+    <span class="dt">void</span> set_size(<span class="bu">std::</span>uint64_t fileSize);
+
+    [[<span class="at">nodiscard</span>]]
+    file_write_operation write(
+      <span class="bu">std::</span>uint64_t offset,
+      <span class="at">const</span> <span class="dt">void</span>* buffer,
+      <span class="bu">std::</span>size_t byteCount,
+      cancellation_token ct = {}) <span class="kw">noexcept</span>;
+
+  };
+
+  <span class="kw">class</span> file_read_operation
+  {
+  <span class="kw">public</span>:
+
+    file_read_operation(file_read_operation&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter);
+    <span class="bu">std::</span>size_t await_resume();
+
+  };
+
+  <span class="kw">class</span> file_write_operation
+  {
+  <span class="kw">public</span>:
+
+    file_write_operation(file_write_operation&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> await_ready() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> await_suspend(<span class="bu">std::</span>experimental<span class="bu">::</span>coroutine_handle&lt;&gt; awaiter);
+    <span class="bu">std::</span>size_t await_resume();
+
+  };
+}</code></pre></div>
+<h2 id="read_only_file-write_only_file-read_write_file"><code>read_only_file</code>, <code>write_only_file</code>, <code>read_write_file</code></h2>
+<p>These types represent concrete file I/O classes.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">class</span> read_only_file : <span class="kw">public</span> readable_file
+  {
+  <span class="kw">public</span>:
+
+    [[<span class="at">nodiscard</span>]]
+    <span class="at">static</span> read_only_file open(
+      io_service&amp; ioService,
+      <span class="at">const</span> <span class="bu">std::</span>experimental<span class="bu">::</span>filesystem<span class="bu">::</span>path&amp; path,
+      file_share_mode shareMode = file_share_mode::read,
+      file_buffering_mode bufferingMode = file_buffering_mode::<span class="va">default_</span>);
+
+  };
+
+  <span class="kw">class</span> write_only_file : <span class="kw">public</span> writable_file
+  {
+  <span class="kw">public</span>:
+
+    [[<span class="at">nodiscard</span>]]
+    <span class="at">static</span> write_only_file open(
+      io_service&amp; ioService,
+      <span class="at">const</span> <span class="bu">std::</span>experimental<span class="bu">::</span>filesystem<span class="bu">::</span>path&amp; path,
+      file_open_mode openMode = file_open_mode::create_or_open,
+      file_share_mode shareMode = file_share_mode::none,
+      file_buffering_mode bufferingMode = file_buffering_mode::<span class="va">default_</span>);
+
+  };
+
+  <span class="kw">class</span> read_write_file : <span class="kw">public</span> readable_file, <span class="kw">public</span> writable_file
+  {
+  <span class="kw">public</span>:
+
+    [[<span class="at">nodiscard</span>]]
+    <span class="at">static</span> read_write_file open(
+      io_service&amp; ioService,
+      <span class="at">const</span> <span class="bu">std::</span>experimental<span class="bu">::</span>filesystem<span class="bu">::</span>path&amp; path,
+      file_open_mode openMode = file_open_mode::create_or_open,
+      file_share_mode shareMode = file_share_mode::none,
+      file_buffering_mode bufferingMode = file_buffering_mode::<span class="va">default_</span>);
+
+  };
+}</code></pre></div>
+<p>All <code>open()</code> functions throw <code>std::system_error</code> on failure.</p>
+<h1 id="networking">Networking</h1>
+<p>NOTE: Networking abstractions are currently only supported on the Windows platform. Linux support will be coming soon.</p>
+<h2 id="socket"><code>socket</code></h2>
+<p>The socket class can be used to send/receive data over the network asynchronously.</p>
+<p>Currently only supports TCP/IP, UDP/IP over IPv4 and IPv6.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/net/socket.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro::net
+{
+  <span class="kw">class</span> socket
+  {
+  <span class="kw">public</span>:
+
+    <span class="at">static</span> socket create_tcpv4(ip_service&amp; ioSvc);
+    <span class="at">static</span> socket create_tcpv6(ip_service&amp; ioSvc);
+    <span class="at">static</span> socket create_updv4(ip_service&amp; ioSvc);
+    <span class="at">static</span> socket create_udpv6(ip_service&amp; ioSvc);
+
+    socket(socket&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    ~socket();
+
+    socket&amp; <span class="kw">operator</span>=(socket&amp;&amp; other) <span class="kw">noexcept</span>;
+
+    <span class="co">// Return the native socket handle for the socket</span>
+    &lt;platform-specific&gt; native_handle() <span class="kw">noexcept</span>;
+
+    <span class="at">const</span> ip_endpoint&amp; local_endpoint() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="at">const</span> ip_endpoint&amp; remote_endpoint() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> bind(<span class="at">const</span> ip_endpoint&amp; localEndPoint);
+
+    <span class="dt">void</span> listen();
+
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; <span class="fu">connect</span>(<span class="at">const</span> ip_endpoint&amp; remoteEndPoint) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; <span class="fu">connect</span>(<span class="at">const</span> ip_endpoint&amp; remoteEndPoint,
+                            cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; accept(socket&amp; acceptingSocket) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; accept(socket&amp; acceptingSocket,
+                           cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; <span class="fu">disconnect</span>() <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="dt">void</span>&gt; <span class="fu">disconnect</span>(cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="bu">std::</span>size_t&gt; send(<span class="at">const</span> <span class="dt">void</span>* buffer, <span class="bu">std::</span>size_t size) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="bu">std::</span>size_t&gt; send(<span class="at">const</span> <span class="dt">void</span>* buffer,
+                                <span class="bu">std::</span>size_t size,
+                                cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="bu">std::</span>size_t&gt; recv(<span class="dt">void</span>* buffer, <span class="bu">std::</span>size_t size) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    Awaitable&lt;<span class="bu">std::</span>size_t&gt; recv(<span class="dt">void</span>* buffer,
+                                <span class="bu">std::</span>size_t size,
+                                cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    socket_recv_from_operation recv_from(
+        <span class="dt">void</span>* buffer,
+        <span class="bu">std::</span>size_t size) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    socket_recv_from_operation_cancellable recv_from(
+        <span class="dt">void</span>* buffer,
+        <span class="bu">std::</span>size_t size,
+        cancellation_token ct) <span class="kw">noexcept</span>;
+
+    [[<span class="at">nodiscard</span>]]
+    socket_send_to_operation send_to(
+        <span class="at">const</span> ip_endpoint&amp; destination,
+        <span class="at">const</span> <span class="dt">void</span>* buffer,
+        <span class="bu">std::</span>size_t size) <span class="kw">noexcept</span>;
+    [[<span class="at">nodiscard</span>]]
+    socket_send_to_operation_cancellable send_to(
+        <span class="at">const</span> ip_endpoint&amp; destination,
+        <span class="at">const</span> <span class="dt">void</span>* buffer,
+        <span class="bu">std::</span>size_t size,
+        cancellation_token ct) <span class="kw">noexcept</span>;
+
+    <span class="dt">void</span> close_send();
+    <span class="dt">void</span> close_recv();
+
+  };
+}</code></pre></div>
+<p>Example: Echo Server</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;cppcoro/net/socket.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/io_service.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/cancellation_source.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/async_scope.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cppcoro/on_scope_exit.hpp&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;memory&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+cppcoro::task&lt;<span class="dt">void</span>&gt; handle_connection(socket s)
+{
+  <span class="cf">try</span>
+  {
+    <span class="at">const</span> <span class="dt">size_t</span> bufferSize = <span class="dv">16384</span>;
+    <span class="kw">auto</span> buffer = <span class="bu">std::</span>make_unique&lt;<span class="dt">unsigned</span> <span class="dt">char</span>[]&gt;(bufferSize);
+    <span class="dt">size_t</span> bytesRead;
+    <span class="cf">do</span> {
+      <span class="co">// Read some bytes</span>
+      bytesRead = co_await s.recv(buffer.get(), bufferSize);
+
+      <span class="co">// Write some bytes</span>
+      <span class="dt">size_t</span> bytesWritten = <span class="dv">0</span>;
+      <span class="cf">while</span> (bytesWritten &lt; bytesRead) {
+        bytesWritten += co_await s.send(
+          buffer.get() + bytesWritten,
+          bytesRead - bytesWritten);
+      }
+    } <span class="cf">while</span> (bytesRead != <span class="dv">0</span>);
+
+    s.close_send();
+
+    co_await s.<span class="fu">disconnect</span>();
+  }
+  <span class="cf">catch</span> (...)
+  {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;connection failed&quot;</span> &lt;&lt; <span class="bu">std::</span>
+  }
+}
+
+cppcoro::task&lt;<span class="dt">void</span>&gt; echo_server(
+  cppcoro::net::ipv4_endpoint endpoint,
+  cppcoro::io_service&amp; ioSvc,
+  cancellation_token ct)
+{
+  cppcoro::async_scope scope;
+
+  <span class="bu">std::</span>exception_ptr ex;
+  <span class="cf">try</span>
+  {
+    <span class="kw">auto</span> listeningSocket = cppcoro::net::socket::create_tcpv4(ioSvc);
+    listeningSocket.bind(endpoint);
+    listeningSocket.listen();
+
+    <span class="cf">while</span> (<span class="kw">true</span>) {
+      <span class="kw">auto</span> connection = cppcoro::net::socket::create_tcpv4(ioSvc);
+      co_await listeningSocket.accept(connection, ct);
+      scope.spawn(handle_connection(<span class="bu">std::</span>move(connection)));
+    }
+  }
+  <span class="cf">catch</span> (cppcoro::operation_cancelled)
+  {
+  }
+  <span class="cf">catch</span> (...)
+  {
+    ex = <span class="bu">std::</span>current_exception();
+  }
+
+  <span class="co">// Wait until all handle_connection tasks have finished.</span>
+  co_await scope.join();
+
+  <span class="cf">if</span> (ex) <span class="bu">std::</span>rethrow_exception(ex);
+}
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="at">const</span> <span class="dt">char</span>* argv[])
+{
+    cppcoro::io_service ioSvc;
+
+    <span class="cf">if</span> (argc != <span class="dv">2</span>) <span class="cf">return</span> <span class="dv">-1</span>;
+
+    <span class="kw">auto</span> endpoint = cppcoro::ipv4_endpoint::from_string(argv[<span class="dv">1</span>]);
+    <span class="cf">if</span> (!endpoint) <span class="cf">return</span> <span class="dv">-1</span>;
+
+    (<span class="dt">void</span>)cppcoro::sync_wait(cppcoro::when_all(
+        [&amp;]() -&gt; task&lt;&gt;
+        {
+            <span class="co">// Shutdown the event loop once finished.</span>
+            <span class="kw">auto</span> stopOnExit = cppcoro::on_scope_exit([&amp;] { ioSvc.stop(); });
+
+            cppcoro::cancellation_source canceller;
+            co_await cppcoro::when_all(
+                [&amp;]() -&gt; task&lt;&gt;
+                {
+                    <span class="co">// Run for 30s then stop accepting new connections.</span>
+                    co_await ioSvc.schedule_after(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">30</span>));
+                    canceller.request_cancellation();
+                }(),
+                echo_server(*endpoint, ioSvc, canceller.token()));
+        }(),
+        [&amp;]() -&gt; task&lt;&gt;
+        {
+            ioSvc.process_events();
+        }()));
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h2 id="ip_address-ipv4_address-ipv6_address"><code>ip_address</code>, <code>ipv4_address</code>, <code>ipv6_address</code></h2>
+<p>Helper classes for representing an IP address.</p>
+<p>API Synopsis:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro::net
+{
+  <span class="kw">class</span> ipv<span class="dv">4_address</span>
+  {
+    <span class="kw">using</span> <span class="dt">bytes_t</span> = <span class="bu">std::</span>uint8_t[<span class="dv">4</span>];
+  <span class="kw">public</span>:
+    <span class="kw">constexpr</span> ipv4_address();
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv4_address(<span class="bu">std::</span>uint32_t integer);
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv4_address(<span class="at">const</span> <span class="bu">std::</span>uint8_t(&amp;bytes)[<span class="dv">4</span>]);
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv4_address(<span class="bu">std::</span>uint8_t b0,
+                                    <span class="bu">std::</span>uint8_t b1,
+                                    <span class="bu">std::</span>uint8_t b2,
+                                    <span class="bu">std::</span>uint8_t b3);
+
+    <span class="kw">constexpr</span> <span class="at">const</span> <span class="dt">bytes_t</span>&amp; bytes() <span class="at">const</span>;
+
+    <span class="kw">constexpr</span> <span class="bu">std::</span>uint32_t to_integer() <span class="at">const</span>;
+
+    <span class="at">static</span> <span class="kw">constexpr</span> ipv4_address loopback();
+
+    <span class="kw">constexpr</span> <span class="dt">bool</span> is_loopback() <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> is_private_network() <span class="at">const</span>;
+
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>==(ipv4_address other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>!=(ipv4_address other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;(ipv4_address other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;(ipv4_address other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(ipv4_address other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(ipv4_address other) <span class="at">const</span>;
+
+    <span class="bu">std::</span>string to_string();
+
+    <span class="at">static</span> <span class="bu">std::</span>optional&lt;ipv4_address&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+  };
+
+  <span class="kw">class</span> ipv<span class="dv">6_address</span>
+  {
+    <span class="kw">using</span> <span class="dt">bytes_t</span> = <span class="bu">std::</span>uint8_t[<span class="dv">16</span>];
+  <span class="kw">public</span>:
+    <span class="kw">constexpr</span> ipv6_address();
+
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv6_address(
+      <span class="bu">std::</span>uint64_t subnetPrefix,
+      <span class="bu">std::</span>uint64_t interfaceIdentifier);
+
+    <span class="kw">constexpr</span> ipv6_address(
+      <span class="bu">std::</span>uint16_t part0,
+      <span class="bu">std::</span>uint16_t part1,
+      <span class="bu">std::</span>uint16_t part2,
+      <span class="bu">std::</span>uint16_t part3,
+      <span class="bu">std::</span>uint16_t part4,
+      <span class="bu">std::</span>uint16_t part5,
+      <span class="bu">std::</span>uint16_t part6,
+      <span class="bu">std::</span>uint16_t part7);
+
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv6_address(
+        <span class="at">const</span> <span class="bu">std::</span>uint16_t(&amp;parts)[<span class="dv">8</span>]);
+
+    <span class="kw">explicit</span> <span class="kw">constexpr</span> ipv6_address(
+        <span class="at">const</span> <span class="bu">std::</span>uint8_t(bytes)[<span class="dv">16</span>]);
+
+    <span class="kw">constexpr</span> <span class="at">const</span> <span class="dt">bytes_t</span>&amp; bytes() <span class="at">const</span>;
+
+    <span class="kw">constexpr</span> <span class="bu">std::</span>uint64_t subnet_prefix() <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="bu">std::</span>uint64_t interface_identifier() <span class="at">const</span>;
+
+    <span class="at">static</span> <span class="kw">constexpr</span> ipv6_address unspecified();
+    <span class="at">static</span> <span class="kw">constexpr</span> ipv6_address loopback();
+
+    <span class="at">static</span> <span class="bu">std::</span>optional&lt;ipv6_address&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+
+    <span class="bu">std::</span>string to_string() <span class="at">const</span>;
+
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+    <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> ipv6_address&amp; other) <span class="at">const</span>;
+
+  };
+
+  <span class="kw">class</span> ip_address
+  {
+  <span class="kw">public</span>:
+
+    <span class="co">// Constructs to IPv4 address 0.0.0.0</span>
+    ip_address() <span class="kw">noexcept</span>;
+
+    ip_address(ipv4_address address) <span class="kw">noexcept</span>;
+    ip_address(ipv6_address address) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> is_ipv4() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> is_ipv6() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="at">const</span> ipv4_address&amp; to_ipv4() <span class="at">const</span>;
+    <span class="at">const</span> ipv6_address&amp; to_ipv6() <span class="at">const</span>;
+
+    <span class="at">const</span> <span class="bu">std::</span>uint8_t* bytes() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="bu">std::</span>string to_string() <span class="at">const</span>;
+
+    <span class="at">static</span> <span class="bu">std::</span>optional&lt;ip_address&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+
+    <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">//  ipv4_address sorts less than ipv6_address</span>
+    <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> ip_address&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+  };
+}</code></pre></div>
+<h2 id="ip_endpoint-ipv4_endpoint-ipv6_endpoint"><code>ip_endpoint</code>, <code>ipv4_endpoint</code> <code>ipv6_endpoint</code></h2>
+<p>Helper classes for representing an IP address and port-number.</p>
+<p>API Synopsis:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">namespace</span> cppcoro::net
+{
+  <span class="kw">class</span> ipv<span class="dv">4_endpoint</span>
+  {
+  <span class="kw">public</span>:
+    ipv4_endpoint() <span class="kw">noexcept</span>;
+    <span class="kw">explicit</span> ipv4_endpoint(ipv4_address address, <span class="bu">std::</span>uint16_t port = <span class="dv">0</span>) <span class="kw">noexcept</span>;
+
+    <span class="at">const</span> ipv4_address&amp; address() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>uint16_t port() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="bu">std::</span>string to_string() <span class="at">const</span>;
+    <span class="at">static</span> <span class="bu">std::</span>optional&lt;ipv4_endpoint&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+  };
+
+  <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> ipv4_endpoint&amp; a, <span class="at">const</span> ipv4_endpoint&amp; b);
+
+  <span class="kw">class</span> ipv<span class="dv">6_endpoint</span>
+  {
+  <span class="kw">public</span>:
+    ipv6_endpoint() <span class="kw">noexcept</span>;
+    <span class="kw">explicit</span> ipv6_endpoint(ipv6_address address, <span class="bu">std::</span>uint16_t port = <span class="dv">0</span>) <span class="kw">noexcept</span>;
+
+    <span class="at">const</span> ipv6_address&amp; address() <span class="at">const</span> <span class="kw">noexcept</span>;
+    <span class="bu">std::</span>uint16_t port() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="bu">std::</span>string to_string() <span class="at">const</span>;
+    <span class="at">static</span> <span class="bu">std::</span>optional&lt;ipv6_endpoint&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+  };
+
+  <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+  <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> ipv6_endpoint&amp; a, <span class="at">const</span> ipv6_endpoint&amp; b);
+
+  <span class="kw">class</span> ip_endpoint
+  {
+  <span class="kw">public</span>:
+     <span class="co">// Constructs to IPv4 end-point 0.0.0.0:0</span>
+     ip_endpoint() <span class="kw">noexcept</span>;
+
+     ip_endpoint(ipv4_endpoint endpoint) <span class="kw">noexcept</span>;
+     ip_endpoint(ipv6_endpoint endpoint) <span class="kw">noexcept</span>;
+
+     <span class="dt">bool</span> is_ipv4() <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="dt">bool</span> is_ipv6() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+     <span class="at">const</span> ipv4_endpoint&amp; to_ipv4() <span class="at">const</span>;
+     <span class="at">const</span> ipv6_endpoint&amp; to_ipv6() <span class="at">const</span>;
+
+     ip_address address() <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="bu">std::</span>uint16_t port() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+     <span class="bu">std::</span>string to_string() <span class="at">const</span>;
+
+     <span class="at">static</span> <span class="bu">std::</span>optional&lt;ip_endpoint&gt; from_string(<span class="bu">std::</span>string_view string) <span class="kw">noexcept</span>;
+
+     <span class="dt">bool</span> <span class="kw">operator</span>==(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="dt">bool</span> <span class="kw">operator</span>!=(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+
+     <span class="co">//  ipv4_endpoint sorts less than ipv6_endpoint</span>
+     <span class="dt">bool</span> <span class="kw">operator</span>&lt;(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="dt">bool</span> <span class="kw">operator</span>&gt;(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+     <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(<span class="at">const</span> ip_endpoint&amp; rhs) <span class="at">const</span> <span class="kw">noexcept</span>;
+  };
+}</code></pre></div>
+<h1 id="functions">Functions</h1>
+<h2 id="sync_wait"><code>sync_wait()</code></h2>
+<p>The <code>sync_wait()</code> function can be used to synchronously wait until the specified <code>awaitable</code> completes.</p>
+<p>The specified awaitable will be <code>co_await</code>ed on current thread inside a newly created coroutine.</p>
+<p>The <code>sync_wait()</code> call will block until the operation completes and will return the result of the <code>co_await</code> expression or rethrow the exception if the <code>co_await</code> expression completed with an unhandled exception.</p>
+<p>The <code>sync_wait()</code> function is mostly useful for starting a top-level task from within <code>main()</code> and waiting until the task finishes, in practice it is the only way to start the first/top-level <code>task</code>.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/sync_wait.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> AWAITABLE&gt;
+  <span class="kw">auto</span> sync_wait(AWAITABLE&amp;&amp; awaitable)
+    -&gt; <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&amp;&amp;&gt;::<span class="dt">await_result_t</span>;
+}</code></pre></div>
+<p>Examples:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> example_task()
+{
+  <span class="kw">auto</span> makeTask = []() -&gt; task&lt;<span class="bu">std::</span>string&gt;
+  {
+    co_return <span class="st">&quot;foo&quot;</span>;
+  };
+
+  <span class="kw">auto</span> task = makeTask();
+
+  <span class="co">// start the lazy task and wait until it completes</span>
+  sync_wait(task); <span class="co">// -&gt; &quot;foo&quot;</span>
+  sync_wait(makeTask()); <span class="co">// -&gt; &quot;foo&quot;</span>
+}
+
+<span class="dt">void</span> example_shared_task()
+{
+  <span class="kw">auto</span> makeTask = []() -&gt; shared_task&lt;<span class="bu">std::</span>string&gt;
+  {
+    co_return <span class="st">&quot;foo&quot;</span>;
+  };
+
+  <span class="kw">auto</span> task = makeTask();
+  <span class="co">// start the shared task and wait until it completes</span>
+  sync_wait(task) == <span class="st">&quot;foo&quot;</span>;
+  sync_wait(makeTask()) == <span class="st">&quot;foo&quot;</span>;
+}</code></pre></div>
+<h2 id="when_all_ready"><code>when_all_ready()</code></h2>
+<p>The <code>when_all_ready()</code> function can be used to create a new awaitable that completes when all of the input awaitables complete.</p>
+<p>Input tasks can be any type of awaitable.</p>
+<p>When the returned awaitable is <code>co_await</code>ed it will <code>co_await</code> each of the input awaitables in turn on the awaiting thread in the order they are passed to the <code>when_all_ready()</code> function. If these tasks to not complete synchronously then they will execute concurrently.</p>
+<p>Once all of the <code>co_await</code> expressions on input awaitables have run to completion the returned awaitable will complete and resume the awaiting coroutine. The awaiting coroutine will be resumed on the thread of the input awaitable that is last to complete.</p>
+<p>The returned awaitable is guaranteed not to throw an exception when <code>co_await</code>ed, even if some of the input awaitables fail with an unhandled exception.</p>
+<p>Note, however, that the <code>when_all_ready()</code> call itself may throw <code>std::bad_alloc</code> if it was unable to allocate memory for the coroutine frames required to await each of the input awaitables. It may also throw an exception if any of the input awaitable objects throw from their copy/move constructors.</p>
+<p>The result of <code>co_await</code>ing the returned awaitable is a <code>std::tuple</code> or <code>std::vector</code> of <code>when_all_task&lt;RESULT&gt;</code> objects. These objects allow you to obtain the result (or exception) of each input awaitable separately by calling the <code>when_all_task&lt;RESULT&gt;::result()</code> method of the corresponding output task. This allows the caller to concurrently await multiple awaitables and synchronize on their completion while still retaining the ability to subsequently inspect the results of each of the <code>co_await</code> operations for success/failure.</p>
+<p>This differs from <code>when_all()</code> where the failure of any individual <code>co_await</code> operation causes the overall operation to fail with an exception. This means you cannot determine which of the component <code>co_await</code> operations failed and also prevents you from obtaining the results of the other <code>co_await</code> operations.</p>
+<p>API summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/when_all_ready.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="co">// Concurrently await multiple awaitables.</span>
+  <span class="co">//</span>
+  <span class="co">// Returns an awaitable object that, when co_await&#39;ed, will co_await each of the input</span>
+  <span class="co">// awaitable objects and will resume the awaiting coroutine only when all of the</span>
+  <span class="co">// component co_await operations complete.</span>
+  <span class="co">//</span>
+  <span class="co">// Result of co_await&#39;ing the returned awaitable is a std::tuple of detail::when_all_task&lt;T&gt;,</span>
+  <span class="co">// one for each input awaitable and where T is the result-type of the co_await expression</span>
+  <span class="co">// on the corresponding awaitable.</span>
+  <span class="co">//</span>
+  <span class="co">// AWAITABLES must be awaitable types and must be movable (if passed as rvalue) or copyable</span>
+  <span class="co">// (if passed as lvalue). The co_await expression will be executed on an rvalue of the</span>
+  <span class="co">// copied awaitable.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span>... AWAITABLES&gt;
+  <span class="kw">auto</span> when_all_ready(AWAITABLES&amp;&amp;... awaitables)
+    -&gt; Awaitable&lt;<span class="bu">std::</span>tuple&lt;detail::when_all_task&lt;<span class="kw">typename</span> awaitable_traits&lt;AWAITABLES&gt;::<span class="dt">await_result_t</span>&gt;...&gt;&gt;;
+
+  <span class="co">// Concurrently await each awaitable in a vector of input awaitables.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="kw">typename</span> RESULT = <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>&gt;
+  <span class="kw">auto</span> when_all_ready(<span class="bu">std::</span>vector&lt;AWAITABLE&gt; awaitables)
+    -&gt; Awaitable&lt;<span class="bu">std::</span>vector&lt;detail::when_all_task&lt;RESULT&gt;&gt;&gt;;
+}</code></pre></div>
+<p>Example usage:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">task&lt;<span class="bu">std::</span>string&gt; get_record(<span class="dt">int</span> id);
+
+task&lt;&gt; example1()
+{
+  <span class="co">// Run 3 get_record() operations concurrently and wait until they&#39;re all ready.</span>
+  <span class="co">// Returns a std::tuple of tasks that can be unpacked using structured bindings.</span>
+  <span class="kw">auto</span> [task1, task2, task3] = co_await when_all_ready(
+    get_record(<span class="dv">123</span>),
+    get_record(<span class="dv">456</span>),
+    get_record(<span class="dv">789</span>));
+
+  <span class="co">// Unpack the result of each task</span>
+  <span class="bu">std::</span>string&amp; record1 = task1.result();
+  <span class="bu">std::</span>string&amp; record2 = task2.result();
+  <span class="bu">std::</span>string&amp; record3 = task3.result();
+
+  <span class="co">// Use records....</span>
+}
+
+task&lt;&gt; example2()
+{
+  <span class="co">// Create the input tasks. They don&#39;t start executing yet.</span>
+  <span class="bu">std::</span>vector&lt;task&lt;<span class="bu">std::</span>string&gt;&gt; tasks;
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">1000</span>; ++i)
+  {
+    tasks.emplace_back(get_record(i));
+  }
+
+  <span class="co">// Execute all tasks concurrently.</span>
+  <span class="bu">std::</span>vector&lt;detail::when_all_task&lt;<span class="bu">std::</span>string&gt;&gt; resultTasks =
+    co_await when_all_ready(<span class="bu">std::</span>move(tasks));
+
+  <span class="co">// Unpack and handle each result individually once they&#39;re all complete.</span>
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">1000</span>; ++i)
+  {
+    <span class="cf">try</span>
+    {
+      <span class="bu">std::</span>string&amp; record = tasks[i].result();
+      <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">&quot; = &quot;</span> &lt;&lt; record &lt;&lt; <span class="bu">std::</span>endl;
+    }
+    <span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>exception&amp; ex)
+    {
+      <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">&quot; : &quot;</span> &lt;&lt; ex.what() &lt;&lt; <span class="bu">std::</span>endl;
+    }
+  }
+}</code></pre></div>
+<h2 id="when_all"><code>when_all()</code></h2>
+<p>The <code>when_all()</code> function can be used to create a new Awaitable that when <code>co_await</code>ed will <code>co_await</code> each of the input awaitables concurrently and return an aggregate of their individual results.</p>
+<p>When the returned awaitable is awaited, it will <code>co_await</code> each of the input awaitables on the current thread. Once the first awaitable suspends, the second task will be started, and so on. The operations execute concurrently until they have all run to completion.</p>
+<p>Once all component <code>co_await</code> operations have run to completion, an aggregate of the results is constructed from each individual result. If an exception is thrown by any of the input tasks or if the construction of the aggregate result throws an exception then the exception will propagate out of the <code>co_await</code> of the returned awaitable.</p>
+<p>If multiple <code>co_await</code> operations fail with an exception then one of the exceptions will propagate out of the <code>co_await when_all()</code> expression the other exceptions will be silently ignored. It is not specified which operation's exception will be chosen.</p>
+<p>If it is important to know which component <code>co_await</code> operation failed or to retain the ability to obtain results of other operations even if some of them fail then you you should use <code>when_all_ready()</code> instead.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/when_all.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="co">// Variadic version.</span>
+  <span class="co">//</span>
+  <span class="co">// Note that if the result of `co_await awaitable` yields a void-type</span>
+  <span class="co">// for some awaitables then the corresponding component for that awaitable</span>
+  <span class="co">// in the tuple will be an empty struct of type detail::void_value.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span>... AWAITABLES&gt;
+  <span class="kw">auto</span> when_all(AWAITABLES&amp;&amp;... awaitables)
+    -&gt; Awaitable&lt;<span class="bu">std::</span>tuple&lt;<span class="kw">typename</span> awaitable_traits&lt;AWAITABLES&gt;::<span class="dt">await_result_t</span>...&gt;&gt;;
+
+  <span class="co">// Overload for vector&lt;Awaitable&lt;void&gt;&gt;.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="kw">typename</span> RESULT = <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>,
+    <span class="bu">std::</span>enable_if_t&lt;<span class="bu">std::</span>is_void_v&lt;RESULT&gt;, <span class="dt">int</span>&gt; = <span class="dv">0</span>&gt;
+  <span class="kw">auto</span> when_all(<span class="bu">std::</span>vector&lt;AWAITABLE&gt; awaitables)
+    -&gt; Awaitable&lt;<span class="dt">void</span>&gt;;
+
+  <span class="co">// Overload for vector&lt;Awaitable&lt;NonVoid&gt;&gt; that yield a value when awaited.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="kw">typename</span> RESULT = <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>,
+    <span class="bu">std::</span>enable_if_t&lt;!<span class="bu">std::</span>is_void_v&lt;RESULT&gt;, <span class="dt">int</span>&gt; = <span class="dv">0</span>&gt;
+  <span class="kw">auto</span> when_all(<span class="bu">std::</span>vector&lt;AWAITABLE&gt; awaitables)
+    -&gt; Awaitable&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>conditional_t&lt;
+         <span class="bu">std::</span>is_lvalue_reference_v&lt;RESULT&gt;,
+         <span class="bu">std::</span>reference_wrapper&lt;<span class="bu">std::</span>remove_reference_t&lt;RESULT&gt;&gt;,
+         <span class="bu">std::</span>remove_reference_t&lt;RESULT&gt;&gt;&gt;&gt;;
+}</code></pre></div>
+<p>Examples:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">task&lt;A&gt; get_a();
+task&lt;B&gt; get_b();
+
+task&lt;&gt; example1()
+{
+  <span class="co">// Run get_a() and get_b() concurrently.</span>
+  <span class="co">// Task yields a std::tuple&lt;A, B&gt; which can be unpacked using structured bindings.</span>
+  <span class="kw">auto</span> [a, b] = co_await when_all(get_a(), get_b());
+
+  <span class="co">// use a, b</span>
+}
+
+task&lt;<span class="bu">std::</span>string&gt; get_record(<span class="dt">int</span> id);
+
+task&lt;&gt; example2()
+{
+  <span class="bu">std::</span>vector&lt;task&lt;<span class="bu">std::</span>string&gt;&gt; tasks;
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">1000</span>; ++i)
+  {
+    tasks.emplace_back(get_record(i));
+  }
+
+  <span class="co">// Concurrently execute all get_record() tasks.</span>
+  <span class="co">// If any of them fail with an exception then the exception will propagate</span>
+  <span class="co">// out of the co_await expression once they have all completed.</span>
+  <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; records = co_await when_all(<span class="bu">std::</span>move(tasks));
+
+  <span class="co">// Process results</span>
+  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">1000</span>; ++i)
+  {
+    <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">&quot; = &quot;</span> &lt;&lt; records[i] &lt;&lt; <span class="bu">std::</span>endl;
+  }
+}</code></pre></div>
+<h2 id="fmap"><code>fmap()</code></h2>
+<p>The <code>fmap()</code> function can be used to apply a callable function to the value(s) contained within a container-type, returning a new container-type of the results of applying the function the contained value(s).</p>
+<p>The <code>fmap()</code> function can apply a function to values of type <code>generator&lt;T&gt;</code>, <code>recursive_generator&lt;T&gt;</code> and <code>async_generator&lt;T&gt;</code> as well as any value that supports the <code>Awaitable</code> concept (eg. <code>task&lt;T&gt;</code>).</p>
+<p>Each of these types provides an overload for <code>fmap()</code> that takes two arguments; a function to apply and the container value. See documentation for each type for the supported <code>fmap()</code> overloads.</p>
+<p>For example, the <code>fmap()</code> function can be used to apply a function to the eventual result of a <code>task&lt;T&gt;</code>, producing a new <code>task&lt;U&gt;</code> that will complete with the return-value of the function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Given a function you want to apply that converts</span>
+<span class="co">// a value of type A to value of type B.</span>
+B a_to_b(A value);
+
+<span class="co">// And a task that yields a value of type A</span>
+cppcoro::task&lt;A&gt; get_an_a();
+
+<span class="co">// We can apply the function to the result of the task using fmap()</span>
+<span class="co">// and obtain a new task yielding the result.</span>
+cppcoro::task&lt;B&gt; bTask = fmap(a_to_b, get_an_a());
+
+<span class="co">// An alternative syntax is to use the pipe notation.</span>
+cppcoro::task&lt;B&gt; bTask = get_an_a() | cppcoro::fmap(a_to_b);</code></pre></div>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/fmap.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> FUNC&gt;
+  <span class="kw">struct</span> fmap_transform
+  {
+    fmap_transform(FUNC&amp;&amp; func) <span class="kw">noexcept</span>(<span class="bu">std::</span>is_nothrow_move_constructible_v&lt;FUNC&gt;);
+    FUNC func;
+  };
+
+  <span class="co">// Type-deducing constructor for fmap_transform object that can be used</span>
+  <span class="co">// in conjunction with operator|.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> FUNC&gt;
+  fmap_transform&lt;FUNC&gt; fmap(FUNC&amp;&amp; func);
+
+  <span class="co">// operator| overloads for providing pipe-based syntactic sugar for fmap()</span>
+  <span class="co">// such that the expression:</span>
+  <span class="co">//   &lt;value-expr&gt; | cppcoro::fmap(&lt;func-expr&gt;)</span>
+  <span class="co">// is equivalent to:</span>
+  <span class="co">//   fmap(&lt;func-expr&gt;, &lt;value-expr&gt;)</span>
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T, <span class="kw">typename</span> FUNC&gt;
+  <span class="kw">decltype</span>(<span class="kw">auto</span>) <span class="kw">operator</span>|(T&amp;&amp; value, fmap_transform&lt;FUNC&gt;&amp;&amp; transform);
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T, <span class="kw">typename</span> FUNC&gt;
+  <span class="kw">decltype</span>(<span class="kw">auto</span>) <span class="kw">operator</span>|(T&amp;&amp; value, fmap_transform&lt;FUNC&gt;&amp; transform);
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T, <span class="kw">typename</span> FUNC&gt;
+  <span class="kw">decltype</span>(<span class="kw">auto</span>) <span class="kw">operator</span>|(T&amp;&amp; value, <span class="at">const</span> fmap_transform&lt;FUNC&gt;&amp; transform);
+
+  <span class="co">// Generic overload for all awaitable types.</span>
+  <span class="co">//</span>
+  <span class="co">// Returns an awaitable that when co_awaited, co_awaits the specified awaitable</span>
+  <span class="co">// and applies the specified func to the result of the &#39;co_await awaitable&#39;</span>
+  <span class="co">// expression as if by &#39;std::invoke(func, co_await awaitable)&#39;.</span>
+  <span class="co">//</span>
+  <span class="co">// If the type of &#39;co_await awaitable&#39; expression is &#39;void&#39; then co_awaiting the</span>
+  <span class="co">// returned awaitable is equivalent to &#39;co_await awaitable, func()&#39;.</span>
+  <span class="kw">template</span>&lt;
+    <span class="kw">typename</span> FUNC,
+    <span class="kw">typename</span> AWAITABLE,
+    <span class="bu">std::</span>enable_if_t&lt;is_awaitable_v&lt;AWAITABLE&gt;, <span class="dt">int</span>&gt; = <span class="dv">0</span>&gt;
+  <span class="kw">auto</span> fmap(FUNC&amp;&amp; func, AWAITABLE&amp;&amp; awaitable)
+    -&gt; Awaitable&lt;<span class="bu">std::</span>invoke_result_t&lt;FUNC, <span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>&gt;&gt;;
+}</code></pre></div>
+<p>The <code>fmap()</code> function is designed to look up the correct overload by argument-dependent lookup (ADL) so it should generally be called without the <code>cppcoro::</code> prefix.</p>
+<h2 id="resume_on"><code>resume_on()</code></h2>
+<p>The <code>resume_on()</code> function can be used to control the execution context that an awaitable will resume the awaiting coroutine on when awaited. When applied to an <code>async_generator</code> it controls which execution context the <code>co_await g.begin()</code> and <code>co_await ++it</code> operations resume the awaiting coroutines on.</p>
+<p>Normally, the awaiting coroutine of an awaitable (eg. a <code>task</code>) or <code>async_generator</code> will resume execution on whatever thread the operation completed on. In some cases this may not be the thread that you want to continue executing on. In these cases you can use the <code>resume_on()</code> function to create a new awaitable or generator that will resume execution on a thread associated with a specified scheduler.</p>
+<p>The <code>resume_on()</code> function can be used either as a normal function returning a new awaitable/generator. Or it can be used in a pipeline-syntax.</p>
+<p>Example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">task&lt;record&gt; load_record(<span class="dt">int</span> id);
+
+ui_thread_scheduler uiThreadScheduler;
+
+task&lt;&gt; example()
+{
+  <span class="co">// This will start load_record() on the current thread.</span>
+  <span class="co">// Then when load_record() completes (probably on an I/O thread)</span>
+  <span class="co">// it will reschedule execution onto thread pool and call to_json</span>
+  <span class="co">// Once to_json completes it will transfer execution onto the</span>
+  <span class="co">// ui thread before resuming this coroutine and returning the json text.</span>
+  task&lt;<span class="bu">std::</span>string&gt; jsonTask =
+    load_record(<span class="dv">123</span>)
+    | cppcoro::resume_on(threadpool::<span class="cf">default</span>())
+    | cppcoro::fmap(to_json)
+    | cppcoro::resume_on(uiThreadScheduler);
+
+  <span class="co">// At this point, all we&#39;ve done is create a pipeline of tasks.</span>
+  <span class="co">// The tasks haven&#39;t started executing yet.</span>
+
+  <span class="co">// Await the result. Starts the pipeline of tasks.</span>
+  <span class="bu">std::</span>string jsonText = co_await jsonTask;
+
+  <span class="co">// Guaranteed to be executing on ui thread here.</span>
+
+  someUiControl.set_text(jsonText);
+}</code></pre></div>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/resume_on.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER, <span class="kw">typename</span> AWAITABLE&gt;
+  <span class="kw">auto</span> resume_on(SCHEDULER&amp; scheduler, AWAITABLE awaitable)
+    -&gt; Awaitable&lt;<span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_traits_t</span>&gt;;
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER, <span class="kw">typename</span> T&gt;
+  async_generator&lt;T&gt; resume_on(SCHEDULER&amp; scheduler, async_generator&lt;T&gt; source);
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+  <span class="kw">struct</span> resume_on_transform
+  {
+    <span class="kw">explicit</span> resume_on_transform(SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+    SCHEDULER&amp; scheduler;
+  };
+
+  <span class="co">// Construct a transform/operation that can be applied to a source object</span>
+  <span class="co">// using &quot;pipe&quot; notation (ie. operator|).</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+  resume_on_transform&lt;SCHEDULER&gt; resume_on(SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+
+  <span class="co">// Equivalent to &#39;resume_on(transform.scheduler, std::forward&lt;T&gt;(value))&#39;</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T, <span class="kw">typename</span> SCHEDULER&gt;
+  <span class="kw">decltype</span>(<span class="kw">auto</span>) <span class="kw">operator</span>|(T&amp;&amp; value, resume_on_transform&lt;SCHEDULER&gt; transform)
+  {
+    <span class="cf">return</span> resume_on(transform.scheduler, <span class="bu">std::</span>forward&lt;T&gt;(value));
+  }
+}</code></pre></div>
+<h2 id="schedule_on"><code>schedule_on()</code></h2>
+<p>The <code>schedule_on()</code> function can be used to change the execution context that a given awaitable or <code>async_generator</code> starts executing on.</p>
+<p>When applied to an <code>async_generator</code> it also affects which execution context it resumes on after <code>co_yield</code> statement.</p>
+<p>Note that the <code>schedule_on</code> transform does not specify the thread that the awaitable or <code>async_generator</code> will complete or yield results on, that is up to the implementation of the awaitable or generator.</p>
+<p>See the <code>resume_on()</code> operator for a transform that controls the thread the operation completes on.</p>
+<p>For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">task&lt;<span class="dt">int</span>&gt; get_value();
+io_service ioSvc;
+
+task&lt;&gt; example()
+{
+  <span class="co">// Starts executing get_value() on the current thread.</span>
+  <span class="dt">int</span> a = co_await get_value();
+
+  <span class="co">// Starts executing get_value() on a thread associated with ioSvc.</span>
+  <span class="dt">int</span> b = co_await schedule_on(ioSvc, get_value());
+}</code></pre></div>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/schedule_on.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="co">// Return a task that yields the same result as &#39;t&#39; but that</span>
+  <span class="co">// ensures that &#39;t&#39; is co_await&#39;ed on a thread associated with</span>
+  <span class="co">// the specified scheduler. Resulting task will complete on</span>
+  <span class="co">// whatever thread &#39;t&#39; would normally complete on.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER, <span class="kw">typename</span> AWAITABLE&gt;
+  <span class="kw">auto</span> schedule_on(SCHEDULER&amp; scheduler, AWAITABLE awaitable)
+    -&gt; Awaitable&lt;<span class="kw">typename</span> awaitable_traits&lt;AWAITABLE&gt;::<span class="dt">await_result_t</span>&gt;;
+
+  <span class="co">// Return a generator that yields the same sequence of results as</span>
+  <span class="co">// &#39;source&#39; but that ensures that execution of the coroutine starts</span>
+  <span class="co">// execution on a thread associated with &#39;scheduler&#39; and resumes</span>
+  <span class="co">// after a &#39;co_yield&#39; on a thread associated with &#39;scheduler&#39;.</span>
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER, <span class="kw">typename</span> T&gt;
+  async_generator&lt;T&gt; schedule_on(SCHEDULER&amp; scheduler, async_generator&lt;T&gt; source);
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+  <span class="kw">struct</span> schedule_on_transform
+  {
+    <span class="kw">explicit</span> schedule_on_transform(SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+    SCHEDULER&amp; scheduler;
+  };
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> SCHEDULER&gt;
+  schedule_on_transform&lt;SCHEDULER&gt; schedule_on(SCHEDULER&amp; scheduler) <span class="kw">noexcept</span>;
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T, <span class="kw">typename</span> SCHEDULER&gt;
+  <span class="kw">decltype</span>(<span class="kw">auto</span>) <span class="kw">operator</span>|(T&amp;&amp; value, schedule_on_transform&lt;SCHEDULER&gt; transform);
+}</code></pre></div>
+<h1 id="metafunctions">Metafunctions</h1>
+<h2 id="awaitable_traitst"><code>awaitable_traits&lt;T&gt;</code></h2>
+<p>This template metafunction can be used to determine what the resulting type of a <code>co_await</code> expression will be if applied to an expression of type <code>T</code>.</p>
+<p>Note that this assumes the value of type <code>T</code> is being awaited in a context where it is unaffected by any <code>await_transform</code> applied by the coroutine's promise object. The results may differ if a value of type <code>T</code> is awaited in such a context.</p>
+<p>The <code>awaitable_traits&lt;T&gt;</code> template metafunction does not define the <code>awaiter_t</code> or <code>await_result_t</code> nested typedefs if type, <code>T</code>, is not awaitable. This allows its use in SFINAE contexts that disables overloads when <code>T</code> is not awaitable.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/awaitable_traits.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="kw">struct</span> awaitable_traits
+  {
+    <span class="co">// The type that results from applying `operator co_await()` to a value</span>
+    <span class="co">// of type T, if T supports an `operator co_await()`, otherwise is type `T&amp;&amp;`.</span>
+    <span class="kw">typename</span> <span class="dt">awaiter_t</span> = &lt;unspecified&gt;;
+
+    <span class="co">// The type of the result of co_await&#39;ing a value of type T.</span>
+    <span class="kw">typename</span> <span class="dt">await_result_t</span> = &lt;unspecified&gt;;
+  };
+}</code></pre></div>
+<h2 id="is_awaitablet"><code>is_awaitable&lt;T&gt;</code></h2>
+<p>The <code>is_awaitable&lt;T&gt;</code> template metafunction allows you to query whether or not a given type can be <code>co_await</code>ed or not from within a coroutine.</p>
+<p>API Summary:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// &lt;cppcoro/is_awaitable.hpp&gt;</span>
+<span class="kw">namespace</span> cppcoro
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="kw">struct</span> is_awaitable : <span class="bu">std::</span>bool_constant&lt;...&gt;
+  {};
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="kw">constexpr</span> <span class="dt">bool</span> is_awaitable_v = is_awaitable&lt;T&gt;::value;
+}</code></pre></div>
+<h1 id="concepts">Concepts</h1>
+<h2 id="awaitablet-concept"><code>Awaitable&lt;T&gt;</code> concept</h2>
+<p>An <code>Awaitable&lt;T&gt;</code> is a concept that indicates that a type can be <code>co_await</code>ed in a coroutine context that has no <code>await_transform</code> overloads and that the result of the <code>co_await</code> expression has type, <code>T</code>.</p>
+<p>For example, the type <code>task&lt;T&gt;</code> implements the concept <code>Awaitable&lt;T&amp;&amp;&gt;</code> whereas the type <code>task&lt;T&gt;&amp;</code> implements the concept <code>Awaitable&lt;T&amp;&gt;</code>.</p>
+<h2 id="awaitert-concept"><code>Awaiter&lt;T&gt;</code> concept</h2>
+<p>An <code>Awaiter&lt;T&gt;</code> is a concept that indicates a type contains the <code>await_ready</code>, <code>await_suspend</code> and <code>await_resume</code> methods required to implement the protocol for suspending/resuming an awaiting coroutine.</p>
+<p>A type that satisfies <code>Awaiter&lt;T&gt;</code> must have, for an instance of the type, <code>awaiter</code>: - <code>awaiter.await_ready()</code> -&gt; <code>bool</code> - <code>awaiter.await_suspend(std::experimental::coroutine_handle&lt;void&gt;{})</code> -&gt; <code>void</code> or <code>bool</code> or <code>std::experimental::coroutine_handle&lt;P&gt;</code> for some <code>P</code>. - <code>awaiter.await_resume()</code> -&gt; <code>T</code></p>
+<p>Any type that implements the <code>Awaiter&lt;T&gt;</code> concept also implements the <code>Awaitable&lt;T&gt;</code> concept.</p>
+<h2 id="scheduler-concept"><code>Scheduler</code> concept</h2>
+<p>A <code>Scheduler</code> is a concept that allows scheduling execution of coroutines within some execution context.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">concept Scheduler
+{
+  Awaitable&lt;<span class="dt">void</span>&gt; schedule();
+}</code></pre></div>
+<p>Given a type, <code>S</code>, that implements the <code>Scheduler</code> concept, and an instance, <code>s</code>, of type <code>S</code>: * The <code>s.schedule()</code> method returns an awaitable-type such that <code>co_await s.schedule()</code> will unconditionally suspend the current coroutine and schedule it for resumption on the execution context associated with the scheduler, <code>s</code>. * The result of the <code>co_await s.schedule()</code> expression has type <code>void</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cppcoro::task&lt;&gt; f(Scheduler&amp; scheduler)
+{
+  <span class="co">// Execution of the coroutine is initially on the caller&#39;s execution context.</span>
+
+  <span class="co">// Suspends execution of the coroutine and schedules it for resumption on</span>
+  <span class="co">// the scheduler&#39;s execution context.</span>
+  co_await scheduler.schedule();
+
+  <span class="co">// At this point the coroutine is now executing on the scheduler&#39;s</span>
+  <span class="co">// execution context.</span>
+}</code></pre></div>
+<h2 id="delayedscheduler-concept"><code>DelayedScheduler</code> concept</h2>
+<p>A <code>DelayedScheduler</code> is a concept that allows a coroutine to schedule itself for execution on the scheduler's execution context after a specified duration of time has elapsed.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">concept DelayedScheduler : Scheduler
+{
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> REP, <span class="kw">typename</span> RATIO&gt;
+  Awaitable&lt;<span class="dt">void</span>&gt; schedule_after(<span class="bu">std::</span>chrono<span class="bu">::</span>duration&lt;REP, RATIO&gt; delay);
+
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> REP, <span class="kw">typename</span> RATIO&gt;
+  Awaitable&lt;<span class="dt">void</span>&gt; schedule_after(
+    <span class="bu">std::</span>chrono<span class="bu">::</span>duration&lt;REP, RATIO&gt; delay,
+    cppcoro::cancellation_token cancellationToken);
+}</code></pre></div>
+<p>Given a type, <code>S</code>, that implements the <code>DelayedScheduler</code> and an instance, <code>s</code> of type <code>S</code>: * The <code>s.schedule_after(delay)</code> method returns an object that can be awaited such that <code>co_await s.schedule_after(delay)</code> suspends the current coroutine for a duration of <code>delay</code> before scheduling the coroutine for resumption on the execution context associated with the scheduler, <code>s</code>. * The <code>co_await s.schedule_after(delay)</code> expression has type <code>void</code>.</p>
+<h1 id="building">Building</h1>
+<p>The cppcoro library supports building under Windows with Visual Studio 2017 and Linux with Clang 5.0+.</p>
+<p>This library makes use of the <a href="https://github.com/lewissbaker/cake">Cake build system</a> (no, not the <a href="http://cakebuild.net/">C# one</a>).</p>
+<p>The cake build system is checked out automatically as a git submodule so you don't need to download or install it separately.</p>
+<h2 id="building-on-windows">Building on Windows</h2>
+<p>This library currently requires Visual Studio 2017 or later and the Windows 10 SDK.</p>
+<p>Support for Clang (<a href="https://github.com/lewissbaker/cppcoro/issues/3">#3</a>) and Linux (<a href="https://github.com/lewissbaker/cppcoro/issues/15">#15</a>) is planned.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>The Cake build-system is implemented in Python and requires Python 2.7 to be installed.</p>
+<p>Ensure Python 2.7 interpreter is in your PATH and available as 'python'.</p>
+<p>Ensure Visual Studio 2017 Update 3 or later is installed. Note that there are some known issues with coroutines in Update 2 or earlier that have been fixed in Update 3.</p>
+<p>You can also use an experimental version of the Visual Studio compiler by downloading a NuGet package from https://vcppdogfooding.azurewebsites.net/ and unzipping the .nuget file to a directory. Just update the <code>config.cake</code> file to point at the unzipped location by modifying and uncommenting the following line:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">nugetPath <span class="op">=</span> <span class="va">None</span> <span class="co"># r&#39;C:\Path\To\VisualCppTools.14.0.25224-Pre&#39;</span></code></pre></div>
+<p>Ensure that you have the Windows 10 SDK installed. It will use the latest Windows 10 SDK and Universal C Runtime version by default.</p>
+<h3 id="cloning-the-repository">Cloning the repository</h3>
+<p>The cppcoro repository makes use of git submodules to pull in the source for the Cake build system.</p>
+<p>This means you need to pass the <code>--recursive</code> flag to the <code>git clone</code> command. eg.</p>
+<pre><code>c:\Code&gt; git clone --recursive https://github.com/lewissbaker/cppcoro.git</code></pre>
+<p>If you have already cloned cppcoro, then you should update the submodules after pulling changes.</p>
+<pre><code>c:\Code\cppcoro&gt; git submodule update --init --recursive</code></pre>
+<h3 id="building-from-the-command-line">Building from the command-line</h3>
+<p>To build from the command-line just run 'cake.bat' in the workspace root.</p>
+<p>eg.</p>
+<pre><code>C:\cppcoro&gt; cake.bat
+Building with C:\cppcoro\config.cake - Variant(release=&#39;debug&#39;, platform=&#39;windows&#39;, architecture=&#39;x86&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;optimised&#39;, platform=&#39;windows&#39;, architecture=&#39;x64&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;debug&#39;, platform=&#39;windows&#39;, architecture=&#39;x64&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;optimised&#39;, platform=&#39;windows&#39;, architecture=&#39;x86&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Compiling test\main.cpp
+Compiling test\main.cpp
+Compiling test\main.cpp
+Compiling test\main.cpp
+...
+Linking build\windows_x86_msvc14.10_debug\test\run.exe
+Linking build\windows_x64_msvc14.10_optimised\test\run.exe
+Linking build\windows_x86_msvc14.10_optimised\test\run.exe
+Linking build\windows_x64_msvc14.10_debug\test\run.exe
+Generating code
+Finished generating code
+Generating code
+Finished generating code
+Build succeeded.
+Build took 0:00:02.419.</code></pre>
+<p>By default, running <code>cake</code> with no arguments will build all projects with all build variants and execute the unit-tests. You can narrow what is built by passing additional command-line arguments. eg.</p>
+<pre><code>c:\cppcoro&gt; cake.bat release=debug architecture=x64 lib/build.cake
+Building with C:\Users\Lewis\Code\cppcoro\config.cake - Variant(release=&#39;debug&#39;, platform=&#39;windows&#39;, architecture=&#39;x64&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Archiving build\windows_x64_msvc14.10_debug\lib\cppcoro.lib
+Build succeeded.
+Build took 0:00:00.321.</code></pre>
+<p>You can run <code>cake --help</code> to list available command-line options.</p>
+<h3 id="building-visual-studio-project-files">Building Visual Studio project files</h3>
+<p>To develop from within Visual Studio you can build .vcproj/.sln files by running <code>cake.bat -p</code>.</p>
+<p>eg.</p>
+<pre><code>c:\cppcoro&gt; cake.bat -p
+Building with C:\cppcoro\config.cake - Variant(release=&#39;debug&#39;, platform=&#39;windows&#39;, architecture=&#39;x86&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;optimised&#39;, platform=&#39;windows&#39;, architecture=&#39;x64&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;debug&#39;, platform=&#39;windows&#39;, architecture=&#39;x64&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Building with C:\cppcoro\config.cake - Variant(release=&#39;optimised&#39;, platform=&#39;windows&#39;, architecture=&#39;x86&#39;, compilerFamily=&#39;msvc&#39;, compiler=&#39;msvc14.10&#39;)
+Generating Solution build/project/cppcoro.sln
+Generating Project build/project/cppcoro_tests.vcxproj
+Generating Filters build/project/cppcoro_tests.vcxproj.filters
+Generating Project build/project/cppcoro.vcxproj
+Generating Filters build/project/cppcoro.vcxproj.filters
+Build succeeded.
+Build took 0:00:00.247.</code></pre>
+<p>When you build these projects from within Visual Studio it will call out to cake to perform the compilation.</p>
+<h2 id="building-on-linux">Building on Linux</h2>
+<p>The cppcoro project can also be built under Linux using Clang + libc++ 5.0 or later.</p>
+<p>Building cppcoro has been tested under Ubuntu 17.04.</p>
+<h3 id="prerequisities">Prerequisities</h3>
+<p>Ensure you have the following packages installed: * Python 2.7 * Clang &gt;= 5.0 * LLD &gt;= 5.0 * libc++ &gt;= 5.0</p>
+<h3 id="building-cppcoro">Building cppcoro</h3>
+<p>This is assuming you have Clang and libc++ built and installed.</p>
+<p>If you don't have Clang configured yet, see the following sections for details on setting up Clang for building with cppcoro.</p>
+<p>Checkout cppcoro and its submodules:</p>
+<pre><code>git clone --recursive https://github.com/lewissbaker/cppcoro.git cppcoro</code></pre>
+<p>Run <code>init.sh</code> to setup the <code>cake</code> bash function:</p>
+<pre><code>cd cppcoro
+source init.sh</code></pre>
+<p>Then you can run <code>cake</code> from the workspace root to build cppcoro and run tests:</p>
+<pre><code>$ cake</code></pre>
+<p>You can specify additional command-line arguments to customise the build: * <code>--help</code> will print out help for command-line arguments * <code>--debug=run</code> will show the build command-lines being run * <code>release=debug</code> or <code>release=optimised</code> will limit the build variant to either debug or optimised (by default it will build both). * <code>lib/build.cake</code> will just build the cppcoro library and not the tests. * <code>test/build.cake@task_tests.cpp</code> will just compile a particular source file * <code>test/build.cake@testresult</code> will build and run the tests</p>
+<p>For example:</p>
+<pre><code>$ cake --debug=run release=debug lib/build.cake</code></pre>
+<h3 id="customising-location-of-clang">Customising location of Clang</h3>
+<p>If your clang compiler is not located at <code>/usr/bin/clang</code> then you can specify an alternative location using one or more of the following command-line options for <code>cake</code>:</p>
+<ul>
+<li><code>--clang-executable=&lt;name&gt;</code> - Specify the clang executable name to use instead of <code>clang</code>. eg. to force use of Clang 8.0 pass <code>--clang-executable=clang-8</code></li>
+<li><code>--clang-executable=&lt;abspath&gt;</code> - Specify the full path to clang executable. The build system will also look for other executables in the same directory. If this path has the form <code>&lt;prefix&gt;/bin/&lt;name&gt;</code> then this will also set the default clang-install-prefix to <code>&lt;prefix&gt;</code>.</li>
+<li><code>--clang-install-prefix=&lt;path&gt;</code> - Specify path where clang has been installed. This will cause the build system to look for clang under <code>&lt;path&gt;/bin</code> (unless overridden by <code>--clang-executable</code>).</li>
+<li><code>--libcxx-install-prefix=&lt;path&gt;</code> - Specify path where libc++ has been installed. By default the build system will look for libc++ in the same location as clang. Use this command-line option if it is installed in a different location.</li>
+</ul>
+<p>Example: Use a specific version of clang installed in the default location</p>
+<pre><code>$ cake --clang-executable=clang-8</code></pre>
+<p>Example: Use the default version of clang from a custom location</p>
+<pre><code>$ cake --clang-install-prefix=/path/to/clang-install</code></pre>
+<p>Example: Use a specific version of clang, in a custom location, with libc++ from a different location</p>
+<pre><code>$ cake --clang-executable=/path/to/clang-install/bin/clang-8 --libcxx-install-prefix=/path/to/libcxx-install</code></pre>
+<h3 id="using-a-snapshot-build-of-clang">Using a snapshot build of Clang</h3>
+<p>If your Linux distribution does not have a version of Clang 5.0 or later available, you can install a snapshot build from the LLVM project.</p>
+<p>Follow instructions at http://apt.llvm.org/ to setup your package manager to support pulling from the LLVM package manager.</p>
+<p>For example, for Ubuntu 17.04 Zesty:</p>
+<p>Edit <code>/etc/apt/sources.list</code> and add the following lines:</p>
+<pre><code>deb http://apt.llvm.org/zesty/ llvm-toolchain-zesty main
+deb-src http://apt.llvm.org/zesty/ llvm-toolchain-zesty main</code></pre>
+<p>Install the PGP key for those packages:</p>
+<pre><code>$ wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -</code></pre>
+<p>Install Clang and LLD:</p>
+<pre><code>$ sudo apt-get install clang-6.0 lld-6.0</code></pre>
+<p>The LLVM snapshot builds do not include libc++ versions so you'll need to build that yourself. See below.</p>
+<h3 id="building-your-own-clang">Building your own Clang</h3>
+<p>You can also use the bleeding-edge Clang version by building Clang from source yourself.</p>
+<p>See instructions here:</p>
+<p>To do this you will need to install the following pre-requisites:</p>
+<pre><code>$ sudo apt-get install git cmake ninja-build clang lld</code></pre>
+<p>Note that we are using your distribution's version of clang to build clang from source. GCC could also be used here instead.</p>
+<p>Checkout LLVM + Clang + LLD + libc++ repositories:</p>
+<pre><code>mkdir llvm
+cd llvm
+git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
+git clone --depth=1 https://github.com/llvm-mirror/clang.git llvm/tools/clang
+git clone --depth=1 https://github.com/llvm-mirror/lld.git llvm/tools/lld
+git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
+ln -s llvm/tools/clang clang
+ln -s llvm/tools/lld lld
+ln -s llvm/projects/libcxx libcxx</code></pre>
+<p>Configure and build Clang:</p>
+<pre><code>mkdir clang-build
+cd clang-build
+cmake -GNinja \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+      -DCMAKE_C_COMPILER=/usr/bin/clang \
+      -DCMAKE_BUILD_TYPE=MinSizeRel \
+      -DCMAKE_INSTALL_PREFIX=&quot;/path/to/clang/install&quot;
+      -DCMAKE_BUILD_WITH_INSTALL_RPATH=&quot;yes&quot; \
+      -DLLVM_TARGETS_TO_BUILD=X86 \
+      -DLLVM_ENABLE_PROJECTS=&quot;lld;clang&quot; \
+      ../llvm
+ninja install-clang \
+      install-clang-headers \
+      install-llvm-ar \
+      install-lld</code></pre>
+<h3 id="building-libc">Building libc++</h3>
+<p>The cppcoro project requires libc++ as it contains the <code>&lt;experimental/coroutine&gt;</code> header required to use C++ coroutines under Clang.</p>
+<p>Checkout <code>libc++</code> + <code>llvm</code>:</p>
+<pre><code>mkdir llvm
+cd llvm
+git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
+git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
+ln -s llvm/projects/libcxx libcxx</code></pre>
+<p>Build <code>libc++</code>:</p>
+<pre><code>mkdir libcxx-build
+cd libcxx-build
+cmake -GNinja \
+      -DCMAKE_CXX_COMPILER=&quot;/path/to/clang/install/bin/clang++&quot; \
+      -DCMAKE_C_COMPILER=&quot;/path/to/clang/install/bin/clang&quot; \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=&quot;/path/to/clang/install&quot; \
+      -DLLVM_PATH=&quot;../llvm&quot; \
+      -DLIBCXX_CXX_ABI=libstdc++ \
+      -DLIBCXX_CXX_ABI_INCLUDE_PATHS=&quot;/usr/include/c++/6.3.0/;/usr/include/x86_64-linux-gnu/c++/6.3.0/&quot; \
+      ../libcxx
+ninja cxx
+ninja install</code></pre>
+<p>This will build and install libc++ into the same install directory where you have clang installed.</p>
+<h1 id="support">Support</h1>
+<p>GitHub issues are the primary mechanism for support, bug reports and feature requests.</p>
+<p>Contributions are welcome and pull-requests will be happily reviewed. I only ask that you agree to license any contributions that you make under the MIT license.</p>
+<p>If you have general questions about C++ coroutines, you can generally find someone to help in the <code>#coroutines</code> channel on <a href="https://cpplang.slack.com/">Cpplang Slack</a> group.</p>

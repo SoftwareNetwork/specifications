@@ -1,0 +1,39 @@
+<h1 id="static-enum-c">Static Enum C++</h1>
+<h2 id="what-is-static-enum">What is Static Enum?</h2>
+<p>Static Enum is a single header C++17 library which provides compile time enumumeration information without using any macros or having to define the enum with some macro magic.</p>
+<ul>
+<li><code>static_enum::to_string</code> get the name from an enum variable, returns a <code>constexpr std::optional&lt;std::string_view&gt;</code></li>
+<li><code>static_enum::from_string</code> get the enum variable from a string, returns a <code>constexpr std::optional&lt;Enum&gt;</code></li>
+<li><code>static_enum::get_enumerators</code> creates a <code>std::array&lt;Enum,N&gt;</code> with all enumeration values (sorted by value)</li>
+</ul>
+<h2 id="where-is-the-drawback">Where is the drawback?</h2>
+<p>Static Enum uses compiler intrinsics - namely <code>__PRETTY_FUNCTION__</code> and <code>__FUNCSIG__</code> to check whether an enumeration value is valid and make the string conversions. I have taken this trick from https://github.com/Neargye/magic_enum and adapted it slightly.<br />
+The main drawback is that this library creates the enumerators by checking all the possible values. The default limit is to check for 256 values, which only works for arbitrary enums where the size of the underlying type is smaller than 2 bytes. It also works for enums of bigger types, but the enumeration values have to be in the range of [-127, 128] for signed types and [0, 255] for unsigned types.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>C++17</li>
+<li>Single Header</li>
+<li>Dependency-free</li>
+<li>constexpr</li>
+<li>Works with 3rd party enums</li>
+</ul>
+<h2 id="example">Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">enum</span> <span class="kw">class</span> Color : <span class="dt">int</span> { GREEN = <span class="dv">7</span>, RED = <span class="dv">-12</span>, BLUE = <span class="dv">15</span> };
+
+<span class="kw">constexpr</span> <span class="kw">auto</span> colorEnumerators = static_enum::get_enumerators&lt;Color&gt;();
+<span class="kw">static_assert</span>(colorEnumerators.size() == <span class="dv">3</span>);
+
+<span class="cf">for</span>(<span class="kw">auto</span> e : colorEnumerators)
+    <span class="bu">std::</span>cout &lt;&lt; static_enum::to_string(e) &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(e) &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</code></pre></div>
+<p>This will print:<br />
+RED: -12<br />
+GREEN: 7<br />
+BLUE: 15<br />
+## Compiler compatibility</p>
+<ul>
+<li>Clang/LLVM &gt;= 5</li>
+<li>Visual C++ &gt;= 15.3 / Visual Studio &gt;= 2017</li>
+<li>Xcode &gt;= 10.2</li>
+<li>GCC &gt;= 9</li>
+</ul>
+<h2 id="licensed-under-the-mit-license">Licensed under the <a href="LICENSE">MIT License</a></h2>

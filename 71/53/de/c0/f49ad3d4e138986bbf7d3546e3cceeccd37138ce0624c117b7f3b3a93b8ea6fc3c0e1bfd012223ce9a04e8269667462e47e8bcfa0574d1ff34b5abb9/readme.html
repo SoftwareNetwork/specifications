@@ -1,0 +1,156 @@
+<p>Weak Function Library is a C++ 11 library providing a solution to passing around references to functions that may be destroyed before their call.</p>
+<ul>
+<li><a href="#quick-start">Quick Start</a></li>
+<li><a href="#usage-example">Usage Example</a></li>
+<li><a href="#building">Building</a></li>
+<li><a href="#librarys-content">Library's Content</a></li>
+<li><a href="#why-not-use-a-signalslot-library">Why not use a signal/slot library?</a></li>
+</ul>
+<h1 id="quick-start">Quick Start</h1>
+<ol style="list-style-type: decimal">
+<li><p>Declare a <code>wfl::shared_function&lt; Signature &gt;</code> to hold a reference to the function that may be destroyed.</p></li>
+<li><p>Declare a <code>wfl::weak_function&lt; Signature &gt;</code> on the caller side.</p></li>
+<li><p>Assign the <code>shared_function</code> to the <code>weak_function</code>.</p></li>
+<li><p>Call the <code>weak_function</code> when you need it.</p></li>
+</ol>
+<p>Bonus: Use <code>wfl::mt::shared_function&lt; Signature &gt;</code> and <code>wfl::mt::weak_function&lt; Signature &gt;</code> if the call occurs in another thread.</p>
+<h1 id="usage-example">Usage Example</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;wfl/mt/weak_function.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;wfl/mt/shared_function.hpp&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;thread&gt;</span>
+
+<span class="co">// Here&#39;s an hypothetical class which sends messages to a target and notifies</span>
+<span class="co">// the caller when the message has been sent.</span>
+<span class="kw">class</span> message_handler
+{
+<span class="kw">public</span>:
+  ~message_handler()
+  {
+    <span class="cf">for</span> ( <span class="bu">std::</span>thread&amp; t : <span class="va">m_threads</span> )
+      <span class="cf">if</span> ( t.joinable() )
+        t.join();
+  }
+  
+  <span class="dt">void</span> send_message
+  ( <span class="bu">std::</span>string message, wfl::mt::weak_function&lt; <span class="dt">void</span>() &gt; on_sent )
+  {
+    <span class="va">m_threads</span>.emplace_back
+      ( [=]() -&gt; <span class="dt">void</span>
+        {
+          <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;sending &#39;&quot;</span> &lt;&lt; message &lt;&lt; <span class="st">&quot;&#39;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+          <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for( <span class="bu">std::</span>chrono<span class="bu">::</span>milliseconds( <span class="dv">200</span> ) );
+          on_sent();
+        } );
+  }
+  
+<span class="kw">private</span>:
+  <span class="bu">std::</span>vector&lt; <span class="bu">std::</span>thread &gt; <span class="va">m_threads</span>;
+};
+
+<span class="dt">int</span> main()
+{
+  message_handler handler;
+  
+  {
+    wfl::mt::shared_function&lt; <span class="dt">void</span>() &gt; on_sent
+      ( []() -&gt; <span class="dt">void</span>
+        {
+          <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;First message sent</span><span class="sc">\n</span><span class="st">&quot;</span>;
+        } );
+    handler.send_message( <span class="st">&quot;Hello&quot;</span>, on_sent );
+  }
+  
+  wfl::mt::shared_function&lt; <span class="dt">void</span>() &gt; on_sent
+    ( []() -&gt; <span class="dt">void</span>
+      {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Second message sent.</span><span class="sc">\n</span><span class="st">&quot;</span>;
+      } );
+
+  handler.send_message( <span class="st">&quot;Hello, world&quot;</span>, on_sent );
+  <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for( <span class="bu">std::</span>chrono<span class="bu">::</span>seconds( <span class="dv">1</span> ) );
+  
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>The output of this program is</p>
+<pre><code>sending &#39;Hello&#39;
+sending &#39;Hello, world&#39;
+Second message sent.</code></pre>
+<p>As expected, the first shared function which should have printed <code>First message sent</code> is not called since it has been destroyed before the actual call. On the caller side no special handling is needed before the call.</p>
+<h1 id="building">Building</h1>
+<p>The CMake scripts are located in the <code>cmake</code> directory.</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">mkdir</span> build
+<span class="bu">cd</span> build
+<span class="fu">cmake</span> ../cmake/
+<span class="fu">make</span></code></pre></div>
+<p>The following arguments can be passed to CMake:</p>
+<ul>
+<li><code>WFL_CMAKE_PACKAGE_ENABLED=ON/OFF</code> controls whether the CMake script allowing to import the library in another project must be installed or not. Default is <code>ON</code>.</li>
+<li><code>WFL_DEBUG=ON/OFF</code> controls the activation of debugging code in the library. It is a developer feature, you probably won't want it. Default is <code>OFF</code>.</li>
+<li><code>WFL_EXAMPLES_ENABLED=ON/OFF</code> controls the build of the example programs. Default is <code>OFF</code>.</li>
+<li><code>WFL_TESTING_ENABLED=ON/OFF</code> controls the build of the unit tests. Default value is <code>ON</code>. You will need <a href="https://github.com/google/googletest">Google Test</a> for this.</li>
+</ul>
+<h1 id="librarys-content">Library's Content</h1>
+<p>There are two classes in this library: <code>wfl::shared_function</code> and <code>wfl::weak_function</code>. The former is like an <code>std::function</code>, it stores a callable. The latter is to <code>wfl::shared_function</code> what <code>std::weak_ptr</code> is to <code>std::shared_ptr</code>: a handle through which the validity of the <code>wfl::shared_function</code> can be tested. The whole point of the library is that calling a function via <code>wfl::weak_function</code> has no effect if the corresponding <code>wfl::shared_function</code> has been destroyed.</p>
+<p>If your instances of <code>wfl::weak_function</code> never leave the thread in which they are created, then use <code>wfl::weak_function</code> and <code>wfl::shared_function</code>. Otherwise, for a thread-safe version, use <code>wfl::mt::weak_function</code> and <code>wfl::mt::shared_function</code>.</p>
+<p>In the observed instance, store a <code>wfl::weak_function</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;wfl/weak_function.hpp&gt;</span>
+
+<span class="kw">struct</span> observed
+{
+  <span class="dt">void</span> call_me( wfl::weak_function&lt; <span class="dt">void</span>() &gt; callback )
+  {
+    do_stuff().then( [=]() -&gt; <span class="dt">void</span> { callback(); } );
+  }
+}</code></pre></div>
+<p>In the observer, store a <code>wfl::shared_function</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;wfl/shared_function.hpp&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="kw">struct</span> observer
+{
+  observer()
+    : <span class="va">m_callback</span>( []() -&gt; <span class="dt">void</span> { <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;called</span><span class="sc">\n</span><span class="st">&quot;</span>; } )
+  { }
+    
+  <span class="dt">void</span> observe( observed&amp; o )
+  {
+    o.observe( <span class="va">m_callback</span> );
+  }
+  
+<span class="kw">private</span>:
+  wfl::shared_function&lt; <span class="dt">void</span>() &gt; <span class="va">m_callback</span>;
+};</code></pre></div>
+<p>Then keep going without wondering if the observer dies before the observed.</p>
+<h1 id="why-not-use-a-signalslot-library">Why not use a signal/slot library?</h1>
+<p>Signals are great when multiple callbacks must be called in batch or when a callback must be trigered on several occasions. They fail nonetheless when the callback is attached to a context.</p>
+<p>For example, in the <code>message_handler</code> class defined above, sending a message must trigger a callback, and only one. Using signals for this would require a new signal for each call to <code>send_message</code>. Example with Boost.Signals2:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ex">boost::</span>signals2<span class="ex">::</span>connection message_handler::send_message
+( <span class="bu">std::</span>string message, <span class="bu">std::</span>function&lt; <span class="dt">void</span>() &gt; on_sent )
+{
+  <span class="bu">std::</span>shared_ptr&lt; <span class="ex">boost::</span>signals2<span class="ex">::</span>signal&lt; <span class="dt">void</span>() &gt; &gt; signal
+    ( <span class="bu">std::</span>make_shared&lt; <span class="ex">boost::</span>signals2<span class="ex">::</span>signal&lt; <span class="dt">void</span>() &gt; &gt;() );
+    
+  <span class="at">const</span> <span class="ex">boost::</span>signals2<span class="ex">::</span>connection result
+    ( signal.<span class="fu">connect</span>( <span class="bu">std::</span>move( on_sent ) ) );
+    
+  <span class="va">m_threads</span>.emplace_back
+    ( [=]() -&gt; <span class="dt">void</span>
+      {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;sending &#39;&quot;</span> &lt;&lt; message &lt;&lt; <span class="st">&quot;&#39;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+        <span class="bu">std::</span>this_thread<span class="bu">::</span>sleep_for( <span class="bu">std::</span>chrono<span class="bu">::</span>milliseconds( <span class="dv">200</span> ) );
+        signal();
+      } );
+        
+  <span class="cf">return</span> result;
+}</code></pre></div>
+<p>This kind of code feels overcomplicated and raises several questions:</p>
+<ol style="list-style-type: decimal">
+<li><p>Why using a signal designed to store several callbacks when only one will ever be assigned?</p></li>
+<li><p>Do you really need to pay a dynamic allocation for every callback?</p></li>
+<li><p>Boost.Signals2 is thread safe by default. If your app is single-threaded, why do you have to pay for the synchronization?</p></li>
+</ol>
+<p>Also, handling signal connections is quite error-prone. Here it is the caller's responsibility to store the resulting connection and to manually call <code>disconnect()</code> on it when the function passed as <code>on_sent</code> is destroyed.</p>
+<p><code>wfl</code> aims to solve these issues. It is designed for a one-to-one relationship, does minimal allocations and provides optional thread safety.</p>
+<p>Also, with <code>wfl</code> the storing of the <code>wfl::shared_function</code> cannot be missed out and its disconnection is automatic. There is no way for a function to be called after being destroyed with this design.</p>

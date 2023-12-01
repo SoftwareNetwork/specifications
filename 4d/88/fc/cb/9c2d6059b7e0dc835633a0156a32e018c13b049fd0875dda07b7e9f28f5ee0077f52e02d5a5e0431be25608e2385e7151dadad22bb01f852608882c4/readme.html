@@ -1,0 +1,299 @@
+<h1 id="visit_struct">visit_struct</h1>
+<p><a href="http://travis-ci.org/cbeck88/visit_struct"><img src="https://travis-ci.org/cbeck88/visit_struct.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/cbeck88/visit_struct"><img src="https://ci.appveyor.com/api/projects/status/6ksqg7es938cttn2/branch/master?svg=true" alt="Appveyor status" /></a> <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Boost-blue.svg" alt="Boost licensed" /></a></p>
+<p>A header-only library providing <strong>structure visitors</strong> for C++11 and C++14.</p>
+<h2 id="motivation">Motivation</h2>
+<p>In C++ there is no built-in way to iterate over the members of a <code>struct</code> type.</p>
+<p>Oftentimes, an application may contain several small &quot;POD&quot; datatypes, and one would like to be able to easily serialize and deserialize, print them in debugging info, and so on. Usually, the programmer has to write a bunch of boilerplate for each one of these, listing the struct members over and over again.</p>
+<p>(This is only the most obvious use of structure visitors.)</p>
+<p>Naively one would like to be able to write something like:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span> &amp; member : my_struct) {
+  <span class="bu">std::</span>cerr &lt;&lt; member.name &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; member.value &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<p>However, this syntax can never be legal in C++, because when we iterate using a for loop, the iterator has a fixed static type, and <code>member.value</code> similarly has a fixed static type. But the struct member types must be allowed to vary.</p>
+<h2 id="visitors">Visitors</h2>
+<p>The usual way to overcome issues like that (without taking a performance hit) is to use the <em>visitor pattern</em>. For our purposes, a <em>visitor</em> is a generic callable object. Suppose our struct looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+  <span class="dt">int</span> a;
+  <span class="dt">float</span> b;
+  <span class="bu">std::</span>string c;
+};</code></pre></div>
+<p>and suppose we had a function like this, which calls the visitor <code>v</code> once for each member of the struct:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> V&gt;
+<span class="dt">void</span> visit(<span class="at">const</span> <span class="dt">my_type</span> &amp; my_struct, V &amp;&amp; v) {
+  v(<span class="st">&quot;a&quot;</span>, my_struct.a);
+  v(<span class="st">&quot;b&quot;</span>, my_struct.b);
+  v(<span class="st">&quot;c&quot;</span>, my_struct.c);
+}</code></pre></div>
+<p>(For comparison, see also the function <code>boost::apply_visitor</code> from the <code>boost::variant</code> library, which similarly applies a visitor to the value stored within a variant.)</p>
+<p>Then we can &quot;simulate&quot; the for-loop that we wanted to write in a variety of ways. For instance, we can make a template function out of the body of the for-loop and use that as a visitor.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+<span class="dt">void</span> log_func(<span class="at">const</span> <span class="dt">char</span> * name, <span class="at">const</span> T &amp; value) {
+  <span class="bu">std::</span>cerr &lt;&lt; name &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; value &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+visit(my_struct, log_func);</code></pre></div>
+<p>Using a template function here means that even though a struct may contain several different types, the compiler figures out which function to call at compile-time, and we don't do any run-time polymorphism -- the whole call can often be inlined.</p>
+<p>Basically we are solving the original problem in a very exact way -- there is no longer an explicit iterator, and each time the &quot;loop body&quot; can be instantiated with different types as needed.</p>
+<p>If the loop has internal state or &quot;output&quot;, we can use a function object (an object which overloads <code>operator()</code>) as the visitor, and collect the state in its members. Also in C++14 we have generic lambdas, which sometimes makes all this very terse.</p>
+<p>Additionally, while making a visitor is sometimes more verbose than you'd like, it has an added benefit that generic visitors can be used and reused many times. Often, when doing things like logging or serialization, you don't want each struct to get a different implementation or policy, you want to reuse the same code for all of them.</p>
+<h2 id="reflection">Reflection</h2>
+<p>So, if we have a template function <code>visit</code> for our struct, it may let us simplify code and promote code reuse.</p>
+<p>However, that means we still have to actually define <code>visit</code> for every struct we want to use it with, and possibly several versions of it, taking <code>const my_type &amp;</code>, <code>my_type &amp;</code>, <code>my_type &amp;&amp;</code>, and so on. That's also quite a bit of repetitive code, and the whole point of this is to reduce repetition.</p>
+<p>Again, ideally we would be able to do something totally generic, like,</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> S, <span class="kw">typename</span> V&gt;
+<span class="dt">void</span> for_each(S &amp;&amp; s, V &amp;&amp; v) {
+  <span class="co">// Insert magic here...</span>
+  <span class="cf">for</span> (<span class="kw">auto</span> &amp;&amp; member : s) {
+    v(member.name, member.value);
+  }
+}</code></pre></div>
+<p>where both the visitor and struct are template parameters, and use this to visit the members of any struct.</p>
+<p>Unfortunately, current versions of C++ <em>lack reflection</em>. It's not possible to <em>programmatically inspect</em> the list of members of a generic class type <code>S</code>, using templates or anything else standard, even if <code>S</code> is a complete type (in which case, the compiler obviously knows its members). If we're lucky we might get something like this in C++20, but right now there's no way to actually implement the fully generic <code>for_each</code>.</p>
+<p>This means that any implementation of <code>for_each</code> requires some help, usually in the form of <em>registration macros</em> or similar.</p>
+<h2 id="overview">Overview</h2>
+<p>This library permits the following syntax in a C++11 program:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+  <span class="dt">int</span> a;
+  <span class="dt">float</span> b;
+  <span class="bu">std::</span>string c;
+};
+
+VISITABLE_STRUCT(<span class="dt">my_type</span>, a, b, c);
+
+
+
+<span class="kw">struct</span> debug_printer {
+  <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char</span> * name, <span class="at">const</span> T &amp; value) {
+    <span class="bu">std::</span>cerr &lt;&lt; name &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; value &lt;&lt; <span class="bu">std::</span>endl;
+  }
+};
+
+<span class="dt">void</span> debug_print(<span class="at">const</span> <span class="dt">my_type</span> &amp; my_struct) {
+  visit_struct::for_each(my_struct, debug_printer{});
+}</code></pre></div>
+<p>Intuitively, you can think that the macro <code>VISITABLE_STRUCT</code> is defining overloads of <code>visit_struct::for_each</code> for your structure.</p>
+<p>In C++14 this can be made more succinct using a lambda:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> debug_print(<span class="at">const</span> <span class="dt">my_type</span> &amp; my_struct) {
+  visit_struct::for_each(my_struct,
+    [](<span class="at">const</span> <span class="dt">char</span> * name, <span class="at">const</span> <span class="kw">auto</span> &amp; value) {
+      <span class="bu">std::</span>cerr &lt;&lt; name &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; value &lt;&lt; <span class="bu">std::</span>endl;
+    });
+}</code></pre></div>
+<p>These two things, the macro <code>VISITABLE_STRUCT</code> and the function <code>visit_struct::for_each</code>, represent the most important functionality of the library.</p>
+<p>A nice feature of <code>visit_struct</code> is that <code>for_each</code> always respects the C++11 value category of it's arguments. That is, if <code>my_struct</code> is a const l-value reference, non-const l-value reference, or r-value reference, then <code>for_each</code> will pass each of the fields to the visitor correspondingly, and the visitor is also forwarded properly.</p>
+<p>It should be noted that there are already libraries that permit iterating over a structure like this, such as <code>boost::fusion</code>, which does this and much more. Or <code>boost::hana</code>, which is like a modern successor to <code>boost::fusion</code> which takes advantage of C++14.</p>
+<p>However, our library can be used as a single-header, header-only library with no external dependencies. The core <code>visit_struct.hpp</code> is in total about four hundred lines of code, depending on how you count, and is fully functional on its own. For some applications, <code>visit_struct</code> is all that you need.</p>
+<p>Additionally, the syntax for doing these kind of visitations is (IMO) a little nicer than in <code>fusion</code> or <code>hana</code>. And <code>visit_struct</code> has much better compiler support right now than <code>hana</code>. <code>hana</code> requires a high level of conformance to C++14. It only supports <code>gcc-6</code> and up for instance, and doesn't work with any versions of MSVC. (Its support on <code>clang</code> is quite good.) <code>visit_struct</code> can be used with many &quot;first generation C++11 compilers&quot; that are now quite old, like <code>gcc-4.8</code> and MSVC 2013.</p>
+<p><strong>Note:</strong> The macro <code>VISITABLE_STRUCT</code> must be used at filescope, an error will occur if it is used within a namespace. You can simply include the namespaces as part of the type, e.g.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">VISITABLE_STRUCT(foo::bar::baz, a, b, c);</code></pre></div>
+<h2 id="compatibility-with-boostfusion">Compatibility with <code>boost::fusion</code></h2>
+<p><strong>visit_struct</strong> also has support code so that it can be used with &quot;fusion-adapted structures&quot;. That is, any structure that <code>boost::fusion</code> knows about, can also be used with <code>visit_struct::for_each</code>, if you include the extra header.</p>
+<p><code>#include &lt;visit_struct/visit_struct_boost_fusion.hpp&gt;</code></p>
+<p>This compatability header means that you don't have to register a struct once with <code>fusion</code> and once with <code>visit_struct</code>. It may help if you are migrating from one library to the other.</p>
+<h2 id="compatiblity-with-boosthana">Compatiblity with <code>boost::hana</code></h2>
+<p><strong>visit_struct</strong> also has a similar compatibility header for <code>boost::hana</code>.</p>
+<p><code>#include &lt;visit_struct/visit_struct_boost_hana.hpp&gt;</code></p>
+<h2 id="intrusive-syntax">&quot;Intrusive&quot; Syntax</h2>
+<p>A drawback of the basic syntax is that you have to repeat the field member names.</p>
+<p>This introduces a maintenance burden: What if someone adds a field member and doesn't update the list?</p>
+<ol style="list-style-type: decimal">
+<li>It is possible to write a static assertion that all of the members are registered, by comparing sizeof the struct with what it should be given the known registered members. (See <a href="./test_fully_visitable.cpp">test_fully_visitable.cpp</a> )</li>
+<li>It may be <em>useful</em> to register only a subset of the field members for serialization.</li>
+<li>It may be a requirement for you that you cannot change the header where the struct is defined, and you still want to visit it, so the first syntax may be pretty much the only option for you.</li>
+</ol>
+<p>However, none of these changes the fact that with the first syntax, you have to write the names twice.</p>
+<p>If visit_struct were e.g. a clang plugin instead of a header-only library, then perhaps we could make the syntax look like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+  <span class="ex">__attribute__(</span><span class="st">&quot;visitable&quot;</span><span class="ex">) int a;</span>
+  <span class="ex">__attribute__(</span><span class="st">&quot;visitable&quot;</span><span class="ex">) float b;</span>
+  <span class="ex">__attribute__(</span><span class="st">&quot;visitable&quot;</span><span class="ex">) std::string c;</span>
+};
+
+<span class="dt">void</span> debug_print(<span class="at">const</span> <span class="dt">my_type</span> &amp; my_struct) {
+  <span class="fu">__builtin_visit_struct</span>(my_struct,
+    [](<span class="at">const</span> <span class="dt">char</span> * name, <span class="at">const</span> <span class="kw">auto</span> &amp; member) {
+      <span class="bu">std::</span>cout &lt;&lt; name &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; member &lt;&lt; <span class="bu">std::</span>endl;
+    });
+}</code></pre></div>
+<p>We don't offer a clang plugin like this, but we do offer an additional header, <code>visit_struct_intrusive.hpp</code> which uses macros to get pretty close to this syntax, and which is portable:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+  BEGIN_VISITABLES(<span class="dt">my_type</span>);
+  VISITABLE(<span class="dt">int</span>, a);
+  VISITABLE(<span class="dt">float</span>, b);
+  VISITABLE(<span class="bu">std::</span>string, c);
+  END_VISITABLES;
+};</code></pre></div>
+<p>This declares a structure which is essentially the same as</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+  <span class="dt">int</span> a;
+  <span class="dt">float</span> b;
+  <span class="bu">std::</span>string c;
+};</code></pre></div>
+<p>There are no additional data members defined within the type, although there are some &quot;secret&quot; static declarations which are occurring. (Basically, a bunch of typedef's.) That's why it's &quot;intrusive&quot;. There is still no run-time overhead.</p>
+<p>Each line above expands to a separate series of declarations within the body of <code>my_type</code>, and arbitrary other C++ declarations may appear between them.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> <span class="dt">my_type</span> {
+
+  <span class="dt">int</span> not_visitable;
+  <span class="dt">double</span> not_visitable_either;
+
+  BEGIN_VISITABLES(<span class="dt">my_type</span>);
+  VISITABLE(<span class="dt">int</span>, a);
+  VISITABLE(<span class="dt">float</span>, b);
+
+  <span class="kw">typedef</span> <span class="bu">std::</span>pair&lt;<span class="bu">std::</span>string, <span class="bu">std::</span>string&gt; spair;
+
+  VISITABLE(spair, p);
+
+  <span class="dt">void</span> do_nothing() <span class="at">const</span> { }
+
+  VISITABLE(<span class="bu">std::</span>string, c);
+
+  END_VISITABLES;
+};</code></pre></div>
+<p>When <code>visit_struct::for_each</code> is used, each member declared with <code>VISITABLE</code> will be visited, in the order that they are declared.</p>
+<p>The benefits of this version are that, you don't need to type all the member names twice, and you don't need to jump out of your namespaces back to filescope in order to register a struct. The main drawbacks are that this is still somewhat verbose, the implementation is a bit more complicated, and this one may not be useful in some cases, like if the struct you want to visit belongs to some other project and you can't change its definition.</p>
+<h2 id="binary-vistation">Binary Vistation</h2>
+<p><strong>visit_struct</strong> also supports visiting two instances of the same struct type at once.</p>
+<p>For instance, the function call</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::for_each(s1, s2, v);</code></pre></div>
+<p>is similar to</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">v(<span class="st">&quot;a&quot;</span>, s1.a, s2.a);
+v(<span class="st">&quot;b&quot;</span>, s1.b, s2.b);
+v(<span class="st">&quot;c&quot;</span>, s1.c, s2.c);</code></pre></div>
+<p>This is useful for implementing generic equality and comparison operators for visitable structures, for instance. Here's an example of a generic function <code>struct_eq</code> which compares any two visitable structures for equality using <code>operator ==</code> on each field, and which short-circuits properly.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> eq_visitor {
+  <span class="dt">bool</span> result = <span class="kw">true</span>;
+
+  <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">char</span> *, <span class="at">const</span> T &amp; t1, <span class="at">const</span> T &amp; t2) {
+    result = result &amp;&amp; (t1 == t2);
+  }
+};
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+<span class="dt">bool</span> struct_eq(<span class="at">const</span> T &amp; t1, <span class="at">const</span> T &amp; t2) {
+  eq_visitor vis;
+  visit_struct::for_each(t1, t2, vis);
+  <span class="cf">return</span> vis.result;
+}</code></pre></div>
+<p>On clang 3.5 with a simple example, this compiles the same assembly as a hand-rolled equality operator. See it on <a href="https://gcc.godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAKxAEZSBnVAV2OUxAHIB6bgaj4QAwgEo%2BQ1AAcAnsTzAEBPgCYADLQCsfALQr1AdnEI5DIpISZifAEKZkAawCkqgILOXvAQBE8puQCNmAkx0PmYAOywrAgsbVFRTPgBlVAAzAgB3AENiTD4AGTx2cIZMUj4ANUsGPFRwvloAOlVGwSTMPKzkNABbSSzw6Txw4HdPPlS8ABs8/IBJIWwAOSTsPhI%2BNBk%2BLKVFAkkQXgyTxv9400aSYG55xZXsAH1aR5aCAA8CEXcf5QBmPCpSKYVKVOZJOYAFUeSUhACUAKpCaEACQACmjHnMlkJ8givNgvL8/lhJuE8hVwVCYfCkaiMVicXiCUTXGMAFSc9x8dl8NHEVAANzwWAYOwmXWmhGkfCIfCwyCmOU6fD8zGQBFYnTFjmUymFNQIWX8M11yh2kR2kkkUxlWT4BsIJG5vLlhFakNiU18SjSfB6mB6/mqfF84t6kmmmG0BDwAflu3tao1WvKA1CMUseTD4VQLr4xAiMbjeSFlgsWXQjRd3B%2BbP%2Bw0VzCwfEcfyEQSlBGkbewxMbU2beTbQm7kkwjwIxCyhAYvbrHn4ADENgBZJIVIR6Wh/VXMa0kAjlDJ5SRBTZ1UyYd6SKzBhDDUL20nDTDVtn13eA4GgykQ6GwoiyKPEIADyKyQtgAAaaJwsSAihqCEAvuSoSPOuQiPBU2BwmIuoAGwEYI6FJJh2Fwq27Ztl4DQAByqKo3yfghAgoRSVIAbSwFgRB0GwfBAiYFMpQCQhbFgv%2BNJAdCPGwnxFFoCUwQ3sQomYJEgLwep%2BCpAunguOkljiLq1gmbQAAssqxFk1q2o8jpEFYqQRBqtT1MgAx8MGF5Kdet7voufAAOp5EaxDAJgShCCZZn0F554MOqCATC5saXjsuSylkwARaEf7UoBdIgVBUEWSB4FyTBcIBfB36khJBVcTJJVlbJkFVaJgKCMhIKvmhGFYTheHKIRI3EQN5GUdFfw0bQACcDEiHh%2BjRStghgGAbFoY8yA2swDB7Qwy2rVuECPDth2HZRRIzdutCqH8%2BRMW4/wsfKvXkg1nHScVpXmeVvEdcxgnCZgomsR97GSYV3Etf9bXyT5V4qWpGm6cx2maR%2BLjhFkAYHV0eQOY8yZKI4%2BimdjuP4/07CytOs6thTen8PycY5DKwR9EqwR8BkD7IMlYYHXYeBZN6ABeISyqgBaYMAPpGfaY5g64XM2rsw7tir1N5JC5Q63jeTLC41j5Gs1EOqgIrzq4pMOr4hDGqafyU24rieCiQnjtEgYa7z/NFMlgt2PYYpdcr0jjqGYq5ArV65Og7jqzzWujlH6lG3w%2Buyhnut8CbZsW7dgrW0nfx9nbU7qkovj2Y7RomnkICqgQ6AgCAqTi6Uk4Z0zpn6DdbvJ37qdTYb8aQrbLj23XDnO2D7b69yb2r2vufjvnpjtyAmdN48mnawzBAMB389NyOU8V2f4vMIv2Adyr098C32%2BP4WE4q/35NDyzfBe1MH2spR6az5gLZKuQehljFMgQUFpQi5FSFmcIdNUgCh6OKL%2BEAGBZEFJgMUTB4xjmGMAZ6KdQEjgnnrae9tFSYE8uTN2AgVb1Soa3HekCyw7UFJQvOWc34gE4Xgx4iDkHsEvr2R%2BGdJEgC/k/V2PxB5tmHmrEBvNeGbyzlfSuLh9okM2DMAYk5rob0zvGOhAwJHX1kdIhR2NPCrmGHgbQeDiA1DqOsUEAjehQPCL3aOEATzrHCLaOWABHZgeBMrRWUKZWJtBaBkLUWnNhOc2EIhodXDUF4ei%2BP8cOZmrhmEZ3qgqKYKsIDVy1kudhHcymCnFlY7AEAxCvzbnUuwUwGlTBHBkiuLSxDyOHkoux7s3CDz4J4bSfBdYEzplOGcJ8/6QmyhMDYRpgDyl8P0AggsR7cwodrPhk9MmFmySrHa/cwg1BGKYkxV9rBM1/vY/gLhuj4KYNEDOLdnIoLSvUVA/gqB2CUOpDykhEo830faSQ1twjBGIDGVA2gAxBksPs/2KTjl5FXIGNEU5yi4p6PiqwkgpynJrjsd5DBPnfyKcAg56ijmaJORXFe%2BVvpFQRlVHYQRZZSEsLsEgLSICQlbCNIiXwkZKG0L2d6ioKkCNSCQbIxBy7Il7JUkQjR2RkuIMtJhCFciamIPUJVKqcjqu0VqnVerlErx/oo55YzeBjH4AiUoiLhgIq7uIj2tYXl8DhJFVg9RwjMDRVYP0kwhLoHDvUe058ZitzOQQDFY8NFmLyEkaeHKpJcoqu1WCtSQA1ClsYmNUx0A7RYPClpijDXGtDfTRZp8QBJsXqOY%2BbaLF%2BLTe2HNbLrGVurWgCI/bhmsjGeQpl6cWXZtzRxfN3FC2IwEWWz%2BEw8CxpreOiASRxWjXwgauWJr6gjt3fCkcg7mnfFdk8hcbqrQ2mkPXQ0GwIB1DyLPJSAx2BJMZVi%2BdyQDbYsqIu6GTVfqtVXTyrIfLn12QcsKioh6iKCnKAegiREjo6GfqYre7Td6433ofaK9L14IQWbODuc8G4L0od2juvbJzXvnNY7pd8V6UZkU/NkhSXDMKY%2B2%2BjF8j6tuY4YvtbGh0PxADZF92CiPKuIKq9VFRNWChEOUc1qnLUyeaUdO9k6/4KaQw3D9mRZY/tMH%2B/BAHMXjzA0kOKbCkjKFA8BjTbLXB5phs1P6ANKrFvg3KMzr7kPEAgKh7DY0MPJFoGhsaDA4ruaS/hVUygxCyp84Jgj/CiN7xmAfXSVEKOUZbTRkAdHDQMbK3lirVHhMsf7XOrNlWT7MdQLkuo%2BTr2peULx2xOjGsCBkZx1WDX15DfHA2leejbk%2BN61h26bDqOdZQN1vJ8ihAucw4N6xQyV7rbbR2xjEmUBSdY%2B2Jbfib0yPC0pneKm1Mjm880rTpBuOjZ%2B790bunXsDtoJqlL2nvt/Yh5DgQAP9MDoO4ZrLxmnV/xU48ehgtBAuHKZYXGvMGDSHhVkd4ayrDhbfU6MgctXGlDFCQKIniMrAAjepE%2BDmM3MvaxUTz7X7u%2BaXf56D8NYMhYQ6j9HCB93pdVOUGLEq4vZfw2wgRRWJxkfB%2BvE7tGGDk8bi7LtF2WsGfG7fSbjWZuTcYcd4TZ3xNVcNwO9jcnHsw7VW9zT2mS0vdh7tkHS17X8anU%2BsXXRkoZEIMlKzKaa5alDL%2BlB%2BD02HLa/nPb%2BX4zue5/nd77g/NQaEHDILRaKKhdlsHwW%2B7EuxYyyl/bUuGAecqFLrTeHcvFOA8rkjxW1flco5r6r2ubfkam41vv9vk9Z1H1t3rO3U/ufN/hs3HGTfq7evP/jhqFubNuzCExa3mtT77bY3bA35%2BjKExdwfo%2Brute3/d6xzvlMWtd%2B2d7EBPsr6h5/irLv1UuZB4kr7HvL/YA9eH/a9eHbBRHf3cZQPf1SoBuKyUKDOMUN/BuEmLJAgKRccHaEcRoPA3sMQP0TMOWeOBFaWVFYMNxRPWdNzTPLObPPnSDH6fPQLblEXOUYmFWBgaLJvBXVvNPb9QrTvVXUrIfH7PvGrJ2MTfXO3a/I3JfQcU3CrNfcZQ1PvS/ZrOQh3WTM%2BNArgp7DuL3Z/IQV/LTJHAPP%2BCoBA4gigoyWFb1EMCAAiJIDuLIQg0EYguORWROf0QMSgucVRQDJzYDJIOg%2BMBglwXPZggvNg4vBDYmew%2BFaoHgqvB0PgkbAQktFXErEcD/N6CQgfUTPXK/ehaTbQvsBQrjIA1fQ7aRdfK3C/IoztEooxVrO/OTBIuFBFbgsAl/d3cwmAyw6w6yalT5FA35VyDxQFYFDUXDIg2ILwhOcgvw6oagoDHnMIikCDRqaI1g4XOIjgtArodgGlEgbg2XI9NIlvDIpXIQheHI%2BrcQ4TSQ3XZozQ0o67H3HQ9tZfaoliFQy3eldQpo87WQj4tox3XQw0R4Y4j5M4gwzuJ/dTfo6Ax1bGJ9FwWyGUSLQQMPGIGZWWYYWzePI6J9T0MMDyKYYSB2aExI7o8oFTLyLoewNTGBbrHZOWLIJgEoNY4IjYzIiIqIrlGI/Y3lMLLEnXFDXg6447MDDve47vYfDXZ4wo2raQlosor4iojo34pUmouTPjVQleYmUmKEwgR4Ok1Y8ohEow5E/pMw1EpRdEuAgAcUigdBNy8hlEfGvEEG9HsEEJ3giiUEZM1BtHs15JHG9VDHQHeE2OSG2M5RXUBnYNlmDMl1SNwxyxuLlLuNI1ELyJYgKJ1zqxkI2zH3aJvkUMAL1NXjKQqWBLVOKPeNaPkLk2DPshNwRIcOAGnCmBrTj1a29XKBFHeHnGZkHh00fz02MJvWwSWmekXwNLqKNPpSbVNQ61OxBNt3LK0K1JkQ7Im27KSN7PFgHOJKHPhRHNjPHIHi8CnOeyRIM3nIGLRJdX4DdKUHzmjW3SrXKH8G9OBDHMCMcyjPhRjLjMyN50iP5zz1FJLz4A7N1haRlKBNzJ3myMVKeIuxeNLI1M%2BMrJ%2BOrMLLEk6QbOt23LLJ7T3MIqQqNmPOCFPP7MUgvLAqPAgtvJ/j9z%2BIQgBIEwEHXPqEbKkObINxoshJADooDAYvlj7PPKNCvXbGHI4rZQnK8FfKdOnWSSmmjNHPjOgqFOTOCwOLTMikeGQqwzl2PWuPlXKQzmgDMt1ijNjMw01SWjpTy0EsQscqNmcsgrnI0tgMCk/N8MjT4EtMpwAtjywGApcBnTTl0pcqgsTOXRkngoQw7IipQuzNlPbzzK7wLJ4qLJVJLPVJbM1MIomxrJ%2B3rPsuEteNBN3PBLbI7kyq6MsBkqYvkoGEvPYtHM4sHm4trN4tqNm3qLXJDQ3PqrwvKoIokraocKiwER7LkpYoUt6uvLHNUrvMCoXHip0vAr0uSty0MrSpTJMu8oIAtPaqi0sqPXSNsoqQWqSNUiUqSoCoNRXi8ueoRT8tcv6V2sDRCtsNJ1GJIH/MApisjKUsOqSrcxSoF1iLFNMquthNOKi3SNyva3lPzNyKKqaxwtVJEreLEuavKON2IvxohgVTqooqbJJrBNbPJusQ7LRs%2BU6tWsvHWrYs2oGvUsXOUNGot34tPWbWmrKtJqZv3JZrMrZuFWWpPM5sHJ5pUr7DUsBq0qCLYogv0oRrgvOuRsuphLBtuvSwetqvHActRpNr%2BoTIBs%2BomrPSNrlteqECOoCsdKCs8BCpVghuiuvGhrdthsgvhty3tguV2BJg8oEE31MUuUtgtswEqTpuJsauorJuluXOwN2A5rPLWp6pVv6u2q4oGJjpuU2S/ktjWwzh2iwMXhM1GUDsSpDuc2nljojrJlWzAw7pJltpvTrtRNdPdO/K8QwK1EDtDp0VOsL0RgQqkqTsxrQryowuEIeLENG2LI0MloqokqqpIuprsstvFtEsZp3u%2BPnoGRIr4sbUmqEpToap3PTqltop8uko1ontbpOtguYPSrlAvruoInNrIvsvnufPcsBM8tvqNqcutPfo9k5HZHzEhEJO5kDBZ0QK%2BlNnNlSv9C6AFGPDyHJGlntB6BshRTwdQGPHAU2E8iNADPzGIJHvFFIeQAFHgVVG61LEzFJ3CmZ3hQYDTEtHCysl2FwdYdljlHF3WG4cZz4YIACh5CQYsEymVA4aITsAQHCDwAiXwT4GkBYBofqH2jyDxIfHqC3FvEwFvFQBONpTC26HZO9AYAjwfAIXVGQEbAIFtGqt5CitKAIAIFuX3HFWUFyGQFYBqDwTNDEYFAYAUcQaKV5GsHPBiApM8m7llg8mMdDCUD/rwDwT5jOLyEsAFCsHxhwQijFH5nUjUcijMc2WAFQF0YyAFBGHifzBCgykIdQAyHlDhU2UIFj2YZIGHD1HQAjX8DNH/OYCpMimsb9GyBlEDgxwQC5IwcrAaUJwihEdrlrgCME15CgUylhWIFePYYVjwTFGDACaMhKY2HKeynwXib4BXCsHwAYHCZpTclVA6D4DmFXDRHNlXGWEhBcEhDmHAkeCWFAkgiSEaB6CTkSaUbyDQBbGDCmB6ZjiZNKFCA8RhV2AxzQW6z4AACkcgMBzIG90wsXcxemIpyRpxghQgoqYVpAYgPEPm5AyVnnPRTxWBYVSgGdiD6XBUmWLwWwww5RxJp6GRVwXA0QdgxRRRWG8Bgwqwaw9IEG%2BA3SGXNZQhUW8gEGA0xlbNYxkAvpUqZ6eU1rY8lBSH3hSrisQadRbp8I5pB6XoSRIYLWBc%2BIXAlgvAIB3gxBYrdQvWyQoYdiioGQXA4QXSoWIBWwNB17V5nhyhHgG9Hg/h03zJ02NB038J039B03aJ025p037ovtk2P9ng4pnhM2dwK3c2%2BBnh82W3aBC323i323S323y2W21Aq2U23oM2629R03/gJ3m2M222M3O2M3u2M3e2M3%2B2s3VAh2a2/g62/hM2/hs2W2/hp2/hZ2/h52/hF2/hl2/hV3zJ13HBq2/jHhzI63KWc392n3p3zJZ3zJ53zJF3zJl3zJV2NA72H3azHgNA62NBM2NB32NBp2NBZ2NB52NBF2NBl2NBV38JQPh2WJHh8I638JM38J338Jp38JZ38J538JF38Jl23Xyglhyg8DGgxAlhiRpXv7o3MQlhY2XSIAWOxBp6/WA3osuPgIY242E3zoKgXBHg%2BOkhzpygk3cOEIGO%2BA6PygaOtPO2KOtPm2SOtOG8COtP12xswP15MPyh0PrPu3kPrO234PrP93oPrO4oQPlP73VOBAgPygAO/Pu2f2/O23zJm3zJ93X2%2BBn2/OzOVOP9r3yhL3Evu3T3Eu23D3Ev92d3Eu4o/hYuvOP9lB%2B3lBe3lBu2RpyhlA23lBm3J2VAG9lA4pB3zPvOGh%2B3aBe3aBu2O3yhNBevm3G2GgG8Elev8uLO15%2B3e3u3O2QvEvKvevyhGJnoOQZkOhQhrwFk%2BAZg8EpgZYSc6YNvpw%2BBMBukeRjWw3OOmCC0cQwXHgIAshSB/AxB7Qw2w2vIOPvXp6eIhAwX7vHuhPxOzqfvoQ/unvH1/hLuo3gJ5XAWABNJcVQCAVIZbiHz7wH%2BTjEfIeH2gJH0gZ4MQVIM6RJD7iNn1qDGHrHpcZQXHtNjNgnon%2Bnunkn18Mnn6Cn%2BHv4Gn%2BgDNvHv4RnxJCYM6LLQXrNlH8Nln6e9npccyLnvHjzLNvH8yfnxn4Xwn0XkXpX5nz6SXzH%2BHjQWXnnhXp9vHjQZXkX1Xs6PnjXxn03rXyNpM6EKX/CA3%2BX7N43iDvH6ytXgXtXi39XtXpXkX03kX49O31noqKX/QF33nxXk3z3vH/QM333xnq3gPm3xnr3s6RPsPnXuHpcWiaPo33Nj3/DhPvH2iJPoXlPxnwPtX4PtXzPx4RPkXivnP9HqXuaQvt34v/N0vpv8vvHuaSvunkX1Ps6Wvs6evs6Rv5vtXivkXoftvq76H3Xpce6Lv2Pkvwt/vx4Utx4ct54RiEXn3qv0fmv9PkPxn2fs6eftXof4/xiJfqHx31fhJDf933v7f4t3fwfvHyt2t4fn7zH5PsL%2BDfK/oz1v5nR7%2B3vI/t72J6fhIeDvDHnn1oDU9Ugf/OXjHw/7x8d%2Be/A/v/xG71tAB1fa3kHwz7gCW%2BjPaAUT1gFE8T%2BRAp/kgKl47h3%2BPfHAd/zwF/912tbP/vLx3DECz%2BpAuvuQJF7X9d%2BVA/nrQIAHH8/e/AxgZa2YEy90BtPV3pv0/5l8f%2B%2B/LgX/256oC/%2BbvCyAILV7ACJ%2BEHEQWrzEGQD9%2Bkg/nvQNQH89gBhg%2BQQLmYH69lB3PVQdgL74cDf%2Bh/HQbwP0F/9i%2BmgIwZb3P5kDL%2BogiARIIf62D%2BesgxwaYJCHODyer/Z3u4MwFF84%2B3ggfloL8E8D62gQ54MEN74dtQh/vcfqAOn4UC5%2BMQmAXEJkEOD%2BeSQqfs8FD4IC0ey/F/igKj4ZDDe3fbIV/1yH4DuBhAvQc8AMElC/%2B2/LruUJMFVD8ONQm/nUJoENDveCQ5ofz1aFlDj%2B2fDoaT1z6U8OurAwYRoM4H5CxhfAyYX/1KEzDv%2BHXOYeEOEGRCLB0QhfjYOP52CNhx/Fofz0b6zDj%2BrffYRL3b6v9O%2BfQzwWwJyGaCRh/gwoRMKCE3Dphf/e4Xv3miPChBk/cwVnzeF38PhcA%2BIU0J%2BFbC/h/PMQQ8OP6L9gR2vUEXnzUAnCt%2BZw3wQQN0FXDERrbZEc8FRF/8D%2BagDEWnwiFgCohlA94bEM%2BGEjj%2BiQkkcf3%2BHkirB6I83o/2pH28FBq/RrgyPUG4DmRow1kUUIshIi2hKIv/miN5HcDGu/IyoYKOqHCjahoo%2BoeKMaGSjNhx/bYbKP57yjqBGbKQeaJSFs81RaAjAf0LUHsDhh2ggoeMMbbFCDRPXLkcaJ5Fy8zRHg2QSrxIECjnhQo14SKLxFiiCRjo73lKJdGkjdh7o/np6L5Hm96BeoMXogNVF0jOeEIrAVCKGEwiwxlwvUVMMNGxjngJohMXLyTFy9HBKYwQWmKxEvCcRWYqAfiLoESj8xzo73q6LJEljKRKvb0ZWL97/BqxnQ5/sgMp41cNRIYlsRcN1EIioxHIzsV1zjHPBTRfYuXvL0nYZskhQ44wU8NHEZjxxto7MfaNzHrCiR3vX4TKMXGAjSxK4lXmuJV7ACaum4g4bSN3FuDAxkI04VqLyEsiAhJ4/UWeJjEXjux8Yr0TeIzZ3i3eNXOXtsKfFhDMRZgscU31xGTicx04vMUTwLHziix3vOUcBMVGgSVe64iCaYKq5QSQRXQncfDxGj7joR5wlCfCMjHoS%2Bu547kVeN7GjtbxA4uXsXyq5y9/hpEioSAKtGLCbRywu0asIdE/inRxIwsQBOLFATlx7EisZxPAkq8eJrQkaHxJpECSpeZXESc2LEk6jUJkkjsZhNknzR5JjXRSRm0IkqTe%2BFXBdhaK0npjrRmYj8TRK/F0SjJs4kyUxLMksSlx3vMsauJsnm9uJKvByY3zK5OSVRLgtUQXwbFZDGRSE2EeGLZGnjpJfky8QFNwkKT8JSkh8cRLUly9v%2BJXKKaYNaEz9qJ1g2idIOSkMS5xRPBceZO94eiQJ1k83lxLskFSVeRUsQX1N9ER81R4I%2BCY2MQk%2BDkJXkiSdcIwl3Dmp14tqeOxCnKSupc7HqXLz35Fd%2BpCwoaROJGmJSxpRPb4X%2BOlHe83RFkrKfNN95gS8py083oVJV7rSrBT0zaSvzz55d3JTIw6XCIjEnTGpZ07CXJNalBT2p10zqTO26kLsHpcvA/nl2enaTXp8U96QZO/FfTfxRPf8X9MAmzS2JvvHKYtNsnm97Jq0yGSr2hmeiyZsM7oZTy3aIyaprY48T5OjEYyOuOEwdpdIIk3SCZd0omUuxJm89uBW7cmTFJ0lxS9Jn4mmUlLpnGSfppkpmTNKJ5zSrJwM3Kb73yngyeZ5vKGSrwFlSCtZQswSUuB3ZiyDptUtsWhN8kyyex2M/sXjKInKyIpZXYmSuw1m89ueO7bWa%2BNinvj9ZCUw2Z9KIEmyGZv0onv9JZmWS2ZHEjmaDK5krTzea0vmS7JT5uz6BCcj2VLz3Y%2BzQxR47yWjNuFGjMZLU%2BWTjKun3jw5qklWVHLVkxy12cc3nq70HHm9UxlonWZTNTnUzD%2Baw42SlNNlpTzZGUgGUT2ylFzfeS00uQ7PLm8zze/M6uSn1rlAC%2Be9c1foeybmHjxJqM9kejI7myysZ3c0OX3LCmEyh5JXdWaPKzbxyJ5vPR8VPOHEzyk5uslOeIP0mLzDJy8iaalKmnMSierEguUL3Zm7zOZvvbmYfKdmVzzerss%2BSnwvkp9Neyo8PnDJFlwSVBe06qb7IlmtzH57crsS/K7mJjgpH826ZHN6mPTSZmsgBbzzd4Zcs2JEkBc%2BPImDSlhUCg2TAtpmZyV52cs2bnOZmWzWZaCneULz3lYKy5vvCucfKrmj8a5RClPsAMPYp9beZCw4Rz3SG7SqpmouhS3OOmMLORWElhRdJ7mKz8ZA8rhdHKK6xz/548gRUAt5699T2iciiW%2BKolvTPR90JeXIvgWrzEF6U5BZlK3lAyheIMu2WDN94QzcFei/BafNH7nzjFJCsxSn3aGesaxZU%2BGb0JsUDDaFzc%2B%2BfVKklMKXFwct%2BewtCmcLt%2B38nhX4q3YBKs2gi4vse157b9z2YSiRbpKkVpyZFRsuJRMMmmtskFXIlJVeLSWjtbZQve2dksdm%2B9nZ%2BSgxYQtH7ELR%2Bpg49mUpT57CKlW4pgdfIqm1Lgxok7USjKaWBzn5bSthbjI4URzul3C3%2BXlzHlZtAFWbYZSErGXf9L2Ey7EZEqpnRKpBCSGcfEoUVrylFFs7saoq9HqL8JmCoXtgp0VHzfeJ8w5YUqMWj8TFZy1oaEtH5iDIVV8%2BGTtOoW2KDxnkl5e2OlnvK5Zny3uZ0p%2BX3Th5viv%2Bf0qBWBKQVwS0ZbzwhV79r2UKyiZYJWGzKM59grOcUJzltDlF6K1BZioWkYKS5Wig%2BfityWEr9FxgwxccuKWnLSlo/RvuMtH5WDpVdKynre1vksq6pbK06RytflcqPF/c8Kb8p8W8LAV2XQZUEuEXiqs2kq3ngf1vYyqIlcq6BTEtgXzL%2BBCCpZUkpWWby1l1s9JZspClZKheOSvZXgt94EKSVZqslSUtH6UrrVNKu1Z6OjUOr4ez7Z1c8tdUBz2VzCj5XhO5VKyvFfq/lQGv8XCrg1oq0NVm3BW88pVUa7gc%2BxjXJyYV88uFbEqVXyKVViitVWiopGAys1Gy4uZkv3k7KcFhavJcWoKXGCil5ai1ZWouXUqU%2BtamvlIJnUNrpeAYxlXUrsUNKjpD8hqS0v8luL35PK3tXyp/kjyAVg6oNXuxDUjKx1EqidZGsV7TruelLWdRAvnXTKF5Ca2RcuqRWrqUV66jefnK3WFztVGinFQ%2BO0VC9dFRqg5SaqOXGCTlxgildeuME1qU%2Bdah9fQKQ1Prwuza5Ga2qlnuqO1nKrtd6s/mDy/lIGvhQMog0jqoNqXcNbBqzZTrFeiG%2BXuF2Q1zy0Ni6xNVhoWUpqQhaagEQRtSXbrzRu6rZXmpna7Khe%2Byk9cSrPWkrjB5Ky1cYOrW3rWN96mvhxr95qauNSgh5V4I8ktr/Z/Gp%2BYJs9XCaOpPqr%2BeJoFWgahV4GoZWKug3yas2k6%2BDcpsV6qbu%2BwC5PqAuingKNNVgrTZhu%2BnIrEl685JRmoVFEabZZm3NfuvzVWbIpx6oXiWvs1lrHNFa4wVWsuVubR%2BbGzzTX280mDSF1y6CS5NX5fseNfsyWW3OcW/rAp/6ntb6qA29LBV/C4dUItk3jrUtcGp9ghsy2K9stivERblrEUjjwlc6uNdIow1zKdNyahJamoq3pqjNmamrdmrq0biGtlmw9dZqLWtbT1lvc9Z1svXdamNlvFjf1o80a8vNNfEbTX3MVjb%2BJ24qXj%2B2m30LHF36%2BbedMW0dLlt0W/1X0o23SattYKmDbtsU3pan2Kmo7Yr2L5ftFe6k0RWRIu2TK9ZmmqcYqtK04bytqK/DSos1XljatOqvdXqoPUGqj1VG2zTRtLV0bzVDG5zZb1c22r3NGvdjUNrh019TBX7GvuUou43Laxjqmpa%2BseWBbeNwWubTJJx0hy8dnilbarOA2xbJNQ6knaCrDXnsFNCXfbRlqfZZa6dJ2xnYr3JEaT5hFMyRUVs50Ir6Jumx7fpue2GaBdhGtRcRuxW6rcV5GudgSqF5EqZd7WuXReoV1XqrVvWlXVDrV2DaNew2rXQjt1018rl%2Bu8bSjsm33KTdAWpGTNoYVY6rdncv9bbqi1ibCd62qTYltHVyaPdFOr3bex92vsn2x2p9r3yC5Ptv%2BAHdTeHvlW3aud9MnnU9r52VbXt1W5PcLpI1p6yN%2BqijVnqXbGrLepq/PSDsL1g7i9N60vcYIG0w6NdGveHRr1aE/s69NfIEUjuclN68%2BQHdHQ4q/XNLsdPe3HV8oA326el/y53Qlsg1k6UtSXSnd7up2HbZ9/u%2BfYHqX2K89%2BQHVfVMoj2jSo940mPWVp314a99ie4ze9p3Ui7zN323ib9ua1S6AddmoHQ5st5Oai9LmkvcYLvXl639lezXRr213f7G%2Bf7P/TXypEAHSpqQvPiB1AONK3VoW1pUJoVmRbRN3i/tUTuH3IH3dEa9A1PswO%2B7adH7APU%2B235/sCDivA/iB2IPs7SDH08g3AsoPb649u%2Bl7XQbe2H6PtTB%2BrWLsa1sHipLWldoDv/k8HBlXWy3j1qf1CHVdAfdXWIY/3V6v9tejXmIJX0a9PRThp9ZB1UOfrXl7azQ%2BFu0NhzdDfax3QOvi3ArSdxhz3UpvMMz7wuOBhnTYaD32Gn2jh7gZB2cOQLXD6c9w0msYm86aDvhjVUnq1VH7U9ou9PWfsz2Grs9V%2BtdrRst70bLejGx/cxr60v7odAfWHekYkM16Ne0hnI1YKINB8pBAxwoy%2Bo8E0L31d8ko%2BoZ/XW72lMB/HQPv0ND6XdI%2B7beTrQOT6DtFh7A1YdwNdH8DT7Qg30ZN7c9oOgx1DcMYVWjH7t4x6gzsP53TH6DARxg8foWOn7xd5%2BlY5fuo3X6NjQK%2BXdscV1jrBDlvYQykYr0B8q9pxzI%2Bcd/0a8rj%2BR24/QMROFH6x/mpse3ox3gG3lYW1hRFqqNdLVtCBwNQ0bd3Jbx9wJlo9FzBPtGITnRxfXYZhMOGTe/RhE/L1g5InrtMyjfWie52GC11WJ2gzif8OzHAjBJ5gyEZ%2B0S6/tERp6VweiMdbeDcR4ReDvDX7HLer%2Bo4%2B/oD6f6A%2BUhzkwH25M29eTNvP3sacKN%2BbW9wp8WWAdKMCbyjkpyo98sA0O61tcW4nQCZQPKm0tGBtU20bn1anbDy%2B2E/qfhMm8jTbveDiaeGnFa7tlpxmT4YT12mD9Dp/E/MedOLHiTyxyXasfJPrHZdmx6kyCtpNUq9jz%2B4M4cfH7HHwzGRyM1kYD6XG5DcZm3nycTPADWzhRqhY8aZVPLzds2pxd3tcXQHu1dugnb8aLOGGZNpZkwyCen1%2B7NTC%2B2sz0d84QcDTTZk3i2Z76nbT%2B52sBZdpQ2mn0N8Kr4VvqtO4abTUxzdbiYHOmagjX2l06wbdPsGJz0uik9OapMF6aT/BpXfSdS3JHx%2BqRlk%2BIYD6SGtz4/Hc3kb3NB8DzNvI8wNMR0N7kdty5Q9YtTP7SP1rKttVmYW026vjD5n47UYMP/GjDSp986qZp3gnQu1h7U3Wb1MAXGzEHZsyb1Asm8mdZ2lnZBbZ1DH19cFxFZ4cQsTHkLvZ1C/aaF2OmhzwRkc6EdwvhGODkRr01rJ9OxHQd8RgMzaqSNl6mToh2iycfotnGA%2BFx2QyxZuP7mEzHFm3lxZt567Uejevi5T1Q7FGRLIW941AYkv3n%2B9ehmS38aQOvmmjE%2BpS1gY1OqXIT6lv83CYg6GngLelk3r33s4Qdg9zOzSQNOhUwWOzm%2B5VdZcxN5y/D/Zxy4OarEn7IJSxxyaSb6mTmyZRFhOSRbnNkW6TiRhk1Rf23Mnx%2BrJyK%2ByeivRnx%2BsZ%2BK2xcStB9OLNvVochxt7170rvFw3Xrxb1nm31zKoLVea71NSCrnxoq9UdlMSb5TIqxowpeaNU7KzX5uqzWe6O6nejDZ5q0BYg4gX2rBlk3t/3Q5tmolke%2BC8Ne7OTG7LVshgxhadMuWiTblkk%2BObJMEWpzeemc2tdMUbWFzEOoM4ppXPU6wz4/CM%2BPyjPZHYrAfHkwlaD6HnkrN11K/dZt7/6eLgBzK3rwZVvXTdIpjM28cgO3nCrImmUwWblNgaFTSWsfYpYhvKXar9On87Df87w2tLiNnS61Yg76WIO2/VDibz36YcsbsKnG5ZYe1UHvDBNlBTMcmsk3nLWF1y66cpvunPLnp3Pdwd8t7s/T5y3YyzaXNs2RDoZtI%2BubZObmOTfNrk7ufOt192LV10W0H1uuN9UOktm3vIeluKG/RefbDjlb42W6fratv6xrd5Va2gbOtkG4qf1vg2KzRt6s6behPm3/zHnK2652RttWIOHVh2xjedsH9sOrthde7ej2e2vD007E/ZYmvoLSbQd8myHbHNh38LnByO96dv2%2Bn/L/p%2BO4GcTvSrk7q5zm7Po3M83GLS%2B/m%2BP0FsXXhbSVoPilaD4l2xBmNoPp6PntPqCOddi3decbudrczsBx86VefNyWKrYNqq4bZqv928DOpoe01cg5I3YOE9xDmja6tO2Tec97gQRwXsc6yDuNldSNe9u2XfbaF/2xkuHO72cLodvC9TaPuEW6bxFu/aRYf0CGtrlFkK9Rb2u%2B66L4/Bi5ne3Ov3ejrFvO5dbr7XWi74toPv/asEu2Q%2BUgshyA4eOZD3rF5jvZjogM3moH7inQ5rfgPt36jndvWztpVMoP1TaDqExg/rOW3sH1t8e7bdRv230bRDiDiQ897c8iO5DlE%2BaaofYaaHa920xve3kp7prhJ2a6OfmtU3FrNN5a9w9Wu8P1r/D8i4I8hXCPdrYV/a%2BI4/ZRXx%2BMV7O3Fbr7xnP7Bd7%2B2Ld/sS2g%2B6joB1o/oHBOQHgpwS/UpeO5WG7QcrQ2Y%2BlOt3LHTu4G5tq7t2PyzZhyG5YehsD2XHmlke%2B47Hu4OvHk9gh47Yg6z3PepDoJ/LxI4hPzLS6rs6qroerLN7WK%2BJ8w8ScU3977D1J5w9ptR3T7fl%2B/QFcvtBXtrBT6NUU7EcRWJHZTmwydZhM53qnQtuviLfqfKPGnqjsu4A4z5tOM%2BfvQ5yA5TMK2296ZtQ6JY0PiXm75jkZzFrqPFn5L3d5B73dQcdGFnGli28s5aueOnOGznx4Q%2B2fEPdngTz3gc7d5kcjn8aiy8vYxO0OxrfZ2J3Meudk3bne95JwfY4deXj7Pl15zHfPtx2BHi54Kwcdvsc3U7XNx%2B/PufsyHKnAtuR5P3zuKPC7dfYu007r4tPEXGfdpyi%2BAE8uQHp5vR4raxevGcX%2BVpu16oJf5nRnxLl86DbJf2OKXjjql%2Bg5pfD3ALHjtZ4y/wfMutnNnfx%2By/w77PPe3L4vhR15c3b%2BXFBle5E%2BWWE2MVjDnNTvclesP7nHlw%2B3K64cvP6bWTxmzk82tqvvnGr0KynfCtp3DrGd461nZjNgvJ%2BNTyF1/br4/26%2Bf9%2BF3X1ad2vkXGfR16YKzcgOBLGLtM/Yuxd5XVbpjpbVJZKuFnEDut0fVM720zO%2B74b5x5G6wf0vY3dtzq4m52f4c9nnL9N570zef9DL4F4y/lqguFbjn2m059aeFcxP1lAd8V2W7xVsOq3sriO7W5Pv1uz77zi%2B6q4Tvqvlzmrmddq4fvp2n7UjpizI%2BuPguP7w7up6O4afjurXk/G15o5nch8HXGfBd4NLSvi8Zbz1pcDRzAdfXjHkDwZ9u%2BKs1G934z13bY6BPTPQTVZs9w1bhtRvtLqzlG0y9vcz22XD7jl/hy5cvvPeb7z3t1aMu9WXpa%2Bvlyc4Qv43znVW0V05dA/bK7n0rh5znpg8Ku4Pbzvhx86Q9X2UPSd9t3fYw9qasPernDy/cNdv3jXzVhR5PyUcWuVHdfNR%2BXdtch97Xc7ujxnwY8Z8HrTHqu1tJruvXXXmLtdx643cmPuPfegG23bGcd2JnQn1AyJ8/NzOTbEbxqwjZWe6X1n8b%2BT346s5KfU3T7/Dhm/U%2Be9t%2B2nfDvKJD0vjv3ennNwZ7xtnPAPRNvEyB80XB2K3VnyD485rfPPYPPD%2BD458Q%2B5OW3QjttyI7%2BdIaAXpTo6%2BU5Be5GjXudk18F%2BRvmvJ%2BlruF806i9UeYvs7kPvO4S8Z9G%2BNHDPlLcevMeqllPN1ux872ceBnFRoZ3mbgNEvZL5VoN0e9MOieob1X897V7cdXvZPTX6ey14CfteVPz7/Dq%2B56%2BafPee/N1tm7NO5uPD%2Bboz5N%2BLdb3A7FnqV5RurfQeVvdntbw5%2BydOetvyH1t6h/c9avO3Or7zzrt88Gv%2B3VTwdxC8n5QuSPMLsj/d%2BtePeG%2BSLmj3F5D70ePvSX77xnwrsWKYJsPR4EuDu6rhmOeBAHgJJE6BtVwZ0LCHJwU7nQhqld8hdCFlbytcefAQTs78eCW%2BxOE2uHob7u5fdwIwPX30Acp4y50eDIXjnGxt%2Byd5OcbRTo8CWgMl02tv%2BPy6UT%2BO/4GnIAuJaBFaMtpYBrHkJyHO7Z%2BEmBzbOBYEFYsNYmXTa5NLFMZe/XfaIDVuiV%2B%2BpfgIS4OYNgHyBeByoCIJYJCAgDAtVw1gHCFCxcDAsxAIBGf9NnG4mQGg4PFL175H9j%2B4QjwFED37RA4Rh/2AUf%2BP945T/Z/x/3iuN16ImFNMFmfVE4X%2BCr%2BD/k/7AA%2BUMJPlrSpMA%2BHHn/SNA7/6/w/9gFfJ6%2BBJb/w38t/cfzRB4QXf338f/B/2n8T/L/AK56Uc/1MIr/EQBv8/gIAN/9ygAiFSZtcFWA7h0A6AI9YnfaeiADN/fIG391/SEFh5t/CALX8J/I/1gDP8eALyxEAy/3fRr/MNnwDgWcoBNIMCOuhwJ2wROkqRXGfJDwC9/WgN/870NWh2pCA9vxX8xA8f1IDyA%2BTiEAhAGgPv96AhgKhwmA6HGnJAcC/3tJkA1AM4DH/GknNJTSeTBtoBA4BktosA4QNwCQAYwI9xbAuuHsDjAvmn/8xkIgPR4SAkAPX80QFwDmA4QNQKgCNAzQL%2BxtAz3Bf99Aj7EMCOA%2BQJCCTA8/z/x%2BkUHC/94gugMSDdA73DnwUgrLDSDIAjII8CvAwAJcAAAaSeAXSbAEhBIIOECSBggwoLCCZ/CIP2pM0FPDlRGgjoNGwIg01iKAvfJGgQpOgzQIiCBAQ8i7IFaRiiVpWKGGnYoR0bXHUgI0UQIKDf/XsEww68B6kYDxuA%2BgqQbSKILnIjofIPEDoAk9EGCIcYYNFoNyJIN9wDg9QIqJHkE4OAIIgn%2BHuDngpoM2CXg94I2D16HoPNYg/A2gGCPgh4LeCL6cYNko86LmgLppghkl/I40NHHDQegRYMODgWAghsoGAs4K2D7KOIKWDoAq5ABDYAs4K8pMQxENuDcQzoMeCJkEkIpC5/VrkpCaQ7oKNAzWPoN/pZYGkNOCgQsyiyoQQrqnzpFKIOhmDoQuYLhCEQm4ORDsyE/zRDHqDEJGhsAkQIcD0giQJxCWQnjDeCCQqULsDvkWUKxCkQ%2B9EVDwg%2Bf3JCdQykPFCDQkkLpDdgXoN%2BDjKQ2mNCzcNkOtpbGeWiIwVqMEOVpIQrdFjQBQhYI1CiQkUPaDXg1Th4DU0VwksChAQQOcCcA9UMcDMA1UJcCIwuUIf9KIC2ApgqQ77AJC1KZRGtDSQvUJogMw3EKNCcwl4NNCGQ/4PzDUQt4I7pc6ZinBCeQ5SlmDYQz0LcCK4dYNLD/QtAnMCLkZABHBBA6UNcC4wqf3YwVEd8kr8wwGv2sxxwDxnFg8AKWDFBiCdbHKBrGYUFFAQmcLGiYAwdllCBlmZKHQAmmacNiAMgEgHsAAoTwFsAMWDIANhtKfoGnBVwoyAPRnGFgCrQdgKYEWYrmUKFiAcEeMDWYBcX/39AMAGZkyYuadhlERcgePEPD%2BAXlltZLAX1DyAtoHYHOACmdSEShcgHcNEZPw%2BMIpJxKCuGxYigcWFtAQIp9CWBUAYIBbgwIovzlBSGAMgwYfSd4GlhgybokKZiAewCxYjmFFjqBS4QcDFYYgTyDmAwATgFCB/SN8CfRV4Zvz6Z8EcIG4ilAC5jyB9GZgAoigKBnCkYQaVoBxgEEXYGUYRGeoFWYHAHJg4YdmLSLDwqSASLegtwnZioZRGIJCMiiSYIErAY4EAAMiWIWgBbgvATpFUZPIeYIwRHAbDgvRXI9yNUAhmYgg%2BYBUBnA7QqGIOFwYIUGZCNhpwwkg0gTiECIqxySMUAkixQFyK5IlmLIBlBQyWIBHC9uYMhkiYqCYHQQMGfOCIAAycIFijV4ZQBbg5geFEiRYwHbiWZMAbiN4i8AciLlBsmfagvDYwcWFVAxwsWElgzQjxFIisgciMfAigXRlIZJAGWFsjV4CbAEZ2GVZgKZ7QckF6YRYccL6j/kEnGO4Q8UKkoJWgZJnYoVo3qMnD%2BokoEMZgkW0Cmi3obyFIYWwURlmRaYb9C2A3wZIAkZZYAMisYrIEhGnCRQO0EtBFII0D6g%2BYcPGGAPo6cOPgaycYHXggkNqNWR3mHZAxxG/TkMmDuaaYLlQLI%2BhHVY2/Zfw5QsGJ4H8x90KDAwCPfM3xLC4uVwDujCYUwKup7YRhBJitAsDnJj5kbtAVDaYuALeCWY%2B4KYCWgqiAwj2YvELA57YQfBQiuAq2BtgMImmN5i8w3mLCCIg9ujVDo4S2CFjiQqWP%2BI2Y5WMaDCw80PR5%2BgjKlfoF6a0LODRQ0MP%2BBFY44LViWuFMKgYw2RWPTCzYpUPXong22KGDVYx2LFCz/ekM1iBJJGhtZ10ScM3QL0MdHApLYHyMzDh2GVkxA5WNEFD8kBLvx78%2B/MCAH8c4GTjt8E/B3xtjBgyWJdiQCZoO0pWg%2Bgl1oeYqWIiCvuEUgNpvgkWKfAsSFIispKY8GmSA68DAnf9iSf9F1D7YpMMzjXY0OMj9w4t32ID0gxQJwhU/OP3t8k/E4LJDsw9uNn8M4ieLpj16LmPHxwifSlcxnMeHANCi4rWJLjLQsuNLgRQRDGkAq4y4kixMMSvGria8ZIHNBMyYXlZDW4u4Onis4t4LDj0IHuO8C%2B43wMeB/AwIMHjk4jPwd9pYrMNvi/Q/en/ifsbOK1oOcLPF9Db4teM9iN4ovFbgzQ81m3jQgTokWpziJvGQDmwh1DbigEz4O%2BwH4iOKjjLWHwLIDQA%2BEE/j0/TP3Vi/47BJwSqaahOUJxuOeLYR3sbBKgTtxFghgxS492IQSy4SmPyRUE1IkiwYAjBPpRxYuhKvjcEruMfjI43uIKD%2B4igKoCTApOPISf4p2Nbjx4sRN%2Bwp4jROTCgSHOLAT6CCBOnjWEpAXYShcThPgTy43hJdp%2BE6uMES%2BY6%2BO0SW4iRIElm/AhIFwiEpQJcAVAshOHihE%2BxMwT1ExxPoTqQoJLXg6Q1NDdCq0D0LcisE/%2BLODXI/2mJwaYpROHiH0bUNtix4tONCSdE4amyTV8cbjwSn4koPKDHgSoOqCcIUIhbY0/XxILDnYvJNXgNYn4K1jRSG1nOBUAXbgmxd8D%2BCyT3gpgMdR0k%2BpLCS6kwZNP8h8B2JGShksZP1CJk/JKHxvgmEhpRLAAgGTo74KMMGwqxR9AmQpkS0AZiiYVsIwIl/TGFBBPAaenRBMQbEFxB8QQkAXB7YZVFlgIGAQGjIsgaAgEBUgDFlEZJmM/D6ZmAJuE2BPaD1mxii4VKiR54gNMH/JygZAA8D7YTADCRJSKwAeSvIeIF25EImZk7oaIKpA9ZmEPRPnjqEfgkQT1gH2CFQMaCABtZBYHIB5AIU/8LFRJUOKBtZqUsaAIBheBFIEp8EVFJMQUU8pClxKkSvBmgq6LLBeSH0CwkboQKdnBxTs4aeDaTduN/xhSSUqlMPRZQWlLlTJUJlJFoYUuFJpIBUgMJrhn/YgDRwQ8blINgG8A0FLpzg%2BoANBGgDlInRkcbGElTgEUwBx4bWO5PlTUgRVKUg1ke5LGhUgFVJvonaaVLCQkeOKC9S4GFwFtTggUwGp5HU%2BIGdTXUxICdSiIINOjpTUiYCaAXuXlNugvUxoBe5q4l1LOBroS2AzT/AKXBzTzWaiHzTlARoA7DG6TSncBoyUhmGAUKBFKdROAbTCmAuADQE4BSAcIC4BVADtNQAuAGJDiRHkJgFYA6YMNloAO0zAk4Ae05P3sAQADzlbTOAcyA7Su0qdN7SuADtNPh12SdOnTSAOAFgAkACMCjAyACgFlS%2BgI9MuwBgYAGPZ12SYGxw3ESgHOhXgSgG0x/AbtI7SfEFnFAgQkaQDfTSAfADCZao/BF/SqAHRmIAf0zgD%2BBGgctPHTSAGYBGAYgOgFIBLGQUFAggUEFAfTzoVQGfTYM9SGAAEM%2BgGQzUMmYkwIbfJ9OoAAARTvgwMndnug/2CyBA4iOQ9jmgRoeiH0Bn2SgFhilQcDObSW03DPwyFyUgCkB/kU%2BE4BtAUCHNBtAbeGogOw2JFigdAIKGwiN0lgDYAOAAAgXT20ztN/S%2B0zgHeBaIfCG0AyOAxEvS%2BASDK0AIAXAApxxUfpXEB2SI9KszEkCdLfSZ0udPXYF0pdM0zV0wTPXTGAEAC3SnMltK4BlAZdK0zvM7dJ4zSAanDcgQAcyCAA%3D%3D%3D">godbolt compiler explorer</a>.</p>
+<h2 id="visitation-without-an-instance">Visitation without an instance</h2>
+<p>Besides iteration over an <em>instance</em> of a registered struct, <strong>visit_struct</strong> also supports visiting the <em>definition</em> of the struct. In this case, instead of passing you the field name and the field value within some instance, it passes you the field name and the <em>pointer to member</em> corresponding to that field.</p>
+<p>Suppose that you are serializing many structs in your program as json. You might also want to be able to emit the json schema associated to each struct that your program is expecting, especially to produce good diagnostics if loading the data fails. When you visit without an instance, you can get all the type information for the struct, but you don't have to actually instantiate it, which might be complicated or expensive.</p>
+<h3 id="visit_pointers"><code>visit_pointers</code></h3>
+<p>The function call</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::visit_pointers&lt;<span class="dt">my_type</span>&gt;(v);</code></pre></div>
+<p>is similar to</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">v(<span class="st">&quot;a&quot;</span>, &amp;<span class="dt">my_type</span>::a);
+v(<span class="st">&quot;b&quot;</span>, &amp;<span class="dt">my_type</span>::b);
+v(<span class="st">&quot;c&quot;</span>, &amp;<span class="dt">my_type</span>::c);</code></pre></div>
+<p>These may be especially useful when you have a C++14 compiler which has proper <code>constexpr</code> support. In that case, these visitations are <code>constexpr</code> also, so you can use this for some nifty metaprogramming purposes. (For an example, check out <a href="./test_fully_visitable.cpp">test_fully_visitable.cpp</a>.)</p>
+<p>There are two alternate versions of this visitation.</p>
+<h3 id="visit_types"><code>visit_types</code></h3>
+<p>This function call</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::visit_types&lt;<span class="dt">my_type</span>&gt;(v);</code></pre></div>
+<p>is similar to</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">v(<span class="st">&quot;a&quot;</span>, visit_struct::type_c&lt;a&gt;());
+v(<span class="st">&quot;b&quot;</span>, visit_struct::type_c&lt;b&gt;());
+v(<span class="st">&quot;c&quot;</span>, visit_struct::type_c&lt;c&gt;());</code></pre></div>
+<p>Here, <code>type_c</code> is just a tag, so that your visitor can take appropriate action using tag dispatch. This syntax is a little simpler than the pointer to member syntax.</p>
+<h3 id="visit_accessors"><code>visit_accessors</code></h3>
+<p>In the third version, you get passed an &quot;accessor&quot;, that is, a function object that implements the function computed by the pointer-to-member.</p>
+<p>This call</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::visit_accessors&lt;<span class="dt">my_type</span>&gt;(v);</code></pre></div>
+<p>is roughly similar to</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">v(<span class="st">&quot;a&quot;</span>, [](<span class="kw">auto</span> s) { <span class="cf">return</span> s.a; });
+v(<span class="st">&quot;b&quot;</span>, [](<span class="kw">auto</span> s) { <span class="cf">return</span> s.b; });
+v(<span class="st">&quot;c&quot;</span>, [](<span class="kw">auto</span> s) { <span class="cf">return</span> s.c; });</code></pre></div>
+<p>Accessors are convenient because they can be used easily with other standard algorithms that require function objects, they avoid the syntax of member pointers, and because they are well-supported by hana and fusion.</p>
+<p>Much thanks to Jarod42 for this patch and subsequent suggestions.</p>
+<p><strong>Note:</strong> The compatibility headers for <code>boost::fusion</code> and <code>boost::hana</code> don't currently support <code>visit_pointers</code>. They only support <code>visit_types</code>, and <code>visit_accessors</code>.</p>
+<p>To my knowledge, there is no way to get the pointers-to-members from <code>boost::fusion</code> or <code>boost::hana</code>. That is, there is no publicly exposed interface to get them.</p>
+<p>If you really want or need to be able to get the pointers to members, that's a pretty good reason to use <code>visit_struct</code> honestly. If you think you need the fusion or hana compatibility, then you should probably avoid anything to do with member pointers here, and stick to accessors instead.</p>
+<h2 id="tuple-methods-indexed-access">Tuple Methods, Indexed Access</h2>
+<p><code>for_each</code> is quite powerful, and by crafting special visitors, there is a lot that you can do with it.</p>
+<p>However, one thing that you cannot easily do is implement <code>std::tuple</code> methods, like <code>std::get&lt;i&gt;</code> to get the <code>i</code>'th member of the struct. Most if not all libraries that support struct-field reflection support this in some way. So, we decided that we should support this also.</p>
+<p>We didn't change our implementation of <code>for_each</code>, which works well on all targets. But we have added new functions which allow indexed access to structures, and to the metadata.</p>
+<h3 id="get"><code>get</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::get&lt;i&gt;(s);</code></pre></div>
+<p>Gets (a reference to) the <code>i</code>'th visitable member of the struct <code>s</code>. Index is 0-based. Analogous to <code>std::get</code>.</p>
+<h3 id="get_name"><code>get_name</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::get_name&lt;i, S&gt;();
+visit_struct::get_name&lt;i&gt;(s);</code></pre></div>
+<p>Gets a string constant representing the name of the <code>i</code>'th member of the struct type <code>S</code>. The struct type may be passed as a second template parameter. If an instance is available, it may be passed as an argument, and the struct type will be deduced (the argument will not be accessed).</p>
+<h3 id="get_pointer"><code>get_pointer</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::get_pointer&lt;i, S&gt;();
+visit_struct::get_pointer&lt;i&gt;(s);</code></pre></div>
+<p>Gets the pointer-to-member for the <code>i</code>'th visitable element of the struct type <code>S</code>.</p>
+<h3 id="get_accessor"><code>get_accessor</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::get_accessor&lt;i, S&gt;();
+visit_struct::get_accessor&lt;i&gt;(s);</code></pre></div>
+<p>Gets the accessor corresponding to the <code>i</code>'th visitable element of the struct type <code>S</code>.</p>
+<h3 id="type_at"><code>type_at</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::type_at&lt;i, S&gt;</code></pre></div>
+<p>This alias template gives the declared type of the <code>i</code>'th member of <code>S</code>.</p>
+<h3 id="field_count"><code>field_count</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::field_count&lt;S&gt;();
+visit_struct::field_count(s);</code></pre></div>
+<p>Gets a <code>size_t</code> which tells how many visitable fields there are.</p>
+<h2 id="other-functions">Other functions</h2>
+<h3 id="get_name-no-index"><code>get_name</code> (no index)</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::get_name&lt;S&gt;();
+visit_struct::get_name(s);</code></pre></div>
+<p>Gets a string constant representing the name of the structure. The string here is the token that you passed to the <code>visit_struct</code> macro in order to register the structure.</p>
+<p>This could be useful for error messages. E.g. &quot;Failed to match json input with struct of type 'foo', layout: ...&quot;</p>
+<p>There are other ways to get a name for the type, such as <code>typeid</code>, but it has implementation-defined behavior and sometimes gives a mangled name. However, the <code>visit_struct</code> name might not always be acceptable either -- it might contain namespaces, or not, depending on if you use standard or intrusive syntax, for instance.</p>
+<p>Since the programmer is already taking the trouble of passing this name into a macro to register the struct, we think we might as well give programmatic access to that string if they want it.</p>
+<p>Note that there is no equivalent feature in <code>fusion</code> or <code>hana</code> to the best of my knowledge, so there's no support for this in the compatibility headers.</p>
+<h3 id="apply_visitor"><code>apply_visitor</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::apply_visitor(v, s);
+visit_struct::apply_visitor(v, s1, s2);</code></pre></div>
+<p>This is an alternate syntax for <code>for_each</code>. The only difference is that the visitor comes first rather than last.</p>
+<p>Historically, <code>apply_visitor</code> is a much older part of <code>visit_struct</code> than <code>for_each</code>. Its syntax is similar to <code>boost::apply_visitor</code> from the <code>boost::variant</code> library. For a long time, <code>apply_visitor</code> was the only function in the library.</p>
+<p>However, experience has shown that <code>for_each</code> is little nicer syntax than <code>apply_visitor</code>. It reads more like a for loop -- the bounds of the loop come first, which are the structure, then the body of the loop, which is repeated.</p>
+<p>Additionally, in C++14 one may often use generic lambdas. Then the code is a little more readable if the lambda comes last, since it may span several lines of code.</p>
+<p>(I won't say I wasn't influenced by ldionne's opinion. He makes this same point in the <code>boost::hana</code> docs <a href="http://www.boost.org/doc/libs/1_63_0/libs/hana/doc/html/index.html#tutorial-rationales-parameters">here</a>.)</p>
+<p>So, nowadays I prefer and recommend <code>for_each</code>. The original <code>apply_visitor</code> syntax isn't going to be deprecated or broken though.</p>
+<h3 id="traitsis_visitable"><code>traits::is_visitable</code></h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">visit_struct::traits::is_visitable&lt;S&gt;::value</code></pre></div>
+<p>This type trait can be used to check if a structure is visitable. The above expression should resolve to boolean true or false. I consider it part of the forward-facing interface, you can use it in SFINAE to easily select types that <code>visit_struct</code> knows how to use.</p>
+<h2 id="limits">Limits</h2>
+<p>When using <code>VISITABLE_STRUCT</code>, the maximum number of members which can be registered is <code>visit_struct::max_visitable_members</code>, which is by default 69.</p>
+<p>When using the intrusive syntax, the maximum number of members is <code>visit_struct::max_visitable_members_intrusive</code>, which is by default 100.</p>
+<p>These limits can both be increased, see the source comments and also <a href="/IMPLEMENTATION_NOTES.md">IMPLEMENTATION_NOTES.md</a>.</p>
+<h2 id="compiler-support">Compiler Support</h2>
+<p><strong>visit_struct</strong> targets C++11 -- you need to have r-value references at least, and for the intrusive syntax, you need variadic templates also.</p>
+<p><strong>visit_struct</strong> is known to work with versions of gcc <code>&gt;= 4.8.2</code> and versions of clang <code>&gt;= 3.5</code>.</p>
+<p>The appveyor build tests against MSVC 2013, 2015, 2017.</p>
+<p>MSVC 2015 is believed to be fully supported.</p>
+<p>For MSVC 2013, the basic syntax is supported, the intrusive syntax doesn't work there and now isn't tested. Again, patches welcome.</p>
+<p>Much thanks again to Jarod42 for significant patches related to MSVC support.</p>
+<h2 id="constexpr-correctness">Constexpr Correctness</h2>
+<p><code>visit_struct</code> attempts to target three different levels of <code>constexpr</code> support.</p>
+<ul>
+<li>No support</li>
+<li>C++11 support</li>
+<li>C++14 extended support</li>
+</ul>
+<p>This is controlled by two macros <code>VISIT_STRUCT_CONSTEXPR</code> and <code>VISIT_STRUCT_CXX14_CONSTEXPR</code>. We use these tokens where we would use the <code>constexpr</code> keyword.</p>
+<p>In the <code>visit_struct.hpp</code> header, these macros are defined to either <code>constexpr</code> or nothing.</p>
+<p>We attempt to guess the appropriate setting by inspecting the preprocessor symbols <code>__cplusplus</code> and <code>_MSC_VER</code>.</p>
+<p>If it doesn't work on your compiler, please open a github issue, especially if you know how to fix it :)</p>
+<p>In the meantime, if you don't want to tweak the headers for your project, you can override the behavior by defining these macros yourself, before including <code>visit_struct.hpp</code>. If the header sees that you have defined them it won't touch them and will defer to your settings. In most cases this should not be necessary.</p>
+<p>On gcc and clang, we assume at least C++11 constexpr support. If you enabled a later standard using <code>-std=...</code>, we turn on the full <code>constexpr</code>.</p>
+<p>On MSVC currently the settings are:</p>
+<ul>
+<li>VS2013: no support</li>
+<li>VS2015: C++11 support</li>
+<li>VS2017: C++14 extended support</li>
+</ul>
+<h2 id="licensing-and-distribution">Licensing and Distribution</h2>
+<p><strong>visit_struct</strong> is available under the boost software license.</p>
+<h2 id="see-also">See also</h2>
+<ul>
+<li><a href="https://github.com/swansontec/map-macro">map-macro</a> from swansontec</li>
+<li><a href="http://www.boost.org/doc/libs/1_61_0/libs/hana/doc/html/index.html">boost-hana</a> from ldionne</li>
+<li><a href="https://github.com/apolukhin/magic_get">pod flat reflection</a> from apolukhin</li>
+<li><a href="http://duriansoftware.com/joe/Self-aware-struct-like-types-in-C++11.html">self-aware structs</a> from jckarter</li>
+</ul>

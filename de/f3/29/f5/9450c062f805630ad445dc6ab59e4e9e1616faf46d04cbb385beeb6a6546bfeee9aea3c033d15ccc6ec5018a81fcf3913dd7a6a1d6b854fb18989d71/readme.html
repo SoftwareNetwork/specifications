@@ -1,0 +1,425 @@
+<h1 id="cpp-httplib">cpp-httplib</h1>
+<p><a href="https://github.com/yhirose/cpp-httplib/actions"><img src="https://github.com/yhirose/cpp-httplib/workflows/test/badge.svg" /></a> <a href="https://ci.appveyor.com/project/yhirose/cpp-httplib"><img src="https://ci.appveyor.com/api/projects/status/github/yhirose/cpp-httplib?branch=master&amp;svg=true" alt="Bulid Status" /></a></p>
+<p>A C++11 single-file header-only cross platform HTTP/HTTPS library.</p>
+<p>It's extremely easy to setup. Just include <strong>httplib.h</strong> file in your code!</p>
+<p>For Windows users: Please read <a href="https://github.com/yhirose/cpp-httplib#windows">this note</a>.</p>
+<h2 id="server-example">Server Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">void</span>)
+{
+  <span class="kw">using</span> <span class="kw">namespace</span> httplib;
+
+  Server svr;
+
+  svr.Get(<span class="st">&quot;/hi&quot;</span>, [](<span class="at">const</span> Request&amp; req, Response&amp; res) {
+    res.set_content(<span class="st">&quot;Hello World!&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);
+  });
+
+  svr.Get(<span class="st">R&quot;(/numbers/(\d+))&quot;</span>, [&amp;](<span class="at">const</span> Request&amp; req, Response&amp; res) {
+    <span class="kw">auto</span> numbers = req.matches[<span class="dv">1</span>];
+    res.set_content(numbers, <span class="st">&quot;text/plain&quot;</span>);
+  });
+
+  svr.Get(<span class="st">&quot;/body-header-param&quot;</span>, [](<span class="at">const</span> Request&amp; req, Response&amp; res) {
+    <span class="cf">if</span> (req.has_header(<span class="st">&quot;Content-Length&quot;</span>)) {
+      <span class="kw">auto</span> val = req.get_header_value(<span class="st">&quot;Content-Length&quot;</span>);
+    }
+    <span class="cf">if</span> (req.has_param(<span class="st">&quot;key&quot;</span>)) {
+      <span class="kw">auto</span> val = req.get_param_value(<span class="st">&quot;key&quot;</span>);
+    }
+    res.set_content(req.body, <span class="st">&quot;text/plain&quot;</span>);
+  });
+
+  svr.Get(<span class="st">&quot;/stop&quot;</span>, [&amp;](<span class="at">const</span> Request&amp; req, Response&amp; res) {
+    svr.stop();
+  });
+
+  svr.listen(<span class="st">&quot;localhost&quot;</span>, <span class="dv">1234</span>);
+}</code></pre></div>
+<p><code>Post</code>, <code>Put</code>, <code>Delete</code> and <code>Options</code> methods are also supported.</p>
+<h3 id="bind-a-socket-to-multiple-interfaces-and-any-available-port">Bind a socket to multiple interfaces and any available port</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> port = svr.bind_to_any_port(<span class="st">&quot;0.0.0.0&quot;</span>);
+svr.listen_after_bind();</code></pre></div>
+<h3 id="static-file-server">Static File Server</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Mount / to ./www directory</span>
+<span class="kw">auto</span> ret = svr.set_mount_point(<span class="st">&quot;/&quot;</span>, <span class="st">&quot;./www&quot;</span>);
+<span class="cf">if</span> (!ret) {
+  <span class="co">// The specified base directory doesn&#39;t exist...</span>
+}
+
+<span class="co">// Mount /public to ./www directory</span>
+ret = svr.set_mount_point(<span class="st">&quot;/public&quot;</span>, <span class="st">&quot;./www&quot;</span>);
+
+<span class="co">// Mount /public to ./www1 and ./www2 directories</span>
+ret = svr.set_mount_point(<span class="st">&quot;/public&quot;</span>, <span class="st">&quot;./www1&quot;</span>); <span class="co">// 1st order to search</span>
+ret = svr.set_mount_point(<span class="st">&quot;/public&quot;</span>, <span class="st">&quot;./www2&quot;</span>); <span class="co">// 2nd order to search</span>
+
+<span class="co">// Remove mount /</span>
+ret = svr.remove_mount_point(<span class="st">&quot;/&quot;</span>);
+
+<span class="co">// Remove mount /public</span>
+ret = svr.remove_mount_point(<span class="st">&quot;/public&quot;</span>);</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// User defined file extension and MIME type mappings</span>
+svr.set_file_extension_and_mimetype_mapping(<span class="st">&quot;cc&quot;</span>, <span class="st">&quot;text/x-c&quot;</span>);
+svr.set_file_extension_and_mimetype_mapping(<span class="st">&quot;cpp&quot;</span>, <span class="st">&quot;text/x-c&quot;</span>);
+svr.set_file_extension_and_mimetype_mapping(<span class="st">&quot;hh&quot;</span>, <span class="st">&quot;text/x-h&quot;</span>);</code></pre></div>
+<p>The followings are built-in mappings:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Extension</th>
+<th align="left">MIME Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">txt</td>
+<td align="left">text/plain</td>
+</tr>
+<tr class="even">
+<td align="left">html, htm</td>
+<td align="left">text/html</td>
+</tr>
+<tr class="odd">
+<td align="left">css</td>
+<td align="left">text/css</td>
+</tr>
+<tr class="even">
+<td align="left">jpeg, jpg</td>
+<td align="left">image/jpg</td>
+</tr>
+<tr class="odd">
+<td align="left">png</td>
+<td align="left">image/png</td>
+</tr>
+<tr class="even">
+<td align="left">gif</td>
+<td align="left">image/gif</td>
+</tr>
+<tr class="odd">
+<td align="left">svg</td>
+<td align="left">image/svg+xml</td>
+</tr>
+<tr class="even">
+<td align="left">ico</td>
+<td align="left">image/x-icon</td>
+</tr>
+<tr class="odd">
+<td align="left">json</td>
+<td align="left">application/json</td>
+</tr>
+<tr class="even">
+<td align="left">pdf</td>
+<td align="left">application/pdf</td>
+</tr>
+<tr class="odd">
+<td align="left">js</td>
+<td align="left">application/javascript</td>
+</tr>
+<tr class="even">
+<td align="left">wasm</td>
+<td align="left">application/wasm</td>
+</tr>
+<tr class="odd">
+<td align="left">xml</td>
+<td align="left">application/xml</td>
+</tr>
+<tr class="even">
+<td align="left">xhtml</td>
+<td align="left">application/xhtml+xml</td>
+</tr>
+</tbody>
+</table>
+<p>NOTE: These the static file server methods are not thread safe.</p>
+<h3 id="logging">Logging</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">svr.set_logger([](<span class="at">const</span> <span class="kw">auto</span>&amp; req, <span class="at">const</span> <span class="kw">auto</span>&amp; res) {
+  your_logger(req, res);
+});</code></pre></div>
+<h3 id="error-handler">Error handler</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">svr.set_error_handler([](<span class="at">const</span> <span class="kw">auto</span>&amp; req, <span class="kw">auto</span>&amp; res) {
+  <span class="kw">auto</span> fmt = <span class="st">&quot;&lt;p&gt;Error Status: &lt;span style=&#39;color:red;&#39;&gt;</span><span class="sc">%d</span><span class="st">&lt;/span&gt;&lt;/p&gt;&quot;</span>;
+  <span class="dt">char</span> buf[BUFSIZ];
+  snprintf(buf, <span class="kw">sizeof</span>(buf), fmt, res.status);
+  res.set_content(buf, <span class="st">&quot;text/html&quot;</span>);
+});</code></pre></div>
+<h3 id="multipartform-data-post-data">'multipart/form-data' POST data</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">svr.Post(<span class="st">&quot;/multipart&quot;</span>, [&amp;](<span class="at">const</span> <span class="kw">auto</span>&amp; req, <span class="kw">auto</span>&amp; res) {
+  <span class="kw">auto</span> size = req.files.size();
+  <span class="kw">auto</span> ret = req.has_file(<span class="st">&quot;name1&quot;</span>);
+  <span class="at">const</span> <span class="kw">auto</span>&amp; file = req.get_file_value(<span class="st">&quot;name1&quot;</span>);
+  <span class="co">// file.filename;</span>
+  <span class="co">// file.content_type;</span>
+  <span class="co">// file.content;</span>
+});</code></pre></div>
+<h3 id="receive-content-with-content-receiver">Receive content with Content receiver</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">svr.Post(<span class="st">&quot;/content_receiver&quot;</span>,
+  [&amp;](<span class="at">const</span> Request &amp;req, Response &amp;res, <span class="at">const</span> ContentReader &amp;content_reader) {
+    <span class="cf">if</span> (req.is_multipart_form_data()) {
+      MultipartFormDataItems files;
+      content_reader(
+        [&amp;](<span class="at">const</span> MultipartFormData &amp;file) {
+          files.push_back(file);
+          <span class="cf">return</span> <span class="kw">true</span>;
+        },
+        [&amp;](<span class="at">const</span> <span class="dt">char</span> *data, <span class="dt">size_t</span> data_length) {
+          files.back().content.append(data, data_length);
+          <span class="cf">return</span> <span class="kw">true</span>;
+        });
+    } <span class="cf">else</span> {
+      <span class="bu">std::</span>string body;
+      content_reader([&amp;](<span class="at">const</span> <span class="dt">char</span> *data, <span class="dt">size_t</span> data_length) {
+        body.append(data, data_length);
+        <span class="cf">return</span> <span class="kw">true</span>;
+      });
+      res.set_content(body, <span class="st">&quot;text/plain&quot;</span>);
+    }
+  });</code></pre></div>
+<h3 id="send-content-with-content-provider">Send content with Content provider</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">const</span> <span class="dt">size_t</span> DATA_CHUNK_SIZE = <span class="dv">4</span>;
+
+svr.Get(<span class="st">&quot;/stream&quot;</span>, [&amp;](<span class="at">const</span> Request &amp;req, Response &amp;res) {
+  <span class="kw">auto</span> data = <span class="kw">new</span> <span class="bu">std::</span>string(<span class="st">&quot;abcdefg&quot;</span>);
+
+  res.set_content_provider(
+    data-&gt;size(), <span class="co">// Content length</span>
+    [data](<span class="dt">size_t</span> offset, <span class="dt">size_t</span> length, DataSink &amp;sink) {
+      <span class="at">const</span> <span class="kw">auto</span> &amp;d = *data;
+      sink.write(&amp;d[offset], <span class="bu">std::</span>min(length, DATA_CHUNK_SIZE));
+    },
+    [data] { <span class="kw">delete</span> data; });
+});</code></pre></div>
+<h3 id="chunked-transfer-encoding">Chunked transfer encoding</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">svr.Get(<span class="st">&quot;/chunked&quot;</span>, [&amp;](<span class="at">const</span> Request&amp; req, Response&amp; res) {
+  res.set_chunked_content_provider(
+    [](<span class="dt">size_t</span> offset, DataSink &amp;sink) {
+       sink.write(<span class="st">&quot;123&quot;</span>, <span class="dv">3</span>);
+       sink.write(<span class="st">&quot;345&quot;</span>, <span class="dv">3</span>);
+       sink.write(<span class="st">&quot;789&quot;</span>, <span class="dv">3</span>);
+       sink.done();
+    }
+  );
+});</code></pre></div>
+<h3 id="server-sent-events">Server-Sent Events</h3>
+<p>Please check <a href="https://github.com/yhirose/cpp-httplib/blob/master/example/sse.cc">here</a>.</p>
+<h3 id="default-thread-pool-support">Default thread pool support</h3>
+<p><code>ThreadPool</code> is used as a default task queue, and the default thread count is set to value from <code>std::thread::hardware_concurrency()</code>.</p>
+<p>You can change the thread count by setting <code>CPPHTTPLIB_THREAD_POOL_COUNT</code>.</p>
+<h3 id="override-the-default-thread-pool-with-yours">Override the default thread pool with yours</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> YourThreadPoolTaskQueue : <span class="kw">public</span> TaskQueue {
+<span class="kw">public</span>:
+  YourThreadPoolTaskQueue(<span class="dt">size_t</span> n) {
+    <span class="va">pool_</span>.start_with_thread_count(n);
+  }
+
+  <span class="kw">virtual</span> <span class="dt">void</span> enqueue(<span class="bu">std::</span>function&lt;<span class="dt">void</span>()&gt; fn) <span class="kw">override</span> {
+    <span class="va">pool_</span>.enqueue(fn);
+  }
+
+  <span class="kw">virtual</span> <span class="dt">void</span> shutdown() <span class="kw">override</span> {
+    <span class="va">pool_</span>.shutdown_gracefully();
+  }
+
+<span class="kw">private</span>:
+  YourThreadPool <span class="va">pool_</span>;
+};
+
+svr.new_task_queue = [] {
+  <span class="cf">return</span> <span class="kw">new</span> YourThreadPoolTaskQueue(<span class="dv">12</span>);
+};</code></pre></div>
+<h3 id="expect-100-continue-handler">'Expect: 100-continue' handler</h3>
+<p>As default, the server sends <code>100 Continue</code> response for <code>Expect: 100-continue</code> header.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Send a &#39;417 Expectation Failed&#39; response.</span>
+svr.set_expect_100_continue_handler([](<span class="at">const</span> Request &amp;req, Response &amp;res) {
+  <span class="cf">return</span> <span class="dv">417</span>;
+});</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Send a final status without reading the message body.</span>
+svr.set_expect_100_continue_handler([](<span class="at">const</span> Request &amp;req, Response &amp;res) {
+  <span class="cf">return</span> res.status = <span class="dv">401</span>;
+});</code></pre></div>
+<h2 id="client-example">Client Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">void</span>)
+{
+  <span class="co">// IMPORTANT: 1st parameter must be a hostname or an IP adress string.</span>
+  httplib::Client cli(<span class="st">&quot;localhost&quot;</span>, <span class="dv">1234</span>);
+
+  <span class="kw">auto</span> res = cli.Get(<span class="st">&quot;/hi&quot;</span>);
+  <span class="cf">if</span> (res &amp;&amp; res-&gt;status == <span class="dv">200</span>) {
+    <span class="bu">std::</span>cout &lt;&lt; res-&gt;body &lt;&lt; <span class="bu">std::</span>endl;
+  }
+}</code></pre></div>
+<h3 id="get-with-http-headers">GET with HTTP headers</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Headers headers = {
+  { <span class="st">&quot;Accept-Encoding&quot;</span>, <span class="st">&quot;gzip, deflate&quot;</span> }
+};
+<span class="kw">auto</span> res = cli.Get(<span class="st">&quot;/hi&quot;</span>, headers);</code></pre></div>
+<h3 id="get-with-content-receiver">GET with Content Receiver</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>string body;
+
+<span class="kw">auto</span> res = cli.Get(<span class="st">&quot;/large-data&quot;</span>,
+  [&amp;](<span class="at">const</span> <span class="dt">char</span> *data, <span class="dt">size_t</span> data_length) {
+    body.append(data, data_length);
+    <span class="cf">return</span> <span class="kw">true</span>;
+  });
+
+assert(res-&gt;body.empty());</code></pre></div>
+<h3 id="post">POST</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">res = cli.Post(<span class="st">&quot;/post&quot;</span>, <span class="st">&quot;text&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);
+res = cli.Post(<span class="st">&quot;/person&quot;</span>, <span class="st">&quot;name=john1&amp;note=coder&quot;</span>, <span class="st">&quot;application/x-www-form-urlencoded&quot;</span>);</code></pre></div>
+<h3 id="post-with-parameters">POST with parameters</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Params params;
+params.emplace(<span class="st">&quot;name&quot;</span>, <span class="st">&quot;john&quot;</span>);
+params.emplace(<span class="st">&quot;note&quot;</span>, <span class="st">&quot;coder&quot;</span>);
+
+<span class="kw">auto</span> res = cli.Post(<span class="st">&quot;/post&quot;</span>, params);</code></pre></div>
+<p>or</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Params params{
+  { <span class="st">&quot;name&quot;</span>, <span class="st">&quot;john&quot;</span> },
+  { <span class="st">&quot;note&quot;</span>, <span class="st">&quot;coder&quot;</span> }
+};
+
+<span class="kw">auto</span> res = cli.Post(<span class="st">&quot;/post&quot;</span>, params);</code></pre></div>
+<h3 id="post-with-multipart-form-data">POST with Multipart Form Data</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::MultipartFormDataItems items = {
+  { <span class="st">&quot;text1&quot;</span>, <span class="st">&quot;text default&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;&quot;</span> },
+  { <span class="st">&quot;text2&quot;</span>, <span class="st">&quot;aωb&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;&quot;</span> },
+  { <span class="st">&quot;file1&quot;</span>, <span class="st">&quot;h</span><span class="sc">\n</span><span class="st">e</span><span class="sc">\n\n</span><span class="st">l</span><span class="sc">\n</span><span class="st">l</span><span class="sc">\n</span><span class="st">o</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="st">&quot;hello.txt&quot;</span>, <span class="st">&quot;text/plain&quot;</span> },
+  { <span class="st">&quot;file2&quot;</span>, <span class="st">&quot;{</span><span class="sc">\n</span><span class="st">  </span><span class="sc">\&quot;</span><span class="st">world</span><span class="sc">\&quot;</span><span class="st">, true</span><span class="sc">\n</span><span class="st">}</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="st">&quot;world.json&quot;</span>, <span class="st">&quot;application/json&quot;</span> },
+  { <span class="st">&quot;file3&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;application/octet-stream&quot;</span> },
+};
+
+<span class="kw">auto</span> res = cli.Post(<span class="st">&quot;/multipart&quot;</span>, items);</code></pre></div>
+<h3 id="put">PUT</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">res = cli.Put(<span class="st">&quot;/resource/foo&quot;</span>, <span class="st">&quot;text&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);</code></pre></div>
+<h3 id="delete">DELETE</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">res = cli.Delete(<span class="st">&quot;/resource/foo&quot;</span>);</code></pre></div>
+<h3 id="options">OPTIONS</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">res = cli.Options(<span class="st">&quot;*&quot;</span>);
+res = cli.Options(<span class="st">&quot;/resource/foo&quot;</span>);</code></pre></div>
+<h3 id="connection-timeout">Connection Timeout</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cli.set_timeout_sec(<span class="dv">5</span>); <span class="co">// timeouts in 5 seconds</span></code></pre></div>
+<h3 id="with-progress-callback">With Progress Callback</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Client client(url, port);
+
+<span class="co">// prints: 0 / 000 bytes =&gt; 50% complete</span>
+<span class="bu">std::</span>shared_ptr&lt;httplib::Response&gt; res =
+  cli.Get(<span class="st">&quot;/&quot;</span>, [](<span class="dt">uint64_t</span> len, <span class="dt">uint64_t</span> total) {
+    printf(<span class="st">&quot;</span><span class="sc">%lld</span><span class="st"> / </span><span class="sc">%lld</span><span class="st"> bytes =&gt; </span><span class="sc">%d%%</span><span class="st"> complete</span><span class="sc">\n</span><span class="st">&quot;</span>,
+      len, total,
+      (<span class="dt">int</span>)(len*<span class="dv">100</span>/total));
+    <span class="cf">return</span> <span class="kw">true</span>; <span class="co">// return &#39;false&#39; if you want to cancel the request.</span>
+  }
+);</code></pre></div>
+<div class="figure">
+<img src="https://user-images.githubusercontent.com/236374/33138910-495c4ecc-cf86-11e7-8693-2fc6d09615c4.gif" alt="progress" />
+<p class="caption">progress</p>
+</div>
+<h3 id="authentication">Authentication</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Basic Authentication</span>
+cli.set_basic_auth(<span class="st">&quot;user&quot;</span>, <span class="st">&quot;pass&quot;</span>);
+
+<span class="co">// Digest Authentication</span>
+cli.set_digest_auth(<span class="st">&quot;user&quot;</span>, <span class="st">&quot;pass&quot;</span>);</code></pre></div>
+<p>NOTE: OpenSSL is required for Digest Authentication.</p>
+<h3 id="proxy-server-support">Proxy server support</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cli.set_proxy(<span class="st">&quot;host&quot;</span>, port);
+
+<span class="co">// Basic Authentication</span>
+cli.set_proxy_basic_auth(<span class="st">&quot;user&quot;</span>, <span class="st">&quot;pass&quot;</span>);
+
+<span class="co">// Digest Authentication</span>
+cli.set_proxy_digest_auth(<span class="st">&quot;user&quot;</span>, <span class="st">&quot;pass&quot;</span>);</code></pre></div>
+<p>NOTE: OpenSSL is required for Digest Authentication.</p>
+<h3 id="range">Range</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Client cli(<span class="st">&quot;httpbin.org&quot;</span>);
+
+<span class="kw">auto</span> res = cli.Get(<span class="st">&quot;/range/32&quot;</span>, {
+  httplib::make_range_header({{<span class="dv">1</span>, <span class="dv">10</span>}}) <span class="co">// &#39;Range: bytes=1-10&#39;</span>
+});
+<span class="co">// res-&gt;status should be 206.</span>
+<span class="co">// res-&gt;body should be &quot;bcdefghijk&quot;.</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::make_range_header({{<span class="dv">1</span>, <span class="dv">10</span>}, {<span class="dv">20</span>, <span class="dv">-1</span>}})      <span class="co">// &#39;Range: bytes=1-10, 20-&#39;</span>
+httplib::make_range_header({{<span class="dv">100</span>, <span class="dv">199</span>}, {<span class="dv">500</span>, <span class="dv">599</span>}}) <span class="co">// &#39;Range: bytes=100-199, 500-599&#39;</span>
+httplib::make_range_header({{<span class="dv">0</span>, <span class="dv">0</span>}, {<span class="dv">-1</span>, <span class="dv">1</span>}})        <span class="co">// &#39;Range: bytes=0-0, -1&#39;</span></code></pre></div>
+<h3 id="keep-alive-connection">Keep-Alive connection</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cli.set_keep_alive_max_count(<span class="dv">2</span>); <span class="co">// Default is 5</span>
+
+<span class="bu">std::</span>vector&lt;Request&gt; requests;
+Get(requests, <span class="st">&quot;/get-request1&quot;</span>);
+Get(requests, <span class="st">&quot;/get-request2&quot;</span>);
+Post(requests, <span class="st">&quot;/post-request1&quot;</span>, <span class="st">&quot;text&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);
+Post(requests, <span class="st">&quot;/post-request2&quot;</span>, <span class="st">&quot;text&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);
+
+<span class="at">const</span> <span class="dt">size_t</span> DATA_CHUNK_SIZE = <span class="dv">4</span>;
+<span class="bu">std::</span>string data(<span class="st">&quot;abcdefg&quot;</span>);
+Post(requests, <span class="st">&quot;/post-request-with-content-provider&quot;</span>,
+  data.size(),
+  [&amp;](<span class="dt">size_t</span> offset, <span class="dt">size_t</span> length, DataSink &amp;sink){
+    sink.write(&amp;data[offset], <span class="bu">std::</span>min(length, DATA_CHUNK_SIZE));
+  },
+  <span class="st">&quot;text/plain&quot;</span>);
+
+<span class="bu">std::</span>vector&lt;Response&gt; responses;
+<span class="cf">if</span> (cli.send(requests, responses)) {
+  <span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span>&amp; res: responses) {
+    ...
+  }
+}</code></pre></div>
+<h3 id="redirect">Redirect</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">httplib::Client cli(<span class="st">&quot;yahoo.com&quot;</span>);
+
+<span class="kw">auto</span> res = cli.Get(<span class="st">&quot;/&quot;</span>);
+res-&gt;status; <span class="co">// 301</span>
+
+cli.set_follow_location(<span class="kw">true</span>);
+res = cli.Get(<span class="st">&quot;/&quot;</span>);
+res-&gt;status; <span class="co">// 200</span></code></pre></div>
+<h3 id="use-a-specitic-network-interface">Use a specitic network interface</h3>
+<p>NOTE: This feature is not available on Windows, yet.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cli.set_interface(<span class="st">&quot;eth0&quot;</span>); <span class="co">// Interface name, IP address or host name</span></code></pre></div>
+<h2 id="openssl-support">OpenSSL Support</h2>
+<p>SSL support is available with <code>CPPHTTPLIB_OPENSSL_SUPPORT</code>. <code>libssl</code> and <code>libcrypto</code> should be linked.</p>
+<p>NOTE: cpp-httplib supports 1.1.1 (until 2023-09-11) and 1.0.2 (2019-12-31).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#define CPPHTTPLIB_OPENSSL_SUPPORT</span>
+
+SSLServer svr(<span class="st">&quot;./cert.pem&quot;</span>, <span class="st">&quot;./key.pem&quot;</span>);
+
+SSLClient cli(<span class="st">&quot;localhost&quot;</span>, <span class="dv">8080</span>);
+cli.set_ca_cert_path(<span class="st">&quot;./ca-bundle.crt&quot;</span>);
+cli.enable_server_certificate_verification(<span class="kw">true</span>);</code></pre></div>
+<h2 id="zlib-support">Zlib Support</h2>
+<p>'gzip' compression is available with <code>CPPHTTPLIB_ZLIB_SUPPORT</code>.</p>
+<p>The server applies gzip compression to the following MIME type contents:</p>
+<ul>
+<li>all text types</li>
+<li>image/svg+xml</li>
+<li>application/javascript</li>
+<li>application/json</li>
+<li>application/xml</li>
+<li>application/xhtml+xml</li>
+</ul>
+<h3 id="compress-content-on-client">Compress content on client</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">cli.set_compress(<span class="kw">true</span>);
+res = cli.Post(<span class="st">&quot;/resource/foo&quot;</span>, <span class="st">&quot;...&quot;</span>, <span class="st">&quot;text/plain&quot;</span>);</code></pre></div>
+<h2 id="split-httplib.h-into-.h-and-.cc">Split httplib.h into .h and .cc</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="op">&gt;</span> <span class="ex">python3</span> split.py
+<span class="op">&gt;</span> <span class="fu">ls</span> out
+<span class="ex">httplib.h</span>  httplib.cc</code></pre></div>
+<h2 id="note">NOTE</h2>
+<h3 id="g">g++</h3>
+<p>g++ 4.8 and below cannot build this library since <code>&lt;regex&gt;</code> in the versions are <a href="https://stackoverflow.com/questions/12530406/is-gcc-4-8-or-earlier-buggy-about-regular-expressions">broken</a>.</p>
+<h3 id="windows">Windows</h3>
+<p>Include <code>httplib.h</code> before <code>Windows.h</code> or include <code>Windows.h</code> by defining <code>WIN32_LEAN_AND_MEAN</code> beforehand.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;Windows.h&gt;</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#define WIN32_LEAN_AND_MEAN</span>
+<span class="pp">#include </span><span class="im">&lt;Windows.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;httplib.h&gt;</span></code></pre></div>
+<p>Note: Cygwin on Windows is not supported.</p>
+<h2 id="license">License</h2>
+<p>MIT license (© 2020 Yuji Hirose)</p>
+<h2 id="special-thanks-to">Special Thanks To</h2>
+<p><a href="https://github.com/yhirose/cpp-httplib/graphs/contributors">These folks</a> made great contributions to polish this library to totally another level from a simple toy!</p>

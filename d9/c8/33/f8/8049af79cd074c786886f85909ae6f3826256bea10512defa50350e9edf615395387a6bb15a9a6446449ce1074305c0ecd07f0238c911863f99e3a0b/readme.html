@@ -1,0 +1,87 @@
+<h1 id="nanovg">NanoVG</h1>
+<p>NanoVG is small antialiased vector graphics rendering library for OpenGL. It has lean API modeled after HTML5 canvas API. It is aimed to be a practical and fun toolset for building scalable user interfaces and visualizations.</p>
+<h2 id="screenshot">Screenshot</h2>
+<div class="figure">
+<img src="/example/screenshot-01.png?raw=true" alt="screenshot of some text rendered witht the sample program" />
+<p class="caption">screenshot of some text rendered witht the sample program</p>
+</div>
+<h1 id="usage">Usage</h1>
+<p>The NanoVG API is modeled loosely on HTML5 canvas API. If you know canvas, you're up to speed with NanoVG in no time.</p>
+<h2 id="creating-drawing-context">Creating drawing context</h2>
+<p>The drawing context is created using platform specific constructor function. If you're using the OpenGL 2.0 back-end the context is created as follows:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#define NANOVG_GL2_IMPLEMENTATION   </span><span class="co">// Use GL2 implementation.</span>
+<span class="pp">#include </span><span class="im">&quot;nanovg_gl.h&quot;</span>
+...
+<span class="kw">struct</span> NVGcontext* vg = nvgCreateGL2(NVG_ANTIALIAS | NVG_STENCIL_STROKES);</code></pre></div>
+<p>The first parameter defines flags for creating the renderer.</p>
+<ul>
+<li><code>NVG_ANTIALIAS</code> means that the renderer adjusts the geometry to include anti-aliasing. If you're using MSAA, you can omit this flags.</li>
+<li><code>NVG_STENCIL_STROKES</code> means that the render uses better quality rendering for (overlapping) strokes. The quality is mostly visible on wider strokes. If you want speed, you can omit this flag.</li>
+</ul>
+<p>Currently there is an OpenGL back-end for NanoVG: <a href="/src/nanovg_gl.h">nanovg_gl.h</a> for OpenGL 2.0, OpenGL ES 2.0, OpenGL 3.2 core profile and OpenGL ES 3. The implementation can be chosen using a define as in above example. See the header file and examples for further info.</p>
+<p><em>NOTE:</em> The render target you're rendering to must have stencil buffer.</p>
+<h2 id="drawing-shapes-with-nanovg">Drawing shapes with NanoVG</h2>
+<p>Drawing a simple shape using NanoVG consists of four steps: 1) begin a new shape, 2) define the path to draw, 3) set fill or stroke, 4) and finally fill or stroke the path.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">nvgBeginPath(vg);
+nvgRect(vg, <span class="dv">100</span>,<span class="dv">100</span>, <span class="dv">120</span>,<span class="dv">30</span>);
+nvgFillColor(vg, nvgRGBA(<span class="dv">255</span>,<span class="dv">192</span>,<span class="dv">0</span>,<span class="dv">255</span>));
+nvgFill(vg);</code></pre></div>
+<p>Calling <code>nvgBeginPath()</code> will clear any existing paths and start drawing from blank slate. There are number of number of functions to define the path to draw, such as rectangle, rounded rectangle and ellipse, or you can use the common moveTo, lineTo, bezierTo and arcTo API to compose the paths step by step.</p>
+<h2 id="understanding-composite-paths">Understanding Composite Paths</h2>
+<p>Because of the way the rendering backend is build in NanoVG, drawing a composite path, that is path consisting from multiple paths defining holes and fills, is a bit more involved. NanoVG uses even-odd filling rule and by default the paths are wound in counter clockwise order. Keep that in mind when drawing using the low level draw API. In order to wind one of the predefined shapes as a hole, you should call <code>nvgPathWinding(vg, NVG_HOLE)</code>, or <code>nvgPathWinding(vg, NVG_CW)</code> <em>after</em> defining the path.</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">nvgBeginPath(vg);
+nvgRect(vg, <span class="dv">100</span>,<span class="dv">100</span>, <span class="dv">120</span>,<span class="dv">30</span>);
+nvgCircle(vg, <span class="dv">120</span>,<span class="dv">120</span>, <span class="dv">5</span>);
+nvgPathWinding(vg, NVG_HOLE);   <span class="co">// Mark circle as a hole.</span>
+nvgFillColor(vg, nvgRGBA(<span class="dv">255</span>,<span class="dv">192</span>,<span class="dv">0</span>,<span class="dv">255</span>));
+nvgFill(vg);</code></pre></div>
+<h2 id="rendering-is-wrong-what-to-do">Rendering is wrong, what to do?</h2>
+<ul>
+<li>make sure you have created NanoVG context using one of the <code>nvgCreatexxx()</code> calls</li>
+<li>make sure you have initialised OpenGL with <em>stencil buffer</em></li>
+<li>make sure you have cleared stencil buffer</li>
+<li>make sure all rendering calls happen between <code>nvgBeginFrame()</code> and <code>nvgEndFrame()</code></li>
+<li>to enable more checks for OpenGL errors, add <code>NVG_DEBUG</code> flag to <code>nvgCreatexxx()</code></li>
+<li>if the problem still persists, please report an issue!</li>
+</ul>
+<h2 id="opengl-state-touched-by-the-backend">OpenGL state touched by the backend</h2>
+<p>The OpenGL back-end touches following states:</p>
+<p>When textures are uploaded or updated, the following pixel store is set to defaults: <code>GL_UNPACK_ALIGNMENT</code>, <code>GL_UNPACK_ROW_LENGTH</code>, <code>GL_UNPACK_SKIP_PIXELS</code>, <code>GL_UNPACK_SKIP_ROWS</code>. Texture binding is also affected. Texture updates can happen when the user loads images, or when new font glyphs are added. Glyphs are added as needed between calls to <code>nvgBeginFrame()</code> and <code>nvgEndFrame()</code>.</p>
+<p>The data for the whole frame is buffered and flushed in <code>nvgEndFrame()</code>. The following code illustrates the OpenGL state touched by the rendering code:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">    glUseProgram(prog);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glStencilMask(<span class="bn">0xffffffff</span>);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glStencilFunc(GL_ALWAYS, <span class="dv">0</span>, <span class="bn">0xffffffff</span>);
+    glActiveTexture(GL_TEXTURE0);
+    glBindBuffer(GL_UNIFORM_BUFFER, buf);
+    glBindVertexArray(arr);
+    glBindBuffer(GL_ARRAY_BUFFER, buf);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glUniformBlockBinding(... , GLNVG_FRAG_BINDING);</code></pre></div>
+<h2 id="api-reference">API Reference</h2>
+<p>See the header file <a href="/src/nanovg.h">nanovg.h</a> for API reference.</p>
+<h2 id="ports">Ports</h2>
+<ul>
+<li><a href="https://github.com/cmaughan/nanovg">DX11 port</a> by <a href="https://github.com/cmaughan">Chris Maughan</a></li>
+<li><a href="https://github.com/ollix/MetalNanoVG">Metal port</a> by <a href="https://github.com/olliwang">Olli Wang</a></li>
+<li><a href="https://github.com/bkaradzic/bgfx/tree/master/examples/20-nanovg">bgfx port</a> by <a href="https://github.com/bkaradzic">Branimir Karadžić</a></li>
+</ul>
+<h2 id="projects-using-nanovg">Projects using NanoVG</h2>
+<ul>
+<li><a href="https://github.com/vinjn/island/blob/master/examples/01-processing/sketch2d.h">Processing API simulation by vinjn</a></li>
+<li><a href="https://github.com/sbarisic/nanovg_dotnet">NanoVG for .NET, C# P/Invoke binding</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>The library is licensed under <a href="LICENSE.txt">zlib license</a></p>
+<h2 id="discussions">Discussions</h2>
+<p><a href="https://groups.google.com/forum/#!forum/nanovg">NanoVG mailing list</a></p>
+<h2 id="links">Links</h2>
+<p>Uses <a href="http://nothings.org">stb_truetype</a> (or, optionally, <a href="http://freetype.org">freetype</a>) for font rendering. Uses <a href="http://nothings.org">stb_image</a> for image loading.</p>

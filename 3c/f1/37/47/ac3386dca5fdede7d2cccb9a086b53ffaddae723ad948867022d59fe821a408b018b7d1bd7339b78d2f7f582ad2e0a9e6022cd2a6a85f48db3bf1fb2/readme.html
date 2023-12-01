@@ -1,0 +1,65 @@
+<p><a href="https://travis-ci.org/libxls/libxls"><img src="https://travis-ci.org/libxls/libxls.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/evanmiller/libxls-252ki"><img src="https://ci.appveyor.com/api/projects/status/3nx26kfmy2y0efsi?svg=true" alt="Build Status" /></a></p>
+<h1 id="libxls---read-xls-files-from-c">libxls - Read XLS files from C</h1>
+<p>This is libxls, a C library for reading Excel files in the nasty old binary OLE format, plus a command-line tool for converting XLS to CSV (named, appropriately enough, <code>xls2csv</code>).</p>
+<p>After several years of neglect, libxls is under new management as of the 1.5.x series. Head over to <a href="https://github.com/libxls/libxls/releases">releases</a> to get the latest stable version of libxls 1.5, which fixes <em>many</em> security vulnerabilities found in libxls 1.4 and earlier.</p>
+<p>Libxls 1.5 also includes new APIs for parsing files stored in memory buffers, and returns errors instead of exiting upon encountering malformed input. If you find a bug, please file it on the <a href="https://github.com/libxls/libxls/issues">GitHub issue tracker</a>.</p>
+<p>Changes to libxls since 1.4:</p>
+<ul>
+<li>Hosted on GitHub (hooray!)</li>
+<li>New in-memory parsing API (see <code>xls_open_buffer</code>)</li>
+<li>Internals rewritten to return errors instead of exiting</li>
+<li>Heavily fuzz-tested with clang's libFuzzer, fixing many memory leaks and CVEs</li>
+<li>Improved compatibility with C++</li>
+<li>Continuous integration tests on Mac, Linux, and Windows</li>
+<li>Lots of other small fixes, see the commit history</li>
+</ul>
+<p>The <a href="include/xls.h">C API</a> is pretty simple, this will get you started:</p>
+<pre class="{c}"><code>xls_error_t error = LIBXLS_OK;
+xlsWorkBook *wb = xls_open_file(&quot;/path/to/finances.xls&quot;, &quot;UTF-8&quot;, &amp;error);
+if (wb == NULL) {
+    printf(&quot;Error reading file: %s\n&quot;, xls_getError(error));
+    exit(1);
+}
+for (int i=0; i&lt;wb-&gt;sheets.count; i++) { // sheets
+    xl_WorkSheet *work_sheet = xls_getWorkSheet(work_book, i);
+    error = xls_parseWorkSheet(work_sheet);
+    for (int j=0; j&lt;=work_sheet-&gt;rows.lastrow; j++) { // rows
+        xlsRow *row = xls_row(work_sheet, j);
+        for (int k=0; k&lt;=work_sheet-&gt;rows.lastcol; k++) { // columns
+            xlsCell *cell = &amp;row-&gt;cells.cell[k];
+            // do something with cell
+            if (cell-&gt;id == XLS_RECORD_BLANK) {
+                // do something with a blank cell
+            } else if (cell-&gt;id == XLS_RECORD_NUMBER) {
+               // use cell-&gt;d, a double-precision number
+            } else if (cell-&gt;id == XLS_RECORD_FORMULA) {
+                if (strcmp(cell-&gt;str, &quot;bool&quot;) == 0) {
+                    // its boolean, and test cell-&gt;d &gt; 0.0 for true
+                } else if (strcmp(cell-&gt;str, &quot;error&quot;) == 0) {
+                    // formula is in error
+                } else {
+                    // cell-&gt;str is valid as the result of a string formula.
+                }
+            } else if (cell-&gt;str != NULL) {
+                // cell-&gt;str contains a string value
+            }
+        }
+    }
+    xls_close_WS(work_sheet);
+}
+xls_close_WB(wb);</code></pre>
+<p>The library also includes a CLI tool for converting Excel files to CSV:</p>
+<pre><code>./xls2csv /path/to/file.xls</code></pre>
+<p>The man page for <code>xls2csv</code> has more details.</p>
+<p>Libxls should run fine on both little-endian and big-endian systems, but if not please open an <a href="https://github.com/libxls/libxls/issues/new">issue</a>.</p>
+<p>If you want to hack on the source, you should first familiarize yourself with the <a href="http://sc.openoffice.org/excelfileformat.pdf">Microsoft Excel File Format</a> as well as <a href="http://sc.openoffice.org/compdocfileformat.pdf">Coumpound Document file format</a> (documentation provided by the nice folks at OpenOffice.org).</p>
+<h2 id="installation">Installation</h2>
+<p>If you want a stable version, check out the <a href="https://github.com/libxls/libxls/releases">Releases</a> section, which has copies of everything you'll find in <a href="https://sourceforge.net/projects/libxls/files/">Sourceforge</a>, and download version 1.5.0 or later.</p>
+<p>For full instructions see <a href="INSTALL" class="uri">INSTALL</a>, or here's the tl;dr:</p>
+<p>To install a stable release:</p>
+<pre><code>./configure
+make
+make install</code></pre>
+<p>If you've cloned the git repository, you'll need to run this first:</p>
+<pre><code>./bootstrap</code></pre>
+<p>That will generate all the supporting files (assuming autotools is already present on the system).</p>

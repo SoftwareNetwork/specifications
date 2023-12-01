@@ -1,0 +1,154 @@
+<p>This is the post-peer-review LLFIO v2 rewrite. You can view its documentation at https://ned14.github.io/llfio/</p>
+<p><b>master branch test status</b> Linux &amp; OS X: <a href="https://travis-ci.org/ned14/llfio"><img src="https://travis-ci.org/ned14/llfio.svg?branch=master" alt="Build Status" /></a> Windows: <a href="https://ci.appveyor.com/project/ned14/llfio/branch/master"><img src="https://ci.appveyor.com/api/projects/status/dfctqfap3kpx89om/branch/master?svg=true" alt="Build status" /></a> <b>CMake dashboard</b>: http://my.cdash.org/index.php?project=Boost.AFIO</p>
+<p>Tarballs of source and prebuilt binaries for Linux x64, MacOS x64 and Windows x64: - https://dedi5.nedprod.com/static/files/llfio-v2.0-source-latest.tar.xz - https://dedi5.nedprod.com/static/files/llfio-v2.0-binaries-linux64-latest.tgz - https://dedi5.nedprod.com/static/files/llfio-v2.0-binaries-darwin64-latest.tgz (disabled pending XCode supporting Filesystem TS) - https://dedi5.nedprod.com/static/files/llfio-v2.0-binaries-win64-latest.zip</p>
+<p>USAGE AND CONFIGURATION INSTRUCTIONS CAN BE FOUND AT https://ned14.github.io/llfio/</p>
+<h3 id="immediate-todos-in-order-of-priority">Immediate todos in order of priority:</h3>
+<ul>
+<li>[x] Implement new custom C++ exception synthesis support from Outcome.</li>
+<li>[x] Finish trivial vector, which is unfinished and currently segfaults.</li>
+<li>[x] Run clang-tidy fix pass, it's got a bit untidy recently.</li>
+<li>[ ] Add OS X support to <code>storage_profile</code>, this should complete the Mac OS port.</li>
+<li>[x] Fix all known bugs in Outcome, plus reorg source code in prep for <code>status_code</code>.</li>
+<li>[x] Scatter-gather buffers to use https://github.com/martinmoene/byte-lite</li>
+<li>[x] Make lazy the stat fetch during file/dir open.</li>
+<li>[x] Implement SG14 <code>status_code</code> as a standalone library and test in LLFIO.</li>
+<li>[x] Single include generation now we're on <code>status_code</code> and it's safe.</li>
+<li>[x] Implement <code>SIGBUS</code>/<code>EXCEPTION_IN_PAGE_ERROR</code> RAII catcher.</li>
+<li>[x] Implement <code>symlink_handle</code> already!</li>
+<li>[ ] <code>atomic_append</code> isn't actually being tested in shared_fs_mutex</li>
+<li>[ ] Implement a non-toy ACID key-value BLOB store and send it to Boost for peer review.</li>
+<li>[ ] For this need to implement a file-based B+ tree. And for that, need to implement a page allocator out of a single file. Some notes:</li>
+</ul>
+<p>B+ trees would be based on the 4Kb page for memory mapping, and thus allocate and release whole 4Kb pages.</p>
+<p>A simple page allocator from a file might simply keep some magic at the top, and then a list of offsets to free pages for the remainder of the page. That might be (4096 – 12) / 4 = 1021 slots (remember these are 42 bit offsets, so simply limit to 32 bit offsets &lt;&lt; 12).</p>
+<p>Each free page links to its next free page. Freeing a page means modulus its address &gt;&gt; 12 with 1021, and CASing it into its “slot” as its linked list.</p>
+<p>Allocating pages involves iterating a round robin index, pulling free pages off the top. Only if no free pages remain do we atomic append 1021 * 4096 = 4,182,016 bytes and refill the free page index. - [ ] All time based kernel tests need to use soak test based API and auto adjust to valgrind. - [ ] In DEBUG builds, have io_handle always not fill buffers passed to remind people to use pointers returned! - KernelTest needs to be generating each test kernel as a standalone DLL so it can be fuzzed, coverage calculated, bloat calculated, ABI dumped etc - Easy coverage is the usual gcov route =&gt; coveralls.io or gcovr http://gcovr.com/guide.html</p>
+<h3 id="clang-ast-parser-based-todos-which-await-me-getting-back-into-the-clang-ast-parser">clang AST parser based todos which await me getting back into the clang AST parser:</h3>
+<ul>
+<li>[ ] C bindings for all LLFIO v2 APIs. Write libclang parser which autogenerates SWIG interface files from the .hpp files using custom attributes to fill in the missing gaps.</li>
+<li>Much better coverage is to permute the <em>valid</em> parameter inputs of the kernel deduced from examining the kernel parameter API and figure out what minimum set of calling parameters will induce execution of the entire potential call graph. This approach is a poor man's symbolic execution SMT solver, it uses brute force rather than constrained solution. Idea is that when someone releases a proper C++ capable KLEE for open source use we can use that instead.
+<ul>
+<li><code>-fsanitize-coverage=trace-pc -O3</code> will have clang (works also on winclang) call a user supplied <code>__sanitizer_cov_trace_pc()</code> and <code>__sanitizer_cov_trace_pc_indirect(void *callee)</code> function. This would simply atomically append the delta of the program counter from the previously stored one to a memory mapped file. You should use a tagged encoding, so leading byte specifies length and type of record.</li>
+<li>One also needs to replace syscalls with stubs (easy on Windows DLLs) and permute their potential return codes and effects to maximise edge execution. Either monkey patching or a custom DLL loader would work.</li>
+</ul></li>
+<li>One then generates a default KernelTest permutation set for that kernel which can be freshened (probably via commenting out stale entries and appending new entries) by an automated tooling run</li>
+<li>A freebie feature from this work is an automatic possible error returns calculator for the documentation</li>
+<li>Another freebie feature is automatic calculation of the number of malloc + free performed.</li>
+<li>Can we even figure out O type complexities from the call graph? e.g. doubling an input parameter quadruples edges executed? Could generate an O() complexity per input parameter for the documentation?</li>
+</ul>
+<h3 id="known-bugs-and-problems">Known bugs and problems:</h3>
+<ul>
+<li>[ ] algorithm::atomic_append needs improvements:</li>
+<li>Trap if append exceeds 2^63 and do something useful with that</li>
+<li>Fix the known inefficiencies in the implementation:
+<ul>
+<li>We should use byte range locks when concurrency*entities is low</li>
+<li>We have an extra read() during locking between the scanning for our lock request and scanning for other lock requests</li>
+<li>During scan when hashes mismatch we reload a suboptimal range</li>
+<li>We should use memory maps until a SMB/NFS/QNX/OpenBSD lock_request comes in whereafter we should degrade to normal i/o gracefully</li>
+</ul></li>
+<li>[ ] Add native BSD kqueues to POSIX AIO backend as is vastly more efficient.</li>
+<li>http://www.informit.com/articles/article.aspx?p=607373&amp;seqNum=4 is a very useful programming guide for POSIX AIO.</li>
+<li>[ ] Port to Linux KAIO</li>
+<li>http://linux.die.net/man/2/io_getevents would be in the run() loop. pthread_sigqueue() can be used by post() to cause aio_suspend() to break early to run user supplied functions.</li>
+<li>[ ] Don't run the cpu and sys tests if cpu and sys ids already in fs_probe_results.yaml</li>
+<li>Need to uniquely fingerprint a machine somehow?</li>
+<li>[ ] Add monitoring of CPU usage to tests. See GetThreadTimes. Make sure worker thread times are added into results.</li>
+<li>[ ] Configurable tracking of op latency and throughput (bytes) for all handles on some storage i.e. storage needs to be kept in a global map.</li>
+<li>Something which strongly resembles the memory bandwidth test</li>
+<li>[ ] Should have decile bucketing e.g. percentage in bottom 10%, percentage in next 10% etc. Plus mean and stddev.</li>
+<li>[ ] Should either be resettable or subtractable i.e. points can be diffed.</li>
+<li>[ ] Output into YAML comparable hashes for OS + device + FS + flags so we can merge partial results for some combo into the results database.</li>
+<li>[ ] Write YAML parsing tool which merges fs_probe_results.yaml into the results directory where flags and OS get its own directory and each YAML file is named FS + device e.g.</li>
+</ul>
+<h3 id="algorithms-library-llfio_v2_namespacealgorithm-todo">Algorithms library <code>LLFIO_V2_NAMESPACE::algorithm</code> todo:</h3>
+<ul>
+<li>[ ] Add <code>vector&lt;T&gt;</code> which adapts a <code>mapped_view&lt;T&gt;</code>.</li>
+<li>[ ] Add some primitive which intelligently copies/moves between views and vectors. Specifically, if resizing, if type is trivially copyable, skip memory copying during resize via remapping.</li>
+<li>[ ] Add an intelligent on demand memory mapper:</li>
+<li>Use one-two-three level page system, so 4Kb/2Mb/1Gb. Files under 2Mb need just one indirection.</li>
+<li>Page tables need to also live in a potentially mapped file</li>
+<li>Could speculatively map 4Kb chunks lazily and keep an internal map of 4Kb offsets to map. This allows more optimal handing of growing files.</li>
+<li>WOULD BE NICE: Copy on Write support which collates a list of dirtied 4Kb pages and could write those out as a delta.
+<ul>
+<li>Perhaps Snappy compression could be useful? It is continuable from a base if you dump out the dictionary i.e. 1Mb data compressed, then add 4Kb delta, you can compress the additional 4Kb very quickly using the dictionary from the 1Mb.</li>
+<li>LATER: Use guard pages to toggle dirty flag per initial COW</li>
+</ul></li>
+<li>[ ] Store in EA or a file called .spookyhashes or .spookyhash the 128 bit hash of a file and the time it was calculated. This can save lots of hashing work later.</li>
+<li>[ ] Correct directory hierarchy delete i.e.:</li>
+<li>Delete files first tips to trunk, retrying for some given timeout. If fail to immediately delete, rename to base directory under a long random hex name, try to delete again.</li>
+<li>Only after all files have been deleted, delete directories. If new files appear during directory deletion, loop.</li>
+<li>Options:
+<ul>
+<li>Rename base directory(ies) to something random to atomically prevent lookup.</li>
+<li>Delete all or nothing (i.e. rename all files into another tree checking permissions etc, if successful only then delete)</li>
+</ul></li>
+<li>[ ] Correct directory hierarchy copy</li>
+<li>Optional backup semantics (i.e. copy all ACLs, metadata etc)</li>
+<li>Intelligent retry for some given timeout before failing.</li>
+<li>Optional fixup of any symbolic links pointing into copied tree.</li>
+<li>Optional copy directory structure but hard or symbolic linking files.
+<ul>
+<li>Symbolic links optionally are always absolute paths instead of relative.</li>
+</ul></li>
+<li>Optional deference all hard links and/or symbolic links into real files.</li>
+<li>[ ] Correct directory hierarchy move</li>
+<li>[ ] Correct directory hierarchy update (i.e. changes only)</li>
+<li>[ ] Make directory tree C by cloning tree B to tree B, and then updating tree C with changes from tree A. The idea is for an incremental backup of changes over time but saving storage where possible.</li>
+<li>[ ] Replace all content (including EA) duplicate files in a tree with hardlinks.</li>
+<li>[ ] Figure out all hard linked file entries for some inode.</li>
+<li>[ ] Generate list of all hard linked files in a tree (i.e. refcount&gt;1) and which are the same inode.</li>
+</ul>
+<h3 id="eventual-transactional-key-blob-store">Eventual transactional key-blob store:</h3>
+<ul>
+<li>What's the least possible complex implementation based on files and directories?</li>
+<li><code>store/index</code> is 48 bit counter + r/w mutex + open hash map of 128 bit key to blob identifier (64 bits). Blob identifier is top 6 bits file id:
+<ul>
+<li>0 means large file, values 1-15 are reserved for future use (large file deltas).</li>
+<li>Values 16-63 are the smallfile.</li>
+</ul>
+<ol style="list-style-type: decimal">
+<li><code>store/small/01-3f</code> for blobs &lt;= 65512 bytes (8 bytes tail, 16 bytes key). Each blob is padded to 64 byte multiple and tail record with 16 bytes of key, 6 byte (48 bit) counter + 2 byte size aligned at end + optional 16 byte hash. There are 48 of these used to maximise write concurrency (use the thread id to select a smallfile on open, use exclusive lock probing to figure out a small file not in use, hold shared lock on chosen small file until exit).</li>
+</ol>
+<p>Remaining 58 bits of blob identifier is the offset into the smallfile of the end of the tail record (shifted left 6 bits, all records in smallfiles are at 64 byte multiples).</p>
+<ol start="2" style="list-style-type: decimal">
+<li><code>store/large/*</code> for blobs &gt; 65512 under the assumption that one day we'll implement 4Kb dirty delta page with compression support.</li>
+</ol>
+<ul>
+<li><code>store/large/hexkey/48bithexcounter</code> stores each blob</li>
+<li>Last 64 bytes contains magic, size, optional hash.</li>
+</ul>
+<p>Blob identifier is top 6 bits zero. Next 10 bits is 4 bits mantissa shifted left 6 bits of shift (0-63) for approx size. Remaining 48 bits is counter.</p></li>
+<li><code>store/config</code> keeps:
+<ul>
+<li>transactions enabled or not.</li>
+<li>mmap enable or not (i.e. can be used over network drive)</li>
+<li>content hash used e.g. SpookyHash</li>
+<li>compression used e.g. pithy</li>
+<li>dirty flag i.e. do fsck on next first open</li>
+<li><code>O_SYNC</code> was on or not last open (affects severity of any fsck).</li>
+<li>shared lock kept on config so we know last user exit/first user enter</li>
+</ul></li>
+<li>Start a transaction = atomic increment current 48 bit counter</li>
+<li>Write the changes making up this transaction under this counter</li>
+<li>When ready, lock the open hash map's r/w mutex for exclusive access.</li>
+<li>Check that all the keys we are modifying have not been changed since the transaction began.</li>
+<li>If all good, update all the keys with their new values and unlock the r/w mutex QUESTION: Can forcing all map users to lock the mutex each access be avoided? e.g. atomic swapping in a pointer to an updated table? One could COW the 4Kb pages being changed in the current table, then update the map, then swap pointers and leave the old table hang around for a while.</li>
+<li>Garbage collecting in this design is easy enough, write all current small values into a single file, then update the map in a single shot, then hole punch all the other small files.</li>
+<li>Live resizing the open hash map I think is impossible however unless we use that atomic swapping design.</li>
+<li><p>You may need compression, https://github.com/johnezang/pithy looks easily convertible into header-only C++ and has a snappy-like performance to compression ratio. Make sure you merge the bug fixes from the forks first.</p></li>
+</ul>
+<h2 id="commits-and-tags-in-this-git-repository-can-be-verified-using">Commits and tags in this git repository can be verified using:</h2>
+<pre>
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2
+
+mDMEVvMacRYJKwYBBAHaRw8BAQdAp+Qn6djfxWQYtAEvDmv4feVmGALEQH/pYpBC
+llaXNQe0WE5pYWxsIERvdWdsYXMgKHMgW3VuZGVyc2NvcmVdIHNvdXJjZWZvcmdl
+IHthdH0gbmVkcHJvZCBbZG90XSBjb20pIDxzcGFtdHJhcEBuZWRwcm9kLmNvbT6I
+eQQTFggAIQUCVvMacQIbAwULCQgHAgYVCAkKCwIEFgIDAQIeAQIXgAAKCRCELDV4
+Zvkgx4vwAP9gxeQUsp7ARMFGxfbR0xPf6fRbH+miMUg2e7rYNuHtLQD9EUoR32We
+V8SjvX4r/deKniWctvCi5JccgfUwXkVzFAk=
+=puFk
+-----END PGP PUBLIC KEY BLOCK-----
+</pre>

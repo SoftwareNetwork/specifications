@@ -1,0 +1,57 @@
+<h1 id="boost.compute">Boost.Compute</h1>
+<p><a href="https://travis-ci.org/boostorg/compute"><img src="https://travis-ci.org/boostorg/compute.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/jszuppe/compute/branch/master"><img src="https://ci.appveyor.com/api/projects/status/4s2nvfc97m7w23oi/branch/master?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/r/boostorg/compute"><img src="https://coveralls.io/repos/boostorg/compute/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://gitter.im/boostorg/compute?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge"><img src="https://badges.gitter.im/boostorg/compute.svg" alt="Gitter" /></a></p>
+<p>Boost.Compute is a GPU/parallel-computing library for C++ based on OpenCL.</p>
+<p>The core library is a thin C++ wrapper over the OpenCL API and provides access to compute devices, contexts, command queues and memory buffers.</p>
+<p>On top of the core library is a generic, STL-like interface providing common algorithms (e.g. <code>transform()</code>, <code>accumulate()</code>, <code>sort()</code>) along with common containers (e.g. <code>vector&lt;T&gt;</code>, <code>flat_set&lt;T&gt;</code>). It also features a number of extensions including parallel-computing algorithms (e.g. <code>exclusive_scan()</code>, <code>scatter()</code>, <code>reduce()</code>) and a number of fancy iterators (e.g. <code>transform_iterator&lt;&gt;</code>, <code>permutation_iterator&lt;&gt;</code>, <code>zip_iterator&lt;&gt;</code>).</p>
+<p>The full documentation is available at http://boostorg.github.io/compute/.</p>
+<h2 id="example">Example</h2>
+<p>The following example shows how to sort a vector of floats on the GPU:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;vector&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;algorithm&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;boost/compute.hpp&gt;</span>
+
+<span class="kw">namespace</span> compute = <span class="ex">boost::</span>compute;
+
+<span class="dt">int</span> main()
+{
+    <span class="co">// get the default compute device</span>
+    compute::device gpu = compute::system::default_device();
+
+    <span class="co">// create a compute context and command queue</span>
+    compute::context ctx(gpu);
+    compute::command_queue queue(ctx, gpu);
+
+    <span class="co">// generate random numbers on the host</span>
+    <span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt; host_vector(<span class="dv">1000000</span>);
+    <span class="bu">std::</span>generate(host_vector.begin(), host_vector.end(), rand);
+
+    <span class="co">// create vector on the device</span>
+    compute::vector&lt;<span class="dt">float</span>&gt; device_vector(<span class="dv">1000000</span>, ctx);
+
+    <span class="co">// copy data to the device</span>
+    compute::copy(
+        host_vector.begin(), host_vector.end(), device_vector.begin(), queue
+    );
+
+    <span class="co">// sort data on the device</span>
+    compute::sort(
+        device_vector.begin(), device_vector.end(), queue
+    );
+
+    <span class="co">// copy data back to the host</span>
+    compute::copy(
+        device_vector.begin(), device_vector.end(), host_vector.begin(), queue
+    );
+
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>Boost.Compute is a header-only library, so no linking is required. The example above can be compiled with:</p>
+<p><code>g++ -I/path/to/compute/include sort.cpp -lOpenCL</code></p>
+<p>More examples can be found in the <a href="http://boostorg.github.io/compute/boost_compute/tutorial.html">tutorial</a> and under the <a href="https://github.com/boostorg/compute/tree/master/example">examples</a> directory.</p>
+<h2 id="support">Support</h2>
+<p>Questions about the library (both usage and development) can be posted to the <a href="https://groups.google.com/forum/#!forum/boost-compute">mailing list</a>.</p>
+<p>Bugs and feature requests can be reported through the <a href="https://github.com/boostorg/compute/issues?state=open">issue tracker</a>.</p>
+<p>Also feel free to send me an email with any problems, questions, or feedback.</p>
+<h2 id="help-wanted">Help Wanted</h2>
+<p>The Boost.Compute project is currently looking for additional developers with interest in parallel computing.</p>
+<p>Please send an email to Kyle Lutz (kyle.r.lutz@gmail.com) for more information.</p>

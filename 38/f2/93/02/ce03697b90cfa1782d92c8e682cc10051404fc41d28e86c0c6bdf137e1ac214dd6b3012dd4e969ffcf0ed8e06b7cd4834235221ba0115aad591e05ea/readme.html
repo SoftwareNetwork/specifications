@@ -1,0 +1,71 @@
+<h1 id="aws-sdk-for-c">AWS SDK for C++</h1>
+<p>The AWS SDK for C++ provides a modern C++ (version C++ 11 or later) interface for Amazon Web Services (AWS). It is meant to be performant and fully functioning with low- and high-level SDKs, while minimizing dependencies and providing platform portability (Windows, OSX, Linux, and mobile).</p>
+<p>AWS SDK for C++ is in now in General Availability and recommended for production use. We invite our customers to join the development efforts by submitting pull requests and sending us feedback and ideas via GitHub Issues.</p>
+<h2 id="version-1.8-is-now-available">Version 1.8 is now Available!</h2>
+<p>Version 1.8 introduces much asked for new features and changes to the SDK but, because this might also cause compatibility issues with previous versions we've decided to keep it as a seperate branch to make the transition less jarring.</p>
+<p>For more information see the <a href="https://github.com/aws/aws-sdk-cpp/wiki/What%E2%80%99s-New-in-AWS-SDK-for-CPP-Version-1.8">What’s New in AWS SDK for CPP Version 1.8</a> entry of the wiki, and also please provide any feedback you may have of these changes on our pinned <a href="https://github.com/aws/aws-sdk-cpp/issues/1373">issue</a>.</p>
+<p><strong>Jump To:</strong> * <a href="#Getting-Started">Getting Started</a> * <a href="#issues-and-contributions">Issues and Contributions</a> * <a href="#Getting-Help">Getting Help</a> * <a href="#Using-the-SDK-and-Other-Topics">Using the SDK and Other Topics</a></p>
+<h1 id="getting-started">Getting Started</h1>
+<h2 id="building-the-sdk">Building the SDK:</h2>
+<h3 id="minimum-requirements">Minimum Requirements:</h3>
+<ul>
+<li>Visual Studio 2015 or later</li>
+<li>OR GNU Compiler Collection (GCC) 4.9 or later</li>
+<li>OR Clang 3.3 or later</li>
+<li>4GB of RAM</li>
+<li>4GB of RAM is required to build some of the larger clients. The SDK build may fail on EC2 instance types t2.micro, t2.small and other small instance types due to insufficient memory.</li>
+</ul>
+<h3 id="building-from-source">Building From Source:</h3>
+<h4 id="to-create-an-out-of-source-build">To create an <strong>out-of-source build</strong>:</h4>
+<ol style="list-style-type: decimal">
+<li>Install CMake and the relevant build tools for your platform. Ensure these are available in your executable path.</li>
+<li><p>Create your build directory. Replace <BUILD_DIR> with your build directory name:</p></li>
+<li><p>Build the project:</p></li>
+</ol>
+<ul>
+<li><p>For Auto Make build systems: <code>sh    cd &lt;BUILD_DIR&gt;    cmake &lt;path-to-root-of-this-source-code&gt; -DCMAKE_BUILD_TYPE=Debug    make    sudo make install</code></p></li>
+<li><p>For Visual Studio: <code>sh    cd &lt;BUILD_DIR&gt;    cmake &lt;path-to-root-of-this-source-code&gt; -G &quot;Visual Studio 15 Win64&quot; -DCMAKE_BUILD_TYPE=Debug    msbuild ALL_BUILD.vcxproj /p:Configuration=Debug</code></p></li>
+<li><p>For macOS - Xcode: <code>sh    cmake &lt;path-to-root-of-this-source-code&gt; -G Xcode -DTARGET_ARCH=&quot;APPLE&quot; -DCMAKE_BUILD_TYPE=Debug    xcodebuild -target ALL_BUILD</code></p></li>
+</ul>
+<h3 id="third-party-dependencies">Third party dependencies:</h3>
+<p>Starting from version 1.7.0, we added several third party dependencies, including <a href="https://github.com/awslabs/aws-c-common"><code>aws-c-common</code></a>, <a href="https://github.com/awslabs/aws-checksums"><code>aws-checksums</code></a> and <a href="https://github.com/awslabs/aws-c-event-stream"><code>aws-c-event-stream</code></a>. By default, they will be built and installed in <code>&lt;BUILD_DIR&gt;/.deps/install</code>, and copied to default system directory during SDK installation. You can change the location by specifying <code>CMAKE_INSTALL_PREFIX</code>.</p>
+<p>However, if you want to build and install these libraries in custom locations: 1. Download, build and install <code>aws-c-common</code>: <code>sh    git clone https://github.com/awslabs/aws-c-common    cd aws-c-common    # checkout to a specific commit id if you want.    git checkout &lt;commit-id&gt;    mkdir build &amp;&amp; cd build    # without CMAKE_INSTALL_PREFIX, it will be installed to default system directory.    cmake .. -DCMAKE_INSTALL_PREFIX=&lt;deps-install-dir&gt; &lt;extra-cmake-parameters-here&gt;    make # or MSBuild ALL_BUILD.vcxproj on Windows    make install # or MSBuild INSTALL.vcxproj on Windows</code> 2. Download, build and install <code>aws-checksums</code>: <code>sh    git clone https://github.com/awslabs/aws-checksums    cd aws-checksums    # checkout to a specific commit id if you want    git checkout &lt;commit-id&gt;    mkdir build &amp;&amp; cd build    # without CMAKE_INSTALL_PREFIX, it will be installed to default system directory.    cmake .. -DCMAKE_INSTALL_PREFIX=&lt;deps-install-dir&gt; &lt;extra-cmake-parameters-here&gt;    make # or MSBuild ALL_BUILD.vcxproj on Windows    make install # or MSBuild INSTALL.vcxproj on Windows</code> 3. Download, build and install <code>aws-c-event-stream</code>: <code>sh    git clone https://github.com/awslabs/aws-c-event-stream    cd aws-c-event-stream    # checkout to a specific commit id if you want    git checkout &lt;commit-id&gt;    mkdir build &amp;&amp; cd build    # aws-c-common and aws-checksums are dependencies of aws-c-event-stream    # without CMAKE_INSTALL_PREFIX, it will be installed to default system directory.    cmake .. -DCMAKE_INSTALL_PREFIX=&lt;deps-install-dir&gt; -DCMAKE_PREFIX_PATH=&lt;deps-install-dir&gt; &lt;extra-cmake-parameters-here&gt;    make # or MSBuild ALL_BUILD.vcxproj on Windows    make install # or MSBuild INSTALL.vcxproj on Windows</code> 4. Turn off <code>BUILD_DEPS</code> when building C++ SDK: <code>sh    cd BUILD_DIR    cmake &lt;path-to-root-of-this-source-code&gt; -DBUILD_DEPS=OFF -DCMAKE_PREFIX_PATH=&lt;deps-install-dir&gt;</code> You may also find the following link helpful for including the build in your project: https://aws.amazon.com/blogs/developer/using-cmake-exports-with-the-aws-sdk-for-c/</p>
+<h4 id="other-dependencies">Other Dependencies:</h4>
+<p>To compile in Linux, you must have the header files for libcurl, libopenssl. The packages are typically available in your package manager.</p>
+<p>Debian example: <code>sudo apt-get install libcurl-dev</code></p>
+<h3 id="building-for-android">Building for Android</h3>
+<p>To build for Android, add <code>-DTARGET_ARCH=ANDROID</code> to your cmake command line. Currently we support Android APIs from 19 to 28 with Android NDK 19c and we are using build-in cmake toolchain file supplied by Android NDK, assuming you have the appropriate environment variables (ANDROID_NDK) set.</p>
+<h5 id="android-on-windows">Android on Windows</h5>
+<p>Building for Android on Windows requires some additional setup. In particular, you will need to run cmake from a Visual Studio developer command prompt (2015 or higher). Additionally, you will need 'git' and 'patch' in your path. If you have git installed on a Windows system, then patch is likely found in a sibling directory (.../Git/usr/bin/). Once you've verified these requirements, your cmake command line will change slightly to use nmake:</p>
+<p><code>sh    cmake -G &quot;NMake Makefiles&quot; `-DTARGET_ARCH=ANDROID` &lt;other options&gt; ..</code></p>
+<p>Nmake builds targets in a serial fashion. To make things quicker, we recommend installing JOM as an alternative to nmake and then changing the cmake invocation to:</p>
+<p><code>sh    cmake -G &quot;NMake Makefiles JOM&quot; `-DTARGET_ARCH=ANDROID` &lt;other options&gt; ..</code></p>
+<h3 id="building-for-docker">Building for Docker</h3>
+<p>To build for Docker, ensure your container meets the <a href="#minimum-requirements">minimum requirements</a>. By default, Docker Desktop is set to use 2 GB runtime memory. We have provided <a href="https://github.com/aws/aws-sdk-cpp/tree/master/CI/docker-file">Dockerfiles</a> as templates for building the SDK in a container.</p>
+<h3 id="building-and-running-an-app-on-ec2">Building and running an app on EC2</h3>
+<p>Checkout this walkthrough on how to set up an enviroment and build the <a href="https://github.com/aws/aws-sdk-cpp/wiki/Building-the-SDK-from-source-on-EC2">AWS SDK for C++ on an EC2 instance</a>.</p>
+<h1 id="issues-and-contributions">Issues and Contributions</h1>
+<p>We welcome all kinds of contributions, check <a href="./CONTRIBUTING.md">this guideline</a> to learn how you can contribute or report issues.</p>
+<h1 id="maintenance-and-support-for-sdk-major-versions">Maintenance and support for SDK major versions</h1>
+<p>For information about maintenance and support for SDK major versions and our underlying dependencies, see the following in the AWS SDKs and Tools Shared Configuration and Credentials Reference Guide</p>
+<ul>
+<li><a href="https://docs.aws.amazon.com/credref/latest/refdocs/maint-policy.html">AWS SDKs and Tools Maintenance Policy</a></li>
+<li><a href="https://docs.aws.amazon.com/credref/latest/refdocs/version-support-matrix.html">AWS SDKs and Tools Version Support Matrix</a></li>
+</ul>
+<h1 id="getting-help">Getting Help</h1>
+<p>The best way to interact with our team is through GitHub. You can <a href="https://github.com/aws/aws-sdk-cpp/issues/new/choose">open an issue</a> and choose from one of our templates for guidance, bug reports, or feature requests. You may also find help on community resources such as <a href="https://stackoverflow.com/questions/tagged/aws-sdk-cpp">StackOverFlow</a> with the tag #aws-sdk-cpp or If you have a support plan with <a href="https://aws.amazon.com/premiumsupport/">AWS Support</a>, you can also create a new support case.</p>
+<p>Please make sure to check out our resources too before opening an issue: * Our <a href="https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/welcome.html">Developer Guide</a> and <a href="http://sdk.amazonaws.com/cpp/api/LATEST/index.html">API reference</a> * Our <a href="./CHANGELOG.md">Changelog</a> for recent breaking changes. * Our <a href="./CONTRIBUTING.md">Contribute</a> guide. * Our <a href="https://github.com/awsdocs/aws-doc-sdk-examples/tree/master/cpp">samples repo</a>.</p>
+<h1 id="using-the-sdk-and-other-topics">Using the SDK and Other Topics</h1>
+<ul>
+<li><a href="./Docs/SDK_usage_guide.md">Using the SDK</a></li>
+<li><a href="./Docs/CMake_Parameters.md">CMake Parameters</a></li>
+<li><a href="./Docs/Credentials_Providers.md">Credentials Providers</a></li>
+<li><a href="./Docs/ClientConfiguration_Parameters.md">Client Configuration Parameters</a></li>
+<li><a href="./Docs/Service_Client.md">Service Client</a></li>
+<li><a href="./Docs/Memory_Management.md">Memory Management</a></li>
+<li><a href="./Docs/Advanced_topics.md">Advanced Topics</a></li>
+<li><a href="./Docs/CMake_External_Project.md">Add as CMake external project</a></li>
+<li><a href="./Docs/CODING_STANDARDS.md">Coding Standards</a></li>
+<li><a href="./LICENSE">License</a></li>
+<li><a href="./CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+</ul>

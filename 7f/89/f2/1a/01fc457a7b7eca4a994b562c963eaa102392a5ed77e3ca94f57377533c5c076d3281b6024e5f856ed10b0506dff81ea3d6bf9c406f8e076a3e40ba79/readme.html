@@ -1,0 +1,472 @@
+<h1 id="cpp-peglib">cpp-peglib</h1>
+<p><a href="https://travis-ci.org/yhirose/cpp-peglib"><img src="https://travis-ci.org/yhirose/cpp-peglib.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/yhirose/cpp-peglib"><img src="https://ci.appveyor.com/api/projects/status/github/yhirose/cpp-peglib?branch=master&amp;svg=true" alt="Bulid Status" /></a></p>
+<p>C++11 header-only <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">PEG</a> (Parsing Expression Grammars) library. You can start using it right away just by including <code>peglib.h</code> in your project.</p>
+<p>You can also try the online version, PEG Playground at https://yhirose.github.io/cpp-peglib.</p>
+<p>The PEG syntax is well described on page 2 in the <a href="http://www.brynosaurus.com/pub/lang/peg.pdf">document</a>. <em>cpp-peglib</em> also supports the following additional syntax for now:</p>
+<ul>
+<li><code>&lt;</code> ... <code>&gt;</code> (Token boundary operator)</li>
+<li><code>~</code> (Ignore operator)</li>
+<li><code>\x20</code> (Hex number char)</li>
+<li><code>$name&lt;</code> ... <code>&gt;</code> (Named capture operator)</li>
+<li><code>$name</code> (Backreference operator)</li>
+<li><code>%whitespace</code> (Automatic whitespace skipping)</li>
+<li><code>%word</code> (Word expression)</li>
+<li><code>$name(</code> ... <code>)</code> (Capture scope operator)</li>
+<li><code>$name&lt;</code> ... <code>&gt;</code> (Named capture operator)</li>
+<li><code>$name</code> (Backreference operator)</li>
+<li><code>MACRO_NAME(</code> ... <code>)</code> (Parameterized rule or Macro)</li>
+</ul>
+<p>This library also supports the linear-time parsing known as the <a href="http://pdos.csail.mit.edu/~baford/packrat/thesis/thesis.pdf"><em>Packrat</em></a> parsing.</p>
+<p>IMPORTANT NOTE for some Linux distributions such as Ubuntu and CentOS: Need <code>-pthread</code> option when linking. See <a href="https://github.com/yhirose/cpp-peglib/issues/23#issuecomment-261126127">#23</a>, <a href="https://github.com/yhirose/cpp-peglib/issues/46#issuecomment-417870473">#46</a> and <a href="https://github.com/yhirose/cpp-peglib/issues/62#issuecomment-492032680">#62</a>.</p>
+<h2 id="how-to-use">How to use</h2>
+<p>This is a simple calculator sample. It shows how to define grammar, associate samantic actions to the grammar, and handle semantic values.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// (1) Include the header file</span>
+<span class="pp">#include </span><span class="im">&lt;peglib.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;assert.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> peg;
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="dt">int</span> main(<span class="dt">void</span>) {
+    <span class="co">// (2) Make a parser</span>
+    <span class="kw">auto</span> grammar = <span class="st">R&quot;(</span>
+<span class="st">        # Grammar for Calculator...</span>
+<span class="st">        Additive    &lt;- Multitive &#39;+&#39; Additive / Multitive</span>
+<span class="st">        Multitive   &lt;- Primary &#39;*&#39; Multitive / Primary</span>
+<span class="st">        Primary     &lt;- &#39;(&#39; Additive &#39;)&#39; / Number</span>
+<span class="st">        Number      &lt;- &lt; [0-9]+ &gt;</span>
+<span class="st">        </span><span class="sc">%whi</span><span class="st">tespace &lt;- [ \t]*</span>
+<span class="st">    )&quot;;</span>
+
+<span class="st">    parser parser;</span>
+
+<span class="st">    parser.log = [](size_t line, size_t col, const string&amp; msg) {</span>
+<span class="st">        cerr &lt;&lt; line &lt;&lt; &quot;:&quot; &lt;&lt; col &lt;&lt; &quot;: &quot; &lt;&lt; msg &lt;&lt; &quot;\n&quot;;</span>
+<span class="st">    };</span>
+
+<span class="st">    auto ok = parser.load_grammar(grammar);</span>
+<span class="st">    assert(ok);</span>
+
+<span class="st">    // (3) Setup actions</span>
+<span class="st">    parser[&quot;Additive&quot;] = [](const SemanticValues&amp; sv) {</span>
+<span class="st">        switch (sv.choice()) {</span>
+<span class="st">        case 0:  // &quot;Multitive &#39;+&#39; Additive&quot;</span>
+<span class="st">            return sv[0].get&lt;int&gt;() + sv[1].get&lt;int&gt;();</span>
+<span class="st">        default: // &quot;Multitive&quot;</span>
+<span class="st">            return sv[0].get&lt;int&gt;();</span>
+<span class="st">        }</span>
+<span class="st">    };</span>
+
+<span class="st">    parser[&quot;Multitive&quot;] = [](const SemanticValues&amp; sv) {</span>
+<span class="st">        switch (sv.choice()) {</span>
+<span class="st">        case 0:  // &quot;Primary &#39;*&#39; Multitive&quot;</span>
+<span class="st">            return sv[0].get&lt;int&gt;() * sv[1].get&lt;int&gt;();</span>
+<span class="st">        default: // &quot;Primary&quot;</span>
+<span class="st">            return sv[0].get&lt;int&gt;();</span>
+<span class="st">        }</span>
+<span class="st">    };</span>
+
+<span class="st">    parser[&quot;Number&quot;] = [](const SemanticValues&amp; sv) {</span>
+<span class="st">        return stoi(sv.token(), nullptr, 10);</span>
+<span class="st">    };</span>
+
+<span class="st">    // (4) Parse</span>
+<span class="st">    parser.enable_packrat_parsing(); // Enable packrat parsing.</span>
+
+<span class="st">    int val;</span>
+<span class="st">    parser.parse(&quot; (1 + 2) * 3 &quot;, val);</span>
+
+<span class="st">    assert(val == 9);</span>
+<span class="st">}</span></code></pre></div>
+<p>There are four semantic actions available:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">[](<span class="at">const</span> SemanticValues&amp; sv, any&amp; dt)
+[](<span class="at">const</span> SemanticValues&amp; sv)
+[](SemanticValues&amp; sv, any&amp; dt)
+[](SemanticValues&amp; sv)</code></pre></div>
+<p><code>SemanticValues</code> value contains the following information:</p>
+<ul>
+<li>Semantic values</li>
+<li>Matched string information</li>
+<li>Token information if the rule is literal or uses a token boundary operator</li>
+<li>Choice number when the rule is 'prioritized choise'</li>
+</ul>
+<p><code>any&amp; dt</code> is a 'read-write' context data which can be used for whatever purposes. The initial context data is set in <code>peg::parser::parse</code> method.</p>
+<p><code>peg::any</code> is a simpler implementatin of <a href="http://www.boost.org/doc/libs/1_57_0/doc/html/any.html">boost::any</a>. It can wrap arbitrary data type.</p>
+<p>A semantic action can return a value of arbitrary data type, which will be wrapped by <code>peg::any</code>. If a user returns nothing in a semantic action, the first semantic value in the <code>const SemanticValues&amp; sv</code> argument will be returned. (Yacc parser has the same behavior.)</p>
+<p>Here shows the <code>SemanticValues</code> structure:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> SemanticValues : <span class="kw">protected</span> <span class="bu">std::</span>vector&lt;any&gt;
+{
+    <span class="co">// Input text</span>
+    <span class="at">const</span> <span class="dt">char</span>* path;
+    <span class="at">const</span> <span class="dt">char</span>* ss;
+
+    <span class="co">// Matched string</span>
+    <span class="bu">std::</span>string str() <span class="at">const</span>;    <span class="co">// Matched string</span>
+    <span class="at">const</span> <span class="dt">char</span>* c_str() <span class="at">const</span>;  <span class="co">// Matched string start</span>
+    <span class="dt">size_t</span>      length() <span class="at">const</span>; <span class="co">// Matched string length</span>
+
+    <span class="co">// Line number and column at which the matched string is</span>
+    <span class="bu">std::</span>pair&lt;<span class="dt">size_t</span>, <span class="dt">size_t</span>&gt; line_info() <span class="at">const</span>;
+
+    <span class="co">// Tokens</span>
+    <span class="bu">std::</span>vector&lt;
+        <span class="bu">std::</span>pair&lt;
+            <span class="at">const</span> <span class="dt">char</span>*, <span class="co">// Token start</span>
+            <span class="dt">size_t</span>&gt;&gt;     <span class="co">// Token length</span>
+        tokens;
+
+    <span class="bu">std::</span>string token(<span class="dt">size_t</span> id = <span class="dv">0</span>) <span class="at">const</span>;
+
+    <span class="co">// Choice number (0 based index)</span>
+    <span class="dt">size_t</span>      choice() <span class="at">const</span>;
+
+    <span class="co">// Transform the semantic value vector to another vector</span>
+    <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt; vector&lt;T&gt; transform(<span class="dt">size_t</span> beg = <span class="dv">0</span>, <span class="dt">size_t</span> end = <span class="dv">-1</span>) <span class="at">const</span>;
+}</code></pre></div>
+<p>The following example uses <code>&lt;</code> ... <code>&gt;</code> operator, which is <em>token boundary</em> operator.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> syntax = <span class="st">R&quot;(</span>
+<span class="st">    ROOT  &lt;- _ TOKEN (&#39;,&#39; _ TOKEN)*</span>
+<span class="st">    TOKEN &lt;- &lt; [a-z0-9]+ &gt; _</span>
+<span class="st">    _     &lt;- [ \t\r\n]*</span>
+<span class="st">)&quot;</span>;
+
+peg pg(syntax);
+
+pg[<span class="st">&quot;TOKEN&quot;</span>] = [](<span class="at">const</span> SemanticValues&amp; sv) {
+    <span class="co">// &#39;token&#39; doesn&#39;t include trailing whitespaces</span>
+    <span class="kw">auto</span> token = sv.token();
+};
+
+<span class="kw">auto</span> ret = pg.parse(<span class="st">&quot; token1, token2 &quot;</span>);</code></pre></div>
+<p>We can ignore unnecessary semantic values from the list by using <code>~</code> operator.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">peg::pegparser parser(
+    <span class="st">&quot;  ROOT  &lt;-  _ ITEM (&#39;,&#39; _ ITEM _)*  &quot;</span>
+    <span class="st">&quot;  ITEM  &lt;-  ([a-z])+                &quot;</span>
+    <span class="st">&quot;  ~_    &lt;-  [ </span><span class="sc">\t</span><span class="st">]*                  &quot;</span>
+);
+
+parser[<span class="st">&quot;ROOT&quot;</span>] = [&amp;](<span class="at">const</span> SemanticValues&amp; sv) {
+    assert(sv.size() == <span class="dv">2</span>); <span class="co">// should be 2 instead of 5.</span>
+};
+
+<span class="kw">auto</span> ret = parser.parse(<span class="st">&quot; item1, item2 &quot;</span>);</code></pre></div>
+<p>The following grammar is same as the above.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">peg::parser parser(
+    <span class="st">&quot;  ROOT  &lt;-  ~_ ITEM (&#39;,&#39; ~_ ITEM ~_)*  &quot;</span>
+    <span class="st">&quot;  ITEM  &lt;-  ([a-z])+                   &quot;</span>
+    <span class="st">&quot;  _     &lt;-  [ </span><span class="sc">\t</span><span class="st">]*                     &quot;</span>
+);</code></pre></div>
+<p><em>Semantic predicate</em> support is available. We can do it by throwing a <code>peg::parse_error</code> exception in a semantic action.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">peg::parser parser(<span class="st">&quot;NUMBER  &lt;-  [0-9]+&quot;</span>);
+
+parser[<span class="st">&quot;NUMBER&quot;</span>] = [](<span class="at">const</span> SemanticValues&amp; sv) {
+    <span class="kw">auto</span> val = stol(sv.str(), <span class="kw">nullptr</span>, <span class="dv">10</span>);
+    <span class="cf">if</span> (val != <span class="dv">100</span>) {
+        <span class="cf">throw</span> peg::parse_error(<span class="st">&quot;value error!!&quot;</span>);
+    }
+    <span class="cf">return</span> val;
+};
+
+<span class="dt">long</span> val;
+<span class="kw">auto</span> ret = parser.parse(<span class="st">&quot;100&quot;</span>, val);
+assert(ret == <span class="kw">true</span>);
+assert(val == <span class="dv">100</span>);
+
+ret = parser.parse(<span class="st">&quot;200&quot;</span>, val);
+assert(ret == <span class="kw">false</span>);</code></pre></div>
+<p><em>enter</em> and <em>leave</em> actions are also avalable.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">parser[<span class="st">&quot;RULE&quot;</span>].enter = [](<span class="at">const</span> <span class="dt">char</span>* s, <span class="dt">size_t</span> n, any&amp; dt) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;enter&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+};
+
+parser[<span class="st">&quot;RULE&quot;</span>] = [](<span class="at">const</span> SemanticValues&amp; sv, any&amp; dt) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;action!&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+};
+
+parser[<span class="st">&quot;RULE&quot;</span>].leave = [](<span class="at">const</span> <span class="dt">char</span>* s, <span class="dt">size_t</span> n, <span class="dt">size_t</span> matchlen, any&amp; value, any&amp; dt) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;leave&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+};</code></pre></div>
+<h2 id="ignoring-whitespaces">Ignoring Whitespaces</h2>
+<p>As you can see in the first example, we can ignore whitespaces between tokens automatically with <code>%whitespace</code> rule.</p>
+<p><code>%whitespace</code> rule can be applied to the following three conditions:</p>
+<ul>
+<li>trailing spaces on tokens</li>
+<li>leading spaces on text</li>
+<li>trailing spaces on literal strings in rules</li>
+</ul>
+<p>These are valid tokens:</p>
+<pre><code>KEYWORD  &lt;- &#39;keyword&#39;
+WORD     &lt;-  &lt; [a-zA-Z0-9] [a-zA-Z0-9-_]* &gt;    # token boundary operator is used.
+IDNET    &lt;-  &lt; IDENT_START_CHAR IDENT_CHAR* &gt;  # token boundary operator is used.</code></pre>
+<p>The following grammar accepts <code>one, &quot;two three&quot;, four</code>.</p>
+<pre><code>ROOT         &lt;- ITEM (&#39;,&#39; ITEM)*
+ITEM         &lt;- WORD / PHRASE
+WORD         &lt;- &lt; [a-z]+ &gt;
+PHRASE       &lt;- &lt; &#39;&quot;&#39; (!&#39;&quot;&#39; .)* &#39;&quot;&#39; &gt;
+
+%whitespace  &lt;-  [ \t\r\n]*</code></pre>
+<h2 id="word-expression">Word expression</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">peg::parser parser(<span class="st">R&quot;(</span>
+<span class="st">    ROOT         &lt;-  &#39;hello&#39; &#39;world&#39;</span>
+<span class="st">    </span><span class="sc">%whi</span><span class="st">tespace  &lt;-  [ \t\r\n]*</span>
+<span class="st">    </span><span class="sc">%wo</span><span class="st">rd        &lt;-  [a-z]+</span>
+<span class="st">)&quot;);</span>
+
+<span class="st">parser.parse(&quot;hello world&quot;); // OK</span>
+<span class="st">parser.parse(&quot;helloworld&quot;);  // NG</span></code></pre></div>
+<h2 id="capturebackreference">Capture/Backreference</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">peg::parser parser(<span class="st">R&quot;(</span>
+<span class="st">    ROOT      &lt;- CONTENT</span>
+<span class="st">    CONTENT   &lt;- (ELEMENT / TEXT)*</span>
+<span class="st">    ELEMENT   &lt;- $(STAG CONTENT ETAG)</span>
+<span class="st">    STAG      &lt;- &#39;&lt;&#39; $tag&lt; TAG_NAME &gt; &#39;&gt;&#39;</span>
+<span class="st">    ETAG      &lt;- &#39;&lt;/&#39; $tag &#39;&gt;&#39;</span>
+<span class="st">    TAG_NAME  &lt;- &#39;b&#39; / &#39;u&#39;</span>
+<span class="st">    TEXT      &lt;- TEXT_DATA</span>
+<span class="st">    TEXT_DATA &lt;- ![&lt;] .</span>
+<span class="st">)&quot;</span>);
+
+parser.parse(<span class="st">&quot;This is &lt;b&gt;a &lt;u&gt;test&lt;/u&gt; text&lt;/b&gt;.&quot;</span>); <span class="co">// OK</span>
+parser.parse(<span class="st">&quot;This is &lt;b&gt;a &lt;u&gt;test&lt;/b&gt; text&lt;/u&gt;.&quot;</span>); <span class="co">// NG</span>
+parser.parse(<span class="st">&quot;This is &lt;b&gt;a &lt;u&gt;test text&lt;/b&gt;.&quot;</span>);     <span class="co">// NG</span></code></pre></div>
+<h2 id="parameterized-rule-or-macro">Parameterized Rule or Macro</h2>
+<pre class="peg"><code># Syntax
+Start      ← _ Expr
+Expr       ← Sum
+Sum        ← List(Product, SumOpe)
+Product    ← List(Value, ProOpe)
+Value      ← Number / T(&#39;(&#39;) Expr T(&#39;)&#39;)
+
+# Token
+SumOpe     ← T(&#39;+&#39; / &#39;-&#39;)
+ProOpe     ← T(&#39;*&#39; / &#39;/&#39;)
+Number     ← T([0-9]+)
+~_         ← [ \t\r\n]*
+
+# Macro
+List(I, D) ← I (D I)*
+T(x)       ← &lt; x &gt; _</code></pre>
+<h2 id="ast-generation">AST generation</h2>
+<p><em>cpp-peglib</em> is able to generate an AST (Abstract Syntax Tree) when parsing. <code>enable_ast</code> method on <code>peg::parser</code> class enables the feature.</p>
+<pre><code>peg::parser parser(&quot;...&quot;);
+
+parser.enable_ast();
+
+shared_ptr&lt;peg::Ast&gt; ast;
+if (parser.parse(&quot;...&quot;, ast)) {
+    cout &lt;&lt; peg::ast_to_s(ast);
+
+    ast = peg::AstOptimizer(true).optimize(ast);
+    cout &lt;&lt; peg::ast_to_s(ast);
+}</code></pre>
+<p><code>peg::AstOptimizer</code> removes redundant nodes to make a AST simpler. You can make your own AST optimizers to fit your needs.</p>
+<p>See actual usages in the <a href="https://github.com/yhirose/cpp-peglib/blob/master/example/calc3.cc">AST calculator example</a> and <a href="https://github.com/yhirose/cpp-peglib/blob/master/pl0/pl0.cc">PL/0 language example</a>.</p>
+<h2 id="make-a-parser-with-parser-combinators">Make a parser with parser combinators</h2>
+<p>Instead of makeing a parser by parsing PEG syntax text, we can also construct a parser by hand with <em>parser combinatorss</em>. Here is an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> <span class="kw">namespace</span> peg;
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+vector&lt;string&gt; tags;
+
+Definition ROOT, TAG_NAME, _;
+ROOT     &lt;= seq(_, zom(seq(chr(<span class="st">&#39;[&#39;</span>), TAG_NAME, chr(<span class="st">&#39;]&#39;</span>), _)));
+TAG_NAME &lt;= oom(seq(npd(chr(<span class="st">&#39;]&#39;</span>)), dot())), [&amp;](<span class="at">const</span> SemanticValues&amp; sv) {
+                tags.push_back(sv.str());
+            };
+_        &lt;= zom(cls(<span class="st">&quot; </span><span class="sc">\t</span><span class="st">&quot;</span>));
+
+<span class="kw">auto</span> ret = ROOT.parse(<span class="st">&quot; [tag1] [tag:2] [tag-3] &quot;</span>);</code></pre></div>
+<p>The following are available operators:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Operator</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">seq</td>
+<td align="left">Sequence</td>
+</tr>
+<tr class="even">
+<td align="left">cho</td>
+<td align="left">Prioritized Choice</td>
+</tr>
+<tr class="odd">
+<td align="left">zom</td>
+<td align="left">Zero or More</td>
+</tr>
+<tr class="even">
+<td align="left">oom</td>
+<td align="left">One or More</td>
+</tr>
+<tr class="odd">
+<td align="left">opt</td>
+<td align="left">Optional</td>
+</tr>
+<tr class="even">
+<td align="left">apd</td>
+<td align="left">And predicate</td>
+</tr>
+<tr class="odd">
+<td align="left">npd</td>
+<td align="left">Not predicate</td>
+</tr>
+<tr class="even">
+<td align="left">lit</td>
+<td align="left">Literal string</td>
+</tr>
+<tr class="odd">
+<td align="left">cls</td>
+<td align="left">Character class</td>
+</tr>
+<tr class="even">
+<td align="left">chr</td>
+<td align="left">Character</td>
+</tr>
+<tr class="odd">
+<td align="left">dot</td>
+<td align="left">Any character</td>
+</tr>
+<tr class="even">
+<td align="left">tok</td>
+<td align="left">Token boundary</td>
+</tr>
+<tr class="odd">
+<td align="left">ign</td>
+<td align="left">Ignore semantic value</td>
+</tr>
+<tr class="even">
+<td align="left">csc</td>
+<td align="left">Capture scope</td>
+</tr>
+<tr class="odd">
+<td align="left">cap</td>
+<td align="left">Capture</td>
+</tr>
+<tr class="even">
+<td align="left">bkr</td>
+<td align="left">Back reference</td>
+</tr>
+<tr class="odd">
+<td align="left">usr</td>
+<td align="left">User defined parser</td>
+</tr>
+</tbody>
+</table>
+<h2 id="adjust-definitions">Adjust definitions</h2>
+<p>It's possible to add/override definitions.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> syntax = <span class="st">R&quot;(</span>
+<span class="st">    ROOT &lt;- _ &#39;Hello&#39; _ NAME &#39;!&#39; _</span>
+<span class="st">)&quot;</span>;
+
+Rules additional_rules = {
+    {
+        <span class="st">&quot;NAME&quot;</span>, usr([](<span class="at">const</span> <span class="dt">char</span>* s, <span class="dt">size_t</span> n, SemanticValues&amp; sv, any&amp; dt) -&gt; <span class="dt">size_t</span> {
+            <span class="at">static</span> vector&lt;string&gt; names = { <span class="st">&quot;PEG&quot;</span>, <span class="st">&quot;BNF&quot;</span> };
+            <span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span>&amp; name: names) {
+                <span class="cf">if</span> (name.size() &lt;= n &amp;&amp; !name.compare(<span class="dv">0</span>, name.size(), s, name.size())) {
+                    <span class="cf">return</span> name.size(); <span class="co">// processed length</span>
+                }
+            }
+            <span class="cf">return</span> <span class="dv">-1</span>; <span class="co">// parse error</span>
+        })
+    },
+    {
+        <span class="st">&quot;~_&quot;</span>, zom(cls(<span class="st">&quot; </span><span class="sc">\t\r\n</span><span class="st">&quot;</span>))
+    }
+};
+
+<span class="kw">auto</span> g = parser(syntax, additional_rules);
+
+assert(g.parse(<span class="st">&quot; Hello BNF! &quot;</span>));</code></pre></div>
+<h2 id="unicode-support">Unicode support</h2>
+<p>cpp-peglib accepts UTF8 text. <code>.</code> matches a Unicode codepoint. Also, it supports <code>\u????</code>.</p>
+<h2 id="peglint---peg-syntax-lint-utility">peglint - PEG syntax lint utility</h2>
+<h3 id="build-peglint">Build peglint</h3>
+<pre><code>&gt; cd lint
+&gt; mkdir build
+&gt; cd build
+&gt; cmake ..
+&gt; make
+&gt; ./peglint
+usage: peglint [--ast] [--optimize_ast_nodes|--opt] [--source text] [--trace] [grammar file path] [source file path]</code></pre>
+<h3 id="lint-grammar">Lint grammar</h3>
+<pre><code>&gt; cat a.peg
+A &lt;- &#39;hello&#39; ^ &#39;world&#39;
+
+&gt; peglint a.peg
+a.peg:1:14: syntax error</code></pre>
+<pre><code>&gt; cat a.peg
+A &lt;- B
+
+&gt; peglint a.peg
+a.peg:1:6: &#39;B&#39; is not defined.</code></pre>
+<pre><code>&gt; cat a.peg
+A &lt;- B / C
+B &lt;- &#39;b&#39;
+C &lt;- A
+
+&gt; peglint a.peg
+a.peg:1:10: &#39;C&#39; is left recursive.
+a.peg:3:6: &#39;A&#39; is left recursive.</code></pre>
+<h3 id="lint-source-text">Lint source text</h3>
+<pre><code>&gt; cat a.peg
+Additive    &lt;- Multitive &#39;+&#39; Additive / Multitive
+Multitive   &lt;- Primary &#39;*&#39; Multitive / Primary
+Primary     &lt;- &#39;(&#39; Additive &#39;)&#39; / Number
+Number      &lt;- &lt; [0-9]+ &gt;
+%whitespace &lt;- [ \t\r\n]*
+
+&gt; peglint --source &quot;1 + a * 3&quot; a.peg
+[commendline]:1:3: syntax error</code></pre>
+<pre><code>&gt; cat a.txt
+1 + 2 * 3
+
+&gt; peglint --ast a.peg a.txt
++ Additive
+  + Multitive
+    + Primary
+      - Number (1)
+  + Additive
+    + Multitive
+      + Primary
+        - Number (2)
+      + Multitive
+        + Primary
+          - Number (3)</code></pre>
+<pre><code>&gt; peglint --ast --opt --source &quot;1 + 2 * 3&quot; a.peg
++ Additive
+  - Multitive[Number] (1)
+  + Additive[Multitive]
+    - Primary[Number] (2)
+    - Multitive[Number] (3)</code></pre>
+<h2 id="sample-codes">Sample codes</h2>
+<ul>
+<li><a href="https://github.com/yhirose/cpp-peglib/blob/master/example/calc.cc">Calculator</a></li>
+<li><a href="https://github.com/yhirose/cpp-peglib/blob/master/example/calc2.cc">Calculator (with parser operators)</a></li>
+<li><a href="https://github.com/yhirose/cpp-peglib/blob/master/example/calc3.cc">Calculator (AST version)</a></li>
+<li><a href="https://github.com/yhirose/cpp-peglib/blob/master/pl0/pl0.cc">PL/0 language example</a></li>
+<li><a href="https://github.com/yhirose/pl0-jit-compiler">A tiny PL/0 JIT compiler in less than 700 LOC with LLVM and PEG parser</a></li>
+</ul>
+<h2 id="peg-debug">PEG debug</h2>
+<p>A debug viewer for Parsing Expression Grammars using cpp-peglib by <a href="https://github.com/mqnc">mqnc</a>. Please see <a href="https://github.com/mqnc/pegdebug">his gihub project page</a> for the detail. You can see a parse result of PL/0 code <a href="https://mqnc.github.io/pegdebug/example/output.html">here</a>.</p>
+<h2 id="tested-compilers">Tested compilers</h2>
+<ul>
+<li>Visual Studio 2017</li>
+<li>Visual Studio 2015</li>
+<li>Visual Studio 2013 with update 5</li>
+<li>Clang++ 5.0.1</li>
+<li>Clang++ 5.0</li>
+<li>Clang++ 4.0</li>
+<li>Clang++ 3.5</li>
+<li>G++ 5.4 on Ubuntu 16.04</li>
+</ul>
+<h2 id="todo">TODO</h2>
+<ul>
+<li>Advanced Unicode support (<a href="http://www.unicode.org/reports/tr18/">Unicode regular expressoin</a>)</li>
+</ul>
+<h2 id="license">License</h2>
+<p>MIT license (© 2018 Yuji Hirose)</p>

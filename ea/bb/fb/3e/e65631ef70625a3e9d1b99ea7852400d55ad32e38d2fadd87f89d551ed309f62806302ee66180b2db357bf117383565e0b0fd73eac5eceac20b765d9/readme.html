@@ -1,0 +1,193 @@
+<h1 id="transwarp">transwarp</h1>
+<p><a href="https://gitter.im/bloomen/transwarp"><img src="https://badges.gitter.im/bloomen/transwarp.svg" alt="Gitter" /></a> <a href="https://travis-ci.org/bloomen/transwarp/branches"><img src="https://travis-ci.org/bloomen/transwarp.svg?branch=master" alt="Travis" /></a> <a href="https://ci.appveyor.com/project/bloomen/transwarp?branch=master"><img src="https://ci.appveyor.com/api/projects/status/wrtbk9l3b94eeb9t/branch/master?svg=true" alt="Appveyor" /></a></p>
+<p><a href="https://bloomen.github.io/transwarp">Doxygen documentation</a></p>
+<p>transwarp is a header-only C++ library for task concurrency. It allows you to easily create a graph of tasks where every task can be executed asynchronously. transwarp is written in C++17 and only depends on the standard library. Just copy <code>src/transwarp.h</code> to your project and off you go! Tested with GCC, Clang, and Visual Studio.</p>
+<p>There is also support for C++11 which is maintained on the <code>transwarp1.X</code> branch.</p>
+<p><strong>Important:</strong> Only use tagged releases of transwarp in production code!</p>
+<p><strong>Table of contents</strong></p>
+<ul>
+<li><a href="#example">Example</a></li>
+<li><a href="#api-doc">API doc</a>
+<ul>
+<li><a href="#creating-tasks">Creating tasks</a></li>
+<li><a href="#scheduling-tasks">Scheduling tasks</a></li>
+<li><a href="#executors">Executors</a></li>
+<li><a href="#range-functions">Range functions</a></li>
+<li><a href="#canceling-tasks">Canceling tasks</a></li>
+<li><a href="#event-system">Event system</a></li>
+</ul></li>
+<li><a href="#feedback">Feedback</a></li>
+<li><a href="#contributors">Contributors</a></li>
+</ul>
+<h2 id="example">Example</h2>
+<p>This example creates three tasks and connects them with each other to form a two-level graph. The tasks are then scheduled twice for computation while using 4 threads.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;transwarp.h&quot;</span>
+
+<span class="kw">namespace</span> tw = transwarp;
+
+<span class="dt">int</span> main() {
+    <span class="dt">double</span> x = <span class="dv">0</span>;
+    <span class="dt">int</span> y = <span class="dv">0</span>;
+
+    <span class="co">// Building the task graph</span>
+    <span class="kw">auto</span> parent1 = tw::make_task(tw::root, [&amp;x]{ <span class="cf">return</span> <span class="fl">13.3</span> + x; })-&gt;named(<span class="st">&quot;something&quot;</span>);
+    <span class="kw">auto</span> parent2 = tw::make_task(tw::root, [&amp;y]{ <span class="cf">return</span> <span class="dv">42</span> + y; })-&gt;named(<span class="st">&quot;something else&quot;</span>);
+    <span class="kw">auto</span> child = tw::make_task(tw::consume, [](<span class="dt">double</span> a, <span class="dt">int</span> b) { <span class="cf">return</span> a + b;
+                                            }, parent1, parent2)-&gt;named(<span class="st">&quot;adder&quot;</span>);
+
+    tw::parallel executor{<span class="dv">4</span>};  <span class="co">// Parallel execution with 4 threads</span>
+
+    child-&gt;schedule_all(executor);  <span class="co">// Schedules all tasks for execution</span>
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;result = &quot;</span> &lt;&lt; child-&gt;get() &lt;&lt; <span class="bu">std::</span>endl;  <span class="co">// result = 55.3</span>
+
+    <span class="co">// Modifying data input</span>
+    x += <span class="fl">2.5</span>;
+    y += <span class="dv">1</span>;
+
+    child-&gt;schedule_all(executor);  <span class="co">// Re-schedules all tasks for execution</span>
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;result = &quot;</span> &lt;&lt; child-&gt;get() &lt;&lt; <span class="bu">std::</span>endl;  <span class="co">// result = 58.8</span>
+
+    <span class="co">// Creating a dot-style graph for visualization</span>
+    <span class="bu">std::</span>ofstream{<span class="st">&quot;basic_with_three_tasks.dot&quot;</span>} &lt;&lt; tw::to_string(child-&gt;edges());
+}</code></pre></div>
+<p>The resulting graph of this example looks like this:</p>
+<div class="figure">
+<img src="https://raw.githubusercontent.com/bloomen/transwarp/master/examples/basic_with_three_tasks.png" alt="graph" />
+<p class="caption">graph</p>
+</div>
+<p>Every bubble represents a task and every arrow an edge between two tasks. The first line within a bubble is the task name. The second line denotes the task type followed by the task id and the task level in the graph.</p>
+<h2 id="api-doc">API doc</h2>
+<p>This is a brief API doc of transwarp. For more details check out the <a href="https://bloomen.github.io/transwarp">doxygen documentation</a> and the <a href="https://github.com/bloomen/transwarp/tree/master/examples">transwarp examples</a>.</p>
+<p>In the following we will use <code>tw</code> as a namespace alias for <code>transwarp</code>.</p>
+<h3 id="creating-tasks">Creating tasks</h3>
+<p>transwarp supports seven different task types:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">root, <span class="co">// The task has no parents</span>
+accept, <span class="co">// The task&#39;s functor accepts all parent futures</span>
+accept_any, <span class="co">// The task&#39;s functor accepts the first parent future that becomes ready</span>
+consume, <span class="co">// The task&#39;s functor consumes all parent results</span>
+consume_any, <span class="co">// The task&#39;s functor consumes the first parent result that becomes ready</span>
+wait, <span class="co">// The task&#39;s functor takes no arguments but waits for all parents to finish</span>
+wait_any, <span class="co">// The task&#39;s functor takes no arguments but waits for the first parent to finish</span></code></pre></div>
+<p>The task type is passed as the first parameter to <code>make_task</code>, e.g., to create a <code>consume</code> task simply do this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::consume, functor, parent1, parent2);</code></pre></div>
+<p>where <code>functor</code> denotes some callable and <code>parent1/2</code> the parent tasks.</p>
+<p>The functor as passed to <code>make_task</code> needs to fulfill certain requirements based on the task type and the given parents:</p>
+<p><strong><em>root</em></strong>: A task at the root (top) of the graph. This task gets executed first. A functor to a <code>root</code> task cannot have any parameters since this task does not have parent tasks, e.g.:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::root, []{ <span class="cf">return</span> <span class="dv">42</span>; });</code></pre></div>
+<p>Another way of defining a<code>root</code> task is a <em>value task</em> which can be created as:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_value_task(<span class="dv">42</span>);  </code></pre></div>
+<p>A value task doesn't require scheduling and always returns the same value or exception.</p>
+<p><strong><em>accept</em></strong>: This task is required to have at least one parent. It <em>accepts</em> the resulting parent futures as they are without unwrapping. Hence, the child can decide how to proceed since a call to <code>get()</code> can potentially throw an exception. Here's an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::accept, [](<span class="kw">auto</span> f1, <span class="kw">auto</span> f2) { <span class="cf">return</span> f1.get() + f2.get(); }, parent1, parent2);</code></pre></div>
+<p><strong><em>accept_any</em></strong>: This task is required to have at least one parent but its functor takes exactly one future, namely the future of the parent that first finishes. All other parents are abandoned and canceled. Here's an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::accept_any, [](<span class="kw">auto</span> f1) { <span class="cf">return</span> f1.get(); }, parent1, parent2);</code></pre></div>
+<p>Note that canceling only works for already running tasks when the functor is sub-classed from <code>transwarp::functor</code>.</p>
+<p><strong><em>consume</em></strong>: This task follows the same rules as <code>accept</code> with the difference that the resulting parent futures are unwrapped (have <code>get()</code> called on them). The results are then passed to the child, hence, consumed by the child task. The child task will not be invoked if any parent throws an exception. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::consume, [](<span class="dt">int</span> x, <span class="dt">int</span> y) { <span class="cf">return</span> x + y; }, parent1, parent2);</code></pre></div>
+<p><strong><em>consume_any</em></strong>: This task follows the same rules as <code>accept_any</code> with the difference that the resulting parent futures are unwrapped (have <code>get()</code> called on them). For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::consume_any, [](<span class="dt">int</span> x) { <span class="cf">return</span> x; }, parent1, parent2);</code></pre></div>
+<p><strong><em>wait</em></strong>: This task's functor does not take any parameters but the task must have at least one parent. It simply waits for completion of all parents while unwrapping futures before calling the child's functor. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::wait, []{ <span class="cf">return</span> <span class="dv">42</span>; }, parent1, parent2);</code></pre></div>
+<p><strong><em>wait_any</em></strong>: This task works similar to the <code>wait</code> task but calls its functor as soon as the first parent completes. It abandons and cancels all remaining parent tasks. For example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::wait_any, []{ <span class="cf">return</span> <span class="dv">42</span>; }, parent1, parent2);</code></pre></div>
+<p>Generally, tasks are created using <code>make_task</code> which allows for any number of parents. However, it is a common use case for a child to only have one parent. For this, <code>next()</code> can be directly called on the parent object to create a <em>continuation</em>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> child = tw::make_task(tw::root, []{ <span class="cf">return</span> <span class="dv">42</span>; })-&gt;next(tw::consume, functor);</code></pre></div>
+<p><code>child</code> is now a single-parent task whose functor consumes an integer.</p>
+<h3 id="scheduling-tasks">Scheduling tasks</h3>
+<p>Once a task is created it can be scheduled just by itself:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> task = tw::make_task(tw::root, functor);
+task-&gt;schedule();</code></pre></div>
+<p>which, if nothing else is specified, will run the task on the current thread. However, using the built-in <code>parallel</code> executor the task can be pushed into a thread pool and executed asynchronously:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tw::parallel executor{<span class="dv">4</span>};  <span class="co">// Thread pool with 4 threads</span>
+<span class="kw">auto</span> task = tw::make_task(tw::root, functor);
+task-&gt;schedule(executor);</code></pre></div>
+<p>Regardless of how you schedule, the task result can be retrieved through:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>cout &lt;&lt; task-&gt;get() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>When chaining multiple tasks together a directed acyclic graph is built in which every task can be scheduled individually. Though, in many scenarios it is useful to compute all tasks in the right order with a single call:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> parent1 = tw::make_task(tw::root, foo);  <span class="co">// foo is a functor</span>
+<span class="kw">auto</span> parent2 = tw::make_task(tw::root, bar);  <span class="co">// bar is a functor</span>
+<span class="kw">auto</span> task = tw::make_task(tw::consume, functor, parent1, parent2);
+task-&gt;schedule_all();  <span class="co">// Schedules all parents and itself</span></code></pre></div>
+<p>which can also be scheduled using an executor, for instance:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">tw::parallel executor{<span class="dv">4</span>};
+task-&gt;schedule_all(executor);</code></pre></div>
+<p>which will run those tasks in parallel that do not depend on each other.</p>
+<h3 id="executors">Executors</h3>
+<p>We have seen that we can pass executors to <code>schedule()</code> and <code>schedule_all()</code>. Additionally, they can be assigned to a task directly:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> exec1 = <span class="bu">std::</span>make_shared&lt;tw::parallel&gt;(<span class="dv">2</span>);
+task-&gt;set_executor(exec1);
+tw::sequential exec2;
+task-&gt;schedule(exec2);  <span class="co">// exec1 will be used to schedule the task</span></code></pre></div>
+<p>The task-specific executor will always be preferred over other executors when scheduling tasks.</p>
+<p>transwarp defines an executor interface which can be implemented to perform custom behavior when scheduling tasks. The interface looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> executor {
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> ~executor() = <span class="cf">default</span>;
+    
+    <span class="co">// The name of the executor</span>
+    <span class="kw">virtual</span> <span class="bu">std::</span>string name() <span class="at">const</span> = <span class="dv">0</span>;
+    
+    <span class="co">// Only ever called on the thread of the caller to schedule()</span>
+    <span class="kw">virtual</span> <span class="dt">void</span> execute(<span class="at">const</span> <span class="bu">std::</span>function&lt;<span class="dt">void</span>()&gt;&amp; functor, tw::itask&amp; task) = <span class="dv">0</span>;
+};</code></pre></div>
+<p>where <code>functor</code> denotes the function to be run and <code>task</code> the task the functor belongs to.</p>
+<h3 id="range-functions">Range functions</h3>
+<p>There are convenience functions that can be applied to an iterator range: * <code>tw::for_each</code> * <code>tw::transform</code></p>
+<p>These are very similar to their standard library counterparts except that they return a task for deferred, possibly asynchronous execution. Here's an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; vec = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>};
+tw::parallel exec{<span class="dv">4</span>};
+<span class="kw">auto</span> task = tw::for_each(exec, vec.begin(), vec.end(), [](<span class="dt">int</span>&amp; x){ x *= <span class="dv">2</span>; });
+task-&gt;wait();  <span class="co">// all values in vec will have doubled</span></code></pre></div>
+<h3 id="canceling-tasks">Canceling tasks</h3>
+<p>A task can be canceled by calling <code>task-&gt;cancel(true)</code> which will, by default, only affect tasks that are not currently running yet. However, if you create a functor that inherits from <code>transwarp::functor</code> you can terminate tasks while they're running. <code>transwarp::functor</code> looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="kw">class</span> functor {
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> ~functor() = <span class="cf">default</span>;
+
+<span class="kw">protected</span>:
+    <span class="co">// The associated task</span>
+    <span class="at">const</span> tw::itask&amp; transwarp_task() <span class="at">const</span> <span class="kw">noexcept</span>;
+
+    <span class="co">// The associated task</span>
+    tw::itask&amp; transwarp_task() <span class="kw">noexcept</span>;
+
+    <span class="co">// If the associated task is canceled then this will throw transwarp::task_canceled</span>
+    <span class="co">// which will stop the task while it&#39;s running</span>
+    <span class="dt">void</span> transwarp_cancel_point() <span class="at">const</span>;
+
+<span class="kw">private</span>:
+    ...
+};</code></pre></div>
+<p>By placing calls to <code>transwarp_cancel_point()</code> in strategic places of your functor you can denote well defined points where the functor will exit when the associated task is canceled. A task can also be canceled by throwing <code>transwarp::task_canceled</code> directly.</p>
+<p>As mentioned above, tasks can be explicitly canceled on client request. In addition, all tasks considered abandoned by <code>accept_any</code>, <code>consume_any</code>, or <code>wait_any</code> operations are also canceled in order to terminate them as soon as their computations become superfluous.</p>
+<h3 id="event-system">Event system</h3>
+<p>Transwarp provides an event system that allows you to subscribe to all or specific events of a task, such as, before started or after finished events. The task events are enumerated in the <code>event_type</code> enum:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">enum</span> <span class="kw">class</span> <span class="dt">event_type</span> {
+    before_scheduled, <span class="co">// Just before a task is scheduled</span>
+    after_future_changed, <span class="co">// Just after the task&#39;s future was changed</span>
+    before_started, <span class="co">// Just before a task starts running</span>
+    before_invoked, <span class="co">// Just before a task&#39;s functor is invoked</span>
+    after_finished, <span class="co">// Just after a task has finished running</span>
+    after_canceled, <span class="co">// Just after a task was canceled</span>
+    after_custom_data_set, <span class="co">// Just after custom data was assigned</span>
+}</code></pre></div>
+<p>Listeners are created by sub-classing from the <code>listener</code> interface:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> listener {
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> ~listener() = <span class="cf">default</span>;
+
+    <span class="co">// This may be called from arbitrary threads depending on the event type</span>
+    <span class="kw">virtual</span> <span class="dt">void</span> handle_event(tw::<span class="dt">event_type</span> event, tw::itask&amp; task) = <span class="dv">0</span>;
+};</code></pre></div>
+<p>A listener can then be passed to the <code>add_listener</code> functions of a task to add a new listener or to the <code>remove_listener</code> functions to remove an existing listener.</p>
+<h2 id="feedback">Feedback</h2>
+<p>Get in touch if you have any questions or suggestions to make this a better library! You can post on <a href="https://gitter.im/bloomen/transwarp">gitter</a>, submit a pull request, create a Github issue, or simply email one of the contributors.</p>
+<p>If you're serious about contributing code to transwarp (which would be awesome!) then please submit a pull request and keep in mind that: - unit tests should be added for all new code by extending the existing unit test suite - C++ code uses spaces throughout</p>
+<h2 id="contributors">Contributors</h2>
+<ul>
+<li><a href="https://github.com/bloomen">Christian Blume</a> (<code>chr.blume@gmail.com</code>)</li>
+<li><a href="https://github.com/guancodes">Guan Wang</a> (<code>ggwangguan@gmail.com</code>)</li>
+</ul>

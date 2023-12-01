@@ -1,0 +1,139 @@
+<h1 id="make-your-multithreaded-code-safe-and-crystal-clear">Make your multithreaded code safe and crystal clear!</h1>
+<p><em>All variables shared by multiple threads should be wrapped in a safe object.</em></p>
+<p><a href="https://travis-ci.org/LouisCharlesC/safe"><img src="https://travis-ci.org/LouisCharlesC/safe.svg?branch=master" alt="Build Status" /></a> ## Contents <em>safe</em> is a header-only library that helps you get your multithreaded code safe and understandable.<br />
+This readme will walk you through the important features of the library using several code examples. Read on, and enjoy safe multithreading! - <a href="#Background">Background</a> - <a href="#Overview">Overview</a> - <a href="#Basic-interface">Basic interface</a> - <a href="#Main-features">Main features</a> - <a href="#Higher-level-interface">Higher-level interface</a> ## Background <em>safe</em> aims at preventing common multithread mistakes by providing tools that complement the C++ standard library. Using <em>safe</em>, you will find it much easier to write correct multithreaded code, and your code will be easier to understand.</p>
+<p>In multithreaded code, there is one rule: <em>avoid data races</em>. A data race exists when more than one thread access the same variable, at least one of these accesses modifies the variable and the accesses are not serialized. It is impossible to reason about the correctness of a program in the presence of data races. To avoid data races, accesses to a shared variable must be serialized using a synchronization mechanism like a mutex. Since C++11, the standard library provides such mechanisms, like std::mutex, along with tools to facilitate their usage, like std::lock_guard and std::unique_lock.</p>
+<p>The standard's tools are sufficient to write safe multithreaded code, but it is all too easy to write code you think is safe but actually is not. Typical mistakes are: locking the wrong mutex and accessing the value object before locking (or after unlocking) the mutex. ## Overview Two class templates are at the core of <em>safe</em>: Lockable and Access. Lockable objects pack a mutex and a value object together. Access objects act as a lock for the mutex and provide pointer-like access to the value object. You will learn more about Lockable and Access <a href="#Basic-interface">here</a>.</p>
+<p>Here is why you want to use <em>safe</em>: ### Without safe</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>mutex fooMutex;
+<span class="bu">std::</span>mutex barMutex;
+<span class="bu">std::</span>string foo; <span class="co">// &lt;-- do I need to lock a mutex to safely access this variable ?</span>
+
+{
+    <span class="bu">std::</span>lock_guard&lt;<span class="bu">std::</span>mutex&gt; lock(fooMutex); <span class="co">// &lt;-- is this the right mutex ?</span>
+    foo = <span class="st">&quot;Hello, World!&quot;</span>;
+}
+
+<span class="bu">std::</span>cout &lt;&lt; foo &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// &lt;-- unprotected access, is this intended ?</span></code></pre></div>
+<h3 id="with-safe">With safe</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> LockableString = safe::Lockable&lt;<span class="bu">std::</span>string&gt;; <span class="co">// type alisases will save you a lot of typing</span>
+<span class="bu">std::</span>mutex barMutex;
+LockableString foo; <span class="co">// &lt;-- value and mutex packaged together!</span>
+
+{
+    safe::WriteAccess&lt;LockableString&gt; fooAccess(foo); <span class="co">// &lt;-- right mutex: guaranteed!</span>
+
+    *fooAccess = <span class="st">&quot;Hello, World!&quot;</span>; <span class="co">// access the value using pointer semantics: * and -&gt;</span>
+} <span class="co">// from here, you cannot directly access the value anymore: jolly good, since the mutex is not locked anymore!</span>
+
+<span class="bu">std::</span>cout &lt;&lt; foo.unsafe() &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// &lt;-- unprotected access: clearly expressed!</span></code></pre></div>
+<h3 id="vocabulary">Vocabulary</h3>
+<ul>
+<li><em>safe</em>: the safe library.</li>
+<li>mutex: a mutex like std::mutex.</li>
+<li>Value object: whatever needs to be protected by the mutex.</li>
+<li>Lockable object: combines a value object and a mutex.</li>
+<li>Lock object: an object that manages a mutex using RAII like std::lock_guard and std::unique_lock.</li>
+<li>Access object: a Lock object that also gives pointer-like access to the value object.</li>
+<li><p>Access mode: Access objects can be created with read-write or read-only behavior. Read-only Access objects are especially useful to enforce the read-only nature of std::shared_lock (C++14) and boost::shared_lock_guard. ## Basic interface ### Include the header-only library</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;safe/lockable.h&quot;</span></code></pre></div>
+<h3 id="replace-your-value-and-lockable-objects-by-a-lockable-object">Replace your value and lockable objects by a Lockable object</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// std::mutex mutex;</span>
+<span class="co">// std::string value;</span>
+safe::Lockable&lt;<span class="bu">std::</span>string&gt; value;</code></pre></div>
+<h3 id="replace-your-lock-objects-by-access-objects">Replace your lock objects by Access objects</h3>
+<p>Access is a class template nested in the Lockable class template. Two aliases exist in the safe namespace to easily construct Access objects for read-only and read-write access. These aliases are ReadAccess and WriteAccess. Use them exactly as you would use std::lock_guard or std::unique_lcok:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// std::lock_guard&lt;std::mutex&gt; lock(mutex);</span>
+safe::WriteAccess&lt;safe::Lockable&lt;<span class="bu">std::</span>string&gt;&gt; valueAccess(value);</code></pre></div>
+<p>or</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::ReadAccess&lt;safe::Lockable&lt;<span class="bu">std::</span>string&gt;&gt; valueAccess(value);</code></pre></div>
+<h3 id="access-your-value-object-through-the-access-objects-using-pointer-semantics">Access your value object through the Access objects using pointer semantics</h3>
+<p>You can now safely access the value object <em>through the Access object</em> without worrying about the mutex.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// value = &quot;42&quot;;</span>
+*valueAccess = <span class="st">&quot;42&quot;</span>;</code></pre></div>
+<h2 id="main-features">Main features:</h2>
+<h3 id="safety-and-clarity">1. Safety and clarity</h3>
+No more locking the wrong mutex, no more mistaken access outside the safety of a locked mutex. No more naked shared variables, no more plain mutexes lying around and no more <em>mutable</em> keyword (ever used a member mutex variable within a const-qualified member function ?). ### 2. Flexibility #### Choose the mutex and lock that fit your need The Lockable class template has a template parameter for the mutex:</li>
+<li><p>use std::mutex, std::shared_mutex (C++17), name it!</p></li>
+</ul>
+<p>The Access class template has a template parameter for the lock object: - use std::lock_guard, boost::shared_lock_guard, anything you want! - you can use the lock you need for every Access object you construct. #### Store the value object and mutex inside the Lockable object, or refer to existing objects You can use any combination of reference and non-reference types for your Lockable objects:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&gt;;
+safe::Lockable&lt;<span class="dt">int</span>&gt;; <span class="co">// equivalent to the above, as the second template parameter defaults to std::mutex</span>
+safe::Lockable&lt;<span class="dt">int</span>&amp;, <span class="bu">std::</span>mutex&gt;;
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&amp;&gt;;
+safe::Lockable&lt;<span class="dt">int</span>&amp;, <span class="bu">std::</span>mutex&amp;&gt;;</code></pre></div>
+<p>See <a href="#With-legacy-code">this section</a> for an example of using reference types to deal with legacy code. #### Flexibly construct the value object and mutex Just remember: the first argument to a Lockable constructor is used to construct the mutex, the other arguments are used for the value object.</p>
+<p><em>Note: when constructing a Lockable object and the mutex is default constructed but the value object is not, you must pass the safe::default_construct_mutex_ tag. You can also pass an empty set of curly brackets {}.</em></p>
+<p>Examples:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>mutex aMutex;
+
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&gt; bothDefault; <span class="co">// lockable and value are default constructed</span>
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&amp;&gt; noDefault(aMutex, <span class="dv">42</span>); <span class="co">// lockable and value are initialized</span>
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&amp;&gt; valueDefault(aMutex); <span class="co">// lockable is initialized, and value is default constructed</span>
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&gt; lockableDefaultTag(safe::default_construct_mutex, <span class="dv">42</span>); <span class="co">// lockable is default constructed, and value is initialized</span>
+safe::Lockable&lt;<span class="dt">int</span>, <span class="bu">std::</span>mutex&gt; lockableDefaultBraces({}, <span class="dv">42</span>);</code></pre></div>
+<h4 id="flexibly-construct-the-lock-objects">Flexibly construct the Lock objects</h4>
+<p>The Access constructors have a variadic parameter pack that is forwarded to the Lock object's constructor. This can be used to pass in standard lock tags such as std::adopt_lock, but also to construct your custom locks that may require additionnal arguments than just the mutex.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::Lockable&lt;<span class="dt">int</span>&gt; value; <span class="co">// given a safe object</span>
+value.mutex().lock(); <span class="co">// with the mutex already locked...</span>
+<span class="co">// Because the mutex is already locked, you need to pass the std::adopt_lock tag to std::lock_guard when you construct your Access object.</span>
+
+<span class="co">// Fortunately, all arguments passed to the Safe::writeAccess() function are forwarded to the lock constructor.</span>
+safe::WriteAccess&lt;safe::Lockable&lt;<span class="dt">int</span>&gt;&gt; valueAccess(value, <span class="bu">std::</span>adopt_lock);</code></pre></div>
+<h3 id="even-more-safety">3. Even more safety!</h3>
+<h4 id="choose-the-access-mode-that-suits-each-access">Choose the access mode that suits each access</h4>
+<p>Once you construct a Lockable object, you fix the type of the mutex you will use. From there, you will create an Access object every time you want to operate on the value object. For each of these accesses, you can choose whether the access is read-write or read-only. Use the ReadAccess and WriteAccess aliases to easily construct read-only and read-write Access objects.</p>
+<h4 id="force-read-only-access-with-shared-mutexes-and-shared_locks">Force read-only access with shared mutexes and shared_locks</h4>
+<p>Shared mutexes and shared locks allow multiple reading threads to access the value object simultaneously. Unfortunately, using only mutexes and locks, the read-only restriction is not guaranteed to be applied. That is, it is possible to lock a mutex in shared mode and write to the shared value. With <em>safe</em>, you can enforce read-only access when using shared locking by using ReadAccess objects. ### 4. Compatibility #### With legacy code You can use <em>safe</em> with old-style unsafe code that uses the out-of-fashion separate mutex and value idiom. Imagine you are provided with the typical mutex and int. <em>safe</em> allows you to wrap these variables, without having to modify the existing code. Enjoy the safety and avoid the headaches:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>mutex mutex;
+<span class="dt">int</span> value;
+
+<span class="co">// Wrap the existing variables</span>
+safe::Lockable&lt;<span class="dt">int</span>&amp;, <span class="bu">std::</span>mutex&amp;&gt; lockableValue(mutex, value);
+<span class="co">// do not use mutex and unsafeValue directly from here on!</span></code></pre></div>
+<h4 id="with-code-from-the-future">With code from the future</h4>
+<p><em>safe</em> is written in C++11, but it is fully compatible with mutexes and locks from different sources like C++14's std::shared_lock and C++17's std::shared_mutex, thanks to template parameters. Of course, you can also use boost::shared_lock_guard and your own custom mutexes and locks. #### With standard uses of mutexes and locks The mutex is accessible from the Lockable object through accessor functions, and the lock object is a public member of the Access class. Anything you can do with your typical mutexes and locks you can do with <em>safe</em>.</p>
+<p>For example, <em>safe</em> can seamlessly be used with std::condition_variable:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>condition_variable cv;
+safe::Lockable&lt;<span class="dt">int</span>&gt; value;
+
+safe::WriteAccess&lt;safe::Lockable&lt;<span class="dt">int</span>&gt;, <span class="bu">std::</span>unique_lock&gt; valueAccess(value);
+cv.wait(valueAccess.lock);</code></pre></div>
+<h2 id="advanced-use-cases">Advanced use cases</h2>
+<h3 id="enforcing-read-only-access">Enforcing read-only access</h3>
+<p>Here is the full declaration of the Access class:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">template</span>&lt;<span class="kw">typename</span>&gt; <span class="kw">class</span> LockType, AccessMode Mode&gt; <span class="kw">class</span> Access;</code></pre></div>
+<p>Don't be daunted be the looks of the first template parameter, it only means that the LockType must be a class template with one template parameter.</p>
+<p>The second template parameter is the customization point you can use to change the behavior of you Access objects.<br />
+As already mentioned, the AccessMode template parameter defines the access mode for the Access objects: either read-write or read-only. A trait class exists in safe/traits.h to tell <em>safe</em> whether the lock is read-write or read-only: - If no specialization of the type trait exists for LockType, the lock is read-write. - If a specialization exists, it must declare the IsReadOnly boolean variable. - If IsReadOnly is true, the lock is read-only: using Mode = AccessMode::ReadWrite will fail to compile. - If IsReadOnly is false, the lock is read-write.</p>
+<p>It is useful to declare shared locks as read-only. Here is how to do it (you will find this exact code snippet in safe/traits.h):</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;&gt;
+<span class="kw">struct</span> LockTraits&lt;<span class="bu">std::</span>shared_lock&gt;
+{
+    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">bool</span> IsReadOnly = <span class="kw">true</span>;
+};</code></pre></div>
+<h2 id="higher-level-interface">Higher-level interface</h2>
+<p>Here is a multithreading utility class template that I built on top of <em>safe</em>'s basic interface: Safe. ### Safe The Safe class template is a bit higher level than Lockable; it offers a nice interface to safely manage your variables in multithreaded code.</p>
+<p>Safe's interface provides thread-safe read and write to the variable. The <strong>copy()</strong> and <strong>emplace()</strong> member functions are your basic tools to access the variable. <em>copy()</em> returns a copy of the variable and <em>emplace()</em> replaces its content.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::Safe&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt; vec;
+vec = <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;(<span class="dv">2</span>, <span class="st">&quot;bar&quot;</span>); <span class="co">// assign new vector</span>
+<span class="kw">auto</span> copy = vec.copy(); <span class="co">// get a copy</span></code></pre></div>
+<p>Now imagine your variable is an std::vector and you are only interested in knowing its size. Are your going to copy the whole vector only to call size() on it ? Of course not. You will use the <strong>readAccess()</strong> member function provided by the Safe class! <em>readAccess()</em> returns a ReadAccess object to the variable, allowing you to perform any operation you want on it without incurring the cost of a copy. Likewise, if you only want to modify the first element of the vector, it would be a shame to replace it as a whole using the <em>emplace()</em> function. It is much better to use the <strong>writeAccess()</strong> member function to get a WriteAccess object to the variable. Using <em>readAccess()</em> and <em>writeAccess()</em>, you can inspect and alter any part of the variable in isolation.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">vec.writeAccess()-&gt;front() = <span class="st">&quot;foo&quot;</span>; <span class="co">// replace front only</span>
+assert(vec.readAccess()-&gt;size() == <span class="dv">2</span>); <span class="co">// check size</span></code></pre></div>
+<p>Thread-safe <em>copy()</em>, <em>operator=()</em>, <em>readAccess()</em> and <em>writeAccess()</em>: this is all the Safe class is about. ##### Specialization for Safe&lt;std::shared_ptr&gt; Safe objects of std::shared_ptr are interesting because the reference counting apparatus of the shared pointer allows for a very nice optimization: copy-on-write. For this class template specialization, calls to <em>copy()</em> do not make a copy of the pointed-to variable, but they return a const std::shared_ptr to the variable. From there, a copy of the variable <em>may</em> happen, but only if this returned shared_ptr still exists when the next call to <em>assign()</em> or <em>writeAccess()</em> happens. That is:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::Safe&lt;<span class="bu">std::</span>shared_ptr&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;&gt; vec(<span class="dv">2</span>, <span class="st">&quot;bar&quot;</span>); <span class="co">// the std::shared_ptr is managed internally</span>
+{
+    <span class="kw">auto</span> view = vec.copy(); <span class="co">// no copy, view is a std::shared_ptr&lt;const std::vector&lt;std::string&gt;&gt;, notice the const!</span>
+    assert(view-&gt;front() == <span class="st">&quot;bar&quot;</span>);
+} <span class="co">// view destroyed</span>
+(*vec.writeAccess())-&gt;front() = <span class="st">&quot;foo&quot;</span>;
+assert((*vec.readAccess())-&gt;front() == <span class="st">&quot;foo&quot;</span>);</code></pre></div>
+<p>but:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">safe::Safe&lt;<span class="bu">std::</span>shared_ptr&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;&gt; vec(<span class="dv">2</span>, <span class="st">&quot;bar&quot;</span>);
+<span class="kw">auto</span> view = vec.copy(); <span class="co">// again, no copy here</span>
+assert(view-&gt;front() == <span class="st">&quot;bar&quot;</span>);
+(*vec.writeAccess())-&gt;front() = <span class="st">&quot;foo&quot;</span>; <span class="co">// the copy happens here! the content of vec is copied into a brand new std::shared_vector, then the first element is modified</span>
+assert(view-&gt;front() == <span class="st">&quot;bar&quot;</span>); <span class="co">// this is still true!</span>
+assert((*vec.readAccess())-&gt;front() != <span class="st">&quot;foo&quot;</span>); <span class="co">// see ? vec does hold a difference instance than view</span></code></pre></div>
+<p>Calls to <em>readAccess()</em> never cause copies because the mutex is locked while the ReadAccess object exists, delaying calls to any other member function.</p>

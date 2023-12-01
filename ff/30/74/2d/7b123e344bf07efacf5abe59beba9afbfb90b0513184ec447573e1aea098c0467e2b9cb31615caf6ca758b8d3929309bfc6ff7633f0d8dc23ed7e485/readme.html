@@ -1,0 +1,262 @@
+<figure>
+<img src="https://user-images.githubusercontent.com/9919222/104115165-0a4e4700-52c1-11eb-85d6-9bdfa9a0265f.png" alt="" /><figcaption>flecs</figcaption>
+</figure>
+<p><a href="https://github.com/SanderMertens/flecs/actions"><img src="https://github.com/SanderMertens/flecs/workflows/CI/badge.svg" alt="CI build" /></a> <a href="https://codecov.io/gh/SanderMertens/flecs"><img src="https://codecov.io/gh/SanderMertens/flecs/branch/master/graph/badge.svg" alt="codecov" /></a> <a href="https://discord.gg/BEzP5Rgrrp"><img src="https://img.shields.io/discord/633826290415435777.svg" alt="Discord Chat" /></a> <a href="https://godbolt.org/z/bs11T3"><img src="https://img.shields.io/badge/try-online-brightgreen" alt="Try online" /></a> <a href="http://flecs.docsforge.com/"><img src="https://img.shields.io/badge/docs-docsforge-blue" alt="Documentation" /></a></p>
+<p>Flecs is a fast and lightweight Entity Component System with a focus on high performance game development and usability (<a href="https://discord.gg/MRSAZqb">join the Discord!</a>). The highlights of the framework are:</p>
+<ul>
+<li>Zero dependency C99 core, modern type safe C++11 API, no dependencies on STL types</li>
+<li>Batched iteration with direct access to component arrays</li>
+<li>SoA/Archetype storage for efficient CPU caching &amp; vectorization</li>
+<li>Automatic component registration across binaries</li>
+<li>Runtime tags</li>
+<li>Hierarchies</li>
+<li>Prefabs</li>
+<li>Relationships graphs &amp; graph queries</li>
+<li>Thread safe, lockless API</li>
+<li>Systems that are ran manually, every frame or at a time/rate interval</li>
+<li>Queries that can be iterated from free functions</li>
+<li>Modules for organizing components &amp; systems</li>
+<li>Builtin statistics &amp; introspection</li>
+<li>Modular core with compile-time disabling of optional features</li>
+<li>A dashboard module for visualizing statistics:</li>
+</ul>
+<p><img width="942" alt="Screen Shot 2020-12-02 at 1 28 04 AM" src="https://user-images.githubusercontent.com/9919222/100856510-5eebe000-3440-11eb-908e-f4844c335f37.png"></p>
+<h2 id="what-is-an-entity-component-system">What is an Entity Component System?</h2>
+<p>ECS (Entity Component System) is a design pattern used in games and simulations that produces fast and reusable code. Dynamic composition is a first-class citizen in ECS, and there is a strict separation between data and behavior. A framework is an Entity Component System if it:</p>
+<ul>
+<li>Has <em>entities</em> that are unique identifiers</li>
+<li>Has <em>components</em> that are plain data types</li>
+<li>Has <em>systems</em> which are behavior matched with entities based on their components</li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<p>If you are still learning Flecs, these resources are a good start: - <a href="https://github.com/SanderMertens/flecs_not_for_dummies">Flecs not for dummies (presentation)</a> - <a href="docs/Quickstart.md">Quickstart</a> (<a href="https://flecs.docsforge.com/master/quickstart/">docsforge</a>) - <a href="docs/DesignWithFlecs.md">Designing with Flecs</a> (<a href="https://flecs.docsforge.com/master/designing-with-flecs/">docsforge</a>)</p>
+<p>The FAQ is where some of the most asked questions are listed: - <a href="docs/FAQ.md">FAQ</a> (<a href="https://flecs.docsforge.com/master/faq/">docsforge</a>)</p>
+<p>The manual and examples come in handy if you’re looking for information on specific features: - <a href="docs/Manual.md">Manual</a> (<a href="https://flecs.docsforge.com/master/manual/">docsforge</a>) - <a href="examples/c">C examples</a> - <a href="examples/cpp">C++ examples</a></p>
+<p>If you are migrating from Flecs v1 to v2, check the migration guide: - <a href="docs/MigrationGuide.md">Migration guide</a> (<a href="https://flecs.docsforge.com/master/migrationguide/">docsforge</a>)</p>
+<p>Here is some awesome content provided by the community (thanks everyone! :heart:): - <a href="https://bebylon.dev/blog/ecs-flecs-ue4/">Bringing Flecs to UE4</a> - <a href="https://jtferson.github.io/blog/flecs_and_unreal/">Flecs + UE4 is magic</a> - <a href="https://jtferson.github.io/blog/quickstart_with_flecs_in_unreal_part_1/">Quickstart with Flecs in UE4</a> - <a href="https://jtferson.github.io/blog/automatic_flecs_component_registration_in_unreal/">Automatic component registration in UE4</a> - <a href="https://twitter.com/ajmmertens/status/1361070033334456320">Building a space battle with Flecs in UE4</a> - <a href="https://github.com/HeatXD/flecs_web_demo">Flecs + SDL + Web ASM example</a> (<a href="https://heatxd.github.io/flecs_web_demo/">live demo</a>) - <a href="https://github.com/MrFrenik/gs_examples/blob/main/18_flecs/source/main.c">Flecs + gunslinger example</a></p>
+<h2 id="examples">Examples</h2>
+<p>This is a simple flecs example in the C99 API:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">typedef</span> <span class="kw">struct</span> {</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>  <span class="dt">float</span> x, y;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>} Position, Velocity;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="dt">void</span> Move(ecs_iter_t *it) {</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>  Position *p = ecs_term(it, Position, <span class="dv">1</span>);</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>  Velocity *v = ecs_term(it, Velocity, <span class="dv">2</span>);</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>  </span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>  <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; it-&gt;count; i ++) {</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    p[i].x += v[i].x;</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    p[i].y += v[i].y;</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>  }</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>}</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a>  ecs_world_t *ecs = ecs_init();</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a>  ECS_COMPONENT(ecs, Position);</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a>  ECS_COMPONENT(ecs, Velocity);</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a>  ECS_SYSTEM(ecs, Move, EcsOnUpdate, Position, Velocity);</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a>  ecs_entity_t e = ecs_new_id(ecs);</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a>  ecs_set(ecs, e, Position, {<span class="dv">10</span>, <span class="dv">20</span>});</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a>  ecs_set(ecs, e, Velocity, {<span class="dv">1</span>, <span class="dv">2</span>});</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a>  ecs_iter_t it = ecs_term_iter(world, &amp;(ecs_term_t) { ecs_id(Position) });</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a>  <span class="cf">while</span> (ecs_term_next(&amp;it)) {</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a>    Position *p = ecs_term(&amp;it, Position, <span class="dv">1</span>);</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a>    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; it.count; i ++) {</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a>      printf(<span class="st">&quot;{%f, %f}</span><span class="sc">\n</span><span class="st">&quot;</span>, p[i].x, p[i].y);</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a>    }</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a>  }</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a>  <span class="cf">while</span> (ecs_progress(ecs, <span class="dv">0</span>)) { }</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This is the same example in the C++11 API:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="kw">struct</span> Position {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">float</span> x, y;</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>};</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="kw">struct</span> Velocity {</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  <span class="dt">float</span> x, y;</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>};</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  flecs::world ecs;</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>  ecs.system&lt;Position, <span class="at">const</span> Velocity&gt;()</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>    .each([](Position&amp; p, <span class="at">const</span> Velocity&amp; v) {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>      p.x += v.x;</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a>      p.y += v.y;</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true"></a>    });</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true"></a>  <span class="kw">auto</span> e = ecs.entity()</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true"></a>    .set([](Position&amp; p, Velocity&amp; v) {</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true"></a>      p = {<span class="dv">10</span>, <span class="dv">20</span>};</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true"></a>      v = {<span class="dv">1</span>, <span class="dv">2</span>};</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true"></a>    });</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true"></a>  ecs.each([](flecs::entity e, Position&amp; p) {</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;{&quot;</span> &lt;&lt; p.x &lt;&lt; <span class="st">&quot;, &quot;</span> &lt;&lt; p.y &lt;&lt; <span class="st">&quot;}&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true"></a>  });</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true"></a>    </span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true"></a>  <span class="cf">while</span> (ecs.progress()) { }</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The first C example used macro’s to emulate a type-safe layer on top of the underlying generic API. This example shows the C API without macro’s:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co">// Register the Position component</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>ecs_entity_t pos = ecs_component_init(ecs, &amp;(ecs_component_desc_t){</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>  .entity.name = <span class="st">&quot;Position&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>  .size = <span class="kw">sizeof</span>(Position), .alignment = ECS_ALIGNOF(Position)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>});</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="co">// Register the Velocity component</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>ecs_entity_t vel = ecs_component_init(ecs, &amp;(ecs_component_desc_t){</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>  .entity.name = <span class="st">&quot;Velocity&quot;</span>,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>  .size = <span class="kw">sizeof</span>(Velocity), .alignment = ECS_ALIGNOF(Velocity)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>});</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a><span class="co">// Create the Move system</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>ecs_system_init(ecs, &amp;(ecs_system_desc_t){</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>  .entity = { .name = <span class="st">&quot;Move&quot;</span>, .add = {EcsOnUpdate} },</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true"></a>  .query.filter.terms = {{pos}, {vel, .inout = EcsIn}},</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true"></a>  .callback = Move,</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true"></a>});</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true"></a><span class="co">// Create entity</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true"></a>ecs_entity_t e = ecs_new_id(ecs);</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true"></a><span class="co">// Set components</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true"></a>ecs_set_id(ecs, e, pos, <span class="kw">sizeof</span>(Position), &amp;(Position){<span class="dv">10</span>, <span class="dv">20</span>});</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true"></a>ecs_set_id(ecs, e, vel, <span class="kw">sizeof</span>(Velocity), &amp;(Velocity){<span class="dv">1</span>, <span class="dv">2</span>});</span></code></pre></div>
+<h2 id="building">Building</h2>
+<p>The easiest way to add Flecs to a project is to add <a href="https://raw.githubusercontent.com/SanderMertens/flecs/master/flecs.c">flecs.c</a> and <a href="https://raw.githubusercontent.com/SanderMertens/flecs/master/flecs.h">flecs.h</a> to your source code. These files can be added to both C and C++ projects (the C++ API is embedded in flecs.h). Alternatively you can also build Flecs as a library by using the cmake, meson, bazel or bake buildfiles.</p>
+<h3 id="custom-builds">Custom builds</h3>
+<p>The Flecs source has a modular design which makes it easy to strip out code you don’t need. At its core, Flecs is a minimalistic ECS library with a lot of optional features that you can choose to include or not. <a href="https://github.com/SanderMertens/flecs/blob/master/docs/Manual.md#custom-builds">This section of the manual</a> describes how to customize which features to include.</p>
+<h2 id="software-quality">Software Quality</h2>
+<p>To ensure stability of Flecs, the code is thoroughly tested on every commit:</p>
+<ul>
+<li>More than 2400 testcases and 60.000 lines of test code</li>
+<li>Over 90% code coverage</li>
+<li>All tests run without memory leaks &amp; memory corruption</li>
+<li>All examples are compiled warning free</li>
+</ul>
+<p>The code is validated on the following platforms/compilers:</p>
+<ul>
+<li><strong>Windows</strong>
+<ul>
+<li>msvc</li>
+</ul></li>
+<li><strong>Ubuntu</strong>
+<ul>
+<li>gcc 7, 8, 9, 10</li>
+<li>clang 8, 9</li>
+</ul></li>
+<li><strong>MacOS</strong>
+<ul>
+<li>gcc 10</li>
+<li>clang 9</li>
+</ul></li>
+</ul>
+<h3 id="api-stability">API stability</h3>
+<p>APIs are stable between minor and patch versions, but exceptions are made in these scenarios: - The design of an API prevents it from being used without introducing bugs - The design of an API is prone to misuse or confusing</p>
+<p>The following parts of the API are not stable between patch/minor versions: - Anything in include/private - The ABI is not guaranteed to be stable, so a recompile of code is required after upgrading</p>
+<p>Functions may become deprecated before a major release. To build flecs without deprecated functions, exclude the <code>FLECS_DEPRECATED</code> addon. (see <a href="https://github.com/SanderMertens/flecs/blob/master/docs/Manual.md#custom-builds">custom builds</a>).</p>
+<h2 id="modules">Modules</h2>
+<p>The following modules are available in <a href="https://github.com/flecs-hub">flecs-hub</a>. Note that modules are mostly intended as example code, and their APIs may change at any point in time.</p>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 60%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Module</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-meta">flecs.meta</a></td>
+<td>Reflection for Flecs components</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-json">flecs.json</a></td>
+<td>JSON serializer for Flecs components</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-rest">flecs.rest</a></td>
+<td>A REST interface for introspecting &amp; editing entities</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-player">flecs.player</a></td>
+<td>Play, stop and pause simulations</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-monitor">flecs.monitor</a></td>
+<td>Web-based monitoring of statistics</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-dash">flecs.dash</a></td>
+<td>Web-based dashboard for remote monitoring and debugging of Flecs apps</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-input">flecs.components.input</a></td>
+<td>Components that describe keyboard and mouse input</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-transform">flecs.components.transform</a></td>
+<td>Components that describe position, rotation and scale</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-physics">flecs.components.physics</a></td>
+<td>Components that describe physics and movement</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-geometry">flecs.components.geometry</a></td>
+<td>Components that describe geometry</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-graphics">flecs.components.graphics</a></td>
+<td>Components used for computer graphics</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-components-gui">flecs.components.gui</a></td>
+<td>Components used to describe GUI components</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-components-http">flecs.components.http</a></td>
+<td>Components describing an HTTP server</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-systems-transform">flecs.systems.transform</a></td>
+<td>Hierarchical transforms for scene graphs</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-systems-sdl2">flecs.systems.sdl2</a></td>
+<td>SDL window creation &amp; input management</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/flecs-hub/flecs-systems-sokol">flecs.systems.sokol</a></td>
+<td>Sokol-based renderer</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/flecs-hub/flecs-systems-civetweb">flecs.systems.civetweb</a></td>
+<td>A civetweb-based implementation of flecs.components.http</td>
+</tr>
+</tbody>
+</table>
+<h2 id="language-bindings">Language bindings</h2>
+<ul>
+<li><a href="https://github.com/flecs-hub/flecs-lua">Lua</a></li>
+<li><a href="https://github.com/prime31/zig-flecs">Zig</a></li>
+</ul>
+<h2 id="useful-links">Useful Links</h2>
+<ul>
+<li><a href="https://github.com/SanderMertens/ecs-faq">ECS FAQ</a></li>
+<li><a href="https://ajmmertens.medium.com">Medium</a></li>
+<li><a href="https://twitter.com/ajmmertens">Twitter</a></li>
+<li><a href="https://www.reddit.com/r/flecs">Reddit</a></li>
+</ul>
+<h2 id="supporting-flecs">Supporting Flecs</h2>
+<p>Supporting Flecs goes a long way towards keeping the project going and the community alive! If you like the project, consider: - Giving it a star - Becoming a sponsor: https://github.com/sponsors/SanderMertens</p>
+<p>Thanks in advance!</p>

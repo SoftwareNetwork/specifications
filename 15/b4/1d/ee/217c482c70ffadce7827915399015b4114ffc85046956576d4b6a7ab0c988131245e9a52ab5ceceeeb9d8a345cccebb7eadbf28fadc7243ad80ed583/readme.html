@@ -1,0 +1,97 @@
+<p><a href="https://travis-ci.org/zeromq/cppzmq"><img src="https://img.shields.io/travis/zeromq/cppzmq/master.svg?label=Linux%20%7C%20OSX" alt="Travis-CI Status" /></a> <a href="https://ci.appveyor.com/project/zeromq/cppzmq/branch/master"><img src="https://img.shields.io/appveyor/ci/zeromq/cppzmq/master.svg?label=Windows" alt="Appveyor Status" /></a> <a href="https://coveralls.io/github/zeromq/cppzmq?branch=master"><img src="https://coveralls.io/repos/github/zeromq/cppzmq/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://github.com/zeromq/cppzmq/blob/master/LICENSE"><img src="https://img.shields.io/github/license/zeromq/cppzmq.svg" alt="License" /></a></p>
+<h1 id="introduction-design-goals">Introduction &amp; Design Goals</h1>
+<p>cppzmq is a C++ binding for libzmq. It has the following design goals: - cppzmq maps the libzmq C API to C++ concepts. In particular: - it is type-safe (the libzmq C API exposes various class-like concepts as void*) - it provides exception-based error handling (the libzmq C API provides errno-based error handling) - it provides RAII-style classes that automate resource management (the libzmq C API requires the user to take care to free resources explicitly) - cppzmq is a light-weight, header-only binding. You only need to include the header file zmq.hpp (and maybe zmq_addon.hpp) to use it. - zmq.hpp is meant to contain direct mappings of the abstractions provided by the libzmq C API, while zmq_addon.hpp provides additional higher-level abstractions.</p>
+<p>There are other C++ bindings for ZeroMQ with different design goals. In particular, none of the following bindings are header-only: - <a href="https://github.com/zeromq/zmqpp">zmqpp</a> is a high-level binding to libzmq. - <a href="https://github.com/zeromq/czmqpp">czmqpp</a> is a binding based on the high-level czmq API. - <a href="https://github.com/facebook/fbzmq">fbzmq</a> is a binding that integrates with Apache Thrift and provides higher-level abstractions in addition. It requires C++14.</p>
+<h1 id="supported-platforms">Supported platforms</h1>
+<ul>
+<li>Only a subset of the platforms that are supported by libzmq itself are supported. Some features already require a compiler supporting C++11. In the future, probably all features will require C++11. To build and run the tests, CMake and Catch are required.</li>
+<li>Any libzmq 4.x version is expected to work. DRAFT features may only work for the most recent tested version. Currently explicitly tested libzmq versions are</li>
+<li>4.2.0 (without DRAFT API)</li>
+<li>4.2.5 (without DRAFT API)</li>
+<li>4.3.1 (with and without DRAFT API)</li>
+<li>Platforms with full support (i.e. CI executing build and tests)</li>
+<li>Ubuntu 14.04 x64 (with gcc 4.8.4) (without DRAFT API only)</li>
+<li>Ubuntu 14.04 x64 (with gcc 7.3.0)</li>
+<li>Visual Studio 2015 x86</li>
+<li>Visual Studio 2017 x86</li>
+<li>OSX (with clang xcode9.1) (without DRAFT API)</li>
+<li>Additional platforms that are known to work:</li>
+<li>We have no current reports on additional platforms that are known to work yet. Please add your platform here. If CI can be provided for them with a cloud-based CI service working with GitHub, you are invited to add CI, and make it possible to be included in the list above.</li>
+<li>Additional platforms that probably work:</li>
+<li>Any platform supported by libzmq that provides a sufficiently recent gcc (4.8.1 or newer) or clang (3.4.1 or newer)</li>
+<li>Visual Studio 2012+ x86/x64</li>
+</ul>
+<h1 id="examples">Examples</h1>
+<p>These examples require at least C++11.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;zmq.hpp&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    zmq::<span class="dt">context_t</span> ctx;
+    zmq::<span class="dt">socket_t</span> sock(ctx, zmq::<span class="dt">socket_type</span>::push);
+    sock.bind(<span class="st">&quot;inproc://test&quot;</span>);
+    sock.send(zmq::str_buffer(<span class="st">&quot;Hello, world&quot;</span>), zmq::send_flags::dontwait);
+}</code></pre></div>
+<p>This a more complex example where we send and receive multi-part messages.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;zmq_addon.hpp&gt;</span>
+
+<span class="dt">int</span> main()
+{
+    zmq::<span class="dt">context_t</span> ctx;
+    zmq::<span class="dt">socket_t</span> sock1(ctx, zmq::<span class="dt">socket_type</span>::pair);
+    zmq::<span class="dt">socket_t</span> sock2(ctx, zmq::<span class="dt">socket_type</span>::pair);
+    sock1.bind(<span class="st">&quot;inproc://test&quot;</span>);
+    sock2.<span class="fu">connect</span>(<span class="st">&quot;inproc://test&quot;</span>);
+
+    <span class="bu">std::</span>array&lt;zmq::const_buffer, <span class="dv">2</span>&gt; send_msgs = {
+        zmq::str_buffer(<span class="st">&quot;foo&quot;</span>),
+        zmq::str_buffer(<span class="st">&quot;bar!&quot;</span>)
+    };
+    <span class="cf">if</span> (!zmq::send_multipart(sock1, send_msgs))
+        <span class="cf">return</span> <span class="dv">1</span>;
+
+    <span class="bu">std::</span>vector&lt;zmq::<span class="dt">message_t</span>&gt; recv_msgs;
+    <span class="at">const</span> <span class="kw">auto</span> ret = zmq::recv_multipart(
+        sock2, <span class="bu">std::</span>back_inserter(recv_msgs));
+    <span class="cf">if</span> (!ret)
+        <span class="cf">return</span> <span class="dv">1</span>;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Got &quot;</span> &lt;&lt; *ret
+              &lt;&lt; <span class="st">&quot; messages&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h1 id="compatibility-guidelines">Compatibility Guidelines</h1>
+<p>The users of cppzmq are expected to follow the guidelines below to ensure not to break when upgrading cppzmq to newer versions (non-exhaustive list):</p>
+<ul>
+<li>Do not depend on any macros defined in cppzmq unless explicitly declared public here.</li>
+</ul>
+<p>The following macros may be used by consumers of cppzmq: <code>CPPZMQ_VERSION</code>, <code>CPPZMQ_VERSION_MAJOR</code>, <code>CPPZMQ_VERSION_MINOR</code>, <code>CPPZMQ_VERSION_PATCH</code>.</p>
+<h1 id="contribution-policy">Contribution policy</h1>
+<p>The contribution policy is at: http://rfc.zeromq.org/spec:22</p>
+<h1 id="build-instructions">Build instructions</h1>
+<p>Build steps:</p>
+<ol style="list-style-type: decimal">
+<li>Build <a href="https://github.com/zeromq/libzmq">libzmq</a> via cmake. This does an out of source build and installs the build files</li>
+</ol>
+<ul>
+<li>download and unzip the lib, cd to directory</li>
+<li>mkdir build</li>
+<li>cd build</li>
+<li>cmake ..</li>
+<li>sudo make -j4 install</li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>Build cppzmq via cmake. This does an out of source build and installs the build files</li>
+</ol>
+<ul>
+<li>download and unzip the lib, cd to directory</li>
+<li>mkdir build</li>
+<li>cd build</li>
+<li>cmake ..</li>
+<li>sudo make -j4 install</li>
+</ul>
+<p>Using this:</p>
+<p>A cmake find package scripts is provided for you to easily include this library. Add these lines in your CMakeLists.txt to include the headers and library files of cpp zmq (which will also include libzmq for you).</p>
+<pre><code>#find cppzmq wrapper, installed by make of cppzmq
+find_package(cppzmq)
+target_link_libraries(*Your Project Name* cppzmq)</code></pre>

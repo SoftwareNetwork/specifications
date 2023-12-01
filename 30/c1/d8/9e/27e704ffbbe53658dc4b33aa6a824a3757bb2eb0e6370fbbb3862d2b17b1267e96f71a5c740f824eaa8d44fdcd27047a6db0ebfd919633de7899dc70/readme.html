@@ -1,0 +1,84 @@
+<h2 id="what-is-vala">What is Vala?</h2>
+<p>Vala is a programming language that aims to bring modern programming language features to GNOME developers without imposing any additional runtime requirements and without using a different ABI compared to applications and libraries written in C.</p>
+<p><code>valac</code>, the Vala compiler, is a self-hosting compiler that translates Vala source code into C source and header files. It uses the GObject type system to create classes and interfaces declared in the Vala source code.</p>
+<p>The syntax of Vala is similar to C#, modified to better fit the GObject type system. Vala supports modern language features as the following:</p>
+<ul>
+<li>Interfaces</li>
+<li>Properties</li>
+<li>Signals</li>
+<li>Foreach</li>
+<li>Lambda expressions</li>
+<li>Type inference for local variables</li>
+<li>Generics</li>
+<li>Non-null types</li>
+<li>Assisted memory management</li>
+<li>Exception handling</li>
+</ul>
+<p>Vala is designed to allow access to existing C libraries, especially GObject-based libraries, without the need for runtime bindings. All that is needed to use a library with Vala is an API file, containing the class and method declarations in Vala syntax. Vala currently comes with bindings for GLib and GTK+.</p>
+<p>Using classes and methods written in Vala from an application written in C is not difficult. The Vala library only has to install the generated header files and C applications may then access the GObject-based API of the Vala library as usual. It should also be easily possible to write a bindings generator for access to Vala libraries from applications written in e.g. C# as the Vala parser is written as a library, so that all compile-time information is available when generating a binding.</p>
+<p>More information about Vala is available at <a href="https://wiki.gnome.org/Projects/Vala/" class="uri">https://wiki.gnome.org/Projects/Vala/</a></p>
+<h2 id="building-vala">Building Vala</h2>
+<p>Instructions on how to build the latest version of Vala. These can be modified to build a specific release.</p>
+<h3 id="step-one">Step One:</h3>
+<p>Install the following packages:</p>
+<ul>
+<li>a C compiler, e.g. GCC</li>
+<li>a C library, e.g. glibc</li>
+<li>glib (&gt;= 2.48)</li>
+<li>flex</li>
+<li>bison</li>
+<li>Graphviz (libgvc) (&gt;= 2.16) to build valadoc</li>
+<li>make</li>
+<li>autoconf</li>
+<li>autoconf-archive</li>
+<li>automake</li>
+<li>libtool</li>
+</ul>
+<h3 id="step-two">Step Two:</h3>
+<p>Decide where the Vala compiler is to be found.</p>
+<p>Vala is self-hosting so it needs another Vala compiler to compile itself. <code>valac</code> is the name of the executable and can be:</p>
+<ul>
+<li>installed from an existing package</li>
+<li>built from a source tarball</li>
+<li>built from the <a href="https://gitlab.gnome.org/Archive/vala-bootstrap">Vala bootstrap module</a></li>
+</ul>
+<p>If you have an existing <code>valac</code> installed then move on to step three.</p>
+<p>If you don't have an existing version of Vala installed (i.e. because you're bootstrapping or cross-compiling) then a source tarball or the vala-bootstrap module contain pre-compiled C files from the Vala sources. These can be used to bootstrap <code>valac</code>.</p>
+<p>Source tarballs can be downloaded via:</p>
+<p>https://wiki.gnome.org/Projects/Vala/Release</p>
+<p>or the vala-bootstrap module is available at:</p>
+<p>https://gitlab.gnome.org/Archive/vala-bootstrap</p>
+<p>Here is an example on how to download and compile from a Vala release tarball. In this example it is release version 0.42.3:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">curl</span> --silent --show-error --location https://download.gnome.org/sources/vala/0.42/vala-0.42.3.tar.xz --output vala-bootstrap.tar.xz
+<span class="fu">tar</span> --extract --file vala-bootstrap.tar.xz
+<span class="bu">cd</span> vala-bootstrap
+<span class="ex">./configure</span> --prefix=/opt/vala-bootstrap
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<p>The configure script will check if <code>valac</code> can be found in PATH. If not then <code>valac</code> is bootstrapped from the C source files in the tarball. If you do not wish to install the bootstrapped version of <code>valac</code> it can be found in <code>vala-bootstrap/compiler/valac</code> This is a libtool wrapper script that makes the libraries in the build directory work together.</p>
+<p>An example of downloading and compiling from the bootstrap module:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clone https://gitlab.gnome.org/Archive/vala-bootstrap
+<span class="bu">cd</span> vala-bootstrap
+<span class="fu">touch</span> */*.stamp
+<span class="va">VALAC=</span>/no-valac <span class="ex">./configure</span> --prefix=/opt/vala-bootstrap
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<h3 id="step-three">Step Three:</h3>
+<p>Compiling the newest Vala from the repository using a pre-installed <code>valac</code>:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clone https://gitlab.gnome.org/GNOME/vala
+<span class="bu">cd</span> vala
+<span class="ex">./autogen.sh</span>
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<p>To use <code>valac</code> from a bootstrapped build detailed in step two use:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clone https://gitlab.gnome.org/GNOME/vala
+<span class="bu">cd</span> vala
+<span class="va">VALAC=</span>/opt/vala-bootstrap/bin/vala <span class="ex">./autogen.sh</span>
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<h3 id="compiling-different-vala-versions">Compiling Different Vala Versions</h3>
+<p>Maybe you now want to compile Vala with the new version you have just installed. Then you simply clean the version files and start the build. Be warned that <code>git clean -dfx</code> <strong>will remove all untracked files</strong> from the source tree:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clean -dfx
+<span class="ex">./autogen.sh</span>
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<p>If you wish to build a specific release, for example 0.40.11:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> checkout 0.40.11
+<span class="fu">git</span> clean -dfx
+<span class="ex">./autogen.sh</span>
+<span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>

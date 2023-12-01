@@ -1,0 +1,255 @@
+<p align="center">
+<img src="logo.svg">
+</p>
+<p><a href="https://isocpp.org/"><img src="https://img.shields.io/badge/language-C%2B%2B17-blue.svg" /></a> <a href="https://travis-ci.org/felixguendling/cista"><img src="https://travis-ci.org/felixguendling/cista.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/felixguendling/cista"><img src="https://ci.appveyor.com/api/projects/status/cwcwp808uhaa5d3w?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/github/felixguendling/cista?branch=master"><img src="https://coveralls.io/repos/github/felixguendling/cista/badge.svg?branch=master" alt="Coverage Status" /></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/apm/l/vim-mode.svg" /></a></p>
+<h1 id="simple-c-serialization.">Simple C++ Serialization.</h1>
+<p>Cista++ is a simple, open source (MIT license) C++17 compatible way of (de-)serializing C++ data structures.</p>
+<p><em>Single header. No macros. No source code generation.</em></p>
+<ul>
+<li>Raw performance - use your native structs. Supports modification/resizing of deserialized data!</li>
+<li>Supports complex and cyclic data structures including cyclic references, recursive data structures, etc.</li>
+<li>Save 50% memory: serialize directly to the filesystem if needed, no intermediate buffer required.</li>
+<li>Compatible with Clang, GCC, and MSVC</li>
+</ul>
+<h1 id="use-cases">Use Cases</h1>
+<p>Reader and writer should run on the same architecture (e.g. 64 bit big endian). Examples:</p>
+<ul>
+<li>Asset loading for all kinds of applications (i.e. game assets, GIS data, large graphs, etc.)</li>
+<li>Transferring data over network</li>
+<li>shared memory applications</li>
+</ul>
+<p>Currently, only C++17 software can read/write data. But it should be possible to generate accessors for other programming languages, too.</p>
+<h1 id="alternatives">Alternatives</h1>
+<p>If you need to be compatible with other programming languages, need to process data from untrusted sources, require protocol evolution (downward compatibility) you should look for another solution. The following libraries provide some/all of those features.</p>
+<p>Alternative libraries:</p>
+<ul>
+<li><a href="https://developers.google.com/protocol-buffers/">Protocol Buffers</a></li>
+<li><a href="https://capnproto.org/">Cap’n Proto</a></li>
+<li><a href="https://google.github.io/flatbuffers/">Flatbuffers</a></li>
+<li><a href="https://uscilab.github.io/cereal/">cereal</a></li>
+<li><a href="https://www.boost.org/doc/libs/1_68_0/libs/serialization/doc/index.html">Boost Serialization</a></li>
+<li><a href="https://msgpack.org/">MessagePack</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats">... many more</a></li>
+</ul>
+<h1 id="usage">Usage</h1>
+<ul>
+<li>Declare the data structures you want to serialize as regular C++ structs (using scalar types, <code>cista::raw/offset::string</code>, <code>cista::raw/offset::unique_ptr&lt;T&amp;&gt;</code>, and <code>cista::raw/offset::vector&lt;T&amp;&gt;</code> - more types such as <code>map</code>/<code>set</code>/etc. may follow).</li>
+<li>Do <em>NOT</em> declare any constructors (reflection will not work otherwise).</li>
+<li>Always use data types with known sizes such as <code>int32_t</code>, <code>uint8_t</code>.</li>
+<li>To use pointers: store the object you want to reference as <code>cista::raw/offset::unique_ptr&lt;T&amp;&gt;</code> and use a raw pointer <code>T*</code> to reference it.</li>
+<li>Optional: if you need deterministic buffer contents, you need to fill spare bytes in your structs.</li>
+</ul>
+<p>Cista++ supports two serialization formats:</p>
+<h3 id="offset-based-data-structures">Offset Based Data Structures</h3>
+<ul>
+<li><code>+</code> can be read without any deserialization step<br />
+</li>
+<li><code>+</code> suitable for shared memory applications<br />
+</li>
+<li><code>-</code> slower at runtime (pointers need to be resolved using on more add)</li>
+</ul>
+<h3 id="raw-data-structures">Raw Data Structures</h3>
+<ul>
+<li><code>-</code> deserialize step takes time (but still very fast also for GBs of data)<br />
+</li>
+<li><code>-</code> the buffer containing the serialized data needs to be modified<br />
+</li>
+<li><code>+</code> fast runtime access (raw access)</li>
+</ul>
+<h1 id="api-documentation">API Documentation</h1>
+<p>Both namespaces <code>cista::offset</code> and <code>cista::raw</code> have the same structure. They provide the same data structures and functions. They have the same behavior.</p>
+<h3 id="data-structures">Data Structures</h3>
+<p>The following data structures exist in <code>cista::offset</code> and <code>cista::raw</code>:</p>
+<ul>
+<li><strong><code>vector&lt;T&gt;</code></strong>: serializable version of <code>std::vector&lt;T&gt;</code></li>
+<li><strong><code>string</code></strong>: serializable version of <code>std::string</code></li>
+<li><strong><code>unique_ptr&lt;T&gt;</code></strong>: serializable version of <code>std::unique_ptr&lt;T&gt;</code></li>
+<li><strong><code>ptr&lt;T&gt;</code></strong>: serializable pointer: <code>cista::raw::ptr&lt;T&gt;</code> is just a <code>T*</code>, <code>cista::offset::ptr&lt;T&gt;</code> is a specialized data structure that behaves mostly like a <code>T*</code> (overloaded <code>-&gt;</code>, <code>*</code>, etc. operators).</li>
+</ul>
+<p>Currently, <code>vector</code>, <code>string</code>, and <code>unique_ptr</code> do not provide exactly the same interface as their <code>std::</code> equivalents. Standard compliance was not a goal. This can change in future releases. It is possible to add more data structures to Cista++.</p>
+<h3 id="serialization-and-deserialization-functions">Serialization and Deserialization Functions</h3>
+<h4 id="serialization">Serialization</h4>
+<p>The following methods can be used to serialize either to a <code>std::vector&lt;uint8_t&gt;</code> (default) or to an arbitrary serialization target.</p>
+<ul>
+<li><strong><code>std::vector&lt;uint8_t&gt; cista::serialize&lt;T&gt;(T const&amp;)</code></strong> serializes an object of type <code>T</code>and returns a buffer containing the serialized object.</li>
+<li><strong><code>void cista::serialize&lt;Target, T&gt;(Target&amp;, T const&amp;)</code></strong> serializes an object of type <code>T</code> to the specified target. Targets are either <code>cista::buf</code> or <code>cista::sfile</code>. Custom target sturcts should provide <code>write</code> functions as described <a href="#serialization">here</a>.</li>
+</ul>
+<h4 id="deserialization">Deserialization</h4>
+<p>The following functions exist in <code>cista::offset</code> and <code>cista::raw</code>:</p>
+<ul>
+<li><strong><code>T* deserialize&lt;T, Container&gt;(Container&amp;)</code></strong> deserializes an object from a <code>std::vector&lt;uint8_t&gt;</code> or similar data structure. This function throws a <code>std::runtimer_error</code> if the data is not well-formed.</li>
+<li><strong><code>T* deserialize&lt;T&gt;(uint8_t* from, uint8_t* to)</code></strong> deserializes an object from a pointer range. This function throws a <code>std::runtimer_error</code> if the data is not well-formed.</li>
+<li><strong><code>T* unchecked_deserialize&lt;T, Container&gt;(Container&amp;)</code></strong> deserializes an object from a <code>std::vector&lt;uint8_t&gt;</code> or similar data structure. No checking is performed!</li>
+<li><strong><code>T* unchecked_deserialize&lt;T&gt;(uint8_t* from, uint8_t* to)</code></strong> deserializes an object from a pointer range. No checking is performed!</li>
+</ul>
+<p><code>cista::offset::unchecked_deserialize</code> performs just a pointer cast!</p>
+<h1 id="advanced-example">Advanced Example</h1>
+<p>The following example shows serialization and deserialization of more complex data structures.</p>
+<h2 id="data-structure-definition">Data structure definition</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Forward declare `node` to be able to use it in `edge`.</span>
+<span class="kw">struct</span> node;
+
+<span class="co">// Always use types that have a fixed size on every</span>
+<span class="co">// platform: (u)int16_t, (u)int32_t, ...</span>
+<span class="kw">using</span> <span class="dt">node_id_t</span> = <span class="dt">uint32_t</span>;
+
+<span class="kw">struct</span> edge {
+  node* <span class="va">from_</span>;
+  node* <span class="va">to_</span>;
+};
+
+<span class="kw">struct</span> node {
+  <span class="dt">void</span> add_edge(edge* e) { <span class="va">edges_</span>.emplace_back(e); }
+  <span class="dt">node_id_t</span> id() <span class="at">const</span> { <span class="cf">return</span> <span class="va">id_</span>; }
+
+  <span class="dt">node_id_t</span> <span class="va">id_</span>{<span class="dv">0</span>};
+  <span class="dt">node_id_t</span> <span class="va">fill_</span>{<span class="dv">0</span>};  <span class="co">// optional: zero out spare bytes for</span>
+                       <span class="co">// deterministic buffer contents</span>
+  cista::vector&lt;edge*&amp;&gt; <span class="va">edges_</span>;
+  cista::string <span class="va">name_</span>;
+};
+
+<span class="kw">struct</span> graph {
+  node* make_node(cista::string name) {
+    <span class="cf">return</span> <span class="va">nodes_</span>
+        .emplace_back(cista::make_unique&lt;node&amp;&gt;(
+            node{<span class="va">next_node_id_</span>++, <span class="dv">0</span>, cista::vector&lt;edge*&amp;&gt;{<span class="dv">0u</span>},
+                 <span class="bu">std::</span>move(name)}))
+        .get();
+  }
+
+  edge* make_edge(<span class="dt">node_id_t</span> <span class="at">const</span> from,
+                  <span class="dt">node_id_t</span> <span class="at">const</span> to) {
+    <span class="cf">return</span> <span class="va">edges_</span>
+        .emplace_back(cista::make_unique&lt;edge&amp;&gt;(
+            edge{<span class="va">nodes_</span>[from].get(), <span class="va">nodes_</span>[to].get()}))
+        .get();
+  }
+
+  <span class="co">// Use unique_ptr to enable pointers to these objects.</span>
+  cista::vector&lt;cista::unique_ptr&lt;node&amp;&gt;&amp;&gt; <span class="va">nodes_</span>;
+  cista::vector&lt;cista::unique_ptr&lt;edge&amp;&gt;&amp;&gt; <span class="va">edges_</span>;
+  <span class="dt">node_id_t</span> <span class="va">next_node_id_</span>{<span class="dv">0</span>};
+  <span class="dt">node_id_t</span> <span class="va">fill_</span>{<span class="dv">0</span>};  <span class="co">// optional: zero out spare bytes for</span>
+                       <span class="co">// deterministic buffer contents</span>
+};</code></pre></div>
+<h2 id="creating-the-graph-and-de-serialization">Creating the Graph and De-/Serialization</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Create cyclic graph with nodes and edges.</span>
+{
+  graph g;
+
+  <span class="kw">auto</span> <span class="at">const</span> n1 = g.make_node(cista::string{<span class="st">&quot;NODE A&quot;</span>});
+  <span class="kw">auto</span> <span class="at">const</span> n2 = g.make_node(cista::string{<span class="st">&quot;NODE B&quot;</span>});
+  <span class="kw">auto</span> <span class="at">const</span> n3 = g.make_node(cista::string{<span class="st">&quot;NODE C&quot;</span>});
+
+  <span class="kw">auto</span> <span class="at">const</span> e1 = g.make_edge(n1-&gt;id(), n2-&gt;id());
+  <span class="kw">auto</span> <span class="at">const</span> e2 = g.make_edge(n2-&gt;id(), n3-&gt;id());
+  <span class="kw">auto</span> <span class="at">const</span> e3 = g.make_edge(n3-&gt;id(), n1-&gt;id());
+
+  n1-&gt;add_edge(e1);
+  n2-&gt;add_edge(e2);
+  n3-&gt;add_edge(e3);
+
+  <span class="co">// Serialize graph data structure to file.</span>
+  cista::sfile f{<span class="st">&quot;graph.bin&quot;</span>, <span class="st">&quot;wb&quot;</span>};
+  cista::serialize(f, g);
+}  <span class="co">// End of life for `g`.</span>
+
+<span class="co">// Deserialize</span>
+<span class="kw">auto</span> b = cista::file(<span class="st">&quot;test.bin&quot;</span>, <span class="st">&quot;r&quot;</span>).content();
+<span class="kw">auto</span> <span class="at">const</span> g =
+    cista::deserialize&lt;graph&gt;(b.begin(), b.end());
+
+<span class="co">// Read graph.</span>
+use(g);</code></pre></div>
+<h1 id="how-does-it-work">How Does It Work?</h1>
+<p>Basically, the only thing the <code>cista::serialize()</code> call does, is to copy everything into one coherent target (e.g. file or memory buffer) byte-by-byte. Additionally, each pointer gets converted to an offset at serialization and back to a real pointer at deserialization. Every data structure can be (de-)serialized using a custom (de-)serialization function (see below for more details). All this is done recursively.</p>
+<h1 id="security">Security</h1>
+<p>Generally, all serialized data is checked so that every pointer <code>T*</code> is either a <code>nullptr</code> or points to a valid position within the buffer with enough bytes for <code>T</code>. Scalar values are checked to fit into the buffer at their position, too. Code can be found <a href="https://github.com/felixguendling/cista/blob/master/include/cista/serialization.h#L175-L249">here</a>.</p>
+<p>Note that modifying serialized data may corrupt it in unexpected ways. Therefore, it is not safe to access modified deserialized data coming from untrusted sources. However, deserializing and reading data from untrusted sources is safe.</p>
+<h1 id="custom-de-serialization-functions">Custom (De-)Serialization Functions</h1>
+<p>If you have 3rd-party structs, structs with constructors or structs that manage memory, etc. you need to override the serialize and deserialize functions.</p>
+<h2 id="serialization-1">Serialization</h2>
+<p>By default, every value gets copied raw byte-by-byte. For each type you would like serialize with a custom function, you need to override the following function for your type.</p>
+<p>This function will be called with - The serialization context (described below). It provides functions to write to the buffer and to translate pointers to offsets. - A pointer to the original value (i.e. not the serialized!) of your struct. - The offset value where the value of <code>YourType</code> has been copied to. You can use this information to adjust certain members of <code>YourType</code>. For example: <code>ctx.write(pos + offsetof(cista::string, h_.ptr_), start)</code>. This overrides the pointer contained in <code>cista::string</code> with the offset, the bytes have been copied to by calling <code>start = c.write(orig-&gt;data(), orig-&gt;size(), 1)</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">typename</span> Ctx&gt;;
+<span class="dt">void</span> serialize(Ctx&amp;, YourType <span class="at">const</span>*, cista::<span class="dt">offset_t</span> <span class="at">const</span>);</code></pre></div>
+<p>The <code>Ctx</code> parameter is templated to support different serialization targets (e.g. file and buffer). <code>Ctx</code> provides the following members:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> serialization_context {
+  <span class="kw">struct</span> pending_offset {
+    <span class="dt">void</span>* <span class="va">origin_ptr_</span>;  <span class="co">// pointer to the original</span>
+    <span class="dt">offset_t</span> <span class="va">pos_</span>;      <span class="co">// offset where it is serialized</span>
+  };
+
+  <span class="co">/**</span>
+<span class="co">   * Writes the values at [ptr, ptr + size[ to</span>
+<span class="co">   * the end of the serialization target buffer.</span>
+<span class="co">   * Adjusts for alignment if needed and returns</span>
+<span class="co">   * the new (aligned) offset the value was written to.</span>
+<span class="co">   *</span>
+<span class="co">   * Appends to the buffer (resize).</span>
+<span class="co">   *</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">ptr</span><span class="co">         points to the data to write</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">size</span><span class="co">        number of bytes to write</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">alignment</span><span class="co">   the alignment to consider</span>
+<span class="co">   * </span><span class="an">\return</span><span class="co"> the alignment adjusted offset</span>
+<span class="co">   */</span>
+  <span class="dt">offset_t</span> write(<span class="dt">void</span> <span class="at">const</span>* ptr, <span class="dt">offset_t</span> <span class="at">const</span> size,
+                 <span class="dt">offset_t</span> alignment = <span class="dv">0</span>);
+
+  <span class="co">/**</span>
+<span class="co">   * Overrides the value at `pos` with value `val`.</span>
+<span class="co">   *</span>
+<span class="co">   * Note: does not append to the buffer.</span>
+<span class="co">   * The position `pos` needs to exist already</span>
+<span class="co">   * and provide enough space to write `val`.</span>
+<span class="co">   *</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">pos</span><span class="co">  the position to write to</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">val</span><span class="co">  the value to copy to position `pos`</span>
+<span class="co">   */</span>
+  <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;;
+  <span class="dt">void</span> write(<span class="dt">offset_t</span> <span class="at">const</span> pos, T <span class="at">const</span>&amp; val);
+
+  <span class="co">/**</span>
+<span class="co">   * Lookup table from original pointer</span>
+<span class="co">   * to the offset the data was written to.</span>
+<span class="co">   */</span>
+  <span class="bu">std::</span>map&lt;<span class="dt">void</span>*, <span class="dt">offset_t</span>&gt;; <span class="va">offsets_</span>;
+
+  <span class="co">/**</span>
+<span class="co">   * Pending pointers that could not yet get</span>
+<span class="co">   * resolved (i.e. the value they point to has not</span>
+<span class="co">   * yet been written yet but will be later).</span>
+<span class="co">   */</span>
+  <span class="bu">std::</span>vector&lt;pending_offset&gt;; <span class="va">pending_</span>;
+};</code></pre></div>
+<h2 id="deserialization-1">Deserialization</h2>
+<p>To enable a custom deserialization, you need to create a specialized function for your type with the following signature:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> deserialize(cista::deserialization_context <span class="at">const</span>&amp;, YourType*) {}</code></pre></div>
+<p>With this function you should: - convert offsets back to pointers using the <code>deserialization_context::deserialize()</code> member function. - and check that pointers point to memory addresses that are located inside the buffer using <code>deserialization_context::check()</code></p>
+<p>Both functions (<code>deserialize()</code> and <code>check()</code>) are provided by the <code>deserialization_context</code>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> deserialization_context {
+  <span class="co">/**</span>
+<span class="co">   * Converts a stored offset back to the original pointer</span>
+<span class="co">   * by adding the base address.</span>
+<span class="co">   *</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">ptr</span><span class="co">  offset (given as a pointer)</span>
+<span class="co">   * </span><span class="an">\return</span><span class="co"> offset converted to pointer</span>
+<span class="co">   */</span>
+  <span class="kw">template</span> &lt;<span class="kw">typename</span> T, <span class="kw">typename</span> Ptr&gt;;
+  T deserialize(Ptr* ptr) <span class="at">const</span>;
+
+  <span class="co">/**</span>
+<span class="co">   * Checks whether the pointer points to</span>
+<span class="co">   * a valid memory address within the buffer</span>
+<span class="co">   * where at least `size` bytes are available.</span>
+<span class="co">   *</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">el</span><span class="co">    the memory address to check</span>
+<span class="co">   * </span><span class="an">\param</span><span class="co"> </span><span class="cv">size</span><span class="co">  the size to check for</span>
+<span class="co">   * </span><span class="an">\throws</span><span class="co"> </span><span class="cv">if</span><span class="co"> there are bytes outside the buffer</span>
+<span class="co">   */</span>
+  <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;;
+  <span class="dt">void</span> check(T* el, <span class="dt">size_t</span> size) <span class="at">const</span>;
+};</code></pre></div>
+<h1 id="contribute">Contribute</h1>
+<p>Feel free to contribute (bug reports, pull requests, etc.)!</p>

@@ -1,0 +1,198 @@
+<h1 id="libcody-compiler-dynamism1">libCODY: COmpiler DYnamism<sup><a href="#1">1</a></sup></h1>
+<p>Copyright (C) 2020 Nathan Sidwell, nathan@acm.org</p>
+<p>libCODY is an implementation of a communication protocol between compilers and build systems.</p>
+<p><strong>WARNING:</strong> This is preliminary software.</p>
+<p>In addition to supporting C++modules, this may also support LTO requirements and could also deal with generated #include files and feed the compiler with prepruned include paths and whatnot. (The system calls involved in include searches can be quite expensive on some build infrastructures.)</p>
+<ul>
+<li>Client and Server objects</li>
+<li>Direct connection for in-process use</li>
+<li>Testing with Joust (that means nothing to you, doesn’t it!)</li>
+</ul>
+<h2 id="problem-being-solved">Problem Being Solved</h2>
+<p>The origin is in C++20 modules:</p>
+<pre><code>import foo;</code></pre>
+<p>At that import, the compiler needs<sup><a href="#2">2</a></sup> to load up the compiled serialization of module <code>foo</code>. Where is that file? Does it even exist? Unless the build system already knows the dependency graph, this might be a completely unknown module. Now, the build system knows how to build things, but it might not have complete information about the dependencies. The ultimate source of dependencies is the source code being compiled, and specifying the same thing in multiple places is a recipe for build skew.</p>
+<p>Hence, a protocol by which a compiler can query a build system. This was originally described in <a
+href="https://wg21.link/p1184r1">p1184r1:A Module Mapper</a>. Along with a proof-of-concept hack in GNUmake, described in <a
+href="https://wg21.link/p1602">p1602:Make Me A Module</a>. The current implementation has evolved and an update to p1184 will be forthcoming.</p>
+<h2 id="packet-encoding">Packet Encoding</h2>
+<p>The protocol is turn-based. The compiler sends a block of one or more requests to the builder, then waits for a block of responses to all of those requests. If the builder needs to compile something to satisfy a request, there may be some time before the response. A builder may service multiple compilers concurrently, each as a separate connection.</p>
+<p>When multiple requests are in a block, the responses are also in a block, and in corresponding order. The responses must not be commenced eagerly – they must wait until the incoming block has ended (as mentioned above, it is turn-based). To do otherwise risks deadlock, as there is no requirement for a sending end of the communication to listen for incoming responses (or new requests) until it has completed sending its current block.</p>
+<p>Every request has a response.</p>
+<p>Requests and responses are user-readable text. It is not intended as a transmission medium to send large binary objects (such as compiled modules). It is presumed the builder and the compiler share a file system, for that kind of thing.<sup><a href="#3">3</a></sup></p>
+<p>Messages characters are encoded in UTF8.</p>
+<p>Messages are a sequence of octets ending with a NEWLINE (0xa). The lines consist of a sequence of words, separated by WHITESPACE (0x20 or 0x9). Words themselves do not contain WHITESPACE. Lines consisting solely of WHITESPACE (or empty) are ignored.</p>
+<p>To encode a block of multiple messages, non-final messages end with a single word of SEMICOLON (0x3b), immediately before the NEWLINE. Thus a serial connection can determine whether a block is complete without decoding the messages.</p>
+<p>Words containing characters in the set [-+_/%.A-Za-z0-9] need not be quoted. Words containing characters outside that set should be quoted. A zero-length word may be achieved with <code>''</code></p>
+<p>Quoted words begin and end with APOSTROPHE (x27). Within the quoted word, BACKSLASH (x5c) is used as an escape mechanism, with the following meanings:</p>
+<ul>
+<li>\n - NEWLINE (0xa)</li>
+<li>\t - TAB (0x9)</li>
+<li>\’ - APOSTROPHE (’)</li>
+<li>\\ - BACKSLASH (\)</li>
+</ul>
+<p>Characters in the range [0x00, 0x20) and 0x7f are encoded with one or two lowercase hex characters. Octets in the range [0x80,0xff) are UTF8 encodings of unicode characters outside the traditional ASCII set and passed as such.</p>
+<p>Decoding should be more relaxed. Unquoted words containing characters in the range [0x20,0xff] other than BACKSLASH or APOSTROPHE should be accepted. In a quoted sequence, <code>\</code> followed by one or two lower case hex characters decode to that octet. Further, words can be constructed from a mixture of abutted quoted and unquoted sequences. For instance <code>FOO' 'bar</code> would decode to the word <code>FOO bar</code>.</p>
+<p>Notice that the block continuation marker of <code>;</code> is not a valid encoding of the word <code>;</code>, which would be <code>';'</code>.</p>
+<p>It is recommended that words are separated by single SPACE characters.</p>
+<h2 id="messages">Messages</h2>
+<p>The message descriptions use <code>$metavariable</code> examples.</p>
+<p>The request messages are specific to a particular action. The response messages are more generic, describing their value types, but not their meaning. Message consumers need to know the response to decode them. Notice the <code>Packet::GetRequest()</code> method records in response packets what the request being responded to was. Do not confuse this with the <code>Packet::GetCode ()</code> method.</p>
+<h3 id="responses">Responses</h3>
+<p>The simplest response is a single:</p>
+<p><code>OK</code></p>
+<p>This indicates the request was successful.</p>
+<p>An error response is:</p>
+<p><code>ERROR $message</code></p>
+<p>The message is a human-readable string. It indicates failure of the request.</p>
+<p>Pathnames are encoded with:</p>
+<p><code>PATHNAME $pathname</code></p>
+<p>Boolean responses use:</p>
+<p><code>BOOL</code>(<code>TRUE</code>|<code>FALSE</code>)</p>
+<h3 id="handshake-request">Handshake Request</h3>
+<p>The first message is a handshake:</p>
+<p><code>HELLO $version $compiler $ident</code></p>
+<p>The <code>$version</code> is a numeric value, currently <code>1</code>. <code>$compiler</code> identifies the compiler — builders may need to keep compiled modules from different compilers separate. <code>$ident</code> is an identifier the builder might use to identify the compilation it is communicating with.</p>
+<p>Responses are:</p>
+<p><code>HELLO $version $builder [$flags]</code></p>
+<p>A successful handshake. The communication is now connected and other messages may be exchanged. An ERROR response indicates an unsuccessful handshake. The communication remains unconnected.</p>
+<p>There is nothing restricting a handshake to its own message block. Of course, if the handshake fails, subsequent non-handshake messages in the block will fail (producing error responses).</p>
+<p>The <code>$flags</code> word, if present allows a server to control what requests might be given. See below.</p>
+<h3 id="c-module-requests">C++ Module Requests</h3>
+<p>A set of requests are specific to C++ modules:</p>
+<h4 id="flags">Flags</h4>
+<p>Several requests and one response have an optional <code>$flags</code> word. These are the <code>Cody::Flags</code> value pertaining to that request. If omitted the value 0 is implied. The following flags are available:</p>
+<ul>
+<li><p><code>0</code>, <code>None</code>: No flags.</p></li>
+<li><p><code>1&lt;&lt;0</code>, <code>NameOnly</code>: The request is for the name only, and not the CMI contents.</p></li>
+</ul>
+<p>The <code>NameOnly</code> flag may be provded in a handshake response, and indicates that the server is interested in requests only for their implied dependency information. It may be provided on a request to indicate that only the CMI name is required, not its contents (for instance, when preprocessing). Note that a compiler may still make <code>NameOnly</code> requests even if the server did not ask for such.</p>
+<h4 id="repository">Repository</h4>
+<p>All relative CMI file names are relative to a repository. (There are usually no absolute CMI files). The repository may be determined with:</p>
+<p><code>MODULE-REPO</code></p>
+<p>A PATHNAME response is expected. The <code>$pathname</code> may be an empty word, which is equivalent to <code>.</code>. When the response is a relative pathname, it must be relative to the client’s current working directory (which might be a process on a different host to the server). You may set the repository to <code>/</code>, if you with to use paths relative to the root directory.</p>
+<h4 id="exporting">Exporting</h4>
+<p>A compilation of a module interface, partition or header unit can inform the builder with:</p>
+<p><code>MODULE-EXPORT $module [$flags]</code></p>
+<p>This will result in a PATHNAME response naming the Compiled Module Interface pathname to write.</p>
+<p>The <code>MODULE-EXPORT</code> request does not indicate the module has been successfully compiled. At most one <code>MODULE-EXPORT</code> is to be made, and as the connection is for a single compilation, the builder may infer dependency relationships between the module being generated and import requests made.</p>
+<p>Named module names and header unit names are distinguished by making the latter unambiguously look like file names. Firstly, they must be fully resolved according to the compiler’s usual include path. If that results in an absolute name file name (beginning with <code>/</code>, or certain other OS-specific sequences), all is well. Otherwise a relative file name must be prefixed by <code>./</code> to be distinguished from a similarly named named module. This prefixing must occur, even if the header-unit’s name contains characters that cannot appear in a named module’s name.</p>
+<p>It is expected that absolute header-unit names convert to relative CMI names, to keep all CMIs within the CMI repository. This means that steps must be taken to distinguish the CMIs for <code>/here</code> from <code>./here</code>, and this can be achieved by replacing the leading <code>./</code> directory with <code>,/</code>, which is visually similar but does not have the self-reference semantics of dot. Likewise, header-unit names containing <code>..</code> directories, can be remapped to <code>,,</code>. (When symlinks are involved <code>bob/dob/..</code> might not be <code>bob</code>, of course.) C++ header-unit semantics are such that there is no need to resolve multiple ways of spelling a particular header-unit to a unique CMI file.</p>
+<p>Successful compilation of an interface is indicated with a subsequent:</p>
+<p><code>MODULE-COMPILED $module [$flags]</code></p>
+<p>request. This indicates the CMI file has been written to disk, so that any other compilations waiting on it may proceed. Depending on compiler implementation, the CMI may be written before the compilation completes. A single OK response is expected.</p>
+<p>Compilation failure can be inferred by lack of a <code>MODULE-COMPILED</code> request. It is presumed the builder can determine this, as it is also responsible for launching and reaping the compiler invocations themselves.</p>
+<h4 id="importing">Importing</h4>
+<p>Importation, including that of header-units, uses:</p>
+<p><code>MODULE-IMPORT $module [$flags]</code></p>
+<p>A PATHNAME response names the CMI file to be read. Should the builder have to invoke a compilation to produce the CMI, the response should be delayed until that occurs. If such a compilation fails, an error response should be provided to the requestor — which will then presumably fail in some manner.</p>
+<h4 id="include-translation">Include Translation</h4>
+<p>Include translation can be determined with:</p>
+<p><code>INCLUDE-TRANSLATE $header [$flags]</code></p>
+<p>The header name, <code>$header</code>, is the fully resolved header name, in the above-mentioned unambiguous filename form. The response will either be a BOOL response indicating textual inclusion, or a PATHNAME response naming the CMI for such translation. The BOOL value is TRUE, if the header is known to be a textual header, and FALSE if nothing is known about it – the latter might cause diagnostics about incomplete knowledge.</p>
+<h3 id="gcc-lto-messages">GCC LTO Messages</h3>
+<p>These set of requests are used for GCC LTO jobserver integration with GNU Make</p>
+<h4 id="invoke-command">Invoke Command</h4>
+<p>A command can be invoked with the follow message:</p>
+<p><code>INVOKE $args</code></p>
+<p>A successful invocation provides an OK response. A failed invocation’s produces an ERROR response.</p>
+<p>FIXME: Note for generalization this command needs to indicate which files may need transferring to and from a remote build system.</p>
+<h2 id="building-libcody">Building libCody</h2>
+<p>Libcody is written in C++11. (It’s a intended for compilers, so there’d be a bootstrapping problem if it used the latest and greatest.)</p>
+<h3 id="using-configure-and-make.">Using configure and make.</h3>
+<p>It supports the usual <code>configure</code>, <code>make</code>, <code>make check</code> &amp; <code>make install</code> sequence. It does not support building in the source directory – that just didn’t drop out, and it’s not how I build things (because, again, for compilers). Excitingly it uses my own <code>joust</code> test harness, so you’ll need to build and install that somewhere, if you want the comfort of testing.</p>
+<p>The following configure options are available, in addition to the usual set:</p>
+<ul>
+<li><p><code>--enable-checking</code> Compile with assert-like checking. Defaults to on.</p></li>
+<li><p><code>--with-tooldir=DIR</code> Prepend <code>DIR</code> to <code>PATH</code> when building (<code>DIR</code> need not already include the trailing <code>/bin</code>, and the right things happen). Use this if you need to point to non-standard tools that you usually don’t have in your path. This path is also used when the configure script searches for programs.</p></li>
+<li><p><code>--with-toolinc=DIR</code>, <code>--with-toollib=DIR</code>, include path and library path variants of <code>--with-tooldir</code>. If these are siblings of the tool bin directory, they’ll be found automatically.</p></li>
+<li><p><code>--with-compiler=NAME</code> Specify a particular compiler to use. Usually what configure finds is sufficiently usable.</p></li>
+<li><p><code>--with-bugurl=URL</code> Override the bugreporting URL. Do this if you’re providing libcody as part of a package that /you/ are supporting.</p></li>
+<li><p><code>--enable-maintainer-mode</code> Specify that rules to rebuild things like <code>configure</code> (with <code>autoconf</code>) should be enabled. When not enabled, you’ll get a message if these appear out of date, but that can happen naturally after an update or clone as <code>git</code>, in common with other VCs, doesn’t preserve the relative ordering of file modifications. You can use <code>make MAINTAINER=touch</code> to shut make up, if this occurs (or manually execute the <code>autoconf</code> and related commands).</p></li>
+</ul>
+<p>When building, you can override the default optimization flags with <code>CXXFLAGS=$flags</code>. I often build a debuggable library with <code>make CXXFLAGS=-g3</code>.</p>
+<p>The <code>Makefile</code> will also parallelize according to the number of CPUs, unless you specify explicitly with a <code>-j</code> option. This is a little clunky, as it’s not possible to figure out inside the makefile whether the user provided <code>-j</code>. (Or at least I’ve not figured out how.)</p>
+<h3 id="using-cmake-and-make">Using cmake and make</h3>
+<h4 id="in-the-clangllvm-project">In the clang/LLVM project</h4>
+<p>The primary motivation for a cmake implementation is to allow building libcody “in tree” in clang/LLVM. In that case, a checkout of libcody can be placed (or symbolically linked) into clang/tools. This will configure and build the library along with other LLVM dependencies.</p>
+<p><em>NOTE</em> This is not treated as an installable entity (it is present only for use by the project).</p>
+<p><em>NOTE</em> The testing targets would not be appropriate in this configuration; it is expected that lit-based testing of the required functionality will be done by the code using the library.</p>
+<h4 id="stand-alone">Stand-alone</h4>
+<p>For use on platforms that don’t support configure &amp; make effectively, it is possible to use the cmake &amp; make process in stand-alone mode (similar to the configure &amp; make process above).</p>
+<p>An example use.</p>
+<pre><code>cmake -DCMAKE_INSTALL_PREFIX=/path/to/installation -DCMAKE_CXX_COMPILER=clang++ /path/to/libcody/source
+make
+make install</code></pre>
+<p>Supported flags (additions to the usual cmake ones).</p>
+<ul>
+<li><p><code>-DCODY_CHECKING=ON,OFF</code>: Compile with assert-like checking. (defaults ON)</p></li>
+<li><p><code>-DCODY_WITHEXCEPTIONS=ON,OFF</code>: Compile with C++ exceptions and RTTI enabled. (defaults OFF, to be compatible with GCC and LLVM).</p></li>
+</ul>
+<p><em>TODO</em>: At present there is no support for <code>ctest</code> integration (this should be feasible, provided that <code>joust</code> is installed and can be discovered by <code>cmake</code>).</p>
+<h2 id="api">API</h2>
+<p>The library defines entities in the <code>::Cody</code> namespace.</p>
+<p>There are 4 user-visible classes:</p>
+<ul>
+<li><p><code>Packet</code>: Responses to requests are <code>Packets</code>. These have a code, indicating the response kind, and a payload.</p></li>
+<li><p><code>Client</code>: The compiler-end of a connection. Requests may be made and responses are returned.</p></li>
+<li><p><code>Server</code>: The builder-end of a connection. Requests may be waited for, and responses made. Builders that serve multiple concurrent connections and spawn compilations to resolve dependencies may need to derive from this class to provide response queuing.</p></li>
+<li><p><code>Resolver</code>: The processing engine of the builder side. User code is expected to derive from this class and provide virtual function overriders to affect the semantics of the resolver.</p></li>
+</ul>
+<p>In addition there are a number of helpers to setup connections.</p>
+<p>Logically the Client and the Server communicate via a sequential channel. The channel may be provided by:</p>
+<ul>
+<li><p>two pipes, with different file descriptors for reading and writing at each end.</p></li>
+<li><p>a socket, which will use the same file descriptor for reading and writing. the socket can be created in a number of ways, including Unix domain and IPv6 TCP, for which helpers are provided.</p></li>
+<li><p>a direct, in-process, connection, using buffer swapping.</p></li>
+</ul>
+<p>The communication channel is presumed reliable.</p>
+<p>Refer to the (currently very sparse) doxygen-generated documentation for details of the API.</p>
+<h2 id="examples">Examples</h2>
+<p>To create an in-process resolver, use the following boilerplate:</p>
+<pre><code>class MyResolver : Cody::Resolver { ... stuff here ... };
+
+Cody::Client *MakeClient (char const *maybe_ident)
+{
+  auto *r = new MyResolver (...);
+  auto *s = new Cody::Server (r);
+  auto *c = new Cody::Client (s);
+
+  auto t = c-&gt;ConnectRequest (&quot;ME&quot;, maybe_ident);
+  if (t.GetCode () == Cody::Client::TC_CONNECT)
+    ;// Yay!
+  else if (t.GetCode () == Cody::Client::TC_ERROR)
+    report_error (t.GetString ());
+
+  return c;
+}
+</code></pre>
+<p>For a remotely connecting client:</p>
+<pre><code>Cody::Client *MakeClient ()
+{
+  char const *err = nullptr;
+  int fd = OpenInet6 (char const **err, name, port);
+  if (fd &lt; 0)
+    { ... error... return nullptr;}
+
+  auto *c = new Cody::Client (fd);
+
+  auto t = c-&gt;ConnectRequest (&quot;ME&quot;, maybe_ident);
+  if (t.GetCode () == Cody::Client::TC_CONNECT)
+    ;// Yay!
+  else if (t.GetCode () == Cody::Client::TC_ERROR)
+    report_error (t.GetString ());
+
+  return c;
+}</code></pre>
+<h1 id="future-directions">Future Directions</h1>
+<ul>
+<li><p>Current Directory. There is no mechanism to check the builder and the compiler have the same working directory. Perhaps that should be addressed.</p></li>
+<li><p>Include path canonization and/or header file lookup. This can be expensive, particularly with many <code>-I</code> options, due to the system calls. Perhaps using a common resource would be cheaper?</p></li>
+<li><p>Generated header file lookup/construction. This is essentially the same problem as importing a module, and build systems are crap at dealing with this.</p></li>
+<li><p>Link-time compilations. Another place the compiler would like to ask the build system to do things.</p></li>
+<li><p>C++20 API entrypoints — std:string_view would be nice</p></li>
+<li><p>Exception-safety audit. Exceptions are not used, but memory exhaustion could happen. And perhaps user’s resolver code employs exceptions?</p></li>
+</ul>
+<p><a name="1">1</a>: Or a small town in Wyoming</p>
+<p><a name="2">2</a>: This describes one common implementation technique. The std itself doesn’t require such serializations, but the ability to create them is kind of the point. Also, ‘compiler’ is used where we mean any consumer of a module, and ‘build system’ where we mean any producer of a module.</p>
+<p><a name="3">3</a>: Even when the builder is managing a distributed set of compilations, the builder must have a mechanism to get source files to, and object files from, the compilations. That scheme can also transfer the CMI files.</p>

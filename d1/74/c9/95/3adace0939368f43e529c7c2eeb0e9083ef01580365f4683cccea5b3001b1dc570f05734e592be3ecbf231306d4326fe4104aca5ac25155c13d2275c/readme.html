@@ -1,0 +1,662 @@
+<h1 id="variant-lite-a-single-file-header-only-version-of-a-c17-like-variant-a-type-safe-union-for-c98-c11-and-later">variant lite: A single-file header-only version of a C++17-like variant, a type-safe union for C++98, C++11 and later</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-98/11/14/17-blue.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/variant-lite"><img src="https://travis-ci.org/martinmoene/variant-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/variant-lite"><img src="https://ci.appveyor.com/api/projects/status/w2dgn3fxyrd6vcq8?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/variant-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fvariant-lite.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/variant-lite/master/include/nonstd/variant.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="Latest download" /></a> <a href="https://bintray.com/martinmoene/nonstd-lite/variant-lite%3Anonstd-lite/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a> <a href="https://wandbox.org/permlink/TDg24BSSfesvjX3o"><img src="https://img.shields.io/badge/on-wandbox-blue.svg" alt="Try it online" /></a></p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#features">Features</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-the-tests">Building the tests</a> - <a href="#other-implementations-of-variant">Other implementations of variant</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;nonstd/variant.hpp&quot;</span>
+
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> nonstd;
+
+<span class="dt">int</span> main()
+{
+    <span class="bu">std::</span>string hello = <span class="st">&quot;hello, world&quot;</span>; 
+
+    variant&lt; <span class="dt">char</span>, <span class="dt">int</span>, <span class="dt">long</span>, <span class="bu">std::</span>string &gt; var;
+    
+    var =  <span class="st">&#39;v&#39;</span> ; assert( get&lt;  <span class="dv">0</span> &gt;( var ) == <span class="st">&#39;v&#39;</span> );
+                 assert( get&lt;<span class="dt">char</span>&gt;( var ) == <span class="st">&#39;v&#39;</span> );
+    var =   <span class="dv">7</span>  ; assert( get&lt;<span class="dt">int</span> &gt;( var ) ==  <span class="dv">7</span>  );
+    var =  <span class="dv">42L</span> ; assert( get&lt;<span class="dt">long</span>&gt;( var ) == <span class="dv">42L</span> );    
+    var = hello; assert( get&lt;<span class="bu">std::</span>string&gt;( var ) == hello );
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt;g++ -std=c++98 -Wall -I../include -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>variant lite</strong> is a single-file header-only library to represent a type-safe union. The library aims to provide a <a href="http://en.cppreference.com/w/cpp/utility/variant">C++17-like variant</a> for use with C++98 and later. If available, std::variant is used.</p>
+<p><strong>Features and properties of variant lite</strong> are ease of installation (single header), freedom of dependencies other than the standard library and control over object alignment (if needed). <em>variant lite</em> shares the approach to in-place tags with <a href="https://github.com/martinmoene/any-lite">any-lite</a>, <a href="https://github.com/martinmoene/expected-lite">expected-lite</a> and with <a href="https://github.com/martinmoene/optional-lite">optional-lite</a> and these libraries can be used together.</p>
+<p><strong>Limitations of variant lite</strong> are the requirement for the alternative types to be of different types and the limit on the number of alternative types and the number of visitor arguments. The maximum number of types and visitor arguments are configurable via <a href="script/generate_header.py">script generate_header.py</a> (default: 16 types, 5 visitor arguments). Move construction, move assignment and emplacement require C++11 and are not supported when compiling under C++98. <em>variant lite</em> does not provide allocator-extended constructors.</p>
+<h2 id="license">License</h2>
+<p><em>variant lite</em> is distributed under the <a href="LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>variant lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>variant lite</em> is a single-file header-only library. Put <code>variant.hpp</code> in the <a href="include" class="uri">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<p>Or, if you use the <a href="https://www.conan.io/">conan package manager</a>, follow these steps:</p>
+<ol style="list-style-type: decimal">
+<li><p>Add <em>nonstd-lite</em> to the conan remotes:</p>
+<pre><code>conan remote add nonstd-lite https://api.bintray.com/conan/martinmoene/nonstd-lite</code></pre></li>
+<li><p>Add a reference to <em>variant-lite</em> to the <em>requires</em> section of your project's <code>conanfile.txt</code> file:</p>
+<pre><code>[requires]
+variant-lite/[~=0]@nonstd-lite/testing</code></pre></li>
+<li><p>Run conan's install command:</p>
+<pre><code>conan install</code></pre></li>
+</ol>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#types-in-namespace-nonstd">Types in namespace nonstd</a><br />
+- <a href="#interface-of-variant-lite">Interface of <em>variant lite</em></a><br />
+- <a href="#algorithms-for-variant-lite">Algorithms for <em>variant lite</em></a><br />
+- <a href="#information-macros">Information macros</a> - <a href="#configuration-macros">Configuration macros</a> - <a href="#macros-to-control-alignment">Macros to control alignment</a></p>
+<h3 id="types-in-namespace-nonstd">Types in namespace nonstd</h3>
+<table style="width:54%;">
+<colgroup>
+<col width="33%" />
+<col width="9%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Purpose</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Type-safe union</td>
+<td>template&lt; class T0...T6 &gt;<br>class <strong>variant</strong></td>
+<td>non-standard: may hold up to seven types</td>
+</tr>
+<tr class="even">
+<td>Default constructible</td>
+<td>class <strong>monostate</strong></td>
+<td>Type to make variant default constructible</td>
+</tr>
+<tr class="odd">
+<td>Error reporting</td>
+<td>class <strong>bad_variant_access</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>In-place construction</td>
+<td>struct <strong>in_place_tag</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>in_place</strong></td>
+<td>select type or index for in-place construction</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>in_place_type</strong></td>
+<td>select type for in-place construction</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>in_place_index</strong></td>
+<td>select index for in-place construction</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>nonstd_lite_in_place_type_t</strong>( T)</td>
+<td>macro for alias template in_place_type_t&lt;T&gt;</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>nonstd_lite_in_place_index_t</strong>( T )</td>
+<td>macro for alias template in_place_index_t&lt;T&gt;</td>
+</tr>
+<tr class="even">
+<td>Variant size</td>
+<td>template&lt;...&gt;<br>struct <strong>variant_size</strong>&lt; variant&lt;...&gt; &gt;</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>variant_size_v</strong>&lt; T &gt;</td>
+<td>C++14</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>variant_size_V</strong>( T )</td>
+<td>macro for nonstd::variant_size&lt;T&gt;::value</td>
+</tr>
+<tr class="odd">
+<td>Select variant type</td>
+<td>template&lt; std::size_t I, ...&gt;<br>struct <strong>variant_alternative</strong>&lt; I, variant&lt;...&gt; &gt;</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>variant_alternative_t</strong>&lt; I, T &gt;</td>
+<td>C++11</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>variant_alternative_T</strong>( I, T )</td>
+<td>macro for typename nonstd::variant_alternative&lt;I,T &gt;::type</td>
+</tr>
+</tbody>
+</table>
+<h3 id="interface-of-variant-lite">Interface of <em>variant lite</em></h3>
+<table>
+<colgroup>
+<col width="19%" />
+<col width="8%" />
+<col width="60%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Std</th>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Construction</td>
+<td> </td>
+<td><strong>variant</strong>()</td>
+<td>default-construct first type</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td><strong>variant</strong>( Tx const &amp; x )</td>
+<td>copy-construct with value type Tx</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td><strong>variant</strong>( Tx &amp;&amp; x )</td>
+<td>move-construct with value type Tx</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td><strong>variant</strong>( variant const &amp; rhs )</td>
+<td>copy-construct from other variant</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td><strong>variant</strong>( variant &amp;&amp; rhs )</td>
+<td>move-construct from other variant</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; class T, class... Args &gt;<br>explicit <strong>variant</strong>( in_place_type_t(T), Args&amp;&amp;... args)</td>
+<td>in-place-construct type T</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; class T, class U, class... Args &gt;<br>explicit <strong>variant</strong>( in_place_type_t(T),<br> std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>in-place-construct type T</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; std::size_t I, class... Args &gt;<br>explicit <strong>variant</strong>( in_place_index_t(I), Args&amp;&amp;... args )</td>
+<td>in-place-construct type at index I</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; size_t I, class U, class... Args&gt;<br>explicit <strong>variant</strong>( in_place_index_t(I),<br> std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>in-place-construct type at index I</td>
+</tr>
+<tr class="even">
+<td>Destruction</td>
+<td> </td>
+<td><strong>~variant</strong>()</td>
+<td>destruct current content</td>
+</tr>
+<tr class="odd">
+<td>Assignment</td>
+<td> </td>
+<td>variant &amp; <strong>operator=</strong>( variant const &amp; rhs )</td>
+<td>copy-assign from other</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>C++11</td>
+<td>variant &amp; <strong>operator=</strong>( variant &amp;&amp; rhs )</td>
+<td>move-assign from other</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; class Tx &gt;<br>variant &amp; <strong>operator=</strong>( Tx &amp;&amp; t )</td>
+<td>move-assign from value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>&lt; C++11</td>
+<td>template&lt; class Tx &gt;<br>variant &amp; <strong>operator=</strong>( Tx const &amp; t )</td>
+<td>copy-assign from value;<br>non-standard</td>
+</tr>
+<tr class="odd">
+<td>State</td>
+<td> </td>
+<td>std::size_t <strong>index</strong>() const</td>
+<td>index of current content's type</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td> </td>
+<td>bool <strong>valueless_by_exception</strong>() const</td>
+<td>true if no content is present</td>
+</tr>
+<tr class="odd">
+<td>Emplace</td>
+<td>C++11</td>
+<td>template&lt; class T, class... Args &gt;<br>T &amp; <strong>emplace</strong>( Args&amp;&amp;... args )</td>
+<td>emplace type T</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; class T, class U, class... Args &gt;<br>T &amp; <strong>emplace</strong>( std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>emplace type T</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; size_t I, class... Args &gt;<br>variant_alternative_t&lt;I,variant&gt; &amp;<br><strong>emplace</strong>( Args&amp;&amp;... args );</td>
+<td>emplace type at index I</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>C++11</td>
+<td>template&lt; size_t I, class U, class... Args &gt;<br>variant_alternative_t&lt;I,variant&gt; &amp;<br><strong>emplace</strong>( std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td>emplace type at index I</td>
+</tr>
+<tr class="odd">
+<td>Swap</td>
+<td> </td>
+<td>void <strong>swap</strong>( variant &amp; other );</td>
+<td>swap with other</td>
+</tr>
+</tbody>
+</table>
+<h3 id="algorithms-for-variant-lite">Algorithms for <em>variant lite</em></h3>
+<table style="width:67%;">
+<colgroup>
+<col width="41%" />
+<col width="9%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Std</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Relational operators</strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>==</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator==</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="odd">
+<td>!=</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator==</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="even">
+<td>&lt;</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator&lt;</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="odd">
+<td>&gt;</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator&gt;</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="even">
+<td>&lt;=</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator&lt;=</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="odd">
+<td>&gt;=</td>
+<td> </td>
+<td>template&lt;...&gt;<br>bool <strong>operator&gt;=</strong>( variant&lt;...&gt; const &amp; v, variant&lt;...&gt; const &amp; w )</td>
+</tr>
+<tr class="even">
+<td><strong>Content</strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>contains value of type T</td>
+<td> </td>
+<td>template&lt; class T, ...&gt;<br>bool <strong>holds_alternative</strong>( variant&lt;...&gt; const &amp; v ) [noexcept]</td>
+</tr>
+<tr class="even">
+<td>get by type</td>
+<td> </td>
+<td>template&lt; class R, ...&gt;<br>R &amp;<br><strong>get</strong>( variant&lt;...&gt; &amp; v, in_place_type_t(R) = in_place<R> )</td>
+</tr>
+<tr class="odd">
+<td>get by type (rvalue)</td>
+<td>C++11</td>
+<td>template&lt; class R, ...&gt;<br>R &amp;&amp;<br><strong>get</strong>( variant&lt;...&gt; &amp;&amp; v, in_place_type_t(R) = in_place<R> )</td>
+</tr>
+<tr class="even">
+<td>get by type (const)</td>
+<td> </td>
+<td>template&lt; class R, ...&gt;<br>R const &amp;<br><strong>get</strong>( variant&lt;...&gt; const &amp; v, in_place_type_t(R) = in_place<R> )</td>
+</tr>
+<tr class="odd">
+<td>get by type (const rvalue)</td>
+<td>C++11</td>
+<td>template&lt; class R, ...&gt;<br>R const &amp;&amp;<br><strong>get</strong>( variant&lt;...&gt; const &amp;&amp; v, in_place_type_t(R) = in_place<R> )</td>
+</tr>
+<tr class="even">
+<td>get by index</td>
+<td> </td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename variant_alternative&lt; I, variant&lt;...&gt; &gt;::type &amp;<br><strong>get</strong>( variant&lt;...&gt; &amp; v, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="odd">
+<td>get by index (rvalue)</td>
+<td>C++11</td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename variant_alternative&lt; I, variant&lt;...&gt; &gt;::type &amp;&amp;<br><strong>get</strong>( variant&lt;...&gt; &amp;&amp; v, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="even">
+<td>get by index (const)</td>
+<td> </td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename variant_alternative&lt; I, variant&lt;...&gt; &gt;::type const &amp;<br><strong>get</strong>( variant&lt;...&gt; const &amp; v, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="odd">
+<td>get by index (const rvalue)</td>
+<td>C++11</td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename variant_alternative&lt; I, variant&lt;...&gt; &gt;::type const &amp;&amp;<br><strong>get</strong>( variant&lt;...&gt; const &amp;&amp; v, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="even">
+<td>get_if by type</td>
+<td> </td>
+<td>template&lt; class T, ...&gt;<br>typename detail::add_pointer&lt;T&gt;::type<br><strong>get_if</strong>( variant&lt;...&gt; * pv, in_place_type_t(T) = in_place<T> )</td>
+</tr>
+<tr class="odd">
+<td>get_if by type (const)</td>
+<td> </td>
+<td>template&lt; class T, ...&gt;<br>typename detail::add_pointer&lt;const T&gt;::type<br><strong>get_if</strong>( variant&lt;...&gt; const * pv, in_place_type_t(T) = in_place<T>)</td>
+</tr>
+<tr class="even">
+<td>get_if by index</td>
+<td> </td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename detail::add_pointer&lt; typename variant_alternative<I, variant<T0, T1, T2, T3, T4, T5, T6> &gt;::type &gt;::type<br><strong>get_if</strong>( variant&lt;...&gt; * pv, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="odd">
+<td>get_if by index (const)</td>
+<td> </td>
+<td>template&lt; std::size_t I, ...&gt;<br>typename detail::add_pointer&lt; const typename variant_alternative<I, variant<T0, T1, T2, T3, T4, T5, T6> &gt;::type &gt;::type<br><strong>get_if</strong>( variant&lt;...&gt; const * pv, in_place_index_t(I) = in_place<I> )</td>
+</tr>
+<tr class="even">
+<td>swap</td>
+<td> </td>
+<td>template&lt;...&gt;<br>void <strong>swap</strong>( variant&lt;...&gt; &amp; x, variant&lt;...&gt; &amp; y )</td>
+</tr>
+<tr class="odd">
+<td>visit</td>
+<td>Note 1</td>
+<td>template&lt; class Visitor, class Variant &gt;<br>Variant <strong>visit</strong>( Visitor const &amp; vis, Variant const &amp; v )</td>
+</tr>
+<tr class="even">
+<td><strong>Hash support</strong></td>
+<td> </td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>variant</td>
+<td>C++11</td>
+<td>template&lt;...&gt; struct <strong>hash</strong>&lt; variant&lt;...&gt; &gt;;</td>
+</tr>
+<tr class="even">
+<td>monostate</td>
+<td>C++11</td>
+<td>template&lt;&gt; struct <strong>hash</strong>&lt; monostate &gt;;</td>
+</tr>
+</tbody>
+</table>
+<p>Note 1: visitor is limited to always return a Variant.</p>
+<h3 id="information-macros">Information macros</h3>
+<p><b>variant_CONFIG_MAX_TYPE_COUNT</b><br />
+The maximum number of types thevariant can hold as configured via script <a href="script/generate_header.py">generate_header.py</a>.</p>
+<p><b>variant_CONFIG_MAX_VISITOR_ARG_COUNT</b><br />
+The maximum number of visitor arguments as configured via script <a href="script/generate_header.py">generate_header.py</a>.</p>
+<h3 id="configuration-macros">Configuration macros</h3>
+<h4 id="standard-selection-macro">Standard selection macro</h4>
+<p>-D<b>variant_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, or if your compiler does not set the <code>__cplusplus</code> macro correctly.</p>
+<h4 id="select-stdvariant-or-nonstdvariant">Select <code>std::variant</code> or <code>nonstd::variant</code></h4>
+<p>At default, <em>variant lite</em> uses <code>std::variant</code> if it is available and lets you use it via namespace <code>nonstd</code>. You can however override this default and explicitly request to use <code>std::variant</code> or variant lite's <code>nonstd::variant</code> as <code>nonstd::variant</code> via the following macros.</p>
+<p>-D<b>variant_CONFIG_SELECT_VARIANT</b>=variant_VARIANT_DEFAULT<br />
+Define this to <code>variant_VARIANT_STD</code> to select <code>std::variant</code> as <code>nonstd::variant</code>. Define this to <code>variant_VARIANT_NONSTD</code> to select <code>nonstd::variant</code> as <code>nonstd::variant</code>. Default is undefined, which has the same effect as defining to <code>variant_VARIANT_DEFAULT</code>.</p>
+<h4 id="disable-exceptions">Disable exceptions</h4>
+<p>-D<b>variant_CONFIG_NO_EXCEPTIONS</b>=0<br />
+Define this to 1 if you want to compile without exceptions. If not defined, the header tries and detect if exceptions have been disabled (e.g. via <code>-fno-exceptions</code>). Default is undefined.</p>
+<h4 id="presence-of-variant_size_v-simulation-macro">Presence of <code>variant_size_V()</code> simulation macro</h4>
+<p>-D<b>variant_CONFIG_OMIT_VARIANT_SIZE_V_MACRO</b>=0<br />
+Define this macro to 1 to omit the <code>variant_size_V(T)</code> macro. Default is 0.</p>
+<h4 id="presence-of-variant_alternative_t-simulation-macro">Presence of <code>variant_alternative_T()</code> simulation macro</h4>
+<p>-D<b>variant_CONFIG_OMIT_VARIANT_ALTERNATIVE_T_MACRO</b>=0<br />
+Define this macro to 1 to omit the <code>variant_alternative_T(I,T)</code> macro. Default is 0.</p>
+<h4 id="macros-to-control-alignment">Macros to control alignment</h4>
+<p>If <em>variant lite</em> is compiled as C++11 or later, C++11 alignment facilities are used for storage of the underlying object. When compiled as pre-C++11, <em>variant lite</em> tries to determine proper alignment itself. If this doesn't work out, you can control alignment via the following macros. See also section <a href="#implementation-notes">Implementation notes</a>.</p>
+<p>-D<b>variant_CONFIG_MAX_ALIGN_HACK</b>=0<br />
+Define this to 1 to use the max align hack for alignment. Default is 0.</p>
+<p>-D<b>variant_CONFIG_ALIGN_AS</b>=<em>pod_type</em><br />
+Define this to the pod-type you want to align to (no default).</p>
+<p>-D<b>variant_CONFIG_ALIGN_AS_FALLBACK</b>=<em>pod_type</em><br />
+Define this to the pod-type to use for alignment if the algorithm of <em>variant lite</em> cannot find a suitable POD type to use for alignment. Default is <code>double</code>.</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the compiler versions <em>variant lite</em> is reported to work with.</p>
+<table style="width:49%;">
+<colgroup>
+<col width="15%" />
+<col width="18%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">OS</th>
+<th align="left">Compiler</th>
+<th align="left">Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">Windows</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">5.2.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">Visual C++<br>(Visual Studio)</td>
+<td align="left">8 (2005), 10 (2010), 11 (2012),<br>12 (2013), 14 (2015)</td>
+</tr>
+<tr class="even">
+<td align="right">GNU/Linux</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">3.5.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">4.8.4</td>
+</tr>
+<tr class="even">
+<td align="right">OS X</td>
+<td align="left">?</td>
+<td align="left">?</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>To build the tests you need:</p>
+<ul>
+<li><a href="http://cmake.org">CMake</a>, version 2.8.12 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/variant-lite"><em>variant lite</em> source code</a> has been cloned into a directory named <code>c:\variant-lite</code>.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture. Here we use c:-lite-win-x86-vc10.</p>
+<pre><code>cd c:\variant-lite
+md build-win-x86-vc10
+cd build-win-x86-vc10</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>cmake -G &quot;Visual Studio 10 2010&quot; ..</code></pre></li>
+<li><p>Build the test suite in the Debug configuration (alternatively use Release).</p>
+<pre><code>cmake --build . --config Debug</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>ctest -V -C Debug</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>variant lite</em>.</p>
+<h2 id="implementation-notes">Implementation notes</h2>
+<h3 id="object-allocation-and-alignment">Object allocation and alignment</h3>
+<p><em>variant lite</em> reserves POD-type storage for an object of the underlying type inside a union to prevent unwanted construction and uses placement new to construct the object when required. Using non-placement new (malloc) to obtain storage, ensures that the memory is properly aligned for the object's type, whereas that's not the case with placement new.</p>
+<p>If you access data that's not properly aligned, it 1) may take longer than when it is properly aligned (on x86 processors), or 2) it may terminate the program immediately (many other processors).</p>
+<p>Although the C++ standard does not guarantee that all user-defined types have the alignment of some POD type, in practice it's likely they do [10, part 2].</p>
+<p>If <em>variant lite</em> is compiled as C++11 or later, C++11 alignment facilities are used for storage of the underlying object. When compiling as pre-C++11, <em>variant lite</em> tries to determine proper alignment using meta programming. If this doesn't work out, you can control alignment via three macros.</p>
+<p><em>variant lite</em> uses the following rules for alignment:</p>
+<ol style="list-style-type: decimal">
+<li><p>If the program compiles as C++11 or later, C++11 alignment facilities are used.</p></li>
+<li><p>If you define -D<b>variant_CONFIG_MAX_ALIGN_HACK</b>=1 the underlying type is aligned as the most restricted type in <code>struct max_align_t</code>. This potentially wastes many bytes per variant if the actually required alignment is much less, e.g. 24 bytes used instead of the 2 bytes required.</p></li>
+<li><p>If you define -D<b>variant_CONFIG_ALIGN_AS</b>=<em>pod-type</em> the underlying type is aligned as <em>pod-type</em>. It's your obligation to specify a type with proper alignment.</p></li>
+<li><p>If you define -D<b>variant_CONFIG_ALIGN_AS_FALLBACK</b>=<em>pod-type</em> the fallback type for alignment of rule 5 below becomes <em>pod-type</em>. It's your obligation to specify a type with proper alignment.</p></li>
+<li><p>At default, <em>variant lite</em> tries to find a POD type with the same alignment as the underlying type.</p>
+The algorithm for alignment of 5. is:
+<ul>
+<li>Determine the alignment A of the underlying type using <code>alignment_of&lt;&gt;</code>.</li>
+<li>Find a POD type from the list <code>alignment_types</code> with exactly alignment A.</li>
+<li>If no such POD type is found, use a type with a relatively strict alignment requirement such as double; this type is specified in <code>variant_CONFIG_ALIGN_AS_FALLBACK</code> (default double).</li>
+</ul></li>
+</ol>
+<p>Note that the algorithm of 5. differs from the one Andrei Alexandrescu uses in [10, part 2].</p>
+<p>The class template <code>alignment_of&lt;&gt;</code> is gleaned from <a href="http://www.boost.org/doc/libs/1_57_0/libs/type_traits/doc/html/boost_typetraits/reference/alignment_of.html">Boost.TypeTraits, alignment_of</a> [14].</p>
+<p>For more information on constructed unions and alignment, see [10-14].</p>
+<h2 id="other-implementations-of-variant">Other implementations of variant</h2>
+<ul>
+<li>Isabella Muerte. <a href="https://github.com/mnmlstc/core">MNMLSTC Core</a> (C++11).</li>
+<li>Anthony Williams. <a href="https://bitbucket.org/anthonyw/variant">C++ variant class, matching the C++17 draft</a>.</li>
+<li>Agustín Bergé. <a href="https://github.com/eggs-cpp/variant">Eggs.Variant, a C++11/14 generic, type-safe, discriminated union</a>.</li>
+<li>Chris Beck. <a href="https://github.com/cbeck88/strict-variant">strict_variant, a simpler type-safe union for C++11/C++14</a>.</li>
+<li>Mapbox. <a href="https://github.com/mapbox/variant">C++11/C++14 Variant</a>.</li>
+<li>Michael Park. <a href="https://github.com/mpark/variant">Variant: A type-safe union (C++14)</a>.</li>
+<li>Gregor Burger. <a href="https://github.com/gregorburger/variant">Typesafe tagged union with &quot;don't call us, we'll call you&quot; feature (C++14)</a>.</li>
+<li>Anatoliy Tomilov. <a href="https://github.com/tomilov/variant">C++1z variant, never empty, constexpr-enabled visit/multivisit, ... relational</a>.</li>
+</ul>
+<h2 id="notes-and-references">Notes and References</h2>
+<h3 id="acknowledgments">Acknowledgments</h3>
+<p>Thanks to <span class="citation">@flexferrum</span> for making the number of variant types and visitor arguments <a href="#in-a-nutshell">configurable</a>. Thanks to <span class="citation">@siffiejoe</span> for contributing to fixing <a href="#31">lifetime</a>, <a href="34">noexcept</a> and <a href="#32">hash</a> issues.</p>
+<h3 id="references">References</h3>
+<p>[1] CppReference. <a href="http://en.cppreference.com/w/cpp/utility/variant">Variant</a>.</p>
+<p>[2] ISO/IEC WG21. <a href="http://wg21.link/n4606">N4606, section 20.7 Variants</a>. July 2016.</p>
+<p>[3] Axel Naumann. <a href="http://wg21.link/p0088r3">Variant: a type-safe union for C++17 (v8)</a>. June 2016.</p>
+<p>[4] Peter Dimov. <a href="http://wg21.link/p0308r0.html">Valueless Variants Considered Harmful</a>. March 2016.</p>
+<p>[5] Anthony Williams. <a href="https://www.justsoftwaresolutions.co.uk/cplusplus/standardizing-variant.html">Standardizing Variant: Difficult Decisions</a>. June 2015</p>
+<p>[6] Andrzej Krzemieński. <a href="https://akrzemi1.wordpress.com/2012/12/13/constexpr-unions/">Constexpr unions</a>. December 2012.</p>
+<p>[7] Agustín Bergé. <a href="http://talesofcpp.fusionfenix.com/post-17/eggs.variant---part-i">Eggs.Variant - Part I</a>. August 2014.</p>
+<p>[8] Agustín Bergé. <a href="http://talesofcpp.fusionfenix.com/post-20/eggs.variant---part-ii-the-constexpr-experience">Eggs.Variant - Part II (the constexpr experience)</a>. March 2015.</p>
+<p>[9] Andrei Alexandrescu. <a href="https://www.researchgate.net/publication/2522635_An_Implementation_of_Discriminated_Unions_in_C">An Implementation of Discriminated Unions in C++</a>. August 2002.</p>
+<p>[10] Andrei Alexandrescu. <a href="http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/2002/cexp2004/alexandr/alexandr.htm">Generic<Programming>: Discriminated Unions part 1</a>, <a href="http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/2002/cexp2006/alexandr/alexandr.htm">part 2</a>, <a href="http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/2002/cexp2008/alexandr/alexandr.htm">part 3</a>. April 2002.</p>
+<p>[11] Herb Sutter. <a href="http://www.gotw.ca/gotw/085.htm">Style Case Study #3: Construction Unions</a>. GotW #85. 2009</p>
+<p>[12] Kevin T. Manley. <a href="http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/2002/0208/manley/manley.htm">Using Constructed Types in C++ Unions</a>. C/C++ Users Journal, 20(8), August 2002.</p>
+<p>[13] StackOverflow. <a href="http://stackoverflow.com/a/3126992">Determining maximum possible alignment in C++</a>.</p>
+<p>[14] [Boost.TypeTraits, alignment_of](http://www.boost.org/doc/libs/1_57_0/libs/type_traits/doc/html/boost_typetraits/reference/alignment_of.html) ( <a href="http://www.boost.org/doc/libs/1_57_0/boost/type_traits/alignment_of.hpp">code</a> ).</p>
+<h3 id="presentations">Presentations</h3>
+<p>[15] Ben Deane. <a href="https://youtu.be/ojZbFIQSdl8?list=PLHTh1InhhwT7J5jl4vAhO1WvGHUUFgUQH">Using Types Effectively</a>. CppCon 2016.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a.1-compile-time-information">A.1 Compile-time information</h3>
+<p>The version of <em>variant lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<h3 id="a.2-variant-lite-test-specification">A.2 Variant lite test specification</h3>
+<pre><code>variant: Disallows non-default constructible as first type
+variant: Allows non-default constructible as second and later type (first: int)
+variant: Allows non-default constructible as second and later type (first: monostate)
+variant: Allows to default-construct variant
+variant: Allows to copy-construct from variant
+variant: Allows to move-construct from variant (C++11)
+variant: Allows to move-construct if-noexcept from variant (C++11)
+variant: Allows to obtain the index of the current type
+variant: Allows to inspect if variant is &quot;valueless by exception&quot;
+variant: Allows to copy-assign from variant
+variant: Allows to copy-assign mutually empty variant
+variant: Allows to copy-assign from empty variant
+variant: Allows to copy-assign to empty variant
+variant: Allows to move-assign from variant (C++11)
+variant: Allows to move-assign mutually empty variant (C++11)
+variant: Allows to move-assign from empty variant (C++11)
+variant: Allows to move-assign to empty variant (C++11)
+variant: Allows to construct from element value
+variant: Allows to copy-construct from element
+variant: Allows to move-construct from element (C++11)
+variant: Allows to convert-copy-construct from element
+variant: Allows to convert-move-construct from element (C++11)
+variant: Allows to copy-assign from element value
+variant: Allows to move-assign from element value
+variant: Allows to copy-assign from element
+variant: Allows to move-assign from element (C++11)
+variant: Allows to convert-copy-assign from element value
+variant: Allows to copy-construct from elements in intializer-list based on type (C++11)
+variant: Allows to move-construct from elements in intializer-list based on type (C++11)
+variant: Allows to in-place copy-construct element based on type (C++11)
+variant: Allows to in-place move-construct element based on type (C++11)
+variant: Allows to in-place copy-construct element based on index (C++11)
+variant: Allows to in-place move-construct element based on index (C++11)
+variant: Allows to in-place copy-construct elements from intializer-list based on type (C++11)
+variant: Allows to in-place move-construct elements from intializer-list based on type (C++11)
+variant: Allows to in-place copy-construct elements from intializer-list based on index (C++11)
+variant: Allows to in-place move-construct elements from intializer-list based on index (C++11)
+variant: Allows to copy-emplace element based on type (C++11)
+variant: Allows to move-emplace element based on type (C++11)
+variant: Allows to copy-emplace element based on index (C++11)
+variant: Allows to move-emplace element based on index (C++11)
+variant: Allows to copy-emplace elements from intializer-list based on type (C++11)
+variant: Allows to move-emplace elements from intializer-list based on type (C++11)
+variant: Allows to copy-emplace elements from intializer-list based on index (C++11)
+variant: Allows to move-emplace elements from intializer-list based on index (C++11)
+variant: Allows to swap variants, same index (member)
+variant: Allows to swap variants, different index (member)
+variant: Allows to visit contents (args: 1; configured max args: 5)
+variant: Allows to visit contents (args: 2; configured max args: 5)
+variant: Allows to visit contents (args: 3; configured max args: 5)
+variant: Allows to visit contents, rvalue reference (args: 1; configured max args: 5)
+variant: Allows to check for content by type
+variant: Allows to get element by type
+variant: Allows to get element by index
+variant: Allows to get pointer to element or NULL by type
+variant: Allows to get pointer to element or NULL by index
+variant: Allows to compare variants
+variant: Allows to swap variants, same index (non-member)
+variant: Allows to swap variants, different index (non-member)
+monostate: Allows to make variant default-constructible
+bad_variant_access: Indicates invalid variant access
+variant_size&lt;&gt;: Allows to obtain number of element types (configured max types: 16)
+variant_size_v&lt;&gt;: Allows to obtain number of element types (C++14; configured max types: 16)
+variant_size_V(): Allows to obtain number of element types (non-standard: macro; configured max types: 16)
+variant_alternative&lt;&gt;: Allows to select type by index
+variant_alternative_t&lt;&gt;: Allows to select type by index (C++11)
+variant_alternative_T(): Allows to select type by index (non-standard: macro)
+std::hash&lt;&gt;: Allows to obtain hash (C++11)</code></pre>

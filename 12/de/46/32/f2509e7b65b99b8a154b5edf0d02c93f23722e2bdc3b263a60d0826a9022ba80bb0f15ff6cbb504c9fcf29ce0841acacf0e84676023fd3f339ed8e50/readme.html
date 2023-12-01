@@ -1,0 +1,55 @@
+<h1 id="meta-enum---static-reflection-on-enums-in-c17">Meta Enum - Static reflection on enums in C++17</h1>
+<h2 id="brief">Brief</h2>
+<p>Single-header facility for compile time reflection of enums in C++17.</p>
+<h3 id="features">Features</h3>
+<ul>
+<li>Automatic string conversion of enum entries</li>
+<li>Tracking of enum size - i.e. member count</li>
+<li>Look up enum entries by index</li>
+<li>Convenience functions for converting between all of the above</li>
+<li>Supports both enum and enum class</li>
+<li>Supports enums nested in types/namespaces/functions</li>
+<li>Keeps track of the C++ code used to declare the enums</li>
+<li>Single header standard C++17 magic.</li>
+</ul>
+<h3 id="compiled-example">Compiled Example</h3>
+<p>See compiled code at: https://godbolt.org/z/TaPqPa</p>
+<h3 id="tested-on">Tested On</h3>
+<ul>
+<li>gcc 7.3 - works</li>
+<li>gcc 8.1 - works</li>
+<li>gcc 8.2 - works</li>
+<li>clang 6.0 - works - however broken with current stdlib version on godbolt's compiler explorer</li>
+<li>MSVC pre 2018 (version on godbolt's compiler explorer) - works for typical case, not for complex enum test case</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>Either make sure the <code>meta_enum.hpp</code> file is made available in your include paths or just copy it to your project.</p>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;meta_enum.hpp&gt;</span></code></pre></div>
+<h3 id="declaring-enums">Declaring Enums</h3>
+<p>Use the macro <code>meta_enum</code> to declare your enums.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta_enum(Days, <span class="dt">int</span>, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday);
+<span class="co">//equivalent to:</span>
+<span class="co">//enum Days : int { Monday, ...</span></code></pre></div>
+<p>Or use <code>meta_enum_class</code> for enum class.</p>
+<p>The <code>meta_enum</code> macro supports assigning custom values to entries as per usual.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">meta_enum(MyEnum, <span class="dt">uint8_t</span>, First = <span class="dv">0</span>, Second = <span class="dv">1</span> &lt;&lt; <span class="dv">5</span>, Third = myConstexprFunction&lt;<span class="dt">int</span>&gt;());</code></pre></div>
+<h3 id="meta-enum-objects">Meta Enum Objects</h3>
+<p>By using <code>meta_enum</code> to declare <code>MyEnum</code>, you get the global constexpr object <code>MyEnum_meta</code> which stores a representation of your enum and is of type <code>MetaEnum</code>.</p>
+<h4 id="metaenum-type---contains-data-for-the-whole-enum-declaration-and-holds-all-members">MetaEnum type - contains data for the whole enum declaration and holds all members</h4>
+<p>Typedefs: * UnderlyingType - contains the selected underlying integer type for the enum</p>
+<p>Members: * string - contains the full enum declaration as a <code>string_view</code> * members - contains representations of all enum members represented as an std::array with MetaEnumMember objects</p>
+<h4 id="metaenummember-type---contains-data-for-one-particular-enum-member">MetaEnumMember type - contains data for one particular enum member</h4>
+<p>Members: * value - The enum value, for example <code>MyEnum::Second</code> * name - String representation of the member. For example <code>&quot;Second&quot;</code> * string - The whole declaration string. For example <code>&quot; Second = 1 &lt;&lt; 5&quot;</code> * index - The numerical index of this member. For example <code>1</code></p>
+<h3 id="convenience-functions">Convenience functions</h3>
+<p>A few functions are provided per <code>meta_enum</code> to ease usage.</p>
+<p>For an enum with the name <code>MyEnum</code> you will get the following: * <code>std::string_view MyEnum_value_to_string(MyEnum)</code> converts an enum value to a textual representation. Will use the <code>.name</code> member of the member, or <code>&quot;__INVALID_ENUM_VAL__&quot;</code> on invalid input. * <code>std::optional&lt;MetaEnumMember&gt; MyEnum_meta_from_name(std::string_view)</code> Accesses the meta object for a member found by name. Returns nullopt on invalid input. * <code>std::optional&lt;MetaEnumMember&gt; MyEnum_meta_from_value(MyEnum)</code> Accesses the meta object for a member found by enum value. Returns nullopt on invalid input. * <code>std::optional&lt;MetaEnumMember&gt; MyEnum_meta_from_index(std::string_view)</code> Accesses the meta object for a member found by enum member index. Returns nullopt on invalid input.</p>
+<h2 id="examples">Examples</h2>
+<p>See the file in the repo <code>examples.cpp</code></p>
+<h2 id="problems-and-limitations">Problems and limitations</h2>
+<h3 id="build-errors">Build errors</h3>
+<p>Some configurations of certain compilers seem to break down when building this. Specifically there is a problem with clang 6.0 on godbolt which fails to build due to what looks like problems with <code>std::string_view</code> not being constexpr even though it should be. See: https://godbolt.org/z/Ob9Cnv There has also been problems when building with the MSVC Pre 2018 hosted <span class="citation">@godbolt.org</span> as well when it builds with the complex test case inside of example.cpp. It works however for the typical case. See: https://godbolt.org/z/rIhpfR</p>
+<h3 id="enum-parsing-problems-with-nested-templates">Enum parsing problems with nested templates</h3>
+<p><code>meta_enum</code> uses string parsing to be able to extract the names of each enum entry. This string parsing takes into account that enum declarations can contain pretty complex meta-programming expressions - it's not as simple as counting commas. The algorithm for doing so is somewhat naive and cannot tell apart <code>&gt;&gt;</code> as the operator and <code>&gt;&gt;</code> as the end of two nested templates (<code>std::vector&lt;std::vector&lt;int&gt;&gt; for example</code>). Due to this, nested template angle brackets have to be separated by whitespace, i.e. <code>&gt;&gt;</code> has to be <code>&gt; &gt;</code>.</p>
+<h2 id="contribution">Contribution</h2>
+<p>I'm gladly welcoming suggestions for improvements, pull requests, bug reports, comments or whatever. :)</p>

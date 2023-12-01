@@ -1,0 +1,103 @@
+<h1 id="the-openddl-parser">The OpenDDL-Parser</h1>
+<p>The OpenDDL-Parser is a small and easy to use library for OpenDDL-file-format-parsing. OpenDDL is the shortcut for Open Data Description Language, a data-declaration language introduced by Eric Lengyel. Please check http://openddl.org/ if you want to learn more about it.</p>
+<h1 id="build-status">Build status</h1>
+<p>Linux build status: <a href="https://travis-ci.org/kimkulling/openddl-parser"><img src="https://travis-ci.org/kimkulling/openddl-parser.png" alt="Build Status" /></a> Current coverity check status: <a href="https://scan.coverity.com/projects/5606"> <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/5606/badge.svg"/> </a> Current test coverage:<a href="https://coveralls.io/github/kimkulling/openddl-parser?branch=cpp_coveralls"><img src="https://coveralls.io/repos/github/kimkulling/openddl-parser/badge.svg?branch=master" alt="Coverage Status" /></a></p>
+<h1 id="get-the-source-code">Get the source code</h1>
+<p>You can get the code from our git repository, which is located at GitHub. You can clone the repository with the following command:</p>
+<blockquote>
+<p>git clone https://github.com/kimkulling/openddl-parser.git</p>
+</blockquote>
+<h1 id="building-the-source-from-the-github-repo">Building the source from the GitHub-Repo</h1>
+<p>To build the library you need to install cmake first ( see http://www.cmake.org/ for more information ). Make also sure that a compiler tool-chain is installed on your machine. After installing it you can open a console and enter:</p>
+<blockquote>
+<p>cmake CMakeLists.txt</p>
+</blockquote>
+<p>This command will generate a build environment for your preferred build tool ( for Visual-Studio-users the project files will be generated, for gcc-users the makefiles will be generated ). When using an IDE open the IDE and run the build. When using GNU-make type in your console:</p>
+<blockquote>
+<p>make</p>
+</blockquote>
+<p>and that's all.</p>
+<p>When using Visual Studio CMake will generate you a solution for ythe library. Just build it there.</p>
+<h1 id="use-the-library">Use the library</h1>
+<p>To use the OpenDDL-parser you need to build the lib first. Now add the &gt; <Repo-folder>/include</p>
+<p>to your include-path and the</p>
+<blockquote>
+<p><Repo-folder>/lib</p>
+</blockquote>
+<p>to your lib-folder. Link the openddl.lib to your application.</p>
+<p>Here is a small example how to use the lib:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;openddlparser/OpenDDLParser.h&gt;</span>
+
+USE_ODDLPARSER_NS;
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> *argv[] ) {
+    <span class="cf">if</span>( argc &lt; <span class="dv">3</span> ) {
+        <span class="cf">return</span> <span class="dv">1</span>;
+    }
+
+    <span class="dt">char</span> *filename( <span class="kw">nullptr</span> );
+    <span class="cf">if</span>( <span class="dv">0</span> == strncmp( FileOption, argv[ <span class="dv">1</span> ], strlen( FileOption ) ) ) {
+        filename = argv[ <span class="dv">2</span> ];
+    }
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;file to import: &quot;</span> &lt;&lt; filename &lt;&lt; <span class="bu">std::</span>endl;   
+    <span class="cf">if</span>( <span class="kw">nullptr</span> == filename ) {
+        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;Invalid filename.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        <span class="cf">return</span> Error;
+    }
+
+    FILE *fileStream = fopen( filename, <span class="st">&quot;r+&quot;</span> );
+    <span class="cf">if</span>( NULL == filename ) {
+        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;Cannot open file &quot;</span> &lt;&lt; filename &lt;&lt; <span class="bu">std::</span>endl;
+        <span class="cf">return</span> <span class="dv">1</span>;
+    }
+
+    <span class="co">// obtain file size:</span>
+    fseek( fileStream, <span class="dv">0</span>, SEEK_END );
+    <span class="at">const</span> <span class="dt">size_t</span> size( ftell( fileStream ) );   
+    rewind( fileStream );   
+    <span class="cf">if</span>( size &gt; <span class="dv">0</span> ) {
+        <span class="dt">char</span> *buffer = <span class="kw">new</span> <span class="dt">char</span>[ size ];
+        <span class="at">const</span> <span class="dt">size_t</span> readSize( fread( buffer, <span class="kw">sizeof</span>( <span class="dt">char</span> ), size, fileStream ) );
+        assert( readSize == size );
+        OpenDDLParser theParser;
+        theParser.setBuffer( buffer, size );
+        <span class="at">const</span> <span class="dt">bool</span> result( theParser.parse() );
+        <span class="cf">if</span>( !result ) {
+            <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;Error while parsing file &quot;</span> &lt;&lt; filename &lt;&lt; <span class="st">&quot;.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+        }
+    }
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h1 id="how-to-access-the-imported-data">How to access the imported data</h1>
+<p>The data is organized as a tree. You can get the root-node of the tree with the following code:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">OpenDDLParser theParser;
+theParser.setBuffer( buffer, size );
+<span class="at">const</span> <span class="dt">bool</span> result( theParser.parse() );
+<span class="cf">if</span> ( result ) {
+    DDLNode *root = theParser.getRoot();
+    DDLNode::DllNodeList children = root-&gt;getChildNodeList();
+    <span class="cf">for</span> ( <span class="dt">size_t</span> i=<span class="dv">0</span>; i&lt;children.size(); i++ ) {
+        DDLNode *child = children[ i ];
+        Property *prop   = child-&gt;getProperty(); <span class="co">// to get properties</span>
+        <span class="bu">std::</span>string type = child-&gt;getType();     <span class="co">// to get the node type</span>
+        Value *values    = child-&gt;getValue();    <span class="co">// to get the data;</span>
+        
+        <span class="co">// to loop through all values</span>
+        <span class="cf">while</span> ( values != ddl_nullptr ) {
+            <span class="dt">int</span> current = values-&gt;getInt32();
+            values = value-&gt;getNext();
+        }
+    }
+}</code></pre></div>
+<p>The node instance called root contains the data.</p>
+<p>All data lists are organized as linked lists.</p>
+<h1 id="reference-documentation">Reference documentation</h1>
+<p>Please check http://kimkulling.github.io/openddl-parser/doxygen_html/index.html.</p>
+<h1 id="projects-using-openddl-parser">Projects using OpenDDL-Parser</h1>
+<ul>
+<li>Asset Importer Lib: https://github.com/assimp/assimp .</li>
+</ul>

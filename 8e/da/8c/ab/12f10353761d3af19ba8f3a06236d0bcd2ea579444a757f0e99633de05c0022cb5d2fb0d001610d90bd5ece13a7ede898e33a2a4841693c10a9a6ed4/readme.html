@@ -1,0 +1,31 @@
+<h2 id="µsockets---miniscule-networking-eventing">µSockets - miniscule networking &amp; eventing</h2>
+<p>This is the cross-platform async networking and eventing foundation library used by <a href="https://github.com/uNetworking/uWebSockets">µWebSockets</a>.</p>
+<p>It runs on Linux, macOS, FreeBSD and Windows. Most is C11 while some optional parts are C++17.</p>
+<p><a href="https://github.com/uNetworking/uSockets/releases"><img src="https://img.shields.io/github/v/release/uNetworking/uSockets"></a> <a href="https://lgtm.com/projects/g/uNetworking/uSockets/context:cpp"><img alt="Language grade: C/C++" src="https://img.shields.io/lgtm/grade/cpp/g/uNetworking/uSockets.svg?logo=lgtm&logoWidth=18"/></a></p>
+<h3 id="key-aspects">Key aspects</h3>
+<ul>
+<li>Built-in (optionally available) TLS support exposed with identical interface as for TCP.</li>
+<li>Acknowledges and integrates with any event-loop via a layered hierarchical design of plugins.</li>
+<li>Extremely pedantic about user space memory footprint and designed to perform as good as can be.</li>
+<li>Designed from scratch to map well to user space TCP stacks or other experimental platforms.</li>
+<li>Low resolution timer system ideal for performant tracking of networking timeouts.</li>
+<li>Minimal yet truly cross-platform, will not emit a billion different platform specific error codes.</li>
+<li>Fully opaque library, inclusion will not completely pollute your global namespace.</li>
+<li>Continuously fuzzed by Google’s <a href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> with 95% code coverage (asan, ubsan and msan).</li>
+</ul>
+<h3 id="extensible">Extensible</h3>
+<p>Designed in layers of abstraction where any one layer depends only on the previous one. Write plugins and swap things out with compiler flags as you see fit.</p>
+<p><img src="misc/layout.png" /></p>
+<h3 id="compilation">Compilation</h3>
+<p>Build example binaries using <code>make examples</code>. The static library itself builds with <code>make</code>. It is also possible to simply include the <code>src</code> folder in your project as it is standard C11. Defining LIBUS_NO_SSL (-DLIBUS_NO_SSL) will disable OpenSSL 1.1+ support/dependency (not needed if building with shipped Makefile). Build with environment variables set as shown below to configure for specific needs.</p>
+<h5 id="available-plugins">Available plugins</h5>
+<ul>
+<li>Build using <code>WITH_LIBUV=1 make [examples]</code> to use libuv as event-loop.</li>
+<li>Build using <code>WITH_GCD=1 make [examples]</code> to use Grand Central Dispatch/CoreFoundation as event-loop (slower).</li>
+<li>Build using <code>WITH_OPENSSL=1 make [examples]</code> to enable and link OpenSSL 1.1+ support (or BoringSSL).</li>
+<li>Build using <code>WITH_WOLFSSL=1 make [examples]</code> to enable and link WolfSSL 2.4.0+ support for embedded use.</li>
+</ul>
+<p>The default event-loop is native epoll on Linux, native kqueue on macOS and finally libuv on Windows.</p>
+<h5 id="a-word-on-performance">A word on performance</h5>
+<p>This library is opaque; there are function calls for everything - even simple things like accessing the “user data” of a socket. In other words, static linking and link-time-optimizations mean <strong>everything</strong> for performance. I’ve benchmarked dynamic linking vs. static, link-time optimization and found roughly a 60% performance difference.</p>
+<p>The kernel you run makes a huge difference. Linux wins, hands down. Mitigations off, or a modern hardware-mitigated CPU makes huge differences and distros like Clear Linux have shown significant speedups compared to more “vanilla” kernels.</p>

@@ -1,0 +1,107 @@
+<h1 id="observer_ptr-for-c98-upbuild-status-build-status">observer_ptr&lt;&gt; for C++98 up <a href="https://travis-ci.org/martinmoene/observer-ptr"><img src="https://travis-ci.org/martinmoene/observer-ptr.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/observer-ptr/branch/master"><img src="https://ci.appveyor.com/api/projects/status/6icjotc617wmhljt/branch/master?svg=true" alt="Build status" /></a></h1>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#building-the-tests">Building the tests</a> - <a href="#synopsis">Synopsis</a> - <a href="#other-open-source-implementations">Other open source implementations</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<pre><code>#include &quot;nonstd/observer_ptr.h&quot;
+
+using namespace nonstd;
+
+void use( observer_ptr&lt;int&gt; p )
+{
+    assert( *p == 42 );
+}
+
+int main()
+{
+    int a = 42;
+    observer_ptr&lt;int&gt; p( &amp;a );
+    use( p );
+}</code></pre>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt;g++ -std=c++03 -Wall -I../include -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>observer-ptr</strong> is an implementation of the <em>world’s dumbest smart pointer</em> for C++98 and higher. It takes no ownership responsibility for the object it <em>observes</em> or <em>watches</em> and is intended as a near drop-in replacement for raw pointer types. As a vocabulary type it indicates intended use, easing code reading (<a href="#note1">Note 1</a>).</p>
+<p>Class template <code>observer_ptr&lt;&gt;</code> has been proposed for and accepted into C++17 [1][2].</p>
+<p>The <em>observer-ptr</em> of this project can be used with probably any clang, g++ or MSVC compiler. It has been tested with clang 3.4, g++ 5.2 and with VC6 (VS6, no comparison of observers), VC8 (VS2005), VC10 (VS2010), VC11 (VS2012), VC12 (VS2013), VC14 (VS2015).</p>
+<h2 id="license">License</h2>
+<p><em>observer-ptr</em> uses the <a href="LICENSE">MIT</a> license.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>observer-ptr</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>observer-ptr</em> is a single-file header-only library. Put <a href="include/nonstd/observer_ptr.h">observer_ptr.h</a> in the <a href="include" class="uri">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>To build the tests you need:</p>
+<ul>
+<li><a href="http://cmake.org">CMake</a>, version 2.8.7 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/observer-ptr"><em>observer-ptr</em> source code</a> has been cloned into a directory named <code>c:\observer-ptr</code>.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture.<br />
+Here we use c:-ptr-win-x86-vc10.</p>
+<pre><code>cd c:\observer-ptr
+md build-win-x86-vc10
+cd build-win-x86-vc10</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>cmake -G &quot;Visual Studio 10 2010&quot; ..</code></pre></li>
+<li><p>Build the test suite in the Debug configuration (alternatively use Release).</p>
+<pre><code>cmake --build . --config Debug</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>ctest -V -C Debug</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>observer-ptr</em>.</p>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#configuration-macros">Configuration macros</a> - <a href="#feature-selection-macros">Feature selection macros</a></p>
+<h3 id="configuration-macros">Configuration macros</h3>
+<p>-D<b>nop_CONFIG_CONFIRMS_COMPILATION_ERRORS</b>=0<br />
+Define this macro to 1 to experience the by-design compile-time errors of the <em>observer-ptr</em> components in the test suite. Default is 0.</p>
+<h3 id="feature-selection-macros">Feature selection macros</h3>
+<p>-D<b>nop_FEATURE_ALLOW_IMPLICIT_CONVERSION</b>=0<br />
+The <code>observer_ptr</code> from the C++17 draft provides <a href="http://en.cppreference.com/w/cpp/language/explicit">explicit conversions</a> to <code>bool</code> and to the underlying type. Explicit conversion is not available from pre-C++11 compilers. To prevent problems due to unexpected <a href="http://en.cppreference.com/w/cpp/language/implicit_cast">implicit conversions</a> to <code>bool</code> or to the underlying type, this library does not provide these implicit conversions at default. If you still want them, define this macro to 1. Without these implicit conversions enabled, a conversion to bool via the <a href="https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Safe_bool">safe bool idiom</a> is provided. Default is 0.</p>
+<h2 id="other-open-source-implementations">Other open source implementations</h2>
+<p>None known.</p>
+<h2 id="notes-and-references">Notes and references</h2>
+<h3 id="notes">Notes</h3>
+<p><a id="note1"></a>Note 1. This conclusion may be challenged if the coding style ensures that <em>any raw pointer</em> is a <em>non-owning pointer.</em></p>
+<h3 id="references">References</h3>
+<p>[1] Walter E. Brown. <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3840.pdf">N3840: A Proposal for the World’s Dumbest Smart Pointer, v3</a> (PDF).1 January 2014.<br />
+[2] N4481: Tentative Working Draft, C++ Extensions for Library Fundamentals, Version 2 <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4481.html#memory.observer.ptr">Section 4.2 Non-owning pointers</a>. 12 April 2015.<br />
+[3] cppreference.com. <a href="http://en.cppreference.com/w/cpp/experimental/observer_ptr">std::experimental::observer_ptr</a>.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a.1-observer-ptr-test-specification">A.1 Observer Ptr test specification</h3>
+<pre><code>Disallows to delete the observer_ptr unless implicit conversion allowed
+Disallows construction from an observer_ptr of incompatible type
+Disallows implicit conversion to bool unless implicit conversion allowed
+Disallows implicit conversion to underlying type unless implicit conversion allowed
+Disallows comparison to an observer_ptr with a different underlying type
+Allows default construction
+Allows construction from nullptr
+Allows construction from a non-null pointer
+Allows construction from an observer_ptr of compatible type
+Allows to retrieve the pointer
+Allows to retrieve the value pointed to
+Allows to retrieve the member pointed to
+Allows to test for a non-null pointer via conversion to bool
+Allows to convert to the observed pointer
+Allows to reset to stop observing
+Allows to reset to observe another pointer
+Allows to swap two observers
+Specialized: Allows to swap two observers
+Specialized: Allows to make an observer
+Specialized: Allows to compare if an observer is equal to another observer
+Specialized: Allows to compare if an observer is equal to another observer with a related watched type
+Specialized: Allows to compare if an observer is not equal to another observer
+Specialized: Allows to compare if an observer is not equal to another observer with a related watched type
+Specialized: Allows to compare if an observer is equal to nullptr
+Specialized: Allows to compare if an observer is not equal to nullptr
+Specialized: Allows to compare if an observer is less than another observer
+Specialized: Allows to compare if an observer is less than another observer with a related watched type
+Specialized: Allows to compare if an observer is less than or equal to another observer
+Specialized: Allows to compare if an observer is less than or equal to another observer with a related watched type
+Specialized: Allows to compare if an observer is greater than another observer
+Specialized: Allows to compare if an observer is greater than another observer with a related watched type
+Specialized: Allows to compare if an observer is greater than or equal to another observer
+Specialized: Allows to compare if an observer is greater than or equal to another observer with a related watched type
+Specialized: Allows to compute hash</code></pre>

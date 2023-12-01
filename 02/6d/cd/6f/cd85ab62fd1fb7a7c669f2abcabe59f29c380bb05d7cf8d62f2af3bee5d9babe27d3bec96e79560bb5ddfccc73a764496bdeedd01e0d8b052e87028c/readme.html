@@ -1,0 +1,42 @@
+<h1 id="robin_hoodunordered_map">➵ robin_hood::unordered_map</h1>
+<p><a href="https://github.com/martinus/robin-hood-hashing/releases"><img src="https://img.shields.io/github/release/martinus/robin-hood-hashing.svg" alt="Release" /></a> <a href="https://raw.githubusercontent.com/martinus/robin-hood-hashing/master/LICENSE"><img src="https://img.shields.io/github/license/martinus/robin-hood-hashing.svg" alt="GitHub license" /></a> <a href="https://travis-ci.com/martinus/robin-hood-hashing"><img src="https://travis-ci.com/martinus/robin-hood-hashing.svg?branch=master" alt="Travis CI Build Status" /></a> <a href="https://ci.appveyor.com/project/martinus/robin-hood-hashing"><img src="https://ci.appveyor.com/api/projects/status/github/martinus/robin-hood-hashing?branch=master&amp;svg=true" alt="Appveyor Build Status" /></a> <a href="https://www.codacy.com/app/martinus/robin-hood-hashing?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=martinus/robin-hood-hashing&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/9308495247b542c9802016caa6fd3461" alt="Codacy Badge" /></a> <a href="https://lgtm.com/projects/g/martinus/robin-hood-hashing/alerts/"><img src="https://img.shields.io/lgtm/alerts/g/martinus/robin-hood-hashing.svg?logo=lgtm&amp;logoWidth=18" alt="Total alerts" /></a> <a href="https://lgtm.com/projects/g/martinus/robin-hood-hashing/context:cpp"><img src="https://img.shields.io/lgtm/grade/cpp/g/martinus/robin-hood-hashing.svg?logo=lgtm&amp;logoWidth=18" alt="Language grade: C/C++" /></a></p>
+<p><code>robin_hood::unordered_map</code> is a platform independent replacement for <code>std::unordered_map</code> which is both faster and more memory efficient for real-world use cases.</p>
+<h2 id="installation-usage">Installation &amp; Usage</h2>
+<ol style="list-style-type: decimal">
+<li>Add <a href="https://github.com/martinus/robin-hood-hashing/blob/master/src/include/robin_hood.h"><code>robin_hood.h</code></a> to your C++ project.</li>
+<li>Use <code>robin_hood::unordered_map</code> instead of <code>std::unordered_map</code>.</li>
+</ol>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Please see extensive benchmarks in <a href="doc/BENCHMARKS.md" class="uri">doc/BENCHMARKS.md</a>. In short: <code>robin_hood</code> is really fast, most of the time faster than all competitors that I've tested, and uses far less memory than <code>std::unordered_map</code>.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><p><strong>Two memory layouts</strong>. Data is either stored in a flat array, or with node indirection. Access for <code>unordered_flat_map</code> is extremely fast due to no indirection, but references to elements are not stable. It also causes allocation spikes when the map resizes, and will need plenty of memory for large objects. Node based map has stable references and uses <code>const Key</code> in the pair. It is a bit slower due to indirection. The choice is yours; you can either use <code>robin_hood::unordered_flat_map</code> or <code>robin_hood::unordered_node_map</code> directly. If you use <code>robin_hood::unordered_map</code> It tries to choose the layout that seems appropriate for your data.</p></li>
+<li><p><strong>Custom allocator</strong>. Node based representation has a custom bulk allocator that tries to make few memory allocations. All allocated memory is reused, so there won't be any allocation spikes. It's very fast as well.</p></li>
+<li><p><strong>Optimized hash</strong>. <code>robin_hood::hash</code> has custom implementations for integer types and for <code>std::string</code>, and falls back to <code>std::hash</code> for everything else.</p></li>
+</ul>
+<h2 id="good-bad-ugly">Good, Bad, Ugly</h2>
+<h3 id="the-good">The Good</h3>
+<p>In most cases, you can simply replace <code>std::unordered_map</code> with <code>robin_hood::unordered_map</code> and enjoy a substantial speedup and less memory. robin-hood map is well optimized for both native types and complex types: It supports two different memory layouts: <code>flat_map</code> for fast direct access, and <code>node_map</code> which is node based, enjoying stable references while being much more memory efficient than <code>std::unordered_map</code>.</p>
+<p>The map defaults to using <code>robin_hood::hash</code> which uses a very fast well tuned hash for native types, and uses defaults to <code>std::hash</code> for everything else.</p>
+<h3 id="the-bad">The Bad</h3>
+<p>The performance of any map depends on how good the hash function is. But even worse for <code>robin_hood</code>, for a really bad hash the performance will not only degrade, the map will simply fail with an exception if not even doubling its size helps. So choose your hash well. (Note, that some <code>std::unordered_map</code> implementations fail as well with bad hashes).</p>
+<p>If the map gets very full but just below it's resizing limit, continuously inserting and removing elements can get quite slow because the map has to shuffle lots of elements around.</p>
+<h3 id="the-ugly">The Ugly</h3>
+<p>This map is obviously not as well tested as <code>std::unorderered_map</code>. It shoud be very stable for most use cases, but there might still be untested corner cases, where the map simply gives incorrect results! As far as I know, none of these bugs should be left. But I wouldn't bet my house on it.</p>
+<h2 id="alternatives">Alternatives</h2>
+<p>There are lots of <code>std::unorderd_map</code> challengers, here are a few interesting ones that I had a look at:</p>
+<ul>
+<li><p><a href="https://abseil.io/blog/20180927-swisstables">google/absl::Hash</a> Brand new and from google, but a bit difficult to set up. Lots of features, heavily optimized, with some SIMD tricks.</p></li>
+<li><p><a href="https://github.com/skarupke/flat_hash_map/blob/master/flat_hash_map.hpp">skarupke/flat_hash_map</a>: Very fast, especially for integral types. Designed as a response to google's absl::Hash.</p></li>
+<li><p><a href="http://goog-sparsehash.sourceforge.net/doc/dense_hash_map.html">google/dense_hash_map</a> Old and fast but does not have a modern C++ interface.</p></li>
+</ul>
+<h2 id="blog-posts">Blog Posts</h2>
+<p>Beware, these posts are out of date now.</p>
+<ul>
+<li><a href="http://martin.ankerl.com/2016/09/15/very-fast-hashmap-in-c-part-1/">Part 1: Hopscotch &amp; Robin Hood Hashing</a></li>
+<li><a href="http://martin.ankerl.com/2016/09/21/very-fast-hashmap-in-c-part-2/">Part 2: Implementation Variants</a></li>
+<li><a href="http://martin.ankerl.com/2016/09/21/very-fast-hashmap-in-c-part-3/">Part 3: Benchmark Results</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>Licensed under the MIT License. See the <a href="https://github.com/martinus/robin-hood-hashing/blob/master/LICENSE">LICENSE</a> file for details.</p>
+<p>by martinus</p>

@@ -1,0 +1,301 @@
+<h1 id="status_value-a-class-for-status-and-optional-value-for-c11-and-later">status_value: A class for status and optional value for C++11 and later</h1>
+<p><a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-11-blue.svg" alt="Language" /></a> <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/C%2B%2B-98-orange.svg" alt="Language" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/status-value-lite"><img src="https://travis-ci.org/martinmoene/status-value.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/status-value"><img src="https://ci.appveyor.com/api/projects/status/i51ywyur2brx7r5q?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/status_value/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fstatus_value.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/status_value/master/include/nonstd/status_value.hpp"><img src="https://img.shields.io/badge/latest-download-blue.svg" alt="download" /></a> <a href="https://bintray.com/martinmoene/nonstd-lite/status-value-lite%3Anonstd-lite/_latestVersion"><img src="https://img.shields.io/badge/on-conan-blue.svg" alt="Conan" /></a></p>
+<p>status_value is a single-file header-only library for objects that represent a status and an optional value. It is intended for use with C++11 and later. There is a <a href="README_cpp98.md">separate variant</a> for use with C++98 and later. The library is based on the proposal for status_value [<a href="#ref1">1</a>].</p>
+<p><strong>Contents</strong><br />
+- <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#license">License</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#comparison">Comparison with like types</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#implementation-notes">Implementation notes</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="example-usage">Example usage</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;nonstd/status_value.hpp&quot;</span>
+
+<span class="pp">#include </span><span class="im">&lt;cstdlib&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;string&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> nonstd;
+<span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>literals;
+
+<span class="kw">auto</span> to_int( <span class="dt">char</span> <span class="at">const</span> * <span class="at">const</span> text ) -&gt; status_value&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt; 
+{
+    <span class="dt">char</span> * pos = <span class="kw">nullptr</span>;
+    <span class="kw">auto</span> value = strtol( text, &amp;pos, <span class="dv">0</span> );
+
+    <span class="cf">if</span> ( pos != text ) <span class="cf">return</span> { <span class="st">&quot;Excellent&quot;</span>, value };
+    <span class="cf">else</span>               <span class="cf">return</span> { <span class="st">&quot;&#39;&quot;</span>s + text + <span class="st">&quot;&#39; isn&#39;t a number&quot;</span> };
+}
+
+<span class="dt">int</span> main( <span class="dt">int</span> argc, <span class="dt">char</span> * argv[] )
+{
+    <span class="kw">auto</span> text = argc &gt; <span class="dv">1</span> ? argv[<span class="dv">1</span>] : <span class="st">&quot;42&quot;</span>;
+
+    <span class="kw">auto</span> svi = to_int( text );
+
+    <span class="cf">if</span> ( svi ) <span class="bu">std::</span>cout &lt;&lt; svi.status() &lt;&lt; <span class="st">&quot;: &#39;&quot;</span> &lt;&lt; text &lt;&lt; <span class="st">&quot;&#39; is &quot;</span> &lt;&lt; *svi &lt;&lt; <span class="st">&quot;, &quot;</span>;
+    <span class="cf">else</span>       <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Error: &quot;</span> &lt;&lt; svi.status();
+}</code></pre></div>
+<h3 id="compile-and-run">Compile and run</h3>
+<pre><code>prompt&gt; g++ -std=c++14 -Wall -I../include -o 01-basic.exe 01-basic.cpp &amp;&amp; 01-basic.exe 123 &amp;&amp; 01-basic.exe abc
+Excellent: &#39;123&#39; is 123, Error: &#39;abc&#39; isn&#39;t a number</code></pre>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>status_value</strong> is a single-file header-only library to represent objects that contain a status and an optional value. The library is an implementation of the proposal for <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4233.html">std::status_value</a> [<a href="#ref1">1</a>,<a href="#ref2">2</a>] for use with C++11 and later.</p>
+<p><strong>Features and properties of status_value</strong> are ease of installation (single header), construction of a status, or a status and a value from a value that is convertible to the underlying type, move-construction from another status_value of the same type, testing for the presence of a value, operators and method value() for <em>checked</em> access to the value and access to the status.</p>
+<p><strong>Not provided</strong> are copy-construction of a status_value (by design), ... .</p>
+<p>For more examples, see [<a href="#ref1">1</a>].</p>
+<h2 id="license">License</h2>
+<p><em>status_value</em> is distributed under the <a href="https://github.com/martinmoene/span-lite/blob/master/LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>status_value</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>status_value</em> is a single-file header-only library. Put <code>status_value.hpp</code> directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong><br />
+- <a href="#configuration-macros">Configuration macros</a> - <a href="#interface-of-status_value">Interface of status_value</a></p>
+<h3 id="configuration-macros">Configuration macros</h3>
+<h4 id="standard-selection-macro">Standard selection macro</h4>
+<p>-D<b>nssv_CPLUSPLUS</b>=199711L<br />
+Define this macro to override the auto-detection of the supported C++ standard, if your compiler does not set the <code>__cpluplus</code> macro correctly.</p>
+<h4 id="disable-exceptions">Disable exceptions</h4>
+<p>-D<b>nssv_CONFIG_NO_EXCEPTIONS</b>=0<br />
+Define this to 1 if you want to compile without exceptions. If not defined, the header tries and detect if exceptions have been disabled (e.g. via -fno-exceptions). Disabling exceptions will force contract violation to call <code>std::terminate()</code>. Default is 0.</p>
+<h4 id="enable-compilation-errors">Enable compilation errors</h4>
+<p>-D<b>nssv_CONFIG_CONFIRMS_COMPILATION_ERRORS</b>=0<br />
+Define this macro to 1 to experience the by-design compile-time errors of the library in the test suite. Default is 0.</p>
+<h3 id="interface-of-status_value">Interface of status_value</h3>
+<table style="width:100%;">
+<colgroup>
+<col width="16%" />
+<col width="73%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Construction</td>
+<td><strong>status_value</strong>() = delete</td>
+<td>disallow default construction</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>status_value</strong>( status_value &amp;&amp; other )</td>
+<td>move-construct from other</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>status_value</strong>( status_type const &amp; s )</td>
+<td>copy-construct from status</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td><strong>status_value</strong>( status_type const &amp; s, value_type &amp;&amp; v )</td>
+<td>copy-construct from status,<br>move construct from value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td><strong>status_value</strong>( status_type const &amp; s, value_type const &amp; v )</td>
+<td>copy-construct from status and value</td>
+</tr>
+<tr class="even">
+<td>Destruction</td>
+<td><strong>~status_value</strong>()</td>
+<td>status, value destroyed if present</td>
+</tr>
+<tr class="odd">
+<td>Observers</td>
+<td>operator <strong>bool</strong>() const</td>
+<td>true if contains value</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>bool <strong>has_value</strong>() const</td>
+<td>true if contains value</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>status_type const &amp; <strong>status</strong>() const</td>
+<td>the status</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>value_type const &amp; <strong>value</strong>() const</td>
+<td>the value (const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>value_type &amp; <strong>value</strong>()</td>
+<td>the value (non-const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td>value_type const &amp; <strong>operator *</strong>() const</td>
+<td>the value (const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td>value_type &amp; <strong>operator *</strong>()</td>
+<td>the value (non-const ref);<br>see <a href="#note1">note 1</a></td>
+</tr>
+</tbody>
+</table>
+<p><a id="note1"></a>Note 1: checked access: if no content, throws status value.</p>
+<p><a id="comparison"></a> Comparison with like types --------------------------</p>
+<table>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>std::optional</th>
+<th>std::expected</th>
+<th>nonstd::status_value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>More information</td>
+<td>see [<a href="#ref4">4</a>]</td>
+<td>see [<a href="#ref3">3</a>]</td>
+<td>this work</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>C++98</td>
+<td>– <a href="#note2">note 2</a></td>
+<td>–</td>
+<td>– <a href="#note4">note 4</a></td>
+</tr>
+<tr class="even">
+<td>C++11</td>
+<td>–</td>
+<td>– <a href="#note3">note 3</a></td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td>C++14</td>
+<td>–</td>
+<td>–</td>
+<td>✓</td>
+</tr>
+<tr class="even">
+<td>C++17</td>
+<td>✓</td>
+<td>–</td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>DefaultConstructible</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td>In-place construction</td>
+<td>✓</td>
+<td>✓</td>
+<td>–</td>
+</tr>
+<tr class="even">
+<td>Literal type</td>
+<td>✓</td>
+<td>✓</td>
+<td>–</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Disengaged information</td>
+<td>–</td>
+<td>✓</td>
+<td>✓ status</td>
+</tr>
+<tr class="odd">
+<td>Vary disengaged type</td>
+<td>–</td>
+<td>✓</td>
+<td>✓ status</td>
+</tr>
+<tr class="even">
+<td>Engaged nonuse throws</td>
+<td>–</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr class="odd">
+<td>Disengaged use throws</td>
+<td>✓ value()</td>
+<td>✓ value()</td>
+<td>✓ all</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Proxy (rel.ops)</td>
+<td>✓</td>
+<td>✓</td>
+<td>–</td>
+</tr>
+<tr class="even">
+<td>References</td>
+<td>✓</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr class="odd">
+<td>Chained visitor(s)</td>
+<td>–</td>
+<td>✓</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<p><a id="note2"></a>Note 2: <a href="https://github.com/martinmoene/optional-lite">optional lite</a> - Optional (nullable) objects for C++98 and later.<br />
+<a id="note3"></a>Note 3: <a href="https://github.com/martinmoene/expected-lite">expected lite</a> - Expected objects for C++11 and later.<br />
+<a id="note4"></a>Note 4: This project provides a <a href="README_cpp98.md">variant of status_value</a> for use with C++98 and later.</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p><em>status_value</em> is reported to work with the following compilers: - Visual VC14 (VS2015) - GNUC 5.2.0 with -std=c++11, -std=c++14, -std=c++1y - clang 3.6, 3.7 with -std=c++11, -std=c++14 (on Travis)</p>
+<h2 id="implementation-notes">Implementation notes</h2>
+<h2 id="notes-and-references">Notes and references</h2>
+<p><a id="ref1"></a>[1] Lawrence Crowl and Chris Mysen. <a href="http://wg21.link/p0262">p0262 - A Class for Status and Optional Value (latest)</a>, 14 February 2016. <a href="http://wg21.link/n4233">N4233</a>, 10 October 2014.</p>
+<p><a id="ref2"></a>[2] Lawrence Crowl. <a href="http://wg21.link/p0157">p0157 - Handling Disappointment in C++ (latest)</a>, 7 July 2015.</p>
+<p><a id="ref3"></a>[3] Vicente J. Botet Escriba. <a href="http://wg21.link/p0323">p0323 - A proposal to add a utility class to represent expected object (latest)</a> (PDF). (<a href="http://wg21.link/p0323r6">r6</a>, <a href="http://wg21.link/p0323r5">r5</a>, <a href="http://wg21.link/p0323r4">r4</a>, <a href="http://wg21.link/p0323r3">r3</a>, <a href="http://wg21.link/p0323r2">r2</a>, <a href="http://wg21.link/n4109">r1</a>, <a href="http://wg21.link/n4015">r0</a>, <a href="https://github.com/viboes/std-make/blob/master/doc/proposal/expected/DXXXXR0_expected.pdf">draft</a>).</p>
+<p><a id="ref4"></a>[4] Fernando Cacciola and Andrzej Krzemieński. <a href="http://wg21.link/n3793">N3793 - A proposal to add a utility class to represent optional objects (Revision 5)</a>. 03 October 2013. <a href="http://wg21.link/n3672">N3672 r4</a>, <a href="http://wg21.link/n3527">N3527 r3</a>, <a href="http://wg21.link/n3406">N3406 r2</a>, <a href="http://wg21.link/n1878">N1878 r1</a>, <a href="http://wg21.link/n3966">N3966 - Fixes for optional objects</a>.</p>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a.1-compile-time-information">A.1 Compile-time information</h3>
+<p>The version of <em>status-value lite</em> is available via tag <code>[.version]</code>. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<h3 id="a.2-status_value-test-specification">A.2 Status_value test specification</h3>
+<pre><code>status_value&lt;&gt;: Disallows default construction
+status_value&lt;&gt;: Allows construction from only status
+status_value&lt;&gt;: Allows construction from status and non-default-constructible value
+status_value&lt;&gt;: Allows construction from copied status and moved value
+status_value&lt;&gt;: Allows construction from copied status and copied value
+status_value&lt;&gt;: Disallows copy-construction from other status_value of the same type
+status_value&lt;&gt;: Allows move-construction from other status_value of the same type
+status_value&lt;&gt;: Allows to observe its status
+status_value&lt;&gt;: Allows to observe the presence of a value (has_value())
+status_value&lt;&gt;: Allows to observe the presence of a value (operator bool)
+status_value&lt;&gt;: Allows to observe its value (value())
+status_value&lt;&gt;: Allows to observe its value (operator*)
+status_value&lt;&gt;: Allows to observe its value (operator-&gt;)
+status_value&lt;&gt;: Throws when observing non-engaged (value())
+status_value&lt;&gt;: Throws when observing non-engaged (operator*())
+status_value&lt;&gt;: Throws when observing non-engaged (operator-&gt;())</code></pre>

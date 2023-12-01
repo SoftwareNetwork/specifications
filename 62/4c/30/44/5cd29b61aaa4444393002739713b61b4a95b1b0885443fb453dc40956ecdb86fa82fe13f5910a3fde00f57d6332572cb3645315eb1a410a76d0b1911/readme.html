@@ -1,0 +1,198 @@
+<h1 id="xxhash---extremely-fast-hash-algorithm">xxHash - Extremely fast hash algorithm</h1>
+<p>xxHash is an Extremely fast Hash algorithm, running at RAM speed limits. It successfully completes the <a href="http://code.google.com/p/smhasher/wiki/SMHasher">SMHasher</a> test suite which evaluates collision, dispersion and randomness qualities of hash functions. Code is highly portable, and hashes are identical on all platforms (little / big endian).</p>
+<table>
+<thead>
+<tr class="header">
+<th>Branch</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>master</td>
+<td><a href="https://travis-ci.org/Cyan4973/xxHash?branch=master"><img src="https://travis-ci.org/Cyan4973/xxHash.svg?branch=master" alt="Build Status" /></a></td>
+</tr>
+<tr class="even">
+<td>dev</td>
+<td><a href="https://travis-ci.org/Cyan4973/xxHash?branch=dev"><img src="https://travis-ci.org/Cyan4973/xxHash.svg?branch=dev" alt="Build Status" /></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>The benchmark uses SMHasher speed test, compiled with Visual 2010 on a Windows Seven 32-bit box. The reference system uses a Core 2 Duo <span class="citation">@3GHz</span></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Speed</th>
+<th align="center">Quality</th>
+<th>Author</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="http://www.xxhash.com">xxHash</a></td>
+<td>5.4 GB/s</td>
+<td align="center">10</td>
+<td>Y.C.</td>
+</tr>
+<tr class="even">
+<td>MurmurHash 3a</td>
+<td>2.7 GB/s</td>
+<td align="center">10</td>
+<td>Austin Appleby</td>
+</tr>
+<tr class="odd">
+<td>SBox</td>
+<td>1.4 GB/s</td>
+<td align="center">9</td>
+<td>Bret Mulvey</td>
+</tr>
+<tr class="even">
+<td>Lookup3</td>
+<td>1.2 GB/s</td>
+<td align="center">9</td>
+<td>Bob Jenkins</td>
+</tr>
+<tr class="odd">
+<td>CityHash64</td>
+<td>1.05 GB/s</td>
+<td align="center">10</td>
+<td>Pike &amp; Alakuijala</td>
+</tr>
+<tr class="even">
+<td>FNV</td>
+<td>0.55 GB/s</td>
+<td align="center">5</td>
+<td>Fowler, Noll, Vo</td>
+</tr>
+<tr class="odd">
+<td>CRC32</td>
+<td>0.43 GB/s</td>
+<td align="center">9</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>MD5-32</td>
+<td>0.33 GB/s</td>
+<td align="center">10</td>
+<td>Ronald L.Rivest</td>
+</tr>
+<tr class="odd">
+<td>SHA1-32</td>
+<td>0.28 GB/s</td>
+<td align="center">10</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Q.Score is a measure of quality of the hash function. It depends on successfully passing SMHasher test set. 10 is a perfect score. Algorithms with a score &lt; 5 are not listed on this table.</p>
+<p>A more recent version, XXH64, has been created thanks to <a href="https://github.com/JCash">Mathias Westerdahl</a>, which offers superior speed and dispersion for 64-bit systems. Note however that 32-bit applications will still run faster using the 32-bit version.</p>
+<p>SMHasher speed test, compiled using GCC 4.8.2, on Linux Mint 64-bit. The reference system uses a Core i5-3340M <span class="citation">@2.7GHz</span></p>
+<table>
+<thead>
+<tr class="header">
+<th>Version</th>
+<th>Speed on 64-bit</th>
+<th>Speed on 32-bit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>XXH64</td>
+<td>13.8 GB/s</td>
+<td>1.9 GB/s</td>
+</tr>
+<tr class="even">
+<td>XXH32</td>
+<td>6.8 GB/s</td>
+<td>6.0 GB/s</td>
+</tr>
+</tbody>
+</table>
+<p>This project also includes a command line utility, named <code>xxhsum</code>, offering similar features as <code>md5sum</code>, thanks to <a href="https://github.com/t-mat">Takayuki Matsuoka</a> contributions.</p>
+<h3 id="license">License</h3>
+<p>The library files <code>xxhash.c</code> and <code>xxhash.h</code> are BSD licensed. The utility <code>xxhsum</code> is GPL licensed.</p>
+<h3 id="build-modifiers">Build modifiers</h3>
+<p>The following macros can be set at compilation time, they modify xxhash behavior. They are all disabled by default.</p>
+<ul>
+<li><code>XXH_INLINE_ALL</code> : Make all functions <code>inline</code>, with bodies directly included within <code>xxhash.h</code>. There is no need for an <code>xxhash.o</code> module in this case. Inlining functions is generally beneficial for speed on small keys. It's especially effective when key length is a compile time constant, with observed performance improvement in the +200% range . See <a href="https://fastcompression.blogspot.com/2018/03/xxhash-for-small-keys-impressive-power.html">this article</a> for details.</li>
+<li><code>XXH_ACCEPT_NULL_INPUT_POINTER</code> : if set to <code>1</code>, when input is a null-pointer, xxhash result is the same as a zero-length key (instead of a dereference segfault).</li>
+<li><code>XXH_FORCE_MEMORY_ACCESS</code> : default method <code>0</code> uses a portable <code>memcpy()</code> notation. Method <code>1</code> uses a gcc-specific <code>packed</code> attribute, which can provide better performance for some targets. Method <code>2</code> forces unaligned reads, which is not standard compliant, but might sometimes be the only way to extract better performance.</li>
+<li><code>XXH_CPU_LITTLE_ENDIAN</code> : by default, endianess is determined at compile time. It's possible to skip auto-detection and force format to little-endian, by setting this macro to 1. Setting it to 0 forces big-endian.</li>
+<li><code>XXH_PRIVATE_API</code> : same impact as <code>XXH_INLINE_ALL</code>. Name underlines that symbols will not be published on library public interface.</li>
+<li><code>XXH_NAMESPACE</code> : prefix all symbols with the value of <code>XXH_NAMESPACE</code>. Useful to evade symbol naming collisions, in case of multiple inclusions of xxHash source code. Client applications can still use regular function name, symbols are automatically translated through <code>xxhash.h</code>.</li>
+<li><code>XXH_STATIC_LINKING_ONLY</code> : gives access to state declaration for static allocation. Incompatible with dynamic linking, due to risks of ABI changes.</li>
+<li><code>XXH_NO_LONG_LONG</code> : removes support for XXH64, for targets without 64-bit support.</li>
+</ul>
+<h3 id="example">Example</h3>
+<p>Calling xxhash 64-bit variant from a C program :</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;xxhash.h&quot;</span>
+
+<span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span> calcul_hash(<span class="dt">const</span> <span class="dt">void</span>* buffer, <span class="dt">size_t</span> length)
+{
+    <span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span> <span class="dt">const</span> seed = <span class="dv">0</span>;   <span class="co">/* or any other value */</span>
+    <span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span> <span class="dt">const</span> hash = XXH64(buffer, length, seed);
+    <span class="cf">return</span> hash;
+}</code></pre></div>
+<p>Using streaming variant is more involved, but makes it possible to provide data in multiple rounds :</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;stdlib.h&quot;</span><span class="pp">   </span><span class="co">/* abort() */</span>
+<span class="pp">#include </span><span class="im">&quot;xxhash.h&quot;</span>
+
+
+<span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span> calcul_hash_streaming(someCustomType handler)
+{
+    <span class="co">/* create a hash state */</span>
+    XXH64_state_t* <span class="dt">const</span> state = XXH64_createState();
+    <span class="cf">if</span> (state==NULL) abort();
+
+    <span class="dt">size_t</span> <span class="dt">const</span> bufferSize = SOME_SIZE;
+    <span class="dt">void</span>* <span class="dt">const</span> buffer = malloc(bufferSize);
+    <span class="cf">if</span> (buffer==NULL) abort();
+
+    <span class="co">/* Initialize state with selected seed */</span>
+    <span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span> <span class="dt">const</span> seed = <span class="dv">0</span>;   <span class="co">/* or any other value */</span>
+    XXH_errorcode <span class="dt">const</span> resetResult = XXH64_reset(state, seed);
+    <span class="cf">if</span> (resetResult == XXH_ERROR) abort();
+
+    <span class="co">/* Feed the state with input data, any size, any number of times */</span>
+    (...)
+    <span class="cf">while</span> ( <span class="co">/* any condition */</span> ) {
+        <span class="dt">size_t</span> <span class="dt">const</span> length = get_more_data(buffer, bufferSize, handler);   
+        XXH_errorcode <span class="dt">const</span> updateResult = XXH64_update(state, buffer, length);
+        <span class="cf">if</span> (updateResult == XXH_ERROR) abort();
+        (...)
+    }
+    (...)
+
+    <span class="co">/* Get the hash */</span>
+    XXH64_hash_t <span class="dt">const</span> hash = XXH64_digest(state);
+
+    <span class="co">/* State can then be re-used; in this example, it is simply freed  */</span>
+    free(buffer);
+    XXH64_freeState(state);
+
+    <span class="cf">return</span> (<span class="dt">unsigned</span> <span class="dt">long</span> <span class="dt">long</span>)hash;
+}</code></pre></div>
+<h3 id="new-experimental-hash-algorithm">New experimental hash algorithm</h3>
+<p>Starting with <code>v0.7.0</code>, the library includes a new algorithm, named <code>XXH3</code>, able to generate 64 and 128-bits hashes.</p>
+<p>The new algorithm is much faster than its predecessors, for both long and small inputs, as can be observed in following graphs :</p>
+<div class="figure">
+<img src="https://github.com/Cyan4973/xxHash/releases/download/graphs/H_bandwidth_bargraph.png" alt="XXH3, bargraph" />
+<p class="caption">XXH3, bargraph</p>
+</div>
+<div class="figure">
+<img src="https://github.com/Cyan4973/xxHash/releases/download/graphs/H_latency_randomS.png" alt="XXH3, latency, random size" />
+<p class="caption">XXH3, latency, random size</p>
+</div>
+<p>The algorithm is currently labelled experimental, as it may change in a future version. To access it, one need to unlock its declaration using macro <code>XXH_STATIC_LINKING_ONLY</code>. It can be used for ephemeral data, and for tests, but avoid storing long-term hash values yet. <code>XXH3</code> will be stabilized in a future version. This period will be used to collect users' feedback.</p>
+<h3 id="other-programming-languages">Other programming languages</h3>
+<p>Beyond the C reference version, xxHash is also available on many programming languages, thanks to great contributors. They are <a href="http://www.xxhash.com/#other-languages">listed here</a>.</p>
+<h3 id="branch-policy">Branch Policy</h3>
+<blockquote>
+<ul>
+<li>The &quot;master&quot; branch is considered stable, at all times.</li>
+<li>The &quot;dev&quot; branch is the one where all contributions must be merged before being promoted to master.</li>
+<li>If you plan to propose a patch, please commit into the &quot;dev&quot; branch, or its own feature branch. Direct commit to &quot;master&quot; are not permitted.</li>
+</ul>
+</blockquote>

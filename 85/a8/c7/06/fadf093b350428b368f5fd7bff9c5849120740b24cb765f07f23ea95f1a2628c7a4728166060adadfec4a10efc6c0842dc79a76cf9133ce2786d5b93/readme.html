@@ -1,0 +1,102 @@
+<h1 id="pbrt-parser-v1.1">PBRT-Parser (V1.1)</h1>
+<p>The goal of this project is to provide a free (apache-lincensed) open source tool to easily (and quickly) load PBRT files (such as PBRT's own &quot;pbrt-v3-scenes&quot; test scenes, or Disney's Moana island model).</p>
+<p>In particular it</p>
+<ul>
+<li><p>contains both a purely syntatical as well as a more advanced semantical parser (see below)</p></li>
+<li><p>can parse the original (ie, ascii-) '.pbrt' files from pretty much any pbrt file I could find.</p></li>
+<li><p>comes with support for reading and writing the resulting pbrt scene graph to a binary &quot;.pbf&quot; format (.pbf = binary pbrt format) that is <em>significantly</em> faster to read. I.e., you can use the included pbrt2pbf to convert to convert a ascii .pbrt file to a binary .pbf file, which when loaded by an application will yield exactly the same scene graph as parsing the original .pbrt file, just much faster (for moana, that drops parsing time from 30ish minutes to seconds!).</p></li>
+</ul>
+<p>A few screenshots:</p>
+<p><img src="doc/jpg/ecosys.jpg" title="ecosys" alt="ecosys.pbrt" /> <img src="doc/jpg/landscape.jpg" title="landscape" alt="landscape.pbrt" /> <img src="doc/jpg/moana.jpg" title="moana island, as shown at Siggraph 2018, using a slightly older version of this parser" alt="moana.pbrt" /></p>
+<h1 id="contributors-in-order-of-appearance">Contributors (in &quot;order of appearance&quot;)</h1>
+<ul>
+<li>Ingo Wald</li>
+<li>Fabio Pellacini (University of Rome)</li>
+<li>Stefan Zellman (University of Cologne)</li>
+<li>lots of other people, through suggestions, bug reports, etc ...</li>
+</ul>
+<h1 id="release-notes">Release Notes</h1>
+<p>V 2.2:</p>
+<ul>
+<li>have first area light sources (distant and infinite)</li>
+<li>added reverseorientation</li>
+<li>added InfiniteLight::{nsamples,L,scale}</li>
+</ul>
+<p>V 2.1.4: Various bugfixes:</p>
+<ul>
+<li>textures now have 'name' field, which now gets read and written to/from binary</li>
+<li>fixed core dump when reading/writing spectrum values in pbfs.</li>
+<li>bumped binary file format to v1.0 (due to changes in format)</li>
+</ul>
+<p>V 2.1:</p>
+<ul>
+<li><p>added semantic parsing of 'AreaLights', which are now attached to shapes, and stored to/loaded from PBF files.</p></li>
+<li><p>significant cleanup of semantic parser: SemanticParser is now a separate class in a sepa rate header file, with all texture-, mateiral-, geometry-, etc based parsing in separate implementation files. Also, the single giant &quot;parseMaterial&quot; etc have been split into type-specific parse functions (eg, parseMaterial_disney vs parsematieral_mix, etc), further increasing readability.</p></li>
+</ul>
+<p>V 2.0:</p>
+<ul>
+<li>amalgamated all <em>public</em> API into a single header file (include/pbrtParser/Scene.h) that now only contains the fully semantically parsed Scene. All intermediary syntax-only parsing is now hidden in the impl/ directory, is no longer installed, and is no longer exported as a separate library. From now on, only a single library with a single header files is required after install.</li>
+</ul>
+<h1 id="status">Status</h1>
+<p>The <em>semantical</em> parser currently supports:</p>
+<ul>
+<li>Shapes: <code>trianglemesh</code>, <code>disk</code>, <code>sphere</code>, and 'curve' are supported.</li>
+<li>Materials: <code>Disney</code>, <code>Uber</code>, <code>Mix</code>, <code>Metal</code>, <code>Mirror</code>, <code>Matte</code>, <code>Translucent</code>, <code>Plastic</code>, <code>Substrate</code>, <code>Fourier</code>, and <code>Glass</code> should all work. In particular, all indirect references (e.g., a &quot;mix&quot; material referencing two other materials by name) are now properly resolved.</li>
+<li>Textures: <code>Image</code>, <code>PtexFile</code> (storing only the filename, not the ptx data), <code>Fbm</code>, <code>Windy</code>, <code>Marble</code>, <code>Scale</code>, <code>Wrinkled</code>, <code>Mix</code>, and <code>Constant</code>. As with materials, all indirect references should be fully recognized.</li>
+<li>File formats</li>
+<li><code>.pbrt</code> : the original pbrt file format - slow to parse, but will work</li>
+<li><code>.pbf</code> : our own binary file format (use <code>pbrt2pbf</code> to convert ascii pbrt to binary pbf)</li>
+</ul>
+<p>Disclaimer(s): I did do a significant amonut of testing to make sure that the parser can load all .pbrt files without complaining, and that the above classes will parse everything that's in those files .... BUT:</p>
+<ul>
+<li><p>I may have missed some things - please let me know...</p></li>
+<li><p>The parser <em>should</em> parse all .pbrt files I could find, but there will likely be other files that are valid PBRT files that the parser would choke. If you find any, please let me know.</p></li>
+<li><p>I do not currently have a fully PBRT compliant renderer, so cannot test whether all the parsed data is actualy parsed correctly. Generally triangle meshes, objects, instances, transforms, material and texture types, mapping of materials/textures etc to shapes, etc, should all work, but I can't entirely vouch for all material properties or texture properties of all material types.</p></li>
+<li><p>I <em>will</em> parse auxiliary .ply files as part of the parsing process, but will <em>not</em> parse texture formats, ptex, spectrum specs, etc. For all such auxiliary files I'll include the file name, but leave it to the app to load such files (else I'd require tons of external dependencies)</p></li>
+</ul>
+<h2 id="known-limitations">Known Limitations</h2>
+<ul>
+<li><p><code>loopsubdiv</code> shapes are still ignored.</p></li>
+<li><p><code>curve</code> is currently a single shape type; would make senes to split into FlatCurve, CylinderCurve, etc.</p></li>
+<li><p>some models use camera space for object definitions - this isn't supported yet.</p></li>
+</ul>
+<h1 id="a-brief-history-of-this-project">A Brief History of this Project</h1>
+<p>This project started out as being mostly a toy project for my own use, <em>originally</em> with the sole goal of being able to load PBRT's heavily instanced models (ecosys, landcape, and sanmiguel) for some ray tracing/instancing research.</p>
+<p>Since then, it's come a long way, and has pretty much become my method of choice for getting content into my various ray tracing projects: First, with more powerful hardware around it's now more practical to have good material data around for one's ray tracing research, and other than PBRT's models there's previous few freely available models with anything other than OBJ Wavefront's material model. Second, last year Disney released the Moana island in two file formats, one of which is PBRT - and since my original &quot;toy project&quot; already did <em>most</em> of what was required to load Moana I ended up spending some more time on this, and bringing it to a state where I can use it for pretty much any PBRT model (including Moana, of course).</p>
+<p>For those that have looked at this library in its early stages: it has changed a lot! In its original form, it was a purely syntactical parser that did parse the transforms and object hierarchy, as well as external ply files for triangle meshes, but wouldn't go much beyond that. Anytying else - materials, textures, lights, and even most Shape-related stuff - wasn't parsed beyond pure &quot;name:value&quot; pairs that you'd then have to parse interpret yourself to figure out, for example, what exact kind of material it was, what it's name-value pairs meant in actual material parameters, etc.</p>
+<p>Since then, after having had to realize myself that that wasn't enough I eventually went ahead and significantly extended this library to have <em>both</em> a purely syntactical <em>and</em> a more advanced semantical parser that would also parse materials, textures, shapes, etc (see below), and eventually also added a binary file format to deal with, in particular, the egregious load times for the 40+GB Moana model (in binary format this now takes only seconds rather than half an hour...).</p>
+<p>At its current stage, the library <em>should</em> be able to parse pretty much anything I could find in pbrt file format. If you find something it doesn't parse at all, let me know. That said, since I don't have a fully PBRT compliant renderer yet there will, by necessity, be several things that I haven't tested at all. If you do find something that's obviously broken, let me know (and I'll gladly take pull requests, too!).</p>
+<h1 id="semantical-vs-syntactical-parser">Semantical vs Syntactical Parser</h1>
+<p>When looking at parsers, they typically consist of two intermingled stages: pure syntax (e.g., regnozizing the word &quot;Shape&quot; as the beginning of a shape definition) to full semantic (e.g., what a shape actually is, and how it behaves). For many formats, the boundary between those two extremes is &quot;a bit&quot; wishy-washy, with much of the semantics requiring way more effort to understand than the pure syntax. Arguably the most extreme format on that spectrum is XML, where the syntax itself only defines &quot;nodes&quot;, &quot;attributes&quot;, and &quot;content&quot;, with <em>all</em> semantical meaning of what specific nodes or attributes actually mean left for the app to figure out.</p>
+<p>PBRT specifies <em>some</em> more semantics in the format (e.g., the file format itself specifies that a Shape is different from a Material), but still leaves a lot to be figured out afterwards. For example, in terms of pure syntax a triangle mesh and a sphere are both &quot;shapes&quot; that just differ in what parameters got attached to that shape. That makes the format easy to extend (you could add a new geometry type of material type to PBRT without changing the file format at all!), but leaves more work for the app to figure our what certain name:value pairs actually meant.</p>
+<p>Initially, this project only focussed on the syntax, and left all interpretation of name:value pairs to the application. This however can be rather tricky, and after I wrote that &quot;name:value interpretation code&quot; multiple times in multiple project I eventually decided to put that into this library as well, resulting in both a purely syntactical, as well as a more ready-to-use semantical parser.</p>
+<p>To explain the difference: In the <em>syntactical</em> parser, for a given triangle mesh you'd end with a C++ class of type &quot;Shape&quot; that would have a parameter &quot;name&quot; with type &quot;string&quot;, a size of 1, and a value of [ &quot;trianglemesh&quot; ], as well as a pamameter &quot;P&quot; with type &quot;float&quot;, a size of 3<em>N, and a value of [ x0 y0 z0 x1 .... zN ] .... but it'd have to be the application that has to figure out that this is a triangle mesh with a vertex array. In the </em>semantical* parser (which of course builds on top of the syntactical parser as an intermediary parsing step) you will instead end up with a class &quot;TriangleMesh&quot; that has a C++ class member of &quot;std::vector<vec3f> position&quot;, etc. Similarly for materials: The syntactical parser only tells you that there <em>is</em> a material with a string specifying, for example, the type &quot;disney&quot;, and a list of parameters; while the semantical parser would parse this down to a C++ &quot;DisneyMaterial&quot; class, with C++ members for the material parameters, etc.</p>
+<h1 id="license">LICENSE</h1>
+<p>This project comes with Apache 2.0 license - pretty much &quot;use as you see fit&quot;.</p>
+<h1 id="usage">USAGE</h1>
+<p>For examples usages, see the simply tools (e.g., pbrtInfo or pbfInfo) in the apps directory.</p>
+<p>Suggested use is with CMake, in which form you can use it in either one of two ways:</p>
+<h2 id="option-1-make-install">Option 1: Make Install</h2>
+<p>Build the project with cmake, and &quot;make install&quot; to a install directory. Once installed (say, to /usr/local) - In your source code, <code>include &quot;pbrtParser/semantic/Scene.h&quot;</code> - In your project, link to the <code>pbrtParser_semantic</code> library.</p>
+<p>Of course, this way you can use whatever build system you want to use.</p>
+<h2 id="option-2-cmake-with-source-access">Option 2: Cmake with source-access</h2>
+<p>If you don't like the &quot;make install&quot; option, you can also include the full source three, either as a complete copy of this project (ugh), or (preferred!) as a git submodule.</p>
+<p>Assuming you're building your main project with cmake, and assuming this parser is included in <project>/external/pbrtParser (hint: <code>git submodule add https://github.com/ingowald/pbrtParser.git external/pbrtParser</code> ... just saying....):</p>
+<ul>
+<li>in your CMakeLists.txt:</li>
+</ul>
+<p>add_subdirectory(external/pbrtParser EXCLUDE_FROM_ALL) include_directories(${CMAKE_PROJECT_SOURCE_DIR}/external/pbrtParser) ... target_link_libraries(<myProjects> pbrtParser_semantic)</p>
+<ul>
+<li>in your source file:</li>
+</ul>
+<p>#include &quot;pbrtParser/semantic/Scene.h&quot; ... pbrt::semantic::Scene::SP scene = pbrt::semantic::Scene::loadFrom(fileName); ...</p>
+<h2 id="optional-use-your-own-vector-library">Optional: Use your own vector library</h2>
+<p>One of the most common issues with using other peoples' C++ libraries in graphics is that - of course! - everybody wants to use their own favorite libraries for math and vector operations.</p>
+<p>This project internally uses a somewhat older copy of the &quot;ospcommon&quot; library that comes with the ospray project; however, to avoid some of the otherwise common naming clashes all of this is hidden within the actual parser and lexer implementation, and the publicly visible interface in semantic/Scene.h uses simple, plain-C structs that only specify the data <em>layout</em> of the vec3f, vec4i, etc classes.</p>
+<p>As such, if you want to use your own vector classes, there are two ways of doing this:</p>
+<ul>
+<li><p>Option 1: Add a default constructor to your own vector classes that will be able to construct your own types from these plain-C classes.</p></li>
+<li><p>Option 2: Assuming your own vector calsses <em>do</em> have the same data layout as the ones that the parser expects, you can also do a</p></li>
+</ul>
+<p>#define PBRT_PARSER_PARSER_VECTYPE_NAMESPACE myown::math #include <pbrtParser/semantic/Scene.h></p>
+<p>... which will make your own code &quot;think&quot; that the parser was actually using your own vector library. This is, of course, a bit hacky, so use at your own risk.</p>

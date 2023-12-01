@@ -1,0 +1,63 @@
+<p><a href="https://travis-ci.org/zeroxs/aegis.cpp"><img src="https://travis-ci.org/zeroxs/aegis.cpp.svg?branch=master" alt="Build Status" /></a> <a href="https://discord.gg/w7Y3Bb8"><img src="https://discordapp.com/api/guilds/287048029524066334/widget.png" alt="Discord" /></a> <a href="https://github.com/zeroxs/aegis.cpp/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<h1 id="aegis-library">Aegis Library</h1>
+<p>C++14/17 library for interfacing with the <a href="https://discordapp.com/developers/docs/intro">Discord API</a></p>
+<h1 id="license">License</h1>
+<p>This project is licensed under the MIT license. See <a href="https://github.com/zeroxs/aegis.cpp/blob/master/LICENSE">LICENSE</a></p>
+<p>Libraries used (all are header-only with the exception of zlib and openssl): - <a href="https://github.com/chriskohlhoff/asio">Asio</a> - <a href="https://github.com/zeroxs/websocketpp">Websocketpp (unofficial fork)</a> - <a href="https://github.com/nlohmann/json">JSON for Modern C++</a> - <a href="https://github.com/gabime/spdlog">spdlog</a> (by extension, <a href="https://github.com/fmtlib/fmt">fmtlib</a>) - <a href="https://www.openssl.org">OpenSSL 1.0.2</a> - <a href="https://zlib.net">zlib</a> - <a href="https://github.com/mateidavid/zstr">zstr</a></p>
+<h1 id="todo">TODO</h1>
+<ul>
+<li>Voice data send/recv</li>
+<li>Finish documentation</li>
+<li>Finish live example of library in use</li>
+</ul>
+<h1 id="documentation">Documentation</h1>
+<p>You can access the <a href="https://docs.aegisbot.io/">documentation here</a>. It is a work in progress itself and has some missing parts, but most of the library is now documented.</p>
+<h1 id="using-this-library">Using this library</h1>
+<p>This library can be used compiled or as header only. All ways require recursive cloning of this repo. Some of the dependencies are version locked.</p>
+<h4 id="header-only">Header only</h4>
+<p>Including the helper header will automatically include all other files.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;aegis.hpp&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="dt">int</span> main()</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>{</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>    aegis::core bot(aegis::<span class="dt">create_bot_t</span>().log_level(spdlog::level::trace).token(<span class="st">&quot;TOKEN&quot;</span>));</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>    bot.set_on_message_create([](<span class="kw">auto</span> obj)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>    {</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>        <span class="cf">if</span> (obj.msg.get_content() == <span class="st">&quot;Hi&quot;</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>            obj.msg.get_channel().create_message(fmt::format(<span class="st">&quot;Hello </span><span class="sc">{}</span><span class="st">&quot;</span>, obj.msg.author.username));</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a>    });</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a>    bot.run();</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a>    bot.yield();</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a>}</span></code></pre></div>
+<h4 id="separate-compilation">Separate compilation</h4>
+<p>You can include <code>#include &lt;aegis/src.hpp&gt;</code> within a single cpp file while defining <code>-DAEGIS_SEPARATE_COMPILATION</code>, have <code>#include &lt;aegis.hpp&gt;</code> in your program, then build as usual.</p>
+<h4 id="sharedstatic-library">Shared/Static library</h4>
+<p>You can build this library with CMake.</p>
+<pre><code>$ git clone --recursive https://github.com/zeroxs/aegis.cpp.git
+$ cd aegis.cpp
+$ mkdir build
+$ cd build
+$ cmake ..
+// or to use C++17
+$ cmake -DCMAKE_CXX_COMPILER=g++-7 -DCMAKE_CXX_STANDARD=17 ..</code></pre>
+<p>You can also add <code>-DBUILD_EXAMPLES=1</code> and it will build 3 examples within the ./src directory.<br /> <code>example_main.cpp;example.cpp</code> will build a bot that runs out of its own class<br /> <code>minimal.cpp</code> will build two versions, one (aegis_minimal) will be with the shared/static library. The other (aegis_headeronly_no_cache) will be header-only but the lib will store no internal cache.</p>
+<h2 id="compiler-options">Compiler Options</h2>
+<p>You can pass these flags to CMake to change what it builds<br /> <code>-DBUILD_EXAMPLES=1</code> will build the examples<br /> <code>-DCMAKE_CXX_COMPILER=g++-7</code> will let you select the compiler used<br /> <code>-DCMAKE_CXX_STANDARD=17</code> will let you select C++14 (default) or C++17</p>
+<h5 id="library">Library</h5>
+<p>You can pass these flags to your compiler (and/or CMake) to alter how the library is built<br /> <code>-DAEGIS_DISABLE_ALL_CACHE</code> will disable the internal caching of most objects such as member data reducing memory usage by a significant amount<br /> <code>-DAEGIS_DEBUG_HISTORY</code> enables the saving of the last 5 messages sent on the shard’s websocket. In the event of an uncaught exception, they are dumped to console.<br /> <code>-DAEGIS_PROFILING</code> enables the usage of 3 callbacks that can help track time spent within the library. See docs:<br /> 1. <code>aegis::core::set_on_message_end</code> Called when message handler is finished. Counts only your message handler time. 2. <code>aegis::core::set_on_js_end</code> Called when the incoming json event is parsed. Counts only json parse time. 3. <code>aegis::core::set_on_rest_end</code> Called when a REST (or any HTTP request is made) is finished. Counts only entire HTTP request time and includes response status code.</p>
+<h5 id="your-project">Your project</h5>
+<p>Options above, as well as: <code>-DAEGIS_DYN_LINK</code> used when linking the library as a shared object<br /> <code>-DAEGIS_HEADER_ONLY</code> to make library header-only (default option)<br /> <code>-DAEGIS_SEPARATE_COMPILATION</code> used when linking the library as static or separate cpp file within your project<br /></p>
+<h2 id="cmake-misc">CMake misc</h2>
+<p>If configured with CMake, it will create a pkg-config file that may help with compiling your own project.<br /> It can be used as such:<br /> <code>g++ -std=c++14 myfile.cpp $(pkg-config --cflags --libs aegis)</code><br /> to link to the shared object</p>
+<p><code>g++ -std=c++14 myfile.cpp $(pkg-config --cflags --libs aegis_static)</code><br /> to link to the static object<br /></p>
+<p>You can also use this library within your own CMake project by adding <code>find_package(Aegis REQUIRED)</code> to your <code>CMakeLists.txt</code>.</p>
+<h2 id="config">Config</h2>
+<p>You can change basic configuration options within the <code>config.json</code> file. It should be in the same directory as the executable.</p>
+<pre><code>{
+    &quot;token&quot;: &quot;BOTTOKENHERE&quot;,
+    &quot;force-shard-count&quot;: 10,
+    &quot;file-logging&quot;: false,
+    &quot;log-format&quot;: &quot;%^%Y-%m-%d %H:%M:%S.%e [%L] [th#%t]%$ : %v&quot;
+}</code></pre>
+<p>Alternatively you can configure the library by passing in the <a href="https://docs.aegisbot.io/structaegis_1_1create__bot__t.html">create_bot_t()</a> object to the constructor of the aegis::core object. You can make use of it fluent-style.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>aegis::core(aegis::<span class="dt">create_bot_t</span>().log_level(spdlog::level::trace).token(<span class="st">&quot;TOKEN&quot;</span>))</span></code></pre></div>

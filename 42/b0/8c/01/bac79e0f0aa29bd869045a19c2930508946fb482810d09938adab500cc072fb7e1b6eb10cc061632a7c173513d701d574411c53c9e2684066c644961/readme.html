@@ -1,0 +1,168 @@
+<p align="center">
+<img src="https://raw.githubusercontent.com/facebook/zstd/dev/doc/images/zstd_logo86.png" alt="Zstandard">
+</p>
+<p><strong>Zstandard</strong>, or <code>zstd</code> as short version, is a fast lossless compression algorithm, targeting real-time compression scenarios at zlib-level and better compression ratios. It’s backed by a very fast entropy stage, provided by <a href="https://github.com/Cyan4973/FiniteStateEntropy">Huff0 and FSE library</a>.</p>
+<p>Zstandard’s format is stable and documented in <a href="https://datatracker.ietf.org/doc/html/rfc8878">RFC8878</a>. Multiple independent implementations are already available. This repository represents the reference implementation, provided as an open-source dual <a href="LICENSE">BSD</a> and <a href="COPYING">GPLv2</a> licensed <strong>C</strong> library, and a command line utility producing and decoding <code>.zst</code>, <code>.gz</code>, <code>.xz</code> and <code>.lz4</code> files. Should your project require another programming language, a list of known ports and bindings is provided on <a href="http://www.zstd.net/#other-languages">Zstandard homepage</a>.</p>
+<p><strong>Development branch status:</strong></p>
+<p><a href="https://travis-ci.com/facebook/zstd"><img src="https://api.travis-ci.com/facebook/zstd.svg?branch=dev" title="Continuous Integration test suite" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/YannCollet/zstd-p0yf0"><img src="https://ci.appveyor.com/api/projects/status/xt38wbdxjk5mrbem/branch/dev?svg=true" title="Windows test suite" alt="Build status" /></a> <a href="https://circleci.com/gh/facebook/zstd"><img src="https://circleci.com/gh/facebook/zstd/tree/dev.svg?style=shield" title="Short test suite" alt="Build status" /></a> <a href="https://cirrus-ci.com/github/facebook/zstd"><img src="https://api.cirrus-ci.com/github/facebook/zstd.svg?branch=dev" alt="Build status" /></a> <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&amp;can=1&amp;q=proj:zstd"><img src="https://oss-fuzz-build-logs.storage.googleapis.com/badges/zstd.svg" alt="Fuzzing Status" /></a></p>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>For reference, several fast compression algorithms were tested and compared on a desktop running Ubuntu 20.04 (<code>Linux 5.11.0-41-generic</code>), with a Core i7-9700K CPU @ 4.9GHz, using <a href="https://github.com/inikep/lzbench">lzbench</a>, an open-source in-memory benchmark by <span class="citation" data-cites="inikep">@inikep</span> compiled with <a href="https://gcc.gnu.org/">gcc</a> 9.3.0, on the <a href="http://sun.aei.polsl.pl/~sdeor/index.php?page=silesia">Silesia compression corpus</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Compressor name</th>
+<th>Ratio</th>
+<th>Compression</th>
+<th>Decompress.</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>zstd 1.5.1 -1</strong></td>
+<td>2.887</td>
+<td>530 MB/s</td>
+<td>1700 MB/s</td>
+</tr>
+<tr class="even">
+<td><a href="http://www.zlib.net/">zlib</a> 1.2.11 -1</td>
+<td>2.743</td>
+<td>95 MB/s</td>
+<td>400 MB/s</td>
+</tr>
+<tr class="odd">
+<td>brotli 1.0.9 -0</td>
+<td>2.702</td>
+<td>395 MB/s</td>
+<td>450 MB/s</td>
+</tr>
+<tr class="even">
+<td><strong>zstd 1.5.1 –fast=1</strong></td>
+<td>2.437</td>
+<td>600 MB/s</td>
+<td>2150 MB/s</td>
+</tr>
+<tr class="odd">
+<td><strong>zstd 1.5.1 –fast=3</strong></td>
+<td>2.239</td>
+<td>670 MB/s</td>
+<td>2250 MB/s</td>
+</tr>
+<tr class="even">
+<td>quicklz 1.5.0 -1</td>
+<td>2.238</td>
+<td>540 MB/s</td>
+<td>760 MB/s</td>
+</tr>
+<tr class="odd">
+<td><strong>zstd 1.5.1 –fast=4</strong></td>
+<td>2.148</td>
+<td>710 MB/s</td>
+<td>2300 MB/s</td>
+</tr>
+<tr class="even">
+<td>lzo1x 2.10 -1</td>
+<td>2.106</td>
+<td>660 MB/s</td>
+<td>845 MB/s</td>
+</tr>
+<tr class="odd">
+<td><a href="http://www.lz4.org/">lz4</a> 1.9.3</td>
+<td>2.101</td>
+<td>740 MB/s</td>
+<td>4500 MB/s</td>
+</tr>
+<tr class="even">
+<td>lzf 3.6 -1</td>
+<td>2.077</td>
+<td>410 MB/s</td>
+<td>830 MB/s</td>
+</tr>
+<tr class="odd">
+<td>snappy 1.1.9</td>
+<td>2.073</td>
+<td>550 MB/s</td>
+<td>1750 MB/s</td>
+</tr>
+</tbody>
+</table>
+<p>The negative compression levels, specified with <code>--fast=#</code>, offer faster compression and decompression speed at the cost of compression ratio (compared to level 1).</p>
+<p>Zstd can also offer stronger compression ratios at the cost of compression speed. Speed vs Compression trade-off is configurable by small increments. Decompression speed is preserved and remains roughly the same at all settings, a property shared by most LZ compression algorithms, such as <a href="http://www.zlib.net/">zlib</a> or lzma.</p>
+<p>The following tests were run on a server running Linux Debian (<code>Linux version 4.14.0-3-amd64</code>) with a Core i7-6700K CPU @ 4.0GHz, using <a href="https://github.com/inikep/lzbench">lzbench</a>, an open-source in-memory benchmark by <span class="citation" data-cites="inikep">@inikep</span> compiled with <a href="https://gcc.gnu.org/">gcc</a> 7.3.0, on the <a href="http://sun.aei.polsl.pl/~sdeor/index.php?page=silesia">Silesia compression corpus</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Compression Speed vs Ratio</th>
+<th>Decompression Speed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img src="doc/images/CSpeed2.png" title="Compression Speed vs Ratio" alt="Compression Speed vs Ratio" /></td>
+<td><img src="doc/images/DSpeed3.png" title="Decompression Speed" alt="Decompression Speed" /></td>
+</tr>
+</tbody>
+</table>
+<p>A few other algorithms can produce higher compression ratios at slower speeds, falling outside of the graph. For a larger picture including slow modes, <a href="doc/images/DCspeed5.png">click on this link</a>.</p>
+<h2 id="the-case-for-small-data-compression">The case for Small Data compression</h2>
+<p>Previous charts provide results applicable to typical file and stream scenarios (several MB). Small data comes with different perspectives.</p>
+<p>The smaller the amount of data to compress, the more difficult it is to compress. This problem is common to all compression algorithms, and reason is, compression algorithms learn from past data how to compress future data. But at the beginning of a new data set, there is no “past” to build upon.</p>
+<p>To solve this situation, Zstd offers a <strong>training mode</strong>, which can be used to tune the algorithm for a selected type of data. Training Zstandard is achieved by providing it with a few samples (one file per sample). The result of this training is stored in a file called “dictionary”, which must be loaded before compression and decompression. Using this dictionary, the compression ratio achievable on small data improves dramatically.</p>
+<p>The following example uses the <code>github-users</code> <a href="https://github.com/facebook/zstd/releases/tag/v1.1.3">sample set</a>, created from <a href="https://developer.github.com/v3/users/#get-all-users">github public API</a>. It consists of roughly 10K records weighing about 1KB each.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Compression Ratio</th>
+<th>Compression Speed</th>
+<th>Decompression Speed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img src="doc/images/dict-cr.png" title="Compression Ratio" alt="Compression Ratio" /></td>
+<td><img src="doc/images/dict-cs.png" title="Compression Speed" alt="Compression Speed" /></td>
+<td><img src="doc/images/dict-ds.png" title="Decompression Speed" alt="Decompression Speed" /></td>
+</tr>
+</tbody>
+</table>
+<p>These compression gains are achieved while simultaneously providing <em>faster</em> compression and decompression speeds.</p>
+<p>Training works if there is some correlation in a family of small data samples. The more data-specific a dictionary is, the more efficient it is (there is no <em>universal dictionary</em>). Hence, deploying one dictionary per type of data will provide the greatest benefits. Dictionary gains are mostly effective in the first few KB. Then, the compression algorithm will gradually use previously decoded content to better compress the rest of the file.</p>
+<h3 id="dictionary-compression-how-to">Dictionary compression How To:</h3>
+<ol type="1">
+<li><p>Create the dictionary</p>
+<p><code>zstd --train FullPathToTrainingSet/* -o dictionaryName</code></p></li>
+<li><p>Compress with dictionary</p>
+<p><code>zstd -D dictionaryName FILE</code></p></li>
+<li><p>Decompress with dictionary</p>
+<p><code>zstd -D dictionaryName --decompress FILE.zst</code></p></li>
+</ol>
+<h2 id="build-instructions">Build instructions</h2>
+<h3 id="makefile">Makefile</h3>
+<p>If your system is compatible with standard <code>make</code> (or <code>gmake</code>), invoking <code>make</code> in root directory will generate <code>zstd</code> cli in root directory.</p>
+<p>Other available options include: - <code>make install</code> : create and install zstd cli, library and man pages - <code>make check</code> : create and run <code>zstd</code>, tests its behavior on local platform</p>
+<h3 id="cmake">cmake</h3>
+<p>A <code>cmake</code> project generator is provided within <code>build/cmake</code>. It can generate Makefiles or other build scripts to create <code>zstd</code> binary, and <code>libzstd</code> dynamic and static libraries.</p>
+<p>By default, <code>CMAKE_BUILD_TYPE</code> is set to <code>Release</code>.</p>
+<h3 id="meson">Meson</h3>
+<p>A Meson project is provided within <a href="build/meson"><code>build/meson</code></a>. Follow build instructions in that directory.</p>
+<p>You can also take a look at <a href=".travis.yml"><code>.travis.yml</code></a> file for an example about how Meson is used to build this project.</p>
+<p>Note that default build type is <strong>release</strong>.</p>
+<h3 id="vcpkg">VCPKG</h3>
+<p>You can build and install zstd <a href="https://github.com/Microsoft/vcpkg/">vcpkg</a> dependency manager:</p>
+<pre><code>git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install zstd</code></pre>
+<p>The zstd port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull request</a> on the vcpkg repository.</p>
+<h3 id="visual-studio-windows">Visual Studio (Windows)</h3>
+<p>Going into <code>build</code> directory, you will find additional possibilities: - Projects for Visual Studio 2005, 2008 and 2010. + VS2010 project is compatible with VS2012, VS2013, VS2015 and VS2017. - Automated build scripts for Visual compiler by <span class="citation" data-cites="KrzysFR">[@KrzysFR]</span>(https://github.com/KrzysFR), in <code>build/VS_scripts</code>, which will build <code>zstd</code> cli and <code>libzstd</code> library without any need to open Visual Studio solution.</p>
+<h3 id="buck">Buck</h3>
+<p>You can build the zstd binary via buck by executing: <code>buck build programs:zstd</code> from the root of the repo. The output binary will be in <code>buck-out/gen/programs/</code>.</p>
+<h2 id="testing">Testing</h2>
+<p>You can run quick local smoke tests by executing the <code>playTest.sh</code> script from the <code>src/tests</code> directory. Two env variables <code>$ZSTD_BIN</code> and <code>$DATAGEN_BIN</code> are needed for the test script to locate the zstd and datagen binary. For information on CI testing, please refer to TESTING.md</p>
+<h2 id="status">Status</h2>
+<p>Zstandard is currently deployed within Facebook. It is used continuously to compress large amounts of data in multiple formats and use cases. Zstandard is considered safe for production environments.</p>
+<h2 id="license">License</h2>
+<p>Zstandard is dual-licensed under <a href="LICENSE">BSD</a> and <a href="COPYING">GPLv2</a>.</p>
+<h2 id="contributing">Contributing</h2>
+<p>The <code>dev</code> branch is the one where all contributions are merged before reaching <code>release</code>. If you plan to propose a patch, please commit into the <code>dev</code> branch, or its own feature branch. Direct commit to <code>release</code> are not permitted. For more information, please read <a href="CONTRIBUTING.md">CONTRIBUTING</a>.</p>

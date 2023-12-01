@@ -1,0 +1,460 @@
+<p align="center">
+<img height="100" src="https://i.imgur.com/oDXeMUQ.png" alt="argparse"/>
+</p>
+<p align="center">
+<img src="https://travis-ci.org/p-ranav/argparse.svg?branch=master" alt="travis"/> <a href="https://github.com/p-ranav/argparse/blob/master/LICENSE"> <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="license"/> </a> <img src="https://img.shields.io/badge/version-2.0-blue.svg?cacheSeconds=2592000" alt="version"/>
+</p>
+<h2 id="highlights">Highlights</h2>
+<ul>
+<li>Single header file</li>
+<li>Requires C++17</li>
+<li>MIT License</li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<p>Simply include argparse.hpp and you're good to go.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;argparse.hpp&gt;</span></code></pre></div>
+<p>To start parsing command-line arguments, create an <code>ArgumentParser</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;program name&quot;</span>);</code></pre></div>
+<p>To add a new argument, simply call <code>.add_argument(...)</code>. You can provide a variadic list of argument names that you want to group together, e.g., <code>-v</code> and <code>--verbose</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">program.add_argument(<span class="st">&quot;foo&quot;</span>);
+program.add_argument(<span class="st">&quot;-v&quot;</span>, <span class="st">&quot;--verbose&quot;</span>); <span class="co">// parameter packing</span></code></pre></div>
+<p>Argparse supports a variety of argument types including positional, optional, and compound arguments. Below you can see how to configure each of these types:</p>
+<h3 id="positional-arguments">Positional Arguments</h3>
+<p>Here's an example of a <strong><em>positional argument</em></strong>:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;argparse.hpp&gt;</span>
+
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {
+  argparse::ArgumentParser program(<span class="st">&quot;program name&quot;</span>);
+
+  program.add_argument(<span class="st">&quot;square&quot;</span>)
+    .help(<span class="st">&quot;display the square of a given integer&quot;</span>)
+    .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stoi(value); });
+
+  <span class="cf">try</span> {
+    program.parse_args(argc, argv);
+  }
+  <span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+    <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; program;
+    exit(<span class="dv">0</span>);
+  }
+  
+  <span class="kw">auto</span> input = program.get&lt;<span class="dt">int</span>&gt;(<span class="st">&quot;square&quot;</span>);
+  <span class="bu">std::</span>cout &lt;&lt; (input * input) &lt;&lt; <span class="bu">std::</span>endl;
+
+  <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>And running the code:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> 15
+<span class="ex">225</span></code></pre></div>
+<p>Here's what's happening:</p>
+<ul>
+<li>The <code>add_argument()</code> method is used to specify which command-line options the program is willing to accept. In this case, I’ve named it square so that it’s in line with its function.</li>
+<li>Command-line arguments are strings. Inorder to square the argument and print the result, we need to convert this argument to a number. In order to do this, we use the <code>.action</code> method and provide a lambda function that tries to convert user input into an integer.</li>
+<li>We can get the value stored by the parser for a given argument using <code>parser.get&lt;T&gt;(key)</code> method.</li>
+</ul>
+<h3 id="optional-arguments">Optional Arguments</h3>
+<p>Now, let's look at <strong><em>optional arguments</em></strong>. Optional arguments start with <code>-</code> or <code>--</code>, e.g., <code>--verbose</code> or <code>-a</code>. Optional arguments can be placed anywhere in the input sequence.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;--verbose&quot;</span>)
+  .help(<span class="st">&quot;increase output verbosity&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="cf">if</span> (program[<span class="st">&quot;--verbose&quot;</span>] == <span class="kw">true</span>) {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Verbosity enabled&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> --verbose
+<span class="ex">Verbosity</span> enabled</code></pre></div>
+<p>Here's what's happening: * The program is written so as to display something when --verbose is specified and display nothing when not. * Since the argument is actually optional, no error is thrown when running the program without <code>--verbose</code>. Note that by using <code>.default_value(false)</code>, if the optional argument isn’t used, it's value is automatically set to false. * By using <code>.implicit_value(true)</code>, the user specifies that this option is more of a flag than something that requires a value. When the user provides the --verbose option, it's value is set to true.</p>
+<h4 id="requiring-optional-arguments">Requiring optional arguments</h4>
+<p>There are scenarios where you would like to make an optional argument <strong><em>required</em></strong>. As discussed above, optional arguments either begin with <code>-</code> or <code>--</code>. You can make these types of arguments required like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">program.add_argument(<span class="st">&quot;-o&quot;</span>, <span class="st">&quot;--output&quot;</span>)
+  .required()
+  .help(<span class="st">&quot;specify the output file.&quot;</span>);</code></pre></div>
+<p>If the user does not provide a value for this parameter, an exception is thrown.</p>
+<p>Alternatively, you could provide a default value like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">program.add_argument(<span class="st">&quot;-o&quot;</span>, <span class="st">&quot;--output&quot;</span>)
+  .default_value(<span class="bu">std::</span>string(<span class="st">&quot;-&quot;</span>))
+  .required()
+  .help(<span class="st">&quot;specify the output file.&quot;</span>);</code></pre></div>
+<h3 id="negative-numbers">Negative Numbers</h3>
+<p>Optional arguments start with <code>-</code>. Can <code>argparse</code> handle negative numbers? The answer is yes!</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program;
+
+program.add_argument(<span class="st">&quot;integer&quot;</span>)
+  .help(<span class="st">&quot;Input number&quot;</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stoi(value); });
+  
+program.add_argument(<span class="st">&quot;floats&quot;</span>)
+  .help(<span class="st">&quot;Vector of floats&quot;</span>)
+  .nargs(<span class="dv">4</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stof(value); });
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="co">// Some code to print arguments</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> -5 -1.1 -3.1415 -3.1e2 -4.51329E3
+<span class="ex">integer</span> : -5
+<span class="ex">floats</span>  : -1.1 -3.1415 -310 -4513.29</code></pre></div>
+<p>As you can see here, <code>argparse</code> supports negative integers, negative floats and scientific notation.</p>
+<h3 id="combining-positional-and-optional-arguments">Combining Positional and Optional Arguments</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;square&quot;</span>)
+  .help(<span class="st">&quot;display the square of a given number&quot;</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stoi(value); });
+
+program.add_argument(<span class="st">&quot;--verbose&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="dt">int</span> input = program.get&lt;<span class="dt">int</span>&gt;(<span class="st">&quot;square&quot;</span>);
+
+<span class="cf">if</span> (program[<span class="st">&quot;--verbose&quot;</span>] == <span class="kw">true</span>) {
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;The square of &quot;</span> &lt;&lt; input &lt;&lt; <span class="st">&quot; is &quot;</span> &lt;&lt; (input * input) &lt;&lt; <span class="bu">std::</span>endl;
+}
+<span class="cf">else</span> {
+  <span class="bu">std::</span>cout &lt;&lt; (input * input) &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> 4
+<span class="ex">16</span>
+
+$ <span class="ex">./main</span> 4 --verbose
+<span class="ex">The</span> square of 4 is 16
+
+$ <span class="ex">./main</span> --verbose 4
+<span class="ex">The</span> square of 4 is 16</code></pre></div>
+<h3 id="printing-help">Printing Help</h3>
+<p><code>std::cout &lt;&lt; program</code> prints a help message, including the program usage and information about the arguments registered with the <code>ArgumentParser</code>. For the previous example, here's the default help message:</p>
+<pre><code>$ ./main --help
+Usage: ./main [options] square
+
+Positional arguments:
+square         display a square of a given number
+
+Optional arguments:
+-h, --help     show this help message and exit
+-v, --verbose  enable verbose logging</code></pre>
+<p>You may also get the help message in string via <code>program.help().str()</code>.</p>
+<h3 id="list-of-arguments">List of Arguments</h3>
+<p>ArgumentParser objects usually associate a single command-line argument with a single action to be taken. The <code>.nargs</code> associates a different number of command-line arguments with a single action. When using <code>nargs(N)</code>, N arguments from the command line will be gathered together into a list.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;main&quot;</span>);
+
+program.add_argument(<span class="st">&quot;--input_files&quot;</span>)
+  .help(<span class="st">&quot;The list of input files&quot;</span>)
+  .nargs(<span class="dv">2</span>);
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);   <span class="co">// Example: ./main --input_files config.yml System.xml</span>
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="kw">auto</span> files = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;(<span class="st">&quot;--input_files&quot;</span>);  <span class="co">// {&quot;config.yml&quot;, &quot;System.xml&quot;}</span></code></pre></div>
+<p><code>ArgumentParser.get&lt;T&gt;()</code> has specializations for <code>std::vector</code> and <code>std::list</code>. So, the following variant, <code>.get&lt;std::list&gt;</code>, will also work.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> files = program.get&lt;<span class="bu">std::</span>list&lt;<span class="bu">std::</span>string&gt;&gt;(<span class="st">&quot;--input_files&quot;</span>);  <span class="co">// {&quot;config.yml&quot;, &quot;System.xml&quot;}</span></code></pre></div>
+<p>Using <code>.action</code>, one can quickly build a list of desired value types from command line arguments. Here's an example:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;main&quot;</span>);
+
+program.add_argument(<span class="st">&quot;--query_point&quot;</span>)
+  .help(<span class="st">&quot;3D query point&quot;</span>)
+  .nargs(<span class="dv">3</span>)
+  .default_value(<span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;{<span class="fl">0.0</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>})
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stod(value); });
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv); <span class="co">// Example: ./main --query_point 3.5 4.7 9.2</span>
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="kw">auto</span> query_point = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">double</span>&gt;&gt;(<span class="st">&quot;--query_point&quot;</span>);  <span class="co">// {3.5, 4.7, 9.2}</span></code></pre></div>
+<h3 id="compound-arguments">Compound Arguments</h3>
+<p>Compound arguments are optional arguments that are combined and provided as a single argument. Example: <code>ps -aux</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;-a&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+program.add_argument(<span class="st">&quot;-b&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+program.add_argument(<span class="st">&quot;-c&quot;</span>)
+  .nargs(<span class="dv">2</span>)
+  .default_value(<span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt;{<span class="fl">0.0f</span>, <span class="fl">0.0f</span>})
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stof(value); });
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);                  <span class="co">// Example: ./main -abc 1.95 2.47</span>
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="kw">auto</span> a = program.get&lt;<span class="dt">bool</span>&gt;(<span class="st">&quot;-a&quot;</span>);                  <span class="co">// true</span>
+<span class="kw">auto</span> b = program.get&lt;<span class="dt">bool</span>&gt;(<span class="st">&quot;-b&quot;</span>);                  <span class="co">// true</span>
+<span class="kw">auto</span> c = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt;&gt;(<span class="st">&quot;-c&quot;</span>);    <span class="co">// {1.95, 2.47}</span>
+
+<span class="co">/// Some code that prints parsed arguments</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> -ac 3.14 2.718
+<span class="ex">a</span> = true
+<span class="ex">b</span> = false
+<span class="ex">c</span> = {3.14, 2.718}
+
+$ <span class="ex">./main</span> -cb
+<span class="ex">a</span> = false
+<span class="ex">b</span> = true
+<span class="ex">c</span> = {0.0, 0.0}</code></pre></div>
+<p>Here's what's happening: * We have three optional arguments <code>-a</code>, <code>-b</code> and <code>-c</code>. * <code>-a</code> and <code>-b</code> are toggle arguments. * <code>-c</code> requires 2 floating point numbers from the command-line. * argparse can handle compound arguments, e.g., <code>-abc</code> or <code>-bac</code> or <code>-cab</code>. This only works with short single-character argument names. - <code>-a</code> and <code>-b</code> become true. - argv is further parsed to identify the inputs mapped to <code>-c</code>. - If argparse cannot find any arguments to map to c, then c defaults to {0.0, 0.0} as defined by <code>.default_value</code></p>
+<h3 id="gathering-remaining-arguments">Gathering Remaining Arguments</h3>
+<p><code>argparse</code> supports gathering &quot;remaining&quot; arguments at the end of the command, e.g., for use in a compiler:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">compiler</span> file1 file2 file3</code></pre></div>
+<p>To enable this, simply create an argument and mark it as <code>remaining</code>. All remaining arguments passed to argparse are gathered here.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;compiler&quot;</span>);                                                             
+                                                                                                          
+program.add_argument(<span class="st">&quot;files&quot;</span>)                                                                             
+  .remaining();                                                                                           
+                                                                                                          
+<span class="cf">try</span> {                                                                                                     
+  program.parse_args(argc, argv);                                                                         
+}                                                                                                         
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {                                                                   
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;                                                                   
+  <span class="bu">std::</span>cout &lt;&lt; program;                                                                                   
+  exit(<span class="dv">0</span>);                                                                                                
+}                                                                                                         
+
+<span class="cf">try</span> {
+  <span class="kw">auto</span> files = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;(<span class="st">&quot;files&quot;</span>);
+  <span class="bu">std::</span>cout &lt;&lt; files.size() &lt;&lt; <span class="st">&quot; files provided&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;                                           
+  <span class="cf">for</span> (<span class="kw">auto</span>&amp; file : files)                                                             
+    <span class="bu">std::</span>cout &lt;&lt; file &lt;&lt; <span class="bu">std::</span>endl;
+} <span class="cf">catch</span> (<span class="bu">std::</span>logic_error&amp; e) {
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;No files provided&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}                                                                                                  </code></pre></div>
+<p>When no arguments are provided:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./compiler</span>
+<span class="ex">No</span> files provided</code></pre></div>
+<p>and when multiple arguments are provided:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./compiler</span> foo.txt bar.txt baz.txt
+<span class="ex">3</span> files provided
+<span class="ex">foo.txt</span>
+<span class="ex">bar.txt</span>
+<span class="ex">baz.txt</span></code></pre></div>
+<p>The process of gathering remaining arguments plays nicely with optional arguments too:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;compiler&quot;</span>);                                                             
+
+program.add_arguments(<span class="st">&quot;-o&quot;</span>)
+  .default_value(<span class="bu">std::</span>string(<span class="st">&quot;a.out&quot;</span>));
+
+program.add_argument(<span class="st">&quot;files&quot;</span>)                                                                             
+  .remaining();                                                                                           
+                                                                                                          
+<span class="cf">try</span> {                                                                                                     
+  program.parse_args(argc, argv);                                                                         
+}                                                                                                         
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {                                                                   
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;                                                                   
+  <span class="bu">std::</span>cout &lt;&lt; program;                                                                                   
+  exit(<span class="dv">0</span>);                                                                                                
+}
+
+<span class="kw">auto</span> output_filename = program.get&lt;<span class="bu">std::</span>string&gt;(<span class="st">&quot;-o&quot;</span>);
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Output filename: &quot;</span> &lt;&lt; output_filename &lt;&lt; <span class="bu">std::</span>endl;
+
+<span class="cf">try</span> {
+  <span class="kw">auto</span> files = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;(<span class="st">&quot;files&quot;</span>);
+  <span class="bu">std::</span>cout &lt;&lt; files.size() &lt;&lt; <span class="st">&quot; files provided&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;                                           
+  <span class="cf">for</span> (<span class="kw">auto</span>&amp; file : files)                                                             
+    <span class="bu">std::</span>cout &lt;&lt; file &lt;&lt; <span class="bu">std::</span>endl;
+} <span class="cf">catch</span> (<span class="bu">std::</span>logic_error&amp; e) {
+  <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;No files provided&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./compiler</span> -o main foo.cpp bar.cpp baz.cpp
+<span class="ex">Output</span> filename: main
+<span class="ex">3</span> files provided
+<span class="ex">foo.cpp</span>
+<span class="ex">bar.cpp</span>
+<span class="ex">baz.cpp</span></code></pre></div>
+<p><strong><em>NOTE</em></strong>: Remember to place all optional arguments BEFORE the remaining argument. If the optional argument is placed after the remaining arguments, it too will be deemed remaining:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./compiler</span> foo.cpp bar.cpp baz.cpp -o main
+<span class="ex">5</span> arguments provided
+<span class="ex">foo.cpp</span>
+<span class="ex">bar.cpp</span>
+<span class="ex">baz.cpp</span>
+<span class="ex">-o</span>
+<span class="ex">main</span></code></pre></div>
+<h3 id="parent-parsers">Parent Parsers</h3>
+<p>Sometimes, several parsers share a common set of arguments. Rather than repeating the definitions of these arguments, a single parser with all the common arguments can be added as a parent to another ArgumentParser instance. The <code>.add_parents</code> method takes a list of ArgumentParser objects, collects all the positional and optional actions from them, and adds these actions to the ArgumentParser object being constructed:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser parent_parser(<span class="st">&quot;main&quot;</span>);
+parent_parser.add_argument(<span class="st">&quot;--parent&quot;</span>)
+  .default_value(<span class="dv">0</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stoi(value); });
+
+argparse::ArgumentParser foo_parser(<span class="st">&quot;foo&quot;</span>);
+foo_parser.add_argument(<span class="st">&quot;foo&quot;</span>);
+foo_parser.add_parents(parent_parser);
+foo_parser.parse_args({ <span class="st">&quot;./main&quot;</span>, <span class="st">&quot;--parent&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;XXX&quot;</span> });   <span class="co">// parent = 2, foo = XXX</span>
+
+argparse::ArgumentParser bar_parser(<span class="st">&quot;bar&quot;</span>);
+bar_parser.add_argument(<span class="st">&quot;--bar&quot;</span>);
+bar_parser.parse_args({ <span class="st">&quot;./main&quot;</span>, <span class="st">&quot;--bar&quot;</span>, <span class="st">&quot;YYY&quot;</span> });           <span class="co">// bar = YYY</span></code></pre></div>
+<p>Note You must fully initialize the parsers before passing them via <code>.add_parents</code>. If you change the parent parsers after the child parser, those changes will not be reflected in the child.</p>
+<h2 id="further-examples">Further Examples</h2>
+<h3 id="construct-a-json-object-from-a-filename-argument">Construct a JSON object from a filename argument</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;json_test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;config&quot;</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) {
+    <span class="co">// read a JSON file</span>
+    <span class="bu">std::</span>ifstream stream(value);
+    nlohmann::json config_json;
+    stream &gt;&gt; config_json;
+    <span class="cf">return</span> config_json;
+  });
+
+<span class="cf">try</span> {
+  program.parse_args({<span class="st">&quot;./test&quot;</span>, <span class="st">&quot;config.json&quot;</span>});
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+nlohmann::json config = program.get&lt;nlohmann::json&gt;(<span class="st">&quot;config&quot;</span>);</code></pre></div>
+<h3 id="positional-arguments-with-compound-toggle-arguments">Positional Arguments with Compound Toggle Arguments</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;numbers&quot;</span>)
+  .nargs(<span class="dv">3</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stoi(value); });
+
+program.add_argument(<span class="st">&quot;-a&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+program.add_argument(<span class="st">&quot;-b&quot;</span>)
+  .default_value(<span class="kw">false</span>)
+  .implicit_value(<span class="kw">true</span>);
+
+program.add_argument(<span class="st">&quot;-c&quot;</span>)
+  .nargs(<span class="dv">2</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) { <span class="cf">return</span> <span class="bu">std::</span>stof(value); });
+
+program.add_argument(<span class="st">&quot;--files&quot;</span>)
+  .nargs(<span class="dv">3</span>);
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="kw">auto</span> numbers = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(<span class="st">&quot;numbers&quot;</span>);        <span class="co">// {1, 2, 3}</span>
+<span class="kw">auto</span> a = program.get&lt;<span class="dt">bool</span>&gt;(<span class="st">&quot;-a&quot;</span>);                               <span class="co">// true</span>
+<span class="kw">auto</span> b = program.get&lt;<span class="dt">bool</span>&gt;(<span class="st">&quot;-b&quot;</span>);                               <span class="co">// true</span>
+<span class="kw">auto</span> c = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">float</span>&gt;&gt;(<span class="st">&quot;-c&quot;</span>);                 <span class="co">// {3.14f, 2.718f}</span>
+<span class="kw">auto</span> files = program.get&lt;<span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt;&gt;(<span class="st">&quot;--files&quot;</span>);  <span class="co">// {&quot;a.txt&quot;, &quot;b.txt&quot;, &quot;c.txt&quot;}</span>
+
+<span class="co">/// Some code that prints parsed arguments</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> 1 2 3 -abc 3.14 2.718 --files a.txt b.txt c.txt
+<span class="ex">numbers</span> = {1, 2, 3}
+<span class="ex">a</span> = true
+<span class="ex">b</span> = true
+<span class="ex">c</span> = {3.14, 2.718}
+<span class="ex">files</span> = {<span class="st">&quot;a.txt&quot;</span>, <span class="st">&quot;b.txt&quot;</span>, <span class="st">&quot;c.txt&quot;</span>}</code></pre></div>
+<h3 id="restricting-the-set-of-values-for-an-argument">Restricting the set of values for an argument</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">argparse::ArgumentParser program(<span class="st">&quot;test&quot;</span>);
+
+program.add_argument(<span class="st">&quot;input&quot;</span>)
+  .default_value(<span class="st">&quot;baz&quot;</span>)
+  .action([](<span class="at">const</span> <span class="bu">std::</span>string&amp; value) {
+    <span class="at">static</span> <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="bu">std::</span>string&gt; choices = { <span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span> };
+    <span class="cf">if</span> (<span class="bu">std::</span>find(choices.begin(), choices.end(), value) != choices.end()) {
+      <span class="cf">return</span> value;
+    }
+    <span class="cf">return</span> <span class="bu">std::</span>string{ <span class="st">&quot;baz&quot;</span> };
+  });
+
+<span class="cf">try</span> {
+  program.parse_args(argc, argv);
+}
+<span class="cf">catch</span> (<span class="at">const</span> <span class="bu">std::</span>runtime_error&amp; err) {
+  <span class="bu">std::</span>cout &lt;&lt; err.what() &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="bu">std::</span>cout &lt;&lt; program;
+  exit(<span class="dv">0</span>);
+}
+
+<span class="kw">auto</span> input = program.get(<span class="st">&quot;input&quot;</span>);
+<span class="bu">std::</span>cout &lt;&lt; input &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./main</span> fex
+<span class="ex">baz</span></code></pre></div>
+<h2 id="supported-compilers">Supported Compilers</h2>
+<ul>
+<li>GCC &gt;= 7.0.0</li>
+<li>Clang &gt;= 4.0</li>
+<li>MSVC &gt;= 2017</li>
+</ul>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions are welcome, have a look at the <a href="CONTRIBUTING.md" class="uri">CONTRIBUTING.md</a> document for more information.</p>
+<h2 id="contributors">Contributors ✨</h2>
+<p>Thanks goes to these wonderful people:</p>
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore -->
+<table>
+<tr>
+<pre><code>&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/svanveen&quot;&gt;&lt;img src=&quot;https://avatars1.githubusercontent.com/u/23560108?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;svanveen&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;svanveen&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/lichray&quot;&gt;&lt;img src=&quot;https://avatars0.githubusercontent.com/u/433009?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;Zhihao Yuan&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;Zhihao Yuan&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/wtdcode&quot;&gt;&lt;img src=&quot;https://avatars2.githubusercontent.com/u/30623163?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;Mio&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;Mio&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/zhihaoy&quot;&gt;&lt;img src=&quot;https://avatars0.githubusercontent.com/u/43971430?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;zhihaoy&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;zhihaoy&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/Jackojc&quot;&gt;&lt;img src=&quot;https://avatars1.githubusercontent.com/u/4932816?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;Jack Clarke&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;Jack Clarke&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/SuperWig&quot;&gt;&lt;img src=&quot;https://avatars2.githubusercontent.com/u/2692096?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;Daniel Marshall&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;Daniel Marshall&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;</code></pre>
+</tr>
+<tr>
+<pre><code>&lt;td align=&quot;center&quot;&gt;&lt;a href=&quot;https://github.com/MU001999&quot;&gt;&lt;img src=&quot;https://avatars3.githubusercontent.com/u/21022101?s=400&amp;v=4&quot; width=&quot;100px;&quot; alt=&quot;mupp&quot;/&gt;&lt;br /&gt;&lt;sub&gt;&lt;b&gt;mupp&lt;/b&gt;&lt;/sub&gt;&lt;/a&gt;&lt;/td&gt;</code></pre>
+</tr>
+</table>
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+<h2 id="license">License</h2>
+<p>The project is available under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.</p>

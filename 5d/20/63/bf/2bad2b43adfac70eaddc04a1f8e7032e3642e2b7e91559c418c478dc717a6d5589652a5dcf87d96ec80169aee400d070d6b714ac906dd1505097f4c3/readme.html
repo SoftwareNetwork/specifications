@@ -1,0 +1,513 @@
+<h1 id="dtl">dtl</h1>
+<p><a href="https://travis-ci.org/cubicdaiya/dtl"><img src="https://travis-ci.org/cubicdaiya/dtl.png?branch=master" alt="Build Status" /></a></p>
+<p><code>dtl</code> is the diff template library written in C++. The name of template is derived C++'s Template.</p>
+<h1 id="table-of-contents">Table of contents</h1>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#getting-started">Getting started</a>
+<ul>
+<li><a href="#compare-two-strings">Compare two strings</a></li>
+<li><a href="#compare-two-data-has-arbitrary-type">Compare two data has arbitrary type</a></li>
+<li><a href="#merge-three-sequences">Merge three sequences</a></li>
+<li><a href="#patch-function">Patch function</a></li>
+<li><a href="#difference-as-unified-format">Difference as Unified Format</a></li>
+<li><a href="#compare-large-sequences">Compare large sequences</a></li>
+<li><a href="#unserious-difference">Unserious difference</a></li>
+<li><a href="#calculate-only-edit-distance">Calculate only Edit Distance</a></li>
+</ul></li>
+<li><a href="#algorithm">Algorithm</a>
+<ul>
+<li><a href="#computational-complexity">Computational complexity</a></li>
+<li><a href="#comparison-when-difference-between-two-sequences-is-very-large">Comparison when difference between two sequences is very large</a></li>
+<li><a href="#implementations-with-various-programming-languages">Implementations with various programming languages</a></li>
+</ul></li>
+<li><a href="#examples">Examples</a>
+<ul>
+<li><a href="#strdiff">strdiff</a></li>
+<li><a href="#intdiff">intdiff</a></li>
+<li><a href="#unidiff">unidiff</a></li>
+<li><a href="#unistrdiff">unistrdiff</a></li>
+<li><a href="#strdiff3">strdiff3</a></li>
+<li><a href="#intdiff3">intdiff3</a></li>
+<li><a href="#patch">patch</a></li>
+<li><a href="#fpatch">fpatch</a></li>
+</ul></li>
+<li><a href="#running-tests">Running tests</a>
+<ul>
+<li><a href="#building-test-programs">Building test programs</a></li>
+<li><a href="#running-test-programs">Running test programs</a></li>
+</ul></li>
+<li><a href="#old-commit-histories">Old commit histories</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h1 id="features">Features</h1>
+<p><code>dtl</code> provides the functions for comparing two sequences have arbitrary type. But sequences must support random access_iterator.</p>
+<h1 id="getting-started">Getting started</h1>
+<p>To start using this library, all you need to do is include <code>dtl.hpp</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;dtl/dtl.hpp&quot;</span></code></pre></div>
+<h2 id="compare-two-strings">Compare two strings</h2>
+<p>First of all, calculate the difference between two strings.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;abc&quot;</span>);
+sequence B(<span class="st">&quot;abd&quot;</span>);
+dtl::Diff&lt; elem, sequence &gt; d(A, B);
+d.compose();</code></pre></div>
+<p>When the above code is run, <code>dtl</code> calculates the difference between A and B as Edit Distance and LCS and SES.</p>
+<p>The meaning of these three terms is below.</p>
+<table>
+<colgroup>
+<col width="15%" />
+<col width="84%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Edit Distance</th>
+<th align="left">Edit Distance is numerical value for declaring a difference between two sequences.</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">LCS</td>
+<td align="left">LCS stands for Longest Common Subsequence.</td>
+</tr>
+<tr class="even">
+<td align="left">SES</td>
+<td align="left">SES stands for Shortest Edit Script. I mean SES is the shortest course of action for tranlating one sequence into another sequence.</td>
+</tr>
+</tbody>
+</table>
+<p>If one sequence is &quot;abc&quot; and another sequence is &quot;abd&quot;, Edit Distance and LCS and SES is below.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Edit Distance</th>
+<th align="left">2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">LCS</td>
+<td align="left">ab</td>
+</tr>
+<tr class="even">
+<td align="left">SES</td>
+<td align="left">C a C b D c A d</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>「C」：Common</li>
+<li>「D」：Delete</li>
+<li>「A」：ADD</li>
+</ul>
+<p>If you want to know in more detail, please see <a href="https://github.com/cubicdaiya/dtl/blob/master/examples/strdiff.cpp">examples/strdiff.cpp</a>.</p>
+<p>This calculates Edit Distance and LCS and SES of two strings received as command line arguments and prints each.</p>
+<p>When one string is &quot;abc&quot; and another string &quot;abd&quot;, the output of <code>strdiff</code> is below.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./strdiff</span> abc abd
+<span class="ex">editDistance</span>:2
+<span class="ex">LCS</span>:ab
+<span class="ex">SES</span>
+ <span class="ex">a</span>
+ <span class="ex">b</span>
+<span class="ex">-c</span>
+<span class="ex">+d</span>
+$</code></pre></div>
+<h2 id="compare-two-data-has-arbitrary-type">Compare two data has arbitrary type</h2>
+<p><code>dtl</code> can compare data has aribtrary type because of the C++'s template.</p>
+<p>But the compared data type must support the random access_iterator.</p>
+<p>In the previous example, the string data compared,</p>
+<p><code>dtl</code> can also compare two int vectors like the example below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> a[<span class="dv">10</span>] = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">9</span>, <span class="dv">10</span>};
+<span class="dt">int</span> b[<span class="dv">10</span>] = {<span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">7</span>, <span class="dv">9</span>, <span class="dv">6</span>, <span class="dv">10</span>};
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; A(&amp;a[<span class="dv">0</span>], &amp;a[<span class="dv">10</span>]);
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; B(&amp;b[<span class="dv">0</span>], &amp;b[<span class="dv">10</span>]);
+dtl::Diff&lt; <span class="dt">int</span> &gt; d(A, B);
+d.compose();</code></pre></div>
+<p>If you want to know in more detail, please see <a href="https://github.com/cubicdaiya/dtl/blob/master/examples/intdiff.cpp">examples/intdiff.cpp</a>.</p>
+<h2 id="merge-three-sequences">Merge three sequences</h2>
+<p><code>dtl</code> has the diff3 function.</p>
+<p>This function is that <code>dtl</code> merges three sequences.</p>
+<p>Additionally <code>dtl</code> detects the confliction.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;qqqabc&quot;</span>);
+sequence B(<span class="st">&quot;abc&quot;</span>);
+sequence C(<span class="st">&quot;abcdef&quot;</span>);
+dtl::Diff3&lt;elem, sequence&gt; diff3(A, B, C);
+diff3.compose();
+<span class="cf">if</span> (!diff3.merge()) {
+  <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;conflict.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+  <span class="cf">return</span> <span class="dv">-1</span>;
+}
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;result:&quot;</span> &lt;&lt; diff3.getMergedSequence() &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<p>When the above code is run, the output is below.</p>
+<pre class="console"><code>result:qqqabcdef</code></pre>
+<p>If you want to know in more detail, please see <a href="https://github.com/cubicdaiya/dtl/blob/master/examples/strdiff3.cpp">examples/strdiff3.cpp</a>.</p>
+<h2 id="patch-function">Patch function</h2>
+<p><code>dtl</code> can also translates one sequence to another sequence with SES.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;abc&quot;</span>);
+sequence B(<span class="st">&quot;abd&quot;</span>);
+dtl::Diff&lt;elem, sequence&gt; d(A, B);
+d.compose();
+string s1(A);
+string s2 = d.patch(s1);</code></pre></div>
+<p>When the above code is run, s2 becomes &quot;abd&quot;. The SES of A(&quot;abc&quot;) and B(&quot;abd&quot;) is below.</p>
+<pre class="console"><code>Common a
+Common b
+Delete c
+Add    d</code></pre>
+<p>The patch function translates a sequence as argument with SES. For this example, &quot;abc&quot; is translated to &quot;abd&quot; with above SES.</p>
+<p>Please see dtl's header files about the data structure of SES.</p>
+<h2 id="difference-as-unified-format">Difference as Unified Format</h2>
+<p><code>dtl</code> can also treat difference as Unified Format. See the example below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;acbdeaqqqqqqqcbed&quot;</span>);
+sequence B(<span class="st">&quot;acebdabbqqqqqqqabed&quot;</span>);
+dtl::Diff&lt;elem, sequence &gt; d(A, B);
+d.compose();             <span class="co">// construct an edit distance and LCS and SES</span>
+d.composeUnifiedHunks(); <span class="co">// construct a difference as Unified Format with SES.</span>
+d.printUnifiedFormat();  <span class="co">// print a difference as Unified Format.</span></code></pre></div>
+<p>The difference as Unified Format of &quot;acbdeaqqqqqqqcbed&quot; and &quot;acebdabbqqqqqqqabed&quot; is below.</p>
+<div class="sourceCode"><pre class="sourceCode diff"><code class="sourceCode diff"><span class="dt">@@ -1,9 +1,11 @@</span>
+ a
+ c
+<span class="va">+e</span>
+ b
+ d
+<span class="st">-e</span>
+ a
+<span class="va">+b</span>
+<span class="va">+b</span>
+ q
+ q
+ q
+<span class="dt">@@ -11,7 +13,7 @@</span>
+ q
+ q
+ q
+<span class="st">-c</span>
+<span class="va">+a</span>
+ b
+ e
+ d</code></pre></div>
+<p>The data structure Unified Format is below.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/**</span>
+<span class="co"> * Structure of Unified Format Hunk</span>
+<span class="co"> */</span>
+<span class="kw">template</span> &lt;<span class="kw">typename</span> sesElem&gt;
+<span class="kw">struct</span> uniHunk {
+  <span class="dt">int</span> a, b, c, d;                   <span class="co">// @@ -a,b +c,d @@</span>
+  <span class="bu">std::</span>vector&lt;sesElem&gt; common[<span class="dv">2</span>];   <span class="co">// anteroposterior commons on changes</span>
+  <span class="bu">std::</span>vector&lt;sesElem&gt; change;      <span class="co">// changes</span>
+  <span class="dt">int</span> inc_dec_count;                <span class="co">// count of increace and decrease</span>
+};</code></pre></div>
+<p>The actual blocks of Unified Format is this structure's vector.</p>
+<p>If you want to know in more detail, please see <a href="https://github.com/cubicdaiya/dtl/blob/master/examples/unistrdiff.cpp">examples/unistrdiff.cpp</a> and <a href="https://github.com/cubicdaiya/dtl/blob/master/examples/unidiff.cpp">examples/unidiff.cpp</a> and dtl's header files.</p>
+<p>In addtion, <code>dtl</code> has the function translates one sequence to another sequence with Unified Format.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;abc&quot;</span>);
+sequence B(<span class="st">&quot;abd&quot;</span>);
+dtl::Diff&lt;elem, sequence&gt; d(A, B);
+d.compose();
+d.composeUnifiedHunks()
+string s1(A);
+string s2 = d.UniPatch(s1);</code></pre></div>
+<p>When the above code is run, s2 becomes &quot;abd&quot;. The uniPatch function translates a sequence as argument with Unified Format blocks.</p>
+<p>For this example, &quot;abc&quot; is translated to &quot;abd&quot; with the Unified Format block below.</p>
+<div class="sourceCode"><pre class="sourceCode diff"><code class="sourceCode diff"><span class="dt">@@ -1,3 +1,3 @@</span>
+ a
+ b
+<span class="st">-c</span>
+<span class="va">+d</span></code></pre></div>
+<h2 id="compare-large-sequences">Compare large sequences</h2>
+<p>When compare two large sequences, <code>dtl</code> can optimizes the calculation of difference with the onHuge function.</p>
+<p>This function is available when the compared data type is std::vector.</p>
+<p>When you use this function, you may call this function before calling compose function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span>  <span class="bu">std::</span>vector&lt;elem&gt; sequence;
+sequence A;
+sequence B;
+<span class="co">/* ・・・ */</span>
+dtl::Diff&lt; elem, sequence &gt; d(A, B);
+d.onHuge();
+d.compose();</code></pre></div>
+<h2 id="unserious-difference">Unserious difference</h2>
+<p>The calculation of difference is very heavy. <code>dtl</code> uses An O(NP) Sequence Comparison Algorithm.</p>
+<p>Though this Algorithm is sufficiently fast, when difference between two sequences is very large,</p>
+<p>the calculation of LCS and SES needs massive amounts of memory.</p>
+<p><code>dtl</code> avoids above-described problem by dividing each sequence into plural subsequences and joining the difference of each subsequence finally.</p>
+<p>As this way repeats allocating massive amounts of memory, <code>dtl</code> provides other way. It is the way of calculating unserious difference.</p>
+<p>For example, The normal SES of &quot;abc&quot; and &quot;abd&quot; is below.</p>
+<pre class="console"><code>Common a
+Common b
+Delete c
+Add    d</code></pre>
+<p>The unserious SES of &quot;abc&quot; and &quot;abd&quot; is below.</p>
+<pre class="console"><code>Delete a
+Delete b
+Delete c
+Add    a
+Add    b
+Add    d</code></pre>
+<p>Of course, when &quot;abc&quot; and &quot;abd&quot; are compared with <code>dtl</code>, above difference is not derived.</p>
+<p><code>dtl</code> calculates the unserious difference when <code>dtl</code> judges the calculation of LCS and SES needs massive amounts of memory and unserious difference function is ON.</p>
+<p><code>dtl</code> joins the calculated difference before <code>dtl</code> judges it and unserious difference finally.</p>
+<p>As a result, all difference is not unserious difference when unserious difference function is ON.</p>
+<p>When you use this function, you may call this function before calling compose function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;abc&quot;</span>);
+sequence B(<span class="st">&quot;abd&quot;</span>);
+dtl::Diff&lt; elem, sequence &gt; d(A, B);
+d.onUnserious();
+d.compose();</code></pre></div>
+<h2 id="calculate-only-edit-distance">Calculate only Edit Distance</h2>
+<p>As using onOnlyEditDistance, <code>dtl</code> calculates the only edit distance.</p>
+<p>If you need only edit distance, you may use this function, because the calculation of edit distance is lighter than the calculation of LCS and SES.</p>
+<p>When you use this function, you may call this function before calling compose function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">typedef</span> <span class="dt">char</span> elem;
+<span class="kw">typedef</span> <span class="bu">std::</span>string sequence;
+sequence A(<span class="st">&quot;abc&quot;</span>);
+sequence B(<span class="st">&quot;abd&quot;</span>);
+dtl::Diff&lt; elem, sequence &gt; d(A, B);
+d.onOnlyEditDistance();
+d.compose();</code></pre></div>
+<h1 id="algorithm">Algorithm</h1>
+<p>The algorithm <code>dtl</code> uses is based on &quot;An O(NP) Sequence Comparison Algorithm&quot; by described by Sun Wu, Udi Manber and Gene Myers.</p>
+<p>An O(NP) Sequence Comparison Algorithm(following, Wu's O(NP) Algorithm) is the efficient algorithm for comparing two sequences.</p>
+<h2 id="computational-complexity">Computational complexity</h2>
+<p>The computational complexity of Wu's O(NP) Algorithm is averagely O(N+PD), in the worst case, is O(NP).</p>
+<h2 id="comparison-when-difference-between-two-sequences-is-very-large">Comparison when difference between two sequences is very large</h2>
+<p>Calculating LCS and SES efficiently at any time is a little difficult.</p>
+<p>Because that the calculation of LCS and SES needs massive amounts of memory when a difference between two sequences is very large.</p>
+<p>The program uses that algorithm don't consider that will burst in the worst case.</p>
+<p><code>dtl</code> avoids above-described problem by dividing each sequence into plural subsequences and joining the difference of each subsequence finally. (This feature is supported after version 0.04)</p>
+<h2 id="implementations-with-various-programming-languages">Implementations with various programming languages</h2>
+<p>There are the Wu's O(NP) Algorithm implementations with various programming languages below.</p>
+<p>https://github.com/cubicdaiya/onp</p>
+<h1 id="examples">Examples</h1>
+<p>There are examples in <a href="https://github.com/cubicdaiya/dtl/tree/master/examples">dtl/examples</a>. <code>dtl</code> uses <a href="http://scons.org/">SCons</a> for building examples and tests. If you build and run examples and tests, install SCons.</p>
+<h2 id="strdiff">strdiff</h2>
+<p><code>strdiff</code> calculates a difference between two string sequences, but multi byte is not supported.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> strdiff
+$ <span class="ex">./strdiff</span> acbdeacbed acebdabbabed
+<span class="ex">editDistance</span>:6
+<span class="ex">LCS</span>:acbdabed
+<span class="ex">SES</span>
+  <span class="ex">a</span>
+  <span class="ex">c</span>
+<span class="ex">+</span> e
+  <span class="ex">b</span>
+  <span class="ex">d</span>
+<span class="ex">-</span> e
+  <span class="ex">a</span>
+<span class="ex">-</span> c
+  <span class="ex">b</span>
+<span class="ex">+</span> b
+<span class="ex">+</span> a
+<span class="ex">+</span> b
+  <span class="ex">e</span>
+  <span class="ex">d</span>
+$</code></pre></div>
+<h2 id="intdiff">intdiff</h2>
+<p><code>intdiff</code> calculates a diffrence between two int arrays sequences.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> intdiff
+$ <span class="ex">./intdiff</span> <span class="co"># There are data in intdiff.cpp</span>
+<span class="ex">1</span> 2 3 4 5 6 7 8 9 10 
+<span class="ex">3</span> 5 1 4 5 1 7 9 6 10 
+<span class="ex">editDistance</span>:8
+<span class="ex">LCS</span>: 3 4 5 7 9 10 
+<span class="ex">SES</span>
+<span class="ex">-</span> 1
+<span class="ex">-</span> 2
+  <span class="ex">3</span>
+<span class="ex">+</span> 5
+<span class="ex">+</span> 1
+  <span class="ex">4</span>
+  <span class="ex">5</span>
+<span class="ex">-</span> 6
+<span class="ex">+</span> 1
+  <span class="ex">7</span>
+<span class="ex">-</span> 8
+  <span class="ex">9</span>
+<span class="ex">+</span> 6
+  <span class="ex">10</span>
+$</code></pre></div>
+<h2 id="unidiff">unidiff</h2>
+<p><code>unidiff</code> calculates a diffrence between two text file sequences, and output the difference between files with unified format.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> unidiff
+$ <span class="fu">cat</span> a.txt
+<span class="ex">a</span>
+<span class="ex">e</span>
+<span class="ex">c</span>
+<span class="ex">z</span>
+<span class="ex">z</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">a</span>
+<span class="ex">b</span>
+<span class="ex">c</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">g</span>
+<span class="ex">h</span>
+<span class="ex">i</span>
+$ <span class="fu">cat</span> b.txt
+<span class="ex">a</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">c</span>
+<span class="ex">f</span>
+<span class="ex">e</span>
+<span class="ex">a</span>
+<span class="ex">b</span>
+<span class="ex">c</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">g</span>
+<span class="ex">h</span>
+<span class="ex">i</span>
+$ <span class="ex">./unidiff</span> a.txt b.txt
+<span class="ex">---</span> a.txt       2008-08-26 07:03:28 +0900
+<span class="ex">+++</span> b.txt       2008-08-26 03:02:42 +0900
+<span class="ex">@@</span> -1,11 +1,9 @@
+ <span class="ex">a</span>
+<span class="ex">-e</span>
+<span class="ex">-c</span>
+<span class="ex">-z</span>
+<span class="ex">-z</span>
+ <span class="ex">d</span>
+ <span class="ex">e</span>
+<span class="ex">+c</span>
+ <span class="ex">f</span>
+<span class="ex">+e</span>
+ <span class="ex">a</span>
+ <span class="ex">b</span>
+ <span class="ex">c</span>
+$</code></pre></div>
+<h2 id="unistrdiff">unistrdiff</h2>
+<p><code>unistrdiff</code> calculates a diffrence between two string sequences. and output the difference between strings with unified format.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> unistrdiff
+$ <span class="ex">./unistrdiff</span> acbdeacbed acebdabbabed
+<span class="ex">editDistance</span>:6
+<span class="ex">LCS</span>:acbdabed
+<span class="ex">@@</span> -1,10 +1,12 @@
+ <span class="ex">a</span>
+ <span class="ex">c</span>
+<span class="ex">+e</span>
+ <span class="ex">b</span>
+ <span class="ex">d</span>
+<span class="ex">-e</span>
+ <span class="ex">a</span>
+<span class="ex">-c</span>
+ <span class="ex">b</span>
+<span class="ex">+b</span>
+<span class="ex">+a</span>
+<span class="ex">+b</span>
+ <span class="ex">e</span>
+ <span class="ex">d</span>
+$</code></pre></div>
+<h2 id="strdiff3">strdiff3</h2>
+<p><code>strdiff3</code> merges three string sequence and output the merged sequence. When the confliction has occured, output the string &quot;conflict.&quot;.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> strdiff3
+$ <span class="ex">./strdiff3</span> qabc abc abcdef
+<span class="ex">result</span>:qabcdef
+$</code></pre></div>
+<p>There is a output below when conflict occured.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./strdiff3</span> adc abc aec
+<span class="ex">conflict.</span>
+$</code></pre></div>
+<h2 id="intdiff3">intdiff3</h2>
+<p><code>intdiff3</code> merges three integer sequence(vector) and output the merged sequence.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> intdiff3
+$ <span class="ex">./intdiff3</span>
+<span class="ex">a</span>:1 2 3 4 5 6 7 3 9 10
+<span class="ex">b</span>:1 2 3 4 5 6 7 8 9 10
+<span class="ex">c</span>:1 2 3 9 5 6 7 8 9 10
+<span class="ex">s</span>:1 2 3 9 5 6 7 3 9 10
+<span class="ex">intdiff3</span> OK
+$</code></pre></div>
+<h2 id="patch">patch</h2>
+<p><code>patch</code> is the test program. Supposing that there are two strings is called by A and B, <code>patch</code> translates A to B with Shortest Edit Script or unified format difference.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> patch
+$ <span class="ex">./patch</span> abc abd
+<span class="ex">before</span>:abc
+<span class="ex">after</span> :abd
+<span class="fu">patch</span> successed
+<span class="ex">before</span>:abc
+<span class="ex">after</span> :abd
+<span class="ex">unipatch</span> successed
+$</code></pre></div>
+<h2 id="fpatch">fpatch</h2>
+<p><code>fpatch</code> is the test program. Supposing that there are two files is called by A and B, <code>fpatch</code> translates A to B with Shortest Edit Script or unified format difference.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> dtl/examples
+$ <span class="ex">scons</span> fpatch
+$ <span class="fu">cat</span> a.txt
+<span class="ex">a</span>
+<span class="ex">e</span>
+<span class="ex">c</span>
+<span class="ex">z</span>
+<span class="ex">z</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">a</span>
+<span class="ex">b</span>
+<span class="ex">c</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">g</span>
+<span class="ex">h</span>
+<span class="ex">i</span>
+$ <span class="fu">cat</span> b.txt
+$ <span class="fu">cat</span> b.txt
+<span class="ex">a</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">c</span>
+<span class="ex">f</span>
+<span class="ex">e</span>
+<span class="ex">a</span>
+<span class="ex">b</span>
+<span class="ex">c</span>
+<span class="ex">d</span>
+<span class="ex">e</span>
+<span class="ex">f</span>
+<span class="ex">g</span>
+<span class="ex">h</span>
+<span class="ex">i</span>
+$ <span class="ex">./fpatch</span> a.txt b.txt
+<span class="ex">fpatch</span> successed
+<span class="ex">unipatch</span> successed
+$</code></pre></div>
+<h1 id="running-tests">Running tests</h1>
+<p><code>dtl</code> uses <a href="https://github.com/google/googletest">googletest</a> and <a href="http://www.scons.org/">SCons</a> with testing dtl-self.</p>
+<h1 id="building-test-programs">Building test programs</h1>
+<p>If you build test programs for <code>dtl</code>, run <code>scons</code> in test direcotry.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">scons</span></code></pre></div>
+<h1 id="running-test-programs">Running test programs</h1>
+<p>If you run all tests for <code>dtl</code>, run 'scons check' in test direcotry. (it is necessary that gtest is compiled)</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">scons</span> check</code></pre></div>
+<p>If you run sectional tests, you may exeucte <code>dtl_test</code> directly after you run <code>scons</code>. Following command is the example for testing only Strdifftest.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">./dtl_test</span> --gtest_filter=<span class="st">&#39;Strdifftest.*&#39;</span></code></pre></div>
+<p><code>--gtest-filters</code> is the function of googletest. googletest has many useful functions for testing software flexibly. If you want to know other functions of googletest, run <code>./dtl_test --help</code>.</p>
+<h1 id="old-commit-histories">Old commit histories</h1>
+<p>Please see <a href="https://github.com/cubicdaiya/dtl-legacy">cubicdaiya/dtl-legacy</a>.</p>
+<h1 id="license">License</h1>
+<p>Please read the file <a href="https://github.com/cubicdaiya/dtl/blob/master/COPYING">COPYING</a>.</p>

@@ -1,0 +1,101 @@
+<h1 id="spscqueue.h">SPSCQueue.h</h1>
+<p><a href="https://travis-ci.org/rigtorp/SPSCQueue"><img src="https://travis-ci.org/rigtorp/SPSCQueue.svg?branch=master" alt="Build Status" /></a> <a href="https://raw.githubusercontent.com/rigtorp/SPSCQueue/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<p>A single producer single consumer wait-free and lock-free fixed size queue written in C++11.</p>
+<h2 id="example">Example</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">SPSCQueue&lt;<span class="dt">int</span>&gt; q(<span class="dv">2</span>);
+<span class="kw">auto</span> t = <span class="bu">std::</span>thread([&amp;] {
+  <span class="cf">while</span> (!q.front());
+  <span class="bu">std::</span>cout &lt;&lt; *q.front() &lt;&lt; <span class="bu">std::</span>endl;
+  q.pop();
+});
+q.push(<span class="dv">1</span>);
+t.join();</code></pre></div>
+<h2 id="usage">Usage</h2>
+<ul>
+<li><code>SPSCQueue&lt;T&gt;(size_t capacity);</code></li>
+</ul>
+<p>Create a <code>SPSCqueue</code> holding items of type <code>T</code> with capacity <code>capacity</code>. Capacity need to be greater than 2.</p>
+<ul>
+<li><code>void emplace(Args &amp;&amp;... args);</code></li>
+</ul>
+<p>Enqueue an item using inplace construction. Blocks if queue is full.</p>
+<ul>
+<li><code>bool try_emplace(Args &amp;&amp;... args);</code></li>
+</ul>
+<p>Try to enqueue an item using inplace construction. Returns <code>true</code> on success and <code>false</code> if queue is full.</p>
+<ul>
+<li><code>void push(const T &amp;v);</code></li>
+</ul>
+<p>Enqueue an item using copy construction. Blocks if queue is full.</p>
+<ul>
+<li><code>template &lt;typename P&gt; void push(P &amp;&amp;v);</code></li>
+</ul>
+<p>Enqueue an item using move construction. Participates in overload resolution only if <code>std::is_constructible&lt;T, P&amp;&amp;&gt;::value == true</code>. Blocks if queue is full.</p>
+<ul>
+<li><code>bool try_push(const T &amp;v);</code></li>
+</ul>
+<p>Try to enqueue an item using copy construction. Returns <code>true</code> on success and <code>false</code> if queue is full.</p>
+<ul>
+<li><code>template &lt;typename P&gt; void try_push(P &amp;&amp;v);</code></li>
+</ul>
+<p>Try to enqueue an item using move construction. Returns <code>true</code> on success and <code>false</code> if queue is full. Participates in overload resolution only if <code>std::is_constructible&lt;T, P&amp;&amp;&gt;::value == true</code>.</p>
+<ul>
+<li><code>T *front();</code></li>
+</ul>
+<p>Return pointer to front of queue. Returns <code>nullptr</code> if queue is empty.</p>
+<ul>
+<li><code>pop();</code></li>
+</ul>
+<p>Dequeue first elment of queue. Invalid to call if queue is empty. Requires <code>std::is_nothrow_destructible&lt;T&gt;::value == true</code>.</p>
+<p>Only a single writer thread can perform enqueue operations and only a single reader thread can perform dequeue operations. Any other usage is invalid.</p>
+<h2 id="implementation">Implementation</h2>
+<div class="figure">
+<img src="https://github.com/rigtorp/SPSCQueue/blob/master/spsc.png" alt="Memory layout" />
+<p class="caption">Memory layout</p>
+</div>
+<p>The underlying implementation is a <a href="https://en.wikipedia.org/wiki/Circular_buffer">ring buffer</a>.</p>
+<p>Care has been taken to make sure to avoid any issues with <a href="https://en.wikipedia.org/wiki/False_sharing">false sharing</a>. The head and tail pointers are aligned and padded to the false sharing range (currently hard coded to 128 bytes). The slots buffer is padded with the false sharing range at the beginning and end.</p>
+<p>References:</p>
+<ul>
+<li><em>Intel</em>. <a href="https://software.intel.com/en-us/articles/avoiding-and-identifying-false-sharing-among-threads">Avoiding and Identifying False Sharing Among Threads</a>.</li>
+<li><em>Wikipedia</em>. <a href="https://en.wikipedia.org/wiki/Circular_buffer">Ring buffer</a>.</li>
+<li><em>Wikipedia</em>. <a href="https://en.wikipedia.org/wiki/False_sharing">False sharing</a>.</li>
+</ul>
+<h2 id="testing">Testing</h2>
+<p>Testing lock-free algorithms is hard. I'm using two approaches to test the implementation:</p>
+<ul>
+<li>A single threaded test that the functionality works as intended, including that the element constructor and destructor is invoked correctly.</li>
+<li>A multithreaded fuzz test that all elements are enqueued and dequeued correctly under heavy contention.</li>
+</ul>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>Throughput benchmark measures throughput between 2 threads for a <code>SPSCQueue&lt;int&gt;</code> of size 256.</p>
+<p>Latency benchmark measures round trip time between 2 threads communicating using 2 queues of type <code>SPSCQueue&lt;int&gt;</code>.</p>
+<p>The following numbers are for a 2 socket machine with 2 x Intel(R) Xeon(R) CPU E5-2620 0 @ 2.00GHz.</p>
+<table>
+<thead>
+<tr class="header">
+<th>NUMA Node / Core / Hyper-Thread</th>
+<th align="right">Throughput (ops/ms)</th>
+<th align="right">Latency RTT (ns)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>#0,#0,#0 &amp; #0,#0,#1</td>
+<td align="right">63942</td>
+<td align="right">60</td>
+</tr>
+<tr class="even">
+<td>#0,#0,#0 &amp; #0,#1,#0</td>
+<td align="right">37739</td>
+<td align="right">238</td>
+</tr>
+<tr class="odd">
+<td>#0,#0,#0 &amp; #1,#0,#0</td>
+<td align="right">25744</td>
+<td align="right">768</td>
+</tr>
+</tbody>
+</table>
+<h2 id="about">About</h2>
+<p>This project was created by <a href="http://rigtorp.se">Erik Rigtorp</a> &lt;<a href="mailto:erik@rigtorp.se">erik@rigtorp.se</a>&gt;.</p>

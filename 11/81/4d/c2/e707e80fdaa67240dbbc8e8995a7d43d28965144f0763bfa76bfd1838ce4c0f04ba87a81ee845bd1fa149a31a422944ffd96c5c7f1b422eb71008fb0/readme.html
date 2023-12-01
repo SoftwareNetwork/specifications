@@ -1,0 +1,303 @@
+<h1 id="the-art-of-c-sequences">The Art of C++ / Sequences</h1>
+<p><a href="https://github.com/taocpp/sequences/releases/latest"><img src="https://img.shields.io/github/release/taocpp/sequences.svg" alt="Release" /></a> <a href="https://bintray.com/taocpp/public-conan/sequences%3Ataocpp/_latestVersion"><img src="https://api.bintray.com/packages/taocpp/public-conan/sequences%3Ataocpp/images/download.svg" alt="Download" /></a> <a href="https://travis-ci.org/taocpp/sequences"><img src="https://travis-ci.org/taocpp/sequences.svg" alt="TravisCI" /></a> <a href="https://ci.appveyor.com/project/taocpp/sequences"><img src="https://ci.appveyor.com/api/projects/status/github/taocpp/sequences?svg=true" alt="AppVeyor" /></a></p>
+<p><a href="https://taocpp.github.io/">The Art of C++</a> / Sequences is a zero-dependency C++11 header-only library that provides efficient algorithms to generate and work on variadic templates and <a href="http://en.cppreference.com/w/cpp/utility/integer_sequence"><code>std::integer_sequence</code></a>.</p>
+<h2 id="compatibility">Compatibility</h2>
+<ul>
+<li>Requires C++11 or newer.</li>
+<li>Tested with GCC 4.8+, Clang 3.4+, Xcode 6+ and Visual Studio 2017.</li>
+</ul>
+<h2 id="provided-algorithms-and-examples">Provided algorithms and examples</h2>
+<ul>
+<li>All provided templates are in the nested namespace <code>tao::seq</code>.</li>
+<li>All templates don't use C++14 features, therefore being compatible with C++11. Sometimes, C++14/C++17 features are used conditionally, taking advantage of newer language features when available but providing C++11-compatible implementations otherwise.</li>
+<li>All templates use <code>tao::seq::integer_sequence</code>, etc. internally, therefore being compatible with C++11.</li>
+<li>All templates use <code>tao::seq::make_integer_sequence</code>, etc. internally, therefore using the most scalable solution available.</li>
+</ul>
+<h4 id="header-taoseqinteger_sequence.hpp">Header <code>tao/seq/integer_sequence.hpp</code></h4>
+<p>Provides:</p>
+<ul>
+<li><code>integer_sequence&lt; typename T, T N &gt;</code></li>
+<li><code>index_sequence&lt; std::size_t N &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<ul>
+<li>When available (C++14 or newer), the above are type-aliases for <code>std::integer_sequence</code> and <code>std::index_sequence</code>.</li>
+</ul>
+<h4 id="header-taoseqmake_integer_sequence.hpp">Header <code>tao/seq/make_integer_sequence.hpp</code></h4>
+<p>Efficient versions of sequence generators.</p>
+<ul>
+<li><code>make_integer_sequence&lt; typename T, T N &gt;</code></li>
+<li><code>make_index_sequence&lt; std::size_t N &gt;</code></li>
+<li><code>index_sequence_for&lt; typename... Ts &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>make_integer_sequence&lt;int,0&gt;</code> ➙ <code>integer_sequence&lt;int&gt;</code></li>
+<li><code>make_integer_sequence&lt;int,1&gt;</code> ➙ <code>integer_sequence&lt;int,0&gt;</code></li>
+<li><code>make_integer_sequence&lt;int,3&gt;</code> ➙ <code>integer_sequence&lt;int,0,1,2&gt;</code></li>
+<li><code>make_index_sequence&lt;0&gt;</code> ➙ <code>index_sequence&lt;&gt;</code></li>
+<li><code>make_index_sequence&lt;1&gt;</code> ➙ <code>index_sequence&lt;0&gt;</code></li>
+<li><code>make_index_sequence&lt;5&gt;</code> ➙ <code>index_sequence&lt;0,1,2,3,4&gt;</code></li>
+<li><code>index_sequence_for&lt;int,void,long&gt;</code> ➙ <code>index_sequence&lt;0,1,2&gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>libc++ already has very efficient versions for the above, so they are pulled in with a using-declaration. Only if we don't know if the STL's versions are at least O(log N) we provide our own implementations.</p>
+<p>Our own implementation has O(log N) instantiation depth. This allows for very large sequences without the need to increase the compiler's default instantiation depth limits. For example, GCC and Clang generate <code>index_sequence&lt;10000&gt;</code> in ~0.15s (on my machine, of course). The standard library version from libstdc++, when trying to create <code>index_sequence&lt;5000&gt;</code> and with its O(N) implementation, requires ~30s, &gt;3GB of RAM and <code>-ftemplate-depth=5100</code>.</p>
+<h4 id="header-taoseqmake_integer_range.hpp">Header <code>tao/seq/make_integer_range.hpp</code></h4>
+<p>Generate half-open ranges of integers.</p>
+<ul>
+<li><code>make_integer_range&lt; typename T, T N, T M &gt;</code></li>
+<li><code>make_index_range&lt; std::size_t N, std::size_t M &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>make_integer_range&lt;int,3,7&gt;</code> ➙ <code>integer_sequence&lt;int,3,4,5,6&gt;</code></li>
+<li><code>make_integer_range&lt;int,7,3&gt;</code> ➙ <code>integer_sequence&lt;int,7,6,5,4&gt;</code></li>
+<li><code>make_integer_sequence&lt;int,-2,2&gt;</code> ➙ <code>integer_sequence&lt;int,-2,-1,0,1&gt;</code></li>
+<li><code>make_index_range&lt;5,5&gt;</code> ➙ <code>index_sequence&lt;&gt;</code></li>
+<li><code>make_index_range&lt;2,5&gt;</code> ➙ <code>index_sequence&lt;2,3,4&gt;</code></li>
+</ul>
+<h4 id="header-taoseqsum.hpp">Header <code>tao/seq/sum.hpp</code></h4>
+<p>Integral constant to provide the sum of <code>Ns</code>.</p>
+<ul>
+<li><code>sum&lt; typename T, T... Ns &gt;</code></li>
+<li><code>sum&lt; typename S &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>sum&lt;int,1,4,3,1&gt;::value</code> ➙ <code>9</code></li>
+<li><code>sum&lt;make_index_sequence&lt;5&gt;&gt;::value</code> ➙ <code>10</code></li>
+</ul>
+<h4 id="header-taoseqpartial_sum.hpp">Header <code>tao/seq/partial_sum.hpp</code></h4>
+<p>Integral constant to provide the sum of the first <code>I</code> elements of <code>Ns</code>.</p>
+<ul>
+<li><code>partial_sum&lt; std::size_t I, typename T, T... Ns &gt;</code></li>
+<li><code>partial_sum&lt; std::size_t I, typename S &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>partial_sum&lt;0,int,1,4,3,1&gt;::value</code> ➙ <code>0</code></li>
+<li><code>partial_sum&lt;2,int,1,4,3,1&gt;::value</code> ➙ <code>5</code></li>
+<li><code>partial_sum&lt;4,make_index_sequence&lt;5&gt;&gt;::value</code> ➙ <code>6</code></li>
+</ul>
+<h4 id="header-taoseqexclusive_scan.hpp">Header <code>tao/seq/exclusive_scan.hpp</code></h4>
+<p>Provides a sequence with the exclusive scan of the input sequence.</p>
+<ul>
+<li><code>exclusive_scan_t&lt; typename T, T... Ns &gt;</code></li>
+<li><code>exclusive_scan_t&lt; typename S &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>exclusive_scan_t&lt;int,1,4,0,3,1&gt;</code> ➙ <code>integer_sequence&lt;int,0,1,5,5,8&gt;</code></li>
+</ul>
+<h4 id="header-taoseqinclusive_scan.hpp">Header <code>tao/seq/inclusive_scan.hpp</code></h4>
+<p>Provides a sequence with the inclusive scan of the input sequence.</p>
+<ul>
+<li><code>inclusive_scan_t&lt; typename T, T... Ns &gt;</code></li>
+<li><code>inclusive_scan_t&lt; typename S &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>inclusive_scan_t&lt;int,1,4,0,3,1&gt;</code> ➙ <code>integer_sequence&lt;int,1,5,5,8,9&gt;</code></li>
+</ul>
+<h4 id="header-taoseqzip.hpp">Header <code>tao/seq/zip.hpp</code></h4>
+<p>Applies a binary operation to elements from two sequences.</p>
+<ul>
+<li><code>zip_t&lt; typename OP, typename L, typename R &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>Both sequences may have a different element type, the resulting sequence's type is calculated with <code>std::common_type_t</code>.</p>
+<h4 id="header-taoseqplus.hpp">Header <code>tao/seq/plus.hpp</code></h4>
+<p>Provides a sequence which is the element-wise sum of its input sequences.</p>
+<ul>
+<li><code>plus_t&lt; typename L, typename R &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>Both sequences may have a different element type, the resulting sequence's type is calculated with <code>std::common_type_t</code>.</p>
+<p>Examples:</p>
+<ul>
+<li><code>using A = index_sequence&lt;1,4,0,3,1&gt;</code></li>
+<li><code>using B = make_index_sequence&lt;5&gt;</code></li>
+<li><code>plus_t&lt;A,B&gt;</code> ➙ <code>index_sequence&lt;1,5,2,6,5&gt;</code></li>
+</ul>
+<h4 id="header-taoseqminus.hpp">Header <code>tao/seq/minus.hpp</code></h4>
+<p>Provides a sequence which is the element-wise sum of its input sequences.</p>
+<ul>
+<li><code>minus_t&lt; typename L, typename R &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>Both sequences may have a different element type, the resulting sequence's type is calculated with <code>std::common_type_t</code>.</p>
+<p>Examples:</p>
+<ul>
+<li><code>using A = integer_sequence&lt;int,1,4,0,3,1&gt;</code></li>
+<li><code>using B = integer_sequence&lt;int,0,1,2,3,4&gt;</code></li>
+<li><code>minus_t&lt;A,B&gt;</code> ➙ <code>integer_sequence&lt;int,1,3,-2,0,-3&gt;</code></li>
+<li><code>minus_t&lt;B,A&gt;</code> ➙ <code>integer_sequence&lt;int,-1,-3,2,0,3&gt;</code></li>
+</ul>
+<h4 id="header-taoseqhead.hpp">Header <code>tao/seq/head.hpp</code></h4>
+<p>Integral constant to provide the first element of a non-empty sequence.</p>
+<ul>
+<li><code>head&lt; typename T, T... &gt;</code></li>
+<li><code>head&lt; typename S &gt;</code></li>
+</ul>
+<h4 id="header-taoseqtail.hpp">Header <code>tao/seq/tail.hpp</code></h4>
+<p>Removed the first element of a non-empty sequence.</p>
+<ul>
+<li><code>tail_t&lt; typename T, T... &gt;</code></li>
+<li><code>tail_t&lt; typename S &gt;</code></li>
+</ul>
+<h4 id="header-taoseqselect.hpp">Header <code>tao/seq/select.hpp</code></h4>
+<p>Integral constant to provide the <code>I</code>th element of a non-empty sequence.</p>
+<ul>
+<li><code>select&lt; std::size_t I, typename T, T... &gt;</code></li>
+<li><code>select&lt; std::size_t I, typename S &gt;</code></li>
+</ul>
+<h4 id="header-taoseqconcatenate.hpp">Header <code>tao/seq/concatenate.hpp</code></h4>
+<p>Concatenate the values.</p>
+<ul>
+<li><code>concatenate_t&lt; typename T, typename U &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>Both sequences may have a different element type, the resulting sequence's type is calculated with <code>std::common_type_t</code>.</p>
+<h4 id="header-taoseqfold.hpp">Header <code>tao/seq/fold.hpp</code></h4>
+<p>Integral constant calculated by &quot;folding&quot; a sequence of values with a given binary operation.</p>
+<ul>
+<li><code>fold&lt; typename OP, typename T, T... &gt;</code></li>
+<li><code>fold&lt; typename OP, typename S &gt;</code></li>
+</ul>
+<h4 id="header-taoseqmin.hpp">Header <code>tao/seq/min.hpp</code></h4>
+<p>Integral constant to provide the minimum value.</p>
+<ul>
+<li><code>min&lt; typename T, T... &gt;</code></li>
+<li><code>min&lt; typename S &gt;</code></li>
+</ul>
+<p>Notes:</p>
+<p>Implemented with <code>fold</code> like this:</p>
+<pre><code>namespace impl
+{
+  struct min
+  {
+    template&lt; typename T, T A, T B &gt;
+    using apply = std::integral_constant&lt; T, ( ( A &lt; B ) ? A : B ) &gt;;
+  };
+}
+
+template&lt; typename T, T... Ns &gt;
+using min = fold&lt; impl::min, T, Ns... &gt;;</code></pre>
+<h4 id="header-taoseqmax.hpp">Header <code>tao/seq/max.hpp</code></h4>
+<p>Integral constant to provide the maximum value.</p>
+<ul>
+<li><code>max&lt; typename T, T... &gt;</code></li>
+<li><code>max&lt; typename S &gt;</code></li>
+</ul>
+<h4 id="header-taoseqmap.hpp">Header <code>tao/seq/map.hpp</code></h4>
+<p>Map a sequence of indices to a sequence of values.</p>
+<ul>
+<li><code>map_t&lt; typename I, typename M &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>using I = index_sequence&lt;1,0,3,2,1,1,3&gt;</code></li>
+<li><code>using M = integer_sequence&lt;int,5,6,-7,8,9&gt;</code></li>
+<li><code>map_t&lt;I,M&gt;</code> ➙ <code>integer_sequence&lt;int,6,5,8,-7,6,6,8&gt;</code></li>
+</ul>
+<h4 id="header-taoseqis_all.hpp">Header <code>tao/seq/is_all.hpp</code></h4>
+<p>Integral constant which is true if all boolean parameters are true (logical and).</p>
+<ul>
+<li><code>is_all&lt; bool... &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>is_all&lt;true,true,true,true&gt;::value</code> ➙ <code>true</code></li>
+<li><code>is_all&lt;true,true,false,true&gt;::value</code> ➙ <code>false</code></li>
+<li><code>is_all&lt;&gt;::value</code> ➙ <code>true</code></li>
+</ul>
+<h4 id="header-taoseqis_any.hpp">Header <code>tao/seq/is_any.hpp</code></h4>
+<p>Integral constant which is true if any boolean parameter is true (logical or).</p>
+<ul>
+<li><code>is_any&lt; bool... &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>is_any&lt;false,true,false,false&gt;::value</code> ➙ <code>true</code></li>
+<li><code>is_any&lt;false,false,false,false&gt;::value</code> ➙ <code>false</code></li>
+<li><code>is_any&lt;&gt;::value</code> ➙ <code>false</code></li>
+</ul>
+<h4 id="header-taoseqcontains.hpp">Header <code>tao/seq/contains.hpp</code></h4>
+<p>Integral constant which is true if an element <code>N</code> is part of a list of elements <code>Ns...</code>.</p>
+<ul>
+<li><code>contains&lt; typename T, T N, T... Ns&gt;</code></li>
+<li><code>contains&lt; typename S, T N&gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>contains&lt;int,0&gt;</code> ➙ <code>false</code></li>
+<li><code>contains&lt;int,0,0&gt;</code> ➙ <code>true</code></li>
+<li><code>contains&lt;int,0,1&gt;</code> ➙ <code>false</code></li>
+<li><code>contains&lt;int,0,1,2,3,4,5&gt;</code> ➙ <code>false</code></li>
+<li><code>contains&lt;int,3,1,2,3,4,5&gt;</code> ➙ <code>true</code></li>
+<li><code>using A = integer_sequence&lt;int,1,2,3,4,5&gt;</code></li>
+<li><code>contains&lt;A,0&gt;</code> ➙ <code>false</code></li>
+<li><code>contains&lt;A,3&gt;</code> ➙ <code>true</code></li>
+</ul>
+<h4 id="header-taoseqindex_of.hpp">Header <code>tao/seq/index_of.hpp</code></h4>
+<p>Integral constant which is the smallest index of an element <code>N</code> in a list of elements <code>Ns...</code>.</p>
+<ul>
+<li><code>index_of&lt; typename T, T N, T... Ns&gt;</code></li>
+<li><code>index_of&lt; typename S, T N&gt;</code></li>
+</ul>
+<p>Note: <code>Ns...</code> must contain <code>N</code>, otherwise a <code>static_assert</code> is triggered.</p>
+<p>Examples:</p>
+<ul>
+<li><code>index_of&lt;int,0,0&gt;</code> ➙ <code>0</code></li>
+<li><code>index_of&lt;int,3,1,2,3,4,5&gt;</code> ➙ <code>2</code></li>
+<li><code>using A = integer_sequence&lt;int,1,2,3,4,5&gt;</code></li>
+<li><code>index_of&lt;A,3&gt;</code> ➙ <code>2</code></li>
+</ul>
+<h4 id="header-taoseqscale.hpp">Header <code>tao/seq/scale.hpp</code></h4>
+<p>Scales a sequence by a factor <code>F</code>.</p>
+<ul>
+<li><code>scale&lt; typename T, T F, T... Ns&gt;</code></li>
+<li><code>scale&lt; typename S, T F&gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>scale&lt;int,0,0&gt;</code> ➙ <code>integer_sequence&lt;int,0&gt;</code></li>
+<li><code>scale&lt;int,2,-1,2,0,1,5&gt;</code> ➙ <code>integer_sequence&lt;int,-2,4,0,2,10&gt;</code></li>
+<li><code>using A = integer_sequence&lt;int,-1,2,4&gt;</code></li>
+<li><code>scale&lt;A,3&gt;</code> ➙ <code>integer_sequence&lt;int,-3,6,12&gt;</code></li>
+</ul>
+<h4 id="header-taoseqat_index.hpp">Header <code>tao/seq/at_index.hpp</code></h4>
+<p>Returns the <code>I</code>th type from a list of types <code>Ts...</code>.</p>
+<ul>
+<li><code>at_index_t&lt; std::size_t I, typename... Ts &gt;</code></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><code>at_index&lt;0,bool,int,void,char*&gt;</code> ➙ <code>bool</code></li>
+<li><code>at_index&lt;2,bool,int,void,char*&gt;</code> ➙ <code>void</code></li>
+</ul>
+<h2 id="changelog">Changelog</h2>
+<h3 id="section">1.0.2</h3>
+<p>Released 2018-07-22</p>
+<ul>
+<li>Added documentation for the remaining headers.</li>
+</ul>
+<h3 id="section-1">1.0.1</h3>
+<p>Released 2018-07-21</p>
+<ul>
+<li>Removed <code>type_by_index</code>, use <code>at_index</code> instead.</li>
+</ul>
+<h3 id="section-2">1.0.0</h3>
+<p>Released 2018-06-29</p>
+<ul>
+<li>Initial release.</li>
+</ul>
+<h2 id="license">License</h2>
+<p>The Art of C++ is certified <a href="http://www.opensource.org/docs/definition.html">Open Source</a> software. It may be used for any purpose, including commercial purposes, at absolutely no cost. It is distributed under the terms of the <a href="http://www.opensource.org/licenses/mit-license.html">MIT license</a> reproduced here.</p>
+<blockquote>
+<p>Copyright (c) 2015-2018 Daniel Frey</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+</blockquote>

@@ -1,0 +1,259 @@
+<h1 id="json-link">JSON Link</h1>
+<p>This library is different. It assumes we know what data structures we will be recieving and uses that knowledge to provide a clean interface for parsing. Describing the mappings between JSON and C++, one needs only one method to parse and an additional one for serialization.</p>
+<h3 id="installing-and-requirements">Installing and Requirements</h3>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>C++ 17 compiler, C++ 20 for enhanced names</li>
+<li>git</li>
+<li>cmake</li>
+<li>GCC(8/9)/Clang(7/8) have been tested. Have not yet tested on MSVC</li>
+</ul>
+<h2 id="installinglinuxmac-commandline">Installing(Linux/Mac commandline)</h2>
+<p>The following will build the tests</p>
+<pre><code>git clone https://github.com/beached/daw_json_link
+cd ./daw_json_link
+mkdir build
+cd ./build
+cmake ..
+make full </code></pre>
+<p>After the build there the examples can be tested. <code>city_test_bin</code> requires the path to the cities json file.</p>
+<pre><code>./city_test_bin ../tests/cities.json</code></pre>
+<h2 id="generating-classes-automatically">Generating classes automatically</h2>
+<p>Currently I have a another project https://github.com/beached/json_to_cpp that can output the data structures used in json data along with the code to use this library.</p>
+<h2 id="performance-considerations">Performance considerations</h2>
+<p>The order of the data in the data structures should generally match that of the json data. The parser is much faster if it doesn't have to back track for values. Optional values where they are missing in the json data can slow down the parsing too. If possible have them sent as null.</p>
+<h2 id="differences-between-c17-and-c20">Differences between C++17 and C++20</h2>
+<h1 id="c-17-naming-of-members">C++ 17 Naming of members</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> name_a[] = <span class="st">&quot;name_a&quot;</span>;
+
+...json_number&lt;name_a&gt;</code></pre></div>
+<h1 id="c-20-enhanced-member-naming">C++ 20 Enhanced member naming</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">...json_number&lt;<span class="st">&quot;member_name&quot;</span>&gt;</code></pre></div>
+<h2 id="code-examples">Code Examples</h2>
+<h1 id="using-data-types">Using data types</h1>
+<p>Once a data type has been described, you can easily construct an object from a string or string_view.</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> my_class = from_json&lt;MyClass&gt;( json_string );</code></pre></div>
+<p>Or one can create a collection of your object from a JSON array</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">auto</span> my_data = from_json_array&lt;json_class&lt;no_name, MyClass&gt;&gt;( json_string );</code></pre></div>
+<p>If you want to work from JSON array data you can get an iterator and use the std algorithms too</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">using</span> <span class="dt">iterator_t</span> = daw::json::json_array_iterator&lt;json_class&lt;no_name, MyClass&gt;&gt;;
+<span class="kw">auto</span> pos = <span class="bu">std::</span>find( <span class="dt">iterator_t</span>( json_string ), <span class="dt">iterator_t</span>( ), MyClass( ... ) );</code></pre></div>
+<p>If you want to serialize to JSON</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="bu">std::</span>string my_json_data = to_json( MyClass{} );</code></pre></div>
+<p>Or serial a collection of things</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="bu">std::</span>vector&lt;MyClass&gt; arry = ...;
+<span class="bu">std::</span>string my_json_data = to_json_array( arry );</code></pre></div>
+<h1 id="deserializingparsing">Deserializing/Parsing</h1>
+<p>This can be accomplished by writing a function called describe_json_class with a single arugment that is your type. The library is only concerned with it's return value. For example:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span>
+
+<span class="kw">struct</span> TestClass {
+    <span class="dt">int</span> i = <span class="dv">0</span>;
+    <span class="dt">double</span> d = <span class="fl">0.0</span>;
+    <span class="dt">bool</span> b = <span class="kw">false</span>;
+    daw::string_view s{};
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; y{};
+
+    TestClass( <span class="dt">int</span> Int, <span class="dt">double</span> Double, <span class="dt">bool</span> Bool, daw::string_view S,
+                <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; Y ) <span class="kw">noexcept</span>
+      : i( Int )
+      , d( Double )
+      , b( Bool )
+      , s( S )
+      , y( Y ) {}
+};
+
+<span class="kw">auto</span> describe_json_class( TestClass ) {
+    <span class="kw">using</span> <span class="kw">namespace</span> daw::json;
+    <span class="cf">return</span> <span class="dt">class_description_t</span>&lt;
+        json_number&lt;<span class="st">&quot;i&quot;</span>, <span class="dt">int</span>&gt;,
+        json_number&lt;<span class="st">&quot;d&quot;</span>&gt;,
+        json_bool&lt;<span class="st">&quot;b&quot;</span>&gt;,
+        json_string&lt;<span class="st">&quot;s&quot;</span>, daw::string_view&gt;,
+        json_array&lt;<span class="st">&quot;y&quot;</span>, <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;, json_number&lt;no_name, <span class="dt">int</span>&gt;&gt;
+    &gt;{};
+}
+
+<span class="dt">int</span> main( ) {
+    <span class="bu">std::</span>string json_data = <span class="st">R&quot;({</span>
+<span class="st">        &quot;i&quot;:5,</span>
+<span class="st">        &quot;d&quot;:2.2e4,</span>
+<span class="st">        &quot;b&quot;:false,</span>
+<span class="st">        &quot;s&quot;:&quot;hello world&quot;,</span>
+<span class="st">        &quot;y&quot;:[1,2,3,4] </span>
+<span class="st">        })&quot;</span>;
+    <span class="bu">std::</span>string json_array_data = <span class="st">R&quot;([{</span>
+<span class="st">        &quot;i&quot;:5,</span>
+<span class="st">        &quot;d&quot;:2.2e4,</span>
+<span class="st">        &quot;b&quot;:false,</span>
+<span class="st">        &quot;s&quot;:&quot;hello world&quot;,</span>
+<span class="st">        &quot;y&quot;:[1,2,3,4] </span>
+<span class="st">        },{</span>
+<span class="st">        &quot;i&quot;:4,</span>
+<span class="st">        &quot;d&quot;:122e4,</span>
+<span class="st">        &quot;b&quot;:true,</span>
+<span class="st">        &quot;s&quot;:&quot;goodbye world&quot;,</span>
+<span class="st">        &quot;y&quot;:[4,3,1,4] </span>
+<span class="st">        }])&quot;</span>;
+
+    TestClass test_class = daw::json::from_json&lt;TestClass&gt;( json_data );
+    <span class="bu">std::</span>vector&lt;TestClass&gt; arry_of_test_class = daw::json::from_json_array&lt;json_class&lt;no_name, TestClass&gt;&gt;( json_data );
+}</code></pre></div>
+<p>Both aggregate and normal construction is supported. The description provides the values needed to construct your type and the order. The order specified is the order they are placed into the constructor. There are customization points to provide a way of constructing your type too(TODO discuss customization points) A class like:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span>
+
+<span class="kw">struct</span> AggClass {
+    <span class="dt">int</span> a{};
+    <span class="dt">double</span> b{};
+};
+<span class="kw">auto</span> describe_json_class( AggClass ) {
+    <span class="kw">using</span> <span class="kw">namespace</span> daw::json;
+    <span class="cf">return</span> <span class="dt">class_description_t</span>&lt;
+        json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,
+        json_number&lt;<span class="st">&quot;b&quot;</span>&gt;
+    &gt;{};
+}</code></pre></div>
+<p>Works too. Same but C++17</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span>
+
+<span class="kw">struct</span> AggClass {
+    <span class="dt">int</span> a{};
+    <span class="dt">double</span> b{};
+};
+<span class="kw">auto</span> describe_json_class( AggClass ) {
+    <span class="kw">using</span> <span class="kw">namespace</span> daw::json;
+    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a[] = <span class="st">&quot;a&quot;</span>;
+    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b[] = <span class="st">&quot;b&quot;</span>;
+    <span class="cf">return</span> <span class="dt">class_description_t</span>&lt;
+        json_number&lt;a, <span class="dt">int</span>&gt;,
+        json_number&lt;b&gt;
+    &gt;{};
+}</code></pre></div>
+<p>Iterating over JSON arrays. The input iterator <code>daw::json::json_array_iterator&lt;JsonElement&gt;</code> allows one to iterator over the array of JSON elements. It is technically an input iterator but can be stored and reused like a forward iterator. It does not return a reference but a value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span>
+
+<span class="kw">struct</span> AggClass {
+    <span class="dt">int</span> a{};
+    <span class="dt">double</span> b{};
+};
+<span class="kw">auto</span> describe_json_class( AggClass ) {
+    <span class="kw">using</span> <span class="kw">namespace</span> daw::json;
+    <span class="cf">return</span> <span class="dt">class_description_t</span>&lt;
+        json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,
+        json_number&lt;<span class="st">&quot;b&quot;</span>&gt;
+    &gt;{};
+
+<span class="dt">int</span> main( ) {
+    <span class="bu">std::</span>string json_array_data = <span class="st">R&quot;([</span>
+<span class="st">            {&quot;a&quot;:5,&quot;b&quot;:2.2},</span>
+<span class="st">            {&quot;a&quot;:5,&quot;b&quot;:3.14},</span>
+<span class="st">            {&quot;a&quot;:5,&quot;b&quot;:0.122e44},</span>
+<span class="st">            {&quot;a&quot;:5334,&quot;b&quot;:34342.2}</span>
+<span class="st">           ])&quot;</span>;
+    <span class="kw">using</span> <span class="dt">iterator_t</span> = daw::json::json_array_iterator&lt;JsonElement&lt;no_name, AggClass&gt;&gt;;
+    <span class="kw">auto</span> pos = <span class="bu">std::</span>find_if( <span class="dt">iterator_t</span>( json_array_data ), <span class="dt">iterator_t</span>( ),
+        []( AggData <span class="at">const</span> &amp; element ) { <span class="cf">return</span> element.b &gt; <span class="fl">1000.0</span>; } );
+    <span class="cf">if</span>( pos == <span class="dt">iterator_t</span>( ) ) {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Not found</span><span class="sc">\n</span><span class="st">&quot;</span>;
+    } <span class="cf">else</span> {
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found</span><span class="sc">\n</span><span class="st">&quot;</span>;
+    }
+}</code></pre></div>
+<h2 id="serialization">Serialization</h2>
+<p>To enable serialization on must create an additional free function called <code>to_json_data( T );</code> It will provide a mapping from your type to the arguments provided in the class description. To serialize to a json string, one calls <code>to_json( value );</code> where value is a registered type. The result of to_json_data( T ) is a tuple who's arguments match that of the order in describe_json_class. Using the exmaple above lets add that</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tuple&gt;</span>
+
+<span class="kw">struct</span> AggClass {
+    <span class="dt">int</span> a{};
+    <span class="dt">double</span> b{};
+};
+<span class="kw">auto</span> describe_json_class( AggClass ) {
+    <span class="kw">using</span> <span class="kw">namespace</span> daw::json;
+    <span class="cf">return</span> <span class="dt">class_description_t</span>&lt;
+        json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,
+        json_number&lt;<span class="st">&quot;b&quot;</span>&gt;
+    &gt;{};
+}
+<span class="kw">auto</span> to_json_data( AggClass <span class="at">const</span> &amp; ) {
+    <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple( c.a, c.b );
+}
+<span class="co">//...</span>
+AggData value = <span class="co">//...;</span>
+<span class="bu">std::</span>string json_data = to_json( value );
+
+<span class="co">// or</span>
+<span class="bu">std::</span>vector&lt;AggData&gt; values = <span class="co">//...;</span>
+<span class="bu">std::</span>string json_array_data = to_json_array( values );</code></pre></div>
+<h2 id="json-data-types">Json Data Types</h2>
+<p>The json types match those of the underlying JSON data types from the standard.</p>
+<h3 id="json_nullable">json_nullable</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">typename</span> JsonMember&gt;
+<span class="kw">struct</span> json_nullable</code></pre></div>
+<p>Marks a json member(see below) as nullable. This includes being missing or having a json value of null</p>
+<h3 id="json_number">json_number</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T = <span class="dt">double</span>, 
+    LiteralAsStringOpt LiteralAsString = LiteralAsStringOpt::never,
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;T&gt;&gt;
+<span class="kw">struct</span> json_number</code></pre></div>
+<p>The defaults for json_number will construct a <code>double</code> with the supplied name. However, there are some optimization with using an exact match arithmetic type like a float or int. Integer parsing is faster than floating point if you know you will always get whole numbers. <code>LiteralAsString</code> allow specifying if the number is stored as a string. Values are <code>LiteralAsStringOpt::never</code>, <code>LiteralAsStringOpt::maybe</code>, and <code>LiteralAsStringOpt::always</code>. <code>Constructor</code> the default is almost always correct here but this will constuct your type.</p>
+<h3 id="json_bool">json_bool</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T = <span class="dt">bool</span>, 
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;T&gt;&gt;
+<span class="kw">struct</span> json_bool</code></pre></div>
+<p>The defaults for json_bool will construct a <code>bool</code> with the supplied name. The resulting type T must be constructable from a bool. <code>Constructor</code> the default is almost always correct here but this will constuct your type.</p>
+<h3 id="json_string">json_string</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T = <span class="bu">std::</span>string, 
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;T&gt;,
+    <span class="dt">bool</span> EmptyStringNull = <span class="kw">false</span>&gt;
+<span class="kw">struct</span> json_string</code></pre></div>
+<p>The defaults for json_string will construct a <code>std::string</code> with the supplied name. The resulting type T must be constructable from two arguments(a <code>char const *</code> and a <code>size_t</code>). <code>Constructor</code> the default is almost always correct here but this will constuct your type. <code>EmptyStringNull</code> treat an empty JSON value <code>&quot;&quot;</code> as a null value.</p>
+<h3 id="json_date">json_date</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T = <span class="bu">std::</span>chrono<span class="bu">::</span>time_point&lt;<span class="bu">std::</span>chrono<span class="bu">::</span>system_clock, <span class="bu">std::</span>chrono<span class="bu">::</span>milliseconds&gt;, 
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;T&gt;&gt;
+<span class="kw">struct</span> json_date</code></pre></div>
+<p>json_date is a special class for when a json string fields is known to have timestamp data. The defaults for json_date will construct a <code>std::chrono::time_point&lt;std::chrono::system_clock, std::chrono::milliseconds&gt;</code> with the supplied name. The resulting type T must be constructable from two arguments(a <code>char const *</code> and a <code>size_t</code>). <code>Constructor</code> the default parses javascript timestamps. Supplying a functor that takes the ptr, size combo will allow other result types and date formats.</p>
+<h3 id="json_custom">json_custom</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T,
+    <span class="kw">typename</span> FromConverter = <span class="dt">custom_from_converter_t</span>&lt;T&gt;,
+    <span class="kw">typename</span> ToConverter = <span class="dt">custom_to_converter_t</span>&lt;T&gt;&gt;
+<span class="kw">struct</span> json_custom</code></pre></div>
+<p><code>json_enum</code> allows one to map unusual types. The FromConverter is fed the raw value that is in the json and returns a T. The ToConverter outputs a string from the T value. <code>FromConverter</code> A class who's operator( ) take a string_view and returns a T; The default calls from_string( daw::tag_t<T>, T ). <code>ToConverter</code> A class who's operator( ) is takes a T value and returns a string like type. The default uses to_string( T ).</p>
+<h3 id="json_class">json_class</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> T,
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;T&gt;&gt;
+<span class="kw">struct</span> json_class</code></pre></div>
+<p><code>json_class</code> requires a type argument T that is a type that has an overload of the <code>describe_json_class( T )</code>. <code>Constructor</code> the default is almost always correct here but this will constuct your type.</p>
+<h3 id="json_array">json_array</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> Container, 
+    <span class="kw">typename</span> JsonElement,
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;Container&gt;,
+    <span class="kw">typename</span> Appender = impl::basic_appender&lt;Container&gt;&gt;
+<span class="kw">struct</span> json_array </code></pre></div>
+<p><code>json_array</code>'s are unique in the types because they have more info that is needed.</p>
+<p><code>Container</code> is the type of container the <code>JsonElement</code>'s are placed into, such as <code>std::vector</code></p>
+<p><code>JsonElement</code> one of the above json types with daw::json::no_name or &quot;&quot; as it's name(the name will not be used). This is the item type in the sequence</p>
+<p><code>Constructor</code> the default is almost always correct here but this will constuct your type.</p>
+<p><code>Appender</code> the default is almost always correct here but this will append via insert( Value ) on the container</p>
+<h3 id="json_key_value">json_key_value</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;JSONNAMETYPE Name, 
+    <span class="kw">typename</span> Container, 
+    <span class="kw">typename</span> JsonValueType,
+    <span class="kw">typename</span> JsonKeyType = json_string&lt;no_name&gt;,
+    <span class="kw">typename</span> Constructor = daw::construct_a&lt;Container&gt;,
+    <span class="kw">typename</span> Appender = impl::basic_kv_appender&lt;Container&gt;&gt;
+<span class="kw">struct</span> json_key_value</code></pre></div>
+<p><code>json_key_value</code> Is like both an array and a class. All the keys/member names are json strings.</p>
+<p><code>Container</code> The result type to place all the KV pairs into. By default must behave like a Map.</p>
+<p><code>JsonValueType</code> One of the above json types with daw::json::no_name or &quot;&quot; as it's name(the name will not be used). This is the value type in the KV pairs</p>
+<p><code>JsonKeyType</code> The underlying json value is string, so the json_ type must account for that in parsing, with daw::json::no_name or &quot;&quot; as it's name(the name will not be used). This is the key type in the KV pairs</p>
+<p><code>Constructor</code> the default is almost always correct here but this will constuct your Continer.</p>
+<p><code>Appender</code> the default is almost always correct here but this will append via insert( std::pair<Key, Value> ) on the container</p>

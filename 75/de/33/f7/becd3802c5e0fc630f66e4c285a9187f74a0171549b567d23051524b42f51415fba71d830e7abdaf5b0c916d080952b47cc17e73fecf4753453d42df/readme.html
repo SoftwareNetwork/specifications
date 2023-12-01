@@ -1,0 +1,98 @@
+<h1 id="blosc-a-blocking-shuffling-and-lossless-compression-library">Blosc: A blocking, shuffling and lossless compression library</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Author</th>
+<th>Contact</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Blosc Development Team</td>
+<td>blosc@blosc.org</td>
+<td>http://www.blosc.org</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Gitter</th>
+<th>Travis CI</th>
+<th>Appveyor</th>
+<th>NumFOCUS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://gitter.im/Blosc/c-blosc?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Blosc/c-blosc.svg" alt="Build Status" /></a></td>
+<td><a href="https://travis-ci.org/Blosc/c-blosc"><img src="https://travis-ci.org/Blosc/c-blosc.svg?branch=master" alt="Build Status" /></a></td>
+<td><a href="https://ci.appveyor.com/project/FrancescAlted/c-blosc/branch/master"><img src="https://ci.appveyor.com/api/projects/status/3mlyjc1ak0lbkmte?svg=true" alt="Build Status" /></a></td>
+<td><a href="http://numfocus.org"><img src="https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&amp;colorA=E1523D&amp;colorB=007D8A" alt="Powered by NumFOCUS" /></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-is-it">What is it?</h2>
+<p>Blosc is a high performance compressor optimized for binary data. It has been designed to transmit data to the processor cache faster than the traditional, non-compressed, direct memory fetch approach via a memcpy() OS call. Blosc is the first compressor (that I'm aware of) that is meant not only to reduce the size of large datasets on-disk or in-memory, but also to accelerate memory-bound computations.</p>
+<p>It uses the <a href="http://blosc.org/docs/StarvingCPUs-CISE-2010.pdf">blocking technique</a> so as to reduce activity in the memory bus as much as possible. In short, this technique works by dividing datasets in blocks that are small enough to fit in caches of modern processors and perform compression / decompression there. It also leverages, if available, SIMD instructions (SSE2, AVX2) and multi-threading capabilities of CPUs, in order to accelerate the compression / decompression process to a maximum.</p>
+<p>See some <a href="http://blosc.org/pages/synthetic-benchmarks/">benchmarks</a> about Blosc performance.</p>
+<p>Blosc is distributed using the BSD license, see LICENSES/BLOSC.txt for details.</p>
+<h2 id="meta-compression-and-other-differences-over-existing-compressors">Meta-compression and other differences over existing compressors</h2>
+<p>C-Blosc is not like other compressors: it should rather be called a meta-compressor. This is so because it can use different compressors and filters (programs that generally improve compression ratio). At any rate, it can also be called a compressor because it happens that it already comes with several compressor and filters, so it can actually work like a regular codec.</p>
+<p>Currently C-Blosc comes with support of BloscLZ, a compressor heavily based on FastLZ (http://fastlz.org/), LZ4 and LZ4HC (https://github.com/Cyan4973/lz4), Snappy (https://github.com/google/snappy), Zlib (http://www.zlib.net/) and Zstd (http://www.zstd.net).</p>
+<p>C-Blosc also comes with highly optimized (they can use SSE2 or AVX2 instructions, if available) shuffle and bitshuffle filters (for info on how and why shuffling works <a href="https://www.slideshare.net/PyData/blosc-py-data-2014/17?src=clipshare">see here</a>). However, additional compressors or filters may be added in the future.</p>
+<p>Blosc is in charge of coordinating the different compressor and filters so that they can leverage the <a href="http://blosc.org/docs/StarvingCPUs-CISE-2010.pdf">blocking technique</a> as well as multi-threaded execution (if several cores are available) automatically. That makes that every codec and filter will work at very high speeds, even if it was not initially designed for doing blocking or multi-threading.</p>
+<p>Finally, C-Blosc is specially suited to deal with binary data because it can take advantage of the type size meta-information for improved compression ratio by using the integrated shuffle and bitshuffle filters.</p>
+<p>When taken together, all these features set Blosc apart from other compression libraries.</p>
+<h2 id="compiling-the-blosc-library">Compiling the Blosc library</h2>
+<p>Blosc can be built, tested and installed using CMake_. The following procedure describes the &quot;out of source&quot; build.</p>
+<pre class="console"><code>
+  $ cd c-blosc
+  $ mkdir build
+  $ cd build</code></pre>
+<p>Now run CMake configuration and optionally specify the installation directory (e.g. '/usr' or '/usr/local'):</p>
+<pre class="console"><code>
+  $ cmake -DCMAKE_INSTALL_PREFIX=your_install_prefix_directory ..</code></pre>
+<p>CMake allows to configure Blosc in many different ways, like preferring internal or external sources for compressors or enabling/disabling them. Please note that configuration can also be performed using UI tools provided by <a href="http://www.cmake.org">CMake</a> (ccmake or cmake-gui):</p>
+<pre class="console"><code>
+  $ ccmake ..      # run a curses-based interface
+  $ cmake-gui ..   # run a graphical interface</code></pre>
+<p>Build, test and install Blosc:</p>
+<pre class="console"><code>
+  $ cmake --build .
+  $ ctest
+  $ cmake --build . --target install</code></pre>
+<p>The static and dynamic version of the Blosc library, together with header files, will be installed into the specified CMAKE_INSTALL_PREFIX.</p>
+<h3 id="codec-support-with-cmake">Codec support with CMake</h3>
+<p>C-Blosc comes with full sources for LZ4, LZ4HC, Snappy, Zlib and Zstd and in general, you should not worry about not having (or CMake not finding) the libraries in your system because by default the included sources will be automatically compiled and included in the C-Blosc library. This effectively means that you can be confident in having a complete support for all the codecs in all the Blosc deployments (unless you are explicitly excluding support for some of them).</p>
+<p>But in case you want to force Blosc to use external codec libraries instead of the included sources, you can do that:</p>
+<pre class="console"><code>
+  $ cmake -DPREFER_EXTERNAL_ZSTD=ON ..</code></pre>
+<p>You can also disable support for some compression libraries:</p>
+<pre class="console"><code>
+  $ cmake -DDEACTIVATE_SNAPPY=ON ..  # in case you don&#39;t have a C++ compiler</code></pre>
+<h2 id="examples">Examples</h2>
+<p>In the <a href="https://github.com/Blosc/c-blosc/tree/master/examples">examples/ directory</a> you can find hints on how to use Blosc inside your app.</p>
+<h2 id="supported-platforms">Supported platforms</h2>
+<p>Blosc is meant to support all platforms where a C89 compliant C compiler can be found. The ones that are mostly tested are Intel (Linux, Mac OSX and Windows) and ARM (Linux), but exotic ones as IBM Blue Gene Q embedded &quot;A2&quot; processor are reported to work too.</p>
+<h3 id="mac-osx-troubleshooting">Mac OSX troubleshooting</h3>
+<p>If you run into compilation troubles when using Mac OSX, please make sure that you have installed the command line developer tools. You can always install them with:</p>
+<pre class="console"><code>
+  $ xcode-select --install</code></pre>
+<h2 id="wrapper-for-python">Wrapper for Python</h2>
+<p>Blosc has an official wrapper for Python. See:</p>
+<p>https://github.com/Blosc/python-blosc</p>
+<h2 id="command-line-interface-and-serialization-format-for-blosc">Command line interface and serialization format for Blosc</h2>
+<p>Blosc can be used from command line by using Bloscpack. See:</p>
+<p>https://github.com/Blosc/bloscpack</p>
+<h2 id="filter-for-hdf5">Filter for HDF5</h2>
+<p>For those who want to use Blosc as a filter in the HDF5 library, there is a sample implementation in the hdf5-blosc project in:</p>
+<p>https://github.com/Blosc/hdf5-blosc</p>
+<h2 id="mailing-list">Mailing list</h2>
+<p>There is an official mailing list for Blosc at:</p>
+<p>blosc@googlegroups.com http://groups.google.es/group/blosc</p>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>See THANKS.rst.</p>
+<hr />
+<p><strong>Enjoy data!</strong></p>

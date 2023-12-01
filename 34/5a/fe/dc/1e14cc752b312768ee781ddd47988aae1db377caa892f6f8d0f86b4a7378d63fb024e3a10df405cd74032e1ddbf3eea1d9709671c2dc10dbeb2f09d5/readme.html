@@ -1,0 +1,96 @@
+<h1 id="nanogui">NanoGUI</h1>
+<p><a href="http://nanogui.readthedocs.org/en/latest/?badge=latest"><img src="https://readthedocs.org/projects/nanogui/badge/?version=latest" alt="Docs" /></a> <a href="https://travis-ci.org/wjakob/nanogui"><img src="https://travis-ci.org/wjakob/nanogui.svg?branch=master" alt="Travis Build Status" /></a> <a href="https://ci.appveyor.com/project/wjakob/nanogui/branch/master"><img src="https://ci.appveyor.com/api/projects/status/m8h3uyvdb4ej2i02/branch/master?svg=true" alt="Appveyor Build Status" /></a></p>
+<p>NanoGUI is a minimalistic cross-platform widget library for OpenGL 3.x or higher. It supports automatic layout generation, stateful C++11 lambdas callbacks, a variety of useful widget types and Retina-capable rendering on Apple devices thanks to <a href="https://github.com/memononen/NanoVG">NanoVG</a> by Mikko Mononen. Python bindings of all functionality are provided using <a href="https://github.com/wjakob/pybind11">pybind11</a>.</p>
+<ul>
+<li><a href="https://nanogui.readthedocs.io">Documentation</a></li>
+</ul>
+<h2 id="example-screenshot">Example screenshot</h2>
+<p><img src="https://github.com/wjakob/nanogui/raw/master/resources/screenshot.png" alt="Screenshot of Example 1." /></p>
+<h2 id="description">Description</h2>
+<p>NanoGUI builds on <a href="http://www.glfw.org/">GLFW</a> for cross-platform OpenGL context creation and event handling, <a href="https://github.com/Dav1dde/glad">GLAD</a> to use OpenGL 3.x or higher Windows, <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> for basic vector types, and <a href="https://github.com/memononen/NanoVG">NanoVG</a> to draw 2D primitives.</p>
+<p>Note that the dependency library NanoVG already includes some basic example code to draw good-looking static widgets; what NanoGUI does is to flesh it out into a complete GUI toolkit with event handling, layout generation, etc.</p>
+<p>NanoGUI currently works on Mac OS X (Clang) Linux (GCC or Clang) and Windows (Visual Studio ≥ 2015); it requires a recent C++11 capable compiler. All dependencies are jointly built using a CMake-based build system.</p>
+<h2 id="creating-widgets">Creating widgets</h2>
+<p>NanoGUI makes it easy to instantiate widgets, set layout constraints, and register event callbacks using high-level C++11 code. For instance, the following two lines from the included example application add a new button to an existing window window and register an event callback.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Button *b = <span class="kw">new</span> Button(window, <span class="st">&quot;Plain button&quot;</span>);
+b-&gt;setCallback([] { cout &lt;&lt; <span class="st">&quot;pushed!&quot;</span> &lt;&lt; endl; });</code></pre></div>
+<p>The following lines from the example application create the coupled slider and text box on the bottom of the second window (see the screenshot).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/* Create an empty panel with a horizontal layout */</span>
+Widget *panel = <span class="kw">new</span> Widget(window);
+panel-&gt;setLayout(<span class="kw">new</span> BoxLayout(BoxLayout::Horizontal, BoxLayout::Middle, <span class="dv">0</span>, <span class="dv">20</span>));
+
+<span class="co">/* Add a slider and set defaults */</span>
+Slider *slider = <span class="kw">new</span> Slider(panel);
+slider-&gt;setValue(<span class="fl">0.5f</span>);
+slider-&gt;setFixedWidth(<span class="dv">80</span>);
+
+<span class="co">/* Add a textbox and set defaults */</span>
+TextBox *textBox = <span class="kw">new</span> TextBox(panel);
+textBox-&gt;setFixedSize(Vector2i(<span class="dv">60</span>, <span class="dv">25</span>));
+textBox-&gt;setValue(<span class="st">&quot;50&quot;</span>);
+textBox-&gt;setUnits(<span class="st">&quot;%&quot;</span>);
+
+<span class="co">/* Propagate slider changes to the text box */</span>
+slider-&gt;setCallback([textBox](<span class="dt">float</span> value) {
+    textBox-&gt;setValue(<span class="bu">std::</span>to_string((<span class="dt">int</span>) (value * <span class="dv">100</span>)));
+});</code></pre></div>
+<p>The Python version of this same piece of code looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode py"><code class="sourceCode python"><span class="co"># Create an empty panel with a horizontal layout</span>
+panel <span class="op">=</span> Widget(window)
+panel.setLayout(BoxLayout(BoxLayout.Horizontal, BoxLayout.Middle, <span class="dv">0</span>, <span class="dv">20</span>))
+
+<span class="co"># Add a slider and set defaults</span>
+slider <span class="op">=</span> Slider(panel)
+slider.setValue(<span class="fl">0.5</span>f)
+slider.setFixedWidth(<span class="dv">80</span>)
+
+<span class="co"># Add a textbox and set defaults</span>
+textBox <span class="op">=</span> TextBox(panel)
+textBox.setFixedSize(Vector2i(<span class="dv">60</span>, <span class="dv">25</span>))
+textBox.setValue(<span class="st">&quot;50&quot;</span>)
+textBox.setUnits(<span class="st">&quot;%&quot;</span>)
+
+<span class="co"># Propagate slider changes to the text box</span>
+<span class="kw">def</span> cb(value):
+    textBox.setValue(<span class="st">&quot;</span><span class="sc">%i</span><span class="st">&quot;</span> <span class="op">%</span> <span class="bu">int</span>(value <span class="op">*</span> <span class="dv">100</span>))
+slider.setCallback(cb)</code></pre></div>
+<h2 id="simple-mode">&quot;Simple mode&quot;</h2>
+<p>Christian Schüller contributed a convenience class that makes it possible to create AntTweakBar-style variable manipulators using just a few lines of code. For instance, the source code below was used to create the following example application.</p>
+<p><img src="https://github.com/wjakob/nanogui/raw/master/resources/screenshot2.png" alt="Screenshot" /></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/// dvar, bar, strvar, etc. are double/bool/string/.. variables</span>
+
+FormHelper *gui = <span class="kw">new</span> FormHelper(screen);
+ref&lt;Window&gt; window = gui-&gt;addWindow(Eigen::Vector2i(<span class="dv">10</span>, <span class="dv">10</span>), <span class="st">&quot;Form helper example&quot;</span>);
+gui-&gt;addGroup(<span class="st">&quot;Basic types&quot;</span>);
+gui-&gt;addVariable(<span class="st">&quot;bool&quot;</span>, bvar);
+gui-&gt;addVariable(<span class="st">&quot;string&quot;</span>, strvar);
+
+gui-&gt;addGroup(<span class="st">&quot;Validating fields&quot;</span>);
+gui-&gt;addVariable(<span class="st">&quot;int&quot;</span>, ivar);
+gui-&gt;addVariable(<span class="st">&quot;float&quot;</span>, fvar);
+gui-&gt;addVariable(<span class="st">&quot;double&quot;</span>, dvar);
+
+gui-&gt;addGroup(<span class="st">&quot;Complex types&quot;</span>);
+gui-&gt;addVariable(<span class="st">&quot;Enumeration&quot;</span>, enumval, enabled)
+   -&gt;setItems({<span class="st">&quot;Item 1&quot;</span>, <span class="st">&quot;Item 2&quot;</span>, <span class="st">&quot;Item 3&quot;</span>});
+gui-&gt;addVariable(<span class="st">&quot;Color&quot;</span>, colval);
+
+gui-&gt;addGroup(<span class="st">&quot;Other widgets&quot;</span>);
+gui-&gt;addButton(<span class="st">&quot;A button&quot;</span>, [](){ <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Button pressed.&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; });
+
+screen-&gt;setVisible(<span class="kw">true</span>);
+screen-&gt;performLayout();
+window-&gt;center();</code></pre></div>
+<h2 id="compiling">Compiling</h2>
+<p>Clone the repository and all dependencies (with <code>git clone --recursive</code>), run CMake to generate Makefiles or CMake/Visual Studio project files, and the rest should just work automatically.</p>
+<p>On Debian/Ubuntu, make sure that you have installed the following packages</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">apt-get</span> install cmake xorg-dev libglu1-mesa-dev</code></pre></div>
+<p>To also get the Python bindings, you'll need to run</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">apt-get</span> install python-dev</code></pre></div>
+<p>On RedHat/Fedora, make sure that you have installed the following packages</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">sudo</span> dnf install cmake mesa-libGLU-devel libXi-devel libXcursor-devel libXinerama-devel libXrandr-devel xorg-x11-server-devel</code></pre></div>
+<p>To also get the Python bindings, you'll need to run</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="fu">sudo</span> dnf install python3-devel</code></pre></div>
+<h2 id="license">License</h2>
+<p>NanoGUI is provided under a BSD-style license that can be found in the <a href="https://github.com/wjakob/nanogui/blob/master/LICENSE.txt">LICENSE</a> file. By using, distributing, or contributing to this project, you agree to the terms and conditions of this license.</p>
+<p>NanoGUI uses Daniel Bruce's <a href="http://www.entypo.com/">Entypo+</a> font for the icons used on various widgets. This work is licensed under a <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> license. Commercial entities using NanoGUI should consult the proper legal counsel for how to best adhere to the attribution clause of the license.</p>

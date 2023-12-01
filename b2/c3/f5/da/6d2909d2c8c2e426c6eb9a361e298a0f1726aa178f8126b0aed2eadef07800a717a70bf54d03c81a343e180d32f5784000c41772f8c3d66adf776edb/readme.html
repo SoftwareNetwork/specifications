@@ -1,0 +1,171 @@
+<h1 id="stl_interfaces">stl_interfaces</h1>
+<p>An updated C++20-friendly version of the <code>iterator_facade</code> and <code>iterator_adaptor</code> parts of Boost.Iterator (now called <code>iterator_interface</code>); a pre-C++20 version of C++20's <code>view_interface</code>; and a new template called <code>container_interface</code>, meant to aid the creation of new containers; all targeting standardization. This library requires at least C++14.</p>
+<p>For the iterator portion -- if you need to write an iterator, <code>iterator_interface</code> turns this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">    <span class="kw">struct</span> repeated_chars_iterator
+    {
+        <span class="kw">using</span> <span class="dt">value_type</span> = <span class="dt">char</span>;
+        <span class="kw">using</span> <span class="dt">difference_type</span> = <span class="bu">std::</span>ptrdiff_t;
+        <span class="kw">using</span> pointer = <span class="dt">char</span> <span class="at">const</span> *;
+        <span class="kw">using</span> reference = <span class="dt">char</span> <span class="at">const</span>;
+        <span class="kw">using</span> iterator_category = <span class="bu">std::</span>random_access_iterator_tag;
+
+        <span class="kw">constexpr</span> repeated_chars_iterator() <span class="kw">noexcept</span> :
+            <span class="va">first_</span>(<span class="kw">nullptr</span>),
+            <span class="va">size_</span>(<span class="dv">0</span>),
+            <span class="va">n_</span>(<span class="dv">0</span>)
+        {}
+        <span class="kw">constexpr</span> repeated_chars_iterator(
+            <span class="dt">char</span> <span class="at">const</span> * first,
+            <span class="dt">difference_type</span> size,
+            <span class="dt">difference_type</span> n) <span class="kw">noexcept</span> :
+            <span class="va">first_</span>(first),
+            <span class="va">size_</span>(size),
+            <span class="va">n_</span>(n)
+        {}
+
+        <span class="kw">constexpr</span> reference <span class="kw">operator</span>*() <span class="at">const</span> <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> <span class="va">first_</span>[<span class="va">n_</span> % <span class="va">size_</span>];
+        }
+
+        <span class="kw">constexpr</span> <span class="dt">value_type</span> <span class="kw">operator</span>[](<span class="dt">difference_type</span> n) <span class="at">const</span> <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> <span class="va">first_</span>[(<span class="va">n_</span> + n) % <span class="va">size_</span>];
+        }
+
+        <span class="kw">constexpr</span> repeated_chars_iterator &amp; <span class="kw">operator</span>++() <span class="kw">noexcept</span>
+        {
+            ++<span class="va">n_</span>;
+            <span class="cf">return</span> *<span class="kw">this</span>;
+        }
+        <span class="kw">constexpr</span> repeated_chars_iterator <span class="kw">operator</span>++(<span class="dt">int</span>)<span class="kw">noexcept</span>
+        {
+            repeated_chars_iterator retval = *<span class="kw">this</span>;
+            ++*<span class="kw">this</span>;
+            <span class="cf">return</span> retval;
+        }
+        <span class="kw">constexpr</span> repeated_chars_iterator &amp; <span class="kw">operator</span>+=(<span class="dt">difference_type</span> n) <span class="kw">noexcept</span>
+        {
+            <span class="va">n_</span> += n;
+            <span class="cf">return</span> *<span class="kw">this</span>;
+        }
+
+        <span class="kw">constexpr</span> repeated_chars_iterator &amp; <span class="kw">operator</span>--() <span class="kw">noexcept</span>
+        {
+            --<span class="va">n_</span>;
+            <span class="cf">return</span> *<span class="kw">this</span>;
+        }
+        <span class="kw">constexpr</span> repeated_chars_iterator <span class="kw">operator</span>--(<span class="dt">int</span>)<span class="kw">noexcept</span>
+        {
+            repeated_chars_iterator retval = *<span class="kw">this</span>;
+            --*<span class="kw">this</span>;
+            <span class="cf">return</span> retval;
+        }
+        <span class="kw">constexpr</span> repeated_chars_iterator &amp; <span class="kw">operator</span>-=(<span class="dt">difference_type</span> n) <span class="kw">noexcept</span>
+        {
+            <span class="va">n_</span> -= n;
+            <span class="cf">return</span> *<span class="kw">this</span>;
+        }
+
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>==(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs.<span class="va">first_</span> == rhs.<span class="va">first_</span> &amp;&amp; lhs.<span class="va">n_</span> == rhs.<span class="va">n_</span>;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>!=(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> !(lhs == rhs);
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs.<span class="va">first_</span> == rhs.<span class="va">first_</span> &amp;&amp; lhs.<span class="va">n_</span> &lt; rhs.<span class="va">n_</span>;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&lt;=(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs == rhs || lhs &lt; rhs;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> rhs &lt; lhs;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">bool</span> <span class="kw">operator</span>&gt;=(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> rhs &lt;= lhs;
+        }
+
+        <span class="kw">friend</span> <span class="kw">constexpr</span> repeated_chars_iterator
+        <span class="kw">operator</span>+(repeated_chars_iterator lhs, <span class="dt">difference_type</span> rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs += rhs;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> repeated_chars_iterator
+        <span class="kw">operator</span>+(<span class="dt">difference_type</span> lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> rhs += lhs;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> repeated_chars_iterator
+        <span class="kw">operator</span>-(repeated_chars_iterator lhs, <span class="dt">difference_type</span> rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs -= rhs;
+        }
+        <span class="kw">friend</span> <span class="kw">constexpr</span> <span class="dt">difference_type</span> <span class="kw">operator</span>-(
+            repeated_chars_iterator lhs, repeated_chars_iterator rhs) <span class="kw">noexcept</span>
+        {
+            <span class="cf">return</span> lhs.<span class="va">n_</span> - rhs.<span class="va">n_</span>;
+        }
+
+    <span class="kw">private</span>:
+        <span class="dt">char</span> <span class="at">const</span> * <span class="va">first_</span>;
+        <span class="dt">difference_type</span> <span class="va">size_</span>;
+        <span class="dt">difference_type</span> <span class="va">n_</span>;
+    };</code></pre></div>
+<p>into this:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> repeated_chars_iterator : <span class="ex">boost::</span>stl_interfaces<span class="ex">::</span>iterator_interface&lt;
+                                     repeated_chars_iterator,
+                                     <span class="bu">std::</span>random_access_iterator_tag,
+                                     <span class="dt">char</span>,
+                                     <span class="dt">char</span>&gt;
+{
+    <span class="kw">constexpr</span> repeated_chars_iterator() <span class="kw">noexcept</span> :
+        <span class="va">first_</span>(<span class="kw">nullptr</span>),
+        <span class="va">size_</span>(<span class="dv">0</span>),
+        <span class="va">n_</span>(<span class="dv">0</span>)
+    {}
+    <span class="kw">constexpr</span> repeated_chars_iterator(
+        <span class="dt">char</span> <span class="at">const</span> * first, <span class="dt">difference_type</span> size, <span class="dt">difference_type</span> n) <span class="kw">noexcept</span> :
+        <span class="va">first_</span>(first),
+        <span class="va">size_</span>(size),
+        <span class="va">n_</span>(n)
+    {}
+
+    <span class="kw">constexpr</span> <span class="dt">char</span> <span class="kw">operator</span>*() <span class="at">const</span> <span class="kw">noexcept</span> { <span class="cf">return</span> <span class="va">first_</span>[<span class="va">n_</span> % <span class="va">size_</span>]; }
+    <span class="kw">constexpr</span> repeated_chars_iterator &amp; <span class="kw">operator</span>+=(<span class="bu">std::</span>ptrdiff_t i) <span class="kw">noexcept</span>
+    {
+        <span class="va">n_</span> += i;
+        <span class="cf">return</span> *<span class="kw">this</span>;
+    }
+    <span class="kw">constexpr</span> <span class="kw">auto</span> <span class="kw">operator</span>-(repeated_chars_iterator other) <span class="at">const</span> <span class="kw">noexcept</span>
+    {
+        <span class="cf">return</span> <span class="va">n_</span> - other.<span class="va">n_</span>;
+    }
+
+<span class="kw">private</span>:
+    <span class="dt">char</span> <span class="at">const</span> * <span class="va">first_</span>;
+    <span class="dt">difference_type</span> <span class="va">size_</span>;
+    <span class="dt">difference_type</span> <span class="va">n_</span>;
+};</code></pre></div>
+<p>The code size savings are even more dramatic for <code>view_interface</code> and <code>container_interface</code>! If you don't ever write iterators, range views, or containers, this is not for you.</p>
+<p>Online docs: https://boostorg.github.io/stl_interfaces.</p>
+<p>This library includes a temporary implementation for those who wish to experiment with a concept-constrained version before C++20 is widely implemented. Casey Carter's cmcstl2 is an implementation of the <code>std::ranges</code> portion of the C++20 standard library. To use it:</p>
+<ul>
+<li><p>check out the cmcstl2 branch of this library; then</p></li>
+<li><p>put its headers in your include path, so that they can be included with <code>#include &lt;stl2/foo.hpp&gt;</code>; and</p></li>
+<li><p>build with GCC 8 or 9, including the <code>-fconcepts</code> and <code>-std=c++2a</code> flags.</p></li>
+</ul>
+<p>GCC 8 and 9 are the only compilers with an adequate concepts implementation at the time of this writing.</p>
+<p><a href="https://travis-ci.org/boostorg/stl_interfaces"><img src="https://travis-ci.org/boostorg/stl_interfaces.svg?branch=develop" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/tzlaine/stl-interfaces"><img src="https://ci.appveyor.com/api/projects/status/github/tzlaine/stl-interfaces?branch=develop&amp;svg=true" alt="Build Status" /></a> <a href="LICENSE_1_0.txt"><img src="https://img.shields.io/badge/license-boost-brightgreen.svg" alt="License" /></a></p>

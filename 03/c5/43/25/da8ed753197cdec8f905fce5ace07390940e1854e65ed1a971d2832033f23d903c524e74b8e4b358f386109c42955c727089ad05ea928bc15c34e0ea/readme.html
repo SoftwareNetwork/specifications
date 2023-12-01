@@ -1,0 +1,180 @@
+<h1 id="ryu-ryu-printf-build-status">Ryu &amp; Ryu Printf <a href="https://travis-ci.org/ulfjack/ryu"><img src="https://travis-ci.org/ulfjack/ryu.svg?branch=master" alt="Build Status" /></a></h1>
+<p>This project contains C and Java implementation of Ryu, as well as a C implementation of Ryu Printf. Ryu converts a floating point number to its shortest decimal representation, whereas Ryu Printf converts a floating point number according to the printf <code>%f</code> or <code>%e</code> format. At the time of this writing, these are the fastest known float-to-string conversion algorithms. We have tested the code on Ubuntu 19.04, MacOS Mojave, and Windows 10.</p>
+<p>All code outside of third_party/ is copyrighted by Ulf Adams and contributors, and may be used freely in accordance with the Apache 2.0 license. Alternatively, the files in the ryu/ directory may be used freely in accordance with the Boost 1.0 license.</p>
+<p>All contributions are required to maintain these licenses.</p>
+<h2 id="ryu">Ryu</h2>
+<p>Ryu generates the shortest decimal representation of a floating point number that maintains round-trip safety. That is, a correct parser can recover the exact original number. For example, consider the binary 64-bit floating point number <code>00111110100110011001100110011010</code>. The stored value is exactly <code>0.300000011920928955078125</code>. However, this floating point number is also the closest number to the decimal number <code>0.3</code>, so that is what Ryu outputs.</p>
+<p>This problem of generating the shortest possible representation was originally posed by White and Steele [<a href="https://dl.acm.org/citation.cfm?id=93559">1</a>], for which they described an algorithm called &quot;Dragon&quot;. It was subsequently improved upon with algorithms that also had dragon-themed names. I followed in the same vein using the japanese word for dragon, Ryu. In general, all these algorithms should produce identical output given identical input, and this is checked when running the benchmark program.</p>
+<p>The C implementation of Ryu is in the ryu/ directory. The Java implementations are RyuFloat and RyuDouble under src/main/java/. Both cover 32 and 64-bit floating point numbers.</p>
+<p>In addition, there is an experimental C implementation that can handle inputs of any size up to 128-bit, albeit with lower performance than the highly optimized 32-bit and 64-bit implementations. Furthermore, there is an experimental low-level C API that returns the decimal floating-point representation as a struct, allowing clients to implement their own formatting. These are still subject to change.</p>
+<p><em>Note</em>: The Java implementation differs from the output of <code>Double.toString</code> [<a href="https://docs.oracle.com/javase/10/docs/api/java/lang/Double.html#toString(double)">2</a>] in some cases: sometimes the output is shorter (which is arguably more accurate) and sometimes the output may differ in the precise digits output (e.g., see https://github.com/ulfjack/ryu/issues/83).</p>
+<p><em>Note</em>: While the Java specification requires outputting at least 2 digits, other specifications, such as for JavaScript, always require the shortest output. We may change the Java implementation in the future to support both.</p>
+<p>My PLDI'18 paper includes a complete correctness proof of the algorithm: https://dl.acm.org/citation.cfm?id=3192369, available under the creative commons CC-BY-SA license.</p>
+<p>Other implementations of Ryu:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Language</th>
+<th>Author</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Scala</td>
+<td>Andriy Plokhotnyuk</td>
+<td>https://github.com/plokhotnyuk/jsoniter-scala</td>
+</tr>
+<tr class="even">
+<td>Rust</td>
+<td>David Tolnay</td>
+<td>https://github.com/dtolnay/ryu</td>
+</tr>
+<tr class="odd">
+<td>Julia</td>
+<td>Jacob Quinn</td>
+<td>https://github.com/quinnj/Ryu.jl</td>
+</tr>
+<tr class="even">
+<td>Factor</td>
+<td>Alexander Iljin</td>
+<td>https://github.com/AlexIljin/ryu</td>
+</tr>
+<tr class="odd">
+<td>Go</td>
+<td>Caleb Spare</td>
+<td>https://github.com/cespare/ryu</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ryu-printf">Ryu Printf</h2>
+<p>Since Ryu generates the shortest decimal representation, it is not immediately suitable for use in languages that have printf-like facilities. In most implementations, printf provides three floating-point specific formatters, <code>%f</code>, <code>%e</code>, and <code>%g</code>:</p>
+<ul>
+<li><p>The <code>%f</code> format prints the full decimal part of the given floating point number, and then appends as many digits of the fractional part as specified using the precision parameter.</p></li>
+<li><p>The <code>%e</code> format prints the decimal number in scientific notation with as many digits after the initial digit as specified using the precision parameter.</p></li>
+<li><p>The <code>%g</code> format prints either <code>%f</code> or <code>%e</code> format, whichever is shorter.</p></li>
+</ul>
+<p>Ryu Printf implements %f and %e formatting in a way that should be drop-in compatible with most implementations of printf, although it currently does not implement any formatting flags other than precision. The benchmark program verifies that the output matches exactly, and outputs a warning if not. Any unexpected output from the benchmark indicates a difference in output.</p>
+<p><em>Note</em> that old versions of MSVC ship with a printf implementation that has a confirmed bug: it does not always round the last digit correctly.</p>
+<p><em>Note</em> that msys cuts off the output after ~17 digits, and therefore generally differs from Ryu Printf output for precision values larger than 17.</p>
+<p><em>Note</em> that the output for NaN values can differ between implementations; we use ifdefs in an attempt to match platform output.</p>
+<p>According to our benchmarks, Ryu Printf compares favorably with the following implementations of printf for precision parameters 1, 10, 100, and 1000:</p>
+<table>
+<thead>
+<tr class="header">
+<th>OS</th>
+<th>Libc</th>
+<th>Ryu Printf is faster by</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ubuntu 18.04</td>
+<td>libc6 2.27-3ubuntu1</td>
+<td>15x</td>
+</tr>
+<tr class="even">
+<td>Ubuntu 18.04</td>
+<td>musl 1.1.19-1</td>
+<td>4x</td>
+</tr>
+<tr class="odd">
+<td>Windows 10 Home 1803</td>
+<td>MSVC 19.14.26429.4</td>
+<td>9x</td>
+</tr>
+<tr class="even">
+<td>Windows 10 Home 1803</td>
+<td>msys-runtime-devel 2.10.0-2</td>
+<td>between 8x and 20x</td>
+</tr>
+<tr class="odd">
+<td>macOS Mojave 10.14</td>
+<td>Apple Libc</td>
+<td>24x</td>
+</tr>
+</tbody>
+</table>
+<p>In addition, Ryu Printf has a more predictable performance profile. In theory, an implementation that performs particularly badly for some subset of numbers could be exploited as a denial-of-service attack vector.</p>
+<h2 id="building-testing-running">Building, Testing, Running</h2>
+<p>We use the Bazel build system (https://bazel.build) 0.14 or later, although we recommend using the latest release. You also need to install Jdk 8 (or later) to build and run the Java code, and/or a C/C++ compiler (gcc or clang on Ubuntu, XCode on MacOS, or MSVC on Windows) to build the C/C++ code.</p>
+<p>To build Ryu, run</p>
+<pre><code>$ bazel build //ryu</code></pre>
+<p>To build Ryu Printf, run</p>
+<pre><code>$ bazel build //ryu:ryu_printf</code></pre>
+<h3 id="big-endian-architectures">Big-Endian Architectures</h3>
+<p>The C implementations should work on big-endian architectures provided that the floating point type and the corresponding integer type use the same endianness.</p>
+<p>There are no concerns around endianness for the Java implementation.</p>
+<h3 id="building-with-a-custom-compiler">Building with a Custom Compiler</h3>
+<p>You can select a custom C++ compiler by setting the CC environment variable, e.g., use these steps to build with clang-4.0 on Ubuntu:</p>
+<pre><code>$ export CC=clang-4.0
+$ bazel build //ryu</code></pre>
+<p>Building Ryu Printf against musl and msys requires installing the corresponding packages. We only tested against the musl Debian package that installs a gcc wrapper and is enabled by setting <code>CC</code>. However, building against msys requires manually adjusting Bazel's compiler configuration files.</p>
+<h3 id="tests">Tests</h3>
+<p>You can run both C and Java tests with</p>
+<pre><code>$ bazel test //ryu/... //src/...</code></pre>
+<h2 id="ryu-additional-notes">Ryu: Additional Notes</h2>
+<h3 id="jaffer">Jaffer</h3>
+<p>The code given by Jaffer in the original paper does not come with a license declaration. Instead, we're using code found on GitHub <a href="https://github.com/coconut2015/cookjson/blob/master/cookjson-core/src/main/java/org/yuanheng/cookjson/DoubleUtils.java">3</a>, which contains a license declaration by Jaffer. Compared to the original code, this implementation no longer outputs incorrect values for negative numbers.</p>
+<p>We provide a binary to find differences between Ryu and the Jaffer / Jdk implementations:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/analysis:FindDifferences --</code></pre>
+<p>Add the <code>-mode=csv</code> option to get all the discovered differences as a CSV. Use <code>-mode=latex</code> instead to get a latex snippet of the first 20. Use <code>-mode=summary</code> to only print the number of discovered differences (this is the default mode).</p>
+<h3 id="computing-required-lookup-table-sizes">Computing Required Lookup Table Sizes</h3>
+<p>You can compute the required lookup table sizes with:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/analysis:ComputeTableSizes --</code></pre>
+<p>Add <code>-v</code> to get slightly more verbose output.</p>
+<h3 id="computing-required-bit-sizes">Computing Required Bit Sizes</h3>
+<p>You can compute the required bit sizes with:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/analysis:ComputeRequiredBitSizes --</code></pre>
+<p>Add the <code>-128</code> and <code>-256</code> flags to also cover 128- and 256-bit numbers. This could take a while - 128-bit takes ~20 seconds on my machine while 256-bit takes a few hours. Add <code>-v</code> to get very verbose output.</p>
+<h3 id="java-comparing-all-possible-32-bit-values-exhaustively">Java: Comparing All Possible 32-bit Values Exhaustively</h3>
+<p>You can check the slow vs. the fast implementation for all 32-bit floating point numbers using:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/analysis:ExhaustiveFloatComparison</code></pre>
+<p>This takes ~60 hours to run to completion on an Intel(R) Core(TM) i7-4770K with 3.50GHz.</p>
+<h3 id="java-comparing-all-possible-64-bit-values-exhaustively">Java: Comparing All Possible 64-bit Values Exhaustively</h3>
+<p>You can check the slow vs. the fast implementation for all 64-bit floating point numbers using:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/analysis:ExtensiveDoubleComparison</code></pre>
+<p>This takes approximately forever, so you will need to interrupt the program.</p>
+<h2 id="benchmarks">Benchmarks</h2>
+<h3 id="ryu-1">Ryu</h3>
+<p>We provide both C and Java benchmark programs.</p>
+<p>Enable optimization by adding &quot;-c opt&quot; on the command line:</p>
+<pre><code>$ bazel run -c opt //ryu/benchmark:ryu_benchmark --
+    Average &amp; Stddev Ryu  Average &amp; Stddev Grisu3
+32:   22.515    1.578       90.981   41.455
+64:   27.545    1.677       98.981   80.797</code></pre>
+<p>For the Java benchmark, run:</p>
+<pre><code>$ bazel run //src/main/java/info/adams/ryu/benchmark --
+    Average &amp; Stddev Ryu  Average &amp; Stddev Jdk  Average &amp; Stddev Jaffer
+32:   56.680    9.127       254.903  170.099
+64:   89.751   13.442      1085.596  302.371     1089.535  309.245</code></pre>
+<p>Additional parameters can be passed to the benchmark after the <code>--</code> parameter:</p>
+<pre><code>  -32           only run the 32-bit benchmark
+  -64           only run the 64-bit benchmark
+  -samples=n    run n pseudo-randomly selected numbers
+  -iterations=n run each number n times
+  -ryu          run Ryu only, no comparison
+  -v            generate verbose output in CSV format</code></pre>
+<p>If you have gnuplot installed, you can generate plots from the benchmark data with:</p>
+<pre><code>$ bazel build -c opt --jobs=1 //scripts:shortest-{c,java}-{float,double}.pdf</code></pre>
+<p>The resulting files are <code>bazel-genfiles/scripts/shortest-{c,java}-{float,double}.pdf</code>.</p>
+<h3 id="ryu-printf-1">Ryu Printf</h3>
+<p>We provide a C++ benchmark program that runs against the implementation of <code>snprintf</code> bundled with the selected C++ compiler. You need to enable optimization using &quot;-c opt&quot; on the command line:</p>
+<pre><code>$ bazel run -c opt //ryu/benchmark:ryu_printf_benchmark --
+    Average &amp; Stddev Ryu  Average &amp; Stddev snprintf
+%f:  116.359  130.992     3983.251 5331.505
+%e:   40.853   10.872      210.648   36.779</code></pre>
+<p>Additional parameters can be passed to the benchmark after the <code>--</code> parameter:</p>
+<pre><code>  -f            only run the %f benchmark
+  -e            only run the %e benchmark
+  -precision=n  run with precision n (default is 6)
+  -samples=n    run n pseudo-randomly selected numbers
+  -iterations=n run each number n times
+  -ryu          run Ryu Printf only, no comparison
+  -v            generate verbose output in CSV format</code></pre>
+<p>See above for selecting a different compiler. Note that msys C++ compilation does not work out of the box.</p>
+<p>We also provide a simplified C benchmark for platforms that do not support C++ compilation, but <em>note</em> that pure C compilation is not natively supported by Bazel:</p>
+<pre><code>$ bazel run -c opt //ryu/benchmark:ryu_printf_benchmark_c --</code></pre>
+<p>If you have gnuplot installed, you can generate plots from the benchmark data with:</p>
+<pre><code>$ bazel build -c opt --jobs=1 //scripts:{f,e}-c-double-{1,10,100,1000}.pdf</code></pre>
+<p>The resulting files are <code>bazel-genfiles/scripts/{f,e}-c-double-{1,10,100,1000}.pdf</code>.</p>

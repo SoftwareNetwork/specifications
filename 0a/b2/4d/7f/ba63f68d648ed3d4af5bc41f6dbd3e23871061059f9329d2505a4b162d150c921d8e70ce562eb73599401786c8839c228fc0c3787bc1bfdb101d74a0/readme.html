@@ -1,0 +1,69 @@
+<h1 id="welcome-to-taopq">Welcome to <code>taopq</code></h1>
+<p><a href="https://github.com/taocpp/taopq/releases/latest"><img src="https://img.shields.io/github/release/taocpp/taopq.svg" alt="Release" /></a> <a href="https://travis-ci.org/taocpp/taopq"><img src="https://travis-ci.org/taocpp/taopq.svg" alt="TravisCI" /></a> <a href="https://ci.appveyor.com/project/taocpp/taopq"><img src="https://ci.appveyor.com/api/projects/status/github/taocpp/taopq?svg=true" alt="AppVeyor" /></a> <a href="https://coveralls.io/github/taocpp/taopq"><img src="https://img.shields.io/coveralls/taocpp/taopq.svg" alt="Coverage" /></a> <a href="https://lgtm.com/projects/g/taocpp/taopq/context:cpp"><img src="https://img.shields.io/lgtm/grade/cpp/g/taocpp/taopq.svg" alt="Language grade: C/C++" /></a></p>
+<p><code>taopq</code> is a light-weight C++ client library for accessing a PostgreSQL database, providing a modern wrapper for <code>libpq</code>. It has no dependencies beyond a C++17 compatible compiler and the PostgreSQL <code>libpq</code> client library.</p>
+<h2 id="documentation">Documentation</h2>
+<ul>
+<li><a href="doc/README.md">Version 1.x</a> (requires C++17)</li>
+</ul>
+<h2 id="example">Example</h2>
+<p>Here is a small &quot;getting started&quot; example. The library has many more features and possibilities to offer. The &quot;best practice&quot; often diverges from the style of this introductory example.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;tao/pq.hpp&gt;</span>
+
+<span class="pp">#include </span><span class="im">&lt;cassert&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+
+<span class="dt">int</span> main()
+{
+  <span class="co">// open a connection</span>
+  <span class="at">const</span> <span class="kw">auto</span> conn = tao::pq::connection::create( <span class="st">&quot;dbname=template1&quot;</span> );
+
+  <span class="co">// execute statements directly</span>
+  conn-&gt;execute( <span class="st">&quot;DROP TABLE IF EXISTS taopq_example&quot;</span> );
+  conn-&gt;execute( <span class="st">&quot;CREATE TABLE taopq_example ( a INTEGER PRIMARY KEY, b INTEGER, c TEXT NOT NULL )&quot;</span> );
+
+  <span class="co">// preparing a statement is optional, but often recommended</span>
+  conn-&gt;prepare( <span class="st">&quot;insert&quot;</span>, <span class="st">&quot;INSERT INTO taopq_example VALUES ( $1, $2, $3 )&quot;</span> );
+
+  <span class="co">// use a transaction if needed</span>
+  {
+    <span class="at">const</span> <span class="kw">auto</span> <span class="fu">tr</span> = conn-&gt;transaction();
+
+    <span class="co">// execute statement with parameters directly</span>
+    <span class="fu">tr</span>-&gt;execute( <span class="st">&quot;INSERT INTO taopq_example VALUES ( $1, $2, $3 )&quot;</span>, <span class="dv">1</span>, <span class="dv">42</span>, <span class="st">&quot;foo&quot;</span> );
+
+    <span class="co">// execute prepared statement with parameters</span>
+    <span class="fu">tr</span>-&gt;execute( <span class="st">&quot;insert&quot;</span>, <span class="dv">2</span>, tao::pq::null, <span class="st">&quot;Hello, world!&quot;</span> );
+
+    <span class="fu">tr</span>-&gt;commit();
+  }
+
+  <span class="co">// insert/update/delete statements return a result which can be queried for the rows affected</span>
+  {
+    <span class="at">const</span> <span class="kw">auto</span> res = conn-&gt;execute( <span class="st">&quot;insert&quot;</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="st">&quot;drei&quot;</span> );
+    assert( res.rows_affected() == <span class="dv">1</span> );
+  }
+
+  <span class="co">// queries have a result as well, it contains the returned data</span>
+  <span class="at">const</span> <span class="kw">auto</span> res = conn-&gt;execute( <span class="st">&quot;SELECT * FROM taopq_example&quot;</span> );
+  assert( res.size() == <span class="dv">3</span> );
+
+  <span class="co">// iterate over a result</span>
+  <span class="cf">for</span>( <span class="at">const</span> <span class="kw">auto</span>&amp; row : res ) {
+    <span class="co">// access fields by index or (less efficiently) by name</span>
+    <span class="bu">std::</span>cout &lt;&lt; row[ <span class="dv">0</span> ].as&lt; <span class="dt">int</span> &gt;() &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; row[ <span class="st">&quot;c&quot;</span> ].as&lt; <span class="bu">std::</span>string &gt;() &lt;&lt; <span class="bu">std::</span>endl;
+  }
+
+  <span class="co">// or convert a result into a container</span>
+  <span class="at">const</span> <span class="kw">auto</span> v = res.vector&lt; <span class="bu">std::</span>tuple&lt; <span class="dt">int</span>, <span class="bu">std::</span>optional&lt; <span class="dt">int</span> &gt;, <span class="bu">std::</span>string &gt; &gt;();
+}</code></pre></div>
+<h2 id="contact">Contact</h2>
+<p><code>taopq</code> is part of <a href="https://taocpp.github.io/">The Art of C++</a>.</p>
+<p>For questions and suggestions about <code>taopq</code> please contact the authors at <code>taocpp(at)icemx.net</code>.</p>
+<h2 id="license">License</h2>
+<p><code>taopq</code> is certified <a href="http://www.opensource.org/docs/definition.html">Open Source</a> software. It may be used for any purpose, including commercial purposes, at absolutely no cost. It is distributed under the terms of the <a href="http://www.opensource.org/licenses/mit-license.html">MIT license</a> reproduced here.</p>
+<blockquote>
+<p>Copyright (c) 2016-2018 Daniel Frey</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+</blockquote>

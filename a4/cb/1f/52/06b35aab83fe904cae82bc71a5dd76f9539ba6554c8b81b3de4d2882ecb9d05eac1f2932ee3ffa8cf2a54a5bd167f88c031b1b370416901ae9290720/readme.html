@@ -1,0 +1,29 @@
+<h1 id="variant2">variant2</h1>
+<p>This repository contains a never-valueless C++11/14/17 implementation of <a href="http://en.cppreference.com/w/cpp/utility/variant">std::variant</a> in <a href="include/boost/variant2/variant.hpp">variant.hpp</a> and an implementation of <code>expected&lt;T, E...&gt;</code> in <a href="include/boost/variant2/expected.hpp">expected.hpp</a> that is an extended version of <code>expected&lt;T, E&gt;</code> as proposed in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0323r1.pdf">P0323R1</a> and the subsequent <a href="https://github.com/viboes/std-make/blob/master/doc/proposal/expected/d0323r2.md">D0323R2</a>.</p>
+<p>The code requires <a href="https://github.com/boostorg/mp11">Boost.Mp11</a> and Boost.Config.</p>
+<p>The repository is intended to be placed into the <code>libs/variant2</code> directory of a Boost clone or release, but the header <code>variant.hpp</code> will also work <a href="https://godbolt.org/z/CTZztA">standalone</a>.</p>
+<p>Supported compilers:</p>
+<ul>
+<li>g++ 4.8 or later with <code>-std=c++11</code> or above</li>
+<li>clang++ 3.5 or later with <code>-std=c++11</code> or above</li>
+<li>Visual Studio 2015, 2017</li>
+</ul>
+<p>Tested on <a href="https://travis-ci.org/pdimov/variant2/">Travis</a> and <a href="https://ci.appveyor.com/project/pdimov/variant2/">Appveyor</a>.</p>
+<h2 id="variant.hpp">variant.hpp</h2>
+<p>The class <code>boost::variant2::variant&lt;T...&gt;</code> is an almost conforming implementation of <code>std::variant</code> with the following differences:</p>
+<ul>
+<li>A converting constructor from, e.g. <code>variant&lt;int, float&gt;</code> to <code>variant&lt;float, double, int&gt;</code> is provided as an extension;</li>
+<li>The reverse operation, going from <code>variant&lt;float, double, int&gt;</code> to <code>variant&lt;int, float&gt;</code> is provided as the member function <code>subset&lt;U...&gt;</code>. (This operation can throw if the current state of the variant cannot be represented.)</li>
+<li><code>variant&lt;T...&gt;</code> is not trivial when all contained types are trivial.</li>
+</ul>
+<p>To avoid going into a valueless-by-exception state, this implementation falls back to using double storage unless</p>
+<ul>
+<li>one of the alternatives is the type <code>monostate</code>,</li>
+<li>one of the alternatives has a nonthrowing default constructor, or</li>
+<li>all the contained types are nothrow move constructible.</li>
+</ul>
+<p>If the first two bullets don't hold, but the third does, the variant uses single storage, but <code>emplace</code> constructs a temporary and moves it into place if the construction of the object can throw. In case this is undesirable, one can force <code>emplace</code> into always constructing in-place by adding <code>monostate</code> as one of the alternatives.</p>
+<h2 id="expected.hpp">expected.hpp</h2>
+<p>The class <code>boost::variant2::expected&lt;T, E...&gt;</code> represents the return type of an operation that may potentially fail. It contains either the expected result of type <code>T</code>, or a reason for the failure, of one of the error types in <code>E...</code>. Internally, this is stored as <code>variant&lt;T, E...&gt;</code>.</p>
+<p>See <a href="doc/expected.md">its documentation</a> for more information.</p>
+<p>Note that, while <code>variant</code> is production quality, <code>expected</code> is still a work in progress and has no test suite yet.</p>

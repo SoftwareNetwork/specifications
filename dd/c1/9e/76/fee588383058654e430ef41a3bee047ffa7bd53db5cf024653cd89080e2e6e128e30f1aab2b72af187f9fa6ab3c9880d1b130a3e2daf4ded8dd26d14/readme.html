@@ -1,0 +1,390 @@
+<h1 id="linalg.h">linalg.h</h1>
+<p><a href="http://raw.githubusercontent.com/sgorsten/linalg/v3/linalg.h"><img src="https://img.shields.io/badge/version-2.2--beta-blue.svg" alt="Release is 2.2-beta" /></a> <a href="http://unlicense.org/"><img src="http://img.shields.io/badge/license-Unlicense-blue.svg?style=flat" alt="License is Unlicense" /></a> <a href="https://travis-ci.org/sgorsten/linalg"><img src="http://travis-ci.org/sgorsten/linalg.svg" alt="Travis CI build status" /></a> <a href="https://ci.appveyor.com/project/sgorsten/linalg"><img src="http://ci.appveyor.com/api/projects/status/l4bfv5omodkajuc9?svg=true" alt="Appveyor build status" /></a></p>
+<p><a href="/linalg.h"><code>linalg.h</code></a> is a <a href="http://github.com/nothings/stb/blob/master/docs/other_libs.md">single header</a>, <a href="http://unlicense.org/">public domain</a>, <a href="http://www.reedbeta.com/blog/on-vector-math-libraries/">short vector math</a> library for <a href="http://en.cppreference.com/w/">C++</a>. It is inspired by the syntax of popular shading and compute languages and is intended to serve as a lightweight alternative to projects such as <a href="http://glm.g-truc.net/0.9.7/">GLM</a>, <a href="https://www.boost.org/doc/libs/1_66_0/libs/qvm/doc/index.html">Boost.QVM</a> or <a href="http://eigen.tuxfamily.org/">Eigen</a> in domains such as computer graphics, computational geometry, and physical simulation. It allows you to easily write programs like the following:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;linalg.h&gt;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> linalg::aliases;
+
+<span class="co">// Compute the coefficients of the equation of a plane containing points a, b, and c</span>
+float4 compute_plane(float3 a, float3 b, float3 c)
+{
+    float3 n = cross(b-a, c-a);
+    <span class="cf">return</span> {n, -dot(n,a)};
+}</code></pre></div>
+<p><code>linalg.h</code> aims to be:</p>
+<ul>
+<li><strong>Lightweight</strong>: The library is defined in a single header file which is less than a thousand lines of code.</li>
+<li><strong>Dependency free</strong>: There are no dependencies beyond a compliant C++11 compiler and a small subset of the standard library.</li>
+<li><strong>Standards compliant</strong>: Almost all operations are free of undefined behavior and can be evaluated in a <code>constexpr</code> context.</li>
+<li><strong>Generic</strong>: All types and operations are parameterized over scalar type, and can be mixed within expressions. Type promotion rules roughly match the C standard.</li>
+<li><strong>Consistent</strong>: Named functions and overloaded operators perform the same conceptual operation on all data types for which they are supported.</li>
+<li><strong>Complete</strong>: There are very few restrictions on which operations may be applied to which data types.</li>
+<li><strong>Easy to integrate</strong>: The library defines no symbols in the public namespace, and provides a mechanism for defining implicit conversions to external or user-provided data types.</li>
+</ul>
+<p>The documentation for <code>v2.2</code> is still in progress.</p>
+<ul>
+<li><a href="#data-structures">Data structures</a></li>
+<li><a href="#vectors">Vectors</a></li>
+<li><a href="#matrices">Matrices</a></li>
+<li><a href="#function-listing">Function listing</a></li>
+<li><a href="#vector-algebra">Vector algebra</a></li>
+<li><a href="#quaternion-algebra">Quaternion algebra</a><br />
+</li>
+<li><a href="#matrix-algebra">Matrix algebra</a></li>
+<li><a href="#component-wise-operations">Component-wise operations</a></li>
+<li><a href="#reductions">Reductions</a></li>
+<li><a href="#optional-features">Optional features</a></li>
+<li><a href="#type-aliases">Type aliases</a></li>
+<li><a href="#ostream-overloads"><code>ostream</code> overloads</a></li>
+<li><a href="#user-defined-conversions">User-defined conversions</a></li>
+<li><a href="#higher-order-functions">Higher order functions</a></li>
+<li><a href="#changes-from-v21">Changes from v2.1</a></li>
+</ul>
+<h2 id="data-structures">Data structures</h2>
+<h4 id="vectors">Vectors</h4>
+<p><code>linalg::vec&lt;T,M&gt;</code> defines a fixed-length vector containing exactly <code>M</code> elements of type <code>T</code>. Convenience aliases such as <code>float3</code>, <code>float4</code>, or <code>int2</code> are provided in the <a href="#type-aliases"><code>linalg::aliases</code> namespace</a>. This data structure can be used to store a wide variety of types of data, including geometric vectors, points, homogeneous coordinates, plane equations, colors, texture coordinates, or any other situation where you need to manipulate a small sequence of numbers. As such, <code>vec&lt;T,M&gt;</code> is supported by a set of <a href="#vector-algebra">algebraic</a> and <a href="#component-wise-operations">component-wise</a> functions, as well as a set of standard <a href="#reductions">reductions</a>.</p>
+<p><code>vec&lt;T,M&gt;</code>: * is <a href="https://en.cppreference.com/w/cpp/named_req/DefaultConstructible"><code>DefaultConstructible</code></a>: <code>cpp   float3 v; // v contains 0,0,0</code> * is constructible from <code>M</code> elements of type <code>T</code>: <code>cpp   float3 v {1,2,3}; // v contains 1,2,3</code> * is <a href="https://en.cppreference.com/w/cpp/named_req/CopyConstructible"><code>CopyConstructible</code></a> and <a href="https://en.cppreference.com/w/cpp/named_req/CopyAssignable"><code>CopyAssignable</code></a>: <code>cpp   float3 v {1,2,3}; // v contains 1,2,3   float3 u {v};     // u contains 1,2,3   float3 w;         // w contains 0,0,0    w = u;            // w contains 1,2,3</code> * is <a href="https://en.cppreference.com/w/cpp/named_req/EqualityComparable"><code>EqualityComparable</code></a> and <a href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable"><code>LessThanComparable</code></a>: <code>cpp   if(v == y) cout &lt;&lt; &quot;v and u contain equal elements in the same positions&quot; &lt;&lt; endl;   if(v &lt; u) cout &lt;&lt; &quot;v precedes u lexicographically&quot; &lt;&lt; endl;</code><br />
+* is <strong>explicitly</strong> constructible from a single element of type <code>T</code>: <code>cpp   float3 v = float3{4}; // v contains 4,4,4</code> * is <strong>explicitly</strong> constructible from a <code>vec&lt;U,M&gt;</code> of some other type <code>U</code>: <code>cpp   float3 v {1.1f,2.3f,3.5f}; // v contains 1.1,2.3,3.5   int3 u = int3{v};          // u contains 1,2,3</code> * has fields <code>x,y,z,w</code>: <code>cpp   float y = point.y;    // y contains second element of point   pixel.w = 0.5;        // fourth element of pixel set to 0.5   float s = tc.x;       // s contains first element of tc</code> * supports indexing: <code>cpp   float x = v[0]; // x contains first element of v   v[2] = 5;       // third element of v set to 5</code> * supports unary operators <code>+</code>, <code>-</code>, <code>!</code> and <code>~</code> in component-wise fashion: <code>cpp   auto v = -float{2,3}; // v is float2{-2,-3}</code> * supports binary operators <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>|</code>, <code>&amp;</code>, <code>^</code>, <code>&lt;&lt;</code> and <code>&gt;&gt;</code> in component-wise fashion: <code>cpp   auto v = float2{1,1} + float2{2,3}; // v is float2{3,4}</code> * supports binary operators with a scalar on the left or the right: <code>cpp   auto v = 2 * float3{1,2,3}; // v is float3{2,4,6}   auto u = float3{1,2,3} + 1; // u is float3{2,3,4}</code> * supports operators <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>%=</code>, <code>|=</code>, <code>&amp;=</code>, <code>^=</code>, <code>&lt;&lt;=</code> and <code>&gt;&gt;=</code> with vectors or scalars on the right: <code>cpp   float2 v {1,2}; v *= 3; // v is float2{3,6}</code> * supports operations on mixed element types: <code>cpp   auto v = float3{1,2,3} + int3{4,5,6}; // v is float3{5,7,9}</code> * supports <a href="https://en.cppreference.com/w/cpp/language/range-for">range-based for</a>: <code>cpp   for(auto elem : float3{1,2,3}) cout &lt;&lt; elem &lt;&lt; ' '; // prints &quot;1 2 3 &quot;</code> * has a flat memory layout: <code>cpp   float3 v {1,2,3};    float * p = v.data(); // &amp;v[i] == p+i   p[1] = 4; // v contains 1,4,3</code></p>
+<h4 id="matrices">Matrices</h4>
+<p><code>linalg::mat&lt;T,M,N&gt;</code> defines a fixed-size matrix containing exactly <code>M</code> rows and <code>N</code> columns of type <code>T</code>, in column-major order. Convenience aliases such as <code>float4x4</code> or <code>double3x3</code> are provided in the <a href="#type-aliases"><code>linalg::aliases</code> namespace</a>. This data structure is supported by a set of <a href="#matrix-algebra">algebraic</a> functions and <a href="#component-wise-operations">component-wise</a> functions, as well as a set of standard <a href="#reductions">reductions</a>.</p>
+<p><code>mat&lt;T,M,N&gt;</code>: * is <a href="https://en.cppreference.com/w/cpp/named_req/DefaultConstructible"><code>DefaultConstructible</code></a>: <code>cpp   float2x2 m; // m contains columns 0,0; 0,0</code> * is constructible from <code>N</code> columns of type <code>vec&lt;T,M&gt;</code>: <code>cpp   float2x2 m {{1,2},{3,4}}; // m contains columns 1,2; 3,4</code> * is constructible from <code>linalg::identity</code>: <code>cpp   float3x3 m = linalg::identity; // m contains columns 1,0,0; 0,1,0; 0,0,1</code> * is <a href="https://en.cppreference.com/w/cpp/named_req/CopyConstructible"><code>CopyConstructible</code></a> and <a href="https://en.cppreference.com/w/cpp/named_req/CopyAssignable"><code>CopyAssignable</code></a>: <code>cpp   float2x2 m {{1,2},{3,4}}; // m contains columns 1,2; 3,4   float2x2 n {m};           // n contains columns 1,2; 3,4   float2x2 p;               // p contains columns 0,0; 0,0   p = n;                    // p contains columns 1,2; 3,4</code> * is <a href="https://en.cppreference.com/w/cpp/named_req/EqualityComparable"><code>EqualityComparable</code></a> and <a href="https://en.cppreference.com/w/cpp/named_req/LessThanComparable"><code>LessThanComparable</code></a>: <code>cpp   if(m == n) cout &lt;&lt; &quot;m and n contain equal elements in the same positions&quot; &lt;&lt; endl;   if(m &lt; n) cout &lt;&lt; &quot;m precedes n lexicographically when compared in column-major order&quot; &lt;&lt; endl;</code><br />
+* is <strong>explicitly</strong> constructible from a single element of type <code>T</code>: <code>cpp   float2x2 m {5}; // m contains columns 5,5; 5,5</code> * is <strong>explicitly</strong> constructible from a <code>mat&lt;U,M,N&gt;</code> of some other type <code>U</code>: <code>cpp   float2x2 m {int2x2{{5,6},{7,8}}}; // m contains columns 5,6; 7,8</code> * supports indexing into <em>columns</em>: <code>cpp   float2x3 m {{1,2},{3,4},{5,6}}; // m contains columns 1,2; 3,4; 5,6   float2 c = m[0];                // c contains 1,2   m[1]     = {7,8};               // m contains columns 1,2; 7,8; 5,6</code> * supports retrieval (but not assignment) of rows: <code>cpp   float2x3 m {{1,2},{3,4},{5,6}}; // m contains columns 1,2; 3,4; 5,6   float3 r = m.row(1);            // r contains 2,4,6</code></p>
+<ul>
+<li>supports unary operators <code>+</code>, <code>-</code>, <code>!</code> and <code>~</code> in component-wise fashion: <code>cpp   float2x2 m {{1,2},{3,4}}; // m contains columns 1,2; 3,4   float2x2 n = -m;          // n contains columns -1,-2; -3,-4</code></li>
+<li><p>supports binary operators <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>|</code>, <code>&amp;</code>, <code>^</code>, <code>&lt;&lt;</code> and <code>&gt;&gt;</code> in component-wise fashion: <code>cpp   float2x2 a {{0,0},{2,2}}; // a contains columns 0,0; 2,2   float2x2 b {{1,2},{1,2}}; // b contains columns 1,2; 1,2   float2x2 c = a + b;       // c contains columns 1,2; 3,4</code></p></li>
+<li><p>supports binary operators with a scalar on the left or the right: <code>cpp   auto m = 2 * float2x2{{1,2},{3,4}}; // m is float2x2{{2,4},{6,8}}</code></p></li>
+<li><p>supports operators <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>%=</code>, <code>|=</code>, <code>&amp;=</code>, <code>^=</code>, <code>&lt;&lt;=</code> and <code>&gt;&gt;=</code> with matrices or scalars on the right: <code>cpp   float2x2 v {{5,4},{3,2}};    v *= 3; // v is float2x2{{15,12},{9,6}}</code></p></li>
+<li><p>supports operations on mixed element types:</p></li>
+<li><p>supports <a href="https://en.cppreference.com/w/cpp/language/range-for">range-based for</a> over columns</p></li>
+<li><p>has a flat memory layout</p></li>
+</ul>
+<h2 id="function-listing">Function listing</h2>
+<h4 id="vector-algebra">Vector algebra</h4>
+<ul>
+<li><code>cross(vec&lt;T,3&gt; a, vec&lt;T,3&gt; b) -&gt; vec&lt;T,3&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Cross_product">cross or vector product</a> of vectors <code>a</code> and <code>b</code></li>
+<li><code>cross(vec&lt;T,2&gt; a, vec&lt;T,2&gt; b) -&gt; T</code> is shorthand for <code>cross({a.x,a.y,0}, {b.x,b.y,0}).z</code></li>
+<li><code>cross(T a, vec&lt;T,2&gt; b) -&gt; vec&lt;T,2&gt;</code> is shorthand for <code>cross({0,0,a.z}, {b.x,b.y,0}).xy()</code></li>
+<li><p><code>cross(vec&lt;T,2&gt; a, T b) -&gt; vec&lt;T,2&gt;</code> is shorthand for <code>cross({a.x,a.y,0}, {0,0,b.z}).xy()</code></p></li>
+<li><p><code>dot(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b) -&gt; T</code> is the <a href="https://en.wikipedia.org/wiki/Dot_product">dot or inner product</a> of vectors <code>a</code> and <code>b</code></p></li>
+<li><code>length(vec&lt;T,M&gt; a) -&gt; T</code> is the length or magnitude of a vector <code>a</code></li>
+<li><code>length2(vec&lt;T,M&gt; a) -&gt; T</code> is the <em>square</em> of the length or magnitude of vector <code>a</code></li>
+<li><p><code>normalize(vec&lt;T,M&gt; a) -&gt; vec&lt;T,M&gt;</code> is a unit length vector in the same direction as <code>a</code> (undefined for zero-length vectors)</p></li>
+<li><code>distance(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b) -&gt; T</code> is the <a href="https://en.wikipedia.org/wiki/Euclidean_distance">Euclidean distance</a> between points <code>a</code> and <code>b</code></li>
+<li><p><code>distance2(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b) -&gt; T</code> is the <em>square</em> of the <a href="https://en.wikipedia.org/wiki/Euclidean_distance">Euclidean distance</a> between points <code>a</code> and <code>b</code></p></li>
+<li><code>angle(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b) -&gt; T</code> is the angle in <a href="https://en.wikipedia.org/wiki/Radian">radians</a> between vectors <code>a</code> and <code>b</code></li>
+<li><code>uangle(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b) -&gt; T</code> is the angle in <a href="https://en.wikipedia.org/wiki/Radian">radians</a> between unit vectors <code>a</code> and <code>b</code> (undefined for non-unit vectors)</li>
+<li><p><code>rot(T a, vec&lt;T,2&gt; v) -&gt; vec&lt;T,2&gt;</code> is the vector <code>v</code> rotated counter-clockwise by the angle <code>a</code> in <a href="https://en.wikipedia.org/wiki/Radian">radians</a></p></li>
+<li><code>nlerp(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b, T t) -&gt; vec&lt;T,M&gt;</code> is shorthand for <code>normalize(lerp(a,b,t))</code></li>
+<li><p><code>slerp(vec&lt;T,M&gt; a, vec&lt;T,M&gt; b, T t) -&gt; vec&lt;T,M&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Slerp">spherical linear interpolation</a> between unit vectors <code>a</code> and <code>b</code> (undefined for non-unit vectors) by parameter <code>t</code></p></li>
+</ul>
+<h4 id="quaternion-algebra">Quaternion algebra</h4>
+<p>A small set of functions provides support for quaternion math, using <code>vec&lt;T,4&gt;</code> values to represent quaternions of the form <code>xi + yj + zk + w</code>.</p>
+<ul>
+<li><code>qmul(vec&lt;T,4&gt; a, vec&lt;T,4&gt; b) -&gt; vec&lt;T,4&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Quaternion#Hamilton_product">Hamilton product</a> of quaternions <code>a</code> and <code>b</code></li>
+<li><code>qconj(vec&lt;T,4&gt; q) -&gt; vec&lt;T,4&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Quaternion#Conjugation,_the_norm,_and_reciprocal">conjugate</a> of quaternion <code>q</code></li>
+<li><p><code>qinv(vec&lt;T,4&gt; q) -&gt; vec&lt;T,4&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Quaternion#Conjugation,_the_norm,_and_reciprocal">inverse or reciprocal</a> of quaternion <code>q</code> (undefined for zero-length quaternions)</p></li>
+<li><code>qexp(vec&lt;T,4&gt; q) -&gt; vec&lt;T,4&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Quaternion#Exponential,_logarithm,_and_power_functions">exponential</a> of quaternion <code>q</code></li>
+<li><code>qlog(vec&lt;T,4&gt; q) -&gt; vec&lt;T,4&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Quaternion#Exponential,_logarithm,_and_power_functions">logarithm</a> of quaternion <code>q</code></li>
+<li><p><code>qpow(vec&lt;T,4&gt; q T p) -&gt; vec&lt;T,4&gt;</code> is the quaternion <code>q</code> raised to the exponent <code>p</code></p></li>
+</ul>
+<p>A second set of functions provides support for using unit-length quaternions to represent 3D spatial rotations. Their results are undefined for quaternions which are not of unit-length.</p>
+<ul>
+<li><code>qangle(vec&lt;T,4&gt; q)</code> is the angle in radians of the rotation expressed by quaternion <code>q</code></li>
+<li><code>qaxis(vec&lt;T,4&gt; q)</code> is the axis of rotation expression by quaternion <code>q</code> (undefined for zero-angle quaternions)</li>
+<li><p><code>qrot(vec&lt;T,4&gt; q, vec&lt;T,3&gt; v) -&gt; vec&lt;T,3&gt;</code> is vector <code>v</code> rotated via rotation quaternion <code>q</code></p></li>
+<li><code>qmat(vec&lt;T,4&gt; q)</code> is a 3x3 rotation matrix which performs the same operation as rotation quaternion <code>q</code></li>
+<li><code>qxdir(vec&lt;T,4&gt; q)</code> is (efficient) shorthand for <code>qrot(q, {1,0,0})</code></li>
+<li><code>qydir(vec&lt;T,4&gt; q)</code> is (efficient) shorthand for <code>qrot(q, {0,1,0})</code></li>
+<li><p><code>qzdir(vec&lt;T,4&gt; q)</code> is (efficient) shorthand for <code>qrot(q, {0,0,1})</code></p></li>
+</ul>
+<p>It is possible to use the <code>nlerp</code> and <code>slerp</code> functions to interpolate rotation quaternions as though they were simply four-dimensional vectors. However, the rotation quaternions form a <a href="https://en.wikipedia.org/wiki/Covering_group">double cover</a> over spatial rotations in three dimensions. This means that there are <strong>two</strong> distinct rotation quaternions representing each spatial rotation. Naively interpolating between two spatial rotations using quaternions could follow the &quot;short path&quot; or the &quot;long path&quot; between these rotations, depending on which specific quaternions are being interpolated.</p>
+<ul>
+<li><code>qnlerp(vec&lt;T,4&gt; a, vec&lt;T,4&gt; b, T t)</code> is similar to <code>nlerp(a,b,t)</code>, but always chooses the &quot;short path&quot; between the rotations represented by <code>a</code> and <code>b</code>.</li>
+<li><code>qslerp(vec&lt;T,4&gt; a, vec&lt;T,4&gt; b, T t)</code> is similar to <code>slerp(a,b,t)</code>, but always chooses the &quot;short path&quot; between the rotations represented by <code>a</code> and <code>b</code>.</li>
+</ul>
+<h4 id="matrix-algebra">Matrix algebra</h4>
+<ul>
+<li><p><code>mul(mat&lt;T,M,N&gt; a, mat&lt;T,N,P&gt; b) -&gt; mat&lt;T,M,P&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Matrix_multiplication">matrix product</a> of matrices <code>a</code> and <code>b</code> ** <code>mul(mat&lt;T,M,N&gt; a, vec&lt;T,N&gt; b) -&gt; vec&lt;T,M&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Matrix_multiplication">matrix product</a> of matrix <code>a</code> and a column matrix containing the elements of vector <code>b</code> ** <code>mul(a, b, c)</code> is shorthand for <code>mul(mul(a, b), c)</code></p></li>
+<li><p><code>outerprod(vec&lt;T,M&gt; a, vec&lt;T,N&gt; b) -&gt; mat&lt;T,M,N&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Outer_product">outer product</a> of vectors <code>a</code> and <code>b</code></p></li>
+<li><code>diagonal(mat&lt;T,N,N&gt; a) -&gt; vec&lt;T,N&gt;</code> is a vector containing the elements along the main diagonal of matrix <code>a</code></li>
+<li><p><code>trace(mat&lt;T,N,N&gt; a) -&gt; T</code> is the sum of the elements along the main diagonal of matrix <code>a</code></p></li>
+<li><code>transpose(mat&lt;T,M,N&gt; a) -&gt; mat&lt;T,N,M&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Transpose">transpose</a> of matrix <code>a</code></li>
+<li><code>adjugate(mat&lt;T,N,N&gt; a) -&gt; mat&lt;T,N,N&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Adjugate_matrix">adjugate or classical adjoint</a> of matrix <code>a</code> (the transpose of its cofactor matrix, or the numerator in the expression of its inverse)</li>
+<li><p><code>comatrix(mat&lt;T,N,N&gt; a) -&gt; mat&lt;T,N,N&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Minor_(linear_algebra)#Inverse_of_a_matrix">comatrix or cofactor matrix</a> of matrix <code>a</code> (the transpose of its adjugate matrix)</p></li>
+<li><code>determinant(mat&lt;T,N,N&gt; a) -&gt; T</code> is the <a href="https://en.wikipedia.org/wiki/Determinant">determinant</a> of matrix <code>a</code></li>
+<li><p><code>inverse(mat&lt;T,N,N&gt; a) -&gt; mat&lt;T,N,N&gt;</code> is the <a href="https://en.wikipedia.org/wiki/Multiplicative_inverse">multiplicative inverse</a> of the <a href="https://en.wikipedia.org/wiki/Invertible_matrix">invertible matrix</a> <code>a</code> (undefined for singular inputs)</p></li>
+</ul>
+<h4 id="component-wise-operations">Component-wise operations</h4>
+<p>The unary functions <code>abs</code>, <code>floor</code>, <code>ceil</code>, <code>exp</code>, <code>log</code>, <code>log10</code>, <code>sqrt</code>, <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>sinh</code>, <code>cosh</code>, <code>tanh</code>, <code>round</code> accept a vector-valued argument and produce a vector-valued result by passing individual elements to the function of the same name in the <code>std::</code> namespace, as defined by <code>&lt;cmath&gt;</code> or <code>&lt;cstdlib&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">float4 a {<span class="dv">1</span>,<span class="dv">-4</span>,<span class="dv">9</span>,<span class="dv">-16</span>}; <span class="co">// a contains 1,-4,9,-16</span>
+float4 b = abs(a);     <span class="co">// b contains 1,4,9,16</span>
+float4 c = sqrt(b);    <span class="co">// c contains 1,2,3,4</span></code></pre></div>
+<p>The binary functions <code>fmod</code>, <code>pow</code>, <code>atan2</code>, and <code>copysign</code> function similarly, except that either argument can be a vector or a scalar.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">float2 a {<span class="dv">5</span>,<span class="dv">4</span>}, b {<span class="dv">2</span>,<span class="dv">3</span>};
+float2 c = pow(a, <span class="dv">2</span>);    <span class="co">// c contains 25,16</span>
+float2 d = pow(<span class="dv">2</span>, b);    <span class="co">// d contains 4,8</span>
+float2 e = pow(a, b);    <span class="co">// e contains 25,64</span></code></pre></div>
+<p>The binary functions <code>equal</code>, <code>nequal</code>, <code>less</code>, <code>greater</code>, <code>lequal</code>, and <code>gequal</code> apply operators <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code> and <code>&gt;=</code> respectively in a component-wise fashion, returning a <code>vec&lt;bool,M&gt;</code>. As before, either argument can be a vector or a scalar.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">int2 a {<span class="dv">2</span>,<span class="dv">5</span>}, b {<span class="dv">3</span>,<span class="dv">4</span>};
+bool2 c = less(a,<span class="dv">3</span>);    <span class="co">// c contains true, false</span>
+bool2 d = equal(<span class="dv">4</span>,b);   <span class="co">// d contains false, true</span>
+bool2 e = greater(a,b); <span class="co">// e contains false, true</span></code></pre></div>
+<p><code>min(a,b) -&gt; vec&lt;T,M&gt;</code> performs the component-wise selection of lesser elements, as by <code>a[i] &lt; b[i] ? a[i] : b[i]</code>. Either argument can be a vector or a scalar.</p>
+<p><code>max(a,b) -&gt; vec&lt;T,M&gt;</code> performs the component-wise selection of greater elements, as by <code>a[i] &gt; b[i] ? a[i] : b[i]</code>. Either argument can be a vector or a scalar.</p>
+<p><code>clamp(x,l,h) -&gt; vec&lt;T,M&gt;</code> performs the component-wise clamping of elements between a low and high boundary, as by <code>min(max(x,l),h)</code>. Any argument can be a vector or a scalar.</p>
+<p><code>select(p,a,b) -&gt; vec&lt;T,M&gt;</code> performs a component-wise ternary operator, as by <code>p[i] ? a[i] : b[i]</code>. Any argument can be a vector or a scalar.</p>
+<p><code>lerp(a,b,t) -&gt; vec&lt;T,M&gt;</code> performs a component-wise linear interpolation, as by <code>a[i]*(1-t[i]) + b[i]*t[i]</code>. Any argument can be a vector or a scalar.</p>
+<h4 id="reductions">Reductions</h4>
+<ul>
+<li><code>any(vec&lt;bool,M&gt; a) -&gt; bool</code> is <code>true</code> if any element of the vector <code>a</code> is <code>true</code></li>
+<li><code>all(vec&lt;bool,M&gt; a) -&gt; bool</code> is <code>true</code> if all elements of the vector <code>a</code> are <code>true</code></li>
+<li><code>sum(vec&lt;T,M&gt; a) -&gt; T</code> is the sum of all elements in the vector <code>a</code></li>
+<li><code>product(vec&lt;T,M&gt; a) -&gt; T</code> returns the product of all elements in the vector <code>a</code></li>
+<li><code>minelem(vec&lt;T,M&gt; a) -&gt; T</code> returns the <strong>value</strong> of the least element in the vector <code>a</code></li>
+<li><code>maxelem(vec&lt;T,M&gt; a) -&gt; T</code> returns the <strong>value</strong> of the greatest element in the vector <code>a</code></li>
+<li><code>argmin(vec&lt;T,M&gt; a) -&gt; int</code> returns the <strong>zero-based index</strong> of the least element in the vector <code>a</code></li>
+<li><code>argmax(vec&lt;T,M&gt; a) -&gt; int</code> returns the <strong>zero-based index</strong> of the greatest element in the vector <code>a</code></li>
+</ul>
+<h4 id="comparisons">Comparisons</h4>
+<p><code>compare(a,b)</code> is conceptually equivalent to <code>operator &lt;=&gt;</code> from <a href="https://en.cppreference.com/w/cpp/language/default_comparisons">C++20</a>. It compares two values of equivalent shape and returns a value which supports all six standard comparisons against <code>0</code>. It provides the same ordering guarantees as the underlying scalar type. That is, a <code>vec&lt;int,M&gt;</code> provides a strong ordering, where a <code>vec&lt;float,M&gt;</code> provides a partial odering.</p>
+<h2 id="optional-features">Optional features</h2>
+<h4 id="type-aliases">Type aliases</h4>
+<p>By default, <code>linalg.h</code> does not define any symbols in the global namespace, and a three-element vector of single-precision floating point values must be spelled <code>linalg::vec&lt;float,3&gt;</code>. In various libraries and shading languages, such a type might be spelled <code>float3</code>, <code>vec3</code>, <code>vec3f</code>, <code>point3f</code>, <code>simd_float3</code>, or any one of a hundred other possibilities. <code>linalg.h</code> provides a collection of useful aliases in the <code>linalg::aliases</code> namespace. If the names specified in this namespace are suitable for a user's purposes, they can quickly be brought into scope as follows:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;linalg.h&gt;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> linalg::aliases;
+
+float3 a_vector;
+float4x4 a_matrix;</code></pre></div>
+<p>Note that this <strong>only</strong> brings the type aliases into global scope. The core types and all functions and operator overloads defined by the library remain in <code>namespace linalg</code>.</p>
+<p>If the spellings in <code>namespace linalg::aliases</code> conflict with other types that have been defined in the global namespace or in other namespaces of interest, the user can choose to omit the <code>using namespace</code> directive and instead define their own aliases as desired.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;linalg.h&gt;</span>
+<span class="kw">using</span> v3f = linalg::vec&lt;<span class="dt">float</span>,<span class="dv">3</span>&gt;;
+<span class="kw">using</span> m44f = linalg::mat&lt;<span class="dt">float</span>,<span class="dv">4</span>,<span class="dv">4</span>&gt;;
+
+v3f a_vector;
+m44f a_matrix;</code></pre></div>
+<p>It is, of course, always possible to use the core <code>linalg.h</code> types directly if operating in an environment where no additional symbols should be defined.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;linalg.h&gt;</span>
+
+linalg::vec&lt;<span class="dt">float</span>,<span class="dv">3</span>&gt; a_vector;
+linalg::mat&lt;<span class="dt">float</span>,<span class="dv">4</span>,<span class="dv">4</span>&gt; a_matrix;</code></pre></div>
+<p>The set of type aliases defined in <code>namespace linalg::aliases</code> is as follows:</p>
+<ul>
+<li><code>vec&lt;float,M&gt;</code> aliased to <em>floatM</em>, as in: <code>float1</code>, <code>float2</code>, <code>float3</code>, <code>float4</code></li>
+<li><code>vec&lt;double,M&gt;</code> aliased to <em>doubleM</em>, as in: <code>double1</code>, <code>double2</code>, <code>double3</code>, <code>double4</code></li>
+<li><code>vec&lt;int,M&gt;</code> aliased to <em>intM</em> as in: <code>int1</code>, <code>int2</code>, <code>int3</code>, <code>int4</code></li>
+<li><code>vec&lt;unsigned,M&gt;</code> aliased to <em>uintM</em> as in: <code>uint1</code>, <code>uint2</code>, <code>uint3</code>, <code>uint4</code></li>
+<li><code>vec&lt;bool,M&gt;</code> aliased to <em>boolM</em> as in: <code>bool1</code>, <code>bool2</code>, <code>bool3</code>, <code>bool4</code></li>
+<li><code>vec&lt;int16_t,M&gt;</code> aliased to <em>shortM</em> as in: <code>short1</code>, <code>short2</code>, <code>short3</code>, <code>short4</code></li>
+<li><code>vec&lt;uint16_t,M&gt;</code> aliased to <em>ushortM</em> as in: <code>ushort1</code>, <code>ushort2</code>, <code>ushort3</code>, <code>ushort4</code></li>
+<li><code>vec&lt;uint8_t,M&gt;</code> aliased to <em>byteM</em> as in: <code>byte1</code>, <code>byte2</code>, <code>byte3</code>, <code>byte4</code></li>
+<li><code>mat&lt;float,M,N&gt;</code> aliased to <em>floatMxN</em> as in: <code>float1x3</code>, <code>float3x2</code>, <code>float4x4</code>, etc.</li>
+<li><code>mat&lt;double,M,N&gt;</code> aliased to <em>doubleMxN</em> as in: <code>double1x3</code>, <code>double3x2</code>, <code>double4x4</code>, etc.</li>
+<li><code>mat&lt;int,M,N&gt;</code> aliased to <em>intMxN</em> as in: <code>int1x3</code>, <code>int3x2</code>, <code>int4x4</code>, etc.</li>
+<li><code>mat&lt;bool,M,N&gt;</code> aliased to <em>boolMxN</em> as in: <code>boolx3</code>, <code>bool3x2</code>, <code>bool4x4</code>, etc.</li>
+</ul>
+<p>All combinations of up to four elements, rows, or columns are provided.</p>
+<h4 id="ostream-overloads"><code>ostream</code> overloads</h4>
+<p>By default, <code>linalg.h</code> does not provide operators for interaction with standard library streams. This is to permit maximum flexibility for users who wish to define their own formatting (with or without delimiters, row versus column major matrices, human-readable precision or round-trip exact). However, as it is often useful to simply be able to show something when writing small programs, we provide some default stream operator overloads which can be brought into scope with:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;linalg.h&quot;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> linalg::ostream_overloads;</code></pre></div>
+<p>The provided behavior is to output a string using the currently specified stream properties (width, precision, padding, etc) which matches the braced-initialization syntax that could be used to construct that same value, without any extra whitespace.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">int3 v {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>};
+int2x2 m {{<span class="dv">4</span>, <span class="dv">5</span>}, {<span class="dv">6</span>, <span class="dv">7</span>}};
+<span class="bu">std::</span>cout &lt;&lt; v &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// Prints {1,2,3}</span>
+<span class="bu">std::</span>wcout &lt;&lt; m &lt;&lt; <span class="bu">std::</span>endl; <span class="co">// Prints {{4,5},{6,7}}</span></code></pre></div>
+<h4 id="user-defined-conversions">User-defined conversions</h4>
+<p>A mechanism exists to define automatic conversions between <code>linalg</code> and user-provided types. As an example, this mechanism has already been used to defined bidirectional conversions between <code>linalg::vec&lt;T,M&gt;</code> and <code>std::array&lt;T,M&gt;</code>.</p>
+<p><strong>TODO: Explain <code>converter&lt;T,U&gt;</code></strong></p>
+<h2 id="higher-order-functions">Higher order functions</h2>
+<h4 id="linalgfoldf-a-b"><code>linalg::fold(f, a, b)</code></h4>
+<p><code>fold(f, a, b)</code> is a higher order function which accepts a function of the form <code>A,B =&gt; A</code> and repeatedly invokes <code>a = f(a, element_of_b)</code> until all elements have been consumed, before returning <code>a</code>. It is approximately equal to a <a href="https://en.wikipedia.org/wiki/Fold_(higher-order_function)">left fold with an initial value</a>. When <code>b</code> is a <code>vec&lt;T,M&gt;</code>, elements are folded from least to greatest index. When <code>b</code> is a <code>mat&lt;T,M,N&gt;</code>, elements are folded in column-major order.</p>
+<p>See also: <a href="#reductions">Reductions</a></p>
+<h4 id="linalgapplyf-a..."><code>linalg::apply(f, a...)</code></h4>
+<p><code>apply(f, a...)</code> is a higher order function which accepts a function of the form <code>A... =&gt; T</code> and applies it to component-wise sets of elements from data structures of compatible shape and dimensions. It is approximately equal to a <a href="https://en.wikipedia.org/wiki/Convolution_(computer_science)">convolution</a> followed by a <a href="https://en.wikipedia.org/wiki/Map_(higher-order_function)">map</a>. The shape of the result (that is, whether it is a scalar, vector, or matrix, and the dimensions thereof) is determined by the arguments. If more than one argument is a non-scalar, the shape of those arguments must agree. Scalars can be freely intermixed with non-scalars, and element types can also be freely mixed. The element type of the returned value is determined by the return type of the provided mapping function <code>f</code>. The supported call signatures are enumerated in the following table:</p>
+<table>
+<thead>
+<tr class="header">
+<th>call</th>
+<th>type of <code>a</code></th>
+<th>type of <code>b</code></th>
+<th>type of <code>c</code></th>
+<th>result type</th>
+<th>result elements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>apply(f,a)</code></td>
+<td><code>A</code></td>
+<td></td>
+<td></td>
+<td><code>T</code></td>
+<td><code>f(a)</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td></td>
+<td></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a)</code></td>
+<td><code>mat&lt;A,M,N&gt;</code></td>
+<td></td>
+<td></td>
+<td><code>mat&lt;T,M,N&gt;</code></td>
+<td><code>f(a[j][i])...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b)</code></td>
+<td><code>A</code></td>
+<td><code>B</code></td>
+<td></td>
+<td><code>T</code></td>
+<td><code>f(a, b)...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b)</code></td>
+<td><code>A</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a, b[i])...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>B</code></td>
+<td></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b)...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b[i])...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b)</code></td>
+<td><code>A</code></td>
+<td><code>mat&lt;B,M,N&gt;</code></td>
+<td></td>
+<td><code>mat&lt;T,M,N&gt;</code></td>
+<td><code>f(a, b[j][i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b)</code></td>
+<td><code>mat&lt;A,M,N&gt;</code></td>
+<td><code>B</code></td>
+<td></td>
+<td><code>mat&lt;T,M,N&gt;</code></td>
+<td><code>f(a[j][i], b)...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b)</code></td>
+<td><code>mat&lt;A,M,N&gt;</code></td>
+<td><code>mat&lt;B,M,N&gt;</code></td>
+<td></td>
+<td><code>mat&lt;T,M,N&gt;</code></td>
+<td><code>f(a[j][i], b[j][i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>A</code></td>
+<td><code>B</code></td>
+<td><code>C</code></td>
+<td><code>T</code></td>
+<td><code>f(a, b, c)...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>A</code></td>
+<td><code>B</code></td>
+<td><code>vec&lt;C,M&gt;</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a, b, c[i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>A</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td><code>C</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a, b[i], c)...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>A</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td><code>vec&lt;C,M&gt;</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a, b[i], c[i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>B</code></td>
+<td><code>C</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b, c)...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>B</code></td>
+<td><code>vec&lt;C,M&gt;</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b, c[i])...</code></td>
+</tr>
+<tr class="odd">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td><code>C</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b[i], c)...</code></td>
+</tr>
+<tr class="even">
+<td><code>apply(f,a,b,c)</code></td>
+<td><code>vec&lt;A,M&gt;</code></td>
+<td><code>vec&lt;B,M&gt;</code></td>
+<td><code>vec&lt;C,M&gt;</code></td>
+<td><code>vec&lt;T,M&gt;</code></td>
+<td><code>f(a[i], b[i], c[i])...</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>TODO: Explain <code>apply_t&lt;F, A...&gt;</code> and SFINAE helpers.</strong></p>
+<p>See also: <a href="#component-wise-operations">Component-wise operations</a></p>
+<h2 id="changes-from-v2.1">Changes from <code>v2.1</code></h2>
+<h4 id="improvements-in-v2.2">Improvements in <code>v2.2</code></h4>
+<ul>
+<li><code>map(a,f)</code> and <code>zip(a,b,f)</code> subsumed by new <code>apply(f,a...)</code></li>
+<li><code>apply(...)</code> supports unary, binary, and ternary operations for <code>vec</code></li>
+<li><code>apply(...)</code> supports unary and binary operations for <code>mat</code> and <code>quat</code></li>
+<li><code>apply(...)</code> can also be invoked exclusively with scalars, and supports arbitrary numbers of arguments</li>
+<li><code>apply(...)</code> supports mixed element types</li>
+<li>Template type alias <code>apply_t&lt;F,A...&gt;</code> provides the return type of <code>apply(f,a...)</code></li>
+<li><code>vec&lt;T,1&gt;</code> and <code>mat&lt;T,M,1&gt;</code> specializations are now provided</li>
+<li><code>compare(a,b)</code> provide three-way comparison between compatible types</li>
+<li><code>clamp(a,b,c)</code> can be invoked with three distinct (but compatible) types</li>
+<li><code>select(a,b,c)</code> provides the a component-wise equivalent to <code>a ? b : c</code></li>
+<li><code>lerp(a,b,t)</code> has been generalized to a component-wise operation where any of <code>a</code>, <code>b</code>, and <code>t</code> can be vectors or scalars</li>
+<li>User can specialize <code>converter&lt;T,U&gt;</code> to enable implicit conversions from <code>U</code> to <code>T</code>, if either type is a <code>vec</code>, <code>mat</code>, or <code>quat</code></li>
+<li><code>identity</code> is implemented using this facility to serve as an in-library example</li>
+<li>No undefined behavior according to the C++11 standard</li>
+<li>Almost all operations which do not internally call <code>&lt;cmath&gt;</code> functions are <code>constexpr</code>, except for <code>argmin</code> and <code>argmax</code></li>
+<li>No lambdas are used in <code>linalg.h</code>, avoiding potential ODR violations</li>
+</ul>
+<h4 id="breaking-changes-in-v2.2-beta">Breaking changes in <code>v2.2-beta</code></h4>
+<p>It is intended that compatibility will be restored before officially tagging <code>v2.2</code></p>
+<ul>
+<li><code>linalg.h</code> no longer supports Visual Studio 2013. However, it is known to work on GCC 4.9+, Clang 3.5+ in C++11 mode and Visual Studio 2015+.</li>
+<li><code>vec&lt;T,M&gt;</code> and <code>mat&lt;T,M,N&gt;</code> may only be used with a <code>T</code> which is an <a href="https://en.cppreference.com/w/c/language/arithmetic_types">arithmetic type</a></li>
+<li>This requirement will likely be relaxed, but will require specializing some trait type to indicate additional scalar types</li>
+</ul>

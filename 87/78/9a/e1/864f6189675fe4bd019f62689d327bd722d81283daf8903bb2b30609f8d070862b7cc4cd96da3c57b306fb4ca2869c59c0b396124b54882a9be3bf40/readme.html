@@ -1,0 +1,96 @@
+<h1 id="cpp-utilities">cpp-utilities</h1>
+<p>Miscellaneous C++11 utility classes and functions</p>
+<h3 id="hash-library">Hash Library</h3>
+<p>Found in <a href="hash/include/eteran/cpp-utilities/MD5.h">MD5.h</a>, <a href="hash/src/MD5.cpp">MD5.cpp</a>, <a href="hash/include/eteran/cpp-utilities/SHA1.h">SHA1.h</a> and <a href="hash/src/SHA1.cpp">SHA1.cpp</a>.</p>
+<p>As you might expect, this is an implementation of the MD5 and SHA1 hashing algorithms. The usage of both are identical and designed for ease of use.</p>
+<pre><code>// create an MD5 object and give it some data
+hash::MD5 hasher(&quot;Hello World&quot;);
+hasher.append(&#39;!&#39;); // you can stream new values in as you please
+auto digest = hasher.finalize();  // create a digest for &quot;Hello World!&quot;
+std::cout &lt;&lt; digest.to_string() &lt;&lt; std::endl;</code></pre>
+<p><strong>NOTE:</strong> One thing to note that I feel is a nice design feature. <code>finalize()</code> does not modify the internal state of the hasher, it returns a copy of the digest in finalized form. This means that you can call <code>finalize()</code>, then continue to append new data into the hasher, call <code>finalize()</code> again, and get correct hashes.</p>
+<h3 id="arena-allocator">Arena Allocator</h3>
+<p>Found in <a href="arena/include/eteran/cpp-utilities/arena.h">arena.h</a>. This is an implementation of a very efficient fixed block size arena allocator. It allows allocating and freeing back to the arena (if you want to, it isn't necessary), and will use one of two strategies depending on the size of blocks you need. If the blocks are smaller than the size of a pointer, and the arena is relatively small, then it will use a bitmap along with compiler intrinsics to find free blocks. If the the blocks are at least as large as a pointer, it will use a freelist implementation. Template deduction will choose the best backend for you.</p>
+<p>Usage is <strong>very</strong> simple:</p>
+<pre><code>// create an arena of 1024 64-bit blocks 
+auto arena = memory::make_arena&lt;uint64_t, 1024&gt;();
+auto p1 = arena.allocate(); // get a single uint64_t sized block
+arena.release(p1);          // free that block back into the system 
+                            // (not necessary, the arena will clean itself up)</code></pre>
+<p>On my system , the allocate function when using the freelist strategy, allocate was <strong>as few a 5 instructions</strong>. Some of which were simple <code>nullptr</code> checks. Since this is a low level allocator, constructors are not called, you get a block of memory suitably aligned and sized for the type specified.</p>
+<h3 id="bitset-utility-functions">Bitset Utility Functions</h3>
+<p>Found in <a href="bitset/include/eteran/cpp-utilities/bitset.h">bitset.h</a>. This header provides a nice utility function to find the first set bit in a bitset. When possible using GCC intrinsics to do it in O(1) time, but falling back on an iterative implementation when this is not possible.</p>
+<pre><code>std::bitset&lt;32&gt; bs;
+bs[4]  = true;
+bs[10] = true;
+int bit_l = bitset::find_first(bs); // returns 4
+int bit_h = bitset::find_last(bs); // returns 10</code></pre>
+<p>The function is defined to return <code>bitset.size()</code> when no bits are set, this is similar to containers returning <code>.end()</code> for find operations.</p>
+<h3 id="bitwise-operations">Bitwise Operations</h3>
+<p><a href="bitwise/include/eteran/cpp-utilities/bitwise.h">bitwise.h</a> provides efficient and type safe rotation operations that will work with any integral type. A future version may be implemented using intrinsics, but for now it's a fairly straight forward shift and mask solution. Impressively, gcc will often reduce this to a single <code>rol</code> instruction when optimizations are enabled!</p>
+<pre><code>int x = 5;
+int y = bitwise::rotate_right(x, 15);
+int x = bitwise::rotate_left(x, 20);</code></pre>
+<h3 id="string-utility-functions">String Utility Functions</h3>
+<p><a href="string/include/eteran/cpp-utilities/string.h">string.h</a> provides several common string functions such as trimming, upper/lower casing, testing what it starts and ends with, etc.</p>
+<h3 id="algorithms">Algorithms</h3>
+<p><a href="algorithm/include/eteran/cpp-utilities/algorithm.h">algorithm.h</a> is a set of algorithms for general purpose use. Currently there are implementations of variadic min and max functions which are compile time. For example:</p>
+<pre><code>int n = algorithm::static_max(1, 2, 3, 10, 5, 6);
+printf(&quot;%d\n&quot;, n); // prints 10</code></pre>
+<p>Because it is a compile time constant, you can also safely use it in templates as well. For example:</p>
+<pre><code>template &lt;int N&gt;
+struct Foo {
+    static const int value = N * 2;
+};
+
+int main() {
+    int n = Foo&lt;algorithm::static_max(1, 2, 3, 10, 5, 6)&gt;::value;
+    printf(&quot;%d\n&quot;, n); // prints 20
+}</code></pre>
+<p>Of course your compiler will have to have good support for <code>constexpr</code> :-).</p>
+<h3 id="pretty-printers">Pretty Printers</h3>
+<p><a href="pprint/include/eteran/cpp-utilities/pprint.h">pprint.h</a> is a set of utility functions to print common c++ data structures in a &quot;pretty&quot; way. Similar to PHP's <code>print_r()</code>. Usage looks like this:</p>
+<pre><code>std::vector&lt;int&gt; v = { 1, 2, 3, 4, 5, 6, 7 };
+std::cout &lt;&lt; pprint::to_string(v) &lt;&lt; std::endl;</code></pre>
+<p>Which will print:</p>
+<pre><code>std::vector&lt;&gt;
+(
+   [0] =&gt; 1
+   [1] =&gt; 2
+   [2] =&gt; 3
+   [3] =&gt; 4
+   [4] =&gt; 5
+   [5] =&gt; 6
+   [6] =&gt; 7
+)</code></pre>
+<p><code>std::vector</code>, <code>std::list</code>, <code>std::deque</code>, <code>std::set</code>, <code>std::map</code> are all supported. Additionally, complex nesting of containers should work just fine. For example, a list of vectors:</p>
+<pre><code>std::list&lt;std::vector&lt;int&gt;&gt; v = { {1, 2, 3}, {4, 5, 6, 7} };
+std::cout &lt;&lt; pprint::to_string(v) &lt;&lt; std::endl;</code></pre>
+<p>Will print:</p>
+<pre><code>std::list&lt;&gt;
+(
+   [0] =&gt; std::vector&lt;&gt;
+   (
+       [0] =&gt; 1
+       [1] =&gt; 2
+       [2] =&gt; 3
+   )
+   [1] =&gt; std::vector&lt;&gt;
+   (
+       [0] =&gt; 4
+       [1] =&gt; 5
+       [2] =&gt; 6
+       [3] =&gt; 7
+   )
+)</code></pre>
+<h3 id="fixed-point-math">Fixed Point Math</h3>
+<p><a href="fixed/include/eteran/cpp-utilities/Fixed.h">Fixed.h</a></p>
+<p>This is a Fixed Point math class for c++11. It supports all combinations which add up to a native data types (8.8/16.16/24.8/etc). The template parameters are the number of bits to use as the base type for both the integer and fractional portions, invalid combinations will yield a compiler error; the current implementation makes use of c++11 <code>static assert</code> to make this more readable. It should be a nice drop in replacement for native <code>float</code> types. Here's an example usage:</p>
+<pre><code>typedef numeric::Fixed&lt;16, 16&gt; fixed;
+fixed f;</code></pre>
+<p>This will declare a 16.16 fixed point number. Operators are provided though the use of boost::operators. multiplication and division are implemented in free functions named <code>numeric::multiply</code> and <code>numeric::divide</code> which use <code>std::enable_if</code> to choose the best option. If a larger type is available, it will use the accurate and fast scaled math version. If there is not a larger type available, then it will fall back on the slower multiply and emulated divide (which unfortunately has less precision). This system allows the user to specialize the multiplication and division as needed.</p>
+<h3 id="flat-associative-containers">Flat associative containers</h3>
+<p><a href="container/include/eteran/cpp-utilities/FlatMap.h">FlatMap.h</a></p>
+<p>This is an implementation of a <code>std::map</code> but using a contiguous data structure (<code>std::vector</code>) as the underlying storage. The elements are stored sorted by key, so lookup should be as efficient as a <code>binary_search</code>, and iteration is as efficient as accessing a <code>std::vector</code>.</p>
+<p><a href="container/include/eteran/cpp-utilities/FlatSet.h">FlatSet.h</a></p>
+<p>This is an implementation of a <code>std::set</code> but using a contiguous data structure (<code>std::vector</code>) as the underlying storage. The elements are stored sorted by key, so lookup should be as efficient as a <code>binary_search</code>, and iteration is as efficient as accessing a <code>std::vector</code>.</p>

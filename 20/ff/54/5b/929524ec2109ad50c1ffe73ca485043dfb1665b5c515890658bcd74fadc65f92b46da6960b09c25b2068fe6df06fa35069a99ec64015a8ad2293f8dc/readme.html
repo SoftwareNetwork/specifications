@@ -1,0 +1,111 @@
+<h1 id="neither">neither</h1>
+<p>A functional implementation of Either in C++14.</p>
+<p><a href="https://travis-ci.org/LoopPerfect/neither"><img src="https://img.shields.io/travis/LoopPerfect/neither.svg" alt="Travis" /></a> <a href="https://raw.githubusercontent.com/LoopPerfect/neither/master/license"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub license" /></a></p>
+<pre><code>buckaroo add github.com/loopperfect/neither</code></pre>
+<h2 id="examples">Examples</h2>
+<h3 id="handling-unsafe-code">Handling Unsafe Code</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="kw">auto</span> unsafe = [] { <span class="co">// a function that throws, sometimes we can&#39;t avoid it...</span>
+  <span class="cf">if</span> (<span class="kw">true</span>) {
+    <span class="cf">throw</span> <span class="bu">std::</span>runtime_error(<span class="st">&quot;error&quot;</span>);
+  }
+  <span class="cf">return</span> <span class="dv">1</span>;
+}
+
+Either&lt;<span class="bu">std::</span>exception, <span class="dt">int</span>&gt; e = Try&lt;<span class="bu">std::</span>exception&gt;(unsafe); <span class="co">// let&#39;s lift the exception into the typesystem</span>
+
+e.left()
+  .map([](<span class="kw">auto</span> <span class="at">const</span>&amp; e) {
+    <span class="cf">return</span> <span class="bu">std::</span>cerr &lt;&lt; e.what() &lt;&lt; <span class="bu">std::</span>endl;
+  }); <span class="co">// print error if available</span>
+
+<span class="dt">int</span> result = e
+  .leftMap([](<span class="kw">auto</span>) { <span class="cf">return</span> <span class="dv">42</span>; }) <span class="co">// do nothing with exception and map to 42</span>
+  .rightMap([](<span class="kw">auto</span> x) { <span class="cf">return</span> x * <span class="dv">2</span>; }) <span class="co">// do further computation if value available</span>
+  .join() <span class="co">// join both sides of either</span>
+
+ASSERT_TRUE(result == <span class="dv">42</span>);</code></pre></div>
+<h3 id="another-example">Another Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Either&lt;<span class="bu">std::</span>string, <span class="dt">int</span>&gt; compute(<span class="dt">int</span> x) {
+  <span class="cf">if</span>(x&lt;<span class="dv">0</span>) <span class="cf">return</span> left(<span class="st">&quot;don&#39;t pass x&lt;0&quot;</span>);
+  <span class="cf">return</span> right(x*x);
+}
+
+<span class="bu">std::</span>string resultString = compute(<span class="dv">5</span>)
+  .rightMap([](<span class="kw">auto</span> x){ <span class="cf">return</span> x/<span class="fl">2.0</span>;}) <span class="co">// success case</span>
+  .join(
+    [](<span class="kw">auto</span> errorStr) { <span class="cf">return</span> <span class="st">&quot;compute said: &quot;</span> + errorStr; }, <span class="co">// error-case</span>
+    [](<span class="kw">auto</span> x) { <span class="cf">return</span> <span class="st">&quot;compute said: &quot;</span> + <span class="bu">std::</span>to_string(x); } <span class="co">// success-case</span>
+   );
+
+<span class="bu">std::</span>cout &lt;&lt; resultString &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<h3 id="composition-of-eithers">Composition of Eithers</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+neither::Either&lt;<span class="dt">my_error_t</span>, <span class="dt">int</span>&gt; f1();
+neither::Either&lt;<span class="dt">my_error_t</span>, <span class="dt">float</span>&gt; f2();
+
+<span class="dt">void</span> compose() {
+    <span class="kw">auto</span> value = f1()
+        .rightFlatMap([](<span class="at">const</span> struct_a&amp; v){
+            <span class="cf">return</span> f2();
+        })
+        .rightMap([](<span class="at">const</span> struct_b&amp; v){
+            <span class="cf">return</span> <span class="dv">5</span>;
+        })
+        .leftMap([](<span class="at">const</span> <span class="kw">auto</span>&amp; my_error){
+            <span class="cf">return</span> <span class="dv">6</span>;
+        }).join();
+    <span class="co">// value should be either 5 or 6</span>
+}</code></pre></div>
+<h3 id="maybe-example">Maybe Example</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+Maybe&lt;<span class="dt">float</span>&gt; compute(<span class="dt">float</span> x) {
+  <span class="cf">if</span>(x&lt;<span class="dv">0</span>) <span class="cf">return</span> {};
+  <span class="cf">return</span> {sqrtf(x)};
+}
+
+Maybe&lt;<span class="dt">float</span>&gt; x = compute(<span class="dv">-4</span>)
+ .map([](<span class="kw">auto</span> x){ <span class="cf">return</span> x*x;})
+ .map([](<span class="kw">auto</span> x){ <span class="cf">return</span> x<span class="dv">+1</span> });
+
+<span class="cf">if</span>(!x.hasValue) {
+  <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;error occured&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+}</code></pre></div>
+<h3 id="monadic-lifting">Monadic Lifting</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="dt">int</span> sum(<span class="dt">int</span> x, <span class="dt">int</span> y){ <span class="cf">return</span> x+y; }
+
+<span class="co">//...</span>
+
+<span class="kw">auto</span> monadicSum = lift(sum); <span class="co">// transforms sum to: Maybe&lt;int&gt; MonadicSum(Maybe&lt;int&gt;, Maybe&lt;int&gt;)</span>
+
+ASSERT_TRUE( monadicSum( maybe(<span class="dv">5</span>) , maybe(<span class="dv">7</span>) ).get(<span class="dv">0</span>) == <span class="dv">12</span> );
+ASSERT_TRUE( monadicSum( maybe(), maybe(<span class="dv">1</span>) ).hasValue == <span class="kw">false</span>);</code></pre></div>
+<h2 id="why-eithers---learned-lessons-about-error-handling">Why Eithers? - Learned Lessons About Error handling</h2>
+<p>Some useful references:</p>
+<ul>
+<li><p>Benchmarks: <a href="https://youtu.be/XVofgKH-uu4?t=1h">Mongrel Monads, Dirty, Dirty, Dirty - Niall Douglas [ACCU 2017]</a></p></li>
+<li><p>Why out-parameters are bad from the perspective of optimizers: <a href="https://youtu.be/eR34r7HOU14?t=38m">2013 Keynote: Chandler Carruth: Optimizing the Emergent Structures of C++</a></p></li>
+</ul>
+<h3 id="summary-and-conclusions">Summary and Conclusions</h3>
+<ul>
+<li>Error codes break composition</li>
+<li>requires out-parameters; making functions impure and hard to reason about</li>
+<li>using out-parameters makes inlining harder</li>
+<li>=&gt; don't use output parameters</li>
+<li>Exceptions are 2-3 orders of magnitude slower if exceptions are thrown</li>
+<li>=&gt; avoid throwing exceptions - not always possible</li>
+<li>Overhead of exceptions grows linear with the callstack</li>
+<li>=&gt; catch exceptions early</li>
+<li>Exceptions are not part of the type-system</li>
+<li>annotating function signatures with <code>throw</code> and <code>noexcept</code> is not helpful; contract breaches are not detected in compile-time but call <code>std::terminate</code> in run-time</li>
+<li>handling exceptions is error prone and requires documentation</li>
+<li>=&gt; encode errors in the types to enforce proper handling by the API consumer</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>This library requires a C++ 14 compiler.</p>
+<p>Install with <a href="https://buckaroo.pm">Buckaroo</a>:</p>
+<pre><code>buckaroo add github.com/loopperfect/neither</code></pre>
+<p>The <a href="https://www.buckbuild.com">Buck</a> target is <code>:neither</code></p>
+<p>Alternatively you can copy &amp; paste the headers to your include path:</p>
+<pre><code>cp neither/include/*.hpp $InstallPath/include/neither</code></pre>

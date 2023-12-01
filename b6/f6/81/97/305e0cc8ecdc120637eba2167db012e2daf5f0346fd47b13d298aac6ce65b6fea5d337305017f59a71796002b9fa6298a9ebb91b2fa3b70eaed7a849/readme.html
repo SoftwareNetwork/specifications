@@ -1,0 +1,50 @@
+<h1 id="units">units</h1>
+<p>This library provides the building blocks for constructing custom unit systems. The resulting systems then provide type-safe dimensional analysis for runtime quantities. For example, a unit of length cannot be added to a unit of time. However they can be safely divided, resulting in a unit of length over time (a velocity).</p>
+<p>So far the basic arithmetic operators (addition, subtraction, multiplication, division) are provided.</p>
+<h2 id="basic-types">Basic Types</h2>
+<h3 id="base_unitint-tag">base_unit&lt;int tag&gt;</h3>
+<p>A base unit for the system being defined. Tags must be unique within the system.</p>
+<h3 id="scaled_unitratio-scale-unit-unit">scaled_unit&lt;Ratio scale, Unit unit&gt;</h3>
+<p>A scaled version of an underlying unit. e.g. kilograms.</p>
+<h3 id="derived_unit">derived_unit<Param params\...></h3>
+<p>A derived unit, defined as the product of a list of units, and their respective powers. e.g. metre per second.</p>
+<h3 id="quantity">quantity<typename T, Unit unit></h3>
+<p>A magnitude of type T, paired with it's unit. e.g. 4.5 seconds.</p>
+<h2 id="example-system">Example System</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="kw">struct</span> si {
+    <span class="kw">using</span> second = base_unit&lt;<span class="dv">0</span>&gt;;
+    <span class="kw">using</span> metre = base_unit&lt;<span class="dv">1</span>&gt;;
+
+    <span class="co">// More base units...</span>
+
+    <span class="kw">using</span> kilometre = scaled_unit&lt;<span class="bu">std::</span>ratio&lt;<span class="dv">1000</span>, <span class="dv">1</span>&gt;, metre&gt;;
+
+    <span class="co">// More scaled units...</span>
+
+    <span class="kw">using</span> metre_per_second = derived_unit&lt;metre, exp&lt;second, <span class="dv">-1</span>&gt;&gt;;
+
+    <span class="co">// More derived units...</span>
+};</code></pre></div>
+<h2 id="usage-example">Usage Example</h2>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp"><span class="dt">void</span> f()
+{
+    <span class="kw">auto</span> dist = quantity_of&lt;si::metre&gt;(<span class="fl">4.5</span>);
+    <span class="kw">auto</span> time = quantity_of&lt;si::second&gt;(<span class="fl">2.0</span>);
+
+    <span class="co">// Compute a value of metres per second.</span>
+    <span class="kw">auto</span> velocity = dist / time;
+
+    <span class="co">// Scale a quantity.</span>
+    <span class="kw">auto</span> in_km = unit_cast&lt;si::kilometre&gt;(dist);
+
+    <span class="co">// BAD! Compiler errir!</span>
+    <span class="kw">auto</span> nonsense = in_km + time;
+}</code></pre></div>
+<h2 id="more-examples">More Examples</h2>
+<ol style="list-style-type: decimal">
+<li>SI units: https://github.com/bstamour/units/blob/master/examples/si.cpp</li>
+<li>CGS: https://github.com/bstamour/units/blob/master/examples/cgs.cpp</li>
+</ol>
+<h2 id="limitations">Limitations</h2>
+<p>So far there is no way to represent an inter-system conversion. But down the road, such conversions, e.g. metres to imperial feet, will be able to be represented.</p>
+<p>Also, there is no support for affine (or pure interval) units, such as Degrees Celcius. Use Kelvin.</p>

@@ -1,0 +1,362 @@
+<p><a href="https://drone.io/github.com/aminroosta/sqlite_modern_cpp/latest"><img src="https://drone.io/github.com/aminroosta/sqlite_modern_cpp/status.png" alt="Build Status" /></a></p>
+<h1 id="sqlite-modern-cpp-wrapper">sqlite modern cpp wrapper</h1>
+<p>This library is a lightweight modern wrapper around sqlite C api .</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include</span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sqlite_modern_cpp.h&gt;</span>
+<span class="kw">using</span> <span class="kw">namespace</span>  sqlite;
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="dt">int</span> main() {
+
+   <span class="cf">try</span> {
+      <span class="co">// creates a database file &#39;dbfile.db&#39; if it does not exists.</span>
+      database db(<span class="st">&quot;dbfile.db&quot;</span>);
+
+      <span class="co">// executes the query and creates a &#39;user&#39; table</span>
+      db &lt;&lt;
+         <span class="st">&quot;create table if not exists user (&quot;</span>
+         <span class="st">&quot;   _id integer primary key autoincrement not null,&quot;</span>
+         <span class="st">&quot;   age int,&quot;</span>
+         <span class="st">&quot;   name text,&quot;</span>
+         <span class="st">&quot;   weight real&quot;</span>
+         <span class="st">&quot;);&quot;</span>;
+
+      <span class="co">// inserts a new user record.</span>
+      <span class="co">// binds the fields to &#39;?&#39; .</span>
+      <span class="co">// note that only types allowed for bindings are :</span>
+      <span class="co">//      int ,long, long long, float, double</span>
+      <span class="co">//      string , u16string</span>
+      <span class="co">// sqlite3 only supports utf8 and utf16 strings, you should use std::string for utf8 and std::u16string for utf16.</span>
+      <span class="co">// note that u&quot;my text&quot; is a utf16 string literal of type char16_t * .</span>
+      db &lt;&lt; <span class="st">&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span>
+         &lt;&lt; <span class="dv">20</span>
+         &lt;&lt; <span class="st">u&quot;bob&quot;</span>
+         &lt;&lt; <span class="fl">83.25</span>;
+
+      <span class="dt">int</span> age = <span class="dv">21</span>;
+      <span class="dt">float</span> weight = <span class="fl">68.5</span>;
+      string name = <span class="st">&quot;jack&quot;</span>;
+      db &lt;&lt; <span class="st">u&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span> <span class="co">// utf16 query string</span>
+         &lt;&lt; age
+         &lt;&lt; name
+         &lt;&lt; weight;
+
+      cout &lt;&lt; <span class="st">&quot;The new record got assigned id &quot;</span> &lt;&lt; db.last_insert_rowid() &lt;&lt; endl;
+
+      <span class="co">// slects from user table on a condition ( age &gt; 18 ) and executes</span>
+      <span class="co">// the lambda for each row returned .</span>
+      db &lt;&lt; <span class="st">&quot;select age,name,weight from user where age &gt; ? ;&quot;</span>
+         &lt;&lt; <span class="dv">18</span>
+         &gt;&gt; [&amp;](<span class="dt">int</span> age, string name, <span class="dt">double</span> weight) {
+            cout &lt;&lt; age &lt;&lt; <span class="st">&#39; &#39;</span> &lt;&lt; name &lt;&lt; <span class="st">&#39; &#39;</span> &lt;&lt; weight &lt;&lt; endl;
+         };
+
+      <span class="co">// selects the count(*) from user table</span>
+      <span class="co">// note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string</span>
+      <span class="dt">int</span> count = <span class="dv">0</span>;
+      db &lt;&lt; <span class="st">&quot;select count(*) from user&quot;</span> &gt;&gt; count;
+      cout &lt;&lt; <span class="st">&quot;cout : &quot;</span> &lt;&lt; count &lt;&lt; endl;
+
+      <span class="co">// you can also extract multiple column rows</span>
+      db &lt;&lt; <span class="st">&quot;select age, name from user where _id=1;&quot;</span> &gt;&gt; tie(age, name);
+      cout &lt;&lt; <span class="st">&quot;Age = &quot;</span> &lt;&lt; age &lt;&lt; <span class="st">&quot;, name = &quot;</span> &lt;&lt; name &lt;&lt; endl;
+
+      <span class="co">// this also works and the returned value will be automatically converted to string</span>
+      string str_count;
+      db &lt;&lt; <span class="st">&quot;select count(*) from user&quot;</span> &gt;&gt; str_count;
+      cout &lt;&lt; <span class="st">&quot;scount : &quot;</span> &lt;&lt; str_count &lt;&lt; endl;
+   }
+   <span class="cf">catch</span> (exception&amp; e) {
+      cout &lt;&lt; e.what() &lt;&lt; endl;
+   }
+}</code></pre></div>
+<p>You can not execute multiple statements separated by semicolons in one go.</p>
+<h2 id="additional-flags">Additional flags</h2>
+<p>You can pass additional open flags to SQLite by using a config object:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">sqlite_config config;
+config.flags = OpenFlags::READONLY
+database db(<span class="st">&quot;some_db&quot;</span>, config);
+<span class="dt">int</span> a;
+<span class="co">// Now you can only read from db</span>
+<span class="kw">auto</span> ps = db &lt;&lt; <span class="st">&quot;select a from table where something = ? and anotherthing = ?&quot;</span> &gt;&gt; a;
+config.flags = OpenFlags::READWRITE | OpenFlags::CREATE; <span class="co">// This is the default</span>
+config.encoding = Encoding::UTF16; <span class="co">// The encoding is respected only if you create a new database</span>
+database db2(<span class="st">&quot;some_db2&quot;</span>, config);
+<span class="co">// If some_db2 didn&#39;t exists before, it will be created with UTF-16 encoding.</span></code></pre></div>
+<h2 id="prepared-statements">Prepared Statements</h2>
+<p>It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">database db(<span class="st">&quot;:memory:&quot;</span>);
+
+<span class="co">// if you use &lt;&lt; on a sqlite::database you get a prepared statment back</span>
+<span class="co">// this will not be executed till it gets destroyed or you execute it explicitly</span>
+<span class="kw">auto</span> ps = db &lt;&lt; <span class="st">&quot;select a,b from table where something = ? and anotherthing = ?&quot;</span>; <span class="co">// get a prepared parsed and ready statment</span>
+
+<span class="co">// first if needed bind values to it</span>
+ps &lt;&lt; <span class="dv">5</span>;
+<span class="dt">int</span> tmp = <span class="dv">8</span>;
+ps &lt;&lt; tmp;
+
+<span class="co">// now you can execute it with `operator&gt;&gt;` or `execute()`.</span>
+<span class="co">// If the statement was executed once it will not be executed again when it goes out of scope.</span>
+<span class="co">// But beware that it will execute on destruction if it wasn&#39;t executed!</span>
+ps &gt;&gt; [&amp;](<span class="dt">int</span> a,<span class="dt">int</span> b){ ... };
+
+<span class="co">// after a successfull execution the statment can be executed again, but the bound values are resetted.</span>
+<span class="co">// If you dont need the returned values you can execute it like this</span>
+ps.execute();
+<span class="co">// or like this</span>
+ps++;
+
+<span class="co">// To disable the execution of a statment when it goes out of scope and wasn&#39;t used</span>
+ps.used(<span class="kw">true</span>); <span class="co">// or false if you want it to execute even if it was used</span>
+
+<span class="co">// Usage Example:</span>
+
+<span class="kw">auto</span> ps = db &lt;&lt; <span class="st">&quot;insert into complex_table_with_lots_of_indices values (?,?,?)&quot;</span>;
+<span class="dt">int</span> i = <span class="dv">0</span>;
+<span class="cf">while</span>( i &lt; <span class="dv">100000</span> ){
+   ps &lt;&lt; long_list[i++] &lt;&lt; long_list[i++] &lt;&lt; long_list[i++];
+   ps++;
+}</code></pre></div>
+<h2 id="shared-connections">Shared Connections</h2>
+<p>If you need the handle to the database connection to execute sqlite3 commands directly you can get a managed shared_ptr to it, so it will not close as long as you have a referenc to it.</p>
+<p>Take this example on how to deal with a database backup using SQLITEs own functions in a safe and modern way.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="cf">try</span> {
+   database backup(<span class="st">&quot;backup&quot;</span>);       <span class="co">//Open the database file we want to backup to</span>
+
+   <span class="kw">auto</span> con = db.connection();   <span class="co">// get a handle to the DB we want to backup in our scope</span>
+                                 <span class="co">// this way we are sure the DB is open and ok while we backup</span>
+
+   <span class="co">// Init Backup and make sure its freed on exit or exceptions!</span>
+   <span class="kw">auto</span> state =
+      <span class="bu">std::</span>unique_ptr&lt;sqlite3_backup,<span class="kw">decltype</span>(&amp;sqlite3_backup_finish)&gt;(
+      sqlite3_backup_init(backup.connection().get(), <span class="st">&quot;main&quot;</span>, con.get(), <span class="st">&quot;main&quot;</span>),
+      sqlite<span class="dv">3_backup_finish</span>
+      );
+
+   <span class="cf">if</span>(state) {
+      <span class="dt">int</span> rc;
+      <span class="co">// Each iteration of this loop copies 500 database pages from database db to the backup database.</span>
+      <span class="cf">do</span> {
+         rc = sqlite3_backup_step(state.get(), <span class="dv">500</span>);
+         <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Remaining &quot;</span> &lt;&lt; sqlite3_backup_remaining(state.get()) &lt;&lt; <span class="st">&quot;/&quot;</span> &lt;&lt; sqlite3_backup_pagecount(state.get()) &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+      } <span class="cf">while</span>(rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED);
+   }
+} <span class="co">// Release allocated resources.</span></code></pre></div>
+<h2 id="transactions">Transactions</h2>
+<p>You can use transactions with <code>begin;</code>, <code>commit;</code> and <code>rollback;</code> commands.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">db &lt;&lt; <span class="st">&quot;begin;&quot;</span>; <span class="co">// begin a transaction ...   </span>
+db &lt;&lt; <span class="st">&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span>
+   &lt;&lt; <span class="dv">20</span>
+   &lt;&lt; <span class="st">u&quot;bob&quot;</span>
+   &lt;&lt; <span class="fl">83.25f</span>;
+db &lt;&lt; <span class="st">&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span> <span class="co">// utf16 string</span>
+   &lt;&lt; <span class="dv">21</span>
+   &lt;&lt; <span class="st">u&quot;jack&quot;</span>
+   &lt;&lt; <span class="fl">68.5</span>;
+db &lt;&lt; <span class="st">&quot;commit;&quot;</span>; <span class="co">// commit all the changes.</span>
+
+db &lt;&lt; <span class="st">&quot;begin;&quot;</span>; <span class="co">// begin another transaction ....</span>
+db &lt;&lt; <span class="st">&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span> <span class="co">// utf16 string</span>
+   &lt;&lt; <span class="dv">19</span>
+   &lt;&lt; <span class="st">u&quot;chirs&quot;</span>
+   &lt;&lt; <span class="fl">82.7</span>;
+db &lt;&lt; <span class="st">&quot;rollback;&quot;</span>; <span class="co">// cancel this transaction ...</span></code></pre></div>
+<h2 id="blob">Blob</h2>
+<p>Use <code>std::vector&lt;T&gt;</code> to store and retrieve blob data.<br />
+<code>T</code> could be <code>char,short,int,long,long long, float or double</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">db &lt;&lt; <span class="st">&quot;CREATE TABLE person (name TEXT, numbers BLOB);&quot;</span>;
+db &lt;&lt; <span class="st">&quot;INSERT INTO person VALUES (?, ?)&quot;</span> &lt;&lt; <span class="st">&quot;bob&quot;</span> &lt;&lt; vector&lt;<span class="dt">int</span>&gt; { <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>};
+db &lt;&lt; <span class="st">&quot;INSERT INTO person VALUES (?, ?)&quot;</span> &lt;&lt; <span class="st">&quot;sara&quot;</span> &lt;&lt; vector&lt;<span class="dt">double</span>&gt; { <span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>, <span class="fl">4.0</span>};
+
+vector&lt;<span class="dt">int</span>&gt; numbers_bob;
+db &lt;&lt; <span class="st">&quot;SELECT numbers from person where name = ?;&quot;</span> &lt;&lt; <span class="st">&quot;bob&quot;</span> &gt;&gt; numbers_bob;
+
+db &lt;&lt; <span class="st">&quot;SELECT numbers from person where name = ?;&quot;</span> &lt;&lt; <span class="st">&quot;sara&quot;</span> &gt;&gt; [](vector&lt;<span class="dt">double</span>&gt; numbers_sara){
+    <span class="cf">for</span>(<span class="kw">auto</span> e : numbers_sara) cout &lt;&lt; e &lt;&lt; <span class="st">&#39; &#39;</span>; cout &lt;&lt; endl;
+};</code></pre></div>
+<h2 id="null-values">NULL values</h2>
+<p>If you have databases where some rows may be null, you can use <code>std::unique_ptr&lt;T&gt;</code> to retain the NULL values between C++ variables and the database.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">db &lt;&lt; <span class="st">&quot;CREATE TABLE tbl (id integer,age integer, name string, img blob);&quot;</span>;
+db &lt;&lt; <span class="st">&quot;INSERT INTO tbl VALUES (?, ?, ?, ?);&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; <span class="dv">24</span> &lt;&lt; <span class="st">&quot;bob&quot;</span> &lt;&lt; vector&lt;<span class="dt">int</span>&gt; { <span class="dv">1</span>, <span class="dv">2</span> , <span class="dv">3</span>};
+unique_ptr&lt;string&gt; ptr_null; <span class="co">// you can even bind empty unique_ptr&lt;T&gt;</span>
+db &lt;&lt; <span class="st">&quot;INSERT INTO tbl VALUES (?, ?, ?, ?);&quot;</span> &lt;&lt; <span class="dv">2</span> &lt;&lt; <span class="kw">nullptr</span> &lt;&lt; ptr_null &lt;&lt; <span class="kw">nullptr</span>;
+
+db &lt;&lt; <span class="st">&quot;select age,name,img from tbl where id = 1&quot;</span>
+        &gt;&gt; [](unique_ptr&lt;<span class="dt">int</span>&gt; age_p, unique_ptr&lt;string&gt; name_p, unique_ptr&lt;vector&lt;<span class="dt">int</span>&gt;&gt; img_p) {
+            <span class="cf">if</span>(age_p == <span class="kw">nullptr</span> || name_p == <span class="kw">nullptr</span> || img_p == <span class="kw">nullptr</span>) {
+                cerr &lt;&lt; <span class="st">&quot;ERROR: values should not be null&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+            }
+
+            cout &lt;&lt; <span class="st">&quot;age:&quot;</span> &lt;&lt; *age_p &lt;&lt; <span class="st">&quot; name:&quot;</span> &lt;&lt; *name_p &lt;&lt; <span class="st">&quot; img:&quot;</span>;
+            <span class="cf">for</span>(<span class="kw">auto</span> i : *img_p) cout &lt;&lt; i &lt;&lt; <span class="st">&quot;,&quot;</span>; cout &lt;&lt; endl;
+        };
+
+db &lt;&lt; <span class="st">&quot;select age,name,img from tbl where id = 2&quot;</span>
+        &gt;&gt; [](unique_ptr&lt;<span class="dt">int</span>&gt; age_p, unique_ptr&lt;string&gt; name_p, unique_ptr&lt;vector&lt;<span class="dt">int</span>&gt;&gt; img_p) {
+            <span class="cf">if</span>(age_p != <span class="kw">nullptr</span> || name_p != <span class="kw">nullptr</span> || img_p != <span class="kw">nullptr</span>) {
+                cerr &lt;&lt; <span class="st">&quot;ERROR: values should be nullptr&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+                exit(EXIT_FAILURE);
+            }
+
+            cout &lt;&lt; <span class="st">&quot;OK all three values are nullptr&quot;</span> &lt;&lt; endl;
+        };</code></pre></div>
+<h2 id="sqlcipher">SQLCipher</h2>
+<p>We have native support for <a href="https://www.zetetic.net/sqlcipher/">SQLCipher</a>. If you want to use encrypted databases, include the <code>sqlite_moder_cpp/sqlcipher.h</code> header. Then create a <code>sqlcipher_database</code> instead.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include</span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;sqlite_modern_cpp/sqlcipher.h&gt;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> sqlite;
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="dt">int</span> main() {
+   <span class="cf">try</span> {
+      <span class="co">// creates a database file &#39;dbfile.db&#39; if it does not exists with password &#39;secret&#39;</span>
+      sqlcipher_config config;
+      config.key = secret;
+      sqlcipher_database db(<span class="st">&quot;dbfile.db&quot;</span>, config);
+
+      <span class="co">// executes the query and creates a &#39;user&#39; table</span>
+      db &lt;&lt;
+         <span class="st">&quot;create table if not exists user (&quot;</span>
+         <span class="st">&quot;   _id integer primary key autoincrement not null,&quot;</span>
+         <span class="st">&quot;   age int,&quot;</span>
+         <span class="st">&quot;   name text,&quot;</span>
+         <span class="st">&quot;   weight real&quot;</span>
+         <span class="st">&quot;);&quot;</span>;
+
+      <span class="co">// More queries ...</span>
+      db.rekey(<span class="st">&quot;new_secret&quot;</span>); <span class="co">// Change the password of the already encrypted database.</span>
+
+      <span class="co">// Even more queries ..</span>
+   }
+   <span class="cf">catch</span> (exception&amp; e) { cout &lt;&lt; e.what() &lt;&lt; endl; }
+}</code></pre></div>
+<h2 id="null-values-c17">NULL values (C++17)</h2>
+<p>You can use <code>std::optional&lt;T&gt;</code> as an alternative for <code>std::unique_ptr&lt;T&gt;</code> to work with NULL values.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;sqlite_modern_cpp.h&gt;</span>
+
+<span class="kw">struct</span> User {
+   <span class="dt">long</span> <span class="dt">long</span> _id;
+   <span class="bu">std::</span>optional&lt;<span class="dt">int</span>&gt; age;
+   <span class="bu">std::</span>optional&lt;string&gt; name;
+   <span class="bu">std::</span>optional&lt;real&gt; weight;
+};
+
+<span class="dt">int</span> main() {
+   User user;
+   user.name = <span class="st">&quot;bob&quot;</span>;
+
+   <span class="co">// Same database as above</span>
+   database db(<span class="st">&quot;dbfile.db&quot;</span>);
+
+   <span class="co">// Here, age and weight will be inserted as NULL in the database.</span>
+   db &lt;&lt; <span class="st">&quot;insert into user (age,name,weight) values (?,?,?);&quot;</span>
+      &lt;&lt; user.age
+      &lt;&lt; user.name
+      &lt;&lt; user.weight;
+   user._id = db.last_insert_rowid();
+
+   <span class="co">// Here, the User instance will retain the NULL value(s) from the database.</span>
+   db &lt;&lt; <span class="st">&quot;select _id,age,name,weight from user where age &gt; ? ;&quot;</span>
+      &lt;&lt; <span class="dv">18</span>
+      &gt;&gt; [&amp;](<span class="dt">long</span> <span class="dt">long</span> id,
+         <span class="bu">std::</span>optional&lt;<span class="dt">int</span>&gt; age,
+         <span class="bu">std::</span>optional&lt;string&gt; name
+         <span class="bu">std::</span>optional&lt;real&gt; weight) {
+
+      cout &lt;&lt; <span class="st">&quot;id=&quot;</span> &lt;&lt; _id
+         &lt;&lt; <span class="st">&quot; age = &quot;</span> &lt;&lt; (age ? to_string(*age) ? string(<span class="st">&quot;NULL&quot;</span>))
+         &lt;&lt; <span class="st">&quot; name = &quot;</span> &lt;&lt; (name ? *name : string(<span class="st">&quot;NULL&quot;</span>))
+         &lt;&lt; <span class="st">&quot; weight = &quot;</span> &lt;&lt; (weight ? to_string(*weight) : string(NULL))
+         &lt;&lt; endl;
+   };
+}</code></pre></div>
+<p>If you do not have C++17 support, you can use boost optional instead by defining <code>_MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT</code> before importing the <code>sqlite_modern_cpp</code> header.</p>
+<p>If the optional library is not available, the experimental/optional one will be used instead.</p>
+<p><strong>Note: boost support is deprecated and will be removed in future versions.</strong></p>
+<h2 id="variant-type-support-c17">Variant type support (C++17)</h2>
+<p>If your columns may have flexible types, you can use C++17's <code>std::variant</code> to extract the value.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">db &lt;&lt; <span class="st">&quot;CREATE TABLE tbl (id integer, data);&quot;</span>;
+db &lt;&lt; <span class="st">&quot;INSERT INTO tbl VALUES (?, ?);&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; vector&lt;<span class="dt">int</span>&gt; { <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>};
+db &lt;&lt; <span class="st">&quot;INSERT INTO tbl VALUES (?, ?);&quot;</span> &lt;&lt; <span class="dv">2</span> &lt;&lt; <span class="fl">2.5</span>;
+
+db &lt;&lt; <span class="st">&quot;select data from tbl where id = 1&quot;</span>
+        &gt;&gt; [](<span class="bu">std::</span>variant&lt;vector&lt;<span class="dt">int</span>&gt;, <span class="dt">double</span>&gt; data) {
+            <span class="cf">if</span>(data.index() != <span class="dv">1</span>) {
+                cerr &lt;&lt; <span class="st">&quot;ERROR: we expected a blob&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+            }
+
+            <span class="cf">for</span>(<span class="kw">auto</span> i : get&lt;vector&lt;<span class="dt">int</span>&gt;&gt;(data)) cout &lt;&lt; i &lt;&lt; <span class="st">&quot;,&quot;</span>; cout &lt;&lt; endl;
+        };
+
+db &lt;&lt; <span class="st">&quot;select data from tbl where id = 2&quot;</span>
+        &gt;&gt; [](<span class="bu">std::</span>variant&lt;vector&lt;<span class="dt">int</span>&gt;, <span class="dt">double</span>&gt; data) {
+            <span class="cf">if</span>(data.index() != <span class="dv">2</span>) {
+                cerr &lt;&lt; <span class="st">&quot;ERROR: we expected a real number&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+            }
+
+            cout &lt;&lt; get&lt;<span class="dt">double</span>&gt;(data) &lt;&lt; endl;
+        };</code></pre></div>
+<p>If you read a specific type and this type does not match the actual type in the SQlite database, yor data will be converted. This does not happen if you use a <code>variant</code>. If the <code>variant</code> does an alternative of the same value type, an <code>mismatch</code> exception will be thrown. The value types are NULL, integer, real number, text and BLOB. To support all possible values, you can use <code>variant&lt;nullptr_t, sqlite_int64, double, string, vector&lt;char&gt;</code>.</p>
+<h2 id="errors">Errors</h2>
+<p>On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::errors::constraint. SQLite3 extended error names are supported too. So there is e.g. a class sqlite::errors::constraint_primarykey derived from sqlite::errors::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception. sqlite::sqlite_exception has a <code>get_code()</code> member function to get the SQLITE3 error code or <code>get_extended_code()</code> to get the extended error code. Additionally you can use <code>get_sql()</code> to see the SQL statement leading to the error.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">database db(<span class="st">&quot;:memory:&quot;</span>);
+db &lt;&lt; <span class="st">&quot;create table person (id integer primary key not null, name text);&quot;</span>;
+
+<span class="cf">try</span> {
+   db &lt;&lt; <span class="st">&quot;insert into person (id, name) values (?,?)&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; <span class="st">&quot;jack&quot;</span>;
+   <span class="co">// inserting again to produce error</span>
+   db &lt;&lt; <span class="st">&quot;insert into person (id, name) values (?,?)&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; <span class="st">&quot;jack&quot;</span>;
+}
+<span class="co">/* if you are trying to catch all sqlite related exceptions</span>
+<span class="co"> * make sure to catch them by reference */</span>
+<span class="cf">catch</span> (sqlite_exception&amp; e) {
+   cerr  &lt;&lt; e.get_code() &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; e.what() &lt;&lt; <span class="st">&quot; during &quot;</span>
+         &lt;&lt; e.get_sql() &lt;&lt; endl;
+}
+<span class="co">/* you can catch specific exceptions as well,</span>
+<span class="co">   catch(sqlite::errors::constraint e) {  } */</span>
+<span class="co">/* and even more specific exceptions</span>
+<span class="co">   catch(sqlite::errors::constraint_primarykey e) {  } */</span></code></pre></div>
+<p>You can also register a error logging function with <code>sqlite::error_log</code>. The <code>&lt;sqlite_modern_cpp/log.h&gt;</code> header has to be included to make this function available. The call to <code>sqlite::error_log</code> has to be the first call to any <code>sqlite_modern_cpp</code> function by your program.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">error_log(
+   [&amp;](sqlite_exception&amp; e) {
+      cerr  &lt;&lt; e.get_code() &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; e.what() &lt;&lt; endl;
+   },
+   [&amp;](errors::misuse&amp; e) {
+      <span class="co">/* You can behave differently to specific errors */</span>
+   }
+);
+database db(<span class="st">&quot;:memory:&quot;</span>);
+db &lt;&lt; <span class="st">&quot;create table person (id integer primary key not null, name text);&quot;</span>;
+
+<span class="cf">try</span> {
+   db &lt;&lt; <span class="st">&quot;insert into person (id, name) values (?,?)&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; <span class="st">&quot;jack&quot;</span>;
+   <span class="co">// inserting again to produce error</span>
+   db &lt;&lt; <span class="st">&quot;insert into person (id, name) values (?,?)&quot;</span> &lt;&lt; <span class="dv">1</span> &lt;&lt; <span class="st">&quot;jack&quot;</span>;
+}
+<span class="cf">catch</span> (sqlite_exception&amp; e) {}</code></pre></div>
+<h2 id="custom-sql-functions">Custom SQL functions</h2>
+<p>To extend SQLite with custom functions, you just implement them in C++:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">database db(<span class="st">&quot;:memory:&quot;</span>);
+db.define(<span class="st">&quot;tgamma&quot;</span>, [](<span class="dt">double</span> i) {<span class="cf">return</span> <span class="bu">std::</span>tgamma(i);});
+db &lt;&lt; <span class="st">&quot;CREATE TABLE numbers (number INTEGER);&quot;</span>;
+
+<span class="cf">for</span>(<span class="kw">auto</span> i=<span class="dv">0</span>; i!=<span class="dv">10</span>; ++i)
+   db &lt;&lt; <span class="st">&quot;INSERT INTO numbers VALUES (?);&quot;</span> &lt;&lt; i;
+
+db &lt;&lt; <span class="st">&quot;SELECT number, tgamma(number+1) FROM numbers;&quot;</span> &gt;&gt; [](<span class="dt">double</span> number, <span class="dt">double</span> factorial) {
+   cout &lt;&lt; number &lt;&lt; <span class="st">&quot;! = &quot;</span> &lt;&lt; factorial &lt;&lt; <span class="st">&#39;</span><span class="sc">\n</span><span class="st">&#39;</span>;
+};</code></pre></div>
+<h2 id="ndk-support">NDK support</h2>
+<p>Just Make sure you are using the full path of your database file : <code>sqlite::database db(&quot;/data/data/com.your.package/dbfile.db&quot;)</code>.</p>
+<h2 id="building-and-installing">Building and Installing</h2>
+<p>The usual way works for installing:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">./configure</span> <span class="kw">&amp;&amp;</span> <span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
+<p>Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.</p>
+<h2 id="breaking-changes">Breaking Changes</h2>
+<p>See breaking changes documented in each <a href="https://github.com/aminroosta/sqlite_modern_cpp/releases">Release</a>.</p>
+<h2 id="package-managers">Package managers</h2>
+<p>Pull requests are welcome :wink: - <a href="https://aur.archlinux.org/packages/sqlite_modern_cpp/">AUR</a> Arch Linux - maintainer <a href="https://github.com/funilrys">Nissar Chababy</a> - Nuget (TODO <a href="https://www.nuget.org/">nuget.org</a>) - Conan (TODO <a href="https://conan.io/">conan.io</a>) - <a href="https://github.com/Microsoft/vcpkg">vcpkg</a></p>
+<h2 id="license">License</h2>
+<p>MIT license - <a href="http://www.opensource.org/licenses/mit-license.php" class="uri">http://www.opensource.org/licenses/mit-license.php</a></p>

@@ -1,0 +1,60 @@
+<p><img src="https://github.com/anholt/libepoxy/workflows/Ubuntu/badge.svg" alt="Ubuntu" /> <img src="https://github.com/anholt/libepoxy/workflows/macOS/badge.svg" alt="macOS" /> <img src="https://github.com/anholt/libepoxy/workflows/MSVC%20Build/badge.svg" alt="MSVC Build" /> <img src="https://github.com/anholt/libepoxy/workflows/MSYS2%20Build/badge.svg" alt="MSYS2 Build" /> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License: MIT" /></a></p>
+<p>Epoxy is a library for handling OpenGL function pointer management for you.</p>
+<p>It hides the complexity of <code>dlopen()</code>, <code>dlsym()</code>, <code>glXGetProcAddress()</code>, <code>eglGetProcAddress()</code>, etc. from the app developer, with very little knowledge needed on their part. They get to read GL specs and write code using undecorated function names like <code>glCompileShader()</code>.</p>
+<p>Don’t forget to check for your extensions or versions being present before you use them, just like before! We’ll tell you what you forgot to check for instead of just segfaulting, though.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Automatically initializes as new GL functions are used.</li>
+<li>GL 4.6 core and compatibility context support.</li>
+<li>GLES 1/2/3 context support.</li>
+<li>Knows about function aliases so (e.g.) <code>glBufferData()</code> can be used with <code>GL_ARB_vertex_buffer_object</code> implementations, along with GL 1.5+ implementations.</li>
+<li>EGL, GLX, and WGL support.</li>
+<li>Can be mixed with non-epoxy GL usage.</li>
+</ul>
+<h2 id="building">Building</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="fu">mkdir</span> _build <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> _build</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a><span class="ex">meson</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="ex">ninja</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="fu">sudo</span> ninja install</span></code></pre></div>
+<p>Dependencies for Debian:</p>
+<ul>
+<li>meson</li>
+<li>libegl1-mesa-dev</li>
+</ul>
+<p>Dependencies for macOS (using MacPorts):</p>
+<ul>
+<li>pkgconfig</li>
+<li>meson</li>
+</ul>
+<p>The test suite has additional dependencies depending on the platform. (X11, EGL, a running X Server).</p>
+<h2 id="switching-your-code-to-using-epoxy">Switching your code to using epoxy</h2>
+<p>It should be as easy as replacing:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;GL/gl.h&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;GL/glx.h&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;GL/glext.h&gt;</span></span></code></pre></div>
+<p>with:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;epoxy/gl.h&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;epoxy/glx.h&gt;</span></span></code></pre></div>
+<p>As long as epoxy’s headers appear first, you should be ready to go. Additionally, some new helpers become available, so you don’t have to write them:</p>
+<p><code>int epoxy_gl_version()</code> returns the GL version:</p>
+<ul>
+<li>12 for GL 1.2</li>
+<li>20 for GL 2.0</li>
+<li>44 for GL 4.4</li>
+</ul>
+<p><code>bool epoxy_has_gl_extension()</code> returns whether a GL extension is available (<code>GL_ARB_texture_buffer_object</code>, for example).</p>
+<p>Note that this is not terribly fast, so keep it out of your hot paths, ok?</p>
+<h2 id="why-not-use-libglew">Why not use libGLEW?</h2>
+<p>GLEW has several issues:</p>
+<ul>
+<li>Doesn’t know about aliases of functions (There are 5 providers of <code>glPointParameterfv()</code>, for example, and you don’t want to have to choose which one to call when they’re all the same).</li>
+<li>Doesn’t support OpenGL ES.</li>
+<li>Has a hard-to-maintain parser of extension specification text instead of using the old .spec file or the new .xml.</li>
+<li>Has significant startup time overhead when <code>glewInit()</code> autodetects the world.</li>
+<li>User-visible multithreading support choice for win32.</li>
+</ul>
+<p>The motivation for this project came out of previous use of libGLEW in <a href="http://piglit.freedesktop.org/">piglit</a>. Other GL dispatch code generation projects had similar failures. Ideally, piglit wants to be able to build a single binary for a test that can run on whatever context or window system it chooses, not based on link time choices.</p>
+<p>We had to solve some of GLEW’s problems for piglit and solving them meant replacing every single piece of GLEW, so we built piglit-dispatch from scratch. And since we wanted to reuse it in other GL-related projects, this is the result.</p>
+<h2 id="known-issues-when-running-on-windows">Known issues when running on Windows</h2>
+<p>The automatic per-context symbol resolution for win32 requires that epoxy knows when <code>wglMakeCurrent()</code> is called, because <code>wglGetProcAddress()</code> returns values depend on the context’s device and pixel format. If <code>wglMakeCurrent()</code> is called from outside of epoxy (in a way that might change the device or pixel format), then epoxy needs to be notified of the change using the <code>epoxy_handle_external_wglMakeCurrent()</code> function.</p>
+<p>The win32 <code>wglMakeCurrent()</code> variants are slower than they should be, because they should be caching the resolved dispatch tables instead of resetting an entire thread-local dispatch table every time.</p>

@@ -1,0 +1,184 @@
+<p><a href="https://circleci.com/gh/FrancoisChabot/variadic_future"><img src="https://circleci.com/gh/FrancoisChabot/variadic_future.svg?style=svg" alt="CircleCI" /></a> <a href="https://ci.appveyor.com/project/FrancoisChabot/variadic-future/branch/master"><img src="https://ci.appveyor.com/api/projects/status/b7ppx6xmmor89h4q/branch/master?svg=true" alt="Build status" /></a> <a href="https://www.codacy.com/app/FrancoisChabot/variadic_future?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=FrancoisChabot/variadic_future&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/862b964980034316abf5d3d02c9ee63e" alt="Codacy Badge" /></a> <a href="https://lgtm.com/projects/g/FrancoisChabot/variadic_future/alerts/"><img src="https://img.shields.io/lgtm/alerts/g/FrancoisChabot/variadic_future.svg?logo=lgtm&amp;logoWidth=18" alt="Total alerts" /></a> <a href="https://lgtm.com/projects/g/FrancoisChabot/variadic_future/context:cpp"><img src="https://img.shields.io/lgtm/grade/cpp/g/FrancoisChabot/variadic_future.svg?logo=lgtm&amp;logoWidth=18" alt="Language grade: C/C++" /></a> <a href="https://francoischabot.github.io/variadic_future/annotated.html"><img src="https://img.shields.io/badge/docs-doxygen-blue.svg" alt="Documentation" /></a> # Variadic futures</p>
+<p>Variadic, completion-based futures for C++17.</p>
+<h2 id="why">Why?</h2>
+<p>In short, I need this to properly implement <a href="https://github.com/FrancoisChabot/easy_grpc">another project</a> of mine, and it was an interesting exercise.</p>
+<p>More specifically, completion-based futures are a non-blocking, callback-based, synchronization mechanism that hides the callback logic from the asynchronous code, while properly handling error conditions.</p>
+<h2 id="but-why-variadic">But why variadic?</h2>
+<p>Because it allows for the <code>join()</code> function, which provides a very nice way to asynchronously wait on multiple futures at once:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Future&lt;<span class="dt">void</span>&gt; foo() {
+  Future&lt;<span class="dt">int</span>&gt; fut_a = ...;
+  Future&lt;<span class="dt">bool</span>&gt; fut_b = ...;
+ 
+  Future&lt;<span class="dt">int</span>, <span class="dt">bool</span>&gt; combined_fut = join(fut_a, fut_b);
+ 
+  Future&lt;<span class="dt">void</span>&gt; result = combined_fut.then([](<span class="dt">int</span> a, <span class="dt">bool</span> b) {
+    <span class="co">// This is called once both fut_a and fut_b have been successfully completed.</span>
+    <span class="bu">std::</span>cout &lt;&lt; a &lt;&lt; <span class="st">&quot; - &quot;</span> &lt;&lt; b;
+  });
+  
+  <span class="co">// If either fut_a or fut_b fails, the result will contain that failure.</span>
+  <span class="cf">return</span> result;
+}</code></pre></div>
+<h2 id="documentation">Documentation</h2>
+<p>You can find the auto-generated API reference <a href="https://francoischabot.github.io/variadic_future/annotated.html">here</a>.</p>
+<h2 id="installation">Installation</h2>
+<ul>
+<li>Make the contents of the include directory available to your project.</li>
+<li>Have a look at <code>var_future/config.h</code> and make changes as needed.</li>
+<li>If you are from the future, you may want to use <code>std::expected</code> instead of <code>expected_lite</code>,</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>I am assuming you are already familiar with the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0323r7.html">expected&lt;&gt;</a> concept/syntax.</p>
+<h3 id="consuming-futures">Consuming futures</h3>
+<p>Let's say that you are using a function that happens to return a <code>Future&lt;...&gt;</code>, and you want to execute a callback when the value becomes available:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Future&lt;<span class="dt">int</span>&gt; get_value_eventually();</code></pre></div>
+<h4 id="the-method">The Method</h4>
+<p>Which method to use depends on two factors:</p>
+<ol style="list-style-type: decimal">
+<li>Is your operation part of a future chain, or is it terminating?</li>
+<li>Do you want to handle failures yourself, or let them propagate automatically?</li>
+</ol>
+<p>You can use the following matrix to determine which method to use:</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th>error-handling</th>
+<th>error-propagating</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>chains</strong></td>
+<td><code>then_expect()</code></td>
+<td><code>then()</code></td>
+</tr>
+<tr class="even">
+<td><strong>terminates</strong></td>
+<td><code>finally()</code></td>
+<td>N/A</td>
+</tr>
+</tbody>
+</table>
+<h4 id="the-callback">The Callback</h4>
+<p>The <strong>arguments</strong> of a callback for a <code>Future&lt;T, U, V&gt;</code> will be:</p>
+<ul>
+<li>In error-handling mode: <code>cb(expected&lt;T&gt;, expected&lt;U&gt;, expected&lt;V&gt;</code>)</li>
+<li>In error-propagating mode: <code>cb(T, U, V)</code> where void arguments are ommited.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  Future&lt;<span class="dt">void</span>, <span class="dt">int</span>, <span class="dt">void</span>, <span class="dt">float</span>&gt; f1;
+  Future&lt;<span class="dt">void</span>, <span class="dt">int</span>, <span class="dt">void</span>, <span class="dt">float</span>&gt; f2;
+  Future&lt;<span class="dt">void</span>, <span class="dt">int</span>, <span class="dt">void</span>, <span class="dt">float</span>&gt; f3;
+
+  <span class="kw">auto</span> f11 = f1.then([](<span class="dt">int</span>, <span class="dt">float</span>){});
+  <span class="kw">auto</span> f22 = f2.then_expect([](expected&lt;<span class="dt">void</span>&gt;, expected&lt;<span class="dt">int</span>&gt;, expected&lt;<span class="dt">void</span>&gt;, expected&lt;<span class="dt">float</span>&gt;){});
+  f3.finally([](expected&lt;<span class="dt">void</span>&gt;, expected&lt;<span class="dt">int</span>&gt;, expected&lt;<span class="dt">void</span>&gt;, expected&lt;<span class="dt">float</span>&gt;){});</code></pre></div>
+<ul>
+<li>The <strong>return value</strong> of a chaining callback will become a future of the matching type.</li>
+<li>If your callback returns a <code>Future&lt;T&gt;</code>, then the result is a <code>Future&lt;T&gt;</code> that propagates directly.</li>
+<li>If your callback returns an <code>expected&lt;T&gt;</code>, then the result is a <code>Future&lt;T&gt;</code> that gets set or failed appropriately.</li>
+<li>if your callback returns <code>aom::segmented(T, U, ...)</code>, then the result is a <code>Future&lt;T, U, ...&gt;</code></li>
+<li>The <strong>return value</strong> of a terminating callback is ignored.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Future&lt;<span class="dt">int</span>&gt; get_value_eventually();
+
+<span class="dt">void</span> sync_proc(<span class="dt">int</span> v);
+<span class="dt">int</span> sync_op(<span class="dt">int</span> v);
+Future&lt;<span class="dt">int</span>&gt; async_op(<span class="dt">int</span> v);
+
+Future&lt;<span class="dt">void</span>&gt; x = get_value_eventually().then(sync_proc);
+get_value_eventually().finally(sync_proc);
+
+Future&lt;<span class="dt">int</span>&gt; y = get_value_eventually().then(sync_op);
+Future&lt;<span class="dt">int</span>&gt; z = get_value_eventually().then(async_op);
+
+Future&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; w = get_value_eventually().then([](<span class="dt">int</span> x){ <span class="cf">return</span> aom::segmented(x+x, x*x); });</code></pre></div>
+<p>If a chaining callback throws an exception. That exception becomes the error associated with its result future. <strong>Terminating callbacks must not throw exceptions.</strong></p>
+<h4 id="the-executor">The Executor</h4>
+<p>The callback can either</p>
+<ol style="list-style-type: decimal">
+<li>Be executed directly wherever the future is fullfilled (<strong>immediate</strong>)</li>
+<li>Be posted to a work pool to be executed by some worker (<strong>deffered</strong>)</li>
+</ol>
+<p><strong>immediate</strong> mode is used by default, just pass your callback to your chosen method and you are done.</p>
+<aside class="notice">
+N.B. If the future is already fullfilled by the time a callback is attached in <strong>immediate</strong> mode, the callback will be invoked in the thread attaching the callback as the callback is being attached.
+</aside>
+<p>For <strong>deferred</strong> mode, you need to pass your queue (or an adapter) as the first parameter to the method. The queue only needs to be some type that implements <code>void push(T&amp;&amp;)</code> where <code>T</code> is a <code>Callable&lt;void()&gt;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="kw">struct</span> Queue {
+  <span class="dt">void</span> push(<span class="bu">std::</span>function&lt;<span class="dt">void</span>()&gt; cb);
+};
+
+<span class="dt">void</span> foo(Queue&amp; queue) {
+  get_value_eventually()
+    .then([](<span class="dt">int</span> v){ <span class="cf">return</span> v * v;})             
+    .finally(queue, [](expected&lt;<span class="dt">int</span>&gt; v) {
+      <span class="cf">if</span>(v.has_value()) {
+        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;final value: &quot;</span> &lt;&lt; v &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;
+      }
+    });
+}</code></pre></div>
+<h3 id="producing-futures">Producing futures</h3>
+<p>Futures can be created by <code>Future::then()</code> or <code>Future::then_expect()</code>, but the chain has to start somewhere.</p>
+<h4 id="promises">Promises</h4>
+<p><code>Promise&lt;Ts...&gt;</code> is a lightweight interface you can use to create a future that will eventually be fullfilled (or failed).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Promise&lt;<span class="dt">int</span>&gt; prom;
+Future&lt;<span class="dt">int</span>&gt; fut = prom.get_future();
+
+<span class="bu">std::</span>thread thread([p=<span class="bu">std::</span>move(prom)](){ 
+  p.set_value(<span class="dv">3</span>); 
+});</code></pre></div>
+<h4 id="async">async</h4>
+<p><code>async()</code> will post the passed operation to the queue, and return a future to the value returned by that function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">aom::Future&lt;<span class="dt">double</span>&gt; fut = aom::async(queue, [](){<span class="cf">return</span> <span class="fl">12.0</span>;})</code></pre></div>
+<h4 id="joining-futures">Joining futures</h4>
+<p>You can wait on multiple futures at the same time using the <code>join()</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
+<span class="pp">#include </span><span class="im">&quot;var_future/future.h&quot;</span>
+
+<span class="dt">void</span> foo() {
+  aom::Future&lt;<span class="dt">int</span>&gt; fut_a = ...;
+  aom::Future&lt;<span class="dt">int</span>&gt; fut_b = ...;
+
+  aom::Future&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; combined = join(fut_a, fut_b);
+
+  combined.finally([](aom::expected&lt;<span class="dt">int</span>&gt; a, aom::expected&lt;<span class="dt">int</span>&gt; b){
+    <span class="co">//Do something with a and/or b;</span>
+  });
+}</code></pre></div>
+<h2 id="posting-callbacks-to-an-asio-context.">Posting callbacks to an ASIO context.</h2>
+<p>This example shows how to use <a href="https://think-async.com/Asio/">ASIO</a>, but the same idea can be applied to other contexts easily.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;asio.hpp&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;var_future/future.h&quot;</span>
+
+<span class="co">// This can be any type that has a thread-safe push(Callable&lt;void()&gt;); method</span>
+<span class="kw">struct</span> Work_queue {
+  <span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+  <span class="dt">void</span> push(T&amp;&amp; cb) {
+    asio::post(<span class="va">ctx_</span>, <span class="bu">std::</span>forward&lt;T&gt;(cb));
+  }
+
+  asio::io_context&amp; <span class="va">ctx_</span>;
+};
+
+<span class="dt">int</span> int_generating_operation();
+
+<span class="dt">void</span> foo() {
+  asio::io_context io_ctx;
+  Work_queue asio_adapter{io_ctx};
+
+  <span class="co">// Queue the operation in the asio context, and get a future to the result.</span>
+  aom::Future&lt;<span class="dt">int</span>&gt; fut = aom::async(asio_adapter, int_generating_operation);
+
+  <span class="co">// push the execution of this callback in io_context when ready.</span>
+  fut.finally(asio_adapter, [](aom::expected&lt;<span class="dt">int</span>&gt; v) {
+    <span class="co">//Do something with v;</span>
+  });
+}</code></pre></div>
+<h2 id="faqs">FAQs</h2>
+<p><strong>Is there a std::shared_future&lt;&gt; equivalent?</strong></p>
+<p>Not yet. If someone would use it, it can be added to the library, we just don't want to add features that would not be used anywhere.</p>
+<p><strong>Why is there no terminating+error propagating method?</strong></p>
+<p>We have to admit that it would be nice to just do <code>fut.finally([](int a, float b){ ... })</code>, but the problem with that is that errors would have nowhere to go. Having the path of least resistance leading to dropping errors on the ground by default is just a recipe for disaster in the long run.</p>

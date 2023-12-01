@@ -1,0 +1,101 @@
+<h1 id="μpb---a-small-protobuf-implementation-in-c">μpb - a small protobuf implementation in C</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Platform</th>
+<th>Build Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>macOS</td>
+<td><a href="https://fusion.corp.google.com/projectanalysis/summary/KOKORO/prod%3Aupb%2Fmacos%2Fcontinuous"><img src="https://storage.googleapis.com/upb-kokoro-results/status-badge/macos.png" alt="Build Status" /></a></td>
+</tr>
+<tr class="even">
+<td>ubuntu</td>
+<td><a href="https://fusion.corp.google.com/projectanalysis/summary/KOKORO/prod%3Aupb%2Fubuntu%2Fcontinuous"><img src="https://storage.googleapis.com/upb-kokoro-results/status-badge/ubuntu.png" alt="Build Status" /></a></td>
+</tr>
+</tbody>
+</table>
+<p>μpb (often written 'upb') is a small protobuf implementation written in C.</p>
+<p>upb generates a C API for creating, parsing, and serializing messages as declared in <code>.proto</code> files. upb is heavily arena-based: all messages always live in an arena (note: the arena can live in stack or static memory if desired). Here is a simple example:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;conformance/conformance.upb.h&quot;</span>
+
+<span class="dt">void</span> foo(<span class="dt">const</span> <span class="dt">char</span>* data, <span class="dt">size_t</span> size) {
+  upb_arena *arena;
+
+  <span class="co">/* Generated message type. */</span>
+  conformance_ConformanceRequest *request;
+  conformance_ConformanceResponse *response;
+
+  arena = upb_arena_new();
+  request = conformance_ConformanceRequest_parse(data, size, arena);
+  response = conformance_ConformanceResponse_new(arena);
+
+  <span class="cf">switch</span> (conformance_ConformanceRequest_payload_case(request)) {
+    <span class="cf">case</span> conformance_ConformanceRequest_payload_protobuf_payload: {
+      upb_strview payload = conformance_ConformanceRequest_protobuf_payload(request);
+      <span class="co">// ...</span>
+      <span class="cf">break</span>;
+    }
+
+    <span class="cf">case</span> conformance_ConformanceRequest_payload_NOT_SET:
+      fprintf(stderr, <span class="st">&quot;conformance_upb: Request didn&#39;t have payload.</span><span class="sc">\n</span><span class="st">&quot;</span>);
+      <span class="cf">break</span>;
+
+    <span class="cf">default</span>: {
+      <span class="dt">static</span> <span class="dt">const</span> <span class="dt">char</span> msg[] = <span class="st">&quot;Unsupported input format.&quot;</span>;
+      conformance_ConformanceResponse_set_skipped(
+          response, upb_strview_make(msg, <span class="kw">sizeof</span>(msg)));
+      <span class="cf">break</span>;
+    }
+  }
+
+  <span class="co">/* Frees all messages on the arena. */</span>
+  upb_arena_free(arena);
+}</code></pre></div>
+<p>API and ABI are both subject to change! Please do not distribute as a shared library for this reason (for now at least).</p>
+<h2 id="using-upb-in-your-project">Using upb in your project</h2>
+<p>Currently only Bazel is supported (CMake support is partial and incomplete but full CMake support is an eventual goal).</p>
+<p>To use upb in your Bazel project, first add upb to your <code>WORKSPACE</code> file, either as a <code>git_repository()</code> or as a <code>new_local_repository()</code> with a Git Submodule. (For an example, see `examples/bazel/ in this repo).</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="co"># Add this to your WORKSPACE file.</span>
+load(<span class="st">&quot;@bazel_tools//tools/build_defs/repo:git.bzl&quot;</span>, <span class="st">&quot;git_repository&quot;</span>)
+
+git_repository(
+    name <span class="op">=</span> <span class="st">&quot;upb&quot;</span>,
+    remote <span class="op">=</span> <span class="st">&quot;https://github.com/protocolbuffers/upb.git&quot;</span>,
+    commit <span class="op">=</span> <span class="st">&quot;d16bf99ac4658793748cda3251226059892b3b7b&quot;</span>,
+)
+
+load(<span class="st">&quot;@upb//bazel:workspace_deps.bzl&quot;</span>, <span class="st">&quot;upb_deps&quot;</span>)
+
+upb_deps()</code></pre></div>
+<p>Then in your BUILD file you can add <code>upb_proto_library()</code> rules that generate code for a corresponding <code>proto_library()</code> rule. For example:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="co"># Add this to your BUILD file.</span>
+load(<span class="st">&quot;@upb//bazel:upb_proto_library.bzl&quot;</span>, <span class="st">&quot;upb_proto_library&quot;</span>)
+
+proto_library(
+    name <span class="op">=</span> <span class="st">&quot;foo_proto&quot;</span>,
+    srcs <span class="op">=</span> [<span class="st">&quot;foo.proto&quot;</span>],
+)
+
+upb_proto_library(
+    name <span class="op">=</span> <span class="st">&quot;foo_upbproto&quot;</span>,
+    deps <span class="op">=</span> [<span class="st">&quot;:foo_proto&quot;</span>],
+)
+
+cc_binary(
+    name <span class="op">=</span> <span class="st">&quot;test_binary&quot;</span>,
+    srcs <span class="op">=</span> [<span class="st">&quot;test_binary.c&quot;</span>],
+    deps <span class="op">=</span> [<span class="st">&quot;:foo_upbproto&quot;</span>],
+)</code></pre></div>
+<p>Then in your <code>.c</code> file you can #include the generated header:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;foo.upb.h&quot;</span>
+
+<span class="co">/* Insert code that uses generated types. */</span></code></pre></div>
+<h2 id="old-handlers-interfaces">Old &quot;handlers&quot; interfaces</h2>
+<p>This library contains several semi-deprecated interfaces (see BUILD file for more info about which interfaces are deprecated). These deprecated interfaces are still used in some significant projects, such as the Ruby and PHP C bindings for protobuf in the <a href="https://github.com/protocolbuffers/protobuf">main protobuf repo</a>. The goal is to migrate the Ruby/PHP bindings to use the newer, simpler interfaces instead. Please do not use the old interfaces in new code.</p>
+<h2 id="lua-bindings">Lua bindings</h2>
+<p>This repo has some Lua bindings for the core library. These are experimental and very incomplete. These are currently included in order to validate that the C API is suitable for wrapping. As the project matures these Lua bindings may become publicly available.</p>
+<h2 id="contact">Contact</h2>
+<p>Author: Josh Haberman (<a href="mailto:jhaberman@gmail.com">jhaberman@gmail.com</a>, <a href="mailto:haberman@google.com">haberman@google.com</a>)</p>

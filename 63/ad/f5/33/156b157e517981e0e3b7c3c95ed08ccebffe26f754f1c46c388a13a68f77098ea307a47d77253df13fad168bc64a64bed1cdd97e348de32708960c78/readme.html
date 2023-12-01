@@ -1,0 +1,150 @@
+<h1 id="nod">Nod</h1>
+<p><a href="https://travis-ci.org/fr00b0/nod"><img src="https://travis-ci.org/fr00b0/nod.svg?branch=master" alt="Build Status" /></a> <a href="https://github.com/fr00b0/nod/releases"><img src="https://img.shields.io/github/tag/fr00b0/nod.svg?label=version" alt="GitHub tag" /></a></p>
+<p>Dependency free, header only signals and slot library implemented with C++11.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="simple-usage">Simple usage</h3>
+<p>The following example creates a signal and then connects a lambda as a slot.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Create a signal which accepts slots with no arguments and void return value.</span>
+nod::signal&lt;<span class="dt">void</span>()&gt; signal;
+<span class="co">// Connect a lambda slot that writes &quot;Hello, World!&quot; to stdout</span>
+signal.<span class="fu">connect</span>([](){
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Hello, World!&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    });
+<span class="co">// Call the slots</span>
+signal();</code></pre></div>
+<h3 id="connecting-multiple-slots">Connecting multiple slots</h3>
+<p>If multiple slots are connected to the same signal, all of the slots will be called when the signal is invoked. The slots will be called in the same order as they where connected.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> endline() {
+    <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+<span class="co">// Create a signal</span>
+nod::signal&lt;<span class="dt">void</span>()&gt; signal;
+<span class="co">// Connect a lambda that prints a message</span>
+signal.<span class="fu">connect</span>([](){
+        <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Message without endline!&quot;</span>;
+    });
+<span class="co">// Connect a function that prints a endline</span>
+signal.<span class="fu">connect</span>(endline);
+
+<span class="co">// Call the slots</span>
+signal();</code></pre></div>
+<h4 id="slot-type">Slot type</h4>
+<p>The signal types in the library support connection of the same types that is supported by <code>std::function&lt;T&gt;</code>.</p>
+<h3 id="slot-arguments">Slot arguments</h3>
+<p>When a signal calls it's connected slots, any arguments passed to the signal are propagated to the slots. To make this work, we do need to specify the signature of the signal to accept the arguments.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> print_sum( <span class="dt">int</span> x, <span class="dt">int</span> y ) {
+    <span class="bu">std::</span>cout &lt;&lt; x &lt;&lt; <span class="st">&quot;+&quot;</span> &lt;&lt; y &lt;&lt; <span class="st">&quot;=&quot;</span> &lt;&lt; (x+y) &lt;&lt; <span class="bu">std::</span>endl;
+}
+<span class="dt">void</span> print_product( <span class="dt">int</span> x, <span class="dt">int</span> y ) {
+    <span class="bu">std::</span>cout &lt;&lt; x &lt;&lt; <span class="st">&quot;*&quot;</span> &lt;&lt; y &lt;&lt; <span class="st">&quot;=&quot;</span> &lt;&lt; (x*y) &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+
+<span class="co">// We create a signal with two integer arguments.</span>
+nod::signal&lt;<span class="dt">void</span>(<span class="dt">int</span>,<span class="dt">int</span>)&gt; signal;
+<span class="co">// Let&#39;s connect our slot</span>
+signal.<span class="fu">connect</span>( print_sum );
+signal.<span class="fu">connect</span>( print_product );
+
+<span class="co">// Call the slots</span>
+signal(<span class="dv">10</span>, <span class="dv">15</span>);
+signal(<span class="dv">-5</span>, <span class="dv">7</span>);  </code></pre></div>
+<h3 id="disconnecting-slots">Disconnecting slots</h3>
+<p>There are many circumstances where the programmer needs to diconnect a slot that no longer want to recieve events from the signal. This can be really important if the lifetime of the slots are shorter than the lifetime of the signal. That could cause the signal to call slots that have been destroyed but not disconnected, leading to undefined behaviour and probably segmentation faults.</p>
+<p>When a slot is connected, the return value from the <code>connect</code> method returns an instance of the class <code>nod::connection</code>, that can be used to disconnect that slot.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Let&#39;s create a signal</span>
+nod::signal&lt;<span class="dt">void</span>()&gt; signal;
+<span class="co">// Connect a slot, and save the connection</span>
+nod::connection connection = signal.<span class="fu">connect</span>([](){
+                                 <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;I&#39;m connected!&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+                             });
+<span class="co">// Triggering the signal will call the slot</span>
+signal();
+<span class="co">// Now we disconnect the slot</span>
+connection.<span class="fu">disconnect</span>();
+<span class="co">// Triggering the signal will no longer call the slot</span>
+signal();</code></pre></div>
+<h3 id="scoped-connections">Scoped connections</h3>
+<p>To assist in disconnecting slots, one can use the class <code>nod::scoped_connection</code> to capture a slot connection. A scoped connection will automatically disconnect the slot when the connection object goes out of scope.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// We create a signal</span>
+nod::signal&lt;<span class="dt">void</span>()&gt; signal;
+<span class="co">// Let&#39;s use a scope to control lifetime</span>
+{ 
+    <span class="co">// Let&#39;s save the connection in a scoped_connection</span>
+    nod::scoped_connection connection =
+        signal.<span class="fu">connect</span>([](){
+            <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;This message should only be emitted once!&quot;</span> &lt;&lt; <span class="bu">std::</span>endl; 
+        });
+    <span class="co">// If we trigger the signal, the slot will be called</span>
+    signal();
+} <span class="co">// Our scoped connection is destructed, and disconnects the slot</span>
+<span class="co">// Triggering the signal now will not call the slot</span>
+signal();   </code></pre></div>
+<h3 id="slot-return-values">Slot return values</h3>
+<h4 id="accumulation-of-return-values">Accumulation of return values</h4>
+<p>It is possible for slots to have a return value. The return values can be returned from the signal using a <em>accumulator</em>, which is a function object that acts as a proxy object that processes the slot return values. When triggering a signal through a accumulator, the accumulator gets called for each slot return value, does the desired accumulation and then return the result to the code triggering the signal. The accumulator is designed to work in a similar way as the STL numerical algorithm <code>std::accumulate</code>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// We create a singal with slots that return a value</span>
+nod::signal&lt;<span class="dt">int</span>(<span class="dt">int</span>, <span class="dt">int</span>)&gt; signal;
+<span class="co">// Then we connect some signals</span>
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>plus&lt;<span class="dt">int</span>&gt;{} );
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>multiplies&lt;<span class="dt">int</span>&gt;{} );
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>minus&lt;<span class="dt">int</span>&gt;{} );        
+<span class="co">// Let&#39;s say we want to calculate the sum of all the slot return values</span>
+<span class="co">// when triggering the singal with the parameters 10 and 100.</span>
+<span class="co">// We do this by accumulating the return values with the initial value 0</span>
+<span class="co">// and a plus function object, like so:</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Sum: &quot;</span> &lt;&lt; signal.accumulate(<span class="dv">0</span>, <span class="bu">std::</span>plus&lt;<span class="dt">int</span>&gt;{})(<span class="dv">10</span>,<span class="dv">100</span>) &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// Or accumulate by multiplying (this needs 1 as initial value):</span>
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Product: &quot;</span> &lt;&lt; signal.accumulate(<span class="dv">1</span>, <span class="bu">std::</span>multiplies&lt;<span class="dt">int</span>&gt;{})(<span class="dv">10</span>,<span class="dv">100</span>) &lt;&lt; <span class="bu">std::</span>endl;
+<span class="co">// If we instead want to build a vector with all the return values</span>
+<span class="co">// we can accumulate them this way (start with a empty vector and add each value):          </span>
+<span class="kw">auto</span> vec = signal.accumulate( <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;{}, []( <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; result, <span class="dt">int</span> value ) {
+        result.push_back( value );
+        <span class="cf">return</span> result;
+    })(<span class="dv">10</span>,<span class="dv">100</span>);
+
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Vector: &quot;</span>;
+<span class="cf">for</span>( <span class="kw">auto</span> <span class="at">const</span>&amp; element : vec ) {
+    <span class="bu">std::</span>cout &lt;&lt; element &lt;&lt; <span class="st">&quot; &quot;</span>; 
+}
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<h4 id="aggregation">Aggregation</h4>
+<p>As we can see from the previous example, we can use the <code>accumulate</code> method if we want to aggregate all the return values of the slots. Doing the aggregation that way is not very optimal. It is both a inefficient algorithm for doing aggreagtion to a container, and it obscures the call site as the caller needs to express the aggregation using the verb <em>accumulate</em>. To remedy these shortcomings we can turn to the method <code>aggregate</code> instead. This is a template method, taking the type of container to aggregate to as a template parameter.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// We create a singal</span>
+nod::signal&lt;<span class="dt">int</span>(<span class="dt">int</span>, <span class="dt">int</span>)&gt; signal;
+<span class="co">// Let&#39;s connect some slots</span>
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>plus&lt;<span class="dt">int</span>&gt;{} );
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>multiplies&lt;<span class="dt">int</span>&gt;{} );
+signal.<span class="fu">connect</span>( <span class="bu">std::</span>minus&lt;<span class="dt">int</span>&gt;{} );
+<span class="co">// We can now trigger the signal and aggregate the slot return values</span>
+<span class="kw">auto</span> vec = signal.aggregate&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;(<span class="dv">10</span>,<span class="dv">100</span>);
+
+<span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Result: &quot;</span>;
+<span class="cf">for</span>( <span class="kw">auto</span> <span class="at">const</span>&amp; element : vec ) {
+    <span class="bu">std::</span>cout &lt;&lt; element &lt;&lt; <span class="st">&quot; &quot;</span>; 
+}
+<span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>endl;</code></pre></div>
+<h2 id="thread-safety">Thread safety</h2>
+<p>There are two types of signals in the library. The first is <code>nod::signal&lt;T&gt;</code> which is safe to use in a multi threaded environment. Multiple threads can read, write, connect slots and disconnect slots simultaneously, and the signal will provide the nessesary synchronization. When triggering a slignal, all the registered slots will be called and executed by the thread that triggered the signal.</p>
+<p>The second type of signal is <code>nod::unsafe_signal&lt;T&gt;</code> which is <strong>not</strong> safe to use in a multi threaded environment. No syncronization will be performed on the internal state of the signal. Instances of the signal should theoretically be safe to read from multiple thread simultaneously, as long as no thread is writing to the same object at the same time. There can be a performance gain involved in using the unsafe version of a signal, since no syncronization primitives will be used.</p>
+<p><code>nod::connection</code> and <code>nod::scoped_connection</code> are thread safe for reading from multiple threads, as long as no thread is writing to the same object. Writing in this context means calling any non const member function, including destructing the object. If an object is being written by one thread, then all reads and writes to that object from the same or other threads needs to be prevented. This basically means that a connection is only allowed to be disconnected from one thread, and you should not check connection status or reassign the connection while it is being disconnected.</p>
+<h2 id="building-the-tests">Building the tests</h2>
+<p>The test project uses <a href="https://premake.github.io/download.html">premake5</a> to generate make files or similiar.</p>
+<h3 id="linux">Linux</h3>
+<p>To build and run the tests using gcc and gmake on linux, execute the following from the test directory:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">premake5</span> gmake
+<span class="fu">make</span> -C build/gmake
+<span class="ex">bin/gmake/debug/nod_tests</span></code></pre></div>
+<h3 id="visual-studio-2013">Visual Studio 2013</h3>
+<p>To build and run the tests, execute the following from the test directory:</p>
+<pre class="batchfile"><code>REM Adjust paths to suite your environment
+c:\path\to\premake\premake5.exe vs2013
+&quot;c:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\vsvars32.bat&quot;
+msbuild /m build\vs2013\nod_tests.sln
+bin\vs2013\debug\nod_tests.exe</code></pre>
+<h2 id="the-mit-license-mit">The MIT License (MIT)</h2>
+<p>Copyright (c) 2015 Fredrik Berggren</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>

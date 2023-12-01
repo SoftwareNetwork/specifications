@@ -1,0 +1,160 @@
+<h1 id="vinces-csv-parser">Vince's CSV Parser</h1>
+<p><a href="https://travis-ci.org/vincentlaucsb/csv-parser"><img src="https://travis-ci.org/vincentlaucsb/csv-parser.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/gh/vincentlaucsb/csv-parser"><img src="https://codecov.io/gh/vincentlaucsb/csv-parser/branch/master/graph/badge.svg" alt="codecov" /></a></p>
+<h2 id="motivation">Motivation</h2>
+<p>There's plenty of other CSV parsers in the wild, but I had a hard time finding what I wanted. Specifically, I wanted something which had an interface similar to Python's <code>csv</code> module. Furthermore, I wanted support for special use cases such as calculating statistics on very large files. Thus, this library was created with these following goals in mind:</p>
+<h3 id="performance">Performance</h3>
+<p>This CSV parser uses multiple threads to simulatenously pull data from disk and parse it. Furthermore, it is capable of incremental streaming (parsing larger than RAM files), and quickly parsing data types.</p>
+<h3 id="rfc-4180-compliance">RFC 4180 Compliance</h3>
+<p>This CSV parser is much more than a fancy string splitter, and follows every guideline from <a href="https://www.rfc-editor.org/rfc/rfc4180.txt">RFC 4180</a>. On the other hand, it is also robust and capable of handling deviances from the standard. An optional strict parsing mode can be enabled to sniff out errors in files.</p>
+<h4 id="encoding">Encoding</h4>
+<p>This CSV parser will handle ANSI and UTF-8 encoded files. It does not try to decode UTF-8, except for detecting and stripping byte order marks.</p>
+<h3 id="easy-to-use-and-well-documented">Easy to Use and <a href="https://vincentlaucsb.github.io/csv-parser">Well-Documented</a></h3>
+<p>In additon to being easy on your computer's hardware, this library is also easy on you--the developer. Some helpful features include: * Decent ability to guess the dialect of a file (CSV, tab-delimited, etc.) * Ability to handle common deviations from the CSV standard, such as inconsistent row lengths, and leading comments * Ability to manually set the delimiter and quoting character of the parser</p>
+<h3 id="well-tested">Well Tested</h3>
+<p>This CSV parser has an extensive test suite and is checked for memory safety with Valgrind. If you still manage to find a bug, do not hesitate to report it.</p>
+<h2 id="building-and-compatibility-latest-stable-version">Building and Compatibility <a href="https://github.com/vincentlaucsb/csv-parser/releases">(latest stable version)</a></h2>
+<p>This library was developed with Microsoft Visual Studio and is compatible with g++ and clang. All of the code required to build this library, aside from the C++ standard library, is contained under <code>include/</code>.</p>
+<p><strong>One-line compilation</strong> <code>g++ -pthread -c -O3 -std=c++17 include/internal/*.cpp</code></p>
+<h3 id="c-version">C++ Version</h3>
+<p>C++11 is the minimal version required. This library makes extensive use of string views, either through <a href="https://github.com/martinmoene/string-view-lite">Martin Moene's string view library</a> or <code>std:string_view</code> when compiling with C++17. Please be aware of this if you use parts of the public API that return string views.</p>
+<h3 id="cmake-instructions">CMake Instructions</h3>
+<p>If you're including this in another CMake project, you can simply clone this repo into your project directory, and add the following to your CMakeLists.txt:</p>
+<pre><code>include(${CMAKE_SOURCE_DIR}/.../csv-parser/CMakeLists.txt)
+
+# ...
+
+add_executable(&lt;your program&gt; ...)
+target_link_libraries(&lt;your program&gt; csv)
+</code></pre>
+<h3 id="single-header">Single Header</h3>
+<p>A single header version of this library is in the works.</p>
+<h2 id="features-examples">Features &amp; Examples</h2>
+<h3 id="reading-a-large-file-with-iterators">Reading a Large File (with Iterators)</h3>
+<p>With this library, you can easily stream over a large file without reading its entirety into memory.</p>
+<p><strong>C++ Style</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_parser.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+
+...
+
+CSVReader reader(<span class="st">&quot;very_big_file.csv&quot;</span>);
+
+<span class="cf">for</span> (CSVRow&amp; row: reader) { <span class="co">// Input iterator</span>
+    <span class="cf">for</span> (CSVField&amp; field: row) {
+        <span class="co">// For efficiency, get&lt;&gt;() produces a string_view</span>
+        <span class="bu">std::</span>cout &lt;&lt; field.get&lt;&gt;() &lt;&lt; ...
+    }
+}
+
+...</code></pre></div>
+<p><strong>Old-Fashioned C Style Loop</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">...
+
+CSVReader reader(<span class="st">&quot;very_big_file.csv&quot;</span>);
+CSVRow row;
+ 
+<span class="cf">while</span> (reader.read_row(row)) {
+    <span class="co">// Do stuff with row here</span>
+}
+
+...</code></pre></div>
+<h3 id="indexing-by-column-names">Indexing by Column Names</h3>
+<p>Retrieving values using a column name string is a cheap, constant time operation.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_parser.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+
+...
+
+CSVReader reader(<span class="st">&quot;very_big_file.csv&quot;</span>);
+<span class="dt">double</span> sum = <span class="dv">0</span>;
+
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row: reader) {
+    <span class="co">// Note: Can also use index of column with [] operator</span>
+    sum += row[<span class="st">&quot;Total Salary&quot;</span>].get&lt;<span class="dt">double</span>&gt;();
+}
+
+...</code></pre></div>
+<h3 id="type-conversions">Type Conversions</h3>
+<p>If your CSV has lots of numeric values, you can also have this parser (lazily) convert them to the proper data type. Type checking is performed on conversions to prevent undefined behavior.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_parser.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+
+...
+
+CSVReader reader(<span class="st">&quot;very_big_file.csv&quot;</span>);
+
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row: reader) {
+    <span class="cf">if</span> (row[<span class="st">&quot;timestamp&quot;</span>].is_int()) {
+        row[<span class="st">&quot;timestamp&quot;</span>].get&lt;<span class="dt">int</span>&gt;();
+        
+        <span class="co">// ..</span>
+    }
+}</code></pre></div>
+<h3 id="specifying-a-specific-delimiter-quoting-character-etc.">Specifying a Specific Delimiter, Quoting Character, etc.</h3>
+<p>Although the CSV parser has a decent guessing mechanism, in some cases it is preferrable to specify the exact parameters of a file.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_parser.hpp&quot;</span>
+<span class="pp"># include ...</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+
+CSVFormat format = {
+    <span class="st">&#39;</span><span class="sc">\t</span><span class="st">&#39;</span>,    <span class="co">// Delimiter</span>
+    <span class="st">&#39;~&#39;</span>,     <span class="co">// Quote-character</span>
+    <span class="st">&#39;2&#39;</span>,     <span class="co">// Line number of header</span>
+    {}       <span class="co">// Column names -- if empty, then filled by reading header row</span>
+};
+
+CSVReader reader(<span class="st">&quot;wierd_csv_dialect.csv&quot;</span>, {}, format);
+
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; row: reader) {
+    <span class="co">// Do stuff with rows here</span>
+}</code></pre></div>
+<h3 id="parsing-an-in-memory-string">Parsing an In-Memory String</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_parser.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+
+...
+
+<span class="co">// Method 1: Using parse()</span>
+<span class="bu">std::</span>string csv_string = <span class="st">&quot;Actor,Character</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;Will Ferrell,Ricky Bobby</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;John C. Reilly,Cal Naughton Jr.</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;Sacha Baron Cohen,Jean Giard</span><span class="sc">\r\n</span><span class="st">&quot;</span>;
+
+<span class="kw">auto</span> rows = parse(csv_string);
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; r: rows) {
+    <span class="co">// Do stuff with row here</span>
+}
+    
+<span class="co">// Method 2: Using _csv operator</span>
+<span class="kw">auto</span> rows = <span class="st">&quot;Actor,Character</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;Will Ferrell,Ricky Bobby</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;John C. Reilly,Cal Naughton Jr.</span><span class="sc">\r\n</span><span class="st">&quot;</span>
+    <span class="st">&quot;Sacha Baron Cohen,Jean Giard</span><span class="sc">\r\n</span><span class="st">&quot;_csv</span>;
+
+<span class="cf">for</span> (<span class="kw">auto</span>&amp; r: rows) {
+    <span class="co">// Do stuff with row here</span>
+}</code></pre></div>
+<h3 id="writing-csv-files">Writing CSV Files</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp"># include </span><span class="im">&quot;csv_writer.hpp&quot;</span>
+<span class="pp"># include ...</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> csv;
+<span class="kw">using</span> vector;
+<span class="kw">using</span> string;
+
+...
+
+<span class="bu">std::</span>stringstream ss; <span class="co">// Can also use ifstream, etc.</span>
+<span class="kw">auto</span> writer = make_csv_writer(ss);
+writer &lt;&lt; vector&lt;string&gt;({ <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span> })
+    &lt;&lt; vector&lt;string&gt;({ <span class="st">&quot;I&#39;m&quot;</span>, <span class="st">&quot;too&quot;</span>, <span class="st">&quot;tired&quot;</span> })
+    &lt;&lt; vector&lt;string&gt;({ <span class="st">&quot;to&quot;</span>, <span class="st">&quot;write&quot;</span>, <span class="st">&quot;documentation&quot;</span> });
+    
+...</code></pre></div>
+<h2 id="contributing">Contributing</h2>
+<p>Bug reports, feature requests, and so on are always welcome. Feel free to leave a note in the Issues section.</p>

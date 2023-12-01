@@ -1,0 +1,479 @@
+<p><img src="images/json_link_logo_128.png" alt="logo image" /> # DAW JSON Link v2</p>
+<p><a href="https://github.com/beached/daw_json_link/actions?query=workflow%3AMacOS"><img src="https://github.com/beached/daw_json_link/workflows/MacOS/badge.svg" alt="Build Status Macos" /></a></p>
+<p><a href="https://github.com/beached/daw_json_link/actions?query=workflow%3AUbuntu"><img src="https://github.com/beached/daw_json_link/workflows/Ubuntu/badge.svg" alt="Build Status Ubuntu" /></a></p>
+<p><a href="https://github.com/beached/daw_json_link/actions?query=workflow%3AWindows"><img src="https://github.com/beached/daw_json_link/workflows/Windows/badge.svg" alt="Build Status Windows - MSVC" /></a></p>
+<h2 id="content">Content</h2>
+<ul>
+<li><a href="#intro">Intro</a>
+<ul>
+<li><a href="#default-mapping-of-types">Default Mapping of Types</a></li>
+</ul></li>
+<li><a href="https://beached.github.io/daw_json_link/html/">API Documentation</a> - Member mapping classes and methods</li>
+<li><a href="cookbook/readme.md">Cookbook</a> Get cooking and putting it all together
+<ul>
+<li><a href="cookbook/array.md">Arrays</a></li>
+<li><a href="cookbook/class.md">Classes</a></li>
+<li><a href="cookbook/class_from_array.md">Class from Array</a></li>
+<li><a href="cookbook/dates.md">Dates</a></li>
+<li><a href="cookbook/enums.md">Enums</a></li>
+<li><a href="cookbook/graphs.md">Graphs</a></li>
+<li><a href="cookbook/key_values.md">Key Values</a> - Map and Dictionary like things</li>
+<li><a href="cookbook/numbers.md">Numbers</a></li>
+<li><a href="cookbook/optional_values.md">Optional/Nullable Values</a></li>
+<li><a href="cookbook/parsing_individual_members.md">Parsing Individual Members</a></li>
+<li><a href="cookbook/parser_policies.md">Parser Policies</a></li>
+<li><a href="cookbook/strings.md">Strings</a></li>
+<li><a href="cookbook/unknown_types_and_delayed_parsing.md">Unknown JSON and Delayed Parsing</a> - Browsing the JSON Document and delaying of parsing of specified members</li>
+<li><a href="cookbook/variant.md">Variant</a></li>
+<li><a href="cookbook/automated_code_generation.md">Automatic Code Generation</a></li>
+</ul></li>
+<li><a href="#intro">Intro</a></li>
+<li><a href="#installingusing">Installing/Using</a></li>
+<li><a href="#performance-considerations">Performance considerations</a>
+<ul>
+<li><a href="#benchmarks">Benchmarks</a></li>
+</ul></li>
+<li><a href="#escapingunescaping-of-member-names">Escaping/Unescaping of member names</a></li>
+<li><a href="#differences-between-c17-and-c20">Differences between C++17 and C++20</a>
+<ul>
+<li><a href="#naming-of-json-members">C++ 17 Naming of members</a></li>
+<li><a href="#c-20-naming-of-json-members">C++ 20 Naming of members</a></li>
+</ul></li>
+<li><a href="#using-mapped-data-types">Using data types</a></li>
+<li><a href="#error-handling">Error Handling</a>
+<ul>
+<li><a href="#parsing-call">Parsing call</a></li>
+<li><a href="#global">Global</a></li>
+</ul></li>
+<li><a href="#deserializingparsing">Deserializing/Parsing</a>
+<ul>
+<li><a href="#member-paths">Member Paths</a></li>
+</ul></li>
+<li><a href="#serialization">Serialization</a></li>
+<li><a href="#build-configuration-points">Build Configuration Points</a></li>
+<li><a href="#requirements">Requirements</a>
+<ul>
+<li><a href="#for-building-tests">For building tests</a></li>
+</ul></li>
+<li><a href="#limitations">Limitations</a></li>
+</ul>
+<h2 id="intro">Intro</h2>
+<h6 id="top"><a href="#content">Top</a></h6>
+<p>The DAW JSON Link library provides multiple ways to serialization/deserialization JSON documents in C++. The primary one is parsing of JSON directly to your C++ data structures. This allows the known structure of the document to be exploited for greater checking and performance. Alternatively, there is an event passing(SAX) interface that can parse to generic types(double, string, bool,…) or can use the same type restricted parsers as the static parser previously mentioned. A generic DOM(lazy) based parser is provided that can be iterate over the document structure too, again it can use the generic parsers or the type based restricted versions. One can mix the three modes of parsing to form more complicated systems. For serialization, the first static mapping method is required, there is no json value type in the library. The library is, also, non-intrusive into your data structures and does not require member’s to be declared/defined within them. This allows keeping the mapping in a separate header file from the data structures themselves.</p>
+<p>The library is using the <a href="LICENSE">BSL</a> licensed</p>
+<p>When the structure of the JSON document is known, parsing is like the following:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>MyThing thing = daw::json::from_json&lt;MyThing&gt;( json_string );</span></code></pre></div>
+<p>or for array documents, where the root of the document is an array, there is a helper method to make it easier and it can be parsed like the following:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;MyThing&gt; things = daw::json::from_json_array&lt;MyThing&gt;( json_string2 );</span></code></pre></div>
+<p>If the structure of the JSON document is unknown, one can construct a <code>json_value</code> that acts as a container and allows iteration and parsing on demand. It is a lazy parser and will only parse when asked to. The following is an example of opening a <code>json_value</code> from JSON data:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>json_value val = daw::json::json_value( json_string );</span></code></pre></div>
+<p>The <code>from_json</code> and <code>to_json</code> methods allow access most of the parsing needs.</p>
+<p>The event based parser(SAX) can be called via <code>daw::json::json_event_parser</code>. It takes two arguments, a json document and an event handler. The event handler can opt into events by having the following members: * handle_on_value * handle_on_array_start * handle_on_array_end * handle_on_class_start * handle_on_class_end * handle_on_number * handle_on_bool * handle_on_string * handle_on_null * handle_on_error</p>
+<h2 id="code-examples">Code Examples</h2>
+<ul>
+<li>The <a href="cookbook/readme.md">Cookbook</a> section has precanned tasks and working code examples</li>
+<li><a href="tests/">Tests</a> provide another source of working code samples.</li>
+<li>Some video walkthroughs
+<ul>
+<li><a href="https://youtu.be/iiRDn0CR_sU">Making a config parser</a></li>
+<li><a href="https://www.youtube.com/watch?v=mhlrYvd1qso">I Like BigInt’s</a></li>
+</ul></li>
+<li>Links to other examples
+<ul>
+<li><a href="https://github.com/beached/daw_json_link_config_parser">Parsing a Config File</a></li>
+<li><a href="https://github.com/beached/daw_json_link_bigint_mp_numbers">Parsing BigInt/Multiprecision Numbers</a><br />
+</li>
+</ul></li>
+<li>Small samples below</li>
+</ul>
+<p>Mapping of your classes to JSON documents is done by specializing the trait <code>daw::json::json_data_contract</code>. A class that is mapped does not need to be mapped again if it is a member of another mapped class. There are two parts to the trait <code>json_data_contract</code>, first is a type alias named <code>type</code> that maps the JSON members to our class’s constructor. This gets around needing private access to the class, assuming that data we would serialize would also be needed to construct the class. For example: <code>c++ struct Thing {   int a;   int b;     };</code> The construct for <code>Thing</code> requires 2 integers and if we had the following JSON:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  <span class="dt">&quot;a&quot;</span><span class="fu">:</span> <span class="dv">42</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="dt">&quot;b&quot;</span><span class="fu">:</span> <span class="dv">1234</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p>We could do the mapping like the following:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;Thing&gt; {</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a[] = <span class="st">&quot;a&quot;</span>;</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b[] = <span class="st">&quot;b&quot;</span>;</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>      json_number&lt;a, <span class="dt">int</span>&gt;,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>      json_number&lt;b, <span class="dt">int</span>&gt;</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>  };</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This says that the JSON class will have at least two members “a”, and “b” that will be numbers that are integers. They will be passed to the constructor of <code>Thing</code> when <code>daw::json::from_json&lt;Thing&gt;( json_doc );</code> is called, or that another class has a <code>json_class&lt;MemberName, Thing&gt;</code> member mapping. The above is the C++17 mapping method for the names, it works in future C++ versions too. But, in C++20 and later the names can be inline in the mapping e.g. <code>json_number&lt;"a", int&gt;</code>. The above is all that is needed for parsing JSON, for serializing a static member function is needed in the trait. Taking the previous example and extending it we could serialize <code>Thing</code> with:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;Thing&gt; {</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a[] = <span class="st">&quot;a&quot;</span>;</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b[] = <span class="st">&quot;b&quot;</span>;</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a>      json_number&lt;a, <span class="dt">int</span>&gt;,</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>      json_number&lt;b, <span class="dt">int</span>&gt;</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a>  };</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>  </span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a>  <span class="at">static</span> <span class="kw">auto</span> to_json_data( Thing <span class="at">const</span> &amp; v ) {</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a>    <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple( v.a, v.b );</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true"></a>  }</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The ordering of the members returned as a tuple need to match the mapping in the type alias <code>type</code>. This allows for passing the result of accessor methods too, if the data members are not public. * Note: The return type of <code>to_json_data</code> does not have to return a tuple of references to the existing object members, but can return calculated values too.</p>
+<p>The parsers work by constructing each argument in place in the call to the classes constructor. The individual argument parsers can be tuned for the specified circumstances of the data(e.g. floating point and integral numbers). Then with our type trait defining the arguments needed to construct the C++ class and their order we are able to look at each member in the JSON. Now we construct the value with the result of each parser; similar to <code>T{ parse&lt;0, json_string&lt;"name"&gt;&gt;( data ), parse&lt;1, json_number&lt;"age", unsigned&gt;&gt;( data ), parse&lt;json_number&lt;2, "number&gt;&gt;( data )}</code>. For each member, the data stream will be moved forward until we find the member we need to parse, storing interested locations for later parsing. This process allows us to parse other classes as members too via the <code>json_class&lt;"member_name", Type&gt;</code> mapping type. So that each mapping trait only has to deal with it’s specific members and not their details. <img src="images/parse_flow.jpg" alt="general parsing flow" /></p>
+<h2 id="default-mapping-of-types">Default mapping of types</h2>
+<h6 id="top-1"><a href="#content">Top</a></h6>
+<p>In unnamed contexts, such as the root value, array elements, some key value types, and variant element lists where the name would be <code>no_name</code>, one can use some native C++ data types instead of the the JSON mapping types. This includes, integer, floating point, bool, std::string, std::string_view, and previously mapped classes.</p>
+<p>For example, to map an array of string’s.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">template</span>&lt;&gt;</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="kw">struct</span> daw::json::json_data_contract&lt;MyType&gt; {</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>  <span class="kw">using</span> type = json_member_list&lt;json_array&lt;<span class="st">&quot;member_name&quot;</span>, <span class="bu">std::</span>string&gt;&gt;;</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a>};</span></code></pre></div>
+<h2 id="installingusing">Installing/Using</h2>
+<h6 id="top-2"><a href="#content">Top</a></h6>
+<h3 id="including-in-cmake-project">Including in cmake project</h3>
+<p>To use daw_json_link in your cmake projects, adding the following should allow it to pull it in along with the dependencies:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="kw">include</span>( FetchContent )</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>        daw_json_link</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>        GIT_REPOSITORY https://github.com/beached/daw_json_link</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>                GIT_TAG release</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="fu">FetchContent_MakeAvailable</span>(daw_json_link)</span></code></pre></div>
+<p>Then in the targets that need it:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="kw">target_link_libraries</span>( MyTarget daw::json_link )</span></code></pre></div>
+<h3 id="installing">Installing</h3>
+<p>On a system with bash, it is similar on other systems too, the following can install for the system</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/beached/daw_json_link</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="bu">cd</span> daw_json_link</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="fu">mkdir</span> build</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="bu">cd</span> build</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="fu">cmake</span> ..</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a><span class="fu">cmake</span> --install . </span></code></pre></div>
+<h3 id="testing">Testing</h3>
+<p>The following will build and run the tests.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="fu">git</span> clone https://github.com/beached/daw_json_link</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="bu">cd</span> daw_json_link</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="fu">mkdir</span> build</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a><span class="bu">cd</span> build</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a><span class="fu">cmake</span> -DDAW_ENABLE_TESTING=On ..</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a><span class="fu">cmake</span> --build . </span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a><span class="ex">ctest</span> .</span></code></pre></div>
+<p>After the build there the individual examples can be tested too. <code>city_test_bin</code> requires the path to the cities JSON file.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="ex">./tests/city_test_bin</span> ../test_data/cities.json</span></code></pre></div>
+<h2 id="performance-considerations">Performance considerations</h2>
+<h6 id="top-3"><a href="#content">Top</a></h6>
+<p>The order of the members in the data structures should generally match that of the JSON data. The parser is faster if it doesn’t have to back track for values. Optional values, when missing in the JSON data, can slow down the parsing too. If possible have them sent as null. The parser does not allocate. The parsed to data types may and this allows one to use custom allocators or a mix as their data structures will do the allocation. The defaults for arrays is to use the std::vector<T> and if this isn’t desirable, you must supply the type.</p>
+<h3 id="benchmarks">Benchmarks</h3>
+<ul>
+<li><a href="kostya_benchmark_results.md">Kostya results</a> using <a href="tests/test_dawjsonlink.cpp">test_dawjsonlink.cpp</a> See <a href="https://github.com/kostya/benchmarks">Kostya Benchmarks</a> for latest results.</li>
+</ul>
+<figure>
+<img src="images/kostya_bench_chart.png" alt="" /><figcaption>chart desribing kostya benmark results</figcaption>
+</figure>
+<ul>
+<li><a href="partial_nativejson_benchmark.md">Parial NativeJson</a></li>
+</ul>
+<h2 id="escapingunescaping-of-member-names">Escaping/Unescaping of member names</h2>
+<h6 id="top-4"><a href="#content">Top</a></h6>
+<p>The library, currently, does not unescape/escape member names when serializing, they are expected to be valid and unescaped. This may be a future optional addition, as it does have a cost.</p>
+<h2 id="differences-between-c17-and-c20">Differences between C++17 and C++20</h2>
+<h6 id="top-5"><a href="#content">Top</a></h6>
+<p>There are slight differences between C++17 and C++20 # Naming of JSON members</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;MyType&gt; {</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> member_name[] = <span class="st">&quot;memberName&quot;</span>;</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;json_number&lt;member_name&gt;&gt;;</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a>  };</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a>}</span></code></pre></div>
+<h1 id="c-20-naming-of-json-members">C++ 20 Naming of JSON members</h1>
+<p>When compiled within C++20 compiler, in addition to passing a <code>char const *</code> as in C++17, the member names can be specified as string literals directly. C++20 compiler support is still really early and here be dragons. There are known issues with g++9.x and it’s only tested with g++10. Here be dragons</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;MyType&gt; {</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;json_number&lt;<span class="st">&quot;member_name&quot;</span>&gt;&gt;;</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>  };</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a>}</span></code></pre></div>
+<h1 id="using-mapped-data-types">Using mapped data types</h1>
+<h6 id="top-6"><a href="#content">Top</a></h6>
+<p>Once a data type has been mapped with a <code>json_data_contract</code>, the library provides methods to parse JSON to them</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>MyClass my_class = from_json&lt;MyClass&gt;( json_str );</span></code></pre></div>
+<p>Alternatively, if the input is trusted, the less checked version can be faster</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>MyClass my_class = from_json&lt;MyClass, NoCommentSkippingPolicyUnchecked&gt;( json_str );</span></code></pre></div>
+<p>JSON documents with array root’s use the <code>from_json_array</code> function to parse</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;MyClass&gt; my_data = from_json_array&lt;MyClass&gt;( json_str );</span></code></pre></div>
+<p>Alternatively, if the input is trusted, the less checked version can be faster</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;MyClass&gt; my_data = from_json_array&lt;MyClass, <span class="bu">std::</span>vector&lt;MyClass&gt;, NoCommentSkippingPolicyUnchecked&gt;( json_str );</span></code></pre></div>
+<p>If you want to work from JSON array data you can get an iterator and use the std algorithms to Iterating over array’s in JSON data can be done via the <code>json_array_iterator</code></p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="kw">using</span> <span class="dt">iterator_t</span> = json_array_iterator&lt;MyClass&gt;;</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="kw">auto</span> pos = <span class="bu">std::</span>find( <span class="dt">iterator_t</span>( json_str ), <span class="dt">iterator_t</span>( ), MyClass( ... ) );</span></code></pre></div>
+<p>Alternatively, if the input is trusted you can called the less checked version</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="kw">using</span> <span class="dt">iterator_t</span> = daw::json::json_array_iterator_trusted&lt;MyClass&gt;;</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a><span class="kw">auto</span> pos = <span class="bu">std::</span>find( <span class="dt">iterator_t</span>( json_str ), <span class="dt">iterator_t</span>( ), MyClass( ... ) );</span></code></pre></div>
+<p>If you want to serialize to JSON</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="bu">std::</span>string my_json_data = to_json( MyClass{} );</span></code></pre></div>
+<p>Or serialize a collection of things</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;MyClass&gt; arry = ...;</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="bu">std::</span>string my_json_data = to_json_array( arry );</span></code></pre></div>
+<h1 id="error-handling">Error Handling</h1>
+<h2 id="parsing-call">Parsing call</h2>
+<h6 id="top-7"><a href="#content">Top</a></h6>
+<p>Error checking can be modified on a per parse basis. the from_json/from_json_array calls can be supplied a Parser Policy. The current policies are</p>
+<ul>
+<li><code>NoCommentSkippingPolicyChecked</code> - No comments allowed, checks enabled</li>
+<li><code>NoCommentSkippingPolicyUnchecked</code> - No comments allowed, assumes perfect JSON</li>
+<li><code>CppCommentSkippingPolicyChecked</code> - C++ style comments <code>/* commment */</code> and <code>// comment until end of line</code>, checks enabled</li>
+<li><code>CppCommentSkippingPolicyUnchecked</code> - C++ style comments <code>/* commment */</code> and <code>// comment until end of line</code>, assumes perfect JSON</li>
+<li><code>HashCommentSkippingPolicyChecked</code> - Hash style comments <code># comment until end of line</code>, checks enabled</li>
+<li><code>HashCommentSkippingPolicyUnchecked</code> - Hash style comments <code># comment until end of line</code>, assumes perfect JSON</li>
+</ul>
+<p>The unchecked variants can sometimes provide a 5-15% performance increase, but at great risk when the data isn’t perfect. ## Global ###### <a href="#content">Top</a></p>
+<p>There are two possible ways of handling errors. The default is to throw a <code>daw::json::json_exception</code> on an error in the data. <code>json_exception</code> has a member function <code>std::string_view reason( ) const</code> akin to <code>std::exception</code>’s <code>what( )</code>. Second, calling <code>std::terminate( );</code> on an error in data. If you want to disable exceptions in an environment that has them, you can defined <code>DAW_JSON_DONT_USE_EXCEPTIONS</code> to disable exception throwing by the library.</p>
+<h1 id="deserializingparsing">Deserializing/Parsing</h1>
+<h6 id="top-8"><a href="#content">Top</a></h6>
+<p>This can be accomplished by writing a function called json_data_contract_for with a single argument that is your type. The library is only concerned with it’s return value. For example:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="kw">struct</span> TestClass {</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a>  <span class="dt">int</span> i = <span class="dv">0</span>;</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a>  <span class="dt">double</span> d = <span class="fl">0.0</span>;</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a>  <span class="dt">bool</span> b = <span class="kw">false</span>;</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a>  daw::string_view s{};</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a>  <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; y{};</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a>  TestClass( <span class="dt">int</span> Int, <span class="dt">double</span> Double, <span class="dt">bool</span> Bool, daw::string_view S, <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; Y ) </span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a>    : i( Int )</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true"></a>    , d( Double )</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true"></a>    , b( Bool )</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true"></a>    , s( S )</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true"></a>    , y( Y ) {}</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true"></a>};</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true"></a></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;TestClass&gt; {</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true"></a>  <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true"></a>    json_number&lt;<span class="st">&quot;i&quot;</span>, <span class="dt">int</span>&gt;,</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true"></a>    json_number&lt;<span class="st">&quot;d&quot;</span>&gt;,</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true"></a>    json_bool&lt;<span class="st">&quot;b&quot;</span>&gt;,</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true"></a>    json_string&lt;<span class="st">&quot;s&quot;</span>, daw::string_view&gt;,</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true"></a>    json_array&lt;<span class="st">&quot;y&quot;</span>, <span class="dt">int</span>&gt;</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true"></a>   &gt;;</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true"></a>  };</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true"></a>}</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true"></a></span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true"></a><span class="dt">int</span> main( ) {</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true"></a>  <span class="bu">std::</span>string test_001_t_json_data = <span class="st">R&quot;({</span></span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true"></a><span class="st">    &quot;i&quot;:5,</span></span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true"></a><span class="st">    &quot;d&quot;:2.2e4,</span></span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true"></a><span class="st">    &quot;b&quot;:false,</span></span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true"></a><span class="st">    &quot;s&quot;:&quot;hello world&quot;,</span></span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true"></a><span class="st">    &quot;y&quot;:[1,2,3,4] </span></span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true"></a><span class="st">    })&quot;</span>;</span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true"></a>  <span class="bu">std::</span>string json_array_data = <span class="st">R&quot;([{</span></span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true"></a><span class="st">    &quot;i&quot;:5,</span></span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true"></a><span class="st">    &quot;d&quot;:2.2e4,</span></span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true"></a><span class="st">    &quot;b&quot;:false,</span></span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true"></a><span class="st">    &quot;s&quot;:&quot;hello world&quot;,</span></span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true"></a><span class="st">    &quot;y&quot;:[1,2,3,4] </span></span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true"></a><span class="st">    },{</span></span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true"></a><span class="st">    &quot;i&quot;:4,</span></span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true"></a><span class="st">    &quot;d&quot;:122e4,</span></span>
+<span id="cb23-48"><a href="#cb23-48" aria-hidden="true"></a><span class="st">    &quot;b&quot;:true,</span></span>
+<span id="cb23-49"><a href="#cb23-49" aria-hidden="true"></a><span class="st">    &quot;s&quot;:&quot;goodbye world&quot;,</span></span>
+<span id="cb23-50"><a href="#cb23-50" aria-hidden="true"></a><span class="st">    &quot;y&quot;:[4,3,1,4] </span></span>
+<span id="cb23-51"><a href="#cb23-51" aria-hidden="true"></a><span class="st">    }])&quot;</span>;</span>
+<span id="cb23-52"><a href="#cb23-52" aria-hidden="true"></a></span>
+<span id="cb23-53"><a href="#cb23-53" aria-hidden="true"></a>  TestClass test_class = daw::json::from_json&lt;TestClass&gt;( test_001_t_json_data );</span>
+<span id="cb23-54"><a href="#cb23-54" aria-hidden="true"></a>  <span class="bu">std::</span>vector&lt;TestClass&gt; arry_of_test_class = daw::json::from_json_array&lt;TestClass&gt;( test_001_t_json_data );</span>
+<span id="cb23-55"><a href="#cb23-55" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Both aggregate and user constructors are supported. The description provides the values needed to construct your type and the order. The order specified is the order they are placed into the constructor. There are customization points to provide a way of constructing your type too(TODO discuss customization points) A class like:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a><span class="kw">struct</span> AggClass {</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a>  <span class="dt">int</span> a{};</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a>  <span class="dt">double</span> b{};</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a>};</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;AggClass&gt; {</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;b&quot;</span>&gt;</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true"></a>  };</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Works too. Same but C++17</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="kw">struct</span> AggClass {</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a>  <span class="dt">int</span> a{};</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a>  <span class="dt">double</span> b{};</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a>};</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;AggClass&gt; {</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a[] = <span class="st">&quot;a&quot;</span>;</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b[] = <span class="st">&quot;b&quot;</span>;</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true"></a>      json_number&lt;a, <span class="dt">int</span>&gt;,</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true"></a>      json_number&lt;b&gt;</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true"></a>  };</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The class descriptions are recursive with their submembers. Using the previous <code>AggClass</code> one can include it as a member of another class</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="co">// See above for AggClass</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a><span class="kw">struct</span> MyClass {</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a>  AggClass other;</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a>  <span class="bu">std::</span>string_view some_name;</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true"></a>};</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;MyClass&gt; {</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true"></a>      json_class&lt;<span class="st">&quot;other&quot;</span>, AggClass&gt;,</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true"></a>      json_string&lt;<span class="st">&quot;id&quot;</span>, <span class="bu">std::</span>string_view&gt;</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true"></a>  };</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The above maps a class MyClass that has another class that is described AggClass. Also, you can see that the member names of the C++ class do not have to match that of the mapped JSON names and that strings can use <code>std::string_view</code> as the result type. This is an important performance enhancement if you can guarantee the buffer containing the JSON file will exist as long as the class does.</p>
+<p>Iterating over JSON arrays. The input iterator <code>daw::json::json_array_iterator&lt;JsonElement&gt;</code> allows one to iterator over the array of JSON elements. It is technically an input iterator but can be stored and reused like a forward iterator. It does not return a reference but a value.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a><span class="kw">struct</span> AggClass {</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true"></a>  <span class="dt">int</span> a{};</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true"></a>  <span class="dt">double</span> b{};</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true"></a>};</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;AggClass&gt; {</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;b&quot;</span>&gt;</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true"></a>  };</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true"></a>}</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true"></a></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true"></a><span class="dt">int</span> main( ) {</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true"></a>  <span class="bu">std::</span>string json_array_data = <span class="st">R&quot;([</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true"></a><span class="st">    {&quot;a&quot;:5,&quot;b&quot;:2.2},</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true"></a><span class="st">    {&quot;a&quot;:5,&quot;b&quot;:3.14},</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true"></a><span class="st">    {&quot;a&quot;:5,&quot;b&quot;:0.122e44},</span></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true"></a><span class="st">    {&quot;a&quot;:5334,&quot;b&quot;:34342.2}</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true"></a><span class="st">     ])&quot;</span>;</span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true"></a>  <span class="kw">using</span> <span class="dt">iterator_t</span> = daw::json::json_array_iterator&lt;AggClass&gt;;</span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true"></a>  <span class="kw">auto</span> pos = <span class="bu">std::</span>find_if( <span class="dt">iterator_t</span>( json_array_data ), <span class="dt">iterator_t</span>( ),</span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true"></a>    []( AggData <span class="at">const</span> &amp; element ) { <span class="cf">return</span> element.b &gt; <span class="fl">1000.0</span>; } );</span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true"></a>  <span class="cf">if</span>( pos == <span class="dt">iterator_t</span>( ) ) {</span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Not found</span><span class="sc">\n</span><span class="st">&quot;</span>;</span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;Found</span><span class="sc">\n</span><span class="st">&quot;</span>;</span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true"></a>  }</span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true"></a>}</span></code></pre></div>
+<h2 id="member-paths">Member Paths</h2>
+<p>Parsing can begin at a specific member. An optional member path to <code>from_json_array</code>, <code>from_json_array_unchecked</code>, <code>from_json_array</code>, or <code>from_json_array_unchecked</code> can be specified. The format is a dot separated list of member names and optionally an array index such as <code>member0.member1</code> or <code>member0[5].member1</code>.</p>
+<h2 id="comments">Comments</h2>
+<p>Comments are supported when the parser policy for them is used. Currently there are two forms of comment policies. C++ style <code>//</code> and <code>/* */</code>. Comments can be placed anywhere there is whitespace allowed</p>
+<ul>
+<li>Hash style</li>
+</ul>
+<pre><code>{ # This is a comment
+    &quot;a&quot; #this is also a comment
+      : &quot;a&#39;s value&quot;
+}</code></pre>
+<ul>
+<li>C++ style</li>
+</ul>
+<pre><code>{ // This is a comment
+    &quot;a&quot; /*this is also a comment*/: &quot;a&#39;s value&quot;
+}</code></pre>
+<p>To change the parser policy, you add another argument to <code>from_json</code> and call like <code>from_json&lt;MyType, CppCommentParsePolicy&gt;( json_data )</code></p>
+<h2 id="serialization">Serialization</h2>
+<h6 id="top-9"><a href="#content">Top</a></h6>
+<p>To enable serialization one must create an additional function in your specialization of <code>json_data_contract</code> called <code>to_json_data( Thing const &amp; );</code> It will provide a mapping from your type to the arguments provided in the class description. To serialize to a JSON string, one calls <code>to_json( my_thing );</code> where value is a registered type or one of the fundamental types like string, bool, and numbers. The result of <code>to_json_data( Thing const &amp; )</code> is a tuple who’s elements match order in json_data_contract’s type alias <code>type</code>. Using the example above lets add that</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true"></a><span class="kw">struct</span> AggClass {</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true"></a>  <span class="dt">int</span> a{};</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true"></a>  <span class="dt">double</span> b{};</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true"></a>};</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;AggClass&gt; {</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;b&quot;</span>&gt;</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true"></a></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">auto</span> to_json_data( AggClass <span class="at">const</span> &amp; value ) {</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true"></a>      <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple( value.a, value.b );</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true"></a>    }</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true"></a>  };</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true"></a>}</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true"></a><span class="co">//...</span></span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true"></a>AggData value = <span class="co">//...;</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true"></a><span class="bu">std::</span>string test_001_t_json_data = to_json( value );</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true"></a></span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true"></a><span class="co">// or</span></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;AggData&gt; values = <span class="co">//...;</span></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true"></a><span class="bu">std::</span>string json_array_data = to_json_array( values );</span></code></pre></div>
+<p>Alternatively there is an optional <code>iostreams</code> interface. In you types <code>json_data_constract</code> add a type alias named <code>opt_into_iostreams</code> the type it aliases doesn’t matter, and include <code>daw_json_iostream.h</code> . For example</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_iostream.h&gt;</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true"></a><span class="kw">struct</span> AggClass {</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true"></a>  <span class="dt">int</span> a{};</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true"></a>  <span class="dt">double</span> b{};</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true"></a>};</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true"></a><span class="kw">namespace</span> daw::json {</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true"></a>  <span class="kw">template</span>&lt;&gt;</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true"></a>  <span class="kw">struct</span> json_data_contract&lt;AggClass&gt; {</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true"></a>    <span class="kw">using</span> opt_into_iostreams = <span class="dt">void</span>;</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true"></a>    <span class="kw">using</span> type = json_member_list&lt;</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;a&quot;</span>, <span class="dt">int</span>&gt;,</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true"></a>      json_number&lt;<span class="st">&quot;b&quot;</span>&gt;</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true"></a>    &gt;;</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true"></a></span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">auto</span> to_json_data( AggClass <span class="at">const</span> &amp; value ) {</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true"></a>      <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple( value.a, value.b );</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true"></a>    }</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true"></a>  };</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true"></a>}</span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true"></a><span class="co">//...</span></span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true"></a>AggData value = <span class="co">//...;</span></span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true"></a><span class="bu">std::</span>cout &lt;&lt; value &lt;&lt; <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span>;</span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true"></a></span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true"></a><span class="co">// or</span></span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true"></a><span class="bu">std::</span>vector&lt;AggData&gt; values = <span class="co">//...;</span></span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true"></a><span class="bu">std::</span>cout &lt;&lt; values &lt;&lt; <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span>;</span></code></pre></div>
+<p>A working example can be found at <a href="tests/src/daw_json_iostream_test.cpp">daw_json_iostream_test.cpp</a></p>
+<h2 id="build-configuration-points">Build configuration points</h2>
+<p>There are a few defines that affect how JSON Link operates * <code>DAW_JSON_DONT_USE_EXCEPTIONS</code> - Controls if exceptions are allowed. If they are not, an <code>std::terminate()</code> on errors will occur * <code>DAW_ALLOW_SSE42</code> - Allow experimental SSE3 mode * <code>DAW_JSON_NO_CONST_EXPR</code> - This can be used to allow classes without move/copy special members to be constructed from JSON data prior to C++ 20. This mode does not work in a constant expression prior to C++20 when this flag is no longer needed.</p>
+<h2 id="requirements">Requirements</h2>
+<h6 id="top-10"><a href="#content">Top</a></h6>
+<ul>
+<li>C++ 17 compiler</li>
+<li>GCC(8/9)/Clang(7/8/9/10) have been tested.</li>
+<li>MSVC 19.21 has been tested.</li>
+</ul>
+<h3 id="for-building-tests">For building tests</h3>
+<ul>
+<li>git</li>
+<li>cmake</li>
+</ul>
+<h4 id="contact">Contact</h4>
+<p>Darrell Wright json_link@dawdevel.ca</p>
+<h1 id="limitations">Limitations</h1>
+<ul>
+<li>When parsing classes, the first member with a mapped name will be used. If you want to parse a class that can have more than one of any member by name, either parse as a <code>json_value</code> see or as a <code>json_key_value</code> that is mapped to a <code>std::multimap</code> or a <code>std::vector</code> with a pair of key type(<code>string</code>) and value type(s). <a href="cookbook/key_values.md">Cookbook Key Values</a> demonstrates these methods. If a <code>json_key_value</code> is used and the mapped data type does not support duplicate keys, it will insert for each key. This may result in the last item being the value reflected after serializing. If the duplicate member is the tag type in a <code>json_tagged_variant</code>, it is undefined what the behaviour for parsing is.</li>
+</ul>

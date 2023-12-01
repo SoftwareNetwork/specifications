@@ -1,0 +1,60 @@
+<h1 id="matlogger2">MatLogger2</h1>
+<p>Library for logging of numeric data to HDF5 MAT-files, which is RT-safe and multithreaded.</p>
+<h2 id="building-matlogger2-from-source">Building MatLogger2 from source</h2>
+<p>Standard cmake workflow: - git clone the repo to <em>SOURCE_DIR</em> - create a build folder <em>BUILD_DIR</em> - cd <em>BUILD_DIR</em> &amp;&amp; cmake <em>SOURCE_DIR</em> - make - make install</p>
+<h2 id="installing-the-binary-release">Installing the binary release</h2>
+<ul>
+<li>cd <em>SOURCE_DIR</em>/release (or <code>wget https://github.com/ADVRHumanoids/MatLogger2/raw/master/release/matlogger2-1.0.0-Linux.deb</code>)</li>
+<li>sudo dpkg -i matlogger2-X.Y.Z-Linux.deb</li>
+</ul>
+<p>The binary release has been tested only with Ubuntu 16.04</p>
+<h2 id="linking-against-matlogger2">Linking against MatLogger2</h2>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(matlogger2 <span class="ot">REQUIRED</span>)
+<span class="kw">target_link_libraries</span>(mytarget matlogger2::matlogger2)</code></pre></div>
+<p>## Quick start ### Circular-buffer mode ```c++ #include <matlogger2/matlogger2.h></p>
+<p>int main() { auto logger = XBot::MatLogger2::MakeLogger(&quot;/tmp/my_log&quot;); // date-time automatically appended logger-&gt;set_buffer_mode(XBot::VariableBuffer::Mode::circular_buffer);</p>
+<pre><code>for(int i = 0; i &lt; 1e5; i++)
+{
+    Eigen::VectorXd vec(10);
+    Eigen::MatrixXd mat(6,8);
+    
+    logger-&gt;add(&quot;my_vec_var&quot;, vec);
+    logger-&gt;add(&quot;my_scalar_var&quot;, M_PI);
+    logger-&gt;add(&quot;my_mat_var&quot;, mat);
+}</code></pre>
+<p>} // destructor flushes to disk ```</p>
+<p>### Producer-consumer mode (default) ```c++ #include <matlogger2/matlogger2.h> #include <matlogger2/utils/mat_appender.h></p>
+<p>int main() { auto logger = XBot::MatLogger2::MakeLogger(&quot;/tmp/my_log.mat&quot;); // extension provided -&gt; date-time NOT appended auto appender = XBot::MatAppender::MakeInstance(); appender-&gt;add_logger(logger); appender-&gt;start_flush_thread();</p>
+<pre><code>for(int i = 0; i &lt; 1e5; i++)
+{
+    Eigen::VectorXd vec(10);
+    Eigen::MatrixXd mat(6,8);
+    
+    logger-&gt;add(&quot;my_vec_var&quot;, vec);
+    logger-&gt;add(&quot;my_scalar_var&quot;, M_PI);
+    logger-&gt;add(&quot;my_mat_var&quot;, mat);
+    
+    usleep(1000);
+}</code></pre>
+<p>} ```</p>
+<p>### Custom buffer size and compression ```c++ #include <matlogger2/matlogger2.h></p>
+<p>int main() { XBot::MatLogger2::Options opt; opt.default_buffer_size = 1e4; // set default buffer size opt.enable_compression = true; // enable ZLIB compression // this can be computationally expensive auto logger = XBot::MatLogger2::MakeLogger(&quot;/tmp/my_log&quot;, opt);</p>
+<pre><code>logger-&gt;create(&quot;my_vec_var&quot;, 10); // this pre-allocates the buffer with default buffer size
+
+logger-&gt;create(&quot;my_mat_var&quot;, 6, 8, 1e3); // custom buffer size can be set variable-wise
+
+for(int i = 0; i &lt; 1e5; i++)
+{
+    Eigen::VectorXd vec(10);
+    Eigen::MatrixXd mat(6,8);
+    
+    logger-&gt;add(&quot;my_vec_var&quot;, vec);
+    logger-&gt;add(&quot;my_scalar_var&quot;, M_PI);
+    logger-&gt;add(&quot;my_mat_var&quot;, mat);
+    
+    usleep(1000);
+}
+
+logger.reset(); // manually destroy the logger in order to flush to disk</code></pre>
+<p>} ```</p>
+<p>## Documentation Header files are documented with doxygen! An <a href="https://advrhumanoids.github.io/MatLogger2/classXBot_1_1MatLogger2.html"><strong>online version</strong></a> is also available.</p>

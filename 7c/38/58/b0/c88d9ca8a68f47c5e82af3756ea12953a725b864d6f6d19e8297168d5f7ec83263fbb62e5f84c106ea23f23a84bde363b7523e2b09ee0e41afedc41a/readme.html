@@ -1,0 +1,364 @@
+<h1 id="simdjson-parsing-gigabytes-of-json-per-second">simdjson : Parsing gigabytes of JSON per second</h1>
+<p><a href="https://cloud.drone.io/lemire/simdjson/"><img src="https://cloud.drone.io/api/badges/lemire/simdjson/status.svg" alt="Build Status" /></a> <a href="https://circleci.com/gh/lemire/simdjson"><img src="https://circleci.com/gh/lemire/simdjson.svg?style=svg" alt="CircleCI" /></a> <a href="https://ci.appveyor.com/project/lemire/simdjson"><img src="https://img.shields.io/appveyor/ci/lemire/simdjson.svg" alt="Build Status" /></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202-blue.svg" /></a></p>
+<h2 id="a-c-library-to-see-how-fast-we-can-parse-json-with-complete-validation.">A C++ library to see how fast we can parse JSON with complete validation.</h2>
+<p>JSON documents are everywhere on the Internet. Servers spend a lot of time parsing these documents. We want to accelerate the parsing of JSON per se using commonly available SIMD instructions as much as possible while doing full validation (including character encoding).</p>
+<h2 id="paper">Paper</h2>
+<p>A description of the design and implementation of simdjson appears at https://arxiv.org/abs/1902.08318 and an informal blog post providing some background and context is at https://branchfree.org/2019/02/25/paper-parsing-gigabytes-of-json-per-second/. ## Some performance results</p>
+<p>We can use a quarter or fewer instructions than a state-of-the-art parser like RapidJSON, and half as many as sajson. To our knowledge, simdjson is the first fully-validating JSON parser to run at gigabytes per second on commodity processors.</p>
+<p><img src="doc/gbps.png" width="90%"></p>
+<p>On a Skylake processor, the parsing speeds (in GB/s) of various processors on the twitter.json file are as follows.</p>
+<table>
+<thead>
+<tr class="header">
+<th>parser</th>
+<th>GB/s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>simdjson</td>
+<td>2.2</td>
+</tr>
+<tr class="even">
+<td>RapidJSON encoding-validation</td>
+<td>0.51</td>
+</tr>
+<tr class="odd">
+<td>RapidJSON encoding-validation, insitu</td>
+<td>0.71</td>
+</tr>
+<tr class="even">
+<td>sajson (insitu, dynamic)</td>
+<td>0.70</td>
+</tr>
+<tr class="odd">
+<td>sajson (insitu, static)</td>
+<td>0.97</td>
+</tr>
+<tr class="even">
+<td>dropbox</td>
+<td>0.14</td>
+</tr>
+<tr class="odd">
+<td>fastjson</td>
+<td>0.26</td>
+</tr>
+<tr class="even">
+<td>gason</td>
+<td>0.85</td>
+</tr>
+<tr class="odd">
+<td>ultrajson</td>
+<td>0.42</td>
+</tr>
+<tr class="even">
+<td>jsmn</td>
+<td>0.28</td>
+</tr>
+<tr class="odd">
+<td>cJSON</td>
+<td>0.34</td>
+</tr>
+</tbody>
+</table>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>We support platforms like Linux or macOS, as well as Windows through Visual Studio 2017 or later.</li>
+<li>A processor with AVX2 (i.e., Intel processors starting with the Haswell microarchitecture released 2013, and processors from AMD starting with the Ryzen)</li>
+<li>A recent C++ compiler (e.g., GNU GCC or LLVM CLANG or Visual Studio 2017), we assume C++17. GNU GCC 7 or better or LLVM's clang 6 or better.</li>
+<li>Some benchmark scripts assume bash and other common utilities, but they are optional.</li>
+</ul>
+<h2 id="license">License</h2>
+<p>This code is made available under the Apache License 2.0.</p>
+<p>Under Windows, we build some tools using the windows/dirent_portable.h file (which is outside our library code): it under the liberal (business-friendly) MIT license.</p>
+<h2 id="code-example">Code example</h2>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;simdjson/jsonparser.h&quot;</span>
+
+/...
+
+<span class="dt">const</span> <span class="dt">char</span> * filename = ... <span class="co">//</span>
+
+<span class="co">// use whatever means you want to get a string of your JSON document</span>
+std::string_view p = get_corpus(filename);
+ParsedJson pj;
+pj.allocateCapacity(p.size()); <span class="co">// allocate memory for parsing up to p.size() bytes</span>
+bool is_ok = json_parse(p, pj); <span class="co">// do the parsing, return false on error</span>
+<span class="co">// parsing is done!</span>
+<span class="co">// You can safely delete the string content</span>
+free((<span class="dt">void</span>*)p.data());
+<span class="co">// the ParsedJson document can be used here</span>
+<span class="co">// js can be reused with other json_parse calls.</span></code></pre></div>
+<p>It is also possible to use a simpler API if you do not mind having the overhead of memory allocation with each new JSON document:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&quot;simdjson/jsonparser.h&quot;</span>
+
+/...
+
+<span class="dt">const</span> <span class="dt">char</span> * filename = ... <span class="co">//</span>
+std::string_view p = get_corpus(filename);
+ParsedJson pj = build_parsed_json(p); <span class="co">// do the parsing</span>
+<span class="co">// you no longer need p at this point, can do aligned_free((void*)p.data())</span>
+<span class="cf">if</span>( ! pj.isValid() ) {
+    <span class="co">// something went wrong</span>
+}</code></pre></div>
+<h2 id="usage-easy-single-header-version">Usage: easy single-header version</h2>
+<p>See the &quot;singleheader&quot; repository for a single header version. See the included file &quot;amalgamation_demo.cpp&quot; for usage. This requires no specific build system: just copy the files in your project in your include path. You can then include them quite simply:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;simdjson.h&quot;</span>
+<span class="pp">#include </span><span class="im">&quot;simdjson.cpp&quot;</span>
+<span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {
+  <span class="dt">const</span> <span class="dt">char</span> * filename = argv[<span class="dv">1</span>]; 
+  std::string_view p = get_corpus(filename);
+  ParsedJson pj = build_parsed_json(p); <span class="co">// do the parsing</span>
+  <span class="cf">if</span>( ! pj.isValid() ) {
+    std::cout &lt;&lt; <span class="st">&quot;not valid&quot;</span> &lt;&lt; std::endl;
+  } <span class="cf">else</span> {
+    std::cout &lt;&lt; <span class="st">&quot;valid&quot;</span> &lt;&lt; std::endl;
+  }
+  <span class="cf">return</span> EXIT_SUCCESS;
+}</code></pre></div>
+<p>Note: In some settings, it might be desirable to precompile <code>simdjson.cpp</code> instead of including it.</p>
+<h2 id="usage-old-school-makefile-on-platforms-like-linux-or-macos">Usage (old-school Makefile on platforms like Linux or macOS)</h2>
+<p>Requirements: recent clang or gcc, and make. We recommend at least GNU GCC/G++ 7 or LLVM clang 6. A system like Linux or macOS is expected.</p>
+<p>To test:</p>
+<pre><code>make
+make test</code></pre>
+<p>To run benchmarks:</p>
+<pre><code>make parse
+./parse jsonexamples/twitter.json</code></pre>
+<p>Under Linux, the <code>parse</code> command gives a detailed analysis of the performance counters.</p>
+<p>To run comparative benchmarks (with other parsers):</p>
+<pre><code>make benchmark</code></pre>
+<h2 id="usage-cmake-on-platforms-like-linux-or-macos">Usage (CMake on platforms like Linux or macOS)</h2>
+<p>Requirements: We require a recent version of cmake. On macOS, the easiest way to install cmake might be to use <a href="https://brew.sh">brew</a> and then type</p>
+<pre><code>brew install cmake</code></pre>
+<p>There is an <a href="https://linuxbrew.sh">equivalent brew on Linux which works the same way as well</a>.</p>
+<p>You need a recent compiler like clang or gcc. We recommend at least GNU GCC/G++ 7 or LLVM clang 6. For example, you can install a recent compiler with brew:</p>
+<pre><code>brew install gcc@8</code></pre>
+<p>Optional: You need to tell cmake which compiler you wish to use by setting the CC and CXX variables. Under bash, you can do so with commands such as <code>export CC=gcc-7</code> and <code>export CXX=g++-7</code>.</p>
+<p>Building: While in the project repository, do the following:</p>
+<pre><code>mkdir build
+cd build
+cmake ..
+make
+make test</code></pre>
+<p>CMake will build a library. By default, it builds a shared library (e.g., libsimdjson.so on Linux).</p>
+<p>You can build a static library:</p>
+<pre><code>mkdir buildstatic
+cd buildstatic
+cmake -DSIMDJSON_BUILD_STATIC=ON ..
+make 
+make test</code></pre>
+<p>In some cases, you may want to specify your compiler, especially if the default compiler on your system is too old. You may proceed as follows:</p>
+<pre><code>brew install gcc@8
+mkdir build
+cd build
+export CXX=g++-8 CC=gcc-8
+cmake ..
+make
+make test</code></pre>
+<h2 id="usage-cmake-on-windows-using-visual-studio">Usage (CMake on Windows using Visual Studio)</h2>
+<p>We are assuming that you have a common Windows PC with at least Visual Studio 2017, and an x64 processor with AVX2 support (2013 Haswell or later).</p>
+<ul>
+<li>Grab the simdjson code from GitHub, e.g., by cloning it using <a href="https://desktop.github.com/">GitHub Desktop</a>.</li>
+<li>Install <a href="https://cmake.org/download/">CMake</a>. When you install it, make sure to ask that <code>cmake</code> be made available from the command line. Please choose a recent version of cmake.</li>
+<li>Create a subdirectory within simdjson, such as <code>VisualStudio</code>.</li>
+<li>Using a shell, go to this newly created directory.</li>
+<li>Type <code>cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..</code> in the shell while in the <code>VisualStudio</code> repository. (Alternatively, if you want to build a DLL, you may use the command line <code>cmake -DCMAKE_GENERATOR_PLATFORM=x64 -DSIMDJSON_BUILD_STATIC=OFF  ..</code>.)</li>
+<li>This last command created a Visual Studio solution file in the newly created directory (e.g., <code>simdjson.sln</code>). Open this file in Visual Studio. You should now be able to build the project and run the tests. For example, in the <code>Solution Explorer</code> window (available from the <code>View</code> menu), right-click <code>ALL_BUILD</code> and select <code>Build</code>. To test the code, still in the <code>Solution Explorer</code> window, select <code>RUN_TESTS</code> and select <code>Build</code>.</li>
+</ul>
+<h2 id="tools">Tools</h2>
+<ul>
+<li><code>json2json mydoc.json</code> parses the document, constructs a model and then dumps back the result to standard output.</li>
+<li><code>json2json -d mydoc.json</code> parses the document, constructs a model and then dumps model (as a tape) to standard output. The tape format is described in the accompanying file <code>tape.md</code>.</li>
+<li><code>minify mydoc.json</code> minifies the JSON document, outputting the result to standard output. Minifying means to remove the unneeded white space characters.</li>
+</ul>
+<h2 id="scope">Scope</h2>
+<p>We provide a fast parser. It fully validates the input according to the various specifications. The parser builds a useful immutable (read-only) DOM (document-object model) which can be later accessed.</p>
+<p>To simplify the engineering, we make some assumptions.</p>
+<ul>
+<li>We support UTF-8 (and thus ASCII), nothing else (no Latin, no UTF-16). We do not believe that this is a genuine limitation in the sense that we do not think that there is any serious application that needs to process JSON data without an ASCII or UTF-8 encoding.</li>
+<li>We store strings as NULL terminated C strings. Thus we implicitly assume that you do not include a NULL character within your string, which is allowed technically speaking if you escape it (000).</li>
+<li>We assume AVX2 support which is available in all recent mainstream x86 processors produced by AMD and Intel. No support for non-x86 processors is included though it can be done. We plan to support ARM processors (help is invited).</li>
+<li>In cases of failure, we just report a failure without any indication as to the nature of the problem. (This can be easily improved without affecting performance.)</li>
+<li>As allowed by the specification, we allow repeated keys within an object (other parsers like sajson do the same).</li>
+<li>Performance is optimized for JSON documents spanning at least a tens kilobytes up to many megabytes: the performance issues with having to parse many tiny JSON documents or one truly enormous JSON document are different.</li>
+</ul>
+<p><em>We do not aim to provide a general-purpose JSON library.</em> A library like RapidJSON offers much more than just parsing, it helps you generate JSON and offers various other convenient functions. We merely parse the document.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>The input string is unmodified. (Parsers like sajson and RapidJSON use the input string as a buffer.)</li>
+<li>We parse integers and floating-point numbers as separate types which allows us to support large 64-bit integers in [-9223372036854775808,9223372036854775808), like a Java <code>long</code> or a C/C++ <code>long long</code>. Among the parsers that differentiate between integers and floating-point numbers, not all support 64-bit integers. (For example, sajson rejects JSON files with integers larger than or equal to 2147483648. RapidJSON will parse a file containing an overly long integer like 18446744073709551616 as a floating-point number.) When we cannot represent exactly an integer as a signed 64-bit value, we reject the JSON document.</li>
+<li>We do full UTF-8 validation as part of the parsing. (Parsers like fastjson, gason and dropbox json11 do not do UTF-8 validation.)</li>
+<li>We fully validate the numbers. (Parsers like gason and ultranjson will accept <code>[0e+]</code> as valid JSON.)</li>
+<li>We validate string content for unescaped characters. (Parsers like fastjson and ultrajson accept unescaped line breaks and tabs in strings.)</li>
+</ul>
+<h2 id="architecture">Architecture</h2>
+<p>The parser works in two stages:</p>
+<ul>
+<li>Stage 1. (Find marks) Identifies quickly structure elements, strings, and so forth. We validate UTF-8 encoding at that stage.</li>
+<li>Stage 2. (Structure building) Involves constructing a &quot;tree&quot; of sort (materialized as a tape) to navigate through the data. Strings and numbers are parsed at this stage.</li>
+</ul>
+<h2 id="navigating-the-parsed-document">Navigating the parsed document</h2>
+<p>Here is a code sample to dump back the parsed JSON to a string:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">    ParsedJson::iterator pjh(pj);
+    <span class="cf">if</span> (!pjh.isOk()) {
+      std::cerr &lt;&lt; <span class="st">&quot; Could not iterate parsed result. &quot;</span> &lt;&lt; std::endl;
+      <span class="cf">return</span> EXIT_FAILURE;
+    }
+    compute_dump(pj);
+    <span class="co">//</span>
+    <span class="co">// where compute_dump is :</span>
+
+<span class="dt">void</span> compute_dump(ParsedJson::iterator &amp;pjh) {
+  <span class="cf">if</span> (pjh.is_object()) {
+    std::cout &lt;&lt; <span class="st">&quot;{&quot;</span>;
+    <span class="cf">if</span> (pjh.down()) {
+      pjh.print(std::cout); <span class="co">// must be a string</span>
+      std::cout &lt;&lt; <span class="st">&quot;:&quot;</span>;
+      pjh.next();
+      compute_dump(pjh); <span class="co">// let us recurse</span>
+      <span class="cf">while</span> (pjh.next()) {
+        std::cout &lt;&lt; <span class="st">&quot;,&quot;</span>;
+        pjh.print(std::cout);
+        std::cout &lt;&lt; <span class="st">&quot;:&quot;</span>;
+        pjh.next();
+        compute_dump(pjh); <span class="co">// let us recurse</span>
+      }
+      pjh.up();
+    }
+    std::cout &lt;&lt; <span class="st">&quot;}&quot;</span>;
+  } <span class="cf">else</span> <span class="cf">if</span> (pjh.is_array()) {
+    std::cout &lt;&lt; <span class="st">&quot;[&quot;</span>;
+    <span class="cf">if</span> (pjh.down()) {
+      compute_dump(pjh); <span class="co">// let us recurse</span>
+      <span class="cf">while</span> (pjh.next()) {
+        std::cout &lt;&lt; <span class="st">&quot;,&quot;</span>;
+        compute_dump(pjh); <span class="co">// let us recurse</span>
+      }
+      pjh.up();
+    }
+    std::cout &lt;&lt; <span class="st">&quot;]&quot;</span>;
+  } <span class="cf">else</span> {
+    pjh.print(std::cout); <span class="co">// just print the lone value</span>
+  }
+}</code></pre></div>
+<p>The following function will find all user.id integers:</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> simdjson_traverse(std::vector&lt;<span class="dt">int64_t</span>&gt; &amp;answer, ParsedJson::iterator &amp;i) {
+  <span class="cf">switch</span> (i.get_type()) {
+  <span class="cf">case</span> <span class="ch">&#39;{&#39;</span>:
+    <span class="cf">if</span> (i.down()) {
+      <span class="cf">do</span> {
+        bool founduser = equals(i.get_string(), <span class="st">&quot;user&quot;</span>);
+        i.next(); <span class="co">// move to value</span>
+        <span class="cf">if</span> (i.is_object()) {
+          <span class="cf">if</span> (founduser &amp;&amp; i.move_to_key(<span class="st">&quot;id&quot;</span>)) {
+            <span class="cf">if</span> (i.is_integer()) {
+              answer.push_back(i.get_integer());
+            }
+            i.up();
+          }
+          simdjson_traverse(answer, i);
+        } <span class="cf">else</span> <span class="cf">if</span> (i.is_array()) {
+          simdjson_traverse(answer, i);
+        }
+      } <span class="cf">while</span> (i.next());
+      i.up();
+    }
+    <span class="cf">break</span>;
+  <span class="cf">case</span> <span class="ch">&#39;[&#39;</span>:
+    <span class="cf">if</span> (i.down()) {
+      <span class="cf">do</span> {
+        <span class="cf">if</span> (i.is_object_or_array()) {
+          simdjson_traverse(answer, i);
+        }
+      } <span class="cf">while</span> (i.next());
+      i.up();
+    }
+    <span class="cf">break</span>;
+  <span class="cf">case</span> <span class="ch">&#39;l&#39;</span>:
+  <span class="cf">case</span> <span class="ch">&#39;d&#39;</span>:
+  <span class="cf">case</span> <span class="ch">&#39;n&#39;</span>:
+  <span class="cf">case</span> <span class="ch">&#39;t&#39;</span>:
+  <span class="cf">case</span> <span class="ch">&#39;f&#39;</span>:
+  <span class="cf">default</span>:
+    <span class="cf">break</span>;
+  }
+}</code></pre></div>
+<h2 id="in-depth-comparisons">In-depth comparisons</h2>
+<p>If you want to see how a wide range of parsers validate a given JSON file:</p>
+<pre><code>make allparserscheckfile
+./allparserscheckfile myfile.json</code></pre>
+<p>For performance comparisons:</p>
+<pre><code>make parsingcompetition
+./parsingcompetition myfile.json</code></pre>
+<p>For broader comparisons:</p>
+<pre><code>make allparsingcompetition
+./allparsingcompetition myfile.json</code></pre>
+<h2 id="other-programming-languages">Other programming languages</h2>
+<ul>
+<li><a href="https://github.com/TkTech/pysimdjson">pysimdjson</a>: Python bindings for the simdjson project.</li>
+<li><a href="https://github.com/EgorBo/SimdJsonSharp">SimdJsonSharp</a>: C# version for .NET Core</li>
+</ul>
+<h2 id="various-references">Various References</h2>
+<ul>
+<li><a href="https://github.com/google/double-conversion/">Google double-conv</a></li>
+<li><a href="https://stackoverflow.com/questions/35127060/how-to-implement-atoi-using-simd">How to implement atoi using SIMD?</a></li>
+<li><a href="http://seriot.ch/parsing_json.php">Parsing JSON is a Minefield 💣</a></li>
+<li>https://tools.ietf.org/html/rfc7159</li>
+<li>The Mison implementation in rust https://github.com/pikkr/pikkr</li>
+<li>http://rapidjson.org/md_doc_sax.html</li>
+<li>https://github.com/Geal/parser_benchmarks/tree/master/json</li>
+<li>Gron: A command line tool that makes JSON greppable https://news.ycombinator.com/item?id=16727665</li>
+<li>GoogleGson https://github.com/google/gson</li>
+<li>Jackson https://github.com/FasterXML/jackson</li>
+<li>https://www.yelp.com/dataset_challenge</li>
+<li>RapidJSON. http://rapidjson.org/</li>
+</ul>
+<p>Inspiring links: - https://auth0.com/blog/beating-json-performance-with-protobuf/ - https://gist.github.com/shijuvar/25ad7de9505232c87034b8359543404a - https://github.com/frankmcsherry/blog/blob/master/posts/2018-02-11.md</p>
+<p>Validating UTF-8 takes no more than 0.7 cycles per byte: - https://github.com/lemire/fastvalidate-utf-8 https://lemire.me/blog/2018/05/16/validating-utf-8-strings-using-as-little-as-0-7-cycles-per-byte/</p>
+<h2 id="remarks-on-json-parsing">Remarks on JSON parsing</h2>
+<ul>
+<li><p>The JSON spec defines what a JSON parser is: &gt; A JSON parser transforms a JSON text into another representation. A JSON parser MUST accept all texts that conform to the JSON grammar. A JSON parser MAY accept non-JSON forms or extensions. An implementation may set limits on the size of texts that it accepts. An implementation may set limits on the maximum depth of nesting. An implementation may set limits on the range and precision of numbers. An implementation may set limits on the length and character contents of strings.</p></li>
+<li><p>JSON is not JavaScript: &gt; All JSON is Javascript but NOT all Javascript is JSON. So {property:1} is invalid because property does not have double quotes around it. {'property':1} is also invalid, because it's single quoted while the only thing that can placate the JSON specification is double quoting. JSON is even fussy enough that {&quot;property&quot;:.1} is invalid too, because you should have of course written {&quot;property&quot;:0.1}. Also, don't even think about having comments or semicolons, you guessed it: they're invalid. (credit:https://github.com/elzr/vim-json)</p></li>
+<li><p>The structural characters are:</p>
+<p>begin-array = [ left square bracket begin-object = { left curly bracket end-array = ] right square bracket end-object = } right curly bracket name-separator = : colon value-separator = , comma</p></li>
+</ul>
+<h3 id="pseudo-structural-elements">Pseudo-structural elements</h3>
+<p>A character is pseudo-structural if and only if:</p>
+<ol style="list-style-type: decimal">
+<li>Not enclosed in quotes, AND</li>
+<li>Is a non-whitespace character, AND</li>
+<li>It's preceding character is either:</li>
+</ol>
+<ol style="list-style-type: lower-alpha">
+<li>a structural character, OR</li>
+<li>whitespace.</li>
+</ol>
+<p>This helps as we redefine some new characters as pseudo-structural such as the characters 1, 1, G, n in the following:</p>
+<blockquote>
+<p>{ &quot;foo&quot; : 1.5, &quot;bar&quot; : 1.5 GEOFF_IS_A_DUMMY bla bla , &quot;baz&quot;, null }</p>
+</blockquote>
+<h2 id="academic-references">Academic References</h2>
+<ul>
+<li>T.Mühlbauer, W.Rödiger, R.Seilbeck, A.Reiser, A.Kemper, and T.Neumann. Instant loading for main memory databases. PVLDB, 6(14):1702–1713, 2013. (SIMD-based CSV parsing)</li>
+<li>Mytkowicz, Todd, Madanlal Musuvathi, and Wolfram Schulte. &quot;Data-parallel finite-state machines.&quot; ACM SIGARCH Computer Architecture News. Vol. 42. No. 1. ACM, 2014.</li>
+<li>Lu, Yifan, et al. &quot;Tree structured data processing on GPUs.&quot; Cloud Computing, Data Science &amp; Engineering-Confluence, 2017 7th International Conference on. IEEE, 2017.</li>
+<li>Sidhu, Reetinder. &quot;High throughput, tree automata based XML processing using FPGAs.&quot; Field-Programmable Technology (FPT), 2013 International Conference on. IEEE, 2013.</li>
+<li>Dai, Zefu, Nick Ni, and Jianwen Zhu. &quot;A 1 cycle-per-byte XML parsing accelerator.&quot; Proceedings of the 18th annual ACM/SIGDA international symposium on Field programmable gate arrays. ACM, 2010.</li>
+<li>Lin, Dan, et al. &quot;Parabix: Boosting the efficiency of text processing on commodity processors.&quot; High Performance Computer Architecture (HPCA), 2012 IEEE 18th International Symposium on. IEEE, 2012. http://parabix.costar.sfu.ca/export/1783/docs/HPCA2012/final_ieee/final.pdf</li>
+<li>Deshmukh, V. M., and G. R. Bamnote. &quot;An empirical evaluation of optimization parameters in XML parsing for performance enhancement.&quot; Computer, Communication and Control (IC4), 2015 International Conference on. IEEE, 2015.</li>
+<li>Moussalli, Roger, et al. &quot;Efficient XML Path Filtering Using GPUs.&quot; ADMS@ VLDB. 2011.</li>
+<li>Jianliang, Ma, et al. &quot;Parallel speculative dom-based XML parser.&quot; High Performance Computing and Communication &amp; 2012 IEEE 9th International Conference on Embedded Software and Systems (HPCC-ICESS), 2012 IEEE 14th International Conference on. IEEE, 2012.</li>
+<li>Li, Y., Katsipoulakis, N.R., Chandramouli, B., Goldstein, J. and Kossmann, D., 2017. Mison: a fast JSON parser for data analytics. Proceedings of the VLDB Endowment, 10(10), pp.1118-1129. http://www.vldb.org/pvldb/vol10/p1118-li.pdf</li>
+<li>Cameron, Robert D., et al. &quot;Parallel scanning with bitstream addition: An xml case study.&quot; European Conference on Parallel Processing. Springer, Berlin, Heidelberg, 2011.</li>
+<li>Cameron, Robert D., Kenneth S. Herdy, and Dan Lin. &quot;High performance XML parsing using parallel bit stream technology.&quot; Proceedings of the 2008 conference of the center for advanced studies on collaborative research: meeting of minds. ACM, 2008.</li>
+<li>Shah, Bhavik, et al. &quot;A data parallel algorithm for XML DOM parsing.&quot; International XML Database Symposium. Springer, Berlin, Heidelberg, 2009.</li>
+<li>Cameron, Robert D., and Dan Lin. &quot;Architectural support for SWAR text processing with parallel bit streams: the inductive doubling principle.&quot; ACM Sigplan Notices. Vol. 44. No. 3. ACM, 2009.</li>
+<li>Amagasa, Toshiyuki, Mana Seino, and Hiroyuki Kitagawa. &quot;Energy-Efficient XML Stream Processing through Element-Skipping Parsing.&quot; Database and Expert Systems Applications (DEXA), 2013 24th International Workshop on. IEEE, 2013.</li>
+<li>Medforth, Nigel Woodland. &quot;icXML: Accelerating Xerces-C 3.1. 1 using the Parabix Framework.&quot; (2013).</li>
+<li>Zhang, Qiang Scott. Embedding Parallel Bit Stream Technology Into Expat. Diss. Simon Fraser University, 2010.</li>
+<li>Cameron, Robert D., et al. &quot;Fast Regular Expression Matching with Bit-parallel Data Streams.&quot;</li>
+<li>Lin, Dan. Bits filter: a high-performance multiple string pattern matching algorithm for malware detection. Diss. School of Computing Science-Simon Fraser University, 2010.</li>
+<li>Yang, Shiyang. Validation of XML Document Based on Parallel Bit Stream Technology. Diss. Applied Sciences: School of Computing Science, 2013.</li>
+<li>N. Nakasato, &quot;Implementation of a parallel tree method on a GPU&quot;, Journal of Computational Science, vol. 3, no. 3, pp. 132-141, 2012.</li>
+</ul>

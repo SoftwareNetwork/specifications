@@ -1,0 +1,75 @@
+<h1 id="tinytoml">tinytoml</h1>
+<p>A header only C++11 library for parsing TOML.</p>
+<p><a href="https://travis-ci.org/mayah/tinytoml"><img src="https://travis-ci.org/mayah/tinytoml.svg?branch=master" alt="Build Status" /></a></p>
+<p>This parser is based on TOML <a href="https://github.com/toml-lang/toml/blob/master/versions/en/toml-v0.4.0.md">v0.4.0</a>. This library is distributed under simplified BSD License.</p>
+<h2 id="introduction">Introduction</h2>
+<p>tinytoml is a tiny <a href="https://github.com/toml-lang/toml">TOML</a> parser for C++11 with following properties: - header file only - C++11 library friendly (array is <code>std::vector</code>, table is <code>std::map</code>, time is <code>std::chrono::system_clock::time_point</code>). - no external dependencies (note: we're using cmake for testing, but it's not required to use this library).</p>
+<p>We'd like to keep this library as handy as possible.</p>
+<h2 id="prerequisite">Prerequisite</h2>
+<ul>
+<li>C++11 compiler</li>
+<li>C++11 libraries.</li>
+</ul>
+<p>I've only checked this library works with recent clang++ (3.5) and g++ (4.7). I didn't check this with cl.exe. Acutally I'm using this library on my Linux app and Mac app. However, I haven't written Windows app yet.</p>
+<h2 id="how-to-use">How to use</h2>
+<p>Copy include/toml/toml.h into your project, and include it from your source. That's all.</p>
+<h2 id="example-code">Example code</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// Parse foo.toml. If foo.toml is valid, pr.valid() should be true.</span>
+<span class="co">// If not valid, pr.errorReason will contain the parser error reason.</span>
+<span class="bu">std::</span>ifstream ifs(<span class="st">&quot;foo.toml&quot;</span>);
+toml::ParseResult pr = toml::parse(ifs);
+
+<span class="cf">if</span> (!pr.valid()) {
+    cout &lt;&lt; pr.errorReason &lt;&lt; endl;
+    <span class="cf">return</span>;
+}
+
+<span class="co">// Note for users from older version:</span>
+<span class="co">// Since toml::Parser has a state, I don&#39;t recommend to use it directly any more.</span>
+<span class="co">// So, I&#39;ve moved toml::Parser to toml::internal::Parser.</span>
+<span class="co">// Using toml::parse() is recommended.</span>
+
+<span class="co">// pr.value is the parsed value.</span>
+<span class="at">const</span> toml::Value&amp; v = pr.value;
+
+<span class="co">// You can find a value by find().</span>
+<span class="co">// If found, non-null pointer will be returned.</span>
+<span class="co">// You can check the type of value with is().</span>
+<span class="co">// You can get the inner value by as().</span>
+<span class="at">const</span> toml::Value* x = v.find(<span class="st">&quot;foo.bar.baz&quot;</span>);
+<span class="cf">if</span> (x &amp;&amp; x-&gt;is&lt;<span class="bu">std::</span>string&gt;()) {
+    cout &lt;&lt; x-&gt;as&lt;string&gt;() &lt;&lt; endl;
+} <span class="cf">else</span> <span class="cf">if</span> (x &amp;&amp; x-&gt;is&lt;<span class="dt">int</span>&gt;()) {
+    cout &lt;&lt; x-&gt;as&lt;<span class="dt">int</span>&gt;() &lt;&lt; endl;
+}
+
+<span class="co">// Note: the inner value of integer value is actually int64_t,</span>
+<span class="co">// however, you can use &#39;int&#39; for convenience.</span>
+toml::Value* z = ...;
+<span class="dt">int</span> x = z-&gt;as&lt;<span class="dt">int</span>&gt;();
+<span class="dt">int64_t</span> y = z-&gt;as&lt;<span class="dt">int64_t</span>&gt;();
+<span class="co">// toml::Array is actually std::vector&lt;toml::Value&gt;.</span>
+<span class="co">// So, you can use range based for, etc.</span>
+<span class="at">const</span> toml::Array&amp; ar = z-&gt;as&lt;toml::Array&gt;();
+<span class="cf">for</span> (<span class="at">const</span> toml::Value&amp; v : ar) {
+    ...
+}
+
+<span class="co">// For convenience way, you can use get() when you&#39;re sure that the value exists</span>
+<span class="co">// and you know the value type.</span>
+<span class="co">// If type error occurred, std::runtime_error is raised.</span>
+toml::Value v = ...;
+cout &lt;&lt; v.get&lt;string&gt;(<span class="st">&quot;foo.bar&quot;</span>) &lt;&lt; endl;
+
+<span class="co">// For array type, you can also use get&lt;std::vector&lt;int&gt;&gt;() etc.</span>
+<span class="co">// Note that a fresh vector&lt;int&gt; is allocated.</span>
+<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; vs = v.get&lt;<span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&gt;();
+
+<span class="co">// If you need to check value existence or type, you should use find().</span></code></pre></div>
+<h2 id="how-to-test">How to test</h2>
+<p>The directory 'src' contains a few tests. We're using google testing framework, and cmake.</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="fu">mkdir</span> -p out/Debug<span class="kw">;</span> <span class="bu">cd</span> out/Debug
+$ <span class="fu">cmake</span> ../../src
+$ <span class="fu">make</span>
+$ <span class="fu">make</span> test</code></pre></div>
+<p>'src' also contains a small example for how to use this.</p>

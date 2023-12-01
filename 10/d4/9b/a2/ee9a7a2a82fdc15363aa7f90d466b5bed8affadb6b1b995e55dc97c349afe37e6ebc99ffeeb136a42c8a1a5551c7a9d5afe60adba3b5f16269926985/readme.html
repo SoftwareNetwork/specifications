@@ -1,0 +1,151 @@
+<h1 id="jssstrong_typedef-tag-valuetype-properties..."><code>jss::strong_typedef &lt;Tag, ValueType, Properties...&gt;</code></h1>
+<p><a href="https://travis-ci.com/anthonywilliams/strong_typedef"><img src="https://travis-ci.com/anthonywilliams/strong_typedef.svg?branch=master" alt="Build Status" /></a></p>
+<p>This is an implementation of a class template that provides a wrapper type that is convertible to and from the underlying type, but is distinct from it.</p>
+<p>The purpose of this is primarily to enable things like indexes and IDs to be unique types. This is achieved by specifying a <code>Tag</code> type for each <code>jss::strong_typedef</code> use, alongside the <code>ValueType</code> which is being wrapped. This <code>Tag</code> type can be an incomplete type, and can be forward-declared in the template parameter directly. For example:</p>
+<pre class="cplusplus"><code>#include &quot;strong_typedef.hpp&quot;
+
+using FirstIndex=jss::strong_typedef&lt;struct FirstTag,int&gt;;
+using SecondIndex=jss::strong_typedef&lt;struct SecondTag,int&gt;;</code></pre>
+<p><code>FirstIndex</code> and <code>SecondIndex</code> are both explicitly convertible to/from <code>int</code>, but they are separate types and are thus not inter-convertible. They also have no additional operations beyond retrieving the underlying value, as no properties are specified.</p>
+<p>The third template parameter (<code>Properties...</code>) is an optional parameter pack that specifies the operations you wish the strong typedef to support. By default it is empty, so no operations are supported. See <a href="#properties">below</a> for a full list.</p>
+<h3 id="declaring-types">Declaring Types</h3>
+<p>You create a typedef by specifying these parameters:</p>
+<pre class="cplusplus"><code>using type1=jss::strong_typedef&lt;struct type1_tag,int&gt;;
+using type2=jss::strong_typedef&lt;struct type2_tag,int&gt;;
+using type3=jss::strong_typedef&lt;struct type3_tag,std::string,
+    jss::strong_typedef_properties::comparable&gt;;</code></pre>
+<p><code>type1</code>, <code>type2</code> and <code>type3</code> are now separate types. They cannot be implicitly converted to or from each other or anything else.</p>
+<h3 id="creating-values">Creating Values</h3>
+<p>If the underlying type is default-constructible, then so is the new type. You can also construct the objects from an object of the wrapped type:</p>
+<pre class="cplusplus"><code>type1 t1;
+type2 t2(42);
+// type2 e2(t1); // error, type1 cannot be converted to type2</code></pre>
+<h3 id="accessing-the-value">Accessing the Value</h3>
+<p><code>strong_typedef</code> can wrap built-in or class type, but that's only useful if you can access the value. There are two ways to access the value:</p>
+<ul>
+<li>Cast to the stored type: <code>static_cast&lt;unsigned&gt;(my_channel_index)</code></li>
+<li>Use the <code>underlying_value</code> member function: <code>my_channel_index.underlying_value()</code></li>
+</ul>
+<p>Using the <code>underlying_value</code> member function returns a reference to the stored value, which can thus be used to modify non-<code>const</code> values, or to call member functions on the stored value without taking a copy. This makes it particularly useful for class types such as <code>std::string</code>.</p>
+<pre class="cplusplus"><code>using transaction_id=jss::strong_typedef&lt;struct transaction_tag,std::string&gt;;
+
+bool is_a_foo(transaction_id id){
+    auto &amp;s= id.underlying_value();
+    return s.find(&quot;foo&quot;) != s.end();
+}</code></pre>
+<h3 id="other-operations">Other Operations</h3>
+<p>Depending on the <a href="#properties">properties</a> you've assigned to your type you may be able to do other operations on that type, such as compare <code>a == b</code> or <code>a &lt; b</code>, increment with <code>++a</code>, or add two values with <code>a + b</code>. You might also be able to hash the values with <code>std::hash&lt;my_typedef&gt;</code>, or write them to a <code>std::ostream</code> with <code>os &lt;&lt; a</code>. Only the behaviours enabled by the <code>Properties</code> template parameter will be available on any given type. For anything else, you need to extract the wrapped value and use that.</p>
+<h2 id="examples">Examples</h2>
+<h3 id="ids">IDs</h3>
+<p>An ID of some description might essentially be a number, but it makes no sense to perform much in the way of operations on it. You probably want to be able to compare IDs, possibly with an ordering so you can use them as keys in a <code>std::map</code>, or with hashing so you can use them as keys in <code>std::unordered_map</code>, and maybe you want to be able to write them to a stream. Such an ID type might be declared as follows:</p>
+<pre class="cplusplus"><code>using widget_id=jss::strong_typedef&lt;struct widget_id_tag,unsigned long long,
+    jss::strong_typedef_properties::comparable,
+    jss::strong_typedef_properties::hashable,
+    jss::strong_typedef_properties::streamable&gt;;
+
+using froob_id=jss::strong_typedef&lt;struct froob_id_tag,unsigned long long,
+    jss::strong_typedef_properties::comparable,
+    jss::strong_typedef_properties::hashable,
+    jss::strong_typedef_properties::streamable&gt;;</code></pre>
+<p>Note that <code>froob_id</code> and <code>widget_id</code> are now different types due to the different tags used, even though they are both based on <code>unsigned long long</code>. Therefore any attempt to use a <code>widget_id</code> as a <code>froob_id</code> or vice-versa will lead to a compiler error. It also means you can overload on them:</p>
+<pre class="cplusplus"><code>void do_stuff(widget_id my_widget);
+void do_stuff(froob_id my_froob);
+
+widget_id some_widget(421982);
+do_stuff(some_widget);</code></pre>
+<p>Alternatively, an ID might be a string, such as a purchase order number of transaction ID:</p>
+<pre class="cplusplus"><code>using transaction_id=jss::strong_typedef&lt;struct transaction_id_tag,std::string,
+    jss::strong_typedef_properties::comparable,
+    jss::strong_typedef_properties::hashable,
+    jss::strong_typedef_properties::streamable&gt;;
+    
+transaction_id some_transaction(&quot;GBA283-HT9X&quot;);</code></pre>
+<p>That works too, since <code>strong_typedef</code> can wrap any built-in or class type.</p>
+<h3 id="indexes">Indexes</h3>
+<p>Suppose you have a device that supports a number of channels, so you want to be able to retrieve the data for a given channel. Each channel yields a number of data items, so you also want to access the data items by index. You could use <code>strong_typedef</code> to wrap the channel index and the data item index, so they can't be confused. You can also make the index types <code>incrementable</code> and <code>decrementable</code> so they can be used in a <code>for</code> loop:</p>
+<pre class="cplusplus"><code>using channel_index=jss::strong_typedef&lt;struct channel_index_tag,unsigned,
+    jss::strong_typedef_properties::comparable,
+    jss::strong_typedef_properties::incrementable,
+    jss::strong_typedef_properties::decrementable&gt;;
+    
+using data_index=jss::strong_typedef&lt;struct data_index_tag,unsigned,
+    jss::strong_typedef_properties::comparable,
+    jss::strong_typedef_properties::incrementable,
+    jss::strong_typedef_properties::decrementable&gt;;
+    
+Data get_data_item(channel_index channel,data_index item);
+data_index get_num_items(channel_index channel);
+void process_data(Data data);
+
+void foo(){
+    channel_index const num_channels(99);
+    for(channel_index channel(0); channel &lt; num_channels; ++channel) {
+        data_index const num_data_items(get_num_items(channel));
+        for(data_index item(0); item &lt; num_data_items; ++item) {
+            process_data(get_data_item(channel, item));
+        }
+    }
+}</code></pre>
+<p>The compiler will complain if you pass the wrong parameters, or compare the <code>channel</code> against the <code>item</code>.</p>
+<h2 id="behaviour-properties"><a name="properties"></a>Behaviour Properties</h2>
+<p>The third template parameter (<code>Properties...</code>) specifies behavioural properties for the new type. It can be any combination of the types in the <code>jss::strong_typedef_properties</code> namespace, (e.g. <code>jss::strong_typedef_properties::hashable, jss::strong_typedef_properties::streamable, jss::strong_typedef_properties::comparable</code>). Each property adds some behaviour. The available properties are:</p>
+<ul>
+<li><code>jss::strong_typedef_properties::equality_comparable</code> =&gt; Can be compared for equality (<code>st==st2</code>) and inequality (<code>st!=st2</code>)</li>
+<li><code>jss::strong_typedef_properties::pre_incrementable</code> =&gt; Supports preincrement (<code>++st</code>)</li>
+<li><code>jss::strong_typedef_properties::post_incrementable</code> =&gt; Supports postincrement (<code>st++</code>)</li>
+<li><code>jss::strong_typedef_properties::pre_decrementable</code> =&gt; Supports predecrement (<code>--st</code>)</li>
+<li><code>jss::strong_typedef_properties::post_decrementable</code> =&gt; Supports postdecrement (<code>st--</code>)</li>
+<li><code>jss::strong_typedef_properties::self_addable</code> =&gt; Supports addition of two objects of the strong typedef (<code>st+st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_addable&lt;T&gt;</code> =&gt; Supports addition of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st+value</code> or <code>value+st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::addable</code> =&gt; Combines <code>self_addable</code> and <code>mixed_addable&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::generic_mixed_addable</code> =&gt; Supports addition of an object of the strong typedef with another object of any type either way round (<code>st+value</code> or <code>value+st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::self_subtractable</code> =&gt; Supports subtraction of two objects of the strong typedef (<code>st-st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_subtractable&lt;T&gt;</code> =&gt; Supports subtraction of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st-value</code> or <code>value-st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::generic_mixed_subtractable</code> =&gt; Supports subtraction of an object of the strong typedef with another object of any type either way round (<code>st-value</code> or <code>value-st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::subtractable</code> =&gt; Combines <code>self_subtractable</code> and <code>mixed_subtractable&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::difference&lt;T&gt;</code> =&gt; Supports subtraction of two objects of the strong typedef (<code>st-st2</code>) where the result is convertible to <code>T</code>. The result is an object of type <code>T</code>.</li>
+<li><code>jss::strong_typedef_properties::self_multiplicable</code> =&gt; Supports multiplication of two objects of the strong typedef (<code>st*st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_multiplicable&lt;T&gt;</code> =&gt; Supports multiplication of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st*value</code> or <code>value*st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::multiplicable</code> =&gt; Combines <code>self_multiplicable</code> and <code>mixed_multiplicable&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::self_divisible</code> =&gt; Supports division of two objects of the strong typedef (<code>st/st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_divisible&lt;T&gt;</code> =&gt; Supports division of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st/value</code> or <code>value/st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::divisible</code> =&gt; Combines <code>self_divisible</code> and <code>mixed_divisible&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::self_modulus</code> =&gt; Supports modulus operations on two objects of the strong typedef (<code>st%st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_modulus&lt;T&gt;</code> =&gt; Supports modulus operations on an object of the strong typedef with another object of type <code>T</code> either way round (<code>st%value</code> or <code>value%st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::modulus</code> =&gt; Combines <code>self_modulus</code> and <code>mixed_modulus&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::ratio&lt;T&gt;</code> =&gt; Supports division of two objects of the strong typedef (<code>st/st2</code>) where the result is convertible to <code>T</code>. The result is an object of type <code>T</code>.</li>
+<li><code>jss::strong_typedef_properties::ordered</code> =&gt; Supports ordering comparisons (<code>st&lt;st2</code>, <code>st&gt;st2</code>, <code>st&lt;=st2</code>, <code>st&gt;=st2</code>)</li>
+<li><code>jss::strong_typedef_properties::mixed_ordered&lt;T&gt;</code> =&gt; Supports ordering comparisons where only one of the values is a strong typedef and the other is <code>T</code></li>
+<li><code>jss::strong_typedef_properties::self_bitwise_or</code> =&gt; Supports bitwise or of two objects of the strong typedef (<code>st|st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_bitwise_or&lt;T&gt;</code> =&gt; Supports bitwise or of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st|value</code> or <code>value|st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::bitwise_or</code> =&gt; Combines <code>self_bitwise_or</code> and <code>mixed_bitwise_or&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::self_bitwise_xor</code> =&gt; Supports bitwise xor of two objects of the strong typedef (<code>st^st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_bitwise_xor&lt;T&gt;</code> =&gt; Supports bitwise xor of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st^value</code> or <code>value^st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::bitwise_xor</code> =&gt; Combines <code>self_bitwise_xor</code> and <code>mixed_bitwise_xor&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::self_bitwise_and</code> =&gt; Supports bitwise and of two objects of the strong typedef (<code>st&amp;st2</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::mixed_bitwise_and&lt;T&gt;</code> =&gt; Supports bitwise and of an object of the strong typedef with another object of type <code>T</code> either way round (<code>st&amp;value</code> or <code>value&amp;st</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::bitwise_and</code> =&gt; Combines <code>self_bitwise_and</code> and <code>mixed_bitwise_and&lt;ValueType&gt;</code></li>
+<li><code>jss::strong_typedef_properties::bitwise_left_shift&lt;T&gt;</code> =&gt; Supports bitwise left shift of an object of the strong typedef by the value another object of type <code>T</code> (<code>st&lt;&lt;value</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::bitwise_right_shift&lt;T&gt;</code> =&gt; Supports bitwise right shift of an object of the strong typedef by the value another object of type <code>T</code> (<code>st&gt;&gt;value</code>) where the result is convertible to the underlying type. The result is a new instance of the strong typedef.</li>
+<li><code>jss::strong_typedef_properties::hashable</code> =&gt; Supports hashing with <code>std::hash</code></li>
+<li><code>jss::strong_typedef_properties::streamable</code> =&gt; Can be written to a <code>std::ostream</code> with <code>operator&lt;&lt;</code></li>
+<li><code>jss::strong_typedef_properties::incrementable</code> =&gt; Combines <code>jss::strong_typedef_properties::pre_incrementable</code> and <code>jss::strong_typedef_properties::post_incrementable</code></li>
+<li><code>jss::strong_typedef_properties::decrementable</code> =&gt; Combines <code>jss::strong_typedef_properties::pre_decrementable</code> and <code>jss::strong_typedef_properties::post_decrementable</code></li>
+<li><code>jss::strong_typedef_properties::comparable</code> =&gt; Combines <code>jss::strong_typedef_properties::ordered</code> and <code>jss::strong_typedef_properties::equality_comparable</code></li>
+</ul>
+<p>For operators where <code>st op rhs</code> yields an instance of the strong typedef, <code>st op= rhs</code> is also defined as <code>st.underlying_value() op= rhs</code>.</p>
+<h2 id="writing-new-properties">Writing new properties</h2>
+<p>You can write a new property by creating a class with the following structure:</p>
+<pre class="cplusplus"><code>struct my_property{
+    template &lt;typename Derived, typename ValueType&gt; struct mixin {};
+};</code></pre>
+<p>Each strong typedef that uses the new property (e.g. <code>jss::strong_typedef&lt;struct MyTag,int,my_property</code>) is a class derived from an instantiation of the <code>mixin</code> template. The <code>Derived</code> parameter is the type of the strong typedef class itself, and <code>ValueType</code> is the corresponding <code>ValueType</code> parameter.</p>
+<p>The mixin can therefore add members and/or friends, and can be used as a marker for <code>enable_if</code>-based overload resolution.</p>
+<h2 id="license">License</h2>
+<p>This code is released under the <a href="https://www.boost.org/LICENSE_1_0.txt">Boost Software License</a>:</p>
+<blockquote>
+<p>Boost Software License - Version 1.0 - August 17th, 2003</p>
+<p>Permission is hereby granted, free of charge, to any person or organization obtaining a copy of the software and accompanying documentation covered by this license (the &quot;Software&quot;) to use, reproduce, display, distribute, execute, and transmit the Software, and to prepare derivative works of the Software, and to permit third-parties to whom the Software is furnished to do so, all subject to the following:</p>
+<p>The copyright notices in the Software and this entire statement, including the above license grant, this restriction and the following disclaimer, must be included in all copies of the Software, in whole or in part, and all derivative works of the Software, unless such copies or derivative works are solely in the form of machine-executable object code generated by a source language processor.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+</blockquote>

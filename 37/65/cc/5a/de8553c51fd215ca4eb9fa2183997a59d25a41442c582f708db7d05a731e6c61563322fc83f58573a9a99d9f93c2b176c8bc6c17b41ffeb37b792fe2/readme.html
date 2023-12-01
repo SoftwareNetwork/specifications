@@ -1,0 +1,79 @@
+<h1 id="tgbot-cpp">tgbot-cpp</h1>
+<p><a href="https://travis-ci.org/reo7sp/tgbot-cpp"><img src="https://travis-ci.org/reo7sp/tgbot-cpp.svg?branch=master" alt="Travis build Status" /></a> <a href="https://ci.appveyor.com/project/reo7sp/tgbot-cpp"><img src="https://ci.appveyor.com/api/projects/status/tncys4p1flm8817m?svg=true" alt="Appveyor build status" /></a> <a href="https://hub.docker.com/r/reo7sp/tgbot-cpp/"><img src="https://img.shields.io/docker/pulls/reo7sp/tgbot-cpp.svg" alt="Docker Hub pulls" /></a> <a href="http://reo7sp.github.io/tgbot-cpp"><img src="https://img.shields.io/badge/open-documentation-orange.svg" alt="Open documentation" /></a> <a href="https://paypal.me/reo7sp"><img src="https://img.shields.io/badge/donate-PayPal-orange.svg" alt="Donate using PayPal" /></a></p>
+<hr />
+<p><a href="https://github.com/reo7sp/tgbot-cpp/graphs/contributors"><img src="https://img.shields.io/github/contributors/reo7sp/tgbot-cpp.svg" alt="GitHub contributors" /></a>   🚀🚀🚀 thanks for the contributing!</p>
+<hr />
+<p>C++ library for Telegram bot API.</p>
+<p>Documentation is located <a href="http://reo7sp.github.io/tgbot-cpp">here</a>.</p>
+<h2 id="state">State</h2>
+<ul>
+<li>[x] Bot API 3.0 ~ 3.6</li>
+<li>[x] Bot API 4.0 (Implemented all APIs except 'Telegram Passport')</li>
+</ul>
+<h2 id="sample">Sample</h2>
+<p>Simple echo bot which sends everything it receives:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span>
+<span class="pp">#include </span><span class="im">&lt;tgbot/tgbot.h&gt;</span>
+
+<span class="dt">int</span> main() {
+    TgBot::Bot bot(<span class="st">&quot;PLACE YOUR TOKEN HERE&quot;</span>);
+    bot.getEvents().onCommand(<span class="st">&quot;start&quot;</span>, [&amp;bot](TgBot::Message::Ptr message) {
+        bot.getApi().sendMessage(message-&gt;chat-&gt;id, <span class="st">&quot;Hi!&quot;</span>);
+    });
+    bot.getEvents().onAnyMessage([&amp;bot](TgBot::Message::Ptr message) {
+        printf(<span class="st">&quot;User wrote </span><span class="sc">%s\n</span><span class="st">&quot;</span>, message-&gt;text.c_str());
+        <span class="cf">if</span> (StringTools::startsWith(message-&gt;text, <span class="st">&quot;/start&quot;</span>)) {
+            <span class="cf">return</span>;
+        }
+        bot.getApi().sendMessage(message-&gt;chat-&gt;id, <span class="st">&quot;Your message is: &quot;</span> + message-&gt;text);
+    });
+    <span class="cf">try</span> {
+        printf(<span class="st">&quot;Bot username: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, bot.getApi().getMe()-&gt;username.c_str());
+        TgBot::TgLongPoll longPoll(bot);
+        <span class="cf">while</span> (<span class="kw">true</span>) {
+            printf(<span class="st">&quot;Long poll started</span><span class="sc">\n</span><span class="st">&quot;</span>);
+            longPoll.start();
+        }
+    } <span class="cf">catch</span> (TgBot::TgException&amp; e) {
+        printf(<span class="st">&quot;error: </span><span class="sc">%s\n</span><span class="st">&quot;</span>, e.what());
+    }
+    <span class="cf">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<p>All other samples are located <a href="samples">here</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p>Firstly you need to install some dependencies such as Boost and build tools such as CMake. On Debian-based distibutives you can do it with these commands:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">sudo</span> apt-get install g++ make binutils cmake libssl-dev libboost-system-dev zlib1g-dev</code></pre></div>
+<p>If you want to use curl-based http client <code>CurlHttpClient</code>, you also need to install <code>libcurl4-openssl-dev</code> package.</p>
+<h2 id="library-installation">Library installation</h2>
+<p>If you want to install the library system-wide:</p>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/reo7sp/tgbot-cpp
+<span class="bu">cd</span> tgbot-cpp
+<span class="fu">cmake</span> .
+<span class="fu">make</span> -j4
+<span class="fu">sudo</span> make install</code></pre></div>
+<p>Or you can treat this repository as a submodule of your project, for example, see <a href="samples/echobot-submodule/CMakeLists.txt">echobot-submodule</a></p>
+<h2 id="specific-library-installation-notes">Specific library installation notes</h2>
+<h3 id="docker">Docker</h3>
+<p>You can use Docker to build and run your bot. Set the base image of your's Dockerfile to <a href="https://hub.docker.com/r/reo7sp/tgbot-cpp/">reo7sp/tgbot-cpp</a>.</p>
+<h3 id="conan">Conan</h3>
+<p>You can use Conan C/C++ Package Manager. Follow <a href="https://docs.conan.io/en/latest/getting_started.html">Conan instructions</a> and use <a href="https://github.com/reo7sp/tgbot-cpp/tree/master/samples/echobot-conan">the template</a>.</p>
+<h3 id="arch-linux">Arch Linux</h3>
+<p>A PKGBUILD compiles shared library with header files is hosted on <a href="https://aur.archlinux.org/packages/libtgbot-cpp-git/">Arch Linux User Repository</a>.</p>
+<h2 id="bot-compilation">Bot compilation</h2>
+<h3 id="with-cmake">With CMake</h3>
+<p><a href="samples/echobot/CMakeLists.txt">Example CMakeLists.txt</a></p>
+<h3 id="without-cmake">Without CMake</h3>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="ex">g++</span> telegram_bot.cpp -o telegram_bot --std=c++11 -I/usr/local/include -lTgBot -lboost_system -lssl -lcrypto -lpthread</code></pre></div>
+<h3 id="options-available-when-compiling-bot">Options available when compiling bot</h3>
+<h4 id="with-cmake-1">With CMake</h4>
+<pre><code>add_definitions(-DTGBOT_DISABLE_NAGLES_ALGORITHM) # Disable &#39;Nagle&#39;s algorithm&#39;
+add_definitions(-DTGBOT_CHANGE_SOCKET_BUFFER_SIZE) # Socket Buffer Size Expansion
+add_definitions(-DTGBOT_CHANGE_READ_BUFFER_SIZE) # Read Buffer Size Expansion</code></pre>
+<h4 id="without-cmake-1">Without CMake</h4>
+<pre><code>-DTGBOT_DISABLE_NAGLES_ALGORITHM
+-DTGBOT_CHANGE_SOCKET_BUFFER_SIZE
+-DTGBOT_CHANGE_READ_BUFFER_SIZE</code></pre>
+<h2 id="feedback">Feedback</h2>
+<p>Feel free to <a href="https://github.com/reo7sp/tgbot-cpp/issues">create new issues on GitHub</a> or <a href="https://t.me/reo7sp">contact me on Telegram</a>.</p>
+<h2 id="licence">Licence</h2>
+<p><a href="http://opensource.org/licenses/MIT">The MIT License</a>.</p>

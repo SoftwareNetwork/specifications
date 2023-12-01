@@ -1,0 +1,79 @@
+<h1 id="sole">sole <a href="https://travis-ci.org/r-lyeh/sole"><img src="https://api.travis-ci.org/r-lyeh/sole.svg?branch=master" align="right" /></a></h1>
+<ul>
+<li>Sole is a lightweight C++11 library to generate universally unique identificators (UUID).</li>
+<li>Sole provides interface for UUID versions 0, 1 and 4.</li>
+<li>Sole rebuilds UUIDs from hexadecimal and base62 cooked strings as well.</li>
+<li>Sole is tiny, header-only, cross-platform.</li>
+<li>Sole is zlib/libpng licensed.</li>
+</ul>
+<h3 id="some-theory">Some theory</h3>
+<ul>
+<li>UUID version 1 (48-bit MAC address + 60-bit clock with a resolution of 100 ns)</li>
+<li>UUID version 4 (122-bits of randomness)</li>
+<li>Use v1 if you are worried about leaving it up to probabilities.</li>
+<li>Use v4 if you are worried about security issues and determinism.</li>
+</ul>
+<h3 id="about-custom-version-0">About custom version 0</h3>
+<ul>
+<li>UUID version 0 (16-bit PID + 48-bit MAC address + 60-bit clock with a resolution of 100ns since Unix epoch)</li>
+<li>Format is EPOCH_LOW-EPOCH_MID-VERSION(0)|EPOCH_HI-PID-MAC</li>
+</ul>
+<h3 id="public-api">Public API</h3>
+<ul>
+<li><code>sole::uuid</code> 128-bit UUID base type that allows comparison and sorting. <code>std::ostream &lt;&lt;</code> friendly. <code>.str()</code> to get a cooked hex string. <code>.base62()</code> to get a cooked base62 string. <code>.pretty()</code> to get a pretty decomposed report.</li>
+<li><code>sole::uuid0()</code> creates an UUID v0.</li>
+<li><code>sole::uuid1()</code> creates an UUID v1.</li>
+<li><code>sole::uuid4()</code> creates an UUID v4.</li>
+<li><code>sole::rebuild()</code> rebuilds an UUID from given string or 64-bit tuple.</li>
+</ul>
+<h3 id="showcase">Showcase</h3>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">~sole&gt; cat sample.cc
+<span class="pp">#include </span><span class="im">&lt;iostream&gt;</span>
+<span class="pp">#include </span><span class="im">&quot;sole.hpp&quot;</span>
+
+<span class="dt">int</span> main() {
+    sole::uuid u0 = sole::uuid0(), u1 = sole::uuid1(), u4 = sole::uuid4();
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v0 string : &quot;</span> &lt;&lt; u0 &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v0 base62 : &quot;</span> &lt;&lt; u0.base62() &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v0 pretty : &quot;</span> &lt;&lt; u0.pretty() &lt;&lt; <span class="bu">std::</span>endl &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v1 string : &quot;</span> &lt;&lt; u1 &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v1 base62 : &quot;</span> &lt;&lt; u1.base62() &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v1 pretty : &quot;</span> &lt;&lt; u1.pretty() &lt;&lt; <span class="bu">std::</span>endl &lt;&lt; <span class="bu">std::</span>endl;
+
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v4 string : &quot;</span> &lt;&lt; u4 &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v4 base62 : &quot;</span> &lt;&lt; u4.base62() &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v4 pretty : &quot;</span> &lt;&lt; u4.pretty() &lt;&lt; <span class="bu">std::</span>endl &lt;&lt; <span class="bu">std::</span>endl;
+
+    u1 = sole::rebuild(<span class="st">&quot;F81D4FAE-7DEC-11D0-A765-00A0C91E6BF6&quot;</span>);
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v1 rebuilt: &quot;</span> &lt;&lt; u1 &lt;&lt; <span class="st">&quot; -&gt; &quot;</span> &lt;&lt; u1.pretty() &lt;&lt; <span class="bu">std::</span>endl;
+
+    u4 = sole::rebuild(<span class="st">&quot;GITheR4tLlg-BagIW20DGja&quot;</span>);
+    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;uuid v4 rebuilt: &quot;</span> &lt;&lt; u4 &lt;&lt; <span class="st">&quot; -&gt; &quot;</span> &lt;&lt; u4.pretty() &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+~sole&gt; g++ sample.cc -std=c+<span class="dv">+11</span> -lrt &amp;&amp; ./a.out
+uuid v0 string : <span class="er">00aed2f9</span>-c5f8<span class="bn">-0030</span><span class="er">-0fd8-00ffb77bd832</span>
+uuid v0 base62 : <span class="er">3dNJHWv0aW-1MKpXy7mEmf</span>
+uuid v0 pretty : version=<span class="dv">0</span>,timestamp=<span class="st">&quot;03/07/2013 12:19:43&quot;</span>,mac=<span class="er">00ffb77bd832</span>,pid=<span class="dv">4056</span>,
+
+uuid v1 string : <span class="er">14314b83</span>-e3ca<span class="fl">-11e2</span><span class="er">-8b83-00ffb77bd832</span>
+uuid v1 base62 : <span class="er">1jU2TXBD9t4</span>-BycINxiP<span class="er">5Jh</span>
+uuid v1 pretty : version=<span class="dv">1</span>,timestamp=<span class="st">&quot;03/07/2013 12:19:43&quot;</span>,mac=<span class="er">00ffb77bd832</span>,clock_seq=<span class="dv">2947</span>,
+
+uuid v4 string : fa237b32-d580<span class="er">-42db</span>-aeb9-b<span class="er">09a1d90067e</span>
+uuid v4 base62 : LTTsO5t3jMR-F<span class="er">03eZqkMchC</span>
+uuid v4 pretty : version=<span class="dv">4</span>,randbits=fa237b32d58002db2eb9b09a1d90067e,
+
+uuid v1 rebuilt : f81d4fae<span class="er">-7dec-11d0</span>-a765<span class="er">-00a0c91e6bf6</span> -&gt; version=<span class="dv">1</span>,timestamp=<span class="st">&quot;03/02/1997 18:43:12&quot;</span>,mac=<span class="er">00a0c91e6bf6</span>,clock_seq=<span class="dv">10085</span>,
+uuid v4 rebuilt : bdd55e2f<span class="er">-6f6b</span><span class="dv">-4088-8703</span>-ddedba9456a2 -&gt; version=<span class="dv">4</span>,randbits=bdd55e2f6f6b0088703ddedba9456a2,</code></pre></div>
+<h3 id="special-notes">Special notes</h3>
+<ul>
+<li>clang/g++ users: both <code>-std=c++11</code> and <code>-lrt</code> may be required when compiling <code>sole.cpp</code></li>
+</ul>
+<h3 id="changelog">Changelog</h3>
+<ul>
+<li>v1.0.1 (2017/05/16): Improve UUID4 and base62 performance; Fix warnings</li>
+<li>v1.0.0 (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings</li>
+</ul>

@@ -1,0 +1,175 @@
+<h1 id="sqlpp11">sqlpp11</h1>
+<p>A type safe embedded domain specific language for SQL queries and results in C++</p>
+<p>Documentation is found in the <a href="https://github.com/rbock/sqlpp11/wiki">wiki</a></p>
+<h2 id="so-what-is-this-about">So what is this about?</h2>
+<p>SQL and C++ are both strongly typed languages. Still, most C/C++ interfaces to SQL are based on constructing queries as strings and on interpreting arrays or maps of strings as results.</p>
+<p>sqlpp11 is a templated library representing an embedded domain specific language (EDSL) that allows you to</p>
+<ul>
+<li>define types representing tables and columns,</li>
+<li>construct type safe queries checked at compile time for syntax errors, type errors, name errors and even some semantic errors,</li>
+<li>interpret results by iterating over query-specific structs with appropriately named and typed members.</li>
+</ul>
+<p>This results in several benefits, e.g.</p>
+<ul>
+<li>the library user operates comfortably on structs and functions,</li>
+<li>the compiler reports many kinds of errors long before the code enters unit testing or production,</li>
+<li>the library hides the gory details of string construction for queries and interpreting results returned by select calls.</li>
+</ul>
+<p>The library supports both static and dynamic queries. The former offers greater benefit in terms of type and consistency checking. The latter makes it easier to construct queries on the flight.</p>
+<p>sqlpp11 is vendor-neutral. Specific traits of databases (e.g. unsupported or non-standard features) are handled by connector libraries. Connector libraries can inform the developer of missing features at compile time. They also interpret expressions specifically where needed. For example, the connector could use the operator|| or the concat method for string concatenation without the developer being required to change the statement.</p>
+<p>The library is already used in production but it is certainly not complete yet. Feature requests, bug reports, contributions to code or documentation are most welcome.</p>
+<h2 id="examples">Examples:</h2>
+<p>For the examples, lets assume you have a table class representing something like</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">CREATE</span> <span class="kw">TABLE</span> foo (
+    <span class="kw">id</span> bigint,
+    name <span class="dt">varchar</span>(<span class="dv">50</span>),
+    hasFun bool
+);</code></pre></div>
+<p>And we assume to have a database connection object:</p>
+<div class="sourceCode"><pre class="sourceCode c++"><code class="sourceCode cpp">TabFoo foo;
+Db db(<span class="co">/* some arguments*/</span>);
+
+<span class="co">// selecting zero or more results, iterating over the results</span>
+<span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span>&amp; row : db(select(foo.name, foo.hasFun).from(foo).where(foo.id &gt; <span class="dv">17</span> <span class="kw">and</span> foo.name.like(<span class="st">&quot;</span><span class="sc">%ba</span><span class="st">r%&quot;</span>))))
+{
+    <span class="cf">if</span> (row.name.is_null())
+        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;name is null, will convert to empty string&quot;</span> &lt;&lt; <span class="bu">std::</span>endl;
+    <span class="bu">std::</span>string name = row.name;   <span class="co">// string-like fields are implicitly convertible to string</span>
+    <span class="dt">bool</span> hasFun = row.hasFun;          <span class="co">// bool fields are implicitly convertible to bool</span>
+}
+
+<span class="co">// selecting ALL columns of a table</span>
+<span class="cf">for</span> (<span class="at">const</span> <span class="kw">auto</span>&amp; row : db(select(all_of(foo)).from(foo).where(foo.hasFun <span class="kw">or</span> foo.name == <span class="st">&quot;joker&quot;</span>)))
+{
+    <span class="dt">int64_t</span> id = row.id; <span class="co">// numeric fields are implicitly convertible to numeric c++ types</span>
+}
+
+<span class="co">// selecting zero or one row, showing off with an alias:</span>
+SQLPP_ALIAS_PROVIDER(cheese);
+<span class="cf">if</span> (<span class="at">const</span> <span class="kw">auto</span>&amp; row = db(select(foo.name.as(cheese)).from(foo).where(foo.id == <span class="dv">17</span>)))
+{
+    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;found: &quot;</span> &lt;&lt; row.cheese &lt;&lt; <span class="bu">std::</span>endl;
+}
+
+<span class="co">// selecting a single row with a single result:</span>
+<span class="cf">return</span> db(select(count(foo.id)).from(foo).unconditionally()).front().count;
+
+Of course there are joins <span class="kw">and</span> subqueries, more functions, order_by, group_by etc.
+These will be documented soon.
+
+<span class="co">// A sample insert</span>
+db(insert_into(foo).set(foo.id = <span class="dv">17</span>, foo.name = <span class="st">&quot;bar&quot;</span>, foo.hasFun = <span class="kw">true</span>));
+
+<span class="co">// A sample update</span>
+db(update(foo).set(foo.hasFun = <span class="kw">not</span> foo.hasFun).where(foo.name != <span class="st">&quot;nobody&quot;</span>));
+
+<span class="co">// A sample delete</span>
+db(remove_from(foo).where(<span class="kw">not</span> foo.hasFun));</code></pre></div>
+<h2 id="license">License:</h2>
+<p>sqlpp11 is distributed under the <a href="https://github.com/rbock/sqlpp11/blob/master/LICENSE">BSD 2-Clause License</a>.</p>
+<h2 id="status">Status:</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Branch / Compiler</th>
+<th>clang-3.4, gcc-4.9, Xcode-7</th>
+<th>MSVC 2015/2017</th>
+<th>Test Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>master</td>
+<td><a href="https://travis-ci.com/rbock/sqlpp11?branch=master"><img src="https://travis-ci.com/rbock/sqlpp11.svg?branch=master" alt="Build Status" /></a></td>
+<td><a href="https://ci.appveyor.com/project/rbock/sqlpp11/branch/master"><img src="https://ci.appveyor.com/api/projects/status/eid7mwqgavo0h61h/branch/master?svg=true" alt="Build status" /></a></td>
+<td><a href="https://coveralls.io/r/rbock/sqlpp11?branch=master"><img src="https://coveralls.io/repos/rbock/sqlpp11/badge.svg?branch=master" alt="Coverage Status" /></a></td>
+</tr>
+<tr class="even">
+<td>develop</td>
+<td><a href="https://travis-ci.com/rbock/sqlpp11?branch=develop"><img src="https://travis-ci.com/rbock/sqlpp11.svg?branch=develop" alt="Build Status" /></a></td>
+<td><a href="https://ci.appveyor.com/project/rbock/sqlpp11/branch/develop"><img src="https://ci.appveyor.com/api/projects/status/eid7mwqgavo0h61h/branch/develop?svg=true" alt="Build status" /></a></td>
+<td><a href="https://coveralls.io/r/rbock/sqlpp11?branch=develop"><img src="https://coveralls.io/repos/rbock/sqlpp11/badge.svg?branch=develop" alt="Coverage Status" /></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="additional-information-available">Additional information available:</h2>
+<p>Past talks about sqlpp11 and some coding concepts used within the library:</p>
+<ul>
+<li><a href="http://cppcast.com">CppCast:</a></li>
+<li>2015-05-07: http://cppcast.com/2015/05/roland-bock/</li>
+<li><a href="http://cppcon.org">CppCon:</a></li>
+<li>2015-09-24: <a href="https://www.youtube.com/watch?v=2ISqFW9fRws">Pruning Error Messages From Your C++ Template Code</a>, with examples from sqlpp11</li>
+<li>2014-09-11: <a href="https://www.youtube.com/watch?v=cJPAjhBm-HQ">sqlpp11, An SQL Library Worthy Of Modern C++</a></li>
+<li><a href="http://meetingcpp.com">Meeting C++:</a></li>
+<li>2014-12-05: <a href="https://www.youtube.com/watch?v=9Hjfg9IfzhU">sqlpp11, An EDSL For Type-Safe SQL In C++11</a></li>
+<li><a href="http://www.meetup.com/MUCplusplus/">MUC++:</a></li>
+<li>2014-02-27: <a href="https://www.youtube.com/watch?v=hXnGFYNbmXg">Selected C++11 Template Toffees From sqlpp11, Part1</a>, <a href="https://www.youtube.com/watch?v=WPCV6dvxZ_U">Part2</a>, <a href="https://www.youtube.com/watch?v=eB7hd_KjTig">Part 3</a>, <a href="https://www.youtube.com/watch?v=NBfqzcN0_EQ">Part 4</a></li>
+</ul>
+<h2 id="requirements">Requirements:</h2>
+<p><strong>Compiler:</strong> sqlpp11 makes heavy use of C++11 and requires a recent compiler and STL. The following compilers are known to compile the test programs:</p>
+<ul>
+<li>clang-3.4+ on Ubuntu-12.4</li>
+<li>g++-4.8+ on Ubuntu-12.4</li>
+<li>g++-4.8+ on cygwin 64bit</li>
+<li>g++-4.9+ on Debian Unstable</li>
+<li>Xcode-7 on OS X</li>
+<li>MSVC 2015 Update 1 on Windows Server 2012</li>
+</ul>
+<p><strong>Database Connector:</strong> sqlpp11 requires a certain api in order to connect with the database, see database/api.h.</p>
+<ul>
+<li>MySQL: https://github.com/rbock/sqlpp11-connector-mysql</li>
+<li>Sqlite3: https://github.com/rbock/sqlpp11-connector-sqlite3</li>
+<li>PostgreSQL: https://github.com/matthijs/sqlpp11-connector-postgresql</li>
+<li>ODBC: https://github.com/Erroneous1/sqlpp11-connector-odbc (experimental)</li>
+</ul>
+<p>To demonstrate that sqlpp11 can work with other backends as well, here is an experimental backend for structs in standard containers:</p>
+<ul>
+<li>STL Container: https://github.com/rbock/sqlpp11-connector-stl</li>
+</ul>
+<p><strong>Date Library:</strong> sqlpp11 requires <a href="https://github.com/HowardHinnant/date">Howard Hinnant's date library</a> for <code>date</code> and <code>date_time</code> data types. Sqlpp11 uses FetchContent to pull the library automatically in the project.</p>
+<h2 id="build-and-install">Build and Install</h2>
+<p><strong>Note</strong>: Depending on how you use the lib, you might not need to install it (see Basic Usage)</p>
+<p><strong>Build from Source:</strong></p>
+<p>Download and unpack the latest release from https://github.com/rbock/sqlpp11/releases or clone the repository. Inside the directory run the following commands:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">cmake</span> -B build
+<span class="fu">cmake</span> --build build --target install</code></pre></div>
+<p>The last step will build the library and install it system wide, therefore it might need admins right.</p>
+<p><strong>Install via Homebrew (MacOS):</strong></p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">brew</span> install marvin182/zapfhahn/sqlpp11</code></pre></div>
+<p>Some connectors can be installed with the formula. See <code>brew info marvin182/zapfhahn/sqlpp11</code> for available options.</p>
+<p><strong>Build via vcpkg:</strong></p>
+<p>You can download and install sqlpp11 using the <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> dependency manager:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">git</span> clone https://github.com/Microsoft/vcpkg.git
+<span class="bu">cd</span> vcpkg
+<span class="ex">./bootstrap-vcpkg.sh</span>
+<span class="ex">./vcpkg</span> integrate install
+<span class="ex">vcpkg</span> install sqlpp11</code></pre></div>
+<p>The sqlpp11 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull request</a> on the vcpkg repository.</p>
+<p>The following connector libraries for sqlpp11 are maintained as a separate package in vcpkg:</p>
+<ul>
+<li><a href="https://github.com/microsoft/vcpkg/tree/master/ports/sqlpp11-connector-sqlite3">sqlpp11-connector-sqlite3</a></li>
+<li><a href="https://github.com/microsoft/vcpkg/tree/master/ports/sqlpp11-connector-mysql">sqlpp11-connector-mysql</a></li>
+</ul>
+<h2 id="basic-usage">Basic usage:</h2>
+<p><strong>Use with cmake</strong>: The library officially supports two ways how it can be used with cmake. You can find examples for both methods in the example folder.</p>
+<ol style="list-style-type: decimal">
+<li>Fetch content (Recommend, no installation required)</li>
+<li>Find package (installation required, see above)</li>
+</ol>
+<p><strong>Create DDL files</strong>:</p>
+<pre><code>mysql: &#39;show create table MyDatabase.MyTable&#39; #or
+mysqldump --no-data MyDatabase &gt; MyDatabase.sql
+</code></pre>
+<p>Create headers for them with provided Python script:</p>
+<pre><code>%sqlpp11_dir%/scripts/ddl2cpp ~/temp/MyTable.ddl  ~/temp/MyTable %DatabaseNamespaceForExample%</code></pre>
+<p>(In case you're getting notes about unsupported column type take a look at the other datatypes in sqlpp11/data_types. They are not hard to implement.)</p>
+<p>Include generated header (MyTable.h), that's all.</p>
+<p>If you prefer Ruby over Python, you might want to take a look at https://github.com/douyw/sqlpp11gen</p>
+<h2 id="contact">Contact:</h2>
+<ul>
+<li>Issues at https://github.com/rbock/sqlpp11/issues</li>
+<li>email at rbock at eudoxos dot de</li>
+<li><a href="https://gitter.im/sqlpp11/Lobby?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/sqlpp11/Lobby.svg" alt="Join the chat at https://gitter.im/sqlpp11/Lobby" /></a></li>
+</ul>
+<h2 id="breaking-changes-in-0.36">Breaking changes in 0.36:</h2>
+<p>See <a href="ChangeLog.md">Changes</a></p>

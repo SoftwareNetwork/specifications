@@ -1,0 +1,747 @@
+<h1 id="value-ptr-lite">value-ptr lite</h1>
+<p>A C++ smart-pointer with value semantics for C++98, C++11 and later</p>
+<p><a href="https://isocpp.org/"><img src="https://img.shields.io/badge/language-C++-blue.svg" alt="Language" /></a> <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization"><img src="https://img.shields.io/badge/c%2B%2B-98/11/14/17-blue.svg" alt="Standard" /></a> <a href="https://opensource.org/licenses/BSL-1.0"><img src="https://img.shields.io/badge/license-BSL-blue.svg" alt="License" /></a> <a href="https://travis-ci.org/martinmoene/value-ptr-lite"><img src="https://travis-ci.org/martinmoene/value-ptr-lite.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/martinmoene/value-ptr-lite"><img src="https://ci.appveyor.com/api/projects/status/w2dgn3fxyrd6vcq8?svg=true" alt="Build status" /></a> <a href="https://github.com/martinmoene/value-ptr-lite/releases"><img src="https://badge.fury.io/gh/martinmoene%2Fvalue-ptr-lite.svg" alt="Version" /></a> <a href="https://raw.githubusercontent.com/martinmoene/value-ptr-lite/master/include/nonstd/value_ptr.hpp"><img src="https://img.shields.io/badge/latest%20version%20%20-download-blue.svg" alt="download" /></a></p>
+<p><strong>Contents</strong> - <a href="#example-usage">Example usage</a> - <a href="#in-a-nutshell">In a nutshell</a> - <a href="#dependencies">Dependencies</a> - <a href="#installation">Installation</a> - <a href="#synopsis">Synopsis</a> - <a href="#reported-to-work-with">Reported to work with</a> - <a href="#building-tests-and-examples">Building tests and examples</a> - <a href="#other-value-ptr-implementations">Other value_ptr implementations</a> - <a href="#notes-and-references">Notes and references</a> - <a href="#appendix">Appendix</a></p>
+<h2 id="pimpl-example-usage">Pimpl example usage</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// in header file:</span>
+
+<span class="pp">#include </span><span class="im">&quot;value_ptr.hpp&quot;</span>
+
+<span class="co">// Thanks to value_ptr we get value semantics for free:</span>
+
+<span class="kw">struct</span> Widget
+{
+   Widget( <span class="dt">int</span> x );
+
+   <span class="dt">int</span> next();
+
+   <span class="kw">struct</span> Pimpl;
+   nonstd::value_ptr&lt;Pimpl&gt; ptr;
+};
+
+<span class="co">// in source file:</span>
+
+<span class="kw">struct</span> Widget::Pimpl
+{
+    <span class="dt">int</span> x;
+
+    Pimpl( <span class="dt">int</span> v ) : x( v ) {}
+
+    <span class="dt">int</span> next() { <span class="cf">return</span> ++x; }
+};
+
+
+Widget::Widget( <span class="dt">int</span> x ) : ptr( Widget::Pimpl( x ) ) {}  <span class="co">// or: ptr( x )</span>
+
+<span class="dt">int</span> Widget::next() { <span class="cf">return</span> ptr-&gt;next(); }
+
+<span class="dt">int</span> main()
+{
+    Widget w1( <span class="dv">42</span> );
+    Widget w2( w1 );
+
+    assert( w1.next() == <span class="dv">43</span> );
+    assert( w2.next() == <span class="dv">43</span> );
+}</code></pre></div>
+<h2 id="in-a-nutshell">In a nutshell</h2>
+<p><strong>value-ptr lite</strong> is a single-file header-only library to bring value semantics to heap resources. In certain situations, such as with the pimpl idiom in the example above, a pointer must be used while value semantics would be prefered. This is where <code>value_ptr</code> comes into play. A <code>value_ptr</code> is similar to a <code>std::optional</code> in many respects and one could say a <code>value_ptr</code> is more value than pointer.</p>
+<p>This work is inspired on <code>value_ptr</code> by Gaetano Checinski <a href="#ref1">[1]</a> and on <code>impl_ptr</code> by Andrey Upadyshev <a href="#ref2">[2]</a>.</p>
+<p><strong>Features and properties of value-ptr lite</strong> are ease of installation (single header), freedom of dependencies other than the standard library. <em>value-ptr lite</em> shares the approach to in-place tags with any-lite, optional-lite and with variant-lite and these libraries can be used together.</p>
+<p><strong>Limitations of value-ptr lite</strong> are ... .</p>
+<h2 id="license">License</h2>
+<p><em>value-ptr lite</em> is distributed under the <a href="LICENSE.txt">Boost Software License</a>.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p><em>value-ptr lite</em> has no other dependencies than the <a href="http://en.cppreference.com/w/cpp/header">C++ standard library</a>.</p>
+<h2 id="installation">Installation</h2>
+<p><em>value-ptr lite</em> is a single-file header-only library. Put <code>value_ptr.hpp</code> in the <a href="include" class="uri">include</a> folder directly into the project source tree or somewhere reachable from your project.</p>
+<h2 id="synopsis">Synopsis</h2>
+<p><strong>Contents</strong> - <a href="#types-in-namespace-nonstd">Types in namespace nonstd</a> - <a href="#interface-of-value-ptr-lite">Interface of <em>value-ptr lite</em></a> - <a href="#non-member-functions-for-value-ptr-lite">Non-member functions for <em>value-ptr lite</em></a> - <a href="#configuration-macros">Configuration macros</a></p>
+<h3 id="types-in-namespace-nonstd">Types in namespace nonstd</h3>
+<table style="width:79%;">
+<colgroup>
+<col width="26%" />
+<col width="19%" />
+<col width="12%" />
+<col width="9%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Purpose</th>
+<th align="center"><a href="#ref1">[1]</a></th>
+<th align="center"><a href="#ref2">[2]</a></th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Smart pointer with<br>value semantics</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td>class <strong>value_ptr</strong></td>
+<td>[2]: impl_ptr</td>
+</tr>
+<tr class="even">
+<td>Error reporting</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>class <strong>bad_value_access</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>In-place construction</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>struct <strong>in_place_tag</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><strong>in_place</strong></td>
+<td>select type or index for in-place construction</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><strong>nonstd_lite_in_place_type_t</strong>( T)</td>
+<td>macro for alias template in_place_type_t&lt;T&gt;</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><strong>nonstd_lite_in_place_index_t</strong>( T )</td>
+<td>macro for alias template in_place_index_t&lt;T&gt;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="interface-of-value-ptr-lite">Interface of <em>value-ptr lite</em></h3>
+<h4 id="class-value_ptr">Class <code>value_ptr</code></h4>
+<table>
+<colgroup>
+<col width="16%" />
+<col width="19%" />
+<col width="12%" />
+<col width="12%" />
+<col width="17%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th align="center"><a href="#ref1">[1]</a></th>
+<th align="center"><a href="#ref2">[2]</a></th>
+<th>std</th>
+<th>Type / Method</th>
+<th>Note / Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Value types</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td><strong>element_type</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td><strong>pointer</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>reference</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>const_pointer</strong></td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>const_reference</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Lifetime types</td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>cloner_type</strong></td>
+<td>[2]: copier_type</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td><strong>deleter_type</strong></td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Construction</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td><strong>value_ptr</strong>() noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td>C++11</td>
+<td><strong>value_ptr</strong>( std::nullptr_t ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>value_ptr</strong>( pointer p ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td><strong>value_ptr</strong>( value_ptr const &amp; other )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td>C++11</td>
+<td><strong>value_ptr</strong>( value_ptr &amp;&amp; other ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">1</td>
+<td> </td>
+<td><strong>value_ptr</strong>( element_type const &amp; value )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">1</td>
+<td>C++11</td>
+<td><strong>value_ptr</strong>( element_type &amp;&amp; value ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class... Args &gt;<br>explicit <strong>value_ptr</strong>( in_place_type_t(T), Args&amp;&amp;... args )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class U, class... Args &gt;<br>explicit <strong>value_ptr</strong>( in_place_type_t(T), std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>value_ptr</strong>( cloner_type const &amp; cloner )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td><strong>value_ptr</strong>( cloner_type &amp;&amp; cloner ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td><strong>value_ptr</strong>( deleter_type const &amp; deleter )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td><strong>value_ptr</strong>( deleter_type &amp;&amp; deleter ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class V, class ClonerOrDeleter &gt;<br><strong>value_ptr</strong>( V &amp;&amp; value, ClonerOrDeleter &amp;&amp; cloner_or_deleter )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><C++11  | template< class V, class ClonerOrDeleter ><br><strong>value_ptr</strong>( V const &amp; value, ClonerOrDeleter const &amp; cloner_or_deleter )</td>
+<td> </td>
+<td></td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class V, class C, class D &gt;<br><strong>value_ptr</strong>( V &amp;&amp; value, C &amp;&amp; cloner, D &amp;&amp; deleter )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><C++11  | template< class V, class C, class D ><br><strong>value_ptr</strong>( V const &amp; value, C const &amp; cloner, D const &amp; deleter )</td>
+<td> </td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Destruction</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td><strong>~value_ptr</strong>()</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td>Assignment</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>value_ptr &amp; <strong>operator=</strong>( std::nullptr_t ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td>value_ptr &amp; <strong>operator=</strong>( T const &amp; value )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class U, ... &gt;<br>value_ptr &amp; <strong>operator=</strong>( U &amp;&amp; value )</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td> </td>
+<td>value_ptr &amp; <strong>operator=</strong>( value_ptr const &amp; rhs )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td>C++11</td>
+<td>value_ptr &amp; <strong>operator=</strong>( value_ptr &amp;&amp; rhs ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Emplace</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class... Args &gt;<br>void <strong>emplace</strong>( Args&amp;&amp;... args )</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td>C++11</td>
+<td>template&lt; class U, class... Args &gt;<br>void <strong>emplace</strong>( std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td>Observers</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>pointer <strong>get</strong>() noexcept</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>cloner_type &amp; <strong>get_cloner</strong>() noexcept</td>
+<td>[2]: get_copier()</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>deleter_type &amp; <strong>get_deleter</strong>() noexcept</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>reference <strong>operator*</strong>() const</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>pointer <strong>operator-&gt;</strong>() const noexcept</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td>C++11</td>
+<td>explicit operator <strong>bool</strong>() const noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><C++11  | operator **safe_bool**() const noexcept |&nbsp; |
+| &nbsp;         |&ndash; |&ndash; | &nbsp; | bool **has_value**() const nsvp_noexcept |&nbsp; |
+| &nbsp;         |&ndash; |&ndash; | &nbsp; | element_type const & **value**() const |&nbsp; |
+| &nbsp;         |&ndash; |&ndash; | &nbsp; | element_type & **value**() |&nbsp; |
+| &nbsp;         |&ndash; |&ndash; | C++11  | template< class U ><br>constexpr element_type <strong>value_or</strong>( U &amp;&amp; v ) const</td>
+<td> </td>
+<td></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td><C++11  | template< class U ><br>constexpr element_type <strong>value_or</strong>( U const &amp; v ) const</td>
+<td> </td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Modifiers</td>
+<td align="center">✓</td>
+<td align="center">✓</td>
+<td> </td>
+<td>pointer <strong>release</strong>() noexcept</td>
+<td> </td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td> </td>
+<td>void <strong>reset</strong>( pointer p = pointer() ) noexcept</td>
+<td> </td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td> </td>
+<td>void <strong>swap</strong>( value_ptr &amp; other ) noexcept</td>
+<td> </td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong><br> 1. [2] has various converting constructors.</p>
+<h3 id="non-member-functions-for-value-ptr-lite">Non-member functions for <em>value-ptr lite</em></h3>
+<table style="width:88%;">
+<colgroup>
+<col width="37%" />
+<col width="12%" />
+<col width="12%" />
+<col width="9%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Kind</th>
+<th align="center"><a href="#ref1">[1]</a></th>
+<th align="center"><a href="#ref2">[2]</a></th>
+<th align="center">std</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Relational operators</td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td align="center"> </td>
+<td>template&lt; ... &gt;<br>bool operator <strong><em>op</em></strong>( value_ptr&lt;...&gt; const &amp; lhs, value_ptr&lt;...&gt; const &amp; rhs )</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td align="center">C++11</td>
+<td>template&lt; ... &gt;<br>bool operator <strong><em>op</em></strong>( value_ptr&lt;...&gt; const &amp; lhs, std::nullptr_t )</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td align="center">C++11</td>
+<td>template&lt; ... &gt;<br>bool operator <strong><em>op</em></strong>( std::nullptr_t, value_ptr&lt;...&gt; const &amp; rhs )</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center"> </td>
+<td>template&lt; ... &gt;<br>bool operator <strong><em>op</em></strong>( value_ptr&lt;...&gt; const &amp; lhs, T const &amp; value )</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center"> </td>
+<td>template&lt; ... &gt;<br>bool operator <strong><em>op</em></strong>( T const &amp; value, value_ptr&lt;...&gt; const &amp; rhs )</td>
+</tr>
+<tr class="even">
+<td>Swap</td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td align="center"> </td>
+<td>template&lt; class T, class C, class D &gt;<br>void <strong>swap</strong>( value_ptr&lt;T,C,D&gt; &amp; x, value_ptr&lt;T,C,D&gt; &amp; y ) noexcept(...)</td>
+</tr>
+<tr class="odd">
+<td>Create</td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center"><C++11| template< class T, class C, class D ><br>value_ptr&lt;T,C,D&gt; <strong>make_value</strong>( T const &amp; v )</td>
+<td></td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center">C++11</td>
+<td>template&lt; class T &gt;<br>value_ptr&lt; typename std::decay&lt;T&gt;::type &gt; <strong>make_value</strong>( T &amp;&amp; v )</td>
+</tr>
+<tr class="odd">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center">C++11</td>
+<td>template&lt; class T, class...Args &gt;<br>value_ptr&lt;T,C,D&gt; <strong>make_value</strong>( Args&amp;&amp;... args )</td>
+</tr>
+<tr class="even">
+<td> </td>
+<td align="center">–</td>
+<td align="center">–</td>
+<td align="center">C++11</td>
+<td>template&lt; class T, class U, class... Args &gt;<br>value_ptr&lt;T,C,D&gt; <strong>make_value</strong>( std::initializer_list&lt;U&gt; il, Args&amp;&amp;... args )</td>
+</tr>
+<tr class="odd">
+<td>Hash</td>
+<td align="center">–</td>
+<td align="center">✓</td>
+<td align="center">C++11</td>
+<td>template&lt; class T &gt;<br>class <strong>hash</strong>&lt; nonstd::value_ptr&lt;T,C,D&gt; &gt;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration-macros">Configuration macros</h3>
+<p>-D<b>nsvp_CONFIG_COMPARE_POINTERS</b>=0 Define this to 1 to compare <code>value_ptr</code>'s pointer instead of the content it's pointing to. Default is 0.</p>
+<h2 id="reported-to-work-with">Reported to work with</h2>
+<p>The table below mentions the compiler versions <em>value-ptr lite</em> is reported to work with.</p>
+<table style="width:49%;">
+<colgroup>
+<col width="15%" />
+<col width="18%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">OS</th>
+<th align="left">Compiler</th>
+<th align="left">Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">Windows</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">5.2.0, 6.3.0</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">Visual C++<br>(Visual Studio)</td>
+<td align="left">8 (2005), 10 (2010), 11 (2012),<br>12 (2013), 14 (2015, 2017)</td>
+</tr>
+<tr class="even">
+<td align="right">GNU/Linux</td>
+<td align="left">Clang/LLVM</td>
+<td align="left">3.1.0 - 4.0.0 (Wandbox)</td>
+</tr>
+<tr class="odd">
+<td align="right"> </td>
+<td align="left">GCC</td>
+<td align="left">4.4.7 - 7.1.0 (Wandbox)</td>
+</tr>
+<tr class="even">
+<td align="right">OS X</td>
+<td align="left">?</td>
+<td align="left">?</td>
+</tr>
+</tbody>
+</table>
+<h2 id="building-tests-and-examples">Building tests and examples</h2>
+<p>To build the tests and examples you need:</p>
+<ul>
+<li><a href="https://buckbuild.com/">Buck</a> or <a href="http://cmake.org">CMake</a> version 2.8.12 or later to be installed and in your PATH.</li>
+<li>A <a href="#reported-to-work-with">suitable compiler</a>.</li>
+</ul>
+<p>The <a href="https://github.com/martinmoene/lest"><em>lest</em> test framework</a> is included in the <a href="test">test folder</a>.</p>
+<p>The following steps assume that the <a href="https://github.com/martinmoene/value-ptr-lite"><em>value_ptr lite</em> source code</a> has been cloned into a directory named <code>value-ptr-lite</code>.</p>
+<h3 id="buck">Buck</h3>
+<p>To run the tests and examples:</p>
+<pre><code>value-ptr-lite&gt; buck run test
+value-ptr-lite&gt; buck run example:01-pimpl
+value-ptr-lite&gt; buck run example:02-tree</code></pre>
+<h3 id="cmake">CMake</h3>
+<ol style="list-style-type: decimal">
+<li><p>Create a directory for the build outputs for a particular architecture. Here we use <code>value-ptr-lite/build</code>.</p>
+<pre><code>value-ptr-lite&gt; mkdir build &amp;&amp; cd build</code></pre></li>
+<li><p>Configure CMake to use the compiler of your choice (run <code>cmake --help</code> for a list).</p>
+<pre><code>value-ptr-lite/build&gt; cmake -G &quot;Unix Makefiles&quot; [see 3. below] ..</code></pre></li>
+<li>Optional. You can control above configuration through the following options:</li>
+</ol>
+<ul>
+<li><code>-DVALUE_PTR_LITE_BUILD_TEST=ON</code>: build the tests for lest, default off</li>
+<li><code>-DVALUE_PTR_LITE_BUILD_EXAMPLE=ON</code>: build the examples, default off</li>
+<li><code>-DVALUE_PTR_LITE_COLOURISE_TEST=ON</code>: use colour for pass, fail, default off</li>
+</ul>
+<ol start="4" style="list-style-type: decimal">
+<li><p>Build the test suite. With Visual Studio, append the configuration as <code>--config Debug</code> or <code>--config Release</code>.</p>
+<pre><code>value-ptr-lite/build&gt; cmake --build .</code></pre></li>
+<li><p>Run the test suite.</p>
+<pre><code>value-ptr-lite/build&gt; ctest -V</code></pre></li>
+</ol>
+<p>All tests should pass, indicating your platform is supported and you are ready to use <em>value-ptr lite</em>. See the table with <a href="#features">supported types and functions</a>.</p>
+<h2 id="other-value-ptr-implementations">Other value-ptr implementations</h2>
+<p>(TBD)</p>
+<h2 id="notes-and-references">Notes and references</h2>
+<p><a id="ref1"></a>[1] Gaetano Checinski. <a href="https://hackernoon.com/value-ptr-the-missing-c-smart-pointer-1f515664153e">value_ptr — The Missing C++ Smart-pointer</a> (<a href="https://github.com/LoopPerfect/valuable">GitHub</a>). May 2017.<br />
+<a id="ref2"></a>[2] Andrey Upadyshev. <a href="http://oliora.github.io/2015/12/29/pimpl-and-rule-of-zero.html">PIMPL, Rule of Zero and Scott Meyers</a> (<a href="https://github.com/oliora/samples/blob/master/spimpl.h">GitHub</a>). December 29, 2015.</p>
+<h2 id="appendix">Appendix</h2>
+<p><strong>Contents</strong> - <a href="#a1-value-ptr-lite-test-specification">A.1 Value-ptr lite test specification</a> - <a href="#a2-hidden-test-cases-tagged-with-applet">A.2 Hidden test cases tagged with [.applet]</a> - <a href="#a3-hidden-test-cases-for-compile-time-information">A.3 Hidden test cases for compile-time information</a></p>
+<h3 id="a.1-value-ptr-lite-test-specification">A.1 value-ptr lite test specification</h3>
+<pre><code>value_ptr: Allows to default construct an empty value_ptr
+value_ptr: Allows to explicitly construct a disengaged, empty value_ptr via nullptr
+value_ptr: Allows to default construct an empty value_ptr with a non-default-constructible
+value_ptr: Allows to copy-construct from empty value_ptr
+value_ptr: Allows to copy-construct from non-empty value_ptr
+value_ptr: Allows to move-construct from value_ptr (C++11)
+value_ptr: Allows to copy-construct from literal value
+value_ptr: Allows to copy-construct from value
+value_ptr: Allows to move-construct from value (C++11)
+value_ptr: Allows to in-place construct from literal value (C++11)
+value_ptr: Allows to in-place copy-construct from value (C++11)
+value_ptr: Allows to in-place move-construct from value (C++11)
+value_ptr: Allows to in-place copy-construct from initializer-list (C++11)
+value_ptr: Allows to in-place move-construct from initializer-list (C++11)
+value_ptr: Allows to construct from pointer to value
+value_ptr: Allows to assign nullptr to disengage (C++11)
+value_ptr: Allows to copy-assign from/to engaged and disengaged value_ptr-s
+value_ptr: Allows to move-assign from/to engaged and disengaged value_ptr-s (C++11)
+value_ptr: Allows to copy-assign from literal value
+value_ptr: Allows to copy-assign from value
+value_ptr: Allows to move-assign from value (C++11)
+value_ptr: Allows to copy-emplace content from arguments (C++11)
+value_ptr: Allows to move-emplace content from arguments (C++11)
+value_ptr: Allows to copy-emplace content from intializer-list and arguments (C++11)
+value_ptr: Allows to move-emplace content from intializer-list and arguments (C++11)
+value_ptr: Allows to construct and destroy via user-specified cloner and deleter
+value_ptr: Allows to construct via user-specified cloner with member data
+value_ptr: Allows to obtain pointer to value via operator-&gt;()
+value_ptr: Allows to obtain value via operator*()
+value_ptr: Allows to obtain moved-value via operator*()
+value_ptr: Allows to obtain engaged state via operator bool()
+value_ptr: Allows to obtain engaged state via has_value()
+value_ptr: Allows to obtain value via value()
+value_ptr: Allows to obtain value or default via value_or()
+value_ptr: Allows to obtain moved-default via value_or() (C++11)
+value_ptr: Throws bad_value_access at disengaged access
+value_ptr: Allows to release its content
+value_ptr: Allows to clear its content (reset)
+value_ptr: Allows to replace its content (reset)
+value_ptr: Allows to swap with other value_ptr (member)
+value_ptr: Allows to swap with other value_ptr (non-member)
+value_ptr: Provides relational operators (non-member, pointer comparison: nsvp_CONFIG_COMPARE_POINTERS!=0)
+value_ptr: Provides relational operators (non-member, value comparison: nsvp_CONFIG_COMPARE_POINTERS==0)
+value_ptr: Provides relational operators (non-member, mixed value comparison: nsvp_CONFIG_COMPARE_POINTERS==0)
+make_value: Allows to copy-construct value_ptr
+make_value: Allows to move-construct value_ptr (C++11)
+make_value: Allows to in-place copy-construct value_ptr from arguments (C++11)
+make_value: Allows to in-place move-construct value_ptr from arguments (C++11)
+make_value: Allows to in-place copy-construct value_ptr from initializer-list and arguments (C++11)
+make_value: Allows to in-place move-construct value_ptr from initializer-list and arguments (C++11)
+std::hash&lt;&gt;: Allows to obtain hash (C++11)</code></pre>
+<h3 id="a.2-hidden-test-cases-tagged-with-.applet">A.2 Hidden test cases tagged with [.applet]</h3>
+<p>Applets demonstrate a specific use case.</p>
+<pre><code>[none]</code></pre>
+<h3 id="a.3-hidden-test-cases-for-compile-time-information">A.3 Hidden test cases for compile-time information</h3>
+<p>The version of <em>value-ptr lite</em> is available via tag [.version]. The following tags are available for information on the compiler and on the C++ standard library used: <code>[.compiler]</code>, <code>[.stdc++]</code>, <code>[.stdlanguage]</code> and <code>[.stdlibrary]</code>.</p>
+<pre><code>value-ptr-lite version[.version]
+C++ compiler: compiler version[.compiler]
+C++ language: __cplusplus[.stdc++]
+C++ language: nsvp_CPP11_OR_GREATER[.stdc++]
+C++ language: nsvp_CPP14_OR_GREATER[.stdc++]
+C++ language: nsvp_CPP17_OR_GREATER[.stdc++]
+C++ language: presence of C++ language features[.stdlanguage]
+C++ library: presence of C++ library features[.stdlibrary]</code></pre>

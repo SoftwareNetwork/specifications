@@ -1,0 +1,79 @@
+<p>Junction is a library of concurrent data structures in C++. It contains several hash map implementations:</p>
+<pre><code>junction::ConcurrentMap_Crude
+junction::ConcurrentMap_Linear
+junction::ConcurrentMap_Leapfrog
+junction::ConcurrentMap_Grampa</code></pre>
+<p><a href="https://cmake.org/">CMake</a> and <a href="https://github.com/preshing/turf">Turf</a> are required. See the blog post <a href="http://preshing.com/20160201/new-concurrent-hash-maps-for-cpp/">New Concurrent Hash Maps for C++</a> for more information.</p>
+<h2 id="license">License</h2>
+<p>Junction uses the Simplified BSD License. You can use the source code freely in any project, including commercial applications, as long as you give credit by publishing the contents of the <code>LICENSE</code> file in your documentation somewhere.</p>
+<h2 id="getting-started">Getting Started</h2>
+<p>If you just want to get the code and look around, start by cloning Junction and Turf into adjacent folders, then run CMake on Junction’s <code>CMakeLists.txt</code>. You’ll want to pass different arguments to <code>cmake</code> depending on your platform and IDE.</p>
+<pre><code>$ git clone https://github.com/preshing/junction.git
+$ git clone https://github.com/preshing/turf.git
+$ cd junction
+$ mkdir build
+$ cd build
+$ cmake &lt;additional options&gt; ..</code></pre>
+<p>On Unix-like environments, <code>cmake</code> will generate a Makefile by default. On Windows, it will create a Visual Studio solution. To use a specific version of Visual Studio:</p>
+<pre><code>$ cmake -G &quot;Visual Studio 14 2015&quot; ..</code></pre>
+<p>To generate an Xcode project on OS X:</p>
+<pre><code>$ cmake -G &quot;Xcode&quot; ..</code></pre>
+<p>To generate an Xcode project for iOS:</p>
+<pre><code>$ cmake -G &quot;Xcode&quot; -DCMAKE_TOOLCHAIN_FILE=../../turf/cmake/toolchains/iOS.cmake ..</code></pre>
+<p>The generated build system will contain separate targets for Junction, Turf, and some sample applications.</p>
+<figure>
+<img src="/docs/vs-solution.png" alt="Solution Explorer" /><figcaption aria-hidden="true">Solution Explorer</figcaption>
+</figure>
+<p>Alternatively, you can run CMake on a specific sample only:</p>
+<pre><code>$ cd junction/samples/MapCorrectnessTests
+$ mkdir build
+$ cd build
+$ cmake &lt;additional options&gt; ..</code></pre>
+<h2 id="adding-junction-to-your-project">Adding Junction to Your Project</h2>
+<p>There are several ways to add Junction to your own C++ project.</p>
+<ol type="1">
+<li>Add Junction as a build target in an existing CMake-based project.</li>
+<li>Use CMake to build Junction and Turf, then link the static libraries into your own project.</li>
+<li>Grab only the source files you need from Junction, copy them to your project and hack them until they build correctly.</li>
+</ol>
+<p>Some developers will prefer approach #3, but I encourage you to try approach #1 or #2 instead. It will be easier to grab future updates that way. There are plenty of files in Junction (and Turf) that you don’t really need, but it won’t hurt to keep them on your hard drive either. And if you link Junction statically, the linker will exclude the parts that aren’t used.</p>
+<h3 id="adding-to-an-existing-cmake-project">Adding to an Existing CMake Project</h3>
+<p>If your project is already based on CMake, clone the Junction and Turf source trees somewhere, then call <code>add_subdirectory</code> on Junction’s root folder from your own CMake script. This will add both Junction and Turf targets to your build system.</p>
+<p>For a simple example, see the <a href="https://github.com/preshing/junction-sample">junction-sample</a> repository.</p>
+<h3 id="building-the-libraries-separately">Building the Libraries Separately</h3>
+<p>Generate Junction’s build system using the steps described in the <em>Getting Started</em> section, then use it to build the libraries you need. Add these to your own build system. Make sure to generate static libraries to avoid linking parts of the library that aren’t needed.</p>
+<p>If you build the <code>install</code> target provided by Junction’s CMake script, the build system will output a clean folder containing only the headers and libs that you need. You can add this to your own project using a single include path. Choose the output directory by specifying the <code>CMAKE_INSTALL_PREFIX</code> variable to CMake. Additionally, you can specify <code>JUNCTION_WITH_SAMPLES=OFF</code> to avoid building the samples. For example:</p>
+<pre><code>$ cmake -DCMAKE_INSTALL_PREFIX=~/junction-install -DJUNCTION_WITH_SAMPLES=OFF ..
+$ cmake --build . --target install --config RelWithDebInfo</code></pre>
+<p>Notes:</p>
+<ul>
+<li>Instead of running the second <code>cmake</code> command, which runs the build system, you could run your build system directly. For example, <code>make install</code> on Unix, or build the INSTALL project in Visual Studio.</li>
+<li>If using makefiles, you’ll probably want to pass the additional option <code>-DCMAKE_BUILD_TYPE=RelWithDebInfo</code> to the first <code>cmake</code> command.</li>
+</ul>
+<p>This will create the following file structure:</p>
+<figure>
+<img src="/docs/install-folder.png" alt="Install folder" /><figcaption aria-hidden="true">Install folder</figcaption>
+</figure>
+<h2 id="configuration">Configuration</h2>
+<p>When you first run CMake on Junction, Turf will detect the capabilities of your compiler and write the results to a file in the build tree named <code>turf/include/turf_config.h</code>. Similarly, Junction will write <code>include/junction_config.h</code> to the build tree. You can modify the contents of those files by setting variables when CMake runs. This can be done by passing additional options to <code>cmake</code>, or by using an interactive GUI such as <code>cmake-gui</code> or <code>ccmake</code>.</p>
+<p>For example, to configure Turf to use the C++11 standard library, you can set the <code>TURF_PREFER_CPP11</code> variable on the command line:</p>
+<pre><code>$ cmake -DTURF_PREFER_CPP11=1 ..</code></pre>
+<p>Or, using the CMake GUI:</p>
+<figure>
+<img src="/docs/cmake-gui.png" alt="CMake GUI" /><figcaption aria-hidden="true">CMake GUI</figcaption>
+</figure>
+<p>Many header files in Turf, and some in Junction, are configurable using preprocessor definitions. For example, <code>turf/Thread.h</code> will switch between <code>turf::Thread</code> implementations depending on the values of <code>TURF_IMPL_THREAD_PATH</code> and <code>TURF_IMPL_THREAD_TYPE</code>. If those macros are not defined, they will be set to default values based on information from the environment. You can set them directly by providing your own header file and passing it in the <code>TURF_USERCONFIG</code> variable when CMake runs. You can place this file anywhere; CMake will copy it to Turf’s build tree right next to <code>include/turf_config.h</code>.</p>
+<pre><code>$ cmake -DTURF_USERCONFIG=path/to/custom/turf_userconfig.h.in ..</code></pre>
+<p>The <code>JUNCTION_USERCONFIG</code> variable works in a similar way. As an example, take a look at the Python script <code>junction/samples/MapScalabilityTests/TestAllMaps.py</code>. This script invokes <code>cmake</code> several times, passing a different <code>junction_userconfig.h.in</code> file each time. That’s how it builds the same test application using different map implementations.</p>
+<h2 id="rules-and-behavior">Rules and Behavior</h2>
+<p>Currently, Junction maps only work with keys and values that are pointers or pointer-sized integers. The hash function must be invertible, so that every key has a unique hash. Out of all possible keys, a <em>null</em> key must be reserved, and out of all possible values, <em>null</em> and <em>redirect</em> values must be reserved. The defaults are 0 and 1. You can override those defaults by passing custom <code>KeyTraits</code> and <code>ValueTraits</code> parameters to the template.</p>
+<p>Every thread that manipulates a Junction map must periodically call <code>junction::DefaultQSBR.update</code>, as mentioned <a href="http://preshing.com/20160201/new-concurrent-hash-maps-for-cpp/">in the blog post</a>. If not, the application will leak memory.</p>
+<p>Otherwise, a Junction map is a lot like a big array of <code>std::atomic&lt;&gt;</code> variables, where the key is an index into the array. More precisely:</p>
+<ul>
+<li>All of a Junction map’s member functions, together with its <code>Mutator</code> member functions, are atomic with respect to each other, so you can safely call them from any thread without mutual exclusion.</li>
+<li>If an <code>assign</code> <a href="http://preshing.com/20130702/the-happens-before-relation/">happens before</a> a <code>get</code> with the same key, the <code>get</code> will return the value it inserted, except if another operation changes the value in between. Any <a href="http://preshing.com/20130823/the-synchronizes-with-relation/">synchronizing operation</a> will establish this relationship.</li>
+<li>For Linear, Leapfrog and Grampa maps, <code>assign</code> is a <a href="http://preshing.com/20120913/acquire-and-release-semantics/">release</a> operation and <code>get</code> is a <a href="http://preshing.com/20140709/the-purpose-of-memory_order_consume-in-cpp11/">consume</a> operation, so you can safely pass non-atomic information between threads using a pointer. For Crude maps, all operations are relaxed.</li>
+<li>In the current version, you must not <code>assign</code> while concurrently using an <code>Iterator</code>.</li>
+</ul>
+<h2 id="feedback">Feedback</h2>
+<p>If you have any feedback on improving these steps, feel free to <a href="https://github.com/preshing/junction/issues">open an issue</a> on GitHub, or send a direct message using the <a href="http://preshing.com/contact/">contact form</a> on my blog.</p>

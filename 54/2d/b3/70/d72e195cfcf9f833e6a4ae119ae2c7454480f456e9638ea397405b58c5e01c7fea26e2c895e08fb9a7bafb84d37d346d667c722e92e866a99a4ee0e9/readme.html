@@ -1,0 +1,203 @@
+<h1 id="random-for-modern-c-with-convenient-api">Random for modern C++ with convenient API</h1>
+<p><a href="https://travis-ci.org/effolkronium/random?branch=master"><img src="https://travis-ci.org/effolkronium/random.svg?branch=master" alt="Build Status" /></a> <a href="https://ci.appveyor.com/project/effolkronium/random/branch/master"><img src="https://ci.appveyor.com/api/projects/status/vq1kodqqxwx16rfv/branch/master?svg=true" alt="Build status" /></a> <a href="https://coveralls.io/github/effolkronium/random?branch=master&amp;unused=0"><img src="https://coveralls.io/repos/github/effolkronium/random/badge.svg?branch=master&amp;unused=0" alt="Coverage Status" /></a> <a href="https://scan.coverity.com/projects/effolkronium-random"> <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/13062/badge.svg"/> </a> - <a href="#design-goals">Design goals</a> - <a href="#supported-compilers">Supported compilers</a> - <a href="#integration">Integration</a> - <a href="#five-minute-tutorial">Five-minute tutorial</a> - <a href="#number-range">Number range</a> - <a href="#common-type-number-range">Common type number range</a> - <a href="#character-range">Character range</a> - <a href="#bool">Bool</a> - <a href="#random-value-from-stdinitilizer_list">Random value from std::initilizer_list</a> - <a href="#random-iterator">Random iterator</a> - <a href="#random-element-from-array">Random element from array</a> - <a href="#shuffle">Shuffle</a> - <a href="#custom-distribution">Custom distribution</a> - <a href="#custom-seeder">Custom Seeder</a> - <a href="#thread-local-random">Thread local random</a> - <a href="#local-random">Local random</a> - <a href="#engine">engine</a> - <a href="#get-engine">Get engine</a> - <a href="#seeding">Seeding</a> - <a href="#min-value">min-value</a> - <a href="#max-value">max-value</a> - <a href="#get-without-arguments">'get' without arguments</a> - <a href="#discard">Discard</a> - <a href="#is-equal">Is equal</a> - <a href="#serialize">Serialize</a> - <a href="#deserialize">Deserialize</a> ## Design goals There are few ways to get working with random in C++: - <strong>C style</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  srand( time(NULL) ); <span class="co">// seed with time since epoch</span>
+  <span class="kw">auto</span> random_number = (rand() % (<span class="dv">9</span> - <span class="dv">1</span>)) + <span class="dv">1</span>; <span class="co">// get a pseudo-random integer between 1 and 9</span></code></pre></div>
+<ul>
+<li>Problems</li>
+<li>should specify seed</li>
+<li>should write your own distribution algorihtm</li>
+<li><a href="http://en.cppreference.com/w/cpp/numeric/random/rand#Notes">There are no guarantees as to the quality of the random sequence produced.</a></li>
+<li><p><strong>C++11 style</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  <span class="bu">std::</span>random_device random_device; <span class="co">// create object for seeding</span>
+  <span class="bu">std::</span>mt19937 engine{random_device()}; <span class="co">// create engine and seed it</span>
+  <span class="bu">std::</span>uniform_int_distribution&lt;&gt; dist(<span class="dv">1</span>,<span class="dv">9</span>); <span class="co">// create distribution for integers with [1; 9] range</span>
+  <span class="kw">auto</span> random_number = dist(engine); <span class="co">// finally get a pseudo-randomrandom integer number</span></code></pre></div></li>
+<li>Problems</li>
+<li>should specify seed</li>
+<li>should choose, create and use a chain of various objects like engines and distributions</li>
+<li><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine">mt19937</a> use 5000 bytes of memory for each creation (which is bad for performance if we create it too frequently)</li>
+<li>uncomfortable and not intuitively clear usage</li>
+<li><p><strong>effolkronium random style</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">  <span class="co">// auto seeded</span>
+  <span class="kw">auto</span> random_number = Random::get(<span class="dv">1</span>, <span class="dv">9</span>); <span class="co">// invoke &#39;get&#39; method to generate a pseudo-random integer in [1; 9] range</span>
+  <span class="co">// yep, that&#39;s all.</span></code></pre></div></li>
+<li>Advantages</li>
+<li><strong>Intuitive syntax</strong>. You can do almost everything with random by simple 'get' method, like getting simple numbers, bools, random object from given set or using custom distribution.</li>
+<li><strong>Trivial integration</strong>. All code consists of a single header file <a href="https://github.com/effolkronium/random/blob/develop/include/effolkronium/random.hpp"><code>random.hpp</code></a>. That's it. No library, no subproject, no dependencies, no complex build system. The class is written in vanilla C++11. All in all, everything should require no adjustment of your compiler flags or project settings.</li>
+<li><strong>Usability</strong>. There are 3 versions of random:
+<ul>
+<li><em>random_static</em> which has static methods and static internal state. It's not thread safe but more efficient</li>
+<li><em>random_thread_local</em> which has static methods and <a href="http://en.cppreference.com/w/cpp/keyword/thread_local">thread_local</a> internal state. It's thread safe but less efficient</li>
+<li><em>random_local</em> which has non static methods and local internal state. It can be created on the stack at local scope ## Supported compilers</li>
+</ul></li>
+<li>GCC 4.9 - 8.0 (and possibly later)</li>
+<li>Clang 3.7 - 8.0 (and possibly later)</li>
+<li>Microsoft Visual C++ 2015 - 2017 (and possibly later) ## Integration #### CMake</li>
+<li><p>As subproject</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">add_subdirectory</span>(random) <span class="co"># path to the &#39;random&#39; library root</span>
+... <span class="co"># create target</span>
+<span class="kw">target_link_libraries</span>(<span class="va">${TARGET}</span> effolkronium_random) <span class="co"># add include path to a compiler</span></code></pre></div></li>
+<li><p>As external project</p></li>
+</ul>
+<p>First of all, build or|and install this project:</p>
+<pre class="cmd"><code>cd &quot;path_to_root_of_the_library&quot;
+mkdir build
+cd build
+cmake -G&quot;Visual Studio 15 2017&quot; ..
+cmake --build . --target install --config Release
+ctest -C Release</code></pre>
+<p>Then, find the package by a cmake</p>
+<div class="sourceCode"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span class="kw">find_package</span>(effolkronium_random <span class="ot">REQUIRED</span>)
+... <span class="co"># create target</span>
+<span class="kw">target_link_libraries</span>(<span class="va">${TARGET}</span> effolkronium_random)</code></pre></div>
+<h4 id="manually">Manually</h4>
+<p>The single required source, file <a href="https://github.com/effolkronium/random/blob/develop/include/effolkronium/random.hpp"><code>random.hpp</code></a> is in the <a href="https://github.com/effolkronium/random/tree/develop/include/effolkronium"><code>include/effolkronium</code></a> directory. #### Then All you need to do is add</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;effolkronium/random.hpp&quot;</span>
+
+<span class="co">// get base random alias which is auto seeded and has static API and internal state</span>
+<span class="kw">using</span> Random = effolkronium::random_static;</code></pre></div>
+<p>to the files you want to use effolkronium random class. That's it. Do not forget to set the necessary switches to enable C++11 (e.g., <code>-std=c++11</code> for GCC and Clang). ## Five-minute tutorial ### Number range Returns a pseudo-random number in a [first; second] range.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get(<span class="dv">-1</span>, <span class="dv">1</span>) <span class="co">// decltype(val) is int</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// specify explicit type</span>
+<span class="kw">auto</span> val = Random::get&lt;<span class="dt">uint8_t</span>&gt;(<span class="dv">-1</span>, <span class="dv">1</span>) <span class="co">// decltype(val) is uint8_t</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// you able to use range from greater to lower</span>
+<span class="kw">auto</span> val = Random::get(<span class="fl">1.l</span>, <span class="fl">-1.l</span>) <span class="co">// decltype(val) is long double</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get(<span class="fl">1.f</span>, <span class="dv">-1</span>) <span class="co">// Error: implicit conversions are not allowed here.</span></code></pre></div>
+<h3 id="common-type-number-range">Common type number range</h3>
+<p>Choose common type of two range arguments by std::common_type.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;Random::common&gt;(<span class="dv">1</span>, <span class="fl">0.f</span>) <span class="co">// decltype(val) is float</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;Random::common&gt;(<span class="dv">0ul</span>, <span class="dv">1ull</span>) <span class="co">// decltype(val) is unsigned long long</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;Random::common&gt;(<span class="fl">1.2l</span>, <span class="fl">1.5f</span>) <span class="co">// decltype(val) is long double</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;Random::common&gt;(<span class="dv">1u</span>, <span class="dv">-1</span>) <span class="co">// Error: prevent conversion from signed to unsigned.</span></code></pre></div>
+<h3 id="character-range">Character range</h3>
+<p>Returns a pseudo-random character in a [first; second] range.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get(<span class="st">&#39;a&#39;</span>, <span class="st">&#39;z&#39;</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get(<span class="st">L&#39;㋐&#39;</span>, <span class="st">L&#39;㋾&#39;</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;<span class="dt">wchar_t</span>&gt;()</code></pre></div>
+<h3 id="bool">Bool</h3>
+<p>Generate true with [0; 1] probability</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;<span class="dt">bool</span>&gt;(<span class="fl">0.7</span>) <span class="co">// true with 70% probability</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;<span class="dt">bool</span>&gt;() <span class="co">// true with 50% probability by default</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get&lt;<span class="dt">bool</span>&gt;(<span class="dv">-1</span>) <span class="co">// Error: assert occurred! Out of [0; 1] range</span></code></pre></div>
+<h3 id="random-value-from-stdinitilizer_list">Random value from std::initilizer_list</h3>
+<p>Return random value from values in a std::initilizer_list</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get({<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>}) <span class="co">// val = 1 or 2 or 3</span></code></pre></div>
+<h3 id="random-iterator">Random iterator</h3>
+<p>Return random iterator from iterator range or container. Iterator must be at least <a href="http://en.cppreference.com/w/cpp/named_req/InputIterator">Input iterator</a>. If a std::distance(first, last) == 0, return the 'last' iterator. If container is empty, return <a href="http://en.cppreference.com/w/cpp/iterator/end">std::end</a>(container) iterator.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>array&lt;<span class="dt">int</span>, <span class="dv">3</span>&gt; array{ {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>} };</code></pre></div>
+<ul>
+<li><p>Iterator range</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> randomIt = Random::get( array.begin(), array.end() );</code></pre></div></li>
+<li><p>Container</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> randomIt = Random::get( array );</code></pre></div>
+<h3 id="random-element-from-array">Random element from array</h3>
+<p>Return pointer to random element in built-in array</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> array [] = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>};
+<span class="kw">auto</span> randomPtr = Random::get( array );</code></pre></div>
+<h3 id="shuffle">Shuffle</h3>
+<p>Reorders the elements in a given range or in all container <a href="http://en.cppreference.com/w/cpp/algorithm/random_shuffle">ref</a></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>array&lt;<span class="dt">int</span>, <span class="dv">3</span>&gt; array{ {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>} };</code></pre></div></li>
+<li><p>Iterator range</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::shuffle( array.begin( ), array.end( ) )</code></pre></div></li>
+<li><p>Container</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::shuffle( array )</code></pre></div>
+<h3 id="custom-distribution">Custom distribution</h3>
+Return result from operator() of a distribution with internal random engine argument</li>
+<li><p>Template argument</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// 1.f and 2.f will be forwarded to std::gamma_distribution constructor</span>
+<span class="kw">auto</span> result = Random::get&lt;<span class="bu">std::</span>gamma_distribution&lt;&gt;&gt;( <span class="fl">1.f</span>, <span class="fl">2.f</span> );</code></pre></div></li>
+<li><p>Argument by reference</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>gamma_distribution&lt;&gt; gamma{ <span class="fl">1.f</span>, <span class="fl">2.f</span> };
+<span class="kw">auto</span> result = Random DOT get( gamma ); <span class="co">// return result of gamma.operator()( engine_ )</span></code></pre></div>
+<h3 id="custom-seeder">Custom Seeder</h3>
+Specify seed by which random engine will be seeded at construction time:</li>
+<li><p>Number ```cpp struct MySeeder { unsigned operator() () { return 42u; } };</p></li>
+</ul>
+<p>// Seeded by 42 using Random = effolkronium::basic_random_static<std::mt19937, MySeeder>; ``` * Seed sequence</p>
+<p>Because we can't copy std::seed_seq, the 'random' library destroy seeder instance after engine seeding. So it's safe to return seed by reference.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> MySeeder {
+    <span class="co">// std::seed_seq isn&#39;t copyable</span>
+    <span class="bu">std::</span>seed_seq&amp; <span class="kw">operator</span>() () {
+        <span class="cf">return</span> <span class="va">seed_seq_</span>;
+    }
+    <span class="bu">std::</span>seed_seq <span class="va">seed_seq_</span>{ { <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span> } };
+};
+    
+<span class="co">// Seeded by seed_seq_ from MySeeder</span>
+<span class="kw">using</span> Random = effolkronium::basic_random_static&lt;<span class="bu">std::</span>mt19937, MySeeder&gt;;</code></pre></div>
+<ul>
+<li>Reseed</li>
+</ul>
+<p>Seed an internal random engine by a newly created Seeder instance</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::reseed( );</code></pre></div>
+<h3 id="thread-local-random">Thread local random</h3>
+<p>It uses static methods API and data with <a href="http://en.cppreference.com/w/cpp/keyword/thread_local">thread_local</a> storage which is fully <strong>thread safe</strong> (but less perfomance)</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">using</span> Random = effolkronium::rando<span class="va">m_thread_local</span>
+
+<span class="co">// use in the same way as random_static. Thread safe</span>
+<span class="bu">std::</span>thread first{ [ ] { Random::get( ); } };
+<span class="bu">std::</span>thread second{ [ ] { Random::get( ); } };</code></pre></div>
+<h3 id="local-random">Local random</h3>
+<p>It uses non static methods API and data with auto storage which can be created on the stack at local scope</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;effolkronium/random.hpp&quot;</span>
+
+<span class="kw">using</span> <span class="dt">Random_t</span> = effolkronium::rando<span class="va">m_local</span>
+
+<span class="dt">int</span> main( ) {
+  <span class="dt">Random_t</span> localRandom{ }; <span class="co">// Construct on the stack</span>
+  
+  <span class="co">// access throughout dot</span>
+  <span class="kw">auto</span> val = localRandom.get(<span class="dv">-10</span>, <span class="dv">10</span>);
+  
+} <span class="co">// Destroy localRandom and free stack memory</span></code></pre></div>
+<h3 id="seeding">Seeding</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/seed">ref</a></p>
+<p>Set new seed for an internal random engine.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::seed( <span class="dv">10</span> ); <span class="co">// 10 is new seed number</span>
+
+<span class="bu">std::</span>seed_seq sseq{ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> };
+Random::seed( sseq ); <span class="co">// use seed sequence here</span></code></pre></div>
+<h3 id="min-value">Min value</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/min">ref</a></p>
+<p>Returns the minimum value potentially generated by the internal random-number engine</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> minVal = Random::min( );</code></pre></div>
+<h3 id="max-value">Max value</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/max">ref</a></p>
+<p>Returns the maximum value potentially generated by the internal random-number engine</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> maxVal = Random::max( );</code></pre></div>
+<h3 id="get-without-arguments">get without arguments</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/operator()">ref</a></p>
+<p>Returns the random number in [ Random::min( ), Random::max ] range</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> val = Random::get( );
+<span class="co">// val is random number in [ Random::min( ), Random::max ] range</span></code></pre></div>
+<h3 id="engine">engine</h3>
+<p>Returns reference to the internal engine.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span>&amp; engine = Random::engine( );</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>sample(itBeg, itEnd, <span class="bu">std::</span>back_inserter(out), <span class="dv">5</span>, Random::engine( ));</code></pre></div>
+<h3 id="get-engine">Get engine</h3>
+<p>Returns copy of internal engine.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> engine = Random::get_engine( );</code></pre></div>
+<h3 id="discard">Discard</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/discard">ref</a></p>
+<p>Advances the internal engine's state by a specified amount. Equivalent to calling Random::get() N times and discarding the result.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::discard( <span class="dv">500</span> );</code></pre></div>
+<h3 id="isequal">IsEqual</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/operator_cmp">ref</a></p>
+<p>Compares internal pseudo-random number engine with other pseudo-random number engine.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Random::Engine otherEngine;
+<span class="dt">bool</span> isSame = Random::is_equal( otherEngine );</code></pre></div>
+<h3 id="serialize">Serialize</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/operator_ltltgtgt">ref</a></p>
+<p>Serializes the internal state of the internal pseudo-random number engine as a sequence of decimal numbers separated by one or more spaces, and inserts it to the output stream. The fill character and the formatting flags of the stream are ignored and unaffected.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>stringstream strStream;
+Random::serialize( strStream ); <span class="co">// the strStream now contain internal state of the Random internal engine</span></code></pre></div>
+<h3 id="deserialize">Deserialize</h3>
+<p><a href="http://en.cppreference.com/w/cpp/numeric/random/mersenne_twister_engine/operator_ltltgtgt">ref</a></p>
+<p>Restores the internal state of the internal pseudo-random number engine from the serialized representation, which was created by an earlier call to 'serialize' using a stream with the same imbued locale and the same CharT and Traits. If the input cannot be deserialized, internal engine is left unchanged and failbit is raised on input stream.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="bu">std::</span>stringstream strStream;
+Random::serialize( strStream );
+
+<span class="co">// ...</span>
+
+Random::deserialize( strStream ); <span class="co">// Restore internal state of internal Random engine</span></code></pre></div>

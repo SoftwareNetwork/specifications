@@ -1,0 +1,287 @@
+<h2 id="boost-concurrent-permutations-and-combinations-on-cpu">Boost Concurrent Permutations and Combinations on CPU</h2>
+<h3 id="primary-motivation">Primary motivation</h3>
+<p>Upcoming C++17 Concurrent STL algorithms does not include parallel <code>next_permutation</code> and <code>next_combination</code>. <code>compute_all_perm</code> and <code>compute_all_comb</code> make use of <code>next_permutation</code> and <code>next_combination</code> underneath to find all the permutations and combinations. Many years ago, I had written parallel library which only deals with integer type but it exposes many internal workings. This one encapsulates the details and can permute/combine with any data types.</p>
+<p><strong>Note</strong>: Function overload with predicate is available.</p>
+<p><strong>Note</strong>: Work is still ongoing. Library is not yet submitted for Boost review and is not part of Boost Library.</p>
+<h3 id="requirement">Requirement</h3>
+<p><strong>Required</strong>: C++11</p>
+<p><strong>Optional</strong>: <a href="http://www.boost.org/doc/libs/1_62_0/libs/multiprecision/doc/html/index.html">Boost Multiprecision</a> <strong>Note</strong>: Library need Boost Multiprecision for factorial(n) where n &gt; 20. You either use the arbitrary integer(most safe) or fixed width big integer to accommodate the largest factorial.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// arbitrary integer</span>
+<span class="ex">boost::</span>multiprecision<span class="ex">::</span>cpp_int;
+<span class="co">// 256 bit integer</span>
+<span class="ex">boost::</span>multiprecision<span class="ex">::</span>int256_t;</code></pre></div>
+<h3 id="compiler-tested">Compiler tested</h3>
+<ul>
+<li>Visual C++ 2015</li>
+<li>GCC 5.4 Ubuntu 16.04</li>
+<li>Clang 3.8 Ubuntu 16.04</li>
+</ul>
+<h3 id="build-examples-with-gcc-and-clang">Build examples with GCC and Clang</h3>
+<pre><code>g++     CalcPerm.cpp -std=c++11 -lpthread -O2
+g++     CalcComb.cpp -std=c++11 -lpthread -O2
+
+clang++ CalcPerm.cpp -std=c++11 -lpthread -O2
+clang++ CalcComb.cpp -std=c++11 -lpthread -O2</code></pre>
+<h3 id="no-cmakelist">No CMakeList?</h3>
+<p>This is header-only library.</p>
+<h3 id="formulae-to-calculate-total-results-returned.">Formulae to calculate total results returned.</h3>
+<p>Calculate this in a calculator and use sum to determine the largest integer type to be used.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">Total Permutation: n!
+Total Combination: n! / (r! (n - r)!)</code></pre></div>
+<p>Use <code>compute_factorial</code> to calculate total permutation count.</p>
+<p>Use <code>compute_total_comb</code> to calculate total combination count.</p>
+<h3 id="limitation">Limitation</h3>
+<p><code>next_permutation</code> supports duplicate elements but <code>compute_all_perm</code> and <code>compute_all_comb</code> do not. Make sure every element is unique. Also make sure total results are greater than number of threads spawned.</p>
+<h3 id="examples">Examples</h3>
+<p><code>compute_all_perm</code> function and callback signatures shown below. Callback should catch all exceptions and return false. If exception propagate outside callback, error_callback will be invoked and processing will be stopped prematurely for the thread.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// compute_all_perm function signature</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">int_type</span>, <span class="kw">typename</span> <span class="dt">container_type</span>, <span class="kw">typename</span> <span class="dt">callback_type</span>, 
+    <span class="kw">typename</span> <span class="dt">error_callback_type</span>, <span class="kw">typename</span> <span class="dt">predicate_type</span> = <span class="dt">no_predicate_type</span>&gt;
+<span class="dt">bool</span> compute_all_perm(<span class="dt">int_type</span> thread_cnt, <span class="at">const</span> <span class="dt">container_type</span>&amp; cont, <span class="dt">callback_type</span> callback, 
+    <span class="dt">error_callback_type</span> err_callback, <span class="dt">predicate_type</span> pred = <span class="dt">predicate_type</span>());
+
+<span class="co">// callback_type signature</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">container_type</span>&gt;
+<span class="kw">struct</span> <span class="dt">callback_t</span>
+{
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="dt">container_type</span>&amp; cont)
+    {
+        <span class="cf">return</span> <span class="kw">true</span>; <span class="co">// can return false to cancel processing in current thread</span>
+    }
+};
+
+<span class="co">// error_callback_type example</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">container_type</span>&gt;
+<span class="kw">struct</span> <span class="dt">error_callback_t</span>
+{
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="dt">container_type</span>&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error)
+    {
+        <span class="bu">std::</span>cerr &lt;&lt; error &lt;&lt; <span class="bu">std::</span>endl;
+    }
+};
+
+<span class="co">// predicate_type example</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">struct</span> <span class="dt">predicate_t</span>
+{
+    <span class="dt">bool</span> <span class="kw">operator</span>()(T a, T b)
+    {
+        <span class="cf">return</span> a &lt; b;
+    }
+};</code></pre></div>
+<p>Example on how to use <code>compute_all_perm</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_perm.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>string results(<span class="dv">11</span>, <span class="st">&#39;A&#39;</span>);
+    <span class="bu">std::</span>iota(results.begin(), results.end(), <span class="st">&#39;A&#39;</span>);
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">2</span>;
+
+    concurrent_perm::compute_all_perm(thread_cnt, results, 
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont) 
+            { <span class="cf">return</span> <span class="kw">true</span>; } <span class="co">/* evaluation callback */</span>,
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>           
+        );
+}</code></pre></div>
+<p>Example on how to use <code>compute_all_perm</code> with predicate</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_perm.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>string results(<span class="dv">11</span>, <span class="st">&#39;A&#39;</span>);
+    <span class="bu">std::</span>iota(results.begin(), results.end(), <span class="st">&#39;A&#39;</span>);
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">2</span>;
+
+    concurrent_perm::compute_all_perm(thread_cnt, results, 
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont) 
+            { <span class="cf">return</span> <span class="kw">true</span>; } <span class="co">/* evaluation callback */</span>,
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>,            
+        [](<span class="dt">char</span> a, <span class="dt">char</span> b) 
+            { <span class="cf">return</span> a &lt; b; } <span class="co">/* predicate */</span>
+        );
+}</code></pre></div>
+<p><code>compute_all_comb</code> function and callback signatures shown below. Callback should catch all exceptions and return false. If exception propagate outside callback, error_callback will be invoked and processing will be stopped prematurely for the thread.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// compute_all_comb function signature</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">int_type</span>, <span class="kw">typename</span> <span class="dt">container_type</span>, <span class="kw">typename</span> <span class="dt">callback_type</span>, 
+    <span class="kw">typename</span> <span class="dt">error_callback_type</span>, <span class="kw">typename</span> <span class="dt">predicate_type</span> = <span class="dt">no_predicate_type</span>&gt;
+<span class="dt">bool</span> compute_all_comb(<span class="dt">int_type</span> thread_cnt, <span class="dt">uint32_t</span> subset, <span class="at">const</span> <span class="dt">container_type</span>&amp; cont, 
+    <span class="dt">callback_type</span> callback, <span class="dt">error_callback_type</span> err_callback, <span class="dt">predicate_type</span> pred = <span class="dt">predicate_type</span>())
+
+<span class="co">// callback_type signature</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">container_type</span>&gt;
+<span class="kw">struct</span> <span class="dt">callback_t</span>
+{
+    <span class="dt">bool</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="dt">size_t</span> fullset_size, <span class="at">const</span> <span class="dt">container_type</span>&amp; cont)
+    {
+        <span class="cf">return</span> <span class="kw">true</span>; <span class="co">// can return false to cancel processing in current thread</span>
+    }
+};
+
+<span class="co">// error_callback_type example</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="dt">container_type</span>&gt;
+<span class="kw">struct</span> <span class="dt">error_callback_t</span>
+{
+    <span class="dt">void</span> <span class="kw">operator</span>()(<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="dt">size_t</span> fullset_size, 
+        <span class="at">const</span> <span class="dt">container_type</span>&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error)
+    {
+        <span class="bu">std::</span>cerr &lt;&lt; error &lt;&lt; <span class="bu">std::</span>endl;
+    }
+};
+
+
+<span class="co">// predicate_type example</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">struct</span> <span class="dt">predicate_t</span>
+{
+    <span class="dt">bool</span> <span class="kw">operator</span>()(T a, T b)
+    {
+        <span class="cf">return</span> a == b;
+    }
+};</code></pre></div>
+<p>Example on how to use <code>compute_all_comb</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_comb.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; fullset_vec(<span class="dv">20</span>);
+    <span class="bu">std::</span>iota(fullset_vec.begin(), fullset_vec.end(), <span class="dv">0</span>);
+    <span class="dt">uint32_t</span> subset = <span class="dv">10</span>;
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">2</span>;
+    
+    concurrent_comb::compute_all_comb(thread_cnt, subset, fullset_vec, 
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="dt">uint32_t</span> fullset, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&amp; cont) 
+            { <span class="cf">return</span> <span class="kw">true</span>; } <span class="co">/* evaluation callback */</span>,
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="dt">uint32_t</span> fullset, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>,
+        );
+}</code></pre></div>
+<p>Example on how to use <code>compute_all_comb</code> with predicate</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_comb.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt; fullset_vec(<span class="dv">20</span>);
+    <span class="bu">std::</span>iota(fullset_vec.begin(), fullset_vec.end(), <span class="dv">0</span>);
+    <span class="dt">uint32_t</span> subset = <span class="dv">10</span>;
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">2</span>;
+    
+    concurrent_comb::compute_all_comb(thread_cnt, subset, fullset_vec, 
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="dt">uint32_t</span> fullset, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&amp; cont) 
+            { <span class="cf">return</span> <span class="kw">true</span>; } <span class="co">/* evaluation callback */</span>,
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="dt">uint32_t</span> fullset, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">int</span>&gt;&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>,
+        [] (<span class="dt">int</span> a, <span class="dt">int</span> b) 
+            { <span class="cf">return</span> a == b; } <span class="co">/* predicate */</span>
+        );
+}</code></pre></div>
+<h3 id="why-not-pass-in-begin-and-end-iterators">Why not pass in begin and end iterators?</h3>
+<p>Library need to know the container type to instantiate a copy in the worker thread. From the iterator type, we have no way to know the container. Iterator type is not compatible: for example <code>string</code> and <code>vector</code> iterator are not interchangeable; It is not right that user pass <code>string</code> iterator but library pass <code>vector</code> iterator to callback.</p>
+<h3 id="how-to-make-use-of-thread_index-parameter-in-callback">How to make use of thread_index parameter in callback?</h3>
+<p><code>thread_index</code> is a zero based and consecutive number. For example when <code>thread_cnt</code> is 4, then <code>thread_index</code> would be [0..3]. Data type of <code>thread_cnt</code> has to be a type large enough to hold the largest factorial required.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_perm.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>string results(<span class="dv">11</span>, <span class="st">&#39;A&#39;</span>);
+    <span class="bu">std::</span>iota(results.begin(), results.end(), <span class="st">&#39;A&#39;</span>);
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">4</span>;
+    <span class="dt">int</span> matched[<span class="dv">4</span>] = {<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>};
+
+    concurrent_perm::compute_all_perm(thread_cnt, results, 
+        [&amp;matched](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont) <span class="co">/* evaluation callback */</span>
+            {
+                <span class="cf">if</span>(...) 
+                    ++matched[thread_index];
+                <span class="cf">return</span> <span class="kw">true</span>;
+            },
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>, 
+            
+        );
+            
+    <span class="dt">int</span> total_matched = matched[<span class="dv">0</span>] + matched[<span class="dv">1</span>] + matched[<span class="dv">2</span>] + matched[<span class="dv">3</span>];
+    <span class="co">// display total_matched</span>
+}</code></pre></div>
+<p>I'll leave to the reader to fix false-sharing in the above example.</p>
+<h3 id="cancellation">Cancellation</h3>
+<p>Cancellation is not directly supported but every callback can return <code>false</code> to cancel processing.</p>
+<h3 id="how-many-threads-are-spawned">How many threads are spawned?</h3>
+<p><strong>Answer</strong>: <code>thread_cnt</code> - 1. For <code>thread_cnt</code> = 4, 3 threads will be spawned while main thread is used to compute the 4th batch. For <code>thread_cnt</code> = 1, no threads is spawned, all work is done in the main thread.</p>
+<h3 id="how-to-split-the-work-across-physically-separate-processors">How to split the work across physically separate processors?</h3>
+<p>Say you have more than 1 computer at home or can access cloud of computers, Work can be split using <code>compute_all_perm_shard</code>. In fact <code>compute_all_perm</code> calls <code>compute_all_perm_shard</code> to do the work as well. <code>compute_all_perm_shard</code> has 2 extra parameters which are <code>cpu_index</code> and <code>cpu_cnt</code>. Value of <code>cpu_index</code> can be [0..<code>cpu_cnt</code>).</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_perm.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>string results(<span class="dv">11</span>, <span class="st">&#39;A&#39;</span>);
+    <span class="bu">std::</span>iota(results.begin(), results.end(), <span class="st">&#39;A&#39;</span>);
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">4</span>;
+    
+    <span class="dt">int_type</span> cpu_cnt = <span class="dv">2</span>;
+    <span class="dt">int_type</span> cpu_index = <span class="dv">0</span>; <span class="co">/* 0 or 1 */</span>
+    <span class="dt">int</span> cpu_index_n = <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(cpu_index);
+
+    concurrent_perm::compute_all_perm_shard(cpu_index, cpu_cnt, thread_cnt, results, 
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont) <span class="co">/* evaluation callback */</span>
+            {
+                <span class="cf">return</span> <span class="kw">true</span>;
+            },
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>string&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>, 
+            
+        );
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="pp">#include </span><span class="im">&quot;../permcomb/concurrent_comb.h&quot;</span>
+
+<span class="dt">void</span> main()
+{
+    <span class="bu">std::</span>vector&lt;<span class="dt">uint32_t</span>&gt; fullset(fullset_size);
+    <span class="bu">std::</span>iota(fullset.begin(), fullset.end(), <span class="dv">0</span>);
+    
+    <span class="dt">int64_t</span> thread_cnt = <span class="dv">4</span>;
+    
+    <span class="dt">int_type</span> cpu_cnt = <span class="dv">2</span>;
+    <span class="dt">int_type</span> cpu_index = <span class="dv">0</span>; <span class="co">/* 0 or 1 */</span>
+    <span class="dt">int</span> cpu_index_n = <span class="kw">static_cast</span>&lt;<span class="dt">int</span>&gt;(cpu_index);
+
+    concurrent_comb::compute_all_comb_shard(cpu_index, cpu_cnt, thread_cnt, subset_size, fullset, 
+        [](<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="dt">size_t</span> fullset_cnt, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">uint32_t</span>&gt;&amp; cont) 
+            { <span class="co">/* evaluation callback */</span>
+                <span class="cf">return</span> <span class="kw">true</span>;
+            },
+        [] (<span class="at">const</span> <span class="dt">int</span> thread_index, <span class="at">const</span> <span class="bu">std::</span>vector&lt;<span class="dt">uint32_t</span>&gt;&amp; cont, <span class="at">const</span> <span class="bu">std::</span>string&amp; error) 
+            { <span class="bu">std::</span>cerr &lt;&lt; error; } <span class="co">/* error callback */</span>, 
+            
+        );
+}</code></pre></div>
+<h3 id="benchmark-results">Benchmark results</h3>
+<p>Intel i7 6700 CPU with 16 GB RAM with Visual C++ on Windows 10</p>
+<pre><code>Results for permutation of 11 elements:
+Total permutations computed: 39,916,800 - 1
+int64_t type used.
+
+next_permutation:  163ms
+     1 thread(s):  175ms
+     2 thread(s):   95ms
+     3 thread(s):   48ms
+     4 thread(s):   50ms</code></pre>
+<pre><code>Results for combination of 14 out of 28 elements:
+Total combinations computed: 40,116,600 - 1
+int128_t type used.
+ 
+next_combination:  789ms
+     1 thread(s):  808ms
+     2 thread(s):  434ms
+     3 thread(s):  316ms
+     4 thread(s):  242ms</code></pre>
+<h3 id="diminishing-returns-on-4-threads">Diminishing returns on 4 threads</h3>
+<p>Main suspect is the Intel i7 6700 CPU is a 4 core processor where other applications are running. Need a multicore CPU with more than 4 cores to see whether diminishing perf gain issue persist!</p>

@@ -1,0 +1,283 @@
+[
+<div data-align="center">
+<img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.svg?sanitize=true">
+</div>
+<p>](https://github.com/pantor/inja/releases)</p>
+<p align="center">
+<p><a href="https://github.com/pantor/inja/actions"> <img src="https://github.com/pantor/inja/workflows/CI/badge.svg" alt="CI Status"> </a></p>
+<p><a href="https://github.com/pantor/inja/actions"> <img src="https://github.com/pantor/inja/workflows/Documentation/badge.svg" alt="Documentation Status"> </a></p>
+<p><a href="https://www.codacy.com/manual/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade"> <img src="https://app.codacy.com/project/badge/Grade/211718f7a36541819d1244c0e2ee6f08"/> </a></p>
+<p><a href="https://github.com/pantor/inja/releases"> <img src="https://img.shields.io/github/release/pantor/inja.svg" alt="Github Releases"> </a></p>
+<p><a href="http://github.com/pantor/inja/issues"> <img src="https://img.shields.io/github/issues/pantor/inja.svg" alt="Github Issues"> </a></p>
+<a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE"> <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License"> </a>
+</p>
+<p>Inja is a template engine for modern C++, loosely inspired by <a href="http://jinja.pocoo.org">jinja</a> for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful <a href="https://github.com/nlohmann/json">json</a> library by nlohmann for data input. Most importantly, inja needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>json data;</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a>data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;world&quot;</span>;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>inja::render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> name </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// Returns &quot;Hello world!&quot;</span></span></code></pre></div>
+<h2 id="integration">Integration</h2>
+<p>Inja is a headers only library, which can be downloaded from the <a href="https://github.com/pantor/inja/releases">releases</a> or directly from the <code>include/</code> or <code>single_include/</code> folder. Inja uses <code>nlohmann/json.hpp</code> (&gt;= v3.8.0) as its single dependency, so make sure it can be included from <code>inja.hpp</code>. json can be downloaded <a href="https://github.com/nlohmann/json/releases">here</a>. Then integration is as easy as:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;inja.hpp&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="co">// Just for convenience</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> inja;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="kw">using</span> json = nlohmann::json;</span></code></pre></div>
+<p>If you are using the <a href="http://mesonbuild.com">Meson Build System</a>, then you can wrap this repository as a subproject.</p>
+<p>If you are using <a href="https://conan.io">Conan</a> to manage your dependencies, have a look at <a href="https://github.com/DEGoodmanWilson/conan-inja">this repository</a>. Please file issues <a href="https://github.com/DEGoodmanWilson/conan-inja/issues">here</a> if you experience problems with the packages.</p>
+<p>You can also integrate inja in your project using <a href="https://github.com/cpp-pm/hunter">Hunter</a>, a package manager for C++.</p>
+<p>If you are using <a href="https://github.com/Microsoft/vcpkg">vcpkg</a> on your project for external dependencies, then you can use the <a href="https://github.com/Microsoft/vcpkg/tree/master/ports/inja">inja package</a>. Please see the vcpkg project for any issues regarding the packaging.</p>
+<p>If you are using <a href="https://cget.readthedocs.io/en/latest/">cget</a>, you can install the latest development version with <code>cget install pantor/inja</code>. A specific version can be installed with <code>cget install pantor/inja@v2.1.0</code>.</p>
+<p>On macOS, you can install inja via <a href="https://formulae.brew.sh/formula/inja#default">Homebrew</a> and <code>brew install inja</code>.</p>
+<p>If you are using <a href="https://docs.conda.io/en/latest/">conda</a>, you can install the latest version from <a href="https://anaconda.org/conda-forge/inja">conda-forge</a> with <code>conda install -c conda-forge inja</code>.</p>
+<h2 id="tutorial">Tutorial</h2>
+<p>This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the <a href="https://pantor.github.io/inja">documentation</a>.</p>
+<h3 id="template-rendering">Template Rendering</h3>
+<p>The basic template rendering takes a template as a <code>std::string</code> and a <code>json</code> object for all data. It returns the rendered template as an <code>std::string</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a>json data;</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a>data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;world&quot;</span>;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> name </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// Returns std::string &quot;Hello world!&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a>render_to(<span class="bu">std::</span>cout, <span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> name </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// Writes &quot;Hello world!&quot; to stream</span></span></code></pre></div>
+<p>For more advanced usage, an environment is recommended.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a>Environment env;</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="co">// Render a string with json data</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="bu">std::</span>string result = env.render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> name </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// &quot;Hello world!&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="co">// Or directly read a template file</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>Template temp = env.parse_template(<span class="st">&quot;./templates/greeting.txt&quot;</span>);</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a><span class="bu">std::</span>string result = env.render(temp, data); <span class="co">// &quot;Hello world!&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>data[<span class="st">&quot;name&quot;</span>] = <span class="st">&quot;Inja&quot;</span>;</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="bu">std::</span>string result = env.render(temp, data); <span class="co">// &quot;Hello Inja!&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a><span class="co">// Or read the template file (and/or the json file) directly from the environment</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>result = env.render_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, data);</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>result = env.render_file_with_json_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, <span class="st">&quot;./data.json&quot;</span>);</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a><span class="co">// Or write a rendered template file</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>env.write(temp, data, <span class="st">&quot;./result.txt&quot;</span>);</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a>env.write_with_json_file(<span class="st">&quot;./templates/greeting.txt&quot;</span>, <span class="st">&quot;./data.json&quot;</span>, <span class="st">&quot;./result.txt&quot;</span>);</span></code></pre></div>
+<p>The environment class can be configured to your needs.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">// With default settings</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>Environment env_default;</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="co">// With global path to template files and where files will be saved</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>Environment env_1 {<span class="st">&quot;../path/templates/&quot;</span>};</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="co">// With separate input and output path</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a>Environment env_2 {<span class="st">&quot;../path/templates/&quot;</span>, <span class="st">&quot;../path/results/&quot;</span>};</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a><span class="co">// With other opening and closing strings (here the defaults)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>env.set_expression(<span class="st">&quot;</span><span class="sc">{{</span><span class="st">&quot;</span>, <span class="st">&quot;</span><span class="sc">}}</span><span class="st">&quot;</span>); <span class="co">// Expressions</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>env.set_comment(<span class="st">&quot;{#&quot;</span>, <span class="st">&quot;#}&quot;</span>); <span class="co">// Comments</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>env.set_statement(<span class="st">&quot;{%&quot;</span>, <span class="st">&quot;%}&quot;</span>); <span class="co">// Statements {% %} for many things, see below</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>env.set_line_statement(<span class="st">&quot;##&quot;</span>); <span class="co">// Line statements ## (just an opener)</span></span></code></pre></div>
+<h3 id="variables">Variables</h3>
+<p>Variables are rendered within the <code>{{ ... }}</code> expressions.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>json data;</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>data[<span class="st">&quot;neighbour&quot;</span>] = <span class="st">&quot;Peter&quot;</span>;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>data[<span class="st">&quot;guests&quot;</span>] = {<span class="st">&quot;Jeff&quot;</span>, <span class="st">&quot;Tom&quot;</span>, <span class="st">&quot;Patrick&quot;</span>};</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>data[<span class="st">&quot;time&quot;</span>][<span class="st">&quot;start&quot;</span>] = <span class="dv">16</span>;</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a>data[<span class="st">&quot;time&quot;</span>][<span class="st">&quot;end&quot;</span>] = <span class="dv">22</span>;</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="co">// Indexing in array</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> guests.1 </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;Tom&quot;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a><span class="co">// Objects</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> time.start </span><span class="sc">}}</span><span class="st"> to </span><span class="sc">{{</span><span class="st"> time.end + 1 </span><span class="sc">}}</span><span class="st">pm&quot;</span>, data); <span class="co">// &quot;16 to 23pm&quot;</span></span></code></pre></div>
+<p>If no variable is found, valid JSON is printed directly, otherwise an <code>inja::RenderError</code> is thrown.</p>
+<h3 id="statements">Statements</h3>
+<p>Statements can be written either with the <code>{% ... %}</code> syntax or the <code>##</code> syntax for entire lines. Note that <code>##</code> needs to start the line without indentation. The most important statements are loops, conditions and file includes. All statements can be nested.</p>
+<h4 id="loops">Loops</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="co">// Combining loops and line statements</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>render(<span class="st">R&quot;(Guest List:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="st">## for guest in guests</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="st">    {{ loop.index1 }}: {{ guest }}</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="st">## endfor )&quot;</span>, data)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a><span class="co">/* Guest List:</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a><span class="co">    1: Jeff</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="co">    2: Tom</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a><span class="co">    3: Patrick */</span></span></code></pre></div>
+<p>In a loop, the special variables <code>loop/index (number)</code>, <code>loop/index1 (number)</code>, <code>loop/is_first (boolean)</code> and <code>loop/is_last (boolean)</code> are defined. In nested loops, the parent loop variables are available e.g. via <code>loop/parent/index</code>. You can also iterate over objects like <code>{% for key, value in time %}</code>.</p>
+<h4 id="conditions">Conditions</h4>
+<p>Conditions support the typical if, else if and else statements. Following conditions are for example possible:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co">// Standard comparisons with a variable</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">f time.hour &gt;= 20 %}Serve{</span><span class="sc">% e</span><span class="st">lse if time.hour &gt;= 18 %}Make{</span><span class="sc">% e</span><span class="st">ndif %} dinner.&quot;</span>, data); <span class="co">// Serve dinner.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="co">// Variable in list</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">f neighbour in guests %}Turn up the music!{</span><span class="sc">% e</span><span class="st">ndif %}&quot;</span>, data); <span class="co">// Turn up the music!</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="co">// Logical operations</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">f guest_count &lt; (3+2) and all_tired %}Sleepy...{</span><span class="sc">% e</span><span class="st">lse %}Keep going...{</span><span class="sc">% e</span><span class="st">ndif %}&quot;</span>, data); <span class="co">// Sleepy...</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a><span class="co">// Negations</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">f not guest_count %}The End{</span><span class="sc">% e</span><span class="st">ndif %}&quot;</span>, data); <span class="co">// The End</span></span></code></pre></div>
+<h4 id="includes">Includes</h4>
+<p>You can either include other in-memory templates or from the file system.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co">// To include in-memory templates, add them to the environment first</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>inja::Template content_template = env.parse(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> neighbour </span><span class="sc">}}</span><span class="st">!&quot;</span>);</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>env.include_template(<span class="st">&quot;content&quot;</span>, content_template);</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a>env.render(<span class="st">&quot;Content: {</span><span class="sc">% i</span><span class="st">nclude </span><span class="sc">\&quot;</span><span class="st">content</span><span class="sc">\&quot;</span><span class="st"> %}&quot;</span>, data); <span class="co">// &quot;Content: Hello Peter!&quot;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a><span class="co">// Other template files are included relative from the current file location</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">nclude </span><span class="sc">\&quot;</span><span class="st">footer.html</span><span class="sc">\&quot;</span><span class="st"> %}&quot;</span>, data);</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a><span class="co">// You can disable to search for templates in the file system via</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>env.set_search_included_templates_in_files(<span class="kw">false</span>);</span></code></pre></div>
+<p>Inja will throw an <code>inja::RenderError</code> if an included file is not found. To disable this error, you can call <code>env.set_throw_at_missing_includes(false)</code>.</p>
+<h4 id="assignments">Assignments</h4>
+<p>Variables can also be defined within the template using the set statment.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% s</span><span class="st">et new_hour=23 %}</span><span class="sc">{{</span><span class="st"> new_hour </span><span class="sc">}}</span><span class="st">pm&quot;</span>, data); <span class="co">// &quot;23pm&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% s</span><span class="st">et time.start=18 %}</span><span class="sc">{{</span><span class="st"> time.start </span><span class="sc">}}</span><span class="st">pm&quot;</span>, data); <span class="co">// using json pointers</span></span></code></pre></div>
+<p>Assignments only set the value within the rendering context; they do not modify the json object passed into the <code>render</code> call.</p>
+<h3 id="functions">Functions</h3>
+<p>A few functions are implemented within the inja template syntax. They can be called with</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">// Upper and lower function, for string cases</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> upper(neighbour) </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// &quot;Hello PETER!&quot;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> lower(neighbour) </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// &quot;Hello peter!&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a><span class="co">// Range function, useful for loops</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% f</span><span class="st">or i in range(4) %}</span><span class="sc">{{</span><span class="st"> loop.index1 </span><span class="sc">}}</span><span class="st">{</span><span class="sc">% e</span><span class="st">ndfor %}&quot;</span>, data); <span class="co">// &quot;1234&quot;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% f</span><span class="st">or i in range(3) %}</span><span class="sc">{{</span><span class="st"> at(guests, i) </span><span class="sc">}}</span><span class="st"> {</span><span class="sc">% e</span><span class="st">ndfor %}&quot;</span>, data); <span class="co">// &quot;Jeff Tom Patrick &quot;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a><span class="co">// Length function (please don&#39;t combine with range, use list directly...)</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>render(<span class="st">&quot;I count </span><span class="sc">{{</span><span class="st"> length(guests) </span><span class="sc">}}</span><span class="st"> guests.&quot;</span>, data); <span class="co">// &quot;I count 3 guests.&quot;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a><span class="co">// Get first and last element in a list</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> first(guests) </span><span class="sc">}}</span><span class="st"> was first.&quot;</span>, data); <span class="co">// &quot;Jeff was first.&quot;</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> last(guests) </span><span class="sc">}}</span><span class="st"> was last.&quot;</span>, data); <span class="co">// &quot;Patir was last.&quot;</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true"></a><span class="co">// Sort a list</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> sort([3,2,1]) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;[1,2,3]&quot;</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> sort(guests) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;[\&quot;Jeff\&quot;, \&quot;Patrick\&quot;, \&quot;Tom\&quot;]&quot;</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true"></a><span class="co">// Join a list with a separator</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> join([1,2,3], </span><span class="sc">\&quot;</span><span class="st"> + </span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;1 + 2 + 3&quot;</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> join(guests, </span><span class="sc">\&quot;</span><span class="st">, </span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;Jeff, Patrick, Tom&quot;</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true"></a><span class="co">// Round numbers to a given precision</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> round(3.1415, 0) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// 3</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> round(3.1415, 3) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// 3.142</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true"></a></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true"></a><span class="co">// Check if a value is odd, even or divisible by a number</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> odd(42) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// false</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> even(42) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// true</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> divisibleBy(42, 7) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// true</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true"></a><span class="co">// Maximum and minimum values from a list</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> max([1, 2, 3]) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// 3</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> min([-2.4, -1.2, 4.5]) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// -2.4</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true"></a></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true"></a><span class="co">// Convert strings to numbers</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> int(</span><span class="sc">\&quot;</span><span class="st">2</span><span class="sc">\&quot;</span><span class="st">) == 2 </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// true</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> float(</span><span class="sc">\&quot;</span><span class="st">1.8</span><span class="sc">\&quot;</span><span class="st">) &gt; 2 </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// false</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true"></a></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true"></a><span class="co">// Set default values if variables are not defined</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true"></a>render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> default(neighbour, </span><span class="sc">\&quot;</span><span class="st">my friend</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// &quot;Hello Peter!&quot;</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true"></a>render(<span class="st">&quot;Hello </span><span class="sc">{{</span><span class="st"> default(colleague, </span><span class="sc">\&quot;</span><span class="st">my friend</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">!&quot;</span>, data); <span class="co">// &quot;Hello my friend!&quot;</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true"></a></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true"></a><span class="co">// Access an objects value dynamically</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> at(time, </span><span class="sc">\&quot;</span><span class="st">start</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st"> to </span><span class="sc">{{</span><span class="st"> time.end </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;16 to 22&quot;</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true"></a></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true"></a><span class="co">// Check if a key exists in an object</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> exists(</span><span class="sc">\&quot;</span><span class="st">guests</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;true&quot;</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> exists(</span><span class="sc">\&quot;</span><span class="st">city</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;false&quot;</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> existsIn(time, </span><span class="sc">\&quot;</span><span class="st">start</span><span class="sc">\&quot;</span><span class="st">) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;true&quot;</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> existsIn(time, neighbour) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;false&quot;</span></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true"></a></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true"></a><span class="co">// Check if a key is a specific type</span></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> isString(neighbour) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;true&quot;</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true"></a>render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> isArray(guests) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;true&quot;</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true"></a><span class="co">// Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,</span></span></code></pre></div>
+<h3 id="callbacks">Callbacks</h3>
+<p>You can create your own and more complex functions with callbacks. These are implemented with <code>std::function</code>, so you can for example use C++ lambdas. Inja <code>Arguments</code> are a vector of json pointers.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a>Environment env;</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a><span class="co">/*</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a><span class="co"> * Callbacks are defined by its:</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a><span class="co"> * - name,</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="co"> * - (optional) number of arguments,</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a><span class="co"> * - callback function.</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a><span class="co"> */</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a>env.add_callback(<span class="st">&quot;double&quot;</span>, <span class="dv">1</span>, [](Arguments&amp; args) {</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>    <span class="dt">int</span> number = args.at(<span class="dv">0</span>)-&gt;get&lt;<span class="dt">int</span>&gt;(); <span class="co">// Adapt the index and type of the argument</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>    <span class="cf">return</span> <span class="dv">2</span> * number;</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true"></a>});</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true"></a><span class="co">// You can then use a callback like a regular function</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true"></a>env.render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> double(16) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;32&quot;</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true"></a><span class="co">// Inja falls back to variadic callbacks if the number of expected arguments is omitted.</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true"></a>env.add_callback(<span class="st">&quot;argmax&quot;</span>, [](Arguments&amp; args) {</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true"></a>  <span class="kw">auto</span> result = <span class="bu">std::</span>max_element(args.begin(), args.end(), [](<span class="at">const</span> json* a, <span class="at">const</span> json* b) { <span class="cf">return</span> *a &lt; *b;});</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true"></a>  <span class="cf">return</span> <span class="bu">std::</span>distance(args.begin(), result);</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true"></a>});</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true"></a>env.render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> argmax(4, 2, 6) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;2&quot;</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true"></a>env.render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> argmax(0, 2, 6, 8, 3) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;3&quot;</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true"></a><span class="co">// A callback without argument can be used like a dynamic variable:</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true"></a><span class="bu">std::</span>string greet = <span class="st">&quot;Hello&quot;</span>;</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true"></a>env.add_callback(<span class="st">&quot;double-greetings&quot;</span>, <span class="dv">0</span>, [greet](Arguments args) {</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true"></a>    <span class="cf">return</span> greet + <span class="st">&quot; &quot;</span> + greet + <span class="st">&quot;!&quot;</span>;</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true"></a>});</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true"></a>env.render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> double-greetings </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// &quot;Hello Hello!&quot;</span></span></code></pre></div>
+<p>You can also add a void callback without return variable, e.g. for debugging:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>env.add_void_callback(<span class="st">&quot;log&quot;</span>, <span class="dv">1</span>, [greet](Arguments args) {</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">&quot;logging: &quot;</span> &lt;&lt; args[<span class="dv">0</span>] &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a>});</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>env.render(<span class="st">&quot;</span><span class="sc">{{</span><span class="st"> log(neighbour) </span><span class="sc">}}</span><span class="st">&quot;</span>, data); <span class="co">// Prints nothing to result, only to cout...</span></span></code></pre></div>
+<h3 id="template-inheritance">Template Inheritance</h3>
+<p>Template inheritance allows you to build a base <em>skeleton</em> template that contains all the common elements and defines blocks that child templates can override. Lets show an example: The base template</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode .html"><code class="sourceCode djangotemplate"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a><span class="dt">&lt;!DOCTYPE </span>html<span class="dt">&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a><span class="kw">&lt;html&gt;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a><span class="kw">&lt;head&gt;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>  <span class="fu">{% block head %}</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>  <span class="kw">&lt;link</span><span class="ot"> rel=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> href=</span><span class="st">&quot;style.css&quot;</span> <span class="kw">/&gt;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true"></a>  <span class="kw">&lt;title&gt;</span><span class="fu">{% block title %}{% endblock %}</span> - My Webpage<span class="kw">&lt;/title&gt;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true"></a>  <span class="fu">{% endblock %}</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true"></a><span class="kw">&lt;/head&gt;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true"></a><span class="kw">&lt;body&gt;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true"></a>  <span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;content&quot;</span><span class="kw">&gt;</span><span class="fu">{% block content %}{% endblock %}</span><span class="kw">&lt;/div&gt;</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true"></a><span class="kw">&lt;/body&gt;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true"></a><span class="kw">&lt;/html&gt;</span></span></code></pre></div>
+<p>contains three <code>blocks</code> that child templates can fill in. The child template</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode .html"><code class="sourceCode djangotemplate"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="fu">{% extends </span><span class="st">&quot;base.html&quot;</span><span class="fu"> %}</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a><span class="fu">{% block title %}</span>Index<span class="fu">{% endblock %}</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a><span class="fu">{% block head %}</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a>  <span class="fu">{{ super() }}</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a>  <span class="kw">&lt;style</span><span class="ot"> type=</span><span class="st">&quot;text/css&quot;</span><span class="kw">&gt;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a>    <span class="fu">.important</span> { <span class="kw">color</span>: <span class="cn">#336699</span><span class="op">;</span> }</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true"></a>  <span class="kw">&lt;/style&gt;</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true"></a><span class="fu">{% </span><span class="er">endblock</span><span class="fu"> %}</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true"></a><span class="fu">{% block content %}</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true"></a>  <span class="kw">&lt;h1&gt;</span>Index<span class="kw">&lt;/h1&gt;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true"></a>  <span class="kw">&lt;p</span><span class="ot"> class=</span><span class="st">&quot;important&quot;</span><span class="kw">&gt;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true"></a>    Welcome to my blog!</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true"></a>  <span class="kw">&lt;/p&gt;</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true"></a><span class="fu">{% endblock %}</span></span></code></pre></div>
+<p>calls a parent template with the <code>extends</code> keyword; it should be the first element in the template. It is possible to render the contents of the parent block by calling <code>super()</code>. In the case of multiple levels of <code>{% extends %}</code>, super references may be called with an argument (e.g. <code>super(2)</code>) to skip levels in the inheritance tree.</p>
+<h3 id="whitespace-control">Whitespace Control</h3>
+<p>In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling <code>set_trim_blocks</code> removes the first newline after a statement, <code>set_lstrip_blocks</code> strips tabs and spaces from the beginning of a line to the start of a block.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a>Environment env;</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a>env.set_trim_blocks(<span class="kw">true</span>);</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a>env.set_lstrip_blocks(<span class="kw">true</span>);</span></code></pre></div>
+<p>With both <code>trim_blocks</code> and <code>lstrip_blocks</code> enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (<code>-</code>) to the start or end, the whitespaces before or after that block will be removed:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a>render(<span class="st">&quot;Hello       </span><span class="sc">{{</span><span class="st">- name -</span><span class="sc">}}</span><span class="st">     !&quot;</span>, data); <span class="co">// &quot;Hello Inja!&quot;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a>render(<span class="st">&quot;{</span><span class="sc">% i</span><span class="st">f neighbour in guests -%}   I was there{</span><span class="sc">% e</span><span class="st">ndif -%}   !&quot;</span>, data); <span class="co">// Renders without any whitespaces</span></span></code></pre></div>
+<p>Stripping behind a statement or expression also removes any newlines.</p>
+<h3 id="comments">Comments</h3>
+<p>Comments can be written with the <code>{# ... #}</code> syntax.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode .cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a>render(<span class="st">&quot;Hello{# Todo #}!&quot;</span>, data); <span class="co">// &quot;Hello!&quot;</span></span></code></pre></div>
+<h3 id="exceptions">Exceptions</h3>
+<p>Inja uses exceptions to handle ill-formed template input. However, exceptions can be switched off with either using the compiler flag <code>-fno-exceptions</code> or by defining the symbol <code>INJA_NOEXCEPTION</code>. In this case, exceptions are replaced by <code>abort()</code> calls.</p>
+<h2 id="supported-compilers">Supported compilers</h2>
+<p>Inja uses <code>string_view</code> from C++17, but includes the <a href="https://github.com/martinmoene/string-view-lite">polyfill</a> from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:</p>
+<ul>
+<li>GCC 5 - 11 (and possibly later)</li>
+<li>Clang 3.8 - 11 (and possibly later)</li>
+<li>Microsoft Visual C++ 2016 - 2019 (and possibly later)</li>
+</ul>
+<p>The unit tests fail to compile with GCC 4.8 but should just work fine. A complete list of supported compiler / os versions can be found in the <a href="https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml">CI definition</a>.</p>

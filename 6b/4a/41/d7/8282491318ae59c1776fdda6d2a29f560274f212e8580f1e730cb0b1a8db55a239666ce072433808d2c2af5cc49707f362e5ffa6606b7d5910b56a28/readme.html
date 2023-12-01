@@ -1,0 +1,1150 @@
+<h1 id="nghttp2---http2-c-library">nghttp2 - HTTP/2 C Library</h1>
+<p>This is an implementation of the Hypertext Transfer Protocol version 2 in C.</p>
+<p>The framing layer of HTTP/2 is implemented as a reusable C library. On top of that, we have implemented an HTTP/2 client, server and proxy. We have also developed load test and benchmarking tools for HTTP/2.</p>
+<p>An HPACK encoder and decoder are available as a public API.</p>
+<p>An experimental high level C++ library is also available.</p>
+<p>We have Python bindings of this library, but we do not have full code coverage yet.</p>
+<h2 id="development-status">Development Status</h2>
+<p>We have implemented <a href="https://tools.ietf.org/html/rfc7540">RFC 7540</a> HTTP/2 and <a href="https://tools.ietf.org/html/rfc7541">RFC 7541</a> HPACK -Header Compression for HTTP/2</p>
+<p>The nghttp2 code base was forked from the spdylay (<a href="https://github.com/tatsuhiro-t/spdylay">https://github.com/tatsuhiro-t/spdylay</a>) project.</p>
+<h2 id="public-test-server">Public Test Server</h2>
+<p>The following endpoints are available to try out our nghttp2 implementation.</p>
+<ul>
+<li><p><a href="https://nghttp2.org/">https://nghttp2.org/</a> (TLS + ALPN/NPN and HTTP/3)</p>
+<p>This endpoint supports <code>h2</code>, <code>h2-16</code>, <code>h2-14</code>, and <code>http/1.1</code> via ALPN/NPN and requires TLSv1.2 for HTTP/2 connection.</p>
+<p>It also supports HTTP/3.</p></li>
+<li><p><a href="http://nghttp2.org/">http://nghttp2.org/</a> (HTTP Upgrade and HTTP/2 Direct)</p>
+<p><code>h2c</code> and <code>http/1.1</code>.</p></li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<p>The following package is required to build the libnghttp2 library:</p>
+<ul>
+<li>pkg-config &gt;= 0.20</li>
+</ul>
+<p>To build and run the unit test programs, the following package is required:</p>
+<ul>
+<li>cunit &gt;= 2.1</li>
+</ul>
+<p>To build the documentation, you need to install:</p>
+<ul>
+<li>sphinx (<a href="http://sphinx-doc.org/">http://sphinx-doc.org/</a>)</li>
+</ul>
+<p>If you need libnghttp2 (C library) only, then the above packages are all you need. Use <code>--enable-lib-only</code> to ensure that only libnghttp2 is built. This avoids potential build error related to building bundled applications.</p>
+<p>To build and run the application programs (<code>nghttp</code>, <code>nghttpd</code>, <code>nghttpx</code> and <code>h2load</code>) in the <code>src</code> directory, the following packages are required:</p>
+<ul>
+<li>OpenSSL &gt;= 1.0.1</li>
+<li>libev &gt;= 4.11</li>
+<li>zlib &gt;= 1.2.3</li>
+<li>libc-ares &gt;= 1.7.5</li>
+</ul>
+<p>ALPN support requires OpenSSL &gt;= 1.0.2 (released 22 January 2015). LibreSSL &gt;= 2.2.0 can be used instead of OpenSSL, but OpenSSL has more features than LibreSSL at the time of this writing.</p>
+<p>To enable <code>-a</code> option (getting linked assets from the downloaded resource) in <code>nghttp</code>, the following package is required:</p>
+<ul>
+<li>libxml2 &gt;= 2.6.26</li>
+</ul>
+<p>To enable systemd support in nghttpx, the following package is required:</p>
+<ul>
+<li>libsystemd-dev &gt;= 209</li>
+</ul>
+<p>The HPACK tools require the following package:</p>
+<ul>
+<li>jansson &gt;= 2.5</li>
+</ul>
+<p>To build sources under the examples directory, libevent is required:</p>
+<ul>
+<li>libevent-openssl &gt;= 2.0.8</li>
+</ul>
+<p>To mitigate heap fragmentation in long running server programs (<code>nghttpd</code> and <code>nghttpx</code>), jemalloc is recommended:</p>
+<ul>
+<li><p>jemalloc</p>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>Alpine Linux currently does not support malloc replacement due to musl limitations. See details in issue <a href="https://github.com/nghttp2/nghttp2/issues/762">#762</a>.</p>
+</div></li>
+</ul>
+<p>libnghttp2_asio C++ library requires the following packages:</p>
+<ul>
+<li>libboost-dev &gt;= 1.54.0</li>
+<li>libboost-thread-dev &gt;= 1.54.0</li>
+</ul>
+<p>The Python bindings require the following packages:</p>
+<ul>
+<li>cython &gt;= 0.19</li>
+<li>python &gt;= 3.8</li>
+<li>python-setuptools</li>
+</ul>
+<p>If you are using Ubuntu 16.04 LTS (Xenial Xerus) or Debian 8 (jessie) and above, run the following to install the required packages:</p>
+<pre class="text"><code>sudo apt-get install g++ make binutils autoconf automake autotools-dev libtool pkg-config \
+  zlib1g-dev libcunit1-dev libssl-dev libxml2-dev libev-dev libevent-dev libjansson-dev \
+  libc-ares-dev libjemalloc-dev libsystemd-dev \
+  cython python3-dev python-setuptools</code></pre>
+<p>To enable mruby support for nghttpx, <a href="https://github.com/mruby/mruby">mruby</a> is required. We need to build mruby with C++ ABI explicitly turned on, and probably need other mrgems, mruby is manged by git submodule under third-party/mruby directory. Currently, mruby support for nghttpx is disabled by default. To enable mruby support, use <code>--with-mruby</code> configure option. Note that at the time of this writing, libmruby-dev and mruby packages in Debian/Ubuntu are not usable for nghttp2, since they do not enable C++ ABI. To build mruby, the following packages are required:</p>
+<ul>
+<li>ruby</li>
+<li>bison</li>
+</ul>
+<p>nghttpx supports <a href="https://github.com/h2o/neverbleed">neverbleed</a>, privilege separation engine for OpenSSL / LibreSSL. In short, it minimizes the risk of private key leakage when serious bug like Heartbleed is exploited. The neverbleed is disabled by default. To enable it, use <code>--with-neverbleed</code> configure option.</p>
+<p>To enable the experimental HTTP/3 support for h2load and nghttpx, the following libraries are required:</p>
+<ul>
+<li><a href="https://github.com/quictls/openssl/tree/OpenSSL_1_1_1k+quic">OpenSSL with QUIC support</a>; or <a href="https://boringssl.googlesource.com/boringssl/">BoringSSL</a> (commit f6ef1c560ae5af51e2df5d8d2175bed207b28b8f)</li>
+<li><a href="https://github.com/ngtcp2/ngtcp2">ngtcp2</a></li>
+<li><a href="https://github.com/ngtcp2/nghttp3">nghttp3</a></li>
+</ul>
+<p>Use <code>--enable-http3</code> configure option to enable HTTP/3 feature for h2load and nghttpx.</p>
+<p>In order to build optional eBPF program to direct an incoming QUIC UDP datagram to a correct socket for nghttpx, the following libraries are required:</p>
+<ul>
+<li>libbpf-dev &gt;= 0.4.0</li>
+</ul>
+<p>Use <code>--with-libbpf</code> configure option to build eBPF program. libelf-dev is needed to build libbpf.</p>
+<p>For Ubuntu 20.04, you can build libbpf from <a href="https://github.com/libbpf/libbpf/releases/tag/v0.4.0">the source code</a>. nghttpx requires eBPF program for reloading its configuration and hot swapping its executable.</p>
+<p>Compiling libnghttp2 C source code requires a C99 compiler. gcc 4.8 is known to be adequate. In order to compile the C++ source code, gcc &gt;= 6.0 or clang &gt;= 6.0 is required. C++ source code requires C++14 language features.</p>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>To enable mruby support in nghttpx, and use <code>--with-mruby</code> configure option.</p>
+</div>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>Mac OS X users may need the <code>--disable-threads</code> configure option to disable multi-threading in nghttpd, nghttpx and h2load to prevent them from crashing. A patch is welcome to make multi threading work on Mac OS X platform.</p>
+</div>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>To compile the associated applications (nghttp, nghttpd, nghttpx and h2load), you must use the <code>--enable-app</code> configure option and ensure that the specified requirements above are met. Normally, configure script checks required dependencies to build these applications, and enable <code>--enable-app</code> automatically, so you don't have to use it explicitly. But if you found that applications were not built, then using <code>--enable-app</code> may find that cause, such as the missing dependency.</p>
+</div>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>In order to detect third party libraries, pkg-config is used (however we don't use pkg-config for some libraries (e.g., libev)). By default, pkg-config searches <code>*.pc</code> file in the standard locations (e.g., /usr/lib/pkgconfig). If it is necessary to use <code>*.pc</code> file in the custom location, specify paths to <code>PKG_CONFIG_PATH</code> environment variable, and pass it to configure script, like so:</p>
+<pre class="text"><code>$ ./configure PKG_CONFIG_PATH=/path/to/pkgconfig</code></pre>
+<p>For pkg-config managed libraries, <code>*_CFLAG</code> and <code>*_LIBS</code> environment variables are defined (e.g., <code>OPENSSL_CFLAGS</code>, <code>OPENSSL_LIBS</code>). Specifying non-empty string to these variables completely overrides pkg-config. In other words, if they are specified, pkg-config is not used for detection, and user is responsible to specify the correct values to these variables. For complete list of these variables, run <code>./configure -h</code>.</p>
+</div>
+<h2 id="building-nghttp2-from-release-tar-archive">Building nghttp2 from release tar archive</h2>
+<p>The nghttp2 project regularly releases tar archives which includes nghttp2 source code, and generated build files. They can be downloaded from <a href="https://github.com/nghttp2/nghttp2/releases">Releases</a> page.</p>
+<p>Building nghttp2 from git requires autotools development packages. Building from tar archives does not require them, and thus it is much easier. The usual build step is as follows:</p>
+<pre class="text"><code>$ tar xf nghttp2-X.Y.Z.tar.bz2
+$ cd nghttp2-X.Y.Z
+$ ./configure
+$ make</code></pre>
+<h2 id="building-from-git">Building from git</h2>
+<p>Building from git is easy, but please be sure that at least autoconf 2.68 is used:</p>
+<pre class="text"><code>$ git submodule update --init
+$ autoreconf -i
+$ automake
+$ autoconf
+$ ./configure
+$ make</code></pre>
+<h2 id="notes-for-building-on-windows-msvc">Notes for building on Windows (MSVC)</h2>
+<p>The easiest way to build native Windows nghttp2 dll is use <a href="https://cmake.org/">cmake</a>. The free version of <a href="http://landinghub.visualstudio.com/visual-cpp-build-tools">Visual C++ Build Tools</a> works fine.</p>
+<ol type="1">
+<li>Install cmake for windows</li>
+<li>Open "Visual C++ ... Native Build Tool Command Prompt", and inside nghttp2 directly, run <code>cmake</code>.</li>
+<li>Then run <code>cmake --build</code> to build library.</li>
+<li>nghttp2.dll, nghttp2.lib, nghttp2.exp are placed under lib directory.</li>
+</ol>
+<p>Note that the above steps most likely produce nghttp2 library only. No bundled applications are compiled.</p>
+<h2 id="notes-for-building-on-windows-mingwcygwin">Notes for building on Windows (Mingw/Cygwin)</h2>
+<p>Under Mingw environment, you can only compile the library, it's <code>libnghttp2-X.dll</code> and <code>libnghttp2.a</code>.</p>
+<p>If you want to compile the applications(<code>h2load</code>, <code>nghttp</code>, <code>nghttpx</code>, <code>nghttpd</code>), you need to use the Cygwin environment.</p>
+<p>Under Cygwin environment, to compile the applications you need to compile and install the libev first.</p>
+<p>Secondly, you need to undefine the macro <code>__STRICT_ANSI__</code>, if you not, the functions <code>fdopen</code>, <code>fileno</code> and <code>strptime</code> will not available.</p>
+<p>the sample command like this:</p>
+<pre class="text"><code>$ export CFLAGS=&quot;-U__STRICT_ANSI__ -I$libev_PREFIX/include -L$libev_PREFIX/lib&quot;
+$ export CXXFLAGS=$CFLAGS
+$ ./configure
+$ make</code></pre>
+<p>If you want to compile the applications under <code>examples/</code>, you need to remove or rename the <code>event.h</code> from libev's installation, because it conflicts with libevent's installation.</p>
+<h2 id="notes-for-installation-on-linux-systems">Notes for installation on Linux systems</h2>
+<p>After installing nghttp2 tool suite with <code>make install</code> one might experience a similar error:</p>
+<pre class="text"><code>nghttpx: error while loading shared libraries: libnghttp2.so.14: cannot open shared object file: No such file or directory</code></pre>
+<p>This means that the tool is unable to locate the <code>libnghttp2.so</code> shared library.</p>
+<p>To update the shared library cache run <code>sudo ldconfig</code>.</p>
+<h2 id="building-the-documentation">Building the documentation</h2>
+<div class="note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>Documentation is still incomplete.</p>
+</div>
+<p>To build the documentation, run:</p>
+<pre class="text"><code>$ make html</code></pre>
+<p>The documents will be generated under <code>doc/manual/html/</code>.</p>
+<p>The generated documents will not be installed with <code>make install</code>.</p>
+<p>The online documentation is available at <a href="https://nghttp2.org/documentation/">https://nghttp2.org/documentation/</a></p>
+<h2 id="build-http3-enabled-h2load-and-nghttpx">Build HTTP/3 enabled h2load and nghttpx</h2>
+<p>To build h2load and nghttpx with HTTP/3 feature enabled, run the configure script with <code>--enable-http3</code>.</p>
+<p>For nghttpx to reload configurations and swapping its executable while gracefully terminating old worker processes, eBPF is required. Run the configure script with <code>--enable-http3 --with-libbpf</code> to build eBPF program. The QUIC keying material must be set with <code>--frontend-quic-secret-file</code> in order to keep the existing connections alive during reload.</p>
+<p>The detailed steps to build HTTP/3 enabled h2load and nghttpx follow.</p>
+<p>Build custom OpenSSL:</p>
+<pre class="text"><code>$ git clone --depth 1 -b OpenSSL_1_1_1l+quic https://github.com/quictls/openssl
+$ cd openssl
+$ ./config --prefix=$PWD/build --openssldir=/etc/ssl
+$ make -j$(nproc)
+$ make install_sw
+$ cd ..</code></pre>
+<p>Build nghttp3:</p>
+<pre class="text"><code>$ git clone --depth 1 https://github.com/ngtcp2/nghttp3
+$ cd nghttp3
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only
+$ make -j$(nproc)
+$ make install
+$ cd ..</code></pre>
+<p>Build ngtcp2:</p>
+<pre class="text"><code>$ git clone --depth 1 https://github.com/ngtcp2/ngtcp2
+$ cd ngtcp2
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only \
+      PKG_CONFIG_PATH=&quot;$PWD/../openssl/build/lib/pkgconfig&quot;
+$ make -j$(nproc)
+$ make install
+$ cd ..</code></pre>
+<p>If your Linux distribution does not have libbpf-dev &gt;= 0.4.0, build from source:</p>
+<pre class="text"><code>$ git clone --depth 1 -b v0.4.0 https://github.com/libbpf/libbpf
+$ cd libbpf
+$ PREFIX=$PWD/build make -C src install
+$ cd ..</code></pre>
+<p>Build nghttp2:</p>
+<pre class="text"><code>$ git clone https://github.com/nghttp2/nghttp2
+$ cd nghttp2
+$ git submodule update --init
+$ autoreconf -i
+$ ./configure --with-mruby --with-neverbleed --enable-http3 --with-libbpf \
+      --disable-python-bindings \
+      CC=clang-12 CXX=clang++-12 \
+      PKG_CONFIG_PATH=&quot;$PWD/../openssl/build/lib/pkgconfig:$PWD/../nghttp3/build/lib/pkgconfig:$PWD/../ngtcp2/build/lib/pkgconfig:$PWD/../libbpf/build/lib64/pkgconfig&quot; \
+      LDFLAGS=&quot;$LDFLAGS -Wl,-rpath,$PWD/../openssl/build/lib -Wl,-rpath,$PWD/../libbpf/build/lib64&quot;
+$ make -j$(nproc)</code></pre>
+<p>The eBPF program <code>reuseport_kern.o</code> should be found under bpf directory. Pass <code>--quic-bpf-program-file=bpf/reuseport_kern.o</code> option to nghttpx to load it. See also <a href="https://nghttp2.org/documentation/nghttpx-howto.html#http-3">HTTP/3 section in nghttpx -HTTP/2 proxy - HOW-TO</a>.</p>
+<h2 id="unit-tests">Unit tests</h2>
+<p>Unit tests are done by simply running <code>make check</code>.</p>
+<h2 id="integration-tests">Integration tests</h2>
+<p>We have the integration tests for the nghttpx proxy server. The tests are written in the <a href="http://golang.org/">Go programming language</a> and uses its testing framework. We depend on the following libraries:</p>
+<ul>
+<li>golang.org/x/net/http2</li>
+<li>golang.org/x/net/websocket</li>
+<li><a href="https://github.com/tatsuhiro-t/go-nghttp2">https://github.com/tatsuhiro-t/go-nghttp2</a></li>
+</ul>
+<p>Go modules will download these dependencies automatically.</p>
+<p>To run the tests, run the following command under <code>integration-tests</code> directory:</p>
+<pre class="text"><code>$ make it</code></pre>
+<p>Inside the tests, we use port 3009 to run the test subject server.</p>
+<h2 id="migration-from-v0.7.15-or-earlier">Migration from v0.7.15 or earlier</h2>
+<p>nghttp2 v1.0.0 introduced several backward incompatible changes. In this section, we describe these changes and how to migrate to v1.0.0.</p>
+<h3 id="alpn-protocol-id-is-now-h2-and-h2c">ALPN protocol ID is now <code>h2</code> and <code>h2c</code></h3>
+<p>Previously we announced <code>h2-14</code> and <code>h2c-14</code>. v1.0.0 implements final protocol version, and we changed ALPN ID to <code>h2</code> and <code>h2c</code>. The macros <code>NGHTTP2_PROTO_VERSION_ID</code>, <code>NGHTTP2_PROTO_VERSION_ID_LEN</code>, <code>NGHTTP2_CLEARTEXT_PROTO_VERSION_ID</code>, and <code>NGHTTP2_CLEARTEXT_PROTO_VERSION_ID_LEN</code> have been updated to reflect this change.</p>
+<p>Basically, existing applications do not have to do anything, just recompiling is enough for this change.</p>
+<h3 id="use-word-client-magic-where-we-use-client-connection-preface">Use word "client magic" where we use "client connection preface"</h3>
+<p>We use "client connection preface" to mean first 24 bytes of client connection preface. This is technically not correct, since client connection preface is composed of 24 bytes client magic byte string followed by SETTINGS frame. For clarification, we call "client magic" for this 24 bytes byte string and updated API.</p>
+<ul>
+<li><code>NGHTTP2_CLIENT_CONNECTION_PREFACE</code> was replaced with <code>NGHTTP2_CLIENT_MAGIC</code>.</li>
+<li><code>NGHTTP2_CLIENT_CONNECTION_PREFACE_LEN</code> was replaced with <code>NGHTTP2_CLIENT_MAGIC_LEN</code>.</li>
+<li><code>NGHTTP2_BAD_PREFACE</code> was renamed as <code>NGHTTP2_BAD_CLIENT_MAGIC</code></li>
+</ul>
+<p>The already deprecated <code>NGHTTP2_CLIENT_CONNECTION_HEADER</code> and <code>NGHTTP2_CLIENT_CONNECTION_HEADER_LEN</code> were removed.</p>
+<p>If application uses these macros, just replace old ones with new ones. Since v1.0.0, client magic is sent by library (see next subsection), so client application may just remove these macro use.</p>
+<h3 id="client-magic-is-sent-by-library">Client magic is sent by library</h3>
+<p>Previously nghttp2 library did not send client magic, which is first 24 bytes byte string of client connection preface, and client applications have to send it by themselves. Since v1.0.0, client magic is sent by library via first call of <code>nghttp2_session_send()</code> or <code>nghttp2_session_mem_send()</code>.</p>
+<p>The client applications which send client magic must remove the relevant code.</p>
+<h3 id="remove-http-alternative-services-alt-svc-related-code">Remove HTTP Alternative Services (Alt-Svc) related code</h3>
+<p>Alt-Svc specification is not finalized yet. To make our API stable, we have decided to remove all Alt-Svc related API from nghttp2.</p>
+<ul>
+<li><code>NGHTTP2_EXT_ALTSVC</code> was removed.</li>
+<li><code>nghttp2_ext_altsvc</code> was removed.</li>
+</ul>
+<p>We have already removed the functionality of Alt-Svc in v0.7 series and they have been essentially noop. The application using these macro and struct, remove those lines.</p>
+<h3 id="use-nghttp2_error-in-nghttp2_on_invalid_frame_recv_callback">Use nghttp2_error in nghttp2_on_invalid_frame_recv_callback</h3>
+<p>Previously <code>nghttp2_on_invalid_frame_recv_cb_called</code> took the <code>error_code</code>, defined in <code>nghttp2_error_code</code>, as parameter. But they are not detailed enough to debug. Therefore, we decided to use more detailed <code>nghttp2_error</code> values instead.</p>
+<p>The application using this callback should update the callback signature. If it treats <code>error_code</code> as HTTP/2 error code, update the code so that it is treated as <code>nghttp2_error</code>.</p>
+<h3 id="receive-client-magic-by-default">Receive client magic by default</h3>
+<p>Previously nghttp2 did not process client magic (24 bytes byte string). To make it deal with it, we had to use <code>nghttp2_option_set_recv_client_preface()</code>. Since v1.0.0, nghttp2 processes client magic by default and <code>nghttp2_option_set_recv_client_preface()</code> was removed.</p>
+<p>Some application may want to disable this behaviour, so we added <code>nghttp2_option_set_no_recv_client_magic()</code> to achieve this.</p>
+<p>The application using <code>nghttp2_option_set_recv_client_preface()</code> with nonzero value, just remove it.</p>
+<p>The application using <code>nghttp2_option_set_recv_client_preface()</code> with zero value or not using it must use <code>nghttp2_option_set_no_recv_client_magic()</code> with nonzero value.</p>
+<h2 id="client-server-and-proxy-programs">Client, Server and Proxy programs</h2>
+<p>The <code>src</code> directory contains the HTTP/2 client, server and proxy programs.</p>
+<h3 id="nghttp---client">nghttp - client</h3>
+<p><code>nghttp</code> is a HTTP/2 client. It can connect to the HTTP/2 server with prior knowledge, HTTP Upgrade and NPN/ALPN TLS extension.</p>
+<p>It has verbose output mode for framing information. Here is sample output from <code>nghttp</code> client:</p>
+<pre class="text"><code>$ nghttp -nv https://nghttp2.org
+[  0.190] Connected
+The negotiated protocol: h2
+[  0.212] recv SETTINGS frame &lt;length=12, flags=0x00, stream_id=0&gt;
+      (niv=2)
+      [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+      [SETTINGS_INITIAL_WINDOW_SIZE(0x04):65535]
+[  0.212] send SETTINGS frame &lt;length=12, flags=0x00, stream_id=0&gt;
+      (niv=2)
+      [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+      [SETTINGS_INITIAL_WINDOW_SIZE(0x04):65535]
+[  0.212] send SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+      ; ACK
+      (niv=0)
+[  0.212] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=3&gt;
+      (dep_stream_id=0, weight=201, exclusive=0)
+[  0.212] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=5&gt;
+      (dep_stream_id=0, weight=101, exclusive=0)
+[  0.212] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=7&gt;
+      (dep_stream_id=0, weight=1, exclusive=0)
+[  0.212] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=9&gt;
+      (dep_stream_id=7, weight=1, exclusive=0)
+[  0.212] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=11&gt;
+      (dep_stream_id=3, weight=1, exclusive=0)
+[  0.212] send HEADERS frame &lt;length=39, flags=0x25, stream_id=13&gt;
+      ; END_STREAM | END_HEADERS | PRIORITY
+      (padlen=0, dep_stream_id=11, weight=16, exclusive=0)
+      ; Open new stream
+      :method: GET
+      :path: /
+      :scheme: https
+      :authority: nghttp2.org
+      accept: */*
+      accept-encoding: gzip, deflate
+      user-agent: nghttp2/1.0.1-DEV
+[  0.221] recv SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+      ; ACK
+      (niv=0)
+[  0.221] recv (stream_id=13) :method: GET
+[  0.221] recv (stream_id=13) :scheme: https
+[  0.221] recv (stream_id=13) :path: /stylesheets/screen.css
+[  0.221] recv (stream_id=13) :authority: nghttp2.org
+[  0.221] recv (stream_id=13) accept-encoding: gzip, deflate
+[  0.222] recv (stream_id=13) user-agent: nghttp2/1.0.1-DEV
+[  0.222] recv PUSH_PROMISE frame &lt;length=50, flags=0x04, stream_id=13&gt;
+      ; END_HEADERS
+      (padlen=0, promised_stream_id=2)
+[  0.222] recv (stream_id=13) :status: 200
+[  0.222] recv (stream_id=13) date: Thu, 21 May 2015 16:38:14 GMT
+[  0.222] recv (stream_id=13) content-type: text/html
+[  0.222] recv (stream_id=13) last-modified: Fri, 15 May 2015 15:38:06 GMT
+[  0.222] recv (stream_id=13) etag: W/&quot;555612de-19f6&quot;
+[  0.222] recv (stream_id=13) link: &lt;/stylesheets/screen.css&gt;; rel=preload; as=stylesheet
+[  0.222] recv (stream_id=13) content-encoding: gzip
+[  0.222] recv (stream_id=13) server: nghttpx nghttp2/1.0.1-DEV
+[  0.222] recv (stream_id=13) via: 1.1 nghttpx
+[  0.222] recv (stream_id=13) strict-transport-security: max-age=31536000
+[  0.222] recv HEADERS frame &lt;length=166, flags=0x04, stream_id=13&gt;
+      ; END_HEADERS
+      (padlen=0)
+      ; First response header
+[  0.222] recv DATA frame &lt;length=2601, flags=0x01, stream_id=13&gt;
+      ; END_STREAM
+[  0.222] recv (stream_id=2) :status: 200
+[  0.222] recv (stream_id=2) date: Thu, 21 May 2015 16:38:14 GMT
+[  0.222] recv (stream_id=2) content-type: text/css
+[  0.222] recv (stream_id=2) last-modified: Fri, 15 May 2015 15:38:06 GMT
+[  0.222] recv (stream_id=2) etag: W/&quot;555612de-9845&quot;
+[  0.222] recv (stream_id=2) content-encoding: gzip
+[  0.222] recv (stream_id=2) server: nghttpx nghttp2/1.0.1-DEV
+[  0.222] recv (stream_id=2) via: 1.1 nghttpx
+[  0.222] recv (stream_id=2) strict-transport-security: max-age=31536000
+[  0.222] recv HEADERS frame &lt;length=32, flags=0x04, stream_id=2&gt;
+      ; END_HEADERS
+      (padlen=0)
+      ; First push response header
+[  0.228] recv DATA frame &lt;length=8715, flags=0x01, stream_id=2&gt;
+      ; END_STREAM
+[  0.228] send GOAWAY frame &lt;length=8, flags=0x00, stream_id=0&gt;
+      (last_stream_id=2, error_code=NO_ERROR(0x00), opaque_data(0)=[])</code></pre>
+<p>The HTTP Upgrade is performed like so:</p>
+<pre class="text"><code>$ nghttp -nvu http://nghttp2.org
+[  0.011] Connected
+[  0.011] HTTP Upgrade request
+GET / HTTP/1.1
+Host: nghttp2.org
+Connection: Upgrade, HTTP2-Settings
+Upgrade: h2c
+HTTP2-Settings: AAMAAABkAAQAAP__
+Accept: */*
+User-Agent: nghttp2/1.0.1-DEV
+
+
+[  0.018] HTTP Upgrade response
+HTTP/1.1 101 Switching Protocols
+Connection: Upgrade
+Upgrade: h2c
+
+
+[  0.018] HTTP Upgrade success
+[  0.018] recv SETTINGS frame &lt;length=12, flags=0x00, stream_id=0&gt;
+      (niv=2)
+      [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+      [SETTINGS_INITIAL_WINDOW_SIZE(0x04):65535]
+[  0.018] send SETTINGS frame &lt;length=12, flags=0x00, stream_id=0&gt;
+      (niv=2)
+      [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+      [SETTINGS_INITIAL_WINDOW_SIZE(0x04):65535]
+[  0.018] send SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+      ; ACK
+      (niv=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=3&gt;
+      (dep_stream_id=0, weight=201, exclusive=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=5&gt;
+      (dep_stream_id=0, weight=101, exclusive=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=7&gt;
+      (dep_stream_id=0, weight=1, exclusive=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=9&gt;
+      (dep_stream_id=7, weight=1, exclusive=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=11&gt;
+      (dep_stream_id=3, weight=1, exclusive=0)
+[  0.018] send PRIORITY frame &lt;length=5, flags=0x00, stream_id=1&gt;
+      (dep_stream_id=11, weight=16, exclusive=0)
+[  0.019] recv (stream_id=1) :method: GET
+[  0.019] recv (stream_id=1) :scheme: http
+[  0.019] recv (stream_id=1) :path: /stylesheets/screen.css
+[  0.019] recv (stream_id=1) host: nghttp2.org
+[  0.019] recv (stream_id=1) user-agent: nghttp2/1.0.1-DEV
+[  0.019] recv PUSH_PROMISE frame &lt;length=49, flags=0x04, stream_id=1&gt;
+      ; END_HEADERS
+      (padlen=0, promised_stream_id=2)
+[  0.019] recv (stream_id=1) :status: 200
+[  0.019] recv (stream_id=1) date: Thu, 21 May 2015 16:39:16 GMT
+[  0.019] recv (stream_id=1) content-type: text/html
+[  0.019] recv (stream_id=1) content-length: 6646
+[  0.019] recv (stream_id=1) last-modified: Fri, 15 May 2015 15:38:06 GMT
+[  0.019] recv (stream_id=1) etag: &quot;555612de-19f6&quot;
+[  0.019] recv (stream_id=1) link: &lt;/stylesheets/screen.css&gt;; rel=preload; as=stylesheet
+[  0.019] recv (stream_id=1) accept-ranges: bytes
+[  0.019] recv (stream_id=1) server: nghttpx nghttp2/1.0.1-DEV
+[  0.019] recv (stream_id=1) via: 1.1 nghttpx
+[  0.019] recv HEADERS frame &lt;length=157, flags=0x04, stream_id=1&gt;
+      ; END_HEADERS
+      (padlen=0)
+      ; First response header
+[  0.019] recv DATA frame &lt;length=6646, flags=0x01, stream_id=1&gt;
+      ; END_STREAM
+[  0.019] recv (stream_id=2) :status: 200
+[  0.019] recv (stream_id=2) date: Thu, 21 May 2015 16:39:16 GMT
+[  0.019] recv (stream_id=2) content-type: text/css
+[  0.019] recv (stream_id=2) content-length: 38981
+[  0.019] recv (stream_id=2) last-modified: Fri, 15 May 2015 15:38:06 GMT
+[  0.019] recv (stream_id=2) etag: &quot;555612de-9845&quot;
+[  0.019] recv (stream_id=2) accept-ranges: bytes
+[  0.019] recv (stream_id=2) server: nghttpx nghttp2/1.0.1-DEV
+[  0.019] recv (stream_id=2) via: 1.1 nghttpx
+[  0.019] recv HEADERS frame &lt;length=36, flags=0x04, stream_id=2&gt;
+      ; END_HEADERS
+      (padlen=0)
+      ; First push response header
+[  0.026] recv DATA frame &lt;length=16384, flags=0x00, stream_id=2&gt;
+[  0.027] recv DATA frame &lt;length=7952, flags=0x00, stream_id=2&gt;
+[  0.027] send WINDOW_UPDATE frame &lt;length=4, flags=0x00, stream_id=0&gt;
+      (window_size_increment=33343)
+[  0.032] send WINDOW_UPDATE frame &lt;length=4, flags=0x00, stream_id=2&gt;
+      (window_size_increment=33707)
+[  0.032] recv DATA frame &lt;length=14645, flags=0x01, stream_id=2&gt;
+      ; END_STREAM
+[  0.032] recv SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+      ; ACK
+      (niv=0)
+[  0.032] send GOAWAY frame &lt;length=8, flags=0x00, stream_id=0&gt;
+      (last_stream_id=2, error_code=NO_ERROR(0x00), opaque_data(0)=[])</code></pre>
+<p>Using the <code>-s</code> option, <code>nghttp</code> prints out some timing information for requests, sorted by completion time:</p>
+<pre class="text"><code>$ nghttp -nas https://nghttp2.org/
+***** Statistics *****
+
+Request timing:
+  responseEnd: the  time  when  last  byte of  response  was  received
+               relative to connectEnd
+ requestStart: the time  just before  first byte  of request  was sent
+               relative  to connectEnd.   If  &#39;*&#39; is  shown, this  was
+               pushed by server.
+      process: responseEnd - requestStart
+         code: HTTP status code
+         size: number  of  bytes  received as  response  body  without
+               inflation.
+          URI: request URI
+
+see http://www.w3.org/TR/resource-timing/#processing-model
+
+sorted by &#39;complete&#39;
+
+id  responseEnd requestStart  process code size request path
+ 13    +37.19ms       +280us  36.91ms  200   2K /
+  2    +72.65ms *   +36.38ms  36.26ms  200   8K /stylesheets/screen.css
+ 17    +77.43ms     +38.67ms  38.75ms  200   3K /javascripts/octopress.js
+ 15    +78.12ms     +38.66ms  39.46ms  200   3K /javascripts/modernizr-2.0.js</code></pre>
+<p>Using the <code>-r</code> option, <code>nghttp</code> writes more detailed timing data to the given file in HAR format.</p>
+<h3 id="nghttpd---server">nghttpd - server</h3>
+<p><code>nghttpd</code> is a multi-threaded static web server.</p>
+<p>By default, it uses SSL/TLS connection. Use <code>--no-tls</code> option to disable it.</p>
+<p><code>nghttpd</code> only accepts HTTP/2 connections via NPN/ALPN or direct HTTP/2 connections. No HTTP Upgrade is supported.</p>
+<p>The <code>-p</code> option allows users to configure server push.</p>
+<p>Just like <code>nghttp</code>, it has a verbose output mode for framing information. Here is sample output from <code>nghttpd</code>:</p>
+<pre class="text"><code>$ nghttpd --no-tls -v 8080
+IPv4: listen 0.0.0.0:8080
+IPv6: listen :::8080
+[id=1] [  1.521] send SETTINGS frame &lt;length=6, flags=0x00, stream_id=0&gt;
+          (niv=1)
+          [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+[id=1] [  1.521] recv SETTINGS frame &lt;length=12, flags=0x00, stream_id=0&gt;
+          (niv=2)
+          [SETTINGS_MAX_CONCURRENT_STREAMS(0x03):100]
+          [SETTINGS_INITIAL_WINDOW_SIZE(0x04):65535]
+[id=1] [  1.521] recv SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+          ; ACK
+          (niv=0)
+[id=1] [  1.521] recv PRIORITY frame &lt;length=5, flags=0x00, stream_id=3&gt;
+          (dep_stream_id=0, weight=201, exclusive=0)
+[id=1] [  1.521] recv PRIORITY frame &lt;length=5, flags=0x00, stream_id=5&gt;
+          (dep_stream_id=0, weight=101, exclusive=0)
+[id=1] [  1.521] recv PRIORITY frame &lt;length=5, flags=0x00, stream_id=7&gt;
+          (dep_stream_id=0, weight=1, exclusive=0)
+[id=1] [  1.521] recv PRIORITY frame &lt;length=5, flags=0x00, stream_id=9&gt;
+          (dep_stream_id=7, weight=1, exclusive=0)
+[id=1] [  1.521] recv PRIORITY frame &lt;length=5, flags=0x00, stream_id=11&gt;
+          (dep_stream_id=3, weight=1, exclusive=0)
+[id=1] [  1.521] recv (stream_id=13) :method: GET
+[id=1] [  1.521] recv (stream_id=13) :path: /
+[id=1] [  1.521] recv (stream_id=13) :scheme: http
+[id=1] [  1.521] recv (stream_id=13) :authority: localhost:8080
+[id=1] [  1.521] recv (stream_id=13) accept: */*
+[id=1] [  1.521] recv (stream_id=13) accept-encoding: gzip, deflate
+[id=1] [  1.521] recv (stream_id=13) user-agent: nghttp2/1.0.0-DEV
+[id=1] [  1.521] recv HEADERS frame &lt;length=41, flags=0x25, stream_id=13&gt;
+          ; END_STREAM | END_HEADERS | PRIORITY
+          (padlen=0, dep_stream_id=11, weight=16, exclusive=0)
+          ; Open new stream
+[id=1] [  1.521] send SETTINGS frame &lt;length=0, flags=0x01, stream_id=0&gt;
+          ; ACK
+          (niv=0)
+[id=1] [  1.521] send HEADERS frame &lt;length=86, flags=0x04, stream_id=13&gt;
+          ; END_HEADERS
+          (padlen=0)
+          ; First response header
+          :status: 200
+          server: nghttpd nghttp2/1.0.0-DEV
+          content-length: 10
+          cache-control: max-age=3600
+          date: Fri, 15 May 2015 14:49:04 GMT
+          last-modified: Tue, 30 Sep 2014 12:40:52 GMT
+[id=1] [  1.522] send DATA frame &lt;length=10, flags=0x01, stream_id=13&gt;
+          ; END_STREAM
+[id=1] [  1.522] stream_id=13 closed
+[id=1] [  1.522] recv GOAWAY frame &lt;length=8, flags=0x00, stream_id=0&gt;
+          (last_stream_id=0, error_code=NO_ERROR(0x00), opaque_data(0)=[])
+[id=1] [  1.522] closed</code></pre>
+<h3 id="nghttpx---proxy">nghttpx - proxy</h3>
+<p><code>nghttpx</code> is a multi-threaded reverse proxy for HTTP/3, HTTP/2, and HTTP/1.1, and powers <a href="http://nghttp2.org">http://nghttp2.org</a> and supports HTTP/2 server push.</p>
+<p>We reworked <code>nghttpx</code> command-line interface, and as a result, there are several incompatibles from 1.8.0 or earlier. This is necessary to extend its capability, and secure the further feature enhancements in the future release. Please read <a href="https://nghttp2.org/documentation/nghttpx-howto.html#migration-from-nghttpx-v1-8-0-or-earlier">Migration from nghttpx v1.8.0 or earlier</a> to know how to migrate from earlier releases.</p>
+<p><code>nghttpx</code> implements <a href="https://istlsfastyet.com/#server-performance">important performance-oriented features</a> in TLS, such as session IDs, session tickets (with automatic key rotation), OCSP stapling, dynamic record sizing, ALPN/NPN, forward secrecy and HTTP/2. <code>nghttpx</code> also offers the functionality to share session cache and ticket keys among multiple <code>nghttpx</code> instances via memcached.</p>
+<p><code>nghttpx</code> has 2 operation modes:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Mode option</th>
+<th>Frontend</th>
+<th>Backend</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>default mode</td>
+<td>HTTP/3, HTTP/2, HTTP/1.1</td>
+<td>HTTP/1.1, HTTP/2</td>
+<td>Reverse proxy</td>
+</tr>
+<tr class="even">
+<td><code>--http2-proxy</code></td>
+<td>HTTP/3, HTTP/2, HTTP/1.1</td>
+<td>HTTP/1.1, HTTP/2</td>
+<td>Forward proxy</td>
+</tr>
+</tbody>
+</table>
+<p>The interesting mode at the moment is the default mode. It works like a reverse proxy and listens for HTTP/3, HTTP/2, and HTTP/1.1 and can be deployed as a SSL/TLS terminator for existing web server.</p>
+<p>In all modes, the frontend connections are encrypted by SSL/TLS by default. To disable encryption, use the <code>no-tls</code> keyword in <code>--frontend</code> option. If encryption is disabled, incoming HTTP/1.1 connections can be upgraded to HTTP/2 through HTTP Upgrade. On the other hard, backend connections are not encrypted by default. To encrypt backend connections, use <code>tls</code> keyword in <code>--backend</code> option.</p>
+<p><code>nghttpx</code> supports a configuration file. See the <code>--conf</code> option and sample configuration file <code>nghttpx.conf.sample</code>.</p>
+<p>In the default mode, <code>nghttpx</code> works as reverse proxy to the backend server:</p>
+<pre class="text"><code>Client &lt;-- (HTTP/3, HTTP/2, HTTP/1.1) --&gt; nghttpx &lt;-- (HTTP/1.1, HTTP/2) --&gt; Web Server
+                                        [reverse proxy]</code></pre>
+<p>With the <code>--http2-proxy</code> option, it works as forward proxy, and it is so called secure HTTP/2 proxy:</p>
+<pre class="text"><code>Client &lt;-- (HTTP/3, HTTP/2, HTTP/1.1) --&gt; nghttpx &lt;-- (HTTP/1.1) --&gt; Proxy
+                                         [secure proxy]          (e.g., Squid, ATS)</code></pre>
+<p>The <code>Client</code> in the above example needs to be configured to use <code>nghttpx</code> as secure proxy.</p>
+<p>At the time of this writing, both Chrome and Firefox support secure HTTP/2 proxy. One way to configure Chrome to use a secure proxy is to create a proxy.pac script like this:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true"></a><span class="kw">function</span> <span class="fu">FindProxyForURL</span>(url<span class="op">,</span> host) {</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true"></a>    <span class="cf">return</span> <span class="st">&quot;HTTPS SERVERADDR:PORT&quot;</span><span class="op">;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true"></a>}</span></code></pre></div>
+<p><code>SERVERADDR</code> and <code>PORT</code> is the hostname/address and port of the machine nghttpx is running on. Please note that Chrome requires a valid certificate for secure proxy.</p>
+<p>Then run Chrome with the following arguments:</p>
+<pre class="text"><code>$ google-chrome --proxy-pac-url=file:///path/to/proxy.pac --use-npn</code></pre>
+<p>The backend HTTP/2 connections can be tunneled through an HTTP proxy. The proxy is specified using <code>--backend-http-proxy-uri</code>. The following figure illustrates how nghttpx talks to the outside HTTP/2 proxy through an HTTP proxy:</p>
+<pre class="text"><code>Client &lt;-- (HTTP/3, HTTP/2, HTTP/1.1) --&gt; nghttpx &lt;-- (HTTP/2) --
+
+        --===================---&gt; HTTP/2 Proxy
+          (HTTP proxy tunnel)     (e.g., nghttpx -s)</code></pre>
+<h2 id="benchmarking-tool">Benchmarking tool</h2>
+<p>The <code>h2load</code> program is a benchmarking tool for HTTP/3, HTTP/2, and HTTP/1.1. The UI of <code>h2load</code> is heavily inspired by <code>weighttp</code> (<a href="https://github.com/lighttpd/weighttp">https://github.com/lighttpd/weighttp</a>). The typical usage is as follows:</p>
+<pre class="text"><code>$ h2load -n100000 -c100 -m100 https://localhost:8443/
+starting benchmark...
+spawning thread #0: 100 concurrent clients, 100000 total requests
+Protocol: TLSv1.2
+Cipher: ECDHE-RSA-AES128-GCM-SHA256
+Server Temp Key: ECDH P-256 256 bits
+progress: 10% done
+progress: 20% done
+progress: 30% done
+progress: 40% done
+progress: 50% done
+progress: 60% done
+progress: 70% done
+progress: 80% done
+progress: 90% done
+progress: 100% done
+
+finished in 771.26ms, 129658 req/s, 4.71MB/s
+requests: 100000 total, 100000 started, 100000 done, 100000 succeeded, 0 failed, 0 errored
+status codes: 100000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 3812300 bytes total, 1009900 bytes headers, 1000000 bytes data
+                     min         max         mean         sd        +/- sd
+time for request:    25.12ms    124.55ms     51.07ms     15.36ms    84.87%
+time for connect:   208.94ms    254.67ms    241.38ms      7.95ms    63.00%
+time to 1st byte:   209.11ms    254.80ms    241.51ms      7.94ms    63.00%</code></pre>
+<p>The above example issued total 100,000 requests, using 100 concurrent clients (in other words, 100 HTTP/2 sessions), and a maximum of 100 streams per client. With the <code>-t</code> option, <code>h2load</code> will use multiple native threads to avoid saturating a single core on client side.</p>
+<div class="warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>Don't use this tool against publicly available servers.</strong> That is considered a DOS attack. Please only use it against your private servers.</p>
+</div>
+<p>If the experimental HTTP/3 is enabled, h2load can send requests to HTTP/3 server. To do this, specify <code>h3</code> to <code>--npn-list</code> option like so:</p>
+<pre class="text"><code>$ h2load --npn-list h3 https://127.0.0.1:4433</code></pre>
+<h2 id="hpack-tools">HPACK tools</h2>
+<p>The <code>src</code> directory contains the HPACK tools. The <code>deflatehd</code> program is a command-line header compression tool. The <code>inflatehd</code> program is a command-line header decompression tool. Both tools read input from stdin and write output to stdout. Errors are written to stderr. They take JSON as input and output. We (mostly) use the same JSON data format described at <a href="https://github.com/http2jp/hpack-test-case">https://github.com/http2jp/hpack-test-case</a>.</p>
+<h3 id="deflatehd---header-compressor">deflatehd - header compressor</h3>
+<p>The <code>deflatehd</code> program reads JSON data or HTTP/1-style header fields from stdin and outputs compressed header block in JSON.</p>
+<p>For the JSON input, the root JSON object must include a <code>cases</code> key. Its value has to include the sequence of input header set. They share the same compression context and are processed in the order they appear. Each item in the sequence is a JSON object and it must include a <code>headers</code> key. Its value is an array of JSON objects, which includes exactly one name/value pair.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a>  <span class="ot">[</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a>        <span class="fu">{</span> <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a>        <span class="fu">{</span> <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span> <span class="fu">}</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a>      <span class="ot">]</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true"></a>        <span class="fu">{</span> <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;POST&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true"></a>        <span class="fu">{</span> <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span> <span class="fu">}</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true"></a>      <span class="ot">]</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true"></a>  <span class="ot">]</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p>With the <code>-t</code> option, the program can accept more familiar HTTP/1 style header field blocks. Each header set is delimited by an empty line:</p>
+<p>Example:</p>
+<pre class="text"><code>:method: GET
+:scheme: https
+:path: /
+
+:method: POST
+user-agent: nghttp2</code></pre>
+<p>The output is in JSON object. It should include a <code>cases</code> key and its value is an array of JSON objects, which has at least the following keys:</p>
+<dl>
+<dt>seq</dt>
+<dd><p>The index of header set in the input.</p>
+</dd>
+<dt>input_length</dt>
+<dd><p>The sum of the length of the name/value pairs in the input.</p>
+</dd>
+<dt>output_length</dt>
+<dd><p>The length of the compressed header block.</p>
+</dd>
+<dt>percentage_of_original_size</dt>
+<dd><p><code>output_length</code> / <code>input_length</code> * 100</p>
+</dd>
+<dt>wire</dt>
+<dd><p>The compressed header block as a hex string.</p>
+</dd>
+<dt>headers</dt>
+<dd><p>The input header set.</p>
+</dd>
+<dt>header_table_size</dt>
+<dd><p>The header table size adjusted before deflating the header set.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a>  <span class="ot">[</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true"></a>      <span class="dt">&quot;input_length&quot;</span><span class="fu">:</span> <span class="dv">66</span><span class="fu">,</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true"></a>      <span class="dt">&quot;output_length&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true"></a>      <span class="dt">&quot;percentage_of_original_size&quot;</span><span class="fu">:</span> <span class="fl">30.303030303030305</span><span class="fu">,</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;01881f3468e5891afcbf83868a3d856659c62e3f&quot;</span><span class="fu">,</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true"></a>    <span class="ot">,</span></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true"></a>      <span class="dt">&quot;input_length&quot;</span><span class="fu">:</span> <span class="dv">74</span><span class="fu">,</span></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true"></a>      <span class="dt">&quot;output_length&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true"></a>      <span class="dt">&quot;percentage_of_original_size&quot;</span><span class="fu">:</span> <span class="fl">13.513513513513514</span><span class="fu">,</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;88448504252dd5918485&quot;</span><span class="fu">,</span></span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;POST&quot;</span></span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/account&quot;</span></span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb27-49"><a href="#cb27-49" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb27-50"><a href="#cb27-50" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb27-51"><a href="#cb27-51" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb27-52"><a href="#cb27-52" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb27-53"><a href="#cb27-53" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb27-54"><a href="#cb27-54" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb27-55"><a href="#cb27-55" aria-hidden="true"></a>  <span class="ot">]</span></span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p>The output can be used as the input for <code>inflatehd</code> and <code>deflatehd</code>.</p>
+<p>With the <code>-d</code> option, the extra <code>header_table</code> key is added and its associated value includes the state of dynamic header table after the corresponding header set was processed. The value includes at least the following keys:</p>
+<dl>
+<dt>entries</dt>
+<dd><p>The entry in the header table. If <code>referenced</code> is <code>true</code>, it is in the reference set. The <code>size</code> includes the overhead (32 bytes). The <code>index</code> corresponds to the index of header table. The <code>name</code> is the header field name and the <code>value</code> is the header field value.</p>
+</dd>
+<dt>size</dt>
+<dd><p>The sum of the spaces entries occupied, this includes the entry overhead.</p>
+</dd>
+<dt>max_size</dt>
+<dd><p>The maximum header table size.</p>
+</dd>
+<dt>deflate_size</dt>
+<dd><p>The sum of the spaces entries occupied within <code>max_deflate_size</code>.</p>
+</dd>
+<dt>max_deflate_size</dt>
+<dd><p>The maximum header table size the encoder uses. This can be smaller than <code>max_size</code>. In this case, the encoder only uses up to first <code>max_deflate_size</code> buffer. Since the header table size is still <code>max_size</code>, the encoder has to keep track of entries outside the <code>max_deflate_size</code> but inside the <code>max_size</code> and make sure that they are no longer referenced.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true"></a>  <span class="ot">[</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true"></a>      <span class="dt">&quot;input_length&quot;</span><span class="fu">:</span> <span class="dv">66</span><span class="fu">,</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true"></a>      <span class="dt">&quot;output_length&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true"></a>      <span class="dt">&quot;percentage_of_original_size&quot;</span><span class="fu">:</span> <span class="fl">30.303030303030305</span><span class="fu">,</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;01881f3468e5891afcbf83868a3d856659c62e3f&quot;</span><span class="fu">,</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span><span class="fu">,</span></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true"></a>      <span class="dt">&quot;header_table&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true"></a>        <span class="dt">&quot;entries&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;user-agent&quot;</span><span class="fu">,</span></span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span><span class="fu">,</span></span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">49</span></span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:scheme&quot;</span><span class="fu">,</span></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span><span class="fu">,</span></span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">44</span></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:path&quot;</span><span class="fu">,</span></span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span><span class="fu">,</span></span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">38</span></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:method&quot;</span><span class="fu">,</span></span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span><span class="fu">,</span></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">42</span></span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:authority&quot;</span><span class="fu">,</span></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span><span class="fu">,</span></span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">53</span></span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true"></a>          <span class="fu">}</span></span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true"></a>        <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">226</span><span class="fu">,</span></span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true"></a>        <span class="dt">&quot;max_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span><span class="fu">,</span></span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true"></a>        <span class="dt">&quot;deflate_size&quot;</span><span class="fu">:</span> <span class="dv">226</span><span class="fu">,</span></span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true"></a>        <span class="dt">&quot;max_deflate_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb28-70"><a href="#cb28-70" aria-hidden="true"></a>      <span class="fu">}</span></span>
+<span id="cb28-71"><a href="#cb28-71" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true"></a>    <span class="ot">,</span></span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb28-75"><a href="#cb28-75" aria-hidden="true"></a>      <span class="dt">&quot;input_length&quot;</span><span class="fu">:</span> <span class="dv">74</span><span class="fu">,</span></span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true"></a>      <span class="dt">&quot;output_length&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span></span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true"></a>      <span class="dt">&quot;percentage_of_original_size&quot;</span><span class="fu">:</span> <span class="fl">13.513513513513514</span><span class="fu">,</span></span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;88448504252dd5918485&quot;</span><span class="fu">,</span></span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;POST&quot;</span></span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/account&quot;</span></span>
+<span id="cb28-88"><a href="#cb28-88" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-89"><a href="#cb28-89" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-90"><a href="#cb28-90" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb28-91"><a href="#cb28-91" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-92"><a href="#cb28-92" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb28-93"><a href="#cb28-93" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb28-94"><a href="#cb28-94" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb28-95"><a href="#cb28-95" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb28-96"><a href="#cb28-96" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span><span class="fu">,</span></span>
+<span id="cb28-97"><a href="#cb28-97" aria-hidden="true"></a>      <span class="dt">&quot;header_table&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb28-98"><a href="#cb28-98" aria-hidden="true"></a>        <span class="dt">&quot;entries&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb28-99"><a href="#cb28-99" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-100"><a href="#cb28-100" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb28-101"><a href="#cb28-101" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:method&quot;</span><span class="fu">,</span></span>
+<span id="cb28-102"><a href="#cb28-102" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;POST&quot;</span><span class="fu">,</span></span>
+<span id="cb28-103"><a href="#cb28-103" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-104"><a href="#cb28-104" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">43</span></span>
+<span id="cb28-105"><a href="#cb28-105" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-106"><a href="#cb28-106" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-107"><a href="#cb28-107" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb28-108"><a href="#cb28-108" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;user-agent&quot;</span><span class="fu">,</span></span>
+<span id="cb28-109"><a href="#cb28-109" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span><span class="fu">,</span></span>
+<span id="cb28-110"><a href="#cb28-110" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-111"><a href="#cb28-111" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">49</span></span>
+<span id="cb28-112"><a href="#cb28-112" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-113"><a href="#cb28-113" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-114"><a href="#cb28-114" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb28-115"><a href="#cb28-115" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:scheme&quot;</span><span class="fu">,</span></span>
+<span id="cb28-116"><a href="#cb28-116" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span><span class="fu">,</span></span>
+<span id="cb28-117"><a href="#cb28-117" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-118"><a href="#cb28-118" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">44</span></span>
+<span id="cb28-119"><a href="#cb28-119" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-120"><a href="#cb28-120" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-121"><a href="#cb28-121" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb28-122"><a href="#cb28-122" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:path&quot;</span><span class="fu">,</span></span>
+<span id="cb28-123"><a href="#cb28-123" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span><span class="fu">,</span></span>
+<span id="cb28-124"><a href="#cb28-124" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb28-125"><a href="#cb28-125" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">38</span></span>
+<span id="cb28-126"><a href="#cb28-126" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-127"><a href="#cb28-127" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-128"><a href="#cb28-128" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb28-129"><a href="#cb28-129" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:method&quot;</span><span class="fu">,</span></span>
+<span id="cb28-130"><a href="#cb28-130" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span><span class="fu">,</span></span>
+<span id="cb28-131"><a href="#cb28-131" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb28-132"><a href="#cb28-132" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">42</span></span>
+<span id="cb28-133"><a href="#cb28-133" aria-hidden="true"></a>          <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-134"><a href="#cb28-134" aria-hidden="true"></a>          <span class="fu">{</span></span>
+<span id="cb28-135"><a href="#cb28-135" aria-hidden="true"></a>            <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">6</span><span class="fu">,</span></span>
+<span id="cb28-136"><a href="#cb28-136" aria-hidden="true"></a>            <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;:authority&quot;</span><span class="fu">,</span></span>
+<span id="cb28-137"><a href="#cb28-137" aria-hidden="true"></a>            <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span><span class="fu">,</span></span>
+<span id="cb28-138"><a href="#cb28-138" aria-hidden="true"></a>            <span class="dt">&quot;referenced&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb28-139"><a href="#cb28-139" aria-hidden="true"></a>            <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">53</span></span>
+<span id="cb28-140"><a href="#cb28-140" aria-hidden="true"></a>          <span class="fu">}</span></span>
+<span id="cb28-141"><a href="#cb28-141" aria-hidden="true"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb28-142"><a href="#cb28-142" aria-hidden="true"></a>        <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">269</span><span class="fu">,</span></span>
+<span id="cb28-143"><a href="#cb28-143" aria-hidden="true"></a>        <span class="dt">&quot;max_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span><span class="fu">,</span></span>
+<span id="cb28-144"><a href="#cb28-144" aria-hidden="true"></a>        <span class="dt">&quot;deflate_size&quot;</span><span class="fu">:</span> <span class="dv">269</span><span class="fu">,</span></span>
+<span id="cb28-145"><a href="#cb28-145" aria-hidden="true"></a>        <span class="dt">&quot;max_deflate_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb28-146"><a href="#cb28-146" aria-hidden="true"></a>      <span class="fu">}</span></span>
+<span id="cb28-147"><a href="#cb28-147" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb28-148"><a href="#cb28-148" aria-hidden="true"></a>  <span class="ot">]</span></span>
+<span id="cb28-149"><a href="#cb28-149" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="inflatehd---header-decompressor">inflatehd - header decompressor</h3>
+<p>The <code>inflatehd</code> program reads JSON data from stdin and outputs decompressed name/value pairs in JSON.</p>
+<p>The root JSON object must include the <code>cases</code> key. Its value has to include the sequence of compressed header blocks. They share the same compression context and are processed in the order they appear. Each item in the sequence is a JSON object and it must have at least a <code>wire</code> key. Its value is a compressed header block as a hex string.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a>  <span class="ot">[</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true"></a>    <span class="fu">{</span> <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;8285&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true"></a>    <span class="fu">{</span> <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;8583&quot;</span> <span class="fu">}</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true"></a>  <span class="ot">]</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p>The output is a JSON object. It should include a <code>cases</code> key and its value is an array of JSON objects, which has at least following keys:</p>
+<dl>
+<dt>seq</dt>
+<dd><p>The index of the header set in the input.</p>
+</dd>
+<dt>headers</dt>
+<dd><p>A JSON array that includes decompressed name/value pairs.</p>
+</dd>
+<dt>wire</dt>
+<dd><p>The compressed header block as a hex string.</p>
+</dd>
+<dt>header_table_size</dt>
+<dd><p>The header table size adjusted before inflating compressed header block.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a>  <span class="ot">[</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;01881f3468e5891afcbf83868a3d856659c62e3f&quot;</span><span class="fu">,</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;GET&quot;</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true"></a>    <span class="ot">,</span></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true"></a>    <span class="fu">{</span></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true"></a>      <span class="dt">&quot;seq&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true"></a>      <span class="dt">&quot;wire&quot;</span><span class="fu">:</span> <span class="st">&quot;88448504252dd5918485&quot;</span><span class="fu">,</span></span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true"></a>      <span class="dt">&quot;headers&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true"></a>          <span class="dt">&quot;:method&quot;</span><span class="fu">:</span> <span class="st">&quot;POST&quot;</span></span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true"></a>          <span class="dt">&quot;:path&quot;</span><span class="fu">:</span> <span class="st">&quot;/account&quot;</span></span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-37"><a href="#cb30-37" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true"></a>          <span class="dt">&quot;user-agent&quot;</span><span class="fu">:</span> <span class="st">&quot;nghttp2&quot;</span></span>
+<span id="cb30-39"><a href="#cb30-39" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-41"><a href="#cb30-41" aria-hidden="true"></a>          <span class="dt">&quot;:scheme&quot;</span><span class="fu">:</span> <span class="st">&quot;https&quot;</span></span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true"></a>        <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-43"><a href="#cb30-43" aria-hidden="true"></a>        <span class="fu">{</span></span>
+<span id="cb30-44"><a href="#cb30-44" aria-hidden="true"></a>          <span class="dt">&quot;:authority&quot;</span><span class="fu">:</span> <span class="st">&quot;example.org&quot;</span></span>
+<span id="cb30-45"><a href="#cb30-45" aria-hidden="true"></a>        <span class="fu">}</span></span>
+<span id="cb30-46"><a href="#cb30-46" aria-hidden="true"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb30-47"><a href="#cb30-47" aria-hidden="true"></a>      <span class="dt">&quot;header_table_size&quot;</span><span class="fu">:</span> <span class="dv">4096</span></span>
+<span id="cb30-48"><a href="#cb30-48" aria-hidden="true"></a>    <span class="fu">}</span></span>
+<span id="cb30-49"><a href="#cb30-49" aria-hidden="true"></a>  <span class="ot">]</span></span>
+<span id="cb30-50"><a href="#cb30-50" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p>The output can be used as the input for <code>deflatehd</code> and <code>inflatehd</code>.</p>
+<p>With the <code>-d</code> option, the extra <code>header_table</code> key is added and its associated value includes the state of the dynamic header table after the corresponding header set was processed. The format is the same as <code>deflatehd</code>.</p>
+<h2 id="libnghttp2_asio-high-level-http2-c-library">libnghttp2_asio: High level HTTP/2 C++ library</h2>
+<p>libnghttp2_asio is C++ library built on top of libnghttp2 and provides high level abstraction API to build HTTP/2 applications. It depends on the Boost::ASIO library and OpenSSL. Currently libnghttp2_asio provides both client and server APIs.</p>
+<p>libnghttp2_asio is not built by default. Use the <code>--enable-asio-lib</code> configure flag to build libnghttp2_asio. The required Boost libraries are:</p>
+<ul>
+<li>Boost::Asio</li>
+<li>Boost::System</li>
+<li>Boost::Thread</li>
+</ul>
+<p>The server API is designed to build an HTTP/2 server very easily to utilize C++14 anonymous functions and closures. The bare minimum example of an HTTP/2 server looks like this:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;nghttp2/asio_http2_server.h&gt;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> nghttp2::asio_http2;</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> nghttp2::asio_http2::server;</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true"></a>  <span class="ex">boost::</span>system<span class="ex">::</span>error_code ec;</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true"></a>  http2 server;</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true"></a>  server.handle(<span class="st">&quot;/&quot;</span>, [](<span class="at">const</span> request &amp;req, <span class="at">const</span> response &amp;res) {</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true"></a>    res.write_head(<span class="dv">200</span>);</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true"></a>    res.end(<span class="st">&quot;hello, world</span><span class="sc">\n</span><span class="st">&quot;</span>);</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true"></a>  });</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true"></a></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true"></a>  <span class="cf">if</span> (server.listen_and_serve(ec, <span class="st">&quot;localhost&quot;</span>, <span class="st">&quot;3000&quot;</span>)) {</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true"></a>    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;error: &quot;</span> &lt;&lt; ec.message() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true"></a>  }</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here is sample code to use the client API:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;nghttp2/asio_http2_client.h&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true"></a><span class="kw">using</span> <span class="ex">boost::</span>asio<span class="ex">::</span>ip<span class="ex">::</span>tcp;</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true"></a></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> nghttp2::asio_http2;</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> nghttp2::asio_http2::client;</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span> *argv[]) {</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true"></a>  <span class="ex">boost::</span>system<span class="ex">::</span>error_code ec;</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true"></a>  <span class="ex">boost::</span>asio<span class="ex">::</span>io_service io_service;</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true"></a></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true"></a>  <span class="co">// connect to localhost:3000</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true"></a>  session sess(io_service, <span class="st">&quot;localhost&quot;</span>, <span class="st">&quot;3000&quot;</span>);</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true"></a></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true"></a>  sess.on_connect([&amp;sess](tcp::resolver::iterator endpoint_it) {</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true"></a>    <span class="ex">boost::</span>system<span class="ex">::</span>error_code ec;</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true"></a></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true"></a>    <span class="kw">auto</span> req = sess.submit(ec, <span class="st">&quot;GET&quot;</span>, <span class="st">&quot;http://localhost:3000/&quot;</span>);</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true"></a></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true"></a>    req-&gt;on_response([](<span class="at">const</span> response &amp;res) {</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true"></a>      <span class="co">// print status code and response header fields.</span></span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true"></a>      <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;HTTP/2 &quot;</span> &lt;&lt; res.status_code() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true"></a>      <span class="cf">for</span> (<span class="kw">auto</span> &amp;kv : res.header()) {</span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; kv.first &lt;&lt; <span class="st">&quot;: &quot;</span> &lt;&lt; kv.second.value &lt;&lt; <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>;</span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true"></a>      }</span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true"></a>      <span class="bu">std::</span>cerr &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true"></a></span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true"></a>      res.on_data([](<span class="at">const</span> <span class="dt">uint8_t</span> *data, <span class="bu">std::</span>size_t len) {</span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true"></a>        <span class="bu">std::</span>cerr.write(<span class="kw">reinterpret_cast</span>&lt;<span class="at">const</span> <span class="dt">char</span> *&gt;(data), len);</span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true"></a>      });</span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true"></a>    });</span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true"></a></span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true"></a>    req-&gt;on_close([&amp;sess](<span class="dt">uint32_t</span> error_code) {</span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true"></a>      <span class="co">// shutdown session after first request was done.</span></span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true"></a>      sess.shutdown();</span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true"></a>    });</span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true"></a>  });</span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true"></a></span>
+<span id="cb32-42"><a href="#cb32-42" aria-hidden="true"></a>  sess.on_error([](<span class="at">const</span> <span class="ex">boost::</span>system<span class="ex">::</span>error_code &amp;ec) {</span>
+<span id="cb32-43"><a href="#cb32-43" aria-hidden="true"></a>    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">&quot;error: &quot;</span> &lt;&lt; ec.message() &lt;&lt; <span class="bu">std::</span>endl;</span>
+<span id="cb32-44"><a href="#cb32-44" aria-hidden="true"></a>  });</span>
+<span id="cb32-45"><a href="#cb32-45" aria-hidden="true"></a></span>
+<span id="cb32-46"><a href="#cb32-46" aria-hidden="true"></a>  io_service.run();</span>
+<span id="cb32-47"><a href="#cb32-47" aria-hidden="true"></a>}</span></code></pre></div>
+<p>For more details, see the documentation of libnghttp2_asio.</p>
+<h2 id="python-bindings">Python bindings</h2>
+<p>The <code>python</code> directory contains nghttp2 Python bindings. The bindings currently provide HPACK compressor and decompressor classes and an HTTP/2 server.</p>
+<p>The extension module is called <code>nghttp2</code>.</p>
+<p><code>make</code> will build the bindings and target Python version is determined by the <code>configure</code> script. If the detected Python version is not what you expect, specify a path to Python executable in a <code>PYTHON</code> variable as an argument to configure script (e.g., <code>./configure PYTHON=/usr/bin/python3.8</code>).</p>
+<p>The following example code illustrates basic usage of the HPACK compressor and decompressor in Python:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a><span class="im">import</span> binascii</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a><span class="im">import</span> nghttp2</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a>deflater <span class="op">=</span> nghttp2.HDDeflater()</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>inflater <span class="op">=</span> nghttp2.HDInflater()</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true"></a>data <span class="op">=</span> deflater.deflate([(b<span class="st">&#39;foo&#39;</span>, b<span class="st">&#39;bar&#39;</span>),</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true"></a>                         (b<span class="st">&#39;baz&#39;</span>, b<span class="st">&#39;buz&#39;</span>)])</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true"></a><span class="bu">print</span>(binascii.b2a_hex(data))</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true"></a>hdrs <span class="op">=</span> inflater.inflate(data)</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true"></a><span class="bu">print</span>(hdrs)</span></code></pre></div>
+<p>The <code>nghttp2.HTTP2Server</code> class builds on top of the asyncio event loop. On construction, <em>RequestHandlerClass</em> must be given, which must be a subclass of <code>nghttp2.BaseRequestHandler</code> class.</p>
+<p>The <code>BaseRequestHandler</code> class is used to handle the HTTP/2 stream. By default, it does nothing. It must be subclassed to handle each event callback method.</p>
+<p>The first callback method invoked is <code>on_headers()</code>. It is called when HEADERS frame, which includes the request header fields, has arrived.</p>
+<p>If the request has a request body, <code>on_data(data)</code> is invoked for each chunk of received data.</p>
+<p>Once the entire request is received, <code>on_request_done()</code> is invoked.</p>
+<p>When the stream is closed, <code>on_close(error_code)</code> is called.</p>
+<p>The application can send a response using <code>send_response()</code> method. It can be used in <code>on_headers()</code>, <code>on_data()</code> or <code>on_request_done()</code>.</p>
+<p>The application can push resources using the <code>push()</code> method. It must be used before the <code>send_response()</code> call.</p>
+<p>The following instance variables are available:</p>
+<dl>
+<dt>client_address</dt>
+<dd><p>Contains a tuple of the form (host, port) referring to the client's address.</p>
+</dd>
+<dt>stream_id</dt>
+<dd><p>Stream ID of this stream.</p>
+</dd>
+<dt>scheme</dt>
+<dd><p>Scheme of the request URI. This is a value of :scheme header field.</p>
+</dd>
+<dt>method</dt>
+<dd><p>Method of this stream. This is a value of :method header field.</p>
+</dd>
+<dt>host</dt>
+<dd><p>This is a value of :authority or host header field.</p>
+</dd>
+<dt>path</dt>
+<dd><p>This is a value of :path header field.</p>
+</dd>
+</dl>
+<p>The following example illustrates the HTTP2Server and BaseRequestHandler usage:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="co">#!/usr/bin/env python3</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="im">import</span> io, ssl</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a><span class="im">import</span> nghttp2</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true"></a><span class="kw">class</span> Handler(nghttp2.BaseRequestHandler):</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true"></a>    <span class="kw">def</span> on_headers(<span class="va">self</span>):</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true"></a>        <span class="va">self</span>.push(path<span class="op">=</span><span class="st">&#39;/css/bootstrap.css&#39;</span>,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true"></a>                  request_headers <span class="op">=</span> [(<span class="st">&#39;content-length&#39;</span>, <span class="st">&#39;3&#39;</span>)],</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true"></a>                  status<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true"></a>                  body<span class="op">=</span><span class="st">&#39;foo&#39;</span>)</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true"></a></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true"></a>        <span class="va">self</span>.push(path<span class="op">=</span><span class="st">&#39;/js/bootstrap.js&#39;</span>,</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true"></a>                  method<span class="op">=</span><span class="st">&#39;GET&#39;</span>,</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true"></a>                  request_headers <span class="op">=</span> [(<span class="st">&#39;content-length&#39;</span>, <span class="st">&#39;10&#39;</span>)],</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true"></a>                  status<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true"></a>                  body<span class="op">=</span><span class="st">&#39;foobarbuzz&#39;</span>)</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true"></a></span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true"></a>        <span class="va">self</span>.send_response(status<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true"></a>                           headers <span class="op">=</span> [(<span class="st">&#39;content-type&#39;</span>, <span class="st">&#39;text/plain&#39;</span>)],</span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true"></a>                           body<span class="op">=</span>io.BytesIO(b<span class="st">&#39;nghttp2-python FTW&#39;</span>))</span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true"></a></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true"></a>ctx <span class="op">=</span> ssl.SSLContext(ssl.PROTOCOL_SSLv23)</span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true"></a>ctx.options <span class="op">=</span> ssl.OP_ALL <span class="op">|</span> ssl.OP_NO_SSLv2</span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true"></a>ctx.load_cert_chain(<span class="st">&#39;server.crt&#39;</span>, <span class="st">&#39;server.key&#39;</span>)</span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true"></a></span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true"></a><span class="co"># give None to ssl to make the server non-SSL/TLS</span></span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true"></a>server <span class="op">=</span> nghttp2.HTTP2Server((<span class="st">&#39;127.0.0.1&#39;</span>, <span class="dv">8443</span>), Handler, ssl<span class="op">=</span>ctx)</span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true"></a>server.serve_forever()</span></code></pre></div>
+<h2 id="contribution">Contribution</h2>
+<p>[This text was composed based on 1.2. License section of curl/libcurl project.]</p>
+<p>When contributing with code, you agree to put your changes and new code under the same license nghttp2 is already using unless stated and agreed otherwise.</p>
+<p>When changing existing source code, do not alter the copyright of the original file(s). The copyright will still be owned by the original creator(s) or those who have been assigned copyright by the original author(s).</p>
+<p>By submitting a patch to the nghttp2 project, you (or your employer, as the case may be) agree to assign the copyright of your submission to us. .. the above really needs to be reworded to pass legal muster. We will credit you for your changes as far as possible, to give credit but also to keep a trace back to who made what changes. Please always provide us with your full real name when contributing!</p>
+<p>See <a href="https://nghttp2.org/documentation/contribute.html">Contribution Guidelines</a> for more details.</p>
+<h2 id="reporting-vulnerability">Reporting vulnerability</h2>
+<p>If you find a vulnerability in our software, please send the email to "tatsuhiro.t at gmail dot com" about its details instead of submitting issues on github issue page. It is a standard practice not to disclose vulnerability information publicly until a fixed version is released, or mitigation is worked out.</p>
+<p>In the future, we may setup a dedicated mail address for this purpose.</p>
+<h2 id="release-schedule">Release schedule</h2>
+<p>In general, we follow <a href="http://semver.org/">Semantic Versioning</a>. We release MINOR version update every month, and usually we ship it around 25th day of every month.</p>
+<p>We may release PATCH releases between the regular releases, mainly for severe security bug fixes.</p>
+<p>We have no plan to break API compatibility changes involving soname bump, so MAJOR version will stay 1 for the foreseeable future.</p>
+<h2 id="license">License</h2>
+<p>The MIT License</p>

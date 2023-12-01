@@ -1,0 +1,85 @@
+<h1 id="qt-visual-studio-tools">Qt Visual Studio Tools</h1>
+<p>The Qt Visual Studio Tools integrate the Qt development tools into Microsoft Visual Studio. This enables developers to use the standard Windows development environment without having to worry about Qt-related build steps or tools.</p>
+<h2 id="sources">Sources</h2>
+<p>Use Git to check out the <a href="https://code.qt.io/cgit/qt-labs/vstools.git">Qt Visual Studio Tools sources</a>, using one of the following options:</p>
+<pre><code>git clone git://code.qt.io/qt-labs/vstools.git
+
+git clone https://code.qt.io/qt-labs/vstools.git</code></pre>
+<p>Contributions to the Qt Visual Studio Tools project must be submitted to the <a href="https://codereview.qt-project.org/admin/repos/qt-labs/vstools"><code>qt-labs/vstools</code></a> Gerrit repository. For instructions on how to set up a Gerrit account and contribute to Qt projects, refer to the wiki page <a href="https://wiki.qt.io/Setting_up_Gerrit">“Setting up Gerrit”</a>.</p>
+<h2 id="qt-installation">Qt installation</h2>
+<p>To build the Qt Visual Studio Tools, an installation of Qt is required. The version of Qt that is currently supported is 5.12.9. Either build Qt from the sources available in the <a href="https://code.qt.io/cgit/qt/qt5.git/tag/?h=v5.12.9">Qt Project Git Repository Browser</a> or install a <a href="https://download.qt.io/official_releases/qt/5.12/5.12.9/">pre-built binary package</a>.</p>
+<h3 id="building-qt-from-sources">Building Qt from sources</h3>
+<p>See the <a href="https://wiki.qt.io/Building_Qt_5_from_Git#Windows">Qt documentation</a> for the prerequisites and steps to build Qt from sources.</p>
+<p>Recommended options for the <code>configure</code> tool:</p>
+<pre><code>configure -static -opensource -confirm-license -nomake examples -nomake tests -opengl desktop</code></pre>
+<p>Recommended options for <a href="https://wiki.qt.io/Jom">jom</a>:</p>
+<pre><code>jom module-qtbase module-qtdeclarative</code></pre>
+<h3 id="bit-or-64-bit">32-bit or 64-bit</h3>
+<p>Visual Studio 2022 is a 64-bit application, whereas VS 2019 and 2017 are 32-bit applications. The target platform for which Qt is built must reflect this:</p>
+<ul>
+<li><p>For Visual Studio 2022, use Qt built for the x64 platform.</p></li>
+<li><p>For Visual Studio 2019, use Qt built for the x86 platform.</p></li>
+<li><p>For Visual Studio 2017, use Qt built for the x86 platform.</p></li>
+</ul>
+<h2 id="build">Build</h2>
+<p>After cloning the repository, follow the instructions below to build the Qt Visual Studio Tools.</p>
+<h3 id="requirements">Requirements</h3>
+<p>The following is required in order to build the Qt Visual Studio solution:</p>
+<ul>
+<li>Visual Studio 2017, 2019 or 2022, with the following workloads:
+<ul>
+<li>Desktop development with C++</li>
+<li>.NET desktop development</li>
+<li><a href="https://docs.microsoft.com/en-us/visualstudio/extensibility/installing-the-visual-studio-sdk">Visual Studio extension development</a></li>
+<li><a href="https://devblogs.microsoft.com/cppblog/linux-development-with-c-in-visual-studio/">Linux development with C++</a></li>
+</ul></li>
+<li><a href="https://github.com/microsoft/vswhere"><code>vswhere</code> tool</a> (usually installed with Visual Studio):
+<ul>
+<li><a href="https://github.com/microsoft/vswhere/releases/tag/2.7.1">Version 2.7.1</a> or greater.</li>
+</ul></li>
+<li><code>git</code> must be installed and included in the <code>PATH</code> environment variable.</li>
+</ul>
+<h3 id="environment-variables">Environment variables</h3>
+<p>Set environment variables <code>QTBUILD_STATIC_VS</code><em><code>nnnn</code></em> according to the installed VS versions, i.e.: - <code>QTBUILD_STATIC_VS2017</code> = <em>path to Qt installation built with msvc2017</em> - <code>QTBUILD_STATIC_VS2019</code> = <em>path to Qt installation built with msvc2019</em> - <code>QTBUILD_STATIC_VS2022</code> = <em>path to Qt installation built with msvc2022</em></p>
+<p>For example, assuming Qt is installed in the following directory tree:</p>
+<pre><code>C:
++--- build
+     +--- qt_5.12.9_msvc2019_x86
+     |    +--- bin
+     |    +--- include
+     |    +--- lib
+     |    (etc.)
+     |
+     +--- qt_5.12.9_msvc2022_x64
+          +--- bin
+          +--- include
+          +--- lib
+          (etc.)</code></pre>
+<p>In this case, the following environment variables must be set:</p>
+<pre><code>QTBUILD_STATIC_VS2019=C:\build\qt_5.12.9_msvc2019_x86
+QTBUILD_STATIC_VS2022=C:\build\qt_5.12.9_msvc2022_x64</code></pre>
+<h3 id="initialization">Initialization</h3>
+<p>In a command prompt (a “regular” one, <em>not</em> a VS Developer/Native Tools prompt), <code>CD</code> to the root of the repository and run <code>vstools.bat</code> to initialize the solution and open it in Visual Studio, with the following arguments:</p>
+<pre><code>C:\...\vstools&gt; vstools -init -startvs</code></pre>
+<p>This will: - Delete all output files; - Restore NuGet packages; - Run an initial text template generation; - Open the solution in the VS IDE, ready to build/debug.</p>
+<p>This procedure must be repeated when opening the solution on another version of VS. For example, assuming VS 2022 and VS 2019 are installed, to open the solution in VS 2019 after it has already been initialized and used in VS 2022, run the following:</p>
+<pre><code>C:\...\vstools&gt; vstools -vs2019 -init -startvs</code></pre>
+<p>By default, if no VS version is specified, the most recent version is selected.</p>
+<h3 id="target-platform">Target platform</h3>
+<p>The solution platform must be set to <code>'x64'</code> for VS 2022, and <code>'x86'</code> or <code>'Any CPU'</code> for VS 2019 and VS 2017.</p>
+<h2 id="debug">Debug</h2>
+<p>To debug the Qt Visual Studio tools extension, the <code>QtVsTools.Package</code> project must be set as the startup project. Also, the target binary for the debug session must be set to the Visual Studio executable (<code>devenv.exe</code>), with the option to start an <a href="https://docs.microsoft.com/en-us/visualstudio/extensibility/the-experimental-instance">experimental instance</a>.</p>
+<p>Follow these instructions to configure the solution for debug:</p>
+<ul>
+<li>In the solution explorer: right-click QtVsTools.Package &gt; Set as startup</li>
+<li>In the solution explorer: right-click QtVsTools.Package &gt; Properties</li>
+<li>In the properties dialog: select the Debug page</li>
+<li>In the debug properties page, set the following options:
+<ul>
+<li><em>Start external program</em> = path to the Visual Studio executable (<code>devenv.exe</code>).</li>
+<li><em>Command line arguments</em> = <code>/rootSuffix Exp</code>.</li>
+</ul></li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<p>To build the Qt Visual Studio Tools documentation, run <code>qmake &amp;&amp; jom docs</code> from the root directory of the <code>vstools</code> repository. You need to have <code>qdoc</code> and friends built already.</p>
+<p>See the <a href="https://wiki.qt.io/Building_Qt_Documentation">Qt documentation</a> for the prerequisites and steps to build Qt documentation from sources.</p>
