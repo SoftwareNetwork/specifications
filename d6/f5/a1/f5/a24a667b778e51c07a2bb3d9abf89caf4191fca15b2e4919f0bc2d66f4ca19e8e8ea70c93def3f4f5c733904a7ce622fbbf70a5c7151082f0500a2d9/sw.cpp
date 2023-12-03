@@ -97,6 +97,10 @@ void build(Solution &s)
     {
         c_ares.Public += "HAVE_CLOSESOCKET"_d;
         c_ares.Public += "HAVE_IOCTLSOCKET_FIONBIO"_d;
+        c_ares += "USE_WINSOCK"_d;
+        c_ares += "_WIN32_WINNT=0x0600"_d;
+        c_ares += "HAVE_IPHLPAPI_H"_d;
+        c_ares += "HAVE_NETIOAPI_H"_d;
         c_ares += "Iphlpapi.lib"_slib;
     }
     else
@@ -207,6 +211,9 @@ void check(Checker &c)
     s.checkIncludeExists("netinet/in.h");
     s.checkIncludeExists("netinet/tcp.h");
     s.checkIncludeExists("net/if.h");
+    s.checkIncludeExists("netioapi.h").Parameters.Includes.push_back("iphlpapi.h");
+    s.checkIncludeExists("iphlpapi.h");
+    s.checkIncludeExists("ws2ipdef.h");
     s.checkIncludeExists("nghttp2/nghttp2.h");
     s.checkIncludeExists("openssl/crypto.h");
     s.checkIncludeExists("openssl/engine.h");
