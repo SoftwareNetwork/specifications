@@ -188,11 +188,13 @@ void build(Solution &s)
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
+            t -= "Source/cmDebuggerPosixPipeConnection.cxx";
             t += "WIN32_LEAN_AND_MEAN"_def;
             t.Variables["HAVE_ENVIRON_NOT_REQUIRE_PROTOTYPE"] = 1;
         }
         else
         {
+            t -= "Source/cmDebuggerWindowsPipeConnection.cxx";
             t -= "Source/cmVSSetupHelper.cxx";
             t -= "Source/.*VisualStudio.*"_r;
         }
