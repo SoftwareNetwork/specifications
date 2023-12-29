@@ -1,6 +1,6 @@
 void build(Solution &s)
 {
-    auto &t = s.addLibrary("jxl", "0.8.2");
+    auto &t = s.addLibrary("jxl", "0.9.0");
     t += Git("https://github.com/libjxl/libjxl", "v{v}");
 
     t += cpp11;
