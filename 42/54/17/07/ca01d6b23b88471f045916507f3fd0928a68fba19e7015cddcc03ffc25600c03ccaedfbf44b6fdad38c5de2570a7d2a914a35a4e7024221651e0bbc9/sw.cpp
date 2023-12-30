@@ -23,5 +23,8 @@ void build(Solution &s)
     t.Public += "org.sw.demo.amazon.awslabs.c_sdkutils"_dep;
 
     t.Variables["AWS_CRT_CPP_VERSION"] = t.Variables["PACKAGE_VERSION"];
+    t.Variables["PROJECT_VERSION_MAJOR"] = t.Variables["PACKAGE_VERSION_MAJOR"];
+    t.Variables["PROJECT_VERSION_MINOR"] = t.Variables["PACKAGE_VERSION_MINOR"];
+    t.Variables["PROJECT_VERSION_PATCH"] = t.Variables["PACKAGE_VERSION_PATCH"];
     t.configureFile("include/aws/crt/Config.h.in", "aws/crt/Config.h");
 }
