@@ -155,6 +155,7 @@ void check(Checker &c)
     //s.checkFunctionExists("getenv");
     s.checkFunctionExists("geteuid");
     s.checkFunctionExists("gethostbyname");
+    s.checkFunctionExists("getifaddrs");
     s.checkFunctionExists("getpass_r");
     s.checkFunctionExists("getppid");
     s.checkFunctionExists("getprotobyname");
@@ -200,6 +201,7 @@ void check(Checker &c)
     s.checkIncludeExists("gssapi/gssapi.h");
     s.checkIncludeExists("gssapi/gssapi_krb5.h");
     s.checkIncludeExists("idn2.h");
+    s.checkIncludeExists("ifaddrs.h");
     s.checkIncludeExists("inttypes.h");
     s.checkIncludeExists("io.h");
     s.checkIncludeExists("libgen.h");
