@@ -190,7 +190,7 @@ void build(Solution &s)
 
             glib.Variables["gintptr_modifier"] = "G_GINT64_MODIFIER";
             glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
-            glib.Variables["guintptr_format"] = "G_GINT64_CONSTANT(val)";
+            glib.Variables["guintptr_format"] = "G_GUINT64_FORMAT";
 
             glib.Variables["glib_os"] = "#define G_OS_UNIX";
             glib.Variables["g_threads_impl_def"] = "POSIX";
@@ -229,7 +229,7 @@ void build(Solution &s)
 
                 glib.Variables["gintptr_modifier"] = "G_GINT64_MODIFIER";
                 glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
-                glib.Variables["guintptr_format"] = "G_GINT64_CONSTANT(val)";
+                glib.Variables["guintptr_format"] = "G_GUINT64_FORMAT";
             }
             else
             {
@@ -238,7 +238,7 @@ void build(Solution &s)
 
                 glib.Variables["gintptr_modifier"] = "G_GINT32_MODIFIER";
                 glib.Variables["gintptr_format"] = "G_GINT32_FORMAT";
-                glib.Variables["guintptr_format"] = "G_GINT32_CONSTANT(val)";
+                glib.Variables["guintptr_format"] = "G_GUINT32_FORMAT";
             }
 
             glib.Variables["g_module_suffix"] = "dll";
@@ -787,6 +787,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
         {
             auto c = gio.addCommand();
             c << cmd::prog(PYTHON_DEP)
+                << cmd::dep("org.sw.demo.python.pypi.packaging"_dep)
                 << cmd::in("gio/gdbus-2.0/codegen/gdbus-codegen.in")
                 << "--interface-prefix" << "org."
                 << "--output-directory" << gio.BinaryDir
@@ -849,6 +850,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
   #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif)xxx");
         }
+        gio.patch("gio/xdgmime/xdgmime.c", "__attribute__((__unused__))", "");
+        gio.patch("gio/xdgmime/xdgmimeint.c", "__attribute__((unused))", "");
     }
 
     auto &rc = p.addTarget<Executable>("compile_resources");

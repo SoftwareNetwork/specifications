@@ -428,6 +428,9 @@ class SwImporter(object):
         p = self.run_subprocess([self.sw, 'path', 'org.sw.demo.python.pypi.' + m])
         if p.returncode != 0:
             return ''
+        # need or just find __init__.py in find_spec() below?
+        #if os.path.exists(p.stderr.strip() + '/src'):
+            #return p.stderr.strip() + '/src'
         return p.stderr.strip()
 
     def find_spec(self, module_name, package_path, target=None):
@@ -436,7 +439,9 @@ class SwImporter(object):
             return None
         fn = dir + '/' + module_name + '/__init__.py'
         if not os.path.exists(fn):
-            return None
+            fn = dir + '/src/' + module_name + '/__init__.py'
+            if not os.path.exists(fn):
+                return None
         return spec_from_file_location(module_name, fn)
 
 # isn't python loads file only once and we do not need this check?

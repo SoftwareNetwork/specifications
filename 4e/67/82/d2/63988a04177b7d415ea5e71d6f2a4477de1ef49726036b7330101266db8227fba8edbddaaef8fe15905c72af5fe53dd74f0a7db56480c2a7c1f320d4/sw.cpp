@@ -136,6 +136,7 @@ void build(Solution &s)
     }
 
     c_ares.Variables["CARES_SYMBOL_SCOPE_EXTERN"] = "SW_EXPORT";
+    c_ares.Variables["CARES_THREADS"] = "1";
     c_ares.replaceInFileOnce("src/lib/ares_config.h.cmake",
         "#undef CARES_SYMBOL_SCOPE_EXTERN",
         "#cmakedefine CARES_SYMBOL_SCOPE_EXTERN @CARES_SYMBOL_SCOPE_EXTERN@");
