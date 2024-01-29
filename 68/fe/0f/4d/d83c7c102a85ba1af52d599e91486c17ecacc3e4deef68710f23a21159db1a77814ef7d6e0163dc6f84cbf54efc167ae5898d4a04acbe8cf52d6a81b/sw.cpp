@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &glew = s.addTarget<LibraryTarget>("glew", "2.2.0");
-    glew += RemoteFile("https://freefr.dl.sourceforge.net/project/glew/glew/{v}/glew-{v}.tgz");
+    glew += RemoteFile("https://github.com/nigels-com/glew/releases/download/glew-{v}/glew-{v}.tgz");
 
     glew +=
         "include/.*"_rr,
