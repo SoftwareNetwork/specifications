@@ -1,7 +1,7 @@
 void build(Solution &s)
 {
     auto &libogg = s.addTarget<LibraryTarget>("xiph.libogg", "1.3.5");
-    libogg += RemoteFile("https://downloads.xiph.org/releases/ogg/libogg-{v}.tar.gz");
+    libogg += Git("https://github.com/xiph/ogg");
 
     libogg +=
         "include/.*\\.h"_rr,
