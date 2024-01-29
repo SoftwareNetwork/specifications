@@ -1,12 +1,12 @@
-struct M4Executable : ExecutableTarget
-{
+struct M4Executable : ExecutableTarget {
     using ExecutableTarget::ExecutableTarget;
 
-    void setupCommand(builder::Command &c) const override
-    {
-        c.environment["M4PATH"] = (SourceDir / "m4").u8string();
-
+    void setupCommand(builder::Command &c) const override {
         ExecutableTarget::setupCommand(c);
+        c.environment["M4PATH"] = to_printable_string(to_path_string(SourceDir / "m4"));
+    }
+    void setupCommandForRun(builder::Command &c) const override {
+        setupCommand(c);
     }
 };
 
