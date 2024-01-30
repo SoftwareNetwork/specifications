@@ -235,6 +235,7 @@ void build(Solution &s)
         protobuf_lite.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
         protobuf_lite.Public += "org.sw.demo.google.abseil"_dep;
         protobuf_lite.Public += "org.sw.demo.google.protocolbuffers.utf8_validity-main"_dep;
+        protobuf_lite.patch("src/google/protobuf/map_field.h", "constexpr MapFieldBase::VTable", "const MapFieldBase::VTable");
     }
 
     auto &protobuf = p.addTarget<StaticLibraryTarget>("protobuf");

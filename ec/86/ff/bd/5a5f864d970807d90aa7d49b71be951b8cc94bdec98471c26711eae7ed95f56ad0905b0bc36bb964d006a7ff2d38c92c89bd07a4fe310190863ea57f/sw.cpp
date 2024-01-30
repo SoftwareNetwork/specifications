@@ -4,7 +4,7 @@ void build(Solution &s)
     libssh2 += Git("https://github.com/libssh2/libssh2", "libssh2-{v}");
 
     libssh2.ApiName = "LIBSSH2_API";
-    libssh2.setChecks("libssh2");
+    libssh2.setChecks("libssh2", true);
 
     libssh2 +=
         "include/.*"_rr,
@@ -13,8 +13,9 @@ void build(Solution &s)
         "src/.*\\.in"_rr;
 
     libssh2.Public += "LIBSSH2_OPENSSL"_d;
-    if (libssh2.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (libssh2.getBuildSettings().TargetOS.Type == OSType::Windows) {
         libssh2.Public += sw::Shared, "LIBSSH2_WIN32"_d;
+    }
 
     if (
         libssh2.Variables["HAVE_O_NONBLOCK"] == 0 &&
@@ -38,13 +39,16 @@ void check(Checker &c)
     s.checkFunctionExists("poll");
     s.checkFunctionExists("select");
     s.checkFunctionExists("strtoll");
+    s.checkFunctionExists("strtoi64");
     s.checkIncludeExists("arpa/inet.h");
     s.checkIncludeExists("errno.h");
     s.checkIncludeExists("fcntl.h");
     s.checkIncludeExists("netinet/in.h");
+    s.checkIncludeExists("inttypes.h");
     s.checkIncludeExists("stdio.h");
     s.checkIncludeExists("stdlib.h");
     s.checkIncludeExists("sys/ioctl.h");
+    s.checkIncludeExists("sys/param.h");
     s.checkIncludeExists("sys/select.h");
     s.checkIncludeExists("sys/socket.h");
     s.checkIncludeExists("sys/time.h");
