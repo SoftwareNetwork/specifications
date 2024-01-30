@@ -1,6 +1,7 @@
 static void perl_dirs(auto &&f) {
     std::vector<path> paths {
         "cpan/AutoLoader/lib",
+        "dist/base/lib",
         "dist/Carp/lib",
         "dist/PathTools",
         "dist/PathTools/lib",
@@ -69,6 +70,7 @@ void build(Solution &s)
         "av.c",
         "builtin.c",
         "caretx.c",
+        "class.c",
         "deb.c",
         "doio.c",
         "doop.c",
@@ -85,6 +87,7 @@ void build(Solution &s)
         "numeric.c",
         "op.c",
         "pad.c",
+        "peep.c",
         "perl.c",
         "perly.c",
         "pp.c",
@@ -95,6 +98,9 @@ void build(Solution &s)
         "pp_sys.c",
         "reentr.c",
         "regcomp.c",
+        "regcomp_invlist.c",
+        "regcomp_study.c",
+        "regcomp_trie.c",
         "regexec.c",
         "run.c",
         "scope.c",
