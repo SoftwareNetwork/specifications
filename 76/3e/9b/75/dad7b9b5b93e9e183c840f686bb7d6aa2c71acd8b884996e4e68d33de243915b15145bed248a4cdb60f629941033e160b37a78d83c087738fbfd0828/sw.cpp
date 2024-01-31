@@ -6,10 +6,12 @@ void build(Solution &s)
     t += cpp17;
     t -= "hwy/.*"_rr;
     t += "hwy/aligned_allocator.cc";
-    t += "hwy/nanobenchmark.cc";
+    //t += "hwy/nanobenchmark.cc";
     t += "hwy/targets.cc";
 
-    /*t.Public += sw::Shared, "HWY_SHARED_DEFINE"_def;
-    t += sw::Shared, "hwy_EXPORTS"_def;
+    t += "HWY_DLLEXPORT"_api;
+
+    t.Public += sw::Shared, "HWY_SHARED_DEFINE"_def;
+    /*t += sw::Shared, "hwy_EXPORTS"_def;
     t += sw::Shared, "hwy_contrib_EXPORTS"_def;*/
 }
