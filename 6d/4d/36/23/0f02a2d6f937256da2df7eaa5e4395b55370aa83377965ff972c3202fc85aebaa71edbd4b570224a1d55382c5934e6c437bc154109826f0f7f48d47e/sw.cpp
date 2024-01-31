@@ -32,8 +32,10 @@ void build(Solution &s)
 
         t += "apps/.*\\.h"_r;
         t += "apps/commonutils.*"_r;
-        t += "apps/.*_lib.cpp"_r;
+        t += "apps/.*_lib.*.cpp"_r;
         t += "apps"_idir;
+
+        t += "third_party/fast_float/.*"_rr;
 
         t += "GDAL_COMPILATION"_def;
         t.Public += "CPL_INTERNAL="_def;
@@ -150,7 +152,7 @@ void build(Solution &s)
             t += "HAVE_LIBXML2"_def;
             t += "org.sw.demo.xmlsoft.libxml2"_dep;
 
-            t += "org.sw.demo.jxl"_dep;
+            t += "org.sw.demo.jxl-0.8"_dep;
         }
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
