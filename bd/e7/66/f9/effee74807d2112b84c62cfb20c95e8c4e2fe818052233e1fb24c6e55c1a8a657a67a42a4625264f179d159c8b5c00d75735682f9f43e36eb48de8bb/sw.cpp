@@ -62,8 +62,8 @@ struct PerlExecutable : ExecutableTarget
 void build(Solution &s)
 {
     auto &p = s.addProject("perl", "5.39.7");
-    //p += Git("https://github.com/Perl/perl5", "v{v}");
-    p += RemoteFile("https://github.com/Perl/perl5/archive/refs/tags/v{v}.tar.gz");
+    p += Git("https://github.com/Perl/perl5", "v{v}");
+    //p += RemoteFile("https://github.com/Perl/perl5/archive/refs/tags/v{v}.tar.gz");
 
     Files base =
     {
