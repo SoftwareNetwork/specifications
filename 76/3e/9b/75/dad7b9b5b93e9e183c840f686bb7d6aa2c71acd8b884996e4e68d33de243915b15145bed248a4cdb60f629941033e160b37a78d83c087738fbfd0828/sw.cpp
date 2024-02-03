@@ -8,6 +8,7 @@ void build(Solution &s)
     t += "hwy/aligned_allocator.cc";
     //t += "hwy/nanobenchmark.cc";
     t += "hwy/targets.cc";
+    t += "hwy/per_target.cc";
 
     t += "HWY_DLLEXPORT"_api;
 
