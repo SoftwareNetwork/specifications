@@ -49,7 +49,7 @@ void build(Solution &s)
     add_exe_with_common("mmp_extractor") += "org.sw.demo.intel.opencv.highgui"_dep;
     add_exe_with_common("mpj_loader");
     add_exe_with_common("paker");
-    add_exe_with_common("script2txt2");
+    add_exe_with_common("script2txt");
     add_exe_with_common("txt2script");
     add_exe_with_common("tm_converter");
     add_exe("name_generator");
@@ -60,15 +60,6 @@ void build(Solution &s)
         ;
 
     // not so simple targets
-    auto &script2txt = add_exe_with_common("script2txt");
-    {
-        script2txt += ".*"_rr;
-        script2txt += "pub.lzwdgc.Polygon4.DataManager.schema-master"_dep;
-        gen_flex_bison_pair("org.sw.demo.lexxmark.winflexbison"_dep, script2txt, "LALR1_CPP_VARIANT_PARSER", "script2txt");
-        if (script2txt.getCompilerType() == CompilerType::MSVC)
-            script2txt.CompileOptions.push_back("/Zc:__cplusplus");
-    }
-
     auto &model = tools.addStaticLibrary("model");
     {
         model += cppstd;
@@ -79,6 +70,18 @@ void build(Solution &s)
             "pub.egorpugin.primitives.yaml"_dep,
             "pub.egorpugin.primitives.sw.settings"_dep
             ;
+    }
+
+    auto &aim1_mod_maker = tools.addStaticLibrary("aim1_mod_maker");
+    {
+        auto &t = aim1_mod_maker;
+        auto name = "aim1_mod_maker";
+        t.PackageDefinitions = true;
+        t += cppstd;
+        t.setRootDirectory("src/"s + name);
+        //t.Public += "pub.egorpugin.primitives.sw.main"_dep;
+        t.Public += "pub.egorpugin.primitives.command"_dep;
+        t.Public += common;
     }
 
     add_exe("mod_reader") += model;
