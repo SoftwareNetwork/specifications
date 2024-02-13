@@ -30,6 +30,7 @@ void build(Solution &s)
     }
 
     expat.Variables["XML_CONTEXT_BYTES"] = "1024";
+    expat.Variables["XML_GE"] = "1";
     expat.Variables["XML_DTD"] = "1";
     expat.Variables["XML_NS"] = "1";
     expat.Variables["HAVE_MEMMOVE"] = 1;
