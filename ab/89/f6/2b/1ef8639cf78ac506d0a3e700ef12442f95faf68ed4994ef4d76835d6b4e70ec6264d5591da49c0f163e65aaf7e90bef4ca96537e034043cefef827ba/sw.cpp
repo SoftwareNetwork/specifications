@@ -23,5 +23,5 @@ void build(Solution &s)
     add_dir(cpp, "trace");
     add_dir(cpp, "trace/exporter");
     add_dir(cpp, "trace/propagation");
-    cpp.Public += "org.sw.demo.google.abseil"_dep;
+    cpp.Public += "org.sw.demo.google.abseil-2023"_dep;
 }
