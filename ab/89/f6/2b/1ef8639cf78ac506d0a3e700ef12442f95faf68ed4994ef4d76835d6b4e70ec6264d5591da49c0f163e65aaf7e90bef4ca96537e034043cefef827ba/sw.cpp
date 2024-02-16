@@ -23,5 +23,12 @@ void build(Solution &s)
     add_dir(cpp, "trace");
     add_dir(cpp, "trace/exporter");
     add_dir(cpp, "trace/propagation");
-    cpp.Public += "org.sw.demo.google.abseil-2023"_dep;
+    cpp.writeFileOnce("sw_opencensus_fi.h", R"(
+#define ACQUIRED_AFTER(x)
+#define GUARDED_BY(x)
+#define LOCKS_EXCLUDED(x)
+#define EXCLUSIVE_LOCKS_REQUIRED(x)
+)");
+    cpp.Public.ForceIncludeFiles.insert("sw_opencensus_fi.h");
+    cpp.Public += "org.sw.demo.google.abseil"_dep;
 }
