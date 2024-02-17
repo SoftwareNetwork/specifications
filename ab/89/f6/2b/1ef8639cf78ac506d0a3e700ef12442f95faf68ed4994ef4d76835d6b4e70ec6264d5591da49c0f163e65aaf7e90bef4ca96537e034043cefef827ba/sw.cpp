@@ -24,11 +24,19 @@ void build(Solution &s)
     add_dir(cpp, "trace/exporter");
     add_dir(cpp, "trace/propagation");
     cpp.writeFileOnce("sw_opencensus_fi.h", R"(
-#define ACQUIRED_AFTER(x)
-#define GUARDED_BY(x)
-#define LOCKS_EXCLUDED(x)
-#define EXCLUSIVE_LOCKS_REQUIRED(x)
+#define ACQUIRED_AFTER(...)
+#define GUARDED_BY(...)
+#define LOCKS_EXCLUDED(...)
+#define EXCLUSIVE_LOCKS_REQUIRED(...)
 )");
+#if SW_MODULE_ABI_VERSION >= 34
     cpp.Public.ForceIncludeFiles.insert("sw_opencensus_fi.h");
+#else
+    if (cpp.getCompilerType() == CompilerType::MSVC) {
+        cpp.Public.CompileOptions.push_back("-FIsw_opencensus_fi.h");
+    } else {
+        cpp.Public.CompileOptions.push_back("-includesw_opencensus_fi.h");
+    }
+#endif
     cpp.Public += "org.sw.demo.google.abseil"_dep;
 }
