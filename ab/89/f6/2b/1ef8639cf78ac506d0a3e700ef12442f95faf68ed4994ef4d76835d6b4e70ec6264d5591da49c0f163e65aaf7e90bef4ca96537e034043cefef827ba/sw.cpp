@@ -30,7 +30,7 @@ void build(Solution &s)
 #define EXCLUSIVE_LOCKS_REQUIRED(...)
 )");
 #if SW_MODULE_ABI_VERSION >= 34
-    cpp.Public.ForceIncludeFiles.insert("sw_opencensus_fi.h");
+    cpp.Public += ForceIncludeFile{"sw_opencensus_fi.h"s};
 #else
     if (cpp.getCompilerType() == CompilerType::MSVC) {
         cpp.Public.CompileOptions.push_back("-FIsw_opencensus_fi.h");
