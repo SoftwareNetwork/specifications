@@ -136,7 +136,7 @@ void build(Solution &s)
             "pango/pangowin32-fontcache.c",
             "pango/pangowin32-fontmap.c",
             "pango/pangowin32-dwrite-fontmap.cpp",
-            "pango/pangowin32.c"
+            "pango/pangowin32.*"_rr
             ;
 
         pangocairo.Public +=
@@ -162,13 +162,15 @@ void build(Solution &s)
                 "pango/pangocairo-coretext.*"_rr;
             pangocairo -=
                 "pango/pangocairo-win32.*"_rr,
-                "pango/pangowin32.*"_rr;
+                "pango/pangowin32.*"_rr
+                ;
         }
         else
         {
             pangocairo -=
                 "pango/pangocairo-win32.*"_rr,
-                "pango/pangowin32.*"_rr;
+                "pango/pangowin32.*"_rr
+                ;
 
             pangocairo += "CoreFoundation"_framework;
             pangocairo += "CoreText"_framework;
