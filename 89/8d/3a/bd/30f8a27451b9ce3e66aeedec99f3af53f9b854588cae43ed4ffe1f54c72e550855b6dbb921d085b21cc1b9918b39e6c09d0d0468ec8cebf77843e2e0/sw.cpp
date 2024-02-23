@@ -219,7 +219,10 @@ void build(Solution &s) {
         if (lib.getBuildSettings().TargetOS.Type == OSType::Linux) {
             lib += "util"_slib;
         }
-        lib.Public += sw::Static, "Py_NO_ENABLE_SHARED"_d;
+        // win does not work with this
+        if (lib.getBuildSettings().TargetOS.Type != OSType::Windows) {
+            lib.Public += sw::Static, "Py_NO_ENABLE_SHARED"_d;
+        }
 
         lib.Public += "org.sw.demo.madler.zlib"_dep;
         lib.Public += "org.sw.demo.bzip2"_dep;
