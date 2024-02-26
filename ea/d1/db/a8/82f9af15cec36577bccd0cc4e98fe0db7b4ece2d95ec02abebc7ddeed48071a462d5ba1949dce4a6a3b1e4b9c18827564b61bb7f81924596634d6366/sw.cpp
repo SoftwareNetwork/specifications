@@ -50,6 +50,12 @@ void build(Solution &s)
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
         t += "src/core/ext/upb-gen/.*"_rr;
+        t += "src/core/client_channel/.*"_rr;
+        t += "src/core/service_config/.*"_rr;
+        t += "src/core/resolver/.*"_rr;
+        t -= "src/core/resolver/xds/.*"_rr;
+        t += "src/core/load_balancing/.*"_rr;
+        t -= "src/core/load_balancing/xds/.*"_rr;
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             //t.Public += "_WIN32_WINNT=0x0601"_def;
