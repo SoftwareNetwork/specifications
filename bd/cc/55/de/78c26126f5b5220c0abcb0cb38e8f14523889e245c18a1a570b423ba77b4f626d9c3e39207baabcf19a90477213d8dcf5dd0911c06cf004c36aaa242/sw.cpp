@@ -105,7 +105,9 @@ void build(Solution &s)
     }
     else
     {
-        //c_ares += "CARES_USE_LIBRESOLV"_def;
+        // c_ares += "CARES_USE_LIBRESOLV"_def;
+        if (!c_ares.getBuildSettings().TargetOS.Android)
+            c_ares += "pthread"_slib;
     }
 
     //
