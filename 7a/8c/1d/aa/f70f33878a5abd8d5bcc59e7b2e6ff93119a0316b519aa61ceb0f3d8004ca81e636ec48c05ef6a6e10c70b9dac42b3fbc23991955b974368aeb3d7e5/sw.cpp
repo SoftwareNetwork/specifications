@@ -9,22 +9,22 @@ void build(Solution &s)
     auto &natvis = json.addTarget<LibraryTarget>("natvis");
     {
         auto &t = natvis;
-        t.patch("tools/generate_natvis/nlohmann_json.natvis.j2", "m_type ==", "m_data.m_type  ==");
-        t.patch("tools/generate_natvis/nlohmann_json.natvis.j2", "m_value.", "m_data.m_value .");
+        t.setRootDirectory("tools/generate_natvis");
+        t.patch("nlohmann_json.natvis.j2", "m_type ==", "m_data.m_type  ==");
+        t.patch("nlohmann_json.natvis.j2", "m_value.", "m_data.m_value .");
         t.addCommand()
             << cmd::prog("org.sw.demo.python.exe-3.10"_dep)
             << cmd::dep("org.sw.demo.python.pypi.jinja2"_dep)
             << cmd::dep("org.sw.demo.python.pypi.markupsafe"_dep)
-            << cmd::wdir("tools/generate_natvis")
-            << cmd::in("tools/generate_natvis/generate_natvis.py")
+            << cmd::in("generate_natvis.py")
             << "--version"
             << t.getPackage().getVersion().toString()
             << t.BinaryDir
             << cmd::end()
-            << cmd::in("tools/generate_natvis/nlohmann_json.natvis.j2")
-            << cmd::out(t.BinaryDir / "nlohmann_json.natvis")
+            << cmd::in("nlohmann_json.natvis.j2")
+            << cmd::out("nlohmann_json.natvis")
             ;
         t.Public += json;
-        t.Public += t.BinaryDir / "nlohmann_json.natvis";
+        t.Public += "nlohmann_json.natvis";
     }
 }
