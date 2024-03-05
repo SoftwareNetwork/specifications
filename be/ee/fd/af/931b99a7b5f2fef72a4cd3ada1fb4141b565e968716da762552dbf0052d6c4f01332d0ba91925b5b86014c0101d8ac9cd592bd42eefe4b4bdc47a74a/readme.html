@@ -1,0 +1,119 @@
+<h1 id="picohttpparser">PicoHTTPParser</h1>
+<p>Copyright (c) 2009-2014 <a href="https://github.com/kazuho">Kazuho
+Oku</a>, <a href="https://github.com/tokuhirom">Tokuhiro Matsuno</a>, <a
+href="https://github.com/typester">Daisuke Murase</a>, <a
+href="https://github.com/herumi">Shigeo Mitsunari</a></p>
+<p>PicoHTTPParser is a tiny, primitive, fast HTTP request/response
+parser.</p>
+<p>Unlike most parsers, it is stateless and does not allocate memory by
+itself. All it does is accept pointer to buffer and the output
+structure, and setups the pointers in the latter to point at the
+necessary portions of the buffer.</p>
+<p>The code is widely deployed within Perl applications through popular
+modules that use it, including <a
+href="https://metacpan.org/pod/Plack">Plack</a>, <a
+href="https://metacpan.org/pod/Starman">Starman</a>, <a
+href="https://metacpan.org/pod/Starlet">Starlet</a>, <a
+href="https://metacpan.org/pod/Furl">Furl</a>. It is also the HTTP/1
+parser of <a href="https://github.com/h2o/h2o">H2O</a>.</p>
+<p>Check out [test.c] to find out how to use the parser.</p>
+<p>The software is dual-licensed under the Perl License or the MIT
+License.</p>
+<h2 id="usage">Usage</h2>
+<p>The library exposes four functions: <code>phr_parse_request</code>,
+<code>phr_parse_response</code>, <code>phr_parse_headers</code>,
+<code>phr_decode_chunked</code>.</p>
+<h3 id="phr_parse_request">phr_parse_request</h3>
+<p>The example below reads an HTTP request from socket <code>sock</code>
+using <code>read(2)</code>, parses it using
+<code>phr_parse_request</code>, and prints the details.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> buf<span class="op">[</span><span class="dv">4096</span><span class="op">],</span> <span class="op">*</span>method<span class="op">,</span> <span class="op">*</span>path<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> pret<span class="op">,</span> minor_version<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> phr_header headers<span class="op">[</span><span class="dv">100</span><span class="op">];</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> buflen <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> prevbuflen <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> method_len<span class="op">,</span> path_len<span class="op">,</span> num_headers<span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">ssize_t</span> rret<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span><span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* read the request */</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">((</span>rret <span class="op">=</span> read<span class="op">(</span>sock<span class="op">,</span> buf <span class="op">+</span> buflen<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>buf<span class="op">)</span> <span class="op">-</span> buflen<span class="op">))</span> <span class="op">==</span> <span class="op">-</span><span class="dv">1</span> <span class="op">&amp;&amp;</span> errno <span class="op">==</span> EINTR<span class="op">)</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>rret <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IOError<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    prevbuflen <span class="op">=</span> buflen<span class="op">;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    buflen <span class="op">+=</span> rret<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* parse the request */</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    num_headers <span class="op">=</span> <span class="kw">sizeof</span><span class="op">(</span>headers<span class="op">)</span> <span class="op">/</span> <span class="kw">sizeof</span><span class="op">(</span>headers<span class="op">[</span><span class="dv">0</span><span class="op">]);</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    pret <span class="op">=</span> phr_parse_request<span class="op">(</span>buf<span class="op">,</span> buflen<span class="op">,</span> <span class="op">&amp;</span>method<span class="op">,</span> <span class="op">&amp;</span>method_len<span class="op">,</span> <span class="op">&amp;</span>path<span class="op">,</span> <span class="op">&amp;</span>path_len<span class="op">,</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>                             <span class="op">&amp;</span>minor_version<span class="op">,</span> headers<span class="op">,</span> <span class="op">&amp;</span>num_headers<span class="op">,</span> prevbuflen<span class="op">);</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>pret <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span><span class="op">;</span> <span class="co">/* successfully parsed the request */</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>pret <span class="op">==</span> <span class="op">-</span><span class="dv">1</span><span class="op">)</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ParseError<span class="op">;</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* request is incomplete, continue the loop */</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    assert<span class="op">(</span>pret <span class="op">==</span> <span class="op">-</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>buflen <span class="op">==</span> <span class="kw">sizeof</span><span class="op">(</span>buf<span class="op">))</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> RequestIsTooLongError<span class="op">;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;request is </span><span class="sc">%d</span><span class="st"> bytes long</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> pret<span class="op">);</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;method is </span><span class="sc">%.*s\n</span><span class="st">&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>method_len<span class="op">,</span> method<span class="op">);</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;path is </span><span class="sc">%.*s\n</span><span class="st">&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>path_len<span class="op">,</span> path<span class="op">);</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;HTTP version is 1.</span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> minor_version<span class="op">);</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;headers:</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">!=</span> num_headers<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;</span><span class="sc">%.*s</span><span class="st">: </span><span class="sc">%.*s\n</span><span class="st">&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span>headers<span class="op">[</span>i<span class="op">].</span>name_len<span class="op">,</span> headers<span class="op">[</span>i<span class="op">].</span>name<span class="op">,</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>           <span class="op">(</span><span class="dt">int</span><span class="op">)</span>headers<span class="op">[</span>i<span class="op">].</span>value_len<span class="op">,</span> headers<span class="op">[</span>i<span class="op">].</span>value<span class="op">);</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="phr_parse_response-phr_parse_headers">phr_parse_response,
+phr_parse_headers</h3>
+<p><code>phr_parse_response</code> and <code>phr_parse_headers</code>
+provide similar interfaces as <code>phr_parse_request</code>.
+<code>phr_parse_response</code> parses an HTTP response, and
+<code>phr_parse_headers</code> parses the headers only.</p>
+<h3 id="phr_decode_chunked">phr_decode_chunked</h3>
+<p>The example below decodes incoming data in chunked-encoding. The data
+is decoded in-place.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> phr_chunked_decoder decoder <span class="op">=</span> <span class="op">{};</span> <span class="co">/* zero-clear */</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>buf <span class="op">=</span> malloc<span class="op">(</span><span class="dv">4096</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> size <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> capacity <span class="op">=</span> <span class="dv">4096</span><span class="op">,</span> rsize<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">ssize_t</span> rret<span class="op">,</span> pret<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">/* set consume_trailer to 1 to discard the trailing header, or the application</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"> * should call phr_parse_headers to parse the trailing header */</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>decoder<span class="op">.</span>consume_trailer <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="cf">do</span> <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* expand the buffer if necessary */</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>size <span class="op">==</span> capacity<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        capacity <span class="op">*=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        buf <span class="op">=</span> realloc<span class="op">(</span>buf<span class="op">,</span> capacity<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">(</span>buf <span class="op">!=</span> NULL<span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* read */</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">((</span>rret <span class="op">=</span> read<span class="op">(</span>sock<span class="op">,</span> buf <span class="op">+</span> size<span class="op">,</span> capacity <span class="op">-</span> size<span class="op">))</span> <span class="op">==</span> <span class="op">-</span><span class="dv">1</span> <span class="op">&amp;&amp;</span> errno <span class="op">==</span> EINTR<span class="op">)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>rret <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IOError<span class="op">;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* decode */</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    rsize <span class="op">=</span> rret<span class="op">;</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    pret <span class="op">=</span> phr_decode_chunked<span class="op">(&amp;</span>decoder<span class="op">,</span> buf <span class="op">+</span> size<span class="op">,</span> <span class="op">&amp;</span>rsize<span class="op">);</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>pret <span class="op">==</span> <span class="op">-</span><span class="dv">1</span><span class="op">)</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ParseError<span class="op">;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    size <span class="op">+=</span> rsize<span class="op">;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">while</span> <span class="op">(</span>pret <span class="op">==</span> <span class="op">-</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co">/* successfully decoded the chunked data */</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>assert<span class="op">(</span>pret <span class="op">&gt;=</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>printf<span class="op">(</span><span class="st">&quot;decoded data is at </span><span class="sc">%p</span><span class="st"> (</span><span class="sc">%zu</span><span class="st"> bytes)</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> buf<span class="op">,</span> size<span class="op">);</span></span></code></pre></div>
+<h2 id="benchmark">Benchmark</h2>
+<figure>
+<img src="http://i.gyazo.com/a85c18d3162dfb46b485bb41e0ad443a.png"
+alt="benchmark results" />
+<figcaption aria-hidden="true">benchmark results</figcaption>
+</figure>
+<p>The benchmark code is from <a
+href="https://github.com/fukamachi/fast-http/tree/6b9110347c7a3407310c08979aefd65078518478">fukamachi/fast-http@6b91103</a>.</p>
+<p>The internals of picohttpparser has been described to some extent in
+<a
+href="http://blog.kazuhooku.com/2014/11/the-internals-h2o-or-how-to-write-fast.html">my
+blog entry</a>.</p>
