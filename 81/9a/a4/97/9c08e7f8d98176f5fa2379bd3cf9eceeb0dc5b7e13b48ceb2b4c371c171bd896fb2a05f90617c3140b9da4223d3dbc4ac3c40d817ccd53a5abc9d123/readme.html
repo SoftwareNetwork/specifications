@@ -1,0 +1,580 @@
+<p><a
+href="https://github.com/Tessil/robin-map/actions/workflows/ci.yml"><img
+src="https://github.com/Tessil/robin-map/actions/workflows/ci.yml/badge.svg?branch=master"
+alt="CI" /></a></p>
+<h2
+id="a-c-implementation-of-a-fast-hash-map-and-hash-set-using-robin-hood-hashing">A
+C++ implementation of a fast hash map and hash set using robin hood
+hashing</h2>
+<p>The robin-map library is a C++ implementation of a fast hash map and
+hash set using open-addressing and linear robin hood hashing with
+backward shift deletion to resolve collisions.</p>
+<p>Four classes are provided: <code>tsl::robin_map</code>,
+<code>tsl::robin_set</code>, <code>tsl::robin_pg_map</code> and
+<code>tsl::robin_pg_set</code>. The first two are faster and use a power
+of two growth policy, the last two use a prime growth policy instead and
+are able to cope better with a poor hash function. Use the prime version
+if there is a chance of repeating patterns in the lower bits of your
+hash (e.g. you are storing pointers with an identity hash function). See
+<a href="#growth-policy">GrowthPolicy</a> for details.</p>
+<p>A <strong>benchmark</strong> of <code>tsl::robin_map</code> against
+other hash maps may be found <a
+href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">here</a>.
+This page also gives some advices on which hash table structure you
+should try for your use case (useful if you are a bit lost with the
+multiple hash tables implementations in the <code>tsl</code>
+namespace).</p>
+<h3 id="key-features">Key features</h3>
+<ul>
+<li>Header-only library, just add the <a href="include/">include</a>
+directory to your include path and you are ready to go. If you use
+CMake, you can also use the <code>tsl::robin_map</code> exported target
+from the <a href="CMakeLists.txt">CMakeLists.txt</a>.</li>
+<li>Fast hash table, check the <a
+href="https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html">benchmark</a>
+for some numbers.</li>
+<li>Support for move-only and non-default constructible key/value.</li>
+<li>Support for heterogeneous lookups allowing the usage of
+<code>find</code> with a type different than <code>Key</code> (e.g. if
+you have a map that uses <code>std::unique_ptr&lt;foo&gt;</code> as key,
+you can use a <code>foo*</code> or a <code>std::uintptr_t</code> as key
+parameter to <code>find</code> without constructing a
+<code>std::unique_ptr&lt;foo&gt;</code>, see <a
+href="#heterogeneous-lookups">example</a>).</li>
+<li>No need to reserve any sentinel value from the keys.</li>
+<li>Possibility to store the hash value alongside the stored key-value
+for faster rehash and lookup if the hash or the key equal functions are
+expensive to compute. Note that hash may be stored even if not asked
+explicitly when the library can detect that it will have no impact on
+the size of the structure in memory due to alignment. See the <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">StoreHash</a>
+template parameter for details.</li>
+<li>If the hash is known before a lookup, it is possible to pass it as
+parameter to speed-up the lookup (see <code>precalculated_hash</code>
+parameter in <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#a35021b11aabb61820236692a54b3a0f8">API</a>).</li>
+<li>Support for efficient serialization and deserialization (see <a
+href="#serialization">example</a> and the
+<code>serialize/deserialize</code> methods in the <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html">API</a>
+for details).</li>
+<li>The library can be used with exceptions disabled (through
+<code>-fno-exceptions</code> option on Clang and GCC, without an
+<code>/EH</code> option on MSVC or simply by defining
+<code>TSL_NO_EXCEPTIONS</code>). <code>std::terminate</code> is used in
+replacement of the <code>throw</code> instruction when exceptions are
+disabled.</li>
+<li>API closely similar to <code>std::unordered_map</code> and
+<code>std::unordered_set</code>.</li>
+</ul>
+<h3 id="differences-compared-to-stdunordered_map">Differences compared
+to <code>std::unordered_map</code></h3>
+<p><code>tsl::robin_map</code> tries to have an interface similar to
+<code>std::unordered_map</code>, but some differences exist. - The
+<strong>strong exception guarantee only holds</strong> if the following
+statement is true
+<code>std::is_nothrow_swappable&lt;value_type&gt;::value &amp;&amp; std::is_nothrow_move_constructible&lt;value_type&gt;::value</code>
+(where <code>value_type</code> is <code>Key</code> for
+<code>tsl::robin_set</code> and <code>std::pair&lt;Key, T&gt;</code> for
+<code>tsl::robin_map</code>). Otherwise if an exception is thrown during
+the swap or the move, the structure may end up in a undefined state.
+Note that per the standard, a <code>value_type</code> with a noexcept
+copy constructor and no move constructor also satisfies this condition
+and will thus guarantee the strong exception guarantee for the structure
+(see <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">API</a>
+for details). - The type <code>Key</code>, and also <code>T</code> in
+case of map, must be swappable. They must also be copy and/or move
+constructible. - Iterator invalidation doesn’t behave in the same way,
+any operation modifying the hash table invalidate them (see <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html#details">API</a>
+for details). - References and pointers to keys or values in the map are
+invalidated in the same way as iterators to these keys-values. - For
+iterators of <code>tsl::robin_map</code>, <code>operator*()</code> and
+<code>operator-&gt;()</code> return a reference and a pointer to
+<code>const std::pair&lt;Key, T&gt;</code> instead of
+<code>std::pair&lt;const Key, T&gt;</code> making the value
+<code>T</code> not modifiable. To modify the value you have to call the
+<code>value()</code> method of the iterator to get a mutable reference.
+Example:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> map <span class="op">=</span> <span class="op">{{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="dv">2</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="dv">3</span><span class="op">,</span> <span class="dv">1</span><span class="op">}};</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span><span class="op">(</span><span class="kw">auto</span> it <span class="op">=</span> map<span class="op">.</span>begin<span class="op">();</span> it <span class="op">!=</span> map<span class="op">.</span>end<span class="op">();</span> <span class="op">++</span>it<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">//it-&gt;second = 2; // Illegal</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    it<span class="op">.</span>value<span class="op">()</span> <span class="op">=</span> <span class="dv">2</span><span class="op">;</span> <span class="co">// Ok</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<ul>
+<li>No support for some buckets related methods (like
+<code>bucket_size</code>, <code>bucket</code>, …).</li>
+</ul>
+<p>These differences also apply between <code>std::unordered_set</code>
+and <code>tsl::robin_set</code>.</p>
+<p>Thread-safety guarantees are the same as
+<code>std::unordered_map/set</code> (i.e. possible to have multiple
+readers with no writer).</p>
+<h3 id="growth-policy">Growth policy</h3>
+<p>The library supports multiple growth policies through the
+<code>GrowthPolicy</code> template parameter. Three policies are
+provided by the library but you can easily implement your own if
+needed.</p>
+<ul>
+<li><strong><a
+href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1power__of__two__growth__policy.html">tsl::rh::power_of_two_growth_policy.</a></strong>
+Default policy used by <code>tsl::robin_map/set</code>. This policy
+keeps the size of the bucket array of the hash table to a power of two.
+This constraint allows the policy to avoid the usage of the slow modulo
+operation to map a hash to a bucket, instead of <code>hash %
+2<sup>n</sup></code>, it uses <code>hash &amp; (2<sup>n</sup> -
+1)</code> (see <a
+href="https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues">fast
+modulo</a>). Fast but this may cause a lot of collisions with a poor
+hash function as the modulo with a power of two only masks the most
+significant bits in the end.</li>
+<li><strong><a
+href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1prime__growth__policy.html">tsl::rh::prime_growth_policy.</a></strong>
+Default policy used by <code>tsl::robin_pg_map/set</code>. The policy
+keeps the size of the bucket array of the hash table to a prime number.
+When mapping a hash to a bucket, using a prime number as modulo will
+result in a better distribution of the hash across the buckets even with
+a poor hash function. To allow the compiler to optimize the modulo
+operation, the policy use a lookup table with constant primes modulos
+(see <a
+href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1prime__growth__policy.html#details">API</a>
+for details). Slower than
+<code>tsl::rh::power_of_two_growth_policy</code> but more secure.</li>
+<li><strong><a
+href="https://tessil.github.io/robin-map/classtsl_1_1rh_1_1mod__growth__policy.html">tsl::rh::mod_growth_policy.</a></strong>
+The policy grows the map by a customizable growth factor passed in
+parameter. It then just use the modulo operator to map a hash to a
+bucket. Slower but more flexible.</li>
+</ul>
+<p>To implement your own policy, you have to implement the following
+interface.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> custom_policy <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Called on hash table construction and rehash, min_bucket_count_in_out is the minimum buckets</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// that the hash table needs. The policy can change it to a higher number of buckets if needed </span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and the hash table will use this value as bucket count. If 0 bucket is asked, then the value</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// must stay at 0.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">explicit</span> custom_policy<span class="op">(</span><span class="bu">std::</span>size_t<span class="op">&amp;</span> min_bucket_count_in_out<span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Return the bucket [0, bucket_count()) to which the hash belongs. </span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If bucket_count() is 0, it must always return 0.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>size_t bucket_for_hash<span class="op">(</span><span class="bu">std::</span>size_t hash<span class="op">)</span> <span class="at">const</span> <span class="kw">noexcept</span><span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Return the number of buckets that should be used on next growth</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>size_t next_bucket_count<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Maximum number of buckets supported by the policy</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>size_t max_bucket_count<span class="op">()</span> <span class="at">const</span><span class="op">;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Reset the growth policy as if the policy was created with a bucket count of 0.</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// After a clear, the policy must always return 0 when bucket_for_hash() is called.</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> clear<span class="op">()</span> <span class="kw">noexcept</span><span class="op">;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="installation">Installation</h3>
+<p>To use robin-map, just add the <a href="include/">include</a>
+directory to your include path. It is a <strong>header-only</strong>
+library.</p>
+<p>If you use CMake, you can also use the <code>tsl::robin_map</code>
+exported target from the <a href="CMakeLists.txt">CMakeLists.txt</a>
+with <code>target_link_libraries</code>.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example where the robin-map project is stored in a third-party directory</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">add_subdirectory</span>(third-party/robin-map)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">your_target</span> <span class="ot">PRIVATE</span> <span class="bn">tsl::robin_map</span>)  </span></code></pre></div>
+<p>If the project has been installed through <code>make install</code>,
+you can also use <code>find_package(tsl-robin-map REQUIRED)</code>
+instead of <code>add_subdirectory</code>.</p>
+<p>The library is available in <a
+href="https://github.com/Microsoft/vcpkg/tree/master/ports/robin-map">vcpkg</a>
+and <a href="https://conan.io/center/tsl-robin-map">conan</a>. It’s also
+present in <a
+href="https://packages.debian.org/buster/robin-map-dev">Debian</a>, <a
+href="https://packages.ubuntu.com/disco/robin-map-dev">Ubuntu</a> and <a
+href="https://apps.fedoraproject.org/packages/robin-map-devel">Fedora</a>
+package repositories.</p>
+<p>The code should work with any C++11 standard-compliant compiler and
+has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.</p>
+<p>To run the tests you will need the Boost Test library and CMake.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/Tessil/robin-map.git</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> robin-map/tests</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> ..</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> .</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ex">./tsl_robin_map_tests</span></span></code></pre></div>
+<h3 id="usage">Usage</h3>
+<p>The API can be found <a
+href="https://tessil.github.io/robin-map/">here</a>.</p>
+<p>All methods are not documented yet, but they replicate the behavior
+of the ones in <code>std::unordered_map</code> and
+<code>std::unordered_set</code>, except if specified otherwise.</p>
+<h3 id="example">Example</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tsl/robin_set.h&gt;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> map <span class="op">=</span> <span class="op">{{</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">}};</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    map<span class="op">[</span><span class="st">&quot;c&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    map<span class="op">[</span><span class="st">&quot;d&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="dv">4</span><span class="op">;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>insert<span class="op">({</span><span class="st">&quot;e&quot;</span><span class="op">,</span> <span class="dv">5</span><span class="op">});</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>erase<span class="op">(</span><span class="st">&quot;b&quot;</span><span class="op">);</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span><span class="op">(</span><span class="kw">auto</span> it <span class="op">=</span> map<span class="op">.</span>begin<span class="op">();</span> it <span class="op">!=</span> map<span class="op">.</span>end<span class="op">();</span> <span class="op">++</span>it<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">//it-&gt;second += 2; // Not valid.</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        it<span class="op">.</span>value<span class="op">()</span> <span class="op">+=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// {d, 6} {a, 3} {e, 7} {c, 5}</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span><span class="op">(</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> key_value <span class="op">:</span> map<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;{&quot;</span> <span class="op">&lt;&lt;</span> key_value<span class="op">.</span>first <span class="op">&lt;&lt;</span> <span class="st">&quot;, &quot;</span> <span class="op">&lt;&lt;</span> key_value<span class="op">.</span>second <span class="op">&lt;&lt;</span> <span class="st">&quot;}&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>map<span class="op">.</span>find<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">)</span> <span class="op">!=</span> map<span class="op">.</span>end<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st">.&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="bu">std::</span>size_t precalculated_hash <span class="op">=</span> <span class="bu">std::</span>hash<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;()(</span><span class="st">&quot;a&quot;</span><span class="op">);</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If we already know the hash beforehand, we can pass it in parameter to speed-up lookups.</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>map<span class="op">.</span>find<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">,</span> precalculated_hash<span class="op">)</span> <span class="op">!=</span> map<span class="op">.</span>end<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found </span><span class="sc">\&quot;</span><span class="st">a</span><span class="sc">\&quot;</span><span class="st"> with hash &quot;</span> <span class="op">&lt;&lt;</span> precalculated_hash <span class="op">&lt;&lt;</span> <span class="st">&quot;.&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="co">/*</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">     * Calculating the hash and comparing two std::string may be slow. </span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="co">     * We can store the hash of each std::string in the hash map to make </span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="co">     * the inserts and lookups faster by setting StoreHash to true.</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span> </span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">,</span> <span class="bu">std::</span>hash<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;,</span> </span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>                   <span class="bu">std::</span>equal_to<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;,</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>                   <span class="bu">std::</span>allocator<span class="op">&lt;</span><span class="bu">std::</span>pair<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;&gt;,</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>                   <span class="kw">true</span><span class="op">&gt;</span> map2<span class="op">;</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>                       </span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    map2<span class="op">[</span><span class="st">&quot;a&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>    map2<span class="op">[</span><span class="st">&quot;b&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>    <span class="co">// {a, 1} {b, 2}</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span><span class="op">(</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> key_value <span class="op">:</span> map2<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;{&quot;</span> <span class="op">&lt;&lt;</span> key_value<span class="op">.</span>first <span class="op">&lt;&lt;</span> <span class="st">&quot;, &quot;</span> <span class="op">&lt;&lt;</span> key_value<span class="op">.</span>second <span class="op">&lt;&lt;</span> <span class="st">&quot;}&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_set<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> set<span class="op">;</span></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>    set<span class="op">.</span>insert<span class="op">({</span><span class="dv">1</span><span class="op">,</span> <span class="dv">9</span><span class="op">,</span> <span class="dv">0</span><span class="op">});</span></span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>    set<span class="op">.</span>insert<span class="op">({</span><span class="dv">2</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">9</span><span class="op">});</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>    <span class="co">// {0} {1} {2} {9} {-1}</span></span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span><span class="op">(</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> key <span class="op">:</span> set<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;{&quot;</span> <span class="op">&lt;&lt;</span> key <span class="op">&lt;&lt;</span> <span class="st">&quot;}&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>  </span></code></pre></div>
+<h4 id="heterogeneous-lookups">Heterogeneous lookups</h4>
+<p>Heterogeneous overloads allow the usage of other types than
+<code>Key</code> for lookup and erase operations as long as the used
+types are hashable and comparable to <code>Key</code>.</p>
+<p>To activate the heterogeneous overloads in
+<code>tsl::robin_map/set</code>, the qualified-id
+<code>KeyEqual::is_transparent</code> must be valid. It works the same
+way as for <a
+href="http://en.cppreference.com/w/cpp/container/map/find"><code>std::map::find</code></a>.
+You can either use <a
+href="http://en.cppreference.com/w/cpp/utility/functional/equal_to_void"><code>std::equal_to&lt;&gt;</code></a>
+or define your own function object.</p>
+<p>Both <code>KeyEqual</code> and <code>Hash</code> will need to be able
+to deal with the different types.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;functional&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> employee <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    employee<span class="op">(</span><span class="dt">int</span> id<span class="op">,</span> <span class="bu">std::</span>string name<span class="op">)</span> <span class="op">:</span> <span class="va">m_id</span><span class="op">(</span>id<span class="op">),</span> <span class="va">m_name</span><span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>name<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Either we include the comparators in the class and we use `std::equal_to&lt;&gt;`...</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span><span class="op">==(</span><span class="at">const</span> employee<span class="op">&amp;</span> empl<span class="op">,</span> <span class="dt">int</span> empl_id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl<span class="op">.</span><span class="va">m_id</span> <span class="op">==</span> empl_id<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span><span class="op">==(</span><span class="dt">int</span> empl_id<span class="op">,</span> <span class="at">const</span> employee<span class="op">&amp;</span> empl<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl_id <span class="op">==</span> empl<span class="op">.</span><span class="va">m_id</span><span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">friend</span> <span class="dt">bool</span> <span class="kw">operator</span><span class="op">==(</span><span class="at">const</span> employee<span class="op">&amp;</span> empl1<span class="op">,</span> <span class="at">const</span> employee<span class="op">&amp;</span> empl2<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl1<span class="op">.</span><span class="va">m_id</span> <span class="op">==</span> empl2<span class="op">.</span><span class="va">m_id</span><span class="op">;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> <span class="va">m_id</span><span class="op">;</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string <span class="va">m_name</span><span class="op">;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co">// ... or we implement a separate class to compare employees.</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> equal_employee <span class="op">{</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> is_transparent <span class="op">=</span> <span class="dt">void</span><span class="op">;</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> employee<span class="op">&amp;</span> empl<span class="op">,</span> <span class="dt">int</span> empl_id<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl<span class="op">.</span><span class="va">m_id</span> <span class="op">==</span> empl_id<span class="op">;</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> <span class="kw">operator</span><span class="op">()(</span><span class="dt">int</span> empl_id<span class="op">,</span> <span class="at">const</span> employee<span class="op">&amp;</span> empl<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl_id <span class="op">==</span> empl<span class="op">.</span><span class="va">m_id</span><span class="op">;</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> employee<span class="op">&amp;</span> empl1<span class="op">,</span> <span class="at">const</span> employee<span class="op">&amp;</span> empl2<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> empl1<span class="op">.</span><span class="va">m_id</span> <span class="op">==</span> empl2<span class="op">.</span><span class="va">m_id</span><span class="op">;</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> hash_employee <span class="op">{</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>size_t <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> employee<span class="op">&amp;</span> empl<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">std::</span>hash<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;()(</span>empl<span class="op">.</span><span class="va">m_id</span><span class="op">);</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>size_t <span class="kw">operator</span><span class="op">()(</span><span class="dt">int</span> id<span class="op">)</span> <span class="at">const</span> <span class="op">{</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">std::</span>hash<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;()(</span>id<span class="op">);</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use std::equal_to&lt;&gt; which will automatically deduce and forward the parameters</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>employee<span class="op">,</span> <span class="dt">int</span><span class="op">,</span> hash_employee<span class="op">,</span> <span class="bu">std::</span>equal_to<span class="op">&lt;&gt;&gt;</span> map<span class="op">;</span> </span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>insert<span class="op">({</span>employee<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="st">&quot;John Doe&quot;</span><span class="op">),</span> <span class="dv">2001</span><span class="op">});</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>insert<span class="op">({</span>employee<span class="op">(</span><span class="dv">2</span><span class="op">,</span> <span class="st">&quot;Jane Doe&quot;</span><span class="op">),</span> <span class="dv">2002</span><span class="op">});</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>insert<span class="op">({</span>employee<span class="op">(</span><span class="dv">3</span><span class="op">,</span> <span class="st">&quot;John Smith&quot;</span><span class="op">),</span> <span class="dv">2003</span><span class="op">});</span></span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a>    <span class="co">// John Smith 2003</span></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> it <span class="op">=</span> map<span class="op">.</span>find<span class="op">(</span><span class="dv">3</span><span class="op">);</span></span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>it <span class="op">!=</span> map<span class="op">.</span>end<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> it<span class="op">-&gt;</span>first<span class="op">.</span><span class="va">m_name</span> <span class="op">&lt;&lt;</span> <span class="st">&quot; &quot;</span> <span class="op">&lt;&lt;</span> it<span class="op">-&gt;</span>second <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>    map<span class="op">.</span>erase<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Use a custom KeyEqual which has an is_transparent member type</span></span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>employee<span class="op">,</span> <span class="dt">int</span><span class="op">,</span> hash_employee<span class="op">,</span> equal_employee<span class="op">&gt;</span> map2<span class="op">;</span></span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>    map2<span class="op">.</span>insert<span class="op">({</span>employee<span class="op">(</span><span class="dv">4</span><span class="op">,</span> <span class="st">&quot;Johnny Doe&quot;</span><span class="op">),</span> <span class="dv">2004</span><span class="op">});</span></span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 2004</span></span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> map2<span class="op">.</span>at<span class="op">(</span><span class="dv">4</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a><span class="op">}</span>  </span></code></pre></div>
+<h4 id="serialization">Serialization</h4>
+<p>The library provides an efficient way to serialize and deserialize a
+map or a set so that it can be saved to a file or send through the
+network. To do so, it requires the user to provide a function object for
+both serialization and deserialization.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> serializer <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Must support the following types for U: std::int16_t, std::uint32_t, </span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// std::uint64_t, float and std::pair&lt;Key, T&gt; if a map is used or Key for </span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a set.</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span> U<span class="op">&gt;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> U<span class="op">&amp;</span> value<span class="op">);</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> deserializer <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Must support the following types for U: std::int16_t, std::uint32_t, </span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// std::uint64_t, float and std::pair&lt;Key, T&gt; if a map is used or Key for </span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a set.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">typename</span> U<span class="op">&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    U <span class="kw">operator</span><span class="op">()();</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Note that the implementation leaves binary compatibility (endianness,
+float binary representation, size of int, …) of the types it
+serializes/deserializes in the hands of the provided function objects if
+compatibility is required.</p>
+<p>More details regarding the <code>serialize</code> and
+<code>deserialize</code> methods can be found in the <a
+href="https://tessil.github.io/robin-map/classtsl_1_1robin__map.html">API</a>.</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;type_traits&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> serializer <span class="op">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    serializer<span class="op">(</span><span class="at">const</span> <span class="dt">char</span><span class="op">*</span> file_name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_ostream</span><span class="op">.</span>exceptions<span class="op">(</span><span class="va">m_ostream</span><span class="op">.</span>badbit <span class="op">|</span> <span class="va">m_ostream</span><span class="op">.</span>failbit<span class="op">);</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_ostream</span><span class="op">.</span>open<span class="op">(</span>file_name<span class="op">,</span> <span class="bu">std::</span>ios::binary<span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">,</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>             <span class="kw">typename</span> <span class="bu">std::</span>enable_if<span class="op">&lt;</span><span class="bu">std::</span>is_arithmetic<span class="op">&lt;</span>T<span class="op">&gt;::</span>value<span class="op">&gt;::</span>type<span class="op">*</span> <span class="op">=</span> <span class="kw">nullptr</span><span class="op">&gt;</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> T<span class="op">&amp;</span> value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_ostream</span><span class="op">.</span>write<span class="op">(</span><span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="at">const</span> <span class="dt">char</span><span class="op">*&gt;(&amp;</span>value<span class="op">),</span> <span class="kw">sizeof</span><span class="op">(</span>T<span class="op">));</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="at">const</span> <span class="bu">std::</span>pair<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;&amp;</span> value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">(*</span><span class="kw">this</span><span class="op">)(</span>value<span class="op">.</span>first<span class="op">);</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">(*</span><span class="kw">this</span><span class="op">)(</span>value<span class="op">.</span>second<span class="op">);</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>ofstream <span class="va">m_ostream</span><span class="op">;</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> deserializer <span class="op">{</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    deserializer<span class="op">(</span><span class="at">const</span> <span class="dt">char</span><span class="op">*</span> file_name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_istream</span><span class="op">.</span>exceptions<span class="op">(</span><span class="va">m_istream</span><span class="op">.</span>badbit <span class="op">|</span> <span class="va">m_istream</span><span class="op">.</span>failbit <span class="op">|</span> <span class="va">m_istream</span><span class="op">.</span>eofbit<span class="op">);</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_istream</span><span class="op">.</span>open<span class="op">(</span>file_name<span class="op">,</span> <span class="bu">std::</span>ios::binary<span class="op">);</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">&gt;</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    T <span class="kw">operator</span><span class="op">()()</span> <span class="op">{</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>        T value<span class="op">;</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>        deserialize<span class="op">(</span>value<span class="op">);</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> value<span class="op">;</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> T<span class="op">,</span></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>             <span class="kw">typename</span> <span class="bu">std::</span>enable_if<span class="op">&lt;</span><span class="bu">std::</span>is_arithmetic<span class="op">&lt;</span>T<span class="op">&gt;::</span>value<span class="op">&gt;::</span>type<span class="op">*</span> <span class="op">=</span> <span class="kw">nullptr</span><span class="op">&gt;</span></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> deserialize<span class="op">(</span>T<span class="op">&amp;</span> value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>        <span class="va">m_istream</span><span class="op">.</span>read<span class="op">(</span><span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="dt">char</span><span class="op">*&gt;(&amp;</span>value<span class="op">),</span> <span class="kw">sizeof</span><span class="op">(</span>T<span class="op">));</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> deserialize<span class="op">(</span><span class="bu">std::</span>pair<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;&amp;</span> value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>        deserialize<span class="op">(</span>value<span class="op">.</span>first<span class="op">);</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>        deserialize<span class="op">(</span>value<span class="op">.</span>second<span class="op">);</span></span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>ifstream <span class="va">m_istream</span><span class="op">;</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;</span> map <span class="op">=</span> <span class="op">{{</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="dv">2</span><span class="op">,</span> <span class="op">-</span><span class="dv">2</span><span class="op">},</span> <span class="op">{</span><span class="dv">3</span><span class="op">,</span> <span class="op">-</span><span class="dv">3</span><span class="op">},</span> <span class="op">{</span><span class="dv">4</span><span class="op">,</span> <span class="op">-</span><span class="dv">4</span><span class="op">}};</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">char</span><span class="op">*</span> file_name <span class="op">=</span> <span class="st">&quot;robin_map.data&quot;</span><span class="op">;</span></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>        serializer serial<span class="op">(</span>file_name<span class="op">);</span></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>        map<span class="op">.</span>serialize<span class="op">(</span>serial<span class="op">);</span></span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>        deserializer dserial<span class="op">(</span>file_name<span class="op">);</span></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> map_deserialized <span class="op">=</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;::</span>deserialize<span class="op">(</span>dserial<span class="op">);</span></span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>        <span class="ot">assert</span><span class="op">(</span>map <span class="op">==</span> map_deserialized<span class="op">);</span></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>        deserializer dserial<span class="op">(</span>file_name<span class="op">);</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>        <span class="co">/**</span></span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a><span class="co">         * If the serialized and deserialized map are hash compatibles (see conditions in API), </span></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a><span class="co">         * setting the argument to true speed-up the deserialization process as we don&#39;t have </span></span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a><span class="co">         * to recalculate the hash of each key. We also know how much space each bucket needs.</span></span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a><span class="co">         */</span></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>        <span class="at">const</span> <span class="dt">bool</span> hash_compatible <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> map_deserialized <span class="op">=</span> </span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>            tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;::</span>deserialize<span class="op">(</span>dserial<span class="op">,</span> hash_compatible<span class="op">);</span></span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a>        <span class="ot">assert</span><span class="op">(</span>map <span class="op">==</span> map_deserialized<span class="op">);</span></span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> </span></code></pre></div>
+<h5
+id="serialization-with-boost-serialization-and-compression-with-zlib">Serialization
+with Boost Serialization and compression with zlib</h5>
+<p>It is possible to use a serialization library to avoid the
+boilerplate.</p>
+<p>The following example uses Boost Serialization with the Boost zlib
+compression stream to reduce the size of the resulting serialized file.
+The example requires C++20 due to the usage of the template parameter
+list syntax in lambdas, but it can be adapted to less recent
+versions.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/archive/binary_iarchive.hpp&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/archive/binary_oarchive.hpp&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/iostreams/filter/zlib.hpp&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/iostreams/filtering_stream.hpp&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/serialization/split_free.hpp&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/serialization/utility.hpp&gt;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tsl/robin_map.h&gt;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> boost <span class="op">{</span> <span class="kw">namespace</span> serialization <span class="op">{</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Archive<span class="op">,</span> <span class="kw">class</span> Key<span class="op">,</span> <span class="kw">class</span> T<span class="op">&gt;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> serialize<span class="op">(</span>Archive <span class="op">&amp;</span> ar<span class="op">,</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>Key<span class="op">,</span> T<span class="op">&gt;&amp;</span> map<span class="op">,</span> <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> version<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        split_free<span class="op">(</span>ar<span class="op">,</span> map<span class="op">,</span> version<span class="op">);</span> </span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Archive<span class="op">,</span> <span class="kw">class</span> Key<span class="op">,</span> <span class="kw">class</span> T<span class="op">&gt;</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> save<span class="op">(</span>Archive <span class="op">&amp;</span> ar<span class="op">,</span> <span class="at">const</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>Key<span class="op">,</span> T<span class="op">&gt;&amp;</span> map<span class="op">,</span> <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> <span class="co">/*version*/</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> serializer <span class="op">=</span> <span class="op">[&amp;</span>ar<span class="op">](</span><span class="at">const</span> <span class="kw">auto</span><span class="op">&amp;</span> v<span class="op">)</span> <span class="op">{</span> ar <span class="op">&amp;</span> v<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        map<span class="op">.</span>serialize<span class="op">(</span>serializer<span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">template</span><span class="op">&lt;</span><span class="kw">class</span> Archive<span class="op">,</span> <span class="kw">class</span> Key<span class="op">,</span> <span class="kw">class</span> T<span class="op">&gt;</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> load<span class="op">(</span>Archive <span class="op">&amp;</span> ar<span class="op">,</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>Key<span class="op">,</span> T<span class="op">&gt;&amp;</span> map<span class="op">,</span> <span class="at">const</span> <span class="dt">unsigned</span> <span class="dt">int</span> <span class="co">/*version*/</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">auto</span> deserializer <span class="op">=</span> <span class="op">[&amp;</span>ar<span class="op">]&lt;</span><span class="kw">typename</span> U<span class="op">&gt;()</span> <span class="op">{</span> U u<span class="op">;</span> ar <span class="op">&amp;</span> u<span class="op">;</span> <span class="cf">return</span> u<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>        map <span class="op">=</span> tsl<span class="op">::</span>robin_map<span class="op">&lt;</span>Key<span class="op">,</span> T<span class="op">&gt;::</span>deserialize<span class="op">(</span>deserializer<span class="op">);</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="op">}}</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;</span> map <span class="op">=</span> <span class="op">{{</span><span class="dv">1</span><span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="dv">2</span><span class="op">,</span> <span class="op">-</span><span class="dv">2</span><span class="op">},</span> <span class="op">{</span><span class="dv">3</span><span class="op">,</span> <span class="op">-</span><span class="dv">3</span><span class="op">},</span> <span class="op">{</span><span class="dv">4</span><span class="op">,</span> <span class="op">-</span><span class="dv">4</span><span class="op">}};</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">char</span><span class="op">*</span> file_name <span class="op">=</span> <span class="st">&quot;robin_map.data&quot;</span><span class="op">;</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ofstream ofs<span class="op">;</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>        ofs<span class="op">.</span>exceptions<span class="op">(</span>ofs<span class="op">.</span>badbit <span class="op">|</span> ofs<span class="op">.</span>failbit<span class="op">);</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>        ofs<span class="op">.</span>open<span class="op">(</span>file_name<span class="op">,</span> <span class="bu">std::</span>ios::binary<span class="op">);</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="ex">boost::</span>iostreams::filtering_ostream fo<span class="op">;</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>        fo<span class="op">.</span>push<span class="op">(</span><span class="ex">boost::</span>iostreams::zlib_compressor<span class="op">());</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>        fo<span class="op">.</span>push<span class="op">(</span>ofs<span class="op">);</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>        <span class="ex">boost::</span>archive::binary_oarchive oa<span class="op">(</span>fo<span class="op">);</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>        oa <span class="op">&lt;&lt;</span> map<span class="op">;</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>ifstream ifs<span class="op">;</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>        ifs<span class="op">.</span>exceptions<span class="op">(</span>ifs<span class="op">.</span>badbit <span class="op">|</span> ifs<span class="op">.</span>failbit <span class="op">|</span> ifs<span class="op">.</span>eofbit<span class="op">);</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>        ifs<span class="op">.</span>open<span class="op">(</span>file_name<span class="op">,</span> <span class="bu">std::</span>ios::binary<span class="op">);</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>        <span class="ex">boost::</span>iostreams::filtering_istream fi<span class="op">;</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>        fi<span class="op">.</span>push<span class="op">(</span><span class="ex">boost::</span>iostreams::zlib_decompressor<span class="op">());</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>        fi<span class="op">.</span>push<span class="op">(</span>ifs<span class="op">);</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>        <span class="ex">boost::</span>archive::binary_iarchive ia<span class="op">(</span>fi<span class="op">);</span></span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>     </span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>        tsl<span class="op">::</span>robin_map<span class="op">&lt;</span><span class="bu">std::</span>int64_t<span class="op">,</span> <span class="bu">std::</span>int64_t<span class="op">&gt;</span> map_deserialized<span class="op">;</span>   </span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>        ia <span class="op">&gt;&gt;</span> map_deserialized<span class="op">;</span></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>        <span class="ot">assert</span><span class="op">(</span>map <span class="op">==</span> map_deserialized<span class="op">);</span></span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="license">License</h3>
+<p>The code is licensed under the MIT license, see the <a
+href="LICENSE">LICENSE file</a> for details.</p>
