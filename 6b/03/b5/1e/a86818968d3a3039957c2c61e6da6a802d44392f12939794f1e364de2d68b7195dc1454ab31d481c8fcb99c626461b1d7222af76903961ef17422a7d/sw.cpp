@@ -72,6 +72,8 @@ void build(Solution &s)
         }
         else
         {
+            t.Protected += "_GNU_SOURCE"_def;
+
             t.Variables["USE_OPENSSL_RANDOM"] = 1;
         }
 
@@ -170,7 +172,7 @@ void build(Solution &s)
 
     auto &port = pg.addStaticLibrary("port");
     {
-        port.setChecks("includes", true);
+        port.setChecks("includes");
 
         port += "src/port/.*\\.[hc]"_r;
         port -= "src/port/.*armv8.*"_rr;
@@ -179,21 +181,23 @@ void build(Solution &s)
         {
             port -= "src/port/.*win32.*"_rr;
             port -= "src/port/dirent.c";
-            port -= "src/port/unsetenv.c";
-            port -= "src/port/gettimeofday.c";
-            port -= "src/port/getrusage.c";
+            //port -= "src/port/unsetenv.c";
+            //port -= "src/port/gettimeofday.c";
+            //port -= "src/port/getrusage.c";
             port -= "src/port/getopt.*"_rr;
 
             //port -= "src/port/pg_bitutils.c";
             port += "HAVE__GET_CPUID"_def;
-            port -= "src/port/getpeereid.c";
+            //port -= "src/port/getpeereid.c";
+            if (port.getBuildSettings().TargetOS.is(OSType::Linux))
+                port += "SO_PEERCRED"_def; // linux only! not on freebsd/solaris
             port -= "src/port/pg_crc32c_sse42_choose.c";
             if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
                 port.CompileOptions.push_back("-msse4.2");
         }
         if (port.getBuildSettings().TargetOS.is(OSType::Linux))
         {
-            port += "bsd"_slib;
+            //port += "bsd"_slib;
         }
         if (port.getBuildSettings().TargetOS.isApple())
         {
@@ -316,7 +320,11 @@ void check(Checker &c)
     s.checkFunctionExists("fseeko");
     s.checkFunctionExists("gethostbyname_r");
     s.checkFunctionExists("getifaddrs");
-    s.checkFunctionExists("getpeerucred");
+    {
+        auto &c = s.checkFunctionExists("getpeerucred");
+        c.Parameters.Includes.push_back("ucred.h");
+        c.Parameters.Includes.push_back("sys/ucred.h");
+    }
     s.checkFunctionExists("getpwuid_r");
     s.checkFunctionExists("getrlimit");
     s.checkFunctionExists("gettimeofday_1arg");
