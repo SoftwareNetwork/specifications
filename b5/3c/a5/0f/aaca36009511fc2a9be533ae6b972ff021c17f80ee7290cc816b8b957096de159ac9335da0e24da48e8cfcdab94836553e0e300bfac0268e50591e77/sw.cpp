@@ -2489,7 +2489,9 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui.CompileOptions.push_back("-mf16c");
             }
 
-            gui.Protected += "."_id;
+            // qt has issue with this
+            //gui.Protected += "."_id;
+            gui.Public += "."_id;
 
             gui.Public += "org.sw.demo.glennrp.png"_dep;
             gui += "org.sw.demo.mity.md4c"_dep;
