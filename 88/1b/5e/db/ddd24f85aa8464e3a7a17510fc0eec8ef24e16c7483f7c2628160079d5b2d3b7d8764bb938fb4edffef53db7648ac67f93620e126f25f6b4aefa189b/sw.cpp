@@ -15,6 +15,20 @@ void build(Solution &s)
     t -= "src/util/hash/rfc6234/.*"_rr;
     t -= "src/util/hash/sha1dc/.*"_rr;
 
+    if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
+        t -= "src/util/unix/.*"_rr;
+        t.Variables["GIT_IO_WSAPOLL"] = 1;
+        t.Variables["GIT_QSORT_MSC"] = 1;
+        t += "Secur32.lib"_slib;
+    } else {
+        //t += c99;
+        t -= "src/util/hash/win32.*"_rr;
+        t -= "src/util/win32.*"_rr;
+        t.Variables["GIT_IO_POLL"] = 1;
+        t.Variables["GIT_QSORT_GNU"] = 1;
+        t += "_GNU_SOURCE"_def;
+    }
+
     t.Public += "include"_idir;
     t += "src/libgit2"_idir;
     t += "src/util"_idir;
@@ -30,10 +44,7 @@ void build(Solution &s)
     t.Variables["GIT_OPENSSL"] = 1;
     t.Variables["GIT_SHA1_OPENSSL"] = 1;
     t.Variables["GIT_SHA256_OPENSSL"] = 1;
-    t.Variables["GIT_IO_WSAPOLL"] = 1;
     t.configureFile("src/util/git2_features.h.in", "git2_features.h");
-
-    t += "Secur32.lib"_slib;
 
 /*
 #cmakedefine GIT_USE_ICONV 1
