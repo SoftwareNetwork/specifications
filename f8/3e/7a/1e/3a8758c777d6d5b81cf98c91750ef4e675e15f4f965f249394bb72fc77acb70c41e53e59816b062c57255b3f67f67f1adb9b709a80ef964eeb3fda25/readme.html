@@ -1,0 +1,355 @@
+<h1 id="c-blosc2">C-Blosc2</h1>
+<h2 id="a-fast-compressed-and-persistent-data-store-library-for-c">A
+fast, compressed and persistent data store library for C</h2>
+<dl>
+<dt>Author</dt>
+<dd>
+<p>Blosc Development Team</p>
+</dd>
+<dt>Contact</dt>
+<dd>
+<p><a href="mailto:blosc@blosc.org">blosc@blosc.org</a></p>
+</dd>
+<dt>URL</dt>
+<dd>
+<p><a href="https://www.blosc.org">https://www.blosc.org</a></p>
+</dd>
+<dt>Gitter</dt>
+<dd>
+<p><a
+href="https://gitter.im/Blosc/c-blosc?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img
+src="https://badges.gitter.im/Blosc/c-blosc.svg"
+alt="Join the chat at https://gitter.im/Blosc/c-blosc" /></a></p>
+</dd>
+<dt>Actions</dt>
+<dd>
+<p><a
+href="https://github.com/Blosc/c-blosc2/actions?query=workflow%3A%22CI+CMake%22"><img
+src="https://github.com/Blosc/c-blosc2/workflows/CI%20CMake/badge.svg"
+alt="actions" /></a></p>
+</dd>
+<dt>NumFOCUS</dt>
+<dd>
+<p><a href="https://numfocus.org"><img
+src="https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&amp;colorA=E1523D&amp;colorB=007D8A"
+alt="numfocus" /></a></p>
+</dd>
+<dt>Code of Conduct</dt>
+<dd>
+<p><a
+href="https://github.com/Blosc/community/blob/master/code_of_conduct.md"><img
+src="https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg"
+alt="Contributor Covenant" /></a></p>
+</dd>
+</dl>
+<h2 id="what-is-it">What is it?</h2>
+<p><a href="https://www.blosc.org/pages/blosc-in-depth/">Blosc</a> is a
+high performance compressor optimized for binary data (i.e. floating
+point numbers, integers and booleans, although it can handle string data
+too). It has been designed to transmit data to the processor cache
+faster than the traditional, non-compressed, direct memory fetch
+approach via a memcpy() OS call. Blosc main goal is not just to reduce
+the size of large datasets on-disk or in-memory, but also to accelerate
+memory-bound computations.</p>
+<p>C-Blosc2 is the new major version of <a
+href="https://github.com/Blosc/c-blosc">C-Blosc</a>, and is backward
+compatible with both the C-Blosc1 API and its in-memory format. However,
+the reverse thing is generally not true for the format; buffers
+generated with C-Blosc2 are not format-compatible with C-Blosc1 (i.e.
+forward compatibility is not supported). In case you want to ensure full
+API compatibility with C-Blosc1 API, define the <span
+class="title-ref">BLOSC1_COMPAT</span> symbol.</p>
+<p>See a 3 minutes <a
+href="https://www.youtube.com/watch?v=ER12R7FXosk">introductory video to
+Blosc2</a>.</p>
+<h2 id="blosc2-ndim-an-n-dimensional-store">Blosc2 NDim: an
+N-Dimensional store</h2>
+<p>One of the latest and more exciting additions in C-Blosc2 is the <a
+href="https://www.blosc.org/c-blosc2/reference/b2nd.html">Blosc2 NDim
+layer</a> (or b2nd for short), allowing to create <em>and</em> read
+n-dimensional datasets in an extremely efficient way thanks to a n-dim
+2-level partitioning, that allows to slice and dice arbitrary large and
+compressed data in a more fine-grained way:</p>
+<p><img
+src="https://github.com/Blosc/c-blosc2/blob/main/images/b2nd-2level-parts.png?raw=true"
+style="width:75.0%" alt="image" /></p>
+<p>To wet you appetite, here it is how the <span
+class="title-ref">NDArray</span> object in the <a
+href="#python-wrapper">Python wrapper</a> performs on getting slices
+orthogonal to the different axis of a 4-dim dataset:</p>
+<p><img
+src="https://github.com/Blosc/c-blosc2/blob/main/images/Read-Partial-Slices-B2ND.png?raw=true"
+style="width:75.0%" alt="image" /></p>
+<p>We have blogged about this: <a
+href="https://www.blosc.org/posts/blosc2-ndim-intro">https://www.blosc.org/posts/blosc2-ndim-intro</a></p>
+<p>We also have a ~2 min explanatory video on <a
+href="https://www.youtube.com/watch?v=LvP9zxMGBng">why slicing in a
+pineapple-style (aka double partition) is useful</a>:</p>
+<p><a href="https://www.youtube.com/watch?v=LvP9zxMGBng"><img
+src="https://github.com/Blosc/blogsite/blob/master/files/images/slicing-pineapple-style.png?raw=true"
+style="width:50.0%"
+alt="Slicing a dataset in pineapple-style" /></a></p>
+<h2 id="new-features-in-c-blosc2">New features in C-Blosc2</h2>
+<ul>
+<li><strong>64-bit containers:</strong> the first-class container in
+C-Blosc2 is the <span class="title-ref">super-chunk</span> or, for
+brevity, <span class="title-ref">schunk</span>, that is made by smaller
+chunks which are essentially C-Blosc1 32-bit containers. The super-chunk
+can be backed or not by another container which is called a <span
+class="title-ref">frame</span> (see later).</li>
+<li><strong>NDim containers (b2nd):</strong> allow to store
+n-dimensional data that can efficiently read datasets in slices that can
+be n-dimensional too. To achieve this, a n-dimensional 2-level
+partitioning has been implemented. This capabilities were formerly part
+of <a href="https://github.com/Blosc/caterva">Caterva</a>, and now it is
+included in C-Blosc2 for convenience. Caterva is now deprecated.</li>
+<li><strong>More filters:</strong> besides <span
+class="title-ref">shuffle</span> and <span
+class="title-ref">bitshuffle</span> already present in C-Blosc1,
+C-Blosc2 already implements:
+<ul>
+<li>`bytedelta`: calculates the difference between bytes in a block that
+has been shuffled already. We have <a
+href="https://www.blosc.org/posts/bytedelta-enhance-compression-toolset/">blogged
+about bytedelta</a>.</li>
+<li>`delta`: the stored blocks inside a chunk are diff'ed with respect
+to first block in the chunk. The idea is that, in some situations, the
+diff will have more zeros than the original data, leading to better
+compression.</li>
+<li>`trunc_prec`: it zeroes the least significant bits of the mantissa
+of float32 and float64 types. When combined with the <span
+class="title-ref">shuffle</span> or <span
+class="title-ref">bitshuffle</span> filter, this leads to more
+contiguous zeros, which are compressed better.</li>
+</ul></li>
+<li><strong>A filter pipeline:</strong> the different filters can be
+pipelined so that the output of one can the input for the other. A
+possible example is a <span class="title-ref">delta</span> followed by
+<span class="title-ref">shuffle</span>, or as described above, <span
+class="title-ref">trunc_prec</span> followed by <span
+class="title-ref">bitshuffle</span>.</li>
+<li><strong>Prefilters:</strong> allow to apply user-defined C callbacks
+<strong>prior</strong> the filter pipeline during compression. See <a
+href="https://github.com/Blosc/c-blosc2/blob/main/tests/test_prefilter.c">test_prefilter.c</a>
+for an example of use.</li>
+<li><strong>Postfilters:</strong> allow to apply user-defined C
+callbacks <strong>after</strong> the filter pipeline during
+decompression. The combination of prefilters and postfilters could be
+interesting for supporting e.g. encryption (via prefilters) and
+decryption (via postfilters). Also, a postfilter alone can be used to
+produce on-the-flight computation based on existing data (or other
+metadata, like e.g. coordinates). See <a
+href="https://github.com/Blosc/c-blosc2/blob/main/tests/test_postfilter.c">test_postfilter.c</a>
+for an example of use.</li>
+<li><strong>SIMD support for ARM (NEON):</strong> this allows for faster
+operation on ARM architectures. Only <span
+class="title-ref">shuffle</span> is supported right now, but the idea is
+to implement <span class="title-ref">bitshuffle</span> for NEON too.
+Thanks to Lucian Marc.</li>
+<li><strong>SIMD support for PowerPC (ALTIVEC):</strong> this allows for
+faster operation on PowerPC architectures. Both <span
+class="title-ref">shuffle</span> and <span
+class="title-ref">bitshuffle</span> are supported; however, this has
+been done via a transparent mapping from SSE2 into ALTIVEC emulation in
+GCC 8, so performance could be better (but still, it is already a nice
+improvement over native C code; see PR <a
+href="https://github.com/Blosc/c-blosc2/pull/59">https://github.com/Blosc/c-blosc2/pull/59</a>
+for details). Thanks to Jerome Kieffer and <a
+href="https://www.esrf.fr">ESRF</a> for sponsoring the Blosc team in
+helping him in this task.</li>
+<li><strong>Dictionaries:</strong> when a block is going to be
+compressed, C-Blosc2 can use a previously made dictionary (stored in the
+header of the super-chunk) for compressing all the blocks that are part
+of the chunks. This usually improves the compression ratio, as well as
+the decompression speed, at the expense of a (small) overhead in
+compression speed. Currently, it is only supported in the <span
+class="title-ref">zstd</span> codec, but would be nice to extend it to
+<span class="title-ref">lz4</span> and <span
+class="title-ref">blosclz</span> at least.</li>
+<li><strong>Contiguous frames:</strong> allow to store super-chunks
+contiguously, either on-disk or in-memory. When a super-chunk is backed
+by a frame, instead of storing all the chunks sparsely in-memory, they
+are serialized inside the frame container. The frame can be stored
+on-disk too, meaning that persistence of super-chunks is supported.</li>
+<li><strong>Sparse frames:</strong> each chunk in a super-chunk is
+stored in a separate file or different memory area, as well as the
+metadata. This is allows for more efficient updates/deletes than in
+contiguous frames (i.e. avoiding 'holes' in monolithic files). The
+drawback is that it consumes more inodes when on-disk. Thanks to Marta
+Iborra for this contribution.</li>
+<li><strong>Partial chunk reads:</strong> there is support for reading
+just part of chunks, so avoiding to read the whole thing and then
+discard the unnecessary data.</li>
+<li><strong>Parallel chunk reads:</strong> when several blocks of a
+chunk are to be read, this is done in parallel by the decompressing
+machinery. That means that every thread is responsible to read,
+post-filter and decompress a block by itself, leading to an efficient
+overlap of I/O and CPU usage that optimizes reads to a maximum.</li>
+<li><strong>Meta-layers:</strong> optionally, the user can add meta-data
+for different uses and in different layers. For example, one may think
+on providing a meta-layer for <a href="https://numpy.org">NumPy</a> so
+that most of the meta-data for it is stored in a meta-layer; then, one
+can place another meta-layer on top of the latter for adding more
+high-level info if desired (e.g. geo-spatial, meteorological...).</li>
+<li><strong>Variable length meta-layers:</strong> the user may want to
+add variable-length meta information that can be potentially very large
+(up to 2 GB). The regular meta-layer described above is very quick to
+read, but meant to store fixed-length and relatively small meta
+information. Variable length metalayers are stored in the trailer of a
+frame, whereas regular meta-layers are in the header.</li>
+<li><strong>Efficient support for special values:</strong> large
+sequences of repeated values can be represented with an efficient,
+simple and fast run-length representation, without the need to use
+regular codecs. With that, chunks or super-chunks with values that are
+the same (zeros, NaNs or any value in general) can be built in constant
+time, regardless of the size. This can be useful in situations where a
+lot of zeros (or NaNs) need to be stored (e.g. sparse matrices).</li>
+<li><strong>Nice markup for documentation:</strong> we are currently
+using a combination of Sphinx + Doxygen + Breathe for documenting the
+C-API. See <a
+href="https://www.blosc.org/c-blosc2/c-blosc2.html">https://www.blosc.org/c-blosc2/c-blosc2.html</a>.
+Thanks to Alberto Sabater and Aleix Alcacer for contributing the support
+for this.</li>
+<li><strong>Plugin capabilities for filters and codecs:</strong> we have
+a plugin register capability inplace so that the info about the new
+filters and codecs can be persisted and transmitted to different
+machines. See <a
+href="https://github.com/Blosc/c-blosc2/blob/main/examples/urfilters.c">https://github.com/Blosc/c-blosc2/blob/main/examples/urfilters.c</a>
+for a self-contained example. Thanks to the NumFOCUS foundation for
+providing a grant for doing this, and Oscar Griñón and Aleix Alcacer for
+the implementation.</li>
+<li><strong>Pluggable tuning capabilities:</strong> this will allow
+users with different needs to define an interface so as to better tune
+different parameters like the codec, the compression level, the filters
+to use, the blocksize or the shuffle size. Thanks to ironArray for
+sponsoring us in doing this.</li>
+<li><strong>Support for I/O plugins:</strong> so that users can extend
+the I/O capabilities beyond the current filesystem support. Things like
+the use of databases or S3 interfaces should be possible by implementing
+these interfaces. Thanks to ironArray for sponsoring us in doing
+this.</li>
+<li><strong>Python wrapper:</strong> we have a preliminary wrapper in
+the works. You can have a look at our ongoing efforts in the <a
+href="https://github.com/Blosc/python-blosc2">python-blosc2 repo</a>.
+Thanks to the Python Software Foundation for providing a grant for doing
+this.</li>
+<li><strong>Security:</strong> we are actively using using the <a
+href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> and <a
+href="https://oss-fuzz.com">ClusterFuzz</a> for uncovering programming
+errors in C-Blosc2. Thanks to Google for sponsoring us in doing this,
+and to Nathan Moinvaziri for most of the work here.</li>
+</ul>
+<p>More info about the <a
+href="https://www.blosc.org/docs/Caterva-HDF5-Workshop.pdf">improved
+capabilities of C-Blosc2 can be found in this talk</a>.</p>
+<p>C-Blosc2 API and format have been frozen, and that means that there
+is guarantee that your programs will continue to work with future
+versions of the library, and that next releases will be able to read
+from persistent storage generated from previous releases (as of
+2.0.0).</p>
+<h2 id="python-wrapper">Python wrapper</h2>
+<p>We are officially supporting (thanks to the Python Software
+Foundation) a <a href="https://github.com/Blosc/python-blosc2">Python
+wrapper for Blosc2</a>. It supports all the features of the predecessor
+<a href="https://github.com/Blosc/python-blosc">python-blosc</a> package
+plus most of the bells and whistles of C-Blosc2, like 64-bit and
+multidimensional containers. As a bonus, the <span
+class="title-ref">python-blosc2</span> package comes with wheels and
+binary versions of the C-Blosc2 libraries, so anyone, even non-Python
+users can install C-Blosc2 binaries easily with:</p>
+<pre class="console"><code>pip install blosc2</code></pre>
+<h2 id="compiling-the-c-blosc2-library-with-cmake">Compiling the
+C-Blosc2 library with CMake</h2>
+<p>Blosc can be built, tested and installed using <a
+href="https://cmake.org">CMake</a>. The following procedure describes a
+typical CMake build.</p>
+<p>Create the build directory inside the sources and move into it:</p>
+<pre class="console"><code>git clone https://github.com/Blosc/c-blosc2
+cd c-blosc2
+mkdir build
+cd build</code></pre>
+<p>Now run CMake configuration and optionally specify the installation
+directory (e.g. '/usr' or '/usr/local'):</p>
+<pre class="console"><code>cmake -DCMAKE_INSTALL_PREFIX=your_install_prefix_directory ..</code></pre>
+<p>CMake allows to configure Blosc in many different ways, like
+preferring internal or external sources for compressors or
+enabling/disabling them. Please note that configuration can also be
+performed using UI tools provided by CMake (<span
+class="title-ref">ccmake</span> or <span
+class="title-ref">cmake-gui</span>):</p>
+<pre class="console"><code>ccmake ..      # run a curses-based interface
+cmake-gui ..   # run a graphical interface</code></pre>
+<p>Build, test and install Blosc:</p>
+<pre class="console"><code>cmake --build .
+ctest
+cmake --build . --target install</code></pre>
+<p>The static and dynamic version of the Blosc library, together with
+header files, will be installed into the specified
+CMAKE_INSTALL_PREFIX.</p>
+<p>Once you have compiled your Blosc library, you can easily link your
+apps with it as shown in the <a
+href="https://github.com/Blosc/c-blosc2/blob/main/examples">examples/
+directory</a>.</p>
+<h3 id="handling-support-for-codecs-lz4-lz4hc-zstd-zlib">Handling
+support for codecs (LZ4, LZ4HC, Zstd, Zlib)</h3>
+<p>C-Blosc2 comes with full sources for LZ4, LZ4HC, Zstd, and Zlib and
+in general, you should not worry about not having (or CMake not finding)
+the libraries in your system because by default the included sources
+will be automatically compiled and included in the C-Blosc2 library.
+This means that you can be confident in having a complete support for
+all these codecs in all the official Blosc deployments. Of course, if
+you consider this is too bloated, you can exclude support for some of
+them.</p>
+<p>For example, let's suppose that you want to disable support for
+Zstd:</p>
+<pre class="console"><code>cmake -DDEACTIVATE_ZSTD=ON ..</code></pre>
+<p>Or, you may want to use a codec in an external library already in the
+system:</p>
+<pre class="console"><code>cmake -DPREFER_EXTERNAL_LZ4=ON ..</code></pre>
+<h3 id="supported-platforms">Supported platforms</h3>
+<p>C-Blosc2 is meant to support all platforms where a C99 compliant C
+compiler can be found. The ones that are mostly tested are Intel (Linux,
+Mac OSX and Windows), ARM (Linux, Mac), and PowerPC (Linux). More on ARM
+support in <span class="title-ref">README_ARM.rst</span>.</p>
+<p>For Windows, you will need at least VS2015 or higher on x86 and x64
+targets (i.e. ARM is not supported on Windows).</p>
+<p>For Mac OSX, make sure that you have the command line developer tools
+available. You can always install them with:</p>
+<pre class="console"><code>xcode-select --install</code></pre>
+<p>For Mac OSX on arm64 architecture, you may want to compile it like
+this:</p>
+<pre class="console"><code>CC=&quot;clang -arch arm64&quot; cmake ..</code></pre>
+<h3 id="display-error-messages">Display error messages</h3>
+<p>By default error messages are disabled. To display them, you just
+need to activate the Blosc tracing machinery by setting the
+<code>BLOSC_TRACE</code> environment variable.</p>
+<h2 id="contributing">Contributing</h2>
+<p>If you want to collaborate in this development you are welcome. We
+need help in the different areas listed at the <a
+href="https://github.com/Blosc/c-blosc2/blob/main/ROADMAP.rst">ROADMAP</a>;
+also, be sure to read our <a
+href="https://github.com/Blosc/c-blosc2/blob/main/DEVELOPING-GUIDE.rst">DEVELOPING-GUIDE</a>
+and our <a
+href="https://github.com/Blosc/community/blob/master/code_of_conduct.md">Code
+of Conduct</a>. Blosc is distributed using the <a
+href="https://github.com/Blosc/c-blosc2/blob/main/LICENSE.txt">BSD
+license</a>.</p>
+<h2 id="tweeter-feed">Tweeter feed</h2>
+<p>Follow <a href="https://twitter.com/Blosc2">@Blosc2</a> so as to get
+informed about the latest developments.</p>
+<h2 id="citing-blosc">Citing Blosc</h2>
+<p>You can cite our work on the different libraries under the Blosc
+umbrella as:</p>
+<pre class="console"><code>@ONLINE{blosc,
+  author = {{Blosc Development Team}},
+  title = &quot;{A fast, compressed and persistent data store library}&quot;,
+  year = {2009-2023},
+  note = {https://blosc.org}
+}</code></pre>
+<h2 id="acknowledgments">Acknowledgments</h2>
+<p>See <a
+href="https://github.com/Blosc/c-blosc2/blob/main/THANKS.rst">THANKS
+document</a>.</p>
+<hr />
+<p>-- Blosc Development Team. <strong>We make compression
+better.</strong></p>
