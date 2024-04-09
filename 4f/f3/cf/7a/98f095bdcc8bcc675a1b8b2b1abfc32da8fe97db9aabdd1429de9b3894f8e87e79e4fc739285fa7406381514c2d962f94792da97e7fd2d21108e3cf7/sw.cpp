@@ -2119,7 +2119,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 core += "plugin/qcoffpeparser.cpp";
                 core += "plugin/qsystemlibrary.cpp";
                 core += "kernel/qwineventnotifier.cpp";
-                core += "NOMINMAX"_def;
+                core.Protected += "NOMINMAX"_def;
             }
             else
             {
@@ -3682,7 +3682,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             masm.Protected += "ENABLE_DFG_JIT_UTILITY_METHODS"_d;
             masm.Protected += "ENABLE_JIT_CONSTANT_BLINDING=0"_d;
             masm.Protected += "BUILDING_QT__"_d;
-            masm.Protected += "NOMINMAX"_d;
 
             masm.Public += core;
             masm.Public += integration;
