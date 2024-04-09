@@ -439,6 +439,7 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_kqueue.*"_rr;
     t -= ".*_linux.*"_rr;
     t -= ".*_posix.*"_rr;
+    t -= ".*_darwin.*"_rr;
     t -= ".*_tz.*"_rr;
     //t -= ".*_stub.*"_rr;
     t -= ".*_generic.*"_rr;
@@ -477,6 +478,7 @@ static void platform_files(NativeExecutedTarget &t)
         t += ".*_unix.*"_rr;
         t += ".*_posix.*"_rr;
         t += ".*_systemv.*"_rr;
+        t += ".*_darwin.*"_rr;
         t += ".*.mm"_rr;
         t += ".*_mac.*"_rr;
         t += ".*_macx.*"_rr;
@@ -2358,7 +2360,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core.Public += "kernel/qmetatype.cpp"; // not only mac?
                 core += "plugin/qmachparser.cpp";
 
-                core -= "io/qstorageinfo_unix.cpp";
+                //core -= "io/qstorageinfo_unix.cpp";
                 //core -= "kernel/qelapsedtimer_unix.cpp";
                 core -= "text/qcollator_posix.cpp";
                 core -= "io/qstandardpaths_unix.cpp";
@@ -2457,15 +2459,13 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             gui -= "rhi/qrhivulkan.*"_rr;
             gui -= "rhi/qrhimetal.*"_rr;
-            gui -= "rhi/qrhid3d11.*"_rr;
-            gui -= "rhi/qrhid3d12.*"_rr;
+            gui -= "rhi/qrhid3.*"_rr;
             if (gui.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 gui += "accessible/windows/.*"_rr;
                 gui += "text/windows/.*"_rr;
                 gui += "platform/windows/.*"_rr;
-                gui += "rhi/qrhid3d11.*"_rr;
-                gui += "rhi/qrhid3d12.*"_rr;
+                gui += "rhi/qrhid3d.*"_rr;
                 gui += "d3d11.lib"_slib;
                 gui += "d3d12.lib"_slib;
                 gui += "dxgi.lib"_slib;
