@@ -13,7 +13,9 @@ void build(Solution &s)
         t -= "plugins/.*\\.[hc]"_rr;
 
         t += "HAVE_CONFIG_GNOME"_def;
+        t += "plugins/config-gnome/.*\\.[hc]"_rr;
         t.Public += "org.sw.demo.gnome.glib.gio"_dep;
+
         t += "HAVE_CURL"_def;
         t.Public += "org.sw.demo.badger.curl.libcurl"_dep;
 
@@ -33,5 +35,5 @@ backend_config_h.set('HAVE_PACRUNNER_DUKTAPE', get_option('pacrunner-duktape'))
 
     auto &t = p.addTarget<StaticLibraryTarget>("libproxy");
     t.setRootDirectory("src/libproxy");
-    t += backend;
+    t.Public += backend;
 }

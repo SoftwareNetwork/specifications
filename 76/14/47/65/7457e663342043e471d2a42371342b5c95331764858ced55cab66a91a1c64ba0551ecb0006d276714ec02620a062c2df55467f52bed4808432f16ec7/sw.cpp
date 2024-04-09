@@ -440,7 +440,7 @@ static void platform_files(NativeExecutedTarget &t)
     t -= ".*_linux.*"_rr;
     t -= ".*_posix.*"_rr;
     t -= ".*_tz.*"_rr;
-    t -= ".*_stub.*"_rr;
+    //t -= ".*_stub.*"_rr;
     t -= ".*_generic.*"_rr;
     t -= ".*_cf.*"_rr;
     t -= ".*_cf_p.*"_rr;
@@ -2972,8 +2972,10 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "kernel"_id;
 
             network -= "kernel/qdnslookup_dummy.cpp";
+            network -= "kernel/qnetconmonitor_stub.cpp";
 
             network += "QT_USE_QSTRINGBUILDER"_d;
+            network -= "org.sw.demo.libproxy.libproxy"_dep;
             if (network.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 network += "com.Microsoft.Windows.SDK.winrt"_dep;
@@ -2984,9 +2986,9 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             }
             else if (network.getBuildSettings().TargetOS.Type == OSType::Linux)
             {
-                // add to sw
+                network += "kernel/qnetconmonitor_stub.cpp";
                 network += "kernel/qnetworkproxy_libproxy.cpp";
-                network += "proxy"_slib;
+                network += "org.sw.demo.libproxy.libproxy"_dep;
             }
 
             if (!network.getBuildSettings().TargetOS.isApple())
@@ -3007,6 +3009,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             else if (network.getBuildSettings().TargetOS.Type == OSType::Linux)
             {
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
+                qt_network_desc.config.public_.features.insert({ "getifaddrs", false });
+                qt_network_desc.config.public_.features.insert({ "ipv6ifname", false });
                 qt_network_desc.config.public_.features.insert({ "linux_netlink", true });
                 qt_network_desc.config.public_.features.insert({ "ifr_index", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", false });
@@ -3014,6 +3018,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             else if (network.getBuildSettings().TargetOS.isApple())
             {
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
+                qt_network_desc.config.public_.features.insert({ "getifaddrs", false });
+                qt_network_desc.config.public_.features.insert({ "ipv6ifname", false });
                 qt_network_desc.config.public_.features.insert({ "linux_netlink", false });
                 qt_network_desc.config.public_.features.insert({ "ifr_index", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", false });
