@@ -468,7 +468,7 @@ static void platform_files(NativeExecutedTarget &t)
         t += ".*_systemv.*"_rr;
         t += ".*_tz.*"_rr;
         t += ".*_qpa.*"_rr;
-        t += ".*_stub.*"_rr;
+        //t += ".*_stub.*"_rr;
         //t += ".*_generic.*"_rr;
     } else if (t.getBuildSettings().TargetOS.isApple()) {
         t += ".*qcf.*"_rr;
@@ -1575,7 +1575,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             forkfd -= "src/3rdparty/forkfd/.*"_rr;
             if (forkfd.getBuildSettings().TargetOS.Type != OSType::Windows && !forkfd.getBuildSettings().TargetOS.isApple())
             {
-                forkfd += c99;
+                forkfd += c11;
                 forkfd += "src/3rdparty/forkfd/forkfd.c";
                 forkfd += "FORKFD_DISABLE_FORK_FALLBACK"_def;
                 forkfd.Public += "src/3rdparty/forkfd"_idir;
@@ -1598,14 +1598,20 @@ Q_IMPORT_PLUGIN()" + name + R"();
         }
 
         auto mkspecs = [](auto &&t) {
+            bool set{};
             if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
                 if (t.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
                     t.Public += "mkspecs/win32-arm64-msvc"_idir;
                 } else {
                     t.Public += "mkspecs/win32-msvc"_idir;
                 }
+                set = true;
             } else if (t.getCompilerType() == CompilerType::GNU) {
                 t.Public += "mkspecs/linux-g++-64"_idir;
+                set = true;
+            } else if (t.getCompilerType() == CompilerType::Clang) {
+                t.Public += "mkspecs/linux-clang"_idir;
+                set = true;
             }
 
             if (t.getBuildSettings().TargetOS.isApple())
@@ -1617,6 +1623,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                         t.Public += "mkspecs/macx-g++"_idir;
                     else
                         t.Public += "mkspecs/macx-clang"_idir;
+                    set = true;
                 }
 
                 t.Protected += "CoreFoundation"_framework;
@@ -1625,6 +1632,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 t.Protected += "Security"_framework;
                 t.Protected += "AppKit"_framework;
                 t.Protected += "IOKit"_framework;
+            }
+            if (!set) {
+                throw SW_RUNTIME_ERROR("mkspecs include directory is not set");
             }
         };
 
@@ -2388,6 +2398,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             // for declarative; for some reason not generated
             core.writeFileOnce("include/QtCore/QVector", "#include <QtCore/qvector.h>");
             core.patch("global/qsimd.cpp", "#  include \"..", "//#   include \"..");
+            core.patch("io/qstorageinfo_p.h", "#elif defined(Q_OS_LINUX)", "#elif  defined(Q_OS_LINUX)\nvoid initRootPath();");
         }
 
         // dbus
