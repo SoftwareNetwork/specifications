@@ -2345,6 +2345,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             platform_files(core);
 
             core -=
+                "io/qstorageinfo_stub.cpp",
                 "thread/qmutex_mac.cpp",
                 "thread/qmutex_unix.cpp"
                 ;
