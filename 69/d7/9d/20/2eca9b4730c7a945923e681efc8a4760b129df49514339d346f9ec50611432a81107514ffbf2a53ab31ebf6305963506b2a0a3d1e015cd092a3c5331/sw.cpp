@@ -25,6 +25,9 @@ void build(Solution &s)
         "silk/mips/.*"_rr,
         "silk/tests/.*"_rr;
 
+    //opus -= "silk/float/x86/inner_product_FLP_avx2.c";
+    //opus -= "silk/x86/NSQ_del_dec_avx2.c";
+
     opus.Public +=
         "silk/float"_id,
         "silk"_id,
@@ -60,9 +63,21 @@ void build(Solution &s)
         opus.Private += "OPUS_X86_MAY_HAVE_SSE2"_d;
         opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
     }
+
+    if (opus.getBuildSettings().TargetOS.isApple())
+    {
+        if (opus.getBuildSettings().TargetOS.Arch == ArchType::x86_64) {
+            opus.CompileOptions.push_back("-msse4");
+            opus.CompileOptions.push_back("-mavx2");
+            opus.CompileOptions.push_back("-mfma");
+        } else if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+        }
+    }
     if (opus.getBuildSettings().TargetOS.Type == OSType::Linux)
     {
         opus.CompileOptions.push_back("-msse4");
+        opus.CompileOptions.push_back("-mavx2");
+        opus.CompileOptions.push_back("-mfma");
     }
     if (opus.getBuildSettings().TargetOS.Type == OSType::Windows &&
         (opus.getCompilerType() == CompilerType::Clang || opus.getCompilerType() == CompilerType::ClangCl

@@ -177,6 +177,7 @@ void build(Solution &s)
     vpx.Variables["ARCH_X86_64"] = 0;
     if (vpx.getBuildSettings().TargetOS.Arch == ArchType::x86_64)
     {
+        vpx -= ".*/arm/.*"_rr; // some sse_neon files are enabled with sse
         vpx.Variables["ARCH_X86_64"] = 1;
         if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows) {
             vpx.Variables["asm"] = "win64";
@@ -189,6 +190,7 @@ void build(Solution &s)
             vpx -= "vp8/common/x86/loopfilter_x86.c";
             vpx -= "vp9/encoder/x86/vp9_dct_intrin_sse2.c";
             vpx -= "vpx_dsp/x86/subtract_avx2.c";
+            vpx -= "vpx_dsp/x86/avg_pred_avx2.c";
         } else {
             vpx.Variables["asm"] = "elf64";
             for (auto &&[p,f] : vpx[".*\\.cc?"_rr]) {
@@ -197,7 +199,8 @@ void build(Solution &s)
             vpx -=
                 "vp9/encoder/x86/vp9_dct_intrin_sse2.c",
                 "vp8/common/x86/loopfilter_x86.c",
-                "vpx_dsp/x86/subtract_avx2.c"
+                "vpx_dsp/x86/subtract_avx2.c",
+                "vpx_dsp/x86/avg_pred_avx2.c"
                 ;
             vpx += "pthread"_slib;
         }
