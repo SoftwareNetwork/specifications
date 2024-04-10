@@ -219,11 +219,18 @@ void build(Solution &s)
         vpx -= ".*mmx.*"_rr;
         vpx -= ".*.highbd.*"_rr;
 
+        vpx += "vpx_ports/aarch64_cpudetect.c";
+        vpx += "vpx_dsp/sse.c";
+
         vpx -= "vp9/encoder/arm/neon/vp9_denoiser_neon.c";
         vpx -= "vp9/encoder/arm/neon/vp9_dct_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve_neon.c";
         vpx -= "vpx_dsp/arm/vpx_convolve8_neon.c";
         vpx -= "vpx_dsp/arm/subpel_variance_neon.c";
+        vpx -= "vpx_dsp/arm/vpx_convolve8_neon_i8mm.c";
+        vpx -= "vpx_dsp/arm/vpx_convolve8_neon_dotprod.c";
+        vpx -= "vpx_dsp/arm/vpx_convolve_neon_i8mm.c";
+        vpx -= "vpx_dsp/arm/vpx_convolve_neon_dotprod.c";
         if (vpx.getBuildSettings().TargetOS.Type == OSType::Windows) {
             vpx.patch("vp9/encoder/arm/neon/vp9_diamond_search_sad_neon.c", "__attribute__((aligned(16)))", "");
         }
