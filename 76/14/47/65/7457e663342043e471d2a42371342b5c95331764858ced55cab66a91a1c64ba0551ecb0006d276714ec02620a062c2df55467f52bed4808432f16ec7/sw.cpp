@@ -164,7 +164,10 @@ static Files automoc(const DependencyPtr &moc, NativeExecutedTarget &t, const st
         if (is_cpp_ext(ext)
             && p.filename() != "qrc_sw_qm.cpp"s
             ||
-            (ext.size() > 1 && HeaderFileExtensionsSet.find(ext.substr(1)) != HeaderFileExtensionsSet.end()))
+            ext.size() > 1
+            && HeaderFileExtensionsSet.find(ext.substr(1)) != HeaderFileExtensionsSet.end()
+            && !p.filename().string().ends_with(".syncqt.h"s)
+            )
         {
             auto s = read_file(p);
             if (0
@@ -2366,7 +2369,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core.Public += "kernel/qmetatype.cpp"; // not only mac?
                 core += "plugin/qmachparser.cpp";
 
-                //core -= "io/qstorageinfo_unix.cpp";
+                core -= "io/qstorageinfo_unix.cpp";
                 //core -= "kernel/qelapsedtimer_unix.cpp";
                 core -= "text/qcollator_posix.cpp";
                 core -= "io/qstandardpaths_unix.cpp";
