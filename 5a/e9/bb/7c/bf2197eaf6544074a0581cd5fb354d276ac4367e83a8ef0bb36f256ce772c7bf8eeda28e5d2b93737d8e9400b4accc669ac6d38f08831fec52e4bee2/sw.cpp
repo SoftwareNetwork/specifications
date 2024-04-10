@@ -1592,6 +1592,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
         auto &tinycbor = third_party.addTarget<StaticLibraryTarget>("tinycbor");
         {
             tinycbor.setRootDirectory("src/3rdparty/tinycbor");
+            tinycbor += "src/.*"_rr;
+            tinycbor.patch("src/cborparser.c", "Q_FALLTHROUGH();", "//Q_FALLTHROUGH ();");
         }
 
         auto &psl = third_party.addTarget<StaticLibraryTarget>("psl");
@@ -1601,22 +1603,16 @@ Q_IMPORT_PLUGIN()" + name + R"();
 
         auto mkspecs = [](auto &&t) {
             bool set{};
-            if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
+            if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
                 if (t.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
                     t.Public += "mkspecs/win32-arm64-msvc"_idir;
                 } else {
                     t.Public += "mkspecs/win32-msvc"_idir;
                 }
                 set = true;
-            } else if (t.getCompilerType() == CompilerType::GNU) {
-                t.Public += "mkspecs/linux-g++-64"_idir;
-                set = true;
-            } else if (t.getCompilerType() == CompilerType::Clang) {
-                t.Public += "mkspecs/linux-clang"_idir;
-                set = true;
             }
-
-            if (t.getBuildSettings().TargetOS.isApple())
+            else if (t.getBuildSettings().TargetOS.isApple())
             {
                 if (t.getBuildSettings().TargetOS.Type == OSType::Macos)
                 {
@@ -1634,6 +1630,16 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 t.Protected += "Security"_framework;
                 t.Protected += "AppKit"_framework;
                 t.Protected += "IOKit"_framework;
+            }
+            else
+            {
+                if (t.getCompilerType() == CompilerType::GNU) {
+                    t.Public += "mkspecs/linux-g++-64"_idir;
+                    set = true;
+                } else if (t.getCompilerType() == CompilerType::Clang) {
+                    t.Public += "mkspecs/linux-clang"_idir;
+                    set = true;
+                }
             }
             if (!set) {
                 throw SW_RUNTIME_ERROR("mkspecs include directory is not set");

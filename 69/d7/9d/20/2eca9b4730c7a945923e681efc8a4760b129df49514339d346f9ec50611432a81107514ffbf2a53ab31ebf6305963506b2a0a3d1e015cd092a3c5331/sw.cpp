@@ -64,13 +64,15 @@ void build(Solution &s)
         opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
     }
 
+    if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+        opus -= ".*x86.*"_rr;
+    }
     if (opus.getBuildSettings().TargetOS.isApple())
     {
         if (opus.getBuildSettings().TargetOS.Arch == ArchType::x86_64) {
             opus.CompileOptions.push_back("-msse4");
             opus.CompileOptions.push_back("-mavx2");
             opus.CompileOptions.push_back("-mfma");
-        } else if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
         }
     }
     if (opus.getBuildSettings().TargetOS.Type == OSType::Linux)

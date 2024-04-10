@@ -70,7 +70,9 @@ void build(Solution &s)
 
         glib ^= "glib/glib-object.h";
 
-        glib += "STRERROR_R_CHAR_P"_def;
+        if (!glib.getBuildSettings().TargetOS.isApple()) {
+            glib += "STRERROR_R_CHAR_P"_def;
+        }
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
         glib.Public += "GLIB_BINARY_AGE=2"_d;
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;

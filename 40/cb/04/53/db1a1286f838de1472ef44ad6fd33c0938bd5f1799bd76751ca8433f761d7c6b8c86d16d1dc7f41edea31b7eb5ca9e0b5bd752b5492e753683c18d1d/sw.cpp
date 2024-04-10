@@ -53,7 +53,10 @@ void build(Solution &s)
 #else
         //pixman["pixman/pixman-ssse3.c"].args.push_back("-mssse3");
 #endif
-        pixman.CompileOptions.push_back("-mssse3");
+        if (pixman.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
+        {
+            pixman.CompileOptions.push_back("-mssse3");
+        }
         //pixman.CompileOptions.push_back("-msse4.2");
     }
 

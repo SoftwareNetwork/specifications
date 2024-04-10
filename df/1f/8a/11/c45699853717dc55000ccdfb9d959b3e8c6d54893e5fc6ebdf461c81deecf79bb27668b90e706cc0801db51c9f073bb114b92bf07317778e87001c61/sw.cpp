@@ -39,7 +39,8 @@ void build(Solution &s)
         fontconfig.Public += "FC_CACHEDIR=\"~/.fontconfig/cache/fontconfig\""_d;
         fontconfig.Public += "FC_DEFAULT_FONTS=\"/usr/share/fonts\""_d;
         fontconfig.Public += "FONTCONFIG_PATH=\"/etc/fonts\""_d;
-        fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
+        fontconfig.Public += "HAVE_STDATOMIC_PRIMITIVES"_d;
+        //fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
     }
 
     fontconfig.Public += "org.sw.demo.expat"_dep;
