@@ -3431,6 +3431,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             cocoa.Protected += "Metal"_framework;
             cocoa.Protected += "QuartzCore"_framework;
             cocoa.Protected += "OpenGL"_framework;
+            cocoa.Protected += "UniformTypeIdentifiers"_framework;
 
             automoc(moc, cocoa);
 
