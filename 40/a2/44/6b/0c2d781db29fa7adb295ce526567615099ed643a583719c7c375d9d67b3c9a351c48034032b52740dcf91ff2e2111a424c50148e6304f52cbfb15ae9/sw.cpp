@@ -540,7 +540,6 @@ int main() {return 0;}
         s.checkFunctionExists("getpwuid");
         s.checkFunctionExists("getpwuid_r");
         s.checkFunctionExists("getrlimit");
-        s.checkFunctionExists("getsockname");
         s.checkFunctionExists("gettimeofday");
         s.checkFunctionExists("if_nametoindex");
         s.checkFunctionExists("inet_addr");
