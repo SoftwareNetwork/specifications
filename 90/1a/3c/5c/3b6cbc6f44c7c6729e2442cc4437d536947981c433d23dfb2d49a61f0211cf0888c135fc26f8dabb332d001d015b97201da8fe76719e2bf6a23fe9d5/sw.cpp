@@ -2502,7 +2502,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui.CompileOptions.push_back("-mavx");
                 gui.CompileOptions.push_back("-mavx2");
                 //gui.CompileOptions.push_back("-march=haswell");
-                gui.CompileOptions.push_back("-march=native");
+                //gui.CompileOptions.push_back("-march=native");
+                gui.CompileOptions.push_back("-march=x86-64-v3");
             }
             if (gui.getCompilerType() == CompilerType::ClangCl) {
                 gui.CompileOptions.push_back("-msse4.1");
