@@ -311,6 +311,7 @@ void check(Checker &c)
         s.checkFunctionExists("getpwuid");
         s.checkFunctionExists("getpwuid_r");
         s.checkFunctionExists("getrlimit");
+        s.checkFunctionExists("getsockname");
         s.checkFunctionExists("gettimeofday");
         s.checkFunctionExists("if_indextoname");
         s.checkFunctionExists("if_nametoindex");
