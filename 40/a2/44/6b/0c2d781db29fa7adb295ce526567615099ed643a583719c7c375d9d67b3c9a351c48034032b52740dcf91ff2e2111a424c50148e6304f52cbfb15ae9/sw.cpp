@@ -59,7 +59,10 @@ void build(Solution &s)
             t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
 
         if (t.getBuildSettings().TargetOS.Type == OSType::Linux)
+        {
             t.Variables["HAVE_IOCTL_FIONBIO"] = 1;
+            t.Variables["HAVE_POLL_FINE"] = 1;
+        }
 
         if (t.Variables["HAVE_IOCTLSOCKET"] && t.Variables["HAVE_FIONBIO"])
             t.Variables["HAVE_IOCTLSOCKET_FIONBIO"] = 1;
