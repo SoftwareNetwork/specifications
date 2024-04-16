@@ -1,0 +1,139 @@
+<p>== Opus audio codec ==</p>
+<p>Opus is a codec for interactive speech and audio transmission over
+the Internet.</p>
+<p>Opus can handle a wide range of interactive audio applications,
+including Voice over IP, videoconferencing, in-game chat, and even
+remote live music performances. It can scale from low bit-rate
+narrowband speech to very high quality stereo music.</p>
+<p>Opus, when coupled with an appropriate container format, is also
+suitable for non-realtime stored-file applications such as music
+distribution, game soundtracks, portable music players, jukeboxes, and
+other applications that have historically used high latency formats such
+as MP3, AAC, or Vorbis.</p>
+<pre><code>                Opus is specified by IETF RFC 6716:
+                https://tools.ietf.org/html/rfc6716</code></pre>
+<p>The Opus format and this implementation of it are subject to the
+royalty- free patent and copyright licenses specified in the file
+COPYING.</p>
+<p>This package implements a shared library for encoding and decoding
+raw Opus bitstreams. Raw Opus bitstreams should be used over RTP
+according to https://tools.ietf.org/html/rfc7587</p>
+<p>The package also includes a number of test tools used for testing the
+correct operation of the library. The bitstreams read/written by these
+tools should not be used for Opus file distribution: They include
+additional debugging data and cannot support seeking.</p>
+<p>Opus stored in files should use the Ogg encapsulation for Opus which
+is described at: https://tools.ietf.org/html/rfc7845</p>
+<p>An opus-tools package is available which provides encoding and
+decoding of Ogg encapsulated Opus files and includes a number of useful
+features.</p>
+<p>Opus-tools can be found at:
+https://gitlab.xiph.org/xiph/opus-tools.git or on the main Opus website:
+https://opus-codec.org/</p>
+<p>== Deep Learning and Opus ==</p>
+<p>Lossy networks continue to be a challenge for real-time
+communications. While the original implementation of Opus provides an
+excellent packet loss concealment mechanism, the team has continued to
+advance the methodology used to improve audio quality in challenge
+network environments.</p>
+<p>In Opus 1.5, we added a deep learning based redundancy encoder that
+enhances audio in lossy networks by embedding one second of recovery
+data in the padding data of each packet. The underlying algorithm behind
+encoding and decoding the recovery data is called the deep redundancy
+(DRED) algorithm. By leveraging the padding data within the packet, Opus
+1.5 is fully backward compatible with prior revisions of Opus. Please
+see the README under the “dnn” subdirectory to understand DRED.</p>
+<p>DRED was developed by a team that Amazon Web Services initially
+sponsored, who open-sourced the implementation as well as began the
+standardization process at the IETF:
+https://datatracker.ietf.org/doc/draft-ietf-mlcodec-opus-extension/ The
+license behind Opus or the intellectual property position of Opus does
+not change with Opus 1.5.</p>
+<p>== Compiling libopus ==</p>
+<p>To build from a distribution tarball, you only need to do the
+following:</p>
+<pre><code>% ./configure
+% make</code></pre>
+<p>To build from the git repository, the following steps are
+necessary:</p>
+<ol start="0" type="1">
+<li>Set up a development environment:</li>
+</ol>
+<p>On an Ubuntu or Debian family Linux distribution:</p>
+<pre><code>% sudo apt-get install git autoconf automake libtool gcc make</code></pre>
+<p>On a Fedora/Redhat based Linux:</p>
+<pre><code>% sudo dnf install git autoconf automake libtool gcc make</code></pre>
+<p>Or for older Redhat/Centos Linux releases:</p>
+<pre><code>% sudo yum install git autoconf automake libtool gcc make</code></pre>
+<p>On Apple macOS, install Xcode and brew.sh, then in the Terminal
+enter:</p>
+<pre><code>% brew install autoconf automake libtool</code></pre>
+<ol type="1">
+<li><p>Clone the repository:</p>
+<p>% git clone https://gitlab.xiph.org/xiph/opus.git % cd opus</p></li>
+<li><p>Compiling the source</p>
+<p>% ./autogen.sh % ./configure % make</p></li>
+</ol>
+<p>On x86, it’s a good idea to use a -march= option that allows the use
+of AVX2.</p>
+<ol start="3" type="1">
+<li><p>Install the codec libraries (optional)</p>
+<p>% sudo make install</p></li>
+</ol>
+<p>Once you have compiled the codec, there will be a opus_demo
+executable in the top directory.</p>
+Usage: opus_demo [-e] <application> &lt;sampling rate (Hz)&gt;
+&lt;channels (1/2)&gt; <bits per second> [options] <input>
+<output>
+opus_demo -d &lt;sampling rate (Hz)&gt; &lt;channels (1/2)&gt; [options]
+<input>
+<output>
+<p>mode: voip | audio | restricted-lowdelay options: -e : only runs the
+encoder (output the bit-stream) -d : only runs the decoder (reads the
+bit-stream as input) -cbr : enable constant bitrate; default: variable
+bitrate -cvbr : enable constrained variable bitrate; default:
+unconstrained -bandwidth &lt;NB|MB|WB|SWB|FB&gt; : audio bandwidth (from
+narrowband to fullband); default: sampling rate -framesize
+&lt;2.5|5|10|20|40|60&gt; : frame size in ms; default: 20 -max_payload
+<bytes> : maximum payload size in bytes, default: 1024 -complexity
+<comp> : complexity, 0 (lowest) … 10 (highest); default: 10 -inbandfec :
+enable SILK inband FEC -forcemono : force mono encoding, even for stereo
+input -dtx : enable SILK DTX -loss <perc> : simulate packet loss, in
+percent (0-100); default: 0</p>
+<p>input and output are little-endian signed 16-bit PCM files or opus
+bitstreams with simple opus_demo proprietary framing.</p>
+<p>== Testing ==</p>
+<p>This package includes a collection of automated unit and system tests
+which SHOULD be run after compiling the package especially the first
+time it is run on a new platform.</p>
+<p>To run the integrated tests:</p>
+<pre><code>% make check</code></pre>
+<p>There is also collection of standard test vectors which are not
+included in this package for size reasons but can be obtained from:
+https://opus-codec.org/docs/opus_testvectors-rfc8251.tar.gz</p>
+<p>To run compare the code to these test vectors:</p>
+<pre><code>% curl -OL https://opus-codec.org/docs/opus_testvectors-rfc8251.tar.gz
+% tar -zxf opus_testvectors-rfc8251.tar.gz
+% ./tests/run_vectors.sh ./ opus_newvectors 48000</code></pre>
+<p>== Compiling libopus for Windows and alternative build systems ==</p>
+<p>See cmake/README.md or meson/README.md.</p>
+<p>== Portability notes ==</p>
+<p>This implementation uses floating-point by default but can be
+compiled to use only fixed-point arithmetic by setting
+–enable-fixed-point (if using autoconf) or by defining the FIXED_POINT
+macro (if building manually). The fixed point implementation has
+somewhat lower audio quality and is slower on platforms with fast FPUs,
+it is normally only used in embedded environments.</p>
+<p>The implementation can be compiled with either a C89 or a C99
+compiler. While it does not rely on any <em>undefined behavior</em> as
+defined by C89 or C99, it relies on common <em>implementation-defined
+behavior</em> for two’s complement architectures:</p>
+<p>o Right shifts of negative values are consistent with two’s
+complement arithmetic, so that a&gt;&gt;b is equivalent to
+floor(a/(2^b)),</p>
+<p>o For conversion to a signed integer of N bits, the value is reduced
+modulo 2^N to be within range of the type,</p>
+<p>o The result of integer division of a negative value is truncated
+towards zero, and</p>
+<p>o The compiler provides a 64-bit integer type (a C99 requirement
+which is supported by most C89 compilers).</p>
