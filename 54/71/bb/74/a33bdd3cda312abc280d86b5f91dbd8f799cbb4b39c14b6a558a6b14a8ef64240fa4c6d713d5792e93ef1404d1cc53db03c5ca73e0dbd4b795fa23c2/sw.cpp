@@ -5,6 +5,7 @@ void build(Solution &s)
 
     yaml_cpp += "include/.*"_rr;
     yaml_cpp += "src/.*"_rr;
+    yaml_cpp.Public += "src/contrib/yaml-cpp.natvis";
 
     yaml_cpp += "YAML_CPP_API"_api;
     yaml_cpp += cpp11;
