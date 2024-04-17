@@ -10,7 +10,7 @@ void build(Solution &s)
 
     auto setup = [](auto &t)
     {
-        t.CPPVersion = CPPLanguageStandard::CPP11;
+        t += cpp17;
         t.Public += sw::Shared, "U_EXPORT=SW_EXPORT"_d;
         t.Public += sw::Shared, "U_IMPORT=SW_IMPORT"_d;
         t.Public += sw::Static, "U_STATIC_IMPLEMENTATION"_d;
