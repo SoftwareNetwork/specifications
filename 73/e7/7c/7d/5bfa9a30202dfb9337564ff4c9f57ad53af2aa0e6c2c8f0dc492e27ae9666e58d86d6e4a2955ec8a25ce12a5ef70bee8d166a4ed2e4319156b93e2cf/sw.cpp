@@ -189,6 +189,55 @@ void build(Solution &s)
         mangle.Public += "."_idir;
     }
 
+    auto &utf8_range = p.addStaticLibrary("utf8_range");
+    {
+        utf8_range += cppstd;
+        utf8_range.setRootDirectory("third_party/utf8_range");
+        utf8_range +=
+            //"naive.c",
+            //"range2-neon.c",
+            //"range2-sse.c",
+            "utf8_range.c",
+            "utf8_range.h"
+            ;
+
+        auto &utf8_validity = p.addStaticLibrary("utf8_validity");
+        utf8_validity.setRootDirectory("third_party/utf8_range");
+        utf8_validity += cppstd;
+        utf8_validity +=
+            "utf8_validity.cc",
+            "utf8_validity.h"
+            ;
+        utf8_validity.Public += "org.sw.demo.google.abseil"_dep;
+        //utf8_validity.CompileOptions.push_back("/arch:AVX");
+    }
+
+    auto &upb = p.addStaticLibrary("upb");
+    //upb.ExportAllSymbols = true;
+    {
+        //upb += "cmake/google/.*"_rr;
+        upb += "upb/.*"_rr;
+        /*upb += "upb/cmake"_idir;
+        if (!upb.DryRun && !fs::exists(upb.BinaryDir / "upb")) {
+            fs::create_directory_symlink(upb.SourceDir, upb.BinaryDir / "upb");
+        }*/
+        //upb -= "upb/reflection/.*"_rr;
+        upb -= "upb/cmake/.*"_rr;
+
+        upb -= ".*test.*"_rr;
+        upb -= "upb/conform.*"_rr;
+
+        //upb.Public += "cmake"_idir;
+        upb.Public += "upb/reflection/stage0"_idir;
+        upb.Public += "."_idir;
+
+        //upb += "UPB_API"_api;
+        upb += sw::Shared, "UPB_BUILD_API"_def;
+
+        //upb.Public += "org.sw.demo.google.protocolbuffers.utf8_range-main"_dep;
+        upb.Public += utf8_range;
+    }
+
     auto lite_sources = [](auto &&f) {
         for (auto &&fn : {
             "src/google/protobuf/any_lite.cc",

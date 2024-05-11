@@ -11,6 +11,7 @@ void build(Solution &s)
         "fontconfig/.*\\.h"_rr,
         "src/.*\\.c"_rr,
         "src/.*\\.h"_rr;
+    fontconfig -= "src/fcarch.c";
 
     fontconfig.Public +=
         "."_id;

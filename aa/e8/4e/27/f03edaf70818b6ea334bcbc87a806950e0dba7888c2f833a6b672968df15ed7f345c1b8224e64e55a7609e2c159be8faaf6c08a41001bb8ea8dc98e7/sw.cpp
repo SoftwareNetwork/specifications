@@ -6,4 +6,8 @@ void build(Solution &s)
     rapidjson.Public += "RAPIDJSON_HAS_STDSTRING"_d;
     if (rapidjson.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
         rapidjson.Public += "RAPIDJSON_ENDIAN=RAPIDJSON_LITTLEENDIAN"_def;
+    rapidjson.patch("include/rapidjson/document.h",
+        "GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }",
+        "private: GenericStringRef& operator=(const GenericStringRef& rhs); public:"
+    );
 }

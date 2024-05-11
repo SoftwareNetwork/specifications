@@ -14,11 +14,13 @@ void build(Solution &s)
         "pixman/.*\\.h"_rr;
 
     pixman -=
+        "pixman/dither/.*"_rr,
         "pixman/pixman-arm-neon.c",
         "pixman/pixman-arm-simd.c",
         "pixman/pixman-mips-dspr2.c",
         "pixman/pixman-region.c",
-        "pixman/pixman-vmx.c";
+        "pixman/pixman-vmx.c"
+        ;
 
     pixman.Public +=
         "pixman"_id;

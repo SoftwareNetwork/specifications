@@ -469,7 +469,6 @@ void check(Checker &c) {
     s.checkFunctionExists("asinh");
     s.checkFunctionExists("atanh");
     s.checkFunctionExists("bind_textdomain_codeset");
-    s.checkFunctionExists("chflags");
     s.checkFunctionExists("chown");
     s.checkFunctionExists("chroot");
     s.checkFunctionExists("clock");
@@ -1063,6 +1062,16 @@ void check(Checker &c) {
         WINDOW *w;
         w->_flags = 0;
         return 0;
+    }
+    )sw_xxx");
+    s.checkSourceCompiles("HAVE_CHFLAGS", R"sw_xxx(
+    #include <sys/stat.h>
+    #include <unistd.h>
+    int main(int argc, char *argv[])
+    {
+      if(chflags(argv[0], 0) != 0)
+        return 1;
+      return 0;
     }
     )sw_xxx");
 }

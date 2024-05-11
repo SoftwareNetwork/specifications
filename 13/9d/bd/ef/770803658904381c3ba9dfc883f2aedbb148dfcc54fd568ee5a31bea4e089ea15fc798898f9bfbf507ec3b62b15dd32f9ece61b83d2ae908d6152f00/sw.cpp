@@ -23,6 +23,12 @@ void build(Solution &s)
 
     if (lib.getBuildSettings().TargetOS.is(OSType::Windows))
     {
+        // for clang on windows
+        lib += "ZSTD_NO_INTRINSICS"_def;
+        //lib += "ZSTD_ARCH_X86_SSE2"_def;
+        //lib.CompileOptions.push_back("-msse2");
+        //lib.CompileOptions.push_back("-march=native");
+
         lib += sw::Shared, "ZSTD_DLL_EXPORT"_def;
         lib.Interface += sw::Shared, "ZSTD_DLL_IMPORT"_def;
     }

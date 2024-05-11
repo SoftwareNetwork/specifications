@@ -11,10 +11,12 @@ void build(Solution &s)
             "config-cmake.h.in",
             "src/.*"_rr;
         pcre -=
+            "src/pcre2_dftables.c",
             "src/pcre2_jit_match.c",
             "src/pcre2_jit_misc.c",
             "src/pcre2_printint.c",
-            "src/pcre2test.c";
+            "src/pcre2test.c"
+            ;
         pcre -=
             "src/pcre2_fuzzsupport.c",
             "src/pcre2_jit_test.c",

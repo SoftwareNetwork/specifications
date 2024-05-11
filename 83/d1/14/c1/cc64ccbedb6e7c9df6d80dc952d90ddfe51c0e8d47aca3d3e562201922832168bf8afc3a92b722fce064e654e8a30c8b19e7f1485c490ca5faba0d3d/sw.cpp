@@ -177,6 +177,23 @@ void build(Solution &s)
             #include <GL/gl.h>
             #endif
         )");
+
+        wt.patch("src/web/FileUtils.C",
+            "#include <fstream>",
+            "#include <filesystem>\n#include <fstream>"
+        );
+        wt.patch("src/web/FileUtils.C",
+            "boost::filesystem::directory_iterator end_itr;",
+            ""
+        );
+        wt.patch("src/web/FileUtils.C",
+            "for (boost::filesystem::directory_iterator i(path); i != end_itr; ++i) {",
+            "for (auto &&p : std::filesystem::directory_iterator{directory}) {"
+        );
+        wt.patch("src/web/FileUtils.C",
+            "std::string f = (*i).path().string();",
+            "std::string f = p.path().string();"
+        );
     }
 
     auto &http = p.addTarget<LibraryTarget>("http");
@@ -206,6 +223,15 @@ void build(Solution &s)
         http.Public += "org.sw.demo.boost.spirit"_dep;
         http.Public += "org.sw.demo.madler.zlib"_dep;
         http.Public += wt;
+
+        http.patch("src/http/Server.C",
+            "query = Wt::AsioWrapper::asio::ip::tcp::resolver::query(Wt::AsioWrapper::asio::ip::tcp::v6(), address, \"http\");",
+            "auto query2 = Wt::AsioWrapper::asio::ip::tcp::resolver::query(Wt::AsioWrapper::asio::ip::tcp::v6(), address, \"http\");"
+        );
+        http.patch("src/http/Server.C",
+            "for (Wt::AsioWrapper::asio::ip::tcp::resolver::iterator it = resolver.resolve(query, errc);",
+            "for (Wt::AsioWrapper::asio::ip::tcp::resolver::iterator it = resolver.resolve(query2, errc);"
+        );
     }
 
     auto &dbo = p.addTarget<LibraryTarget>("dbo");
@@ -252,4 +278,7 @@ void build(Solution &s)
         sqlite3.Public += dbo;
         sqlite3.Public += "org.sw.demo.sqlite3"_dep;
     }
+
+    auto &resources = p.addTarget<FilesTarget>("resources");
+    resources += "resources/.*"_rr;
 }

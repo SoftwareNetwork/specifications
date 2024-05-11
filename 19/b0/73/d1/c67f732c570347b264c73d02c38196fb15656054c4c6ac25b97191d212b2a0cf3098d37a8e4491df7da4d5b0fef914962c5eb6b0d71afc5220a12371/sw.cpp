@@ -12,6 +12,7 @@ void build(Solution &s)
         "src/.*"_rr;
 
     opus -=
+        "silk/fixed/.*"_rr,
         "src/opus_compare.c",
         ".*demo.*"_rr,
         ".*train.*"_rr,
@@ -39,8 +40,8 @@ void build(Solution &s)
     opus.Private += "USE_ALLOCA"_d;
     opus.Private += "CPU_INFO_BY_C"_d;
 
-    opus.replaceInFileOnce("silk/sort.c", "#ifdef FIXED_POINT", "#if 1");
-    opus.replaceInFileOnce("silk/x86/x86_silk_map.c", "#if defined(FIXED_POINT)", "#if 1");
+    //opus.replaceInFileOnce("silk/sort.c", "#ifdef FIXED_POINT", "#if 1");
+    //opus.replaceInFileOnce("silk/x86/x86_silk_map.c", "#if defined(FIXED_POINT)", "#if 1");
 
     if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
     {
@@ -62,6 +63,12 @@ void build(Solution &s)
         opus.Private += "OPUS_X86_MAY_HAVE_SSE"_d;
         opus.Private += "OPUS_X86_MAY_HAVE_SSE2"_d;
         opus.Private += "OPUS_X86_MAY_HAVE_SSE4_1"_d;
+        opus.Private += "OPUS_X86_MAY_HAVE_AVX2"_d;
+
+        /*opus.Private += "OPUS_X86_PRESUME_SSE"_d;
+        opus.Private += "OPUS_X86_PRESUME_SSE2"_d;
+        opus.Private += "OPUS_X86_PRESUME_SSE4_1"_d;
+        opus.Private += "OPUS_X86_PRESUME_AVX2"_d;*/
     }
 
     if (opus.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {

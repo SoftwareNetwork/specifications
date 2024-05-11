@@ -124,6 +124,8 @@ void build(Solution &s)
         }
         if (libcurl.getBuildSettings().TargetOS.isApple())
         {
+            libcurl -= "lib/vtls/sectransp.c";
+            libcurl.add("lib/vtls/sectransp.c", ".m");
             libcurl += "USE_SECTRANSP"_d;
             libcurl += "CoreFoundation"_framework;
             libcurl += "Security"_framework;
@@ -256,6 +258,7 @@ void build(Solution &s)
         libcurl.configureFile("lib/curl_config.h.cmake", "curl_config.h");
 
         libcurl.patch("lib/vtls/sectransp.c", "SecTrustEvaluateAsync", "SecTrustEvaluateWithError");
+
     }
 
     {
