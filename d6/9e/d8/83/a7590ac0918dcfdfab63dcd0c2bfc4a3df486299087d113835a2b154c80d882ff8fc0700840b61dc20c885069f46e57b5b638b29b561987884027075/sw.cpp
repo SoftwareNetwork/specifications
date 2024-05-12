@@ -81,6 +81,11 @@ void build(Solution &s)
             "//GlobalParser->registerCategory(this);"
         );
 
+        llvm_support_lite.Variables["PACKAGE_BUGREPORT"] = "x";
+        llvm_support_lite.Variables["PACKAGE_NAME"] = "x";
+        llvm_support_lite.Variables["PACKAGE_STRING"] = "x";
+        llvm_support_lite.Variables["PACKAGE_VERSION"] = "x";
+        llvm_support_lite.Variables["PACKAGE_VENDOR"] = "x";
         llvm_support_lite.configureFile("include/llvm/Config/config.h.cmake", "llvm/Config/config.h");
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");

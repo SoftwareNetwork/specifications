@@ -1,13 +1,13 @@
 void build(Solution &s)
 {
-    auto &llvm_project = s.addProject("llvm_project", "14.0.6");
+    auto &llvm_project = s.addProject("llvm_project", "18.1.5");
 
     auto &llvm = llvm_project.addProject("llvm");
     llvm += Git("https://github.com/llvm/llvm-project", "llvmorg-{v}");
 
     auto &llvm_demangle = llvm.addTarget<StaticLibraryTarget>("demangle");
     {
-        llvm_demangle += cpp14;
+        llvm_demangle += cpp17;
         llvm_demangle.setRootDirectory("llvm");
         llvm_demangle +=
             "include/llvm/Demangle/.*"_rr,
@@ -23,7 +23,7 @@ void build(Solution &s)
 
     auto &llvm_support_lite = llvm.addTarget<StaticLibraryTarget>("support_lite");
     {
-        llvm_support_lite += cpp14;
+        llvm_support_lite += cpp17;
         llvm_support_lite.setRootDirectory("llvm");
         llvm_support_lite.setChecks("support_lite");
         llvm_support_lite +=
@@ -32,15 +32,21 @@ void build(Solution &s)
             "include/llvm-c/ErrorHandling.h",
             "include/llvm-c/ExternC.h",
             "include/llvm-c/Support.h",
+            "include/llvm-c/blake3.h",
             "include/llvm/ADT/.*\\.h"_rr,
             "include/llvm/Config/.*\\.cmake"_rr,
             "include/llvm/Support/.*"_rr,
+            "include/llvm/TargetParser/.*"_rr,
             "lib/Support/.*\\.c"_rr,
             "lib/Support/.*\\.cpp"_rr,
             "lib/Support/.*\\.h"_rr,
-            "lib/Support/.*\\.inc"_rr;
-        llvm_support_lite -=
-            "include/llvm/Support/.*def"_rr;
+            "lib/Support/.*\\.inc"_rr,
+            "lib/TargetParser/.*"_rr
+            ;
+
+        llvm_support_lite -= "include/llvm/Support/.*def"_rr;
+        llvm_support_lite -= "lib/TargetParser/RISC.*"_rr;
+
         llvm_support_lite.Private +=
             "lib"_id;
         llvm_support_lite.Public +=

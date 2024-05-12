@@ -46,8 +46,8 @@ void build(Solution &s)
 
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "configmake.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "config.h",
-            "#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-            "#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
+            "#define PACKAGE_NAME " + gnulib.Variables["PACKAGE_NAME"].toString() + "\n" +
+            "#define VERSION " + gnulib.Variables["PACKAGE_VERSION"].toString() + "\n" +
             R"(
 #define mode_t int
 #define nlink_t short
@@ -351,10 +351,10 @@ void * memrchr (const void *, int, size_t);
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "configmake.h");
         sed.writeFileOnce(sed.BinaryPrivateDir / "config.h",
-            "#define PACKAGE_NAME \"" + sed.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-            "#define PACKAGE_VERSION \"" + sed.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
-            "#define PACKAGE_URL \"" + gnulib.Variables["PACKAGE_URL"].toString() + "\"\n" +
-            "#define PACKAGE_BUGREPORT \"" + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\"\n" +
+            "#define PACKAGE_NAME " + sed.Variables["PACKAGE_NAME"].toString() + "\n" +
+            "#define PACKAGE_VERSION " + sed.Variables["PACKAGE_VERSION"].toString() + "\n" +
+            "#define PACKAGE_URL " + gnulib.Variables["PACKAGE_URL"].toString() + "\n" +
+            "#define PACKAGE_BUGREPORT " + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\n" +
             R"(
 #define mode_t int
 #define nlink_t short
@@ -606,7 +606,7 @@ void * memrchr (const void *, int, size_t);
 );
 
         sed.writeFileOnce(sed.BinaryPrivateDir / "version.h", "extern char const *Version;");
-        sed.writeFileOnce(sed.BinaryPrivateDir / "version.c", "char const *Version = \"" + sed.Variables["PACKAGE_VERSION"].toString() + "\";");
+        sed.writeFileOnce(sed.BinaryPrivateDir / "version.c", "char const *Version = " + sed.Variables["PACKAGE_VERSION"].toString() + ";");
         sed += sed.BinaryPrivateDir / "version.c";
 
 
