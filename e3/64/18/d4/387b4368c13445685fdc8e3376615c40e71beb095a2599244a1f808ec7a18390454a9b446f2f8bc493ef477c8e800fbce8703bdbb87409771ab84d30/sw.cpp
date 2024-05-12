@@ -68,10 +68,10 @@ void build(Solution &s)
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "unistd.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "configmake.h");
         gnulib.writeFileOnce(gnulib.BinaryPrivateDir / "config.h",
-            "#define PACKAGE_NAME \"" + gnulib.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-            "#define VERSION \"" + gnulib.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
-            "#define PACKAGE_URL \"" + gnulib.Variables["PACKAGE_URL"].toString() + "\"\n" +
-            "#define PACKAGE_BUGREPORT \"" + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\"\n" +
+            "#define PACKAGE_NAME " + gnulib.Variables["PACKAGE_NAME"].toString() + "\n" +
+            "#define VERSION " + gnulib.Variables["PACKAGE_VERSION"].toString() + "\n" +
+            "#define PACKAGE_URL " + gnulib.Variables["PACKAGE_URL"].toString() + "\n" +
+            "#define PACKAGE_BUGREPORT " + gnulib.Variables["PACKAGE_BUGREPORT"].toString() + "\n" +
             R"(
 #define mode_t int
 #define nlink_t short
@@ -376,8 +376,8 @@ void * rawmemchr(void const *__s, int __c_in);
         grep.writeFileOnce(grep.BinaryPrivateDir / "unistd.h");
         grep.writeFileOnce(grep.BinaryPrivateDir / "configmake.h");
         grep.writeFileOnce(grep.BinaryPrivateDir / "config.h",
-            "#define PACKAGE_NAME \"" + grep.Variables["PACKAGE_NAME"].toString() + "\"\n" +
-            "#define VERSION \"" + grep.Variables["PACKAGE_VERSION"].toString() + "\"\n" +
+            "#define PACKAGE_NAME " + grep.Variables["PACKAGE_NAME"].toString() + "\n" +
+            "#define VERSION " + grep.Variables["PACKAGE_VERSION"].toString() + "\n" +
             R"(
 #define mode_t int
 #define nlink_t short

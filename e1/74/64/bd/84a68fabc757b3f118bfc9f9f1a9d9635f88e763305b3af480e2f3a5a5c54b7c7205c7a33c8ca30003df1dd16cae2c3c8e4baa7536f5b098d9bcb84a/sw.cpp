@@ -67,7 +67,7 @@ void build(Solution &s)
         gawk.Private += "HAVE_GETADDRINFO"_d;
         gawk.Private += "HAVE_SOCKADDR_STORAGE"_d;
         gawk.Private += "HAVE_SOCKETS"_d;
-        gawk.Private += Definition{ "VERSION=\"" + gawk.Variables["PACKAGE_VERSION"].toString() + "\"" };
+        gawk.Private += Definition{ "VERSION=" + gawk.Variables["PACKAGE_VERSION"].toString() + "" };
         if (gawk.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gawk.Private += "pc"_id;
