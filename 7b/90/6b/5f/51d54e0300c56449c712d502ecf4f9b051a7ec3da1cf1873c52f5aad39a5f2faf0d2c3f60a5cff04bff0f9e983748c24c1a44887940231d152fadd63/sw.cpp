@@ -46,6 +46,11 @@ void build(Solution &s)
 
         llvm_support_lite -= "include/llvm/Support/.*def"_rr;
         llvm_support_lite -= "lib/TargetParser/RISC.*"_rr;
+        llvm_support_lite -= "lib/Support/BLAKE3/.*"_rr;
+        llvm_support_lite += "lib/Support/BLAKE3/blake3_portable.c";
+        if (llvm_support_lite.getBuildSettings().TargetOS.isApple()) {
+            llvm_support_lite -= "lib/Support/RWMutex.cpp";
+        }
 
         llvm_support_lite.Private +=
             "lib"_id;
