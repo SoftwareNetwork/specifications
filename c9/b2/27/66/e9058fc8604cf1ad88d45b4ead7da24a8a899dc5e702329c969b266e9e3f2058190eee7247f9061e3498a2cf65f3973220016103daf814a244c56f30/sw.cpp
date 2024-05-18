@@ -58,6 +58,10 @@ void build(Solution &s)
         t += "src/core/client_channel/.*"_rr;
         t += "src/core/service_config/.*"_rr;
         t += "src/core/resolver/.*"_rr;
+        t += "src/core/channelz/.*"_rr;
+        t += "src/core/handshaker/.*"_rr;
+        t += "src/core/server/.*"_rr;
+        t += "src/core/xds/.*"_rr;
         //t -= "src/core/resolver/xds/.*"_rr;
         t += "src/core/load_balancing/.*"_rr;
         //t -= "src/core/load_balancing/xds/.*"_rr;
@@ -177,6 +181,8 @@ void build(Solution &s)
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
         (core_plugin_registry + core_ext)->IncludeDirectoriesOnly = true;
+
+        t.patch("third_party/objective_c/Cronet/bidirectional_stream_c.h", "(WIN32)", "(_WIN32)");
     }
 
     auto &core_tsi = p.addStaticLibrary("core.tsi");
