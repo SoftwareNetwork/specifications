@@ -1,0 +1,223 @@
+<h1 id="http-parser">HTTP Parser</h1>
+<p><a href="https://travis-ci.org/nodejs/http-parser"><img
+src="https://api.travis-ci.org/nodejs/http-parser.svg?branch=master"
+alt="Build Status" /></a></p>
+<p>This is a parser for HTTP messages written in C. It parses both
+requests and responses. The parser is designed to be used in performance
+HTTP applications. It does not make any syscalls nor allocations, it
+does not buffer data, it can be interrupted at anytime. Depending on
+your architecture, it only requires about 40 bytes of data per message
+stream (in a web server that is per connection).</p>
+<p>Features:</p>
+<ul>
+<li>No dependencies</li>
+<li>Handles persistent streams (keep-alive).</li>
+<li>Decodes chunked encoding.</li>
+<li>Upgrade support</li>
+<li>Defends against buffer overflow attacks.</li>
+</ul>
+<p>The parser extracts the following information from HTTP messages:</p>
+<ul>
+<li>Header fields and values</li>
+<li>Content-Length</li>
+<li>Request method</li>
+<li>Response status code</li>
+<li>Transfer-Encoding</li>
+<li>HTTP version</li>
+<li>Request URL</li>
+<li>Message body</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<p>One <code>http_parser</code> object is used per TCP connection.
+Initialize the struct using <code>http_parser_init()</code> and set the
+callbacks. That might look something like this for a request parser:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>http_parser_settings settings<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>settings<span class="op">.</span>on_url <span class="op">=</span> my_url_callback<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>settings<span class="op">.</span>on_header_field <span class="op">=</span> my_header_field_callback<span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">/* ... */</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>http_parser <span class="op">*</span>parser <span class="op">=</span> malloc<span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span>http_parser<span class="op">));</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>http_parser_init<span class="op">(</span>parser<span class="op">,</span> HTTP_REQUEST<span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>parser<span class="op">-&gt;</span>data <span class="op">=</span> my_socket<span class="op">;</span></span></code></pre></div>
+<p>When data is received on the socket execute the parser and check for
+errors.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> len <span class="op">=</span> <span class="dv">80</span><span class="op">*</span><span class="dv">1024</span><span class="op">,</span> nparsed<span class="op">;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> buf<span class="op">[</span>len<span class="op">];</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ssize_t</span> recved<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>recved <span class="op">=</span> recv<span class="op">(</span>fd<span class="op">,</span> buf<span class="op">,</span> len<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>recved <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* Handle error. */</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">/* Start up / continue the parser.</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"> * Note we pass recved==0 to signal that EOF has been received.</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>nparsed <span class="op">=</span> http_parser_execute<span class="op">(</span>parser<span class="op">,</span> <span class="op">&amp;</span>settings<span class="op">,</span> buf<span class="op">,</span> recved<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>parser<span class="op">-&gt;</span>upgrade<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* handle new protocol */</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>nparsed <span class="op">!=</span> recved<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* Handle error. Usually just close the connection. */</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>http_parser</code> needs to know where the end of the stream
+is. For example, sometimes servers send responses without Content-Length
+and expect the client to consume input (for the body) until EOF. To tell
+<code>http_parser</code> about EOF, give <code>0</code> as the fourth
+parameter to <code>http_parser_execute()</code>. Callbacks and errors
+can still be encountered during an EOF, so one must still be prepared to
+receive them.</p>
+<p>Scalar valued message information such as <code>status_code</code>,
+<code>method</code>, and the HTTP version are stored in the parser
+structure. This data is only temporally stored in
+<code>http_parser</code> and gets reset on each new message. If this
+information is needed later, copy it out of the structure during the
+<code>headers_complete</code> callback.</p>
+<p>The parser decodes the transfer-encoding for both requests and
+responses transparently. That is, a chunked encoding is decoded before
+being sent to the on_body callback.</p>
+<h2 id="the-special-problem-of-upgrade">The Special Problem of
+Upgrade</h2>
+<p><code>http_parser</code> supports upgrading the connection to a
+different protocol. An increasingly common example of this is the
+WebSocket protocol which sends a request like</p>
+<pre><code>    GET /demo HTTP/1.1
+    Upgrade: WebSocket
+    Connection: Upgrade
+    Host: example.com
+    Origin: http://example.com
+    WebSocket-Protocol: sample</code></pre>
+<p>followed by non-HTTP data.</p>
+<p>(See <a href="https://tools.ietf.org/html/rfc6455">RFC6455</a> for
+more information the WebSocket protocol.)</p>
+<p>To support this, the parser will treat this as a normal HTTP message
+without a body, issuing both on_headers_complete and on_message_complete
+callbacks. However http_parser_execute() will stop parsing at the end of
+the headers and return.</p>
+<p>The user is expected to check if <code>parser-&gt;upgrade</code> has
+been set to 1 after <code>http_parser_execute()</code> returns. Non-HTTP
+data begins at the buffer supplied offset by the return value of
+<code>http_parser_execute()</code>.</p>
+<h2 id="callbacks">Callbacks</h2>
+<p>During the <code>http_parser_execute()</code> call, the callbacks set
+in <code>http_parser_settings</code> will be executed. The parser
+maintains state and never looks behind, so buffering the data is not
+necessary. If you need to save certain data for later usage, you can do
+that from the callbacks.</p>
+<p>There are two types of callbacks:</p>
+<ul>
+<li>notification <code>typedef int (*http_cb) (http_parser*);</code>
+Callbacks: on_message_begin, on_headers_complete,
+on_message_complete.</li>
+<li>data
+<code>typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);</code>
+Callbacks: (requests only) on_url, (common) on_header_field,
+on_header_value, on_body;</li>
+</ul>
+<p>Callbacks must return 0 on success. Returning a non-zero value
+indicates error to the parser, making it exit immediately.</p>
+<p>For cases where it is necessary to pass local information to/from a
+callback, the <code>http_parser</code> object’s <code>data</code> field
+can be used. An example of such a case is when using threads to handle a
+socket connection, parse a request, and then give a response over that
+socket. By instantiation of a thread-local struct containing relevant
+data (e.g. accepted socket, allocated memory for callbacks to write
+into, etc), a parser’s callbacks are able to communicate data between
+the scope of the thread and the scope of the callback in a threadsafe
+manner. This allows <code>http_parser</code> to be used in
+multi-threaded contexts.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a> <span class="kw">typedef</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  socket_t sock<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span><span class="op">*</span> buffer<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> buf_len<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="op">}</span> custom_data_t<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> my_url_callback<span class="op">(</span>http_parser<span class="op">*</span> parser<span class="op">,</span> <span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>at<span class="op">,</span> <span class="dt">size_t</span> length<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* access to thread local custom_data_t struct.</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">  Use this access save parsed data for later use into thread local</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">  buffer, or communicate over socket</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">  */</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  parser<span class="op">-&gt;</span>data<span class="op">;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> http_parser_thread<span class="op">(</span>socket_t sock<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a> <span class="dt">int</span> nparsed <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a> <span class="co">/* allocate memory for user data */</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a> custom_data_t <span class="op">*</span>my_data <span class="op">=</span> malloc<span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span>custom_data_t<span class="op">));</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a> <span class="co">/* some information for use by callbacks.</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co"> * achieves thread -&gt; callback information flow */</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a> my_data<span class="op">-&gt;</span>sock <span class="op">=</span> sock<span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a> <span class="co">/* instantiate a thread-local parser */</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a> http_parser <span class="op">*</span>parser <span class="op">=</span> malloc<span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span>http_parser<span class="op">));</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a> http_parser_init<span class="op">(</span>parser<span class="op">,</span> HTTP_REQUEST<span class="op">);</span> <span class="co">/* initialise parser */</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a> <span class="co">/* this custom data reference is accessible through the reference to the</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="co"> parser supplied to callback functions */</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a> parser<span class="op">-&gt;</span>data <span class="op">=</span> my_data<span class="op">;</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a> http_parser_settings settings<span class="op">;</span> <span class="co">/* set up callbacks */</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a> settings<span class="op">.</span>on_url <span class="op">=</span> my_url_callback<span class="op">;</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a> <span class="co">/* execute parser */</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a> nparsed <span class="op">=</span> http_parser_execute<span class="op">(</span>parser<span class="op">,</span> <span class="op">&amp;</span>settings<span class="op">,</span> buf<span class="op">,</span> recved<span class="op">);</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a> <span class="op">...</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a> <span class="co">/* parsed information copied from callback.</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a><span class="co"> can now perform action on data copied into thread-local memory from callbacks.</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="co"> achieves callback -&gt; thread information flow */</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a> my_data<span class="op">-&gt;</span>buffer<span class="op">;</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a> <span class="op">...</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>In case you parse HTTP message in chunks (i.e. <code>read()</code>
+request line from socket, parse, read half headers, parse, etc) your
+data callbacks may be called more than once. <code>http_parser</code>
+guarantees that data pointer is only valid for the lifetime of callback.
+You can also <code>read()</code> into a heap allocated buffer to avoid
+copying memory around if this fits your application.</p>
+<p>Reading headers may be a tricky task if you read/parse headers
+partially. Basically, you need to remember whether last header callback
+was field or value and apply the following logic:</p>
+<pre><code>(on_header_field and on_header_value shortened to on_h_*)
+ ------------------------ ------------ --------------------------------------------
+| State (prev. callback) | Callback   | Description/action                         |
+ ------------------------ ------------ --------------------------------------------
+| nothing (first call)   | on_h_field | Allocate new buffer and copy callback data |
+|                        |            | into it                                    |
+ ------------------------ ------------ --------------------------------------------
+| value                  | on_h_field | New header started.                        |
+|                        |            | Copy current name,value buffers to headers |
+|                        |            | list and allocate new buffer for new name  |
+ ------------------------ ------------ --------------------------------------------
+| field                  | on_h_field | Previous name continues. Reallocate name   |
+|                        |            | buffer and append callback data to it      |
+ ------------------------ ------------ --------------------------------------------
+| field                  | on_h_value | Value for current header started. Allocate |
+|                        |            | new buffer and copy callback data to it    |
+ ------------------------ ------------ --------------------------------------------
+| value                  | on_h_value | Value continues. Reallocate value buffer   |
+|                        |            | and append callback data to it             |
+ ------------------------ ------------ --------------------------------------------</code></pre>
+<h2 id="parsing-urls">Parsing URLs</h2>
+<p>A simplistic zero-copy URL parser is provided as
+<code>http_parser_parse_url()</code>. Users of this library may wish to
+use it to parse URLs constructed from consecutive <code>on_url</code>
+callbacks.</p>
+<p>See examples of reading in headers:</p>
+<ul>
+<li><a href="http://gist.github.com/155877">partial example</a> in
+C</li>
+<li><a
+href="http://github.com/joyent/http-parser/blob/37a0ff8/test.c#L403">from
+http-parser tests</a> in C</li>
+<li><a
+href="http://github.com/joyent/node/blob/842eaf4/src/http.js#L284">from
+Node library</a> in Javascript</li>
+</ul>
