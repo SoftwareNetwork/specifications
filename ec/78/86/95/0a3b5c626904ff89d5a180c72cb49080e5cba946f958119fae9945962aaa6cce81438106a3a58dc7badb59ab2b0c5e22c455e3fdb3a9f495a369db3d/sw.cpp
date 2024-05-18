@@ -13,8 +13,11 @@ void build(Solution &s)
     auto &t = s.addLibrary("OSGeo.PROJ", "9.4.0");
     t += Git("https://github.com/OSGeo/PROJ");
     {
-        t += cpp14;
-        t.ApiName = "PROJ_DLL";
+        t += cpp17;
+        //t.ApiName = "PROJ_DLL";
+        ////t.ApiName = "GEOD_DLL";
+        ////t.ApiName = "PROJ_MSVC_DLL";
+        ////t.ApiName = "PROJ_GCC_DLL";
         t.setChecks("proj");
 
         t += "include/.*"_rr;
@@ -37,6 +40,7 @@ void build(Solution &s)
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
         {
+            t += sw::Shared, "PROJ_MSVC_DLL_EXPORT"_def;
             t += "NOMINMAX"_def;
             t += "ole32.lib"_slib;
             t += "shell32.lib"_slib;
