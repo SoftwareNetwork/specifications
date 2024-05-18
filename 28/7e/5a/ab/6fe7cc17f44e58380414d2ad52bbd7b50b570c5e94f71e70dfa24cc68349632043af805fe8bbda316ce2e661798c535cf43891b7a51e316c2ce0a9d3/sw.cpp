@@ -31,6 +31,7 @@ void build(Solution &s)
         t.Public += "alg"_idir;
 
         t += "apps/.*\\.h"_r;
+        t += "apps/argparse/.*"_r;
         t += "apps/commonutils.*"_r;
         t += "apps/gdalargumentparser.*"_r;
         t += "apps/.*_lib.*.cpp"_r;
@@ -153,6 +154,8 @@ void build(Solution &s)
             t += "org.sw.demo.xmlsoft.libxml2"_dep;
 
             t += "org.sw.demo.jxl-0.8"_dep;
+
+            //t += "org.sw.demo.p_ranav.argparse"_dep;
         }
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))

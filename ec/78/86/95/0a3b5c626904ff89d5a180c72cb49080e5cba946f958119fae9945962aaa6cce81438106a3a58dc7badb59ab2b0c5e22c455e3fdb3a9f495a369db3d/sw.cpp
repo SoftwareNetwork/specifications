@@ -41,6 +41,9 @@ void build(Solution &s)
         if (t.getBuildSettings().TargetOS.is(OSType::Windows))
         {
             t += sw::Shared, "PROJ_MSVC_DLL_EXPORT"_def;
+            if (t.getBuildSettings().Native.LibrariesType == LibraryType::Static) {
+                t += "PROJ_DLL"_api;
+            }
             t += "NOMINMAX"_def;
             t += "ole32.lib"_slib;
             t += "shell32.lib"_slib;
