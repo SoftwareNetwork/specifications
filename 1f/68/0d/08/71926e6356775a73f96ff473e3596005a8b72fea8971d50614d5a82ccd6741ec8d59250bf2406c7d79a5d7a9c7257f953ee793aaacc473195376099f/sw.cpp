@@ -738,7 +738,9 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio += "GIO_MODULE_DIR=\".\""_def;
             gio += "LOCALSTATEDIR=\"/var\""_def;
             gio += "GIO_LAUNCH_DESKTOP=\"gio-launch-desktop\""_def;
-            //gio += "resolv"_slib;
+            if (gio.getBuildSettings().TargetOS.isApple()) {
+                gio += "resolv"_slib;
+            }
         }
 
         //gio.CompileOptions.push_back("/W0");
