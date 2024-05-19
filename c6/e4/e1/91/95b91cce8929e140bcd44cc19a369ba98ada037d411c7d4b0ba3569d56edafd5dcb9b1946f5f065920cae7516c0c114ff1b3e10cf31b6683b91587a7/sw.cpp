@@ -95,6 +95,12 @@ void build(Solution &s)
         } else {
             t += "src/core/lib/event_engine/posix_engine/.*"_rr;
         }
+        if (t.getBuildSettings().TargetOS.isApple()) {
+            t -= "src/core/lib/event_engine/cf_engine/.*"_rr;
+            t.add("src/core/lib/event_engine/cf_engine/cf_engine.cc", ".mm");
+            t.add("src/core/lib/event_engine/cf_engine/cfstream_endpoint.cc", ".mm");
+            t.add("src/core/lib/event_engine/cf_engine/dns_service_resolver.cc", ".mm");
+        }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
     }
 
