@@ -12,6 +12,7 @@ void build(Solution &s)
     if (uv.getBuildSettings().TargetOS.Type == OSType::Windows || uv.getBuildSettings().TargetOS.Type == OSType::Mingw)
     {
         uv += "src/win/.*"_rr;
+        uv += "_WIN32_WINNT=_WIN32_WINNT_WIN8"_def;
         uv.Public +=
             "ws2_32.lib"_slib,
             "user32.lib"_slib,
