@@ -87,8 +87,10 @@ void build(Solution &s)
         t.Variables["HAVE_STRUCT_SOCKADDR_STORAGE"] = 1;
         t.Variables["HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY"] = 1;
         t.Variables["HAVE_FSEEKO"] = 1;
-        if (t.getBuildSettings().TargetOS.is(OSType::Windows))
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows)) {
             t.Variables["HAVE__CPUID"] = 1;
+            t.Variables["HAVE_SOCKLEN_T"] = 1;
+        }
         t.Variables["USE_SSE42_CRC32C_WITH_RUNTIME_CHECK"] = 1;
         t.Variables["HAVE_LONG_LONG_INT_64"] = 1;
         t.Variables["PG_INT64_TYPE"] = "long long int";
@@ -194,6 +196,11 @@ void build(Solution &s)
             port -= "src/port/pg_crc32c_sse42_choose.c";
             if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
                 port.CompileOptions.push_back("-msse4.2");
+        }
+        if (port.getCompilerType() == CompilerType::Clang || port.getCompilerType() == CompilerType::ClangCl) {
+            if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64) {
+                port.CompileOptions.push_back("-msse4.2");
+            }
         }
         if (port.getBuildSettings().TargetOS.is(OSType::Linux))
         {
