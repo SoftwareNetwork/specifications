@@ -64,6 +64,12 @@ void build(Solution &s)
     jpeg.Variables["HAVE_PROTOTYPES"] = 1;
     jpeg.configureFile("jconfig.cfg", "jconfig.h", ConfigureFlags::EnableUndefReplacements);
 
+    jpeg.pushFrontToFileOnce("jpeglib.h", R"(
+#ifdef _WIN32
+#include <windows.h>
+#endif
+)");
+
     jpeg.replaceInFileOnce("jmorecfg.h",
         "extern type",
         "extern JPEG_API type");
