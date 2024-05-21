@@ -15,7 +15,7 @@ void build(Solution &s)
     }
 
     t.Variables["SIZEOF_SSIZE_T"] = t.Variables["SIZEOF_SIZE_T"];
-    t.configureFile("json.h.cmakein", t.BinaryPrivateDir / "json.h");
+    t.configureFile("json.h.cmakein", "json.h");
     t.configureFile("cmake/config.h.in", t.BinaryPrivateDir / "config.h");
     t.configureFile("cmake/json_config.h.in", "json_config.h", ConfigureFlags::EnableUndefReplacements);
 }
