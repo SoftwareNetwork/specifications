@@ -189,10 +189,11 @@ void build(Solution &s)
             port -= "src/port/getopt.*"_rr;
 
             //port -= "src/port/pg_bitutils.c";
-            port += "HAVE__GET_CPUID"_def;
             //port -= "src/port/getpeereid.c";
-            if (port.getBuildSettings().TargetOS.is(OSType::Linux))
+            if (port.getBuildSettings().TargetOS.is(OSType::Linux)) {
+                port += "HAVE__GET_CPUID"_def; // not every arch (prob not arm)
                 port += "SO_PEERCRED"_def; // linux only! not on freebsd/solaris
+            }
             port -= "src/port/pg_crc32c_sse42_choose.c";
             if (port.getBuildSettings().TargetOS.Arch != ArchType::aarch64)
                 port.CompileOptions.push_back("-msse4.2");

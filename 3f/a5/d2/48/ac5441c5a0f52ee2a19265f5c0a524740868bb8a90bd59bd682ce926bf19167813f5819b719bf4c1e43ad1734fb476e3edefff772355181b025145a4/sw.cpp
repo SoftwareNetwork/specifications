@@ -9,7 +9,9 @@ void build(Solution &s)
     pqxx += cpp20;
 
     if (pqxx.getBuildSettings().TargetOS.Type == OSType::Windows)
-        pqxx.Public += "ws2_32.lib"_slib;
+        pqxx += "ws2_32.lib"_slib;
+    else
+        pqxx += "PQXX_HAVE_POLL"_def;
 
     pqxx += "org.sw.demo.postgres.pq"_dep;
 
