@@ -45,6 +45,7 @@ void build(Solution &s)
             "ext/session/.*test.*"_rr,
             "ext/session/changeset.*"_rr,
             "ext/rtree/geopoly.*"_rr,
+            "ext/rtree/test_.*"_rr,
             "src/tcl.*"_rr,
             "src/test.*"_rr,
             "tool/.*"_rr;
@@ -183,6 +184,8 @@ void build(Solution &s)
         sqlcipher.pushFrontToFileOnce("src/crypto_openssl.c", "#include <sqliteInt.h>\n#include \"sqlcipher.h\"");
     }
 
+    // this won't build atm, it needs messy --srcdir dirs etc.
+    // but we place our files in different dirs (src, bd, bdp)
     auto &shell = sql.addTarget<ExecutableTarget>("shell");
     {
         shell += sqlcipher;

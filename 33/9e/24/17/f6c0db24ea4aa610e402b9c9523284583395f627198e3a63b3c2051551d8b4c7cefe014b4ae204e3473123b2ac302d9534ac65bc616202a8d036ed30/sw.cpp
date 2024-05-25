@@ -72,15 +72,35 @@ void build(Solution &s)
         //actor.pushFrontToFileOnce("tdactor/td/actor/impl/ConcurrentScheduler.cpp", "#include \"td/actor/actor.h\"");
     }
 
+    auto &sqlite = td.addTarget<StaticLibraryTarget>("sqlite");
+    {
+        sqlite += "sqlite/.*"_rr;
+        sqlite.Public += "sqlite"_idir;
+
+        sqlite +=
+            "OMIT_MEMLOCK"_def,
+            "SQLITE_DEFAULT_MEMSTATUS=0"_def,
+            "SQLITE_DEFAULT_RECURSIVE_TRIGGERS=1"_def,
+            "SQLITE_DEFAULT_SYNCHRONOUS=1"_def,
+            "SQLITE_DISABLE_LFS"_def,
+            "SQLITE_ENABLE_FTS5"_def,
+            "SQLITE_HAS_CODEC"_def,
+            "SQLITE_OMIT_DECLTYPE"_def,
+            "SQLITE_OMIT_DEPRECATED"_def,
+            "SQLITE_OMIT_DESERIALIZE"_def,
+            "SQLITE_OMIT_LOAD_EXTENSION"_def,
+            "SQLITE_OMIT_PROGRESS_CALLBACK"_def,
+            //"SQLITE_OMIT_SHARED_CACHE"_def,
+            "SQLITE_TEMP_STORE=2"_def
+            ;
+        sqlite.Public += utils;
+    }
+
     auto &db = td.addTarget<StaticLibraryTarget>("db");
     {
         db += "tddb/td/db/.*"_rr;
         db.Public += "tddb"_idir;
-        db.Public += "org.sw.demo.sqlcipher.sqlcipher"_dep;
-        db.Public += actor;
-
-        for (auto &f : { "tddb/td/db/detail/RawSqliteDb.cpp", "tddb/td/db/SqliteDb.cpp", "tddb/td/db/SqliteStatement.cpp" })
-            db.patch(f, "sqlite/sqlite3.h", "sqlite3.h");
+        db.Public += actor, sqlite;
     }
 
     auto &tl = td.addTarget<StaticLibraryTarget>("tl");
@@ -110,7 +130,19 @@ void build(Solution &s)
     {
         generate_common +=
             "td/generate/generate_common.cpp",
-            "td/generate/tl_.*"_rr;
+            "td/generate/tl_writer_cpp.cpp",
+            "td/generate/tl_writer_h.cpp",
+            "td/generate/tl_writer_hpp.cpp",
+            "td/generate/tl_writer_jni_cpp.cpp",
+            "td/generate/tl_writer_jni_h.cpp",
+            "td/generate/tl_writer_td.cpp",
+            "td/generate/tl_writer_cpp.h",
+            "td/generate/tl_writer_h.h",
+            "td/generate/tl_writer_hpp.h",
+            "td/generate/tl_writer_jni_cpp.h",
+            "td/generate/tl_writer_jni_h.h",
+            "td/generate/tl_writer_td.h"
+            ;
         generate_common.Public += tl;
         generate_common.Public += utils;
     }
@@ -174,7 +206,7 @@ void build(Solution &s)
 
             auto c = t.addCommand();
             c << cmd::prog(generate_common)
-                << cmd::wdir(t.BinaryDir)
+                << cmd::wdir(t.BinaryDir / "auto")
                 << cmd::end()
                 << cmd::in("auto/tlo/td_api.tlo")
                 << cmd::in("auto/tlo/mtproto_api.tlo")
@@ -192,7 +224,7 @@ void build(Solution &s)
 
             auto c = t.addCommand();
             c << cmd::prog(generate_json)
-                << cmd::wdir(t.BinaryDir)
+                << cmd::wdir(t.BinaryDir / "auto")
                 << cmd::end()
                 << cmd::in(t.BinaryDir / "auto/tlo/td_api.tlo")
                 << cmd::out(tl_td_auto)
@@ -208,7 +240,7 @@ void build(Solution &s)
 
             auto c = t.addCommand();
             c << cmd::prog(generate_clib)
-                << cmd::wdir(t.BinaryDir)
+                << cmd::wdir(t.BinaryDir / "auto")
                 << cmd::end()
                 << cmd::in(t.BinaryDir / "auto/tlo/td_api.tlo")
                 << cmd::out(tl_td_auto)
