@@ -68,6 +68,7 @@ void build(Solution &s)
     auto &c_ares = s.addTarget<LibraryTarget>("c_ares", "1.29.0");
     c_ares += Git("https://github.com/c-ares/c-ares", "cares-{M}_{m}_{p}");
 
+    c_ares += c99;
     c_ares.setChecks("c_ares");
 
     if (c_ares.getBuildSettings().TargetOS.Type != OSType::Windows && c_ares.getBuildSettings().TargetOS.Type != OSType::Mingw)
@@ -76,6 +77,14 @@ void build(Solution &s)
     c_ares += "include/.*\\.h"_rr;
     c_ares += "include/.*\\.in"_rr;
     c_ares += "src/lib/.*\\.[hc]"_rr;
+
+    if (c_ares.getBuildSettings().TargetOS.isApple())
+    {
+        c_ares -= "src/lib/ares_sysconfig_mac.c";
+        c_ares -= "src/lib/ares_event_configchg.c";
+        c_ares.add("src/lib/ares_sysconfig_mac.c", ".m");
+        c_ares.add("src/lib/ares_event_configchg.c", ".m");
+    }
 
     c_ares.Public += "include"_idir;
     c_ares += "src/lib"_idir;
