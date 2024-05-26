@@ -94,6 +94,7 @@ void build(Solution &s)
     c_ares.Public += sw::Static, "CARES_STATICLIB"_d;
 
     c_ares.Private += "HAVE_CONFIG_H"_d;
+    c_ares.Private += "_GNU_SOURCE"_d;
     c_ares.Public += "HAVE_GETENV"_d;
     c_ares.Public += "HAVE_RECV"_d;
     c_ares.Public += "HAVE_RECVFROM"_d;
@@ -182,7 +183,7 @@ void check(Checker &c)
     s.checkFunctionExists("ldap_url_parse");
     s.checkFunctionExists("perror");
     s.checkFunctionExists("pipe");
-    s.checkFunctionExists("pthread_create");
+    s.checkFunctionExists("pthread_create").Parameters.Includes.push_back("pthread.h");
     s.checkFunctionExists("recv");
     s.checkFunctionExists("recvfrom");
     s.checkFunctionExists("send");
@@ -190,7 +191,7 @@ void check(Checker &c)
     s.checkFunctionExists("setlocale");
     s.checkFunctionExists("setmode");
     s.checkFunctionExists("setrlimit");
-    s.checkFunctionExists("strcasecmp");
+    s.checkFunctionExists("strcasecmp").Parameters.Includes.push_back("strings.h");
     //s.checkFunctionExists("time").Parameters.Includes.push_back("time.h");
     //s.checkFunctionExists("time").Parameters.Includes.push_back("sys/time.h");
     s.checkFunctionExists("writev");
@@ -223,6 +224,7 @@ void check(Checker &c)
     s.checkIncludeExists("locale.h");
     s.checkIncludeExists("netdb.h");
     s.checkIncludeExists("netinet/in.h");
+    s.checkIncludeExists("netinet6/in6.h");
     s.checkIncludeExists("netinet/tcp.h");
     s.checkIncludeExists("net/if.h");
     s.checkIncludeExists("netioapi.h").Parameters.Includes.push_back("iphlpapi.h");
@@ -239,6 +241,8 @@ void check(Checker &c)
     s.checkIncludeExists("openssl/x509.h");
     s.checkIncludeExists("pem.h");
     s.checkIncludeExists("poll.h");
+    s.checkIncludeExists("pthread.h");
+    s.checkIncludeExists("pthread_np.h");
     s.checkIncludeExists("pwd.h");
     s.checkIncludeExists("rsa.h");
     s.checkIncludeExists("setjmp.h");
@@ -249,6 +253,8 @@ void check(Checker &c)
     s.checkIncludeExists("stdint.h");
     s.checkIncludeExists("stdlib.h");
     s.checkIncludeExists("strings.h");
+    s.checkIncludeExists("sys/epoll.h");
+    s.checkIncludeExists("sys/event.h");
     s.checkIncludeExists("sys/filio.h");
     s.checkIncludeExists("sys/ioctl.h");
     s.checkIncludeExists("sys/param.h");
@@ -270,8 +276,14 @@ void check(Checker &c)
     s.checkIncludeExists("unistd.h");
     s.checkIncludeExists("utime.h");
     s.checkIncludeExists("windows.h");
-    s.checkIncludeExists("winsock2.h");
-    s.checkIncludeExists("ws2tcpip.h");
+    s.checkIncludeExists("ws2tcpip.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("ntdef.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("ntstatus.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("winternl.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("mswsock.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("winsock.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("winsock2.h").Parameters.Includes.push_back("windows.h");
+    s.checkIncludeExists("ws2tcpip.h").Parameters.Includes.push_back("windows.h");
     s.checkIncludeExists("x509.h");
     s.checkTypeSize("bool");
     s.checkTypeSize("int");
@@ -293,7 +305,8 @@ void check(Checker &c)
     s.checkTypeSize("time_t");
     s.checkTypeSize("void *");
     s.checkLibraryFunctionExists("nsl", "gethostbyname");
-    s.checkLibraryFunctionExists("pthread", "pthread_create");
+    s.checkLibraryFunctionExists("pthread", "pthread_create").Parameters.Includes.push_back("pthread.h");
+    s.checkLibraryFunctionExists("pthread", "pthread_init").Parameters.Includes.push_back("pthread.h");
     s.checkLibraryFunctionExists("resolve", "strcasecmp");
     s.checkSourceCompiles("HAVE_TIME_WITH_SYS_TIME", R"sw_xxx(
     #include <time.h>
