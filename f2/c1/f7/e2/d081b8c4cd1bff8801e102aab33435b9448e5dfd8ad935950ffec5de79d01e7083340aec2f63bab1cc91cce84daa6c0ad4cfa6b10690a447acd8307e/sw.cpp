@@ -60,12 +60,16 @@ void build(Solution &s)
     // luajit
     {
         luajit -= "src/.*"_rr;
+        luajit -= "dynasm/.*"_rr;
         luajit += "src/ljamalg.c";
+        //luajit += "src/lib_init.c";
         luajit_h(luajit);
 
         //luajit += "LUA_LIB"_def;
         if (luajit.getBuildSettings().TargetOS.Type == OSType::Windows)
             luajit.Public += sw::Shared, "LUA_BUILD_AS_DLL"_def;
+        else
+            luajit.ExportAllSymbols = true;
 
         if (luajit.getBuildSettings().TargetOS.Type != OSType::Windows) {
             //if (luajit.getBuildSettings().TargetOS.isApple()) {
@@ -129,6 +133,9 @@ void build(Solution &s)
 /*
 buildvm -m vmdef -o jit\vmdef.lua %ALL_LIB%
 @if errorlevel 1 goto :BAD*/
-
     }
+
+    auto &exe = luajit.addExecutable("exe");
+    exe += "src/luajit.c";
+    exe += luajit;
 }
