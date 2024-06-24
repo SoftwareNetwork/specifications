@@ -1,0 +1,120 @@
+<h1 id="what-is-libgpg-error">What is Libgpg-error</h1>
+<p>Libgpg-error is a library that defines common error values for all
+GnuPG components. Among these are GPG, GPGSM, GPGME, GPG-Agent,
+libgcrypt, Libksba, DirMngr, Pinentry, SmartCard Daemon and more.
+Meanwhile Libgcrypt also sports functions commonly used by all GnuPG
+components and which are believed to be generally useful. The main
+components are</p>
+<ul>
+<li><p>Structured error codes and utility functions.</p></li>
+<li><p>Replacement functions for stdio stream (estream) to provide a
+reliable set of printf features on all platforms. For convenience macros
+are provided to make migration from stdio to estream easier (ie. the
+prefix “es_”)</p></li>
+<li><p>Generic Mutex implementation for all platforms using an ABI
+independent of the underlying implementation.</p></li>
+<li><p>A lean gettext and iconv implementation for Windows.</p></li>
+<li><p>Log functions</p></li>
+<li><p>Option parser</p></li>
+<li><p>Base-64 encoder and decoder.</p></li>
+</ul>
+<p>More components will be added over time. Most functions are prefixed
+with “gpgrt” (GnuPG Run Time) instead of “gpg_err” to indicate the long
+term plan to rename this library to gpgrt.</p>
+<p>Libgpg-error is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published
+by the Free Software Foundation; either version 2.1 of the License, or
+(at your option) any later version. See the file COPYING.LIB for
+copyright and warranty information. See the file AUTHORS for a list of
+authors and important mail addresses.</p>
+<p>However, some files (for example src/mkerrnos.awk) used in the build
+process of the library and the manual are covered by a different
+license. Please see the header of these files and the file COPYING for
+copyright and warranty information on these files. A special exception
+in the copyright license of these files makes sure that the output in
+the build process, which is used in libgpg-error, is not affected by the
+GPL.</p>
+<h1 id="installation">Installation</h1>
+<p>Please read the file INSTALL!</p>
+<p>Here is a quick summary:</p>
+<ol type="1">
+<li><p>Check that you have unmodified sources. You can find instructions
+how to verify the sources below. Don’t skip this - it is an important
+step!</p></li>
+<li><p>Unpack the archive. With GNU tar you can do it this way: “tar
+xjvf libgpg-error-x.y.tar.bz2”</p></li>
+<li><p>“cd libgpg-error-x.y”</p></li>
+<li><p>“./configure”</p></li>
+<li><p>“make”</p></li>
+<li><p>“make install”</p></li>
+</ol>
+<h1 id="how-to-verify-the-source">How to Verify the Source</h1>
+<p>In order to check that the version of libgpg-error which you are
+going to install is an original and unmodified copy of the original, you
+can do it in one of the following ways:</p>
+<ol type="a">
+<li><p>If you already have a trusted version of GnuPG installed, you can
+simply check the supplied signature:</p>
+<p>$ gpg –verify libgpg-error-x.y.tar.bz2.sig
+libgpg-error-x.y.tar.bz2</p>
+<p>This checks that the detached signature libgpg-error-x.y.tar.bz2.sig
+is indeed a signature of libgpg-error-x.y.tar.bz2. Make sure that the
+signature has been created by a trusted keys.</p>
+<p>Please note that you have to use an old version of GnuPG to do all
+this stuff. <em>Never</em> use the version which was built using the
+library you are trying to verify!</p></li>
+<li><p>If you don’t have any a trusted version of GnuPG, you can attempt
+to verify the SHA1 checksum, using a trusted version of the sha1sum
+program:</p>
+<p>$ sha1sum libgpg-error-x.y.tar.bz2</p>
+<p>This should yield an output <em>similar</em> to this:</p>
+<p>610064e5b77700f5771c8fde2691c4365e1ca100 libgpg-error-x.y.tar.bz2</p>
+<p>Now check that this checksum is <em>exactly</em> the same as the one
+published via the announcement list and probably via Usenet.</p></li>
+</ol>
+<h1 id="hints">Hints</h1>
+<p>To build for Windows you you may use the convenience command:</p>
+<p>./autogen.sh –build-w32</p>
+<p>which runs configure with suitable options. There is also basic
+support for building a 64 bit Windows version:</p>
+<p>./autogen.sh –build-w64</p>
+<h1 id="cross-compiling">Cross-Compiling</h1>
+<p>Libgpg-error needs to figure out some platform specific properties.
+These are used to build the platform specific gpg-error.h file. The
+detection is done during build time but can’t be done when
+cross-compiling. Thus if you run into an error during building you need
+to figure out these values. You may use these commands:</p>
+<p>build=“<span
+class="math inline">$(build-aux/config.guess)"  ./configure
+--prefix=TARGETDIR --host=TARGET --build=$</span>build cd src make
+gen-posix-lock-obj scp gen-posix-lock-obj TARGET: ssh TARGET
+./gen-posix-lock-obj &gt;tmp.h mv tmp.h”syscfg/$(awk ‘NR==1 {print $2}’
+tmp.h)”</p>
+<p>If you are using a VPATH build adjust accordingly. If this all works
+for you (make sure to run the test programs on the target platform),
+please send the generated file to the gnupg-devel mailing list so that
+we can include it in the next release. Note that in addition to the
+aliasing done by config.sub the src/mkheader build tool does some extra
+aliasing to avoid having too much identical syscfg files.</p>
+<h1 id="known-problems">Known Problems</h1>
+<p>On Windows, WSA Error Codes can be provided as system error codes and
+will be transparently converted to the corresponding gpg error codes.
+There are two problems with this support:</p>
+<ul>
+<li><p>Not all error codes corresponding to WSA Error codes have a
+detailed description when printed with gpg_strerror. Some will default
+to “Unknown error” for pretty printing. For example, WSAEHOSTDOWN will
+be translated to GPG_ERR_EHOSTDOWN, but there is no corresponding
+EHOSTDOWN in Windows and thus gpg_strerror will default to “Unknown
+error” as printed by the system’s strerror function for the argument
+WSAEHOSTDOWN. (This could be fixed by adding our own error strings
+replacing or extending the system error strings, including their
+translations).</p></li>
+<li><p>The translation to a gpg error code and back to a system error
+code in some cases does not preserve information. For example, the error
+code WSAEACCES translates to GPG_ERR_EACCES, which translates back to
+EACCES.</p></li>
+</ul>
+<p>Any WSA Error code has either the first problem or the second (but
+not both), depending on if there is a corresponding Windows error
+code.</p>
