@@ -25,4 +25,8 @@ void build(Solution &s)
     {
         fmt.Public += "FMT_USE_EXTERN_TEMPLATES=0"_d;
     }
+
+    if (fmt.getCompilerType() == CompilerType::MSVC) {
+        fmt.Public.CompileOptions.push_back("/utf-8");
+    }
 }
