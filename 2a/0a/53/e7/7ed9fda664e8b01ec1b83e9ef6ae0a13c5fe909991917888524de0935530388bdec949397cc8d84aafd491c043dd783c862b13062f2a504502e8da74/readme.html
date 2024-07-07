@@ -1,0 +1,101 @@
+<h1 id="argparse-build-status">argparse <a
+href="https://travis-ci.org/cofyc/argparse"><img
+src="https://travis-ci.org/cofyc/argparse.png"
+alt="Build Status" /></a></h1>
+<p>argparse - A command line arguments parsing library in C (compatible
+with C++).</p>
+<h2 id="description">Description</h2>
+<p>This module is inspired by parse-options.c (git) and python’s
+argparse module.</p>
+<p>Arguments parsing is common task in cli program, but traditional
+<code>getopt</code> libraries are not easy to use. This library provides
+high-level arguments parsing solutions.</p>
+<p>The program defines what arguments it requires, and
+<code>argparse</code> will figure out how to parse those out of
+<code>argc</code> and <code>argv</code>, it also automatically generates
+help and usage messages and issues errors when users give the program
+invalid arguments.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>handles both optional and positional arguments</li>
+<li>produces highly informative usage messages</li>
+<li>issues errors when given invalid arguments</li>
+</ul>
+<p>There are basically three types of options:</p>
+<ul>
+<li>boolean options</li>
+<li>options with mandatory argument</li>
+<li>options with optional argument</li>
+</ul>
+<p>There are basically two forms of options:</p>
+<ul>
+<li>short option consist of one dash (<code>-</code>) and one
+alphanumeric character.</li>
+<li>long option begin with two dashes (<code>--</code>) and some
+alphanumeric characters.</li>
+</ul>
+<p>Short options may be bundled, e.g. <code>-a -b</code> can be
+specified as <code>-ab</code>.</p>
+<p>Options are case-sensitive.</p>
+<p>Options and non-option arguments can clearly be separated using the
+<code>--</code> option.</p>
+<h2 id="examples">Examples</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;argparse.h&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span><span class="dt">const</span> usage<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;test_argparse [options] [[--] args]&quot;</span><span class="op">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;test_argparse [options]&quot;</span><span class="op">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    NULL<span class="op">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#define PERM_READ  </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#define PERM_WRITE </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">1</span><span class="op">)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="pp">#define PERM_EXEC  </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">2</span><span class="op">)</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">const</span> <span class="dt">char</span> <span class="op">**</span>argv<span class="op">)</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> force <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> test <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> num <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>path <span class="op">=</span> NULL<span class="op">;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> perms <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> argparse_option options<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        OPT_HELP<span class="op">(),</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        OPT_GROUP<span class="op">(</span><span class="st">&quot;Basic options&quot;</span><span class="op">),</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        OPT_BOOLEAN<span class="op">(</span><span class="ch">&#39;f&#39;</span><span class="op">,</span> <span class="st">&quot;force&quot;</span><span class="op">,</span> <span class="op">&amp;</span>force<span class="op">,</span> <span class="st">&quot;force to do&quot;</span><span class="op">),</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        OPT_BOOLEAN<span class="op">(</span><span class="ch">&#39;t&#39;</span><span class="op">,</span> <span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="op">&amp;</span>test<span class="op">,</span> <span class="st">&quot;test only&quot;</span><span class="op">),</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        OPT_STRING<span class="op">(</span><span class="ch">&#39;p&#39;</span><span class="op">,</span> <span class="st">&quot;path&quot;</span><span class="op">,</span> <span class="op">&amp;</span>path<span class="op">,</span> <span class="st">&quot;path to read&quot;</span><span class="op">),</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        OPT_INTEGER<span class="op">(</span><span class="ch">&#39;n&#39;</span><span class="op">,</span> <span class="st">&quot;num&quot;</span><span class="op">,</span> <span class="op">&amp;</span>num<span class="op">,</span> <span class="st">&quot;selected num&quot;</span><span class="op">),</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        OPT_GROUP<span class="op">(</span><span class="st">&quot;Bits options&quot;</span><span class="op">),</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>        OPT_BIT<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="st">&quot;read&quot;</span><span class="op">,</span> <span class="op">&amp;</span>perms<span class="op">,</span> <span class="st">&quot;read perm&quot;</span><span class="op">,</span> NULL<span class="op">,</span> PERM_READ<span class="op">,</span> OPT_NONEG<span class="op">),</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        OPT_BIT<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="st">&quot;write&quot;</span><span class="op">,</span> <span class="op">&amp;</span>perms<span class="op">,</span> <span class="st">&quot;write perm&quot;</span><span class="op">,</span> NULL<span class="op">,</span> PERM_WRITE<span class="op">),</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        OPT_BIT<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="st">&quot;exec&quot;</span><span class="op">,</span> <span class="op">&amp;</span>perms<span class="op">,</span> <span class="st">&quot;exec perm&quot;</span><span class="op">,</span> NULL<span class="op">,</span> PERM_EXEC<span class="op">),</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        OPT_END<span class="op">(),</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> argparse argparse<span class="op">;</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    argparse_init<span class="op">(&amp;</span>argparse<span class="op">,</span> options<span class="op">,</span> usage<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    argparse_describe<span class="op">(&amp;</span>argparse<span class="op">,</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">A brief description of what the program does and how it works.&quot;</span><span class="op">,</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Additional description of the program after the description of the arguments.&quot;</span><span class="op">);</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    argc <span class="op">=</span> argparse_parse<span class="op">(&amp;</span>argparse<span class="op">,</span> argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>force <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;force: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> force<span class="op">);</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>test <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;test: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> test<span class="op">);</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>path <span class="op">!=</span> NULL<span class="op">)</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;path: </span><span class="sc">%s\n</span><span class="st">&quot;</span><span class="op">,</span> path<span class="op">);</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>num <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;num: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> num<span class="op">);</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;argc: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> argc<span class="op">);</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> i<span class="op">;</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> argc<span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>            printf<span class="op">(</span><span class="st">&quot;argv[</span><span class="sc">%d</span><span class="st">]: </span><span class="sc">%s\n</span><span class="st">&quot;</span><span class="op">,</span> i<span class="op">,</span> <span class="op">*(</span>argv <span class="op">+</span> i<span class="op">));</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>perms<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;perms: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> perms<span class="op">);</span></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
