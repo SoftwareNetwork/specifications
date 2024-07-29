@@ -126,10 +126,9 @@ void build(Solution &s)
         generate_json.Public += utils;
     }
 
-    auto &generate_common = td.addTarget<ExecutableTarget>("generate.common");
+    auto &generate_lib = td.addTarget<StaticLibraryTarget>("generate.lib");
     {
-        generate_common +=
-            "td/generate/generate_common.cpp",
+        generate_lib +=
             "td/generate/tl_writer_cpp.cpp",
             "td/generate/tl_writer_h.cpp",
             "td/generate/tl_writer_hpp.cpp",
@@ -143,8 +142,22 @@ void build(Solution &s)
             "td/generate/tl_writer_jni_h.h",
             "td/generate/tl_writer_td.h"
             ;
-        generate_common.Public += tl;
-        generate_common.Public += utils;
+        generate_lib.Public += tl;
+        generate_lib.Public += utils;
+    }
+    auto &generate_common = td.addTarget<ExecutableTarget>("generate.common");
+    {
+        generate_common +=
+            "td/generate/generate_common.cpp"
+            ;
+        generate_common.Public += generate_lib;
+    }
+    auto &generate_mtproto = td.addTarget<ExecutableTarget>("generate.mtproto");
+    {
+        generate_mtproto +=
+            "td/generate/generate_mtproto.cpp"
+            ;
+        generate_mtproto.Public += generate_lib;
     }
 
     auto &tl_parser = td.addTarget<ExecutableTarget>("generate.tl_parser");
@@ -189,10 +202,7 @@ void build(Solution &s)
         }
 
         {
-            Files tl_td_auto{
-                "auto/td/mtproto/mtproto_api.cpp",
-                "auto/td/mtproto/mtproto_api.h",
-                "auto/td/mtproto/mtproto_api.hpp",
+            Files tl_td_auto_common{
                 "auto/td/telegram/td_api.cpp",
                 "auto/td/telegram/td_api.h",
                 "auto/td/telegram/td_api.hpp",
@@ -203,16 +213,31 @@ void build(Solution &s)
                 "auto/td/telegram/secret_api.h",
                 "auto/td/telegram/secret_api.hpp",
             };
-
-            auto c = t.addCommand();
-            c << cmd::prog(generate_common)
+            t.addCommand()
+                << cmd::prog(generate_common)
                 << cmd::wdir(t.BinaryDir / "auto")
                 << cmd::end()
                 << cmd::in("auto/tlo/td_api.tlo")
                 << cmd::in("auto/tlo/mtproto_api.tlo")
                 << cmd::in("auto/tlo/telegram_api.tlo")
                 << cmd::in("auto/tlo/secret_api.tlo")
-                << cmd::out(tl_td_auto)
+                << cmd::out(tl_td_auto_common)
+                ;
+
+            Files tl_td_auto_mtproto{
+                "auto/td/mtproto/mtproto_api.cpp",
+                "auto/td/mtproto/mtproto_api.h",
+                "auto/td/mtproto/mtproto_api.hpp",
+            };
+            t.addCommand()
+                << cmd::prog(generate_mtproto)
+                << cmd::wdir(t.BinaryDir / "auto")
+                << cmd::end()
+                << cmd::in("auto/tlo/td_api.tlo")
+                << cmd::in("auto/tlo/mtproto_api.tlo")
+                << cmd::in("auto/tlo/telegram_api.tlo")
+                << cmd::in("auto/tlo/secret_api.tlo")
+                << cmd::out(tl_td_auto_mtproto)
                 ;
         }
 
