@@ -142,6 +142,7 @@ void build(Solution &s)
             "td/generate/tl_writer_jni_h.h",
             "td/generate/tl_writer_td.h"
             ;
+        generate_lib.Public += "td/generate"_idir;
         generate_lib.Public += tl;
         generate_lib.Public += utils;
     }
