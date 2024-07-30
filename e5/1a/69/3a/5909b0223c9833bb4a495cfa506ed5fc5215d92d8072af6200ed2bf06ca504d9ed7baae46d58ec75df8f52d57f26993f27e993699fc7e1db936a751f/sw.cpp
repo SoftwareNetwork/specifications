@@ -28,6 +28,12 @@ void build(Solution &s)
         utils.Variables["TD_HAVE_ZLIB"] = 1;
         utils.configureFile("tdutils/td/utils/config.h.in", "td/utils/config.h");
         utils.writeFileOnce("auto/git_info.h", "#define GIT_COMMIT \"\"\n#define GIT_DIRTY false");
+        utils.writeFileOnce("auto/git_info.cpp", R"(
+namespace td {
+    char const *get_git_commit_hash(void) {return "";}
+}
+)");
+        utils += "auto/git_info.cpp";
 
         {
             auto c = utils.addCommand();
