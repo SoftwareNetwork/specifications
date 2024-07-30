@@ -5,6 +5,7 @@ void build(Solution &s)
 
     t += cpp17;
     t -= "hwy/.*"_rr;
+    t += "hwy/abort.cc";
     t += "hwy/aligned_allocator.cc";
     //t += "hwy/nanobenchmark.cc";
     t += "hwy/targets.cc";
