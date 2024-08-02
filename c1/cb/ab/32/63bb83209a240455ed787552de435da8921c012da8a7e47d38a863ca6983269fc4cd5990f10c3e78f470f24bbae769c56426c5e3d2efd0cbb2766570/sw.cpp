@@ -22,6 +22,7 @@ void build(Solution &s)
         //t -= ".*_nonprod.*cc"_rr;
         t -= ".*/test_.*cc"_rr;
         t -= "hash/internal/print_hash_of.cc";
+        t -= "status/internal/status_matchers.cc";
         t -= "random/benchmarks.cc";
         //t -= "random/mocking_bit_gen.cc";
         //t -= "synchronization/internal/waiter.cc";
