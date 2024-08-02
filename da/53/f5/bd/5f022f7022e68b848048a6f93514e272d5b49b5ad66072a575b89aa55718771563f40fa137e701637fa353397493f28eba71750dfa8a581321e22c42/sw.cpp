@@ -79,7 +79,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.madler.zlib"_dep;
         t.Public += "org.sw.demo.openssl.ssl"_dep;
         t.Public += "org.sw.demo.nanopb"_dep;
-        t.Public += "org.sw.demo.google.abseil"_dep;
+        t.Public += "org.sw.demo.google.abseil-2024.1"_dep;
         t.Public += "org.sw.demo.opentelemetry"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += upb;
