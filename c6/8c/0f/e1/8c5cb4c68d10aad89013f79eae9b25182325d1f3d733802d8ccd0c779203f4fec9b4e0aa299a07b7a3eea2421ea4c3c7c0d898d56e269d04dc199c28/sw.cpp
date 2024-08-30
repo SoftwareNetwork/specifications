@@ -123,6 +123,7 @@ inline int __CRTDECL mbsinit(
             gawk.writeFileOnce(gawk.BinaryPrivateDir / "unistd.h");
             gawk.pushFrontToFileOnce("pc/getid.c", "#define __MINGW32__ 1");
             gawk += "ws2_32.lib"_slib;
+            gawk += "GETPGRP_VOID=1"_def;
         }
         else
         {
