@@ -34,14 +34,14 @@ void build(Solution &s)
         upb -= "upb/upb/.*test.*"_rr;
         upb -= "upb/upb/cmake/.*"_rr;
         upb -= "upb/upb/conformance/.*"_rr;
-        upb -= "upb/upb/reflection/.*"_rr;
-        upb -= "upb/upb/reflection/internal/.*"_rr;
+        //upb -= "upb/upb/reflection/.*"_rr;
+        //upb -= "upb/upb/reflection/internal/.*"_rr;
         upb -= "upb/upb/reflection/stage0/google/protobuf/descriptor.upb.c";
         upb += "UPB_BOOTSTRAP_STAGE0"_def;
         upb.Public += "."_idir;
         upb.Public += "upb"_idir;
-        upb += "upb/upb/reflection/cmake"_idir;
         upb += "upb/upb/reflection/stage0"_idir;
+        upb += "upb/upb/reflection/cmake"_idir;
         //upb.Public += "org.sw.demo.google.protobuf.protobuf"_dep;
         //(upb + core)->IncludeDirectoriesOnly = true;
         //upb.Public += "org.sw.demo.google.protocolbuffers.utf8_range-main"_dep;
