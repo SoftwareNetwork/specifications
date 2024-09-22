@@ -41,15 +41,14 @@ void build(Solution &s)
 		make_obj("resources/fonts/han/.*\\.ttc"_rr);
 
 		t.Public += "org.sw.demo.ArtifexSoftware.jbig2dec"_dep;
-		t += "org.sw.demo.ArtifexSoftware.extract-c10c442dfea1cb49f63ee9f97f05402d5678f271d"_dep;
+		t.Public += "org.sw.demo.ArtifexSoftware.extract"_dep;
+		t.Public += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2-mt"_dep;
 		t.Public += "org.sw.demo.mgk25.jbig.jbig"_dep;
 		t.Public += "org.sw.demo.behdad.harfbuzz"_dep;
 		t.Public += "org.sw.demo.jpeg"_dep;
-		t.Public += "org.sw.demo.ArtifexSoftware.thirdparty.lcms2-mt"_dep;
 		t.Public += "org.sw.demo.ghostscript.mujs-master"_dep;
 		t.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
 		t.Public += "org.sw.demo.google.gumbo_parser"_dep;
-		t.Public += "org.sw.demo.ArtifexSoftware.extract"_dep;
 
 		t.patch("include/mupdf/fitz/system.h", "#define hypotf _hypotf", "//#define  hypotf _hypotf");
 	}
