@@ -8,6 +8,8 @@ void build(Solution &s)
         libstudxml.setRootDirectory("third-party/libstudxml");
         libstudxml += "xml/.*"_rr;
         libstudxml -= "xml/details/expat/.*"_rr;
+        libstudxml -= "xml/parser.ixx";
+        libstudxml -= "xml/serializer.ixx";
 
         libstudxml.Public += "LIBSTUDXML_EXTERNAL_EXPAT"_d;
         libstudxml += sw::Shared, "LIBSTUDXML_DYNAMIC_LIB"_d;
