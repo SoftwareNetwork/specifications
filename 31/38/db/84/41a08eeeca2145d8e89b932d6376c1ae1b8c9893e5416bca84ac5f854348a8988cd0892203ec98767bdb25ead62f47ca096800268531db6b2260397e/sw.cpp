@@ -11,7 +11,11 @@ void build(Solution &s)
         "source/windows/.*"_rr,
         "source/posix/.*"_rr;
     t -= "source/arch/.*"_rr;
+    t -= "source/platform_fallback_stubs/.*"_rr;
     t += "source/arch/intel/.*"_r;
+
+    t.Public += "include"_idir;
+    t += "source/external/libcbor"_idir;
 
     if (t.getCompilerType() == CompilerType::MSVC)
         t.CompileOptions.push_back("-bigobj");
