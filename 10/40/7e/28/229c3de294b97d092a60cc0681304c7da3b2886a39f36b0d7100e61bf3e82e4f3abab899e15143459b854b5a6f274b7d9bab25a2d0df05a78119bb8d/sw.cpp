@@ -1,11 +1,14 @@
 void build(Solution &s)
 {
-    auto &t = s.addLibrary("lighttransport.tinyusdz", "dev");
+    // dll does not work for now, not all symbols are exported
+    auto &t = s.addStaticLibrary("lighttransport.tinyusdz", "dev");
     t += Git("https://github.com/lighttransport/tinyusdz");
 
     t += cpp20;
     t += "src/.*"_r;
     t += "src/tydra/.*"_rr;
+    t += "src/nonstd/.*"_rr;
+    t -= "src/external/.*"_rr;
     // TODO: add nanobind separately
     //t += "src/external/nanobind/ext/.*"_rr;
     t += "src/external/nanobind/include/.*"_rr;
