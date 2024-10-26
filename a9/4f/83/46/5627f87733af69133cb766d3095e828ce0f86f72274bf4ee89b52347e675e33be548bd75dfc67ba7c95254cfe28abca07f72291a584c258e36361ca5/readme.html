@@ -1,0 +1,493 @@
+<p><a
+href="https://github.com/daniele77/cli/actions/workflows/ci.yml"><img
+src="https://github.com/daniele77/cli/actions/workflows/ci.yml/badge.svg"
+alt="CI of Cli" /></a> <a
+href="https://github.com/daniele77/cli/actions/workflows/codeql.yml"><img
+src="https://github.com/daniele77/cli/actions/workflows/codeql.yml/badge.svg"
+alt="CodeQL" /></a></p>
+<p><a href="https://github.com/sponsors/daniele77">:heart:
+Sponsor</a></p>
+<h1 id="cli">cli</h1>
+<p>A cross-platform header only C++14 library for interactive command
+line interfaces (Cisco style)</p>
+<figure>
+<img
+src="https://user-images.githubusercontent.com/5451767/51046611-d1dadc00-15c6-11e9-8a0d-2c66efc83290.gif"
+alt="demo_local_session" />
+<figcaption aria-hidden="true">demo_local_session</figcaption>
+</figure>
+<figure>
+<img
+src="https://user-images.githubusercontent.com/5451767/51046612-d1dadc00-15c6-11e9-83c2-beadb3593348.gif"
+alt="demo_telnet_session" />
+<figcaption aria-hidden="true">demo_telnet_session</figcaption>
+</figure>
+<h2 id="features">Features</h2>
+<ul>
+<li>Header only</li>
+<li>Cross-platform (linux and windows)</li>
+<li>Menus and submenus</li>
+<li>Remote sessions (telnet)</li>
+<li>Persistent history (navigation with arrow keys)</li>
+<li>Autocompletion (with TAB key)</li>
+<li>Async interface</li>
+<li>Colors</li>
+</ul>
+<h2 id="how-to-get-cli-library">How to get CLI library</h2>
+<ul>
+<li>From <a
+href="https://github.com/daniele77/cli/releases">GitHub</a></li>
+<li>Using <a href="https://github.com/Microsoft/vcpkg">Vcpkg</a></li>
+<li>Using <a href="https://conan.io/center/recipes/cli">Conan</a></li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<p>The library has no dependencies if you don’t need remote
+sessions.</p>
+<p>The library depends on asio (either the standalone version or the
+boost version &gt;= 1.66) <em>only</em> to provide telnet server (i.e.,
+remote sessions).</p>
+<h2 id="installation">Installation</h2>
+<p>The library is header-only: it consists entirely of header files
+containing templates and inline functions, and requires no
+separately-compiled library binaries or special treatment when
+linking.</p>
+<p>Extract the archive wherever you want.</p>
+<p>Now you must only remember to specify the cli (and optionally asio or
+boost) paths when compiling your source code.</p>
+<p>If you fancy it, a Cmake script is provided. To install you can
+use:</p>
+<pre><code>mkdir build &amp;&amp; cd build
+cmake ..
+sudo make install</code></pre>
+<p>or, if you want to specify the installation path:</p>
+<pre><code>mkdir build &amp;&amp; cd build
+cmake .. -DCMAKE_INSTALL_PREFIX:PATH=&lt;cli_install_location&gt;
+make install</code></pre>
+<p>Alternatively, you can use CMake’s <code>FetchContent</code> module
+to include CLI library in your project directly. Add something like this
+in your <code>CMakeLists.txt</code> file:</p>
+<pre><code>include(FetchContent)
+FetchContent_Declare(
+  cli
+  GIT_REPOSITORY https://github.com/daniele77/cli.git
+  GIT_TAG v2.1.0
+)
+FetchContent_MakeAvailable(cli)
+
+add_executable(main-project)
+target_link_libraries(main-project PRIVATE cli::cli)</code></pre>
+<h2 id="compilation-of-the-examples">Compilation of the examples</h2>
+<p>You can find some examples in the directory “examples”. Each .cpp
+file corresponds to an executable. Each example can be compiled by
+including cli (and optionally asio/boost header files) and linking
+pthread on linux (and optionally boost system).</p>
+<p>To compile the examples using cmake, use:</p>
+<pre><code>mkdir build &amp;&amp; cd build
+
+# compile only the examples that do not require boost/asio libraries
+cmake .. -DCLI_BuildExamples=ON
+
+# compile the examples by using boost asio libraries
+cmake .. -DCLI_BuildExamples=ON -DCLI_UseBoostAsio=ON
+# or: cmake .. -DCLI_BuildExamples=ON -DCLI_UseBoostAsio=ON -DBOOST_ROOT=&lt;boost_path&gt;
+
+# compile the examples by using standalone asio library
+cmake .. -DCLI_BuildExamples=ON -DCLI_UseStandaloneAsio=ON
+# or: cmake .. -DCLI_BuildExamples=ON -DCLI_UseStandaloneAsio=ON -DASIO_INCLUDEDIR=&lt;asio_path&gt;
+
+cmake --build .</code></pre>
+<p>In the same directory you can also find:</p>
+<ul>
+<li>GNU make files (Makefile.noasio, Makefile.boostasio,
+Makefile.standaloneasio)</li>
+<li>Windows nmake files (makefile.noasio.win, makefile.boostasio.win,
+makefile.standaloneasio.win)</li>
+<li>a Visual Studio solution</li>
+</ul>
+<p>If needed, you can specify asio library path in the following
+ways:</p>
+<h3 id="gnu-make">GNU Make</h3>
+<p>for boost:</p>
+<pre><code>make CXXFLAGS=&quot;-isystem &lt;boost_include&gt;&quot; LDFLAGS=&quot;-L&lt;boost_lib&gt;&quot;</code></pre>
+<p>example:</p>
+<pre><code>make CXXFLAGS=&quot;-isystem /opt/boost_1_66_0/install/x86/include&quot; LDFLAGS=&quot;-L/opt/boost_1_66_0/install/x86/lib&quot;</code></pre>
+<p>for standalone asio:</p>
+<pre><code>make CXXFLAGS=&quot;-isystem &lt;asio_include&gt;&quot;</code></pre>
+<p>example:</p>
+<pre><code>make CXXFLAGS=&quot;-isystem /opt/asio-1.18.0/include&quot;</code></pre>
+<p>(if you want to use clang instead of gcc, you can set the variable
+CXX=clang++)</p>
+<h3 id="windows-nmake">Windows nmake</h3>
+<p>Optionally set the environment variable ASIO or BOOST to provide the
+library path. Then, from a visual studio console, start
+<code>nmake</code> passing one of the <code>makefile.*.win</code>
+files.</p>
+<p>E.g., from a visual studio console, use one of the following
+commands:</p>
+<pre><code># only compile examples that do not require asio
+nmake /f makefile.noasio.win
+# compile examples using boost asio
+set BOOST=&lt;path of boost libraries&gt;
+nmake /f makefile.boostasio.win
+# compile examples using standalone asio
+set ASIO=&lt;path of asio library&gt;
+nmake /f makefile.standaloneasio.win</code></pre>
+<h3 id="visual-studio-solution">Visual Studio solution</h3>
+<p>Set the environment variables BOOST and/or ASIO. Then, open the file
+<code>cli/examples/examples.sln</code></p>
+<h2 id="compilation-of-the-doxygen-documentation">Compilation of the
+Doxygen documentation</h2>
+<p>If you have doxygen installed on your system, you can get the html
+documentation of the library in this way:</p>
+<pre><code>cd doc/doxy
+doxygen Doxyfile</code></pre>
+<h2 id="cli-usage">CLI usage</h2>
+<p>At the start of your application, the CLI presents a prompt with the
+name you provided in the <code>Cli</code> constructor. This indicates
+you’re in the root menu.</p>
+<h3 id="navigation">Navigation</h3>
+<ul>
+<li><strong>Enter a submenu:</strong> Type the submenu name to enter it.
+The prompt will change to reflect the current submenu.</li>
+<li><strong>Go back to parent menu:</strong> Type the name of the parent
+menu or <code>..</code> to return.</li>
+<li><strong>Navigate history:</strong> Use up and down arrow keys to
+navigate through previously entered commands.</li>
+<li><strong>Exit:</strong> Type <code>exit</code> to terminate the CLI
+application.</li>
+</ul>
+<h3 id="commands-in-any-menu">Commands in any menu</h3>
+<ul>
+<li><code>help</code>: Prints a list of available commands with
+descriptions.</li>
+<li><code>history</code>: Displays the list of previously entered
+commands.</li>
+<li><code>exit</code>: Terminates the CLI application.</li>
+<li><strong>Command execution:</strong>
+<ul>
+<li><strong>Current menu:</strong> Enter the name of a command available
+in the current menu to execute it.</li>
+<li><strong>Submenu (full path):</strong> Specify the complete path
+(separated by spaces) to a command within a submenu to execute it.</li>
+<li><strong>History execution:</strong> Use <code>!</code> followed by
+the identifier of a history item to execute that command again.</li>
+</ul></li>
+</ul>
+<h3 id="autocompletion">Autocompletion</h3>
+<p>Use the Tab key to get suggestions for completing command or menu
+names as you type.</p>
+<h3 id="screen-clearing">Screen Clearing</h3>
+<p>Press <code>Ctrl-L</code> to clear the screen at any time.</p>
+<h3 id="parameter-parsing">Parameter parsing</h3>
+<p>The CLI interpreter can handle sentences using single quotes
+(<code>'</code>) and double quotes (<code>"</code>). Any character
+(including spaces) enclosed within quotes is considered a single
+parameter for a command. You can use quotes within parameters by
+escaping them with a backslash (<code>\</code>).</p>
+<p><strong>Examples:</strong></p>
+<pre><code>cli&gt; echo &quot;this is a single parameter&quot;
+this is a single parameter
+cli&gt; echo &#39;this too is a single parameter&#39;
+this too is a single parameter
+cli&gt; echo &quot;you can use &#39;single quotes&#39; inside double quoted parameters&quot;
+you can use &#39;single quotes&#39; inside double quoted parameters
+cli&gt; echo &#39;you can use &quot;double quotes&quot; inside single quoted parameters&#39;
+you can use &quot;double quotes&quot; inside single quoted parameters
+cli&gt; echo &quot;you can escape \&quot;quotes\&quot; inside a parameter&quot;               
+you can escape &quot;quotes&quot; inside a parameter
+cli&gt; echo &#39;you can escape \&#39;single quotes\&#39; inside a parameter&#39;
+you can escape &#39;single quotes&#39; inside a parameter
+cli&gt; echo &quot;you can also show backslash \\ ... &quot;                
+you can also show backslash \ ... </code></pre>
+<h2 id="async-programming-and-schedulers">Async programming and
+Schedulers</h2>
+<p><code>cli</code> is an asynchronous library, and the handlers of
+commands are executed by a scheduler, in a thread provided by the user
+(possibly the main thread), this allows you to develop a single thread
+application without need to worry about synchronization.</p>
+<p>So, your application must have a scheduler and pass it to
+<code>CliLocalTerminalSession</code>.</p>
+<p>The library provides three schedulers:</p>
+<ul>
+<li><code>LoopScheduler</code></li>
+<li><code>BoostAsioScheduler</code></li>
+<li><code>StandaloneAsioScheduler</code></li>
+</ul>
+<p><code>LoopScheduler</code> is the simplest: it does not depend on
+other libraries and should be your first choice if you don’t need remote
+sessions.</p>
+<p><code>BoostAsioScheduler</code> and
+<code>StandaloneAsioScheduler</code> are wrappers around asio
+<code>io_context</code> objects. You should use one of them if you need
+a <code>BoostAsioCliTelnetServer</code> or a
+<code>StandaloneAsioCliTelnetServer</code> because they internally use
+<code>boost::asio</code> and <code>asio</code>.</p>
+<p>You should use one of them also if your application uses
+<code>asio</code> in some way.</p>
+<p>After setting up your application, you must call
+<code>Scheduler::Run()</code> to enter the scheduler loop. Each command
+handler of the library will execute in the thread that called
+<code>Scheduler::Run()</code>.</p>
+<p>You can exit the scheduler loop by calling
+<code>Scheduler::Stop()</code> (e.g., as an action associated to the
+“exit” command).</p>
+<p>You can submit work to be executed by the scheduler invoking the
+method
+<code>Scheduler::Post(const std::function&lt;void()&gt;&amp; f)</code>.
+Schedulers are thread safe, so that you can post function object from
+any thread, to be executed in the scheduler thread.</p>
+<p>This is an example of use of <code>LoopScheduler</code>:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>LoopScheduler scheduler<span class="op">;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>CliLocalTerminalSession localSession<span class="op">(</span>cli<span class="op">,</span> scheduler<span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">// in another thread you can do:</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>scheduler<span class="op">.</span>Post<span class="op">([](){</span> cout <span class="op">&lt;&lt;</span> <span class="st">&quot;This will be executed in the scheduler thread</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">});</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">// start the scheduler main loop</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">// it will exit from this method only when scheduler.Stop() is called</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">// each cli callback will be executed in this thread</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>scheduler<span class="op">.</span>Run<span class="op">();</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>This is an example of use of <code>BoostAsioScheduler</code></p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>BoostAsioScheduler scheduler<span class="op">;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>CliLocalTerminalSession localSession<span class="op">(</span>cli<span class="op">,</span> scheduler<span class="op">);</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>BoostAsioCliTelnetServer server<span class="op">(</span>cli<span class="op">,</span> scheduler<span class="op">,</span> <span class="dv">5000</span><span class="op">);</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>scheduler<span class="op">.</span>Run<span class="op">();</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<p>Finally, this is an example of use of <code>BoostAsioScheduler</code>
+when your application already uses <code>boost::asio</code> and has a
+<code>boost::asio::io_context</code> object (the case of standalone asio
+is similar).</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// somewhere else in your application</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ex">boost::</span>asio::io_context ioc<span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// cli setup</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>BoostAsioScheduler scheduler<span class="op">(</span>ioc<span class="op">);</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>CliLocalTerminalSession localSession<span class="op">(</span>cli<span class="op">,</span> scheduler<span class="op">);</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>BoostAsioCliTelnetServer server<span class="op">(</span>cli<span class="op">,</span> scheduler<span class="op">,</span> <span class="dv">5000</span><span class="op">);</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co">// somewhere else in your application</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>ioc<span class="op">.</span>run<span class="op">();</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span></code></pre></div>
+<h2 id="adding-menus-and-commands">Adding menus and commands</h2>
+<p>You must provide at least a root menu for your cli:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// create a menu (this is the root menu of our cli)</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> rootMenu <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;myprompt&quot;</span><span class="op">);</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="op">...</span> <span class="co">// fills rootMenu with commands</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">// create the cli with the root menu</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>Cli cli<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>rootMenu<span class="op">));</span></span></code></pre></div>
+<p>You can add menus to existing menus, to get a hierarchy:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> rootMenu <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;myprompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuA <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;a_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuAA <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;aa_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuAB <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;ab_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuAC <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;ac_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuACA <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;aca_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuB <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;b_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuBA <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;ba_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> menuBB <span class="op">=</span> make_unique<span class="op">&lt;</span>Menu<span class="op">&gt;(</span><span class="st">&quot;bb_prompt&quot;</span><span class="op">);</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>menuAC<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuACA<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>menuB<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuBA<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>menuB<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuBB<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>menuA<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuAA<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>menuA<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuAB<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>menuA<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuAC<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>rootMenu<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuA<span class="op">)</span> <span class="op">);</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>rootMenu<span class="op">-&gt;</span>Insert<span class="op">(</span> <span class="bu">std::</span>move<span class="op">(</span>menuB<span class="op">)</span> <span class="op">);</span></span></code></pre></div>
+<p>This results in this tree:</p>
+<pre><code>myprompt
+    |
+    +--- a_prompt
+    |        |
+    |        +--- aa_prompt
+    |        |
+    |        +--- ab_prompt
+    |        |
+    |        +--- ac_prompt
+    |                |
+    |                +--- aca_prompt
+    |
+    +--- b_prompt
+             |
+             +--- ba_prompt
+             |
+             +--- bb_prompt
+</code></pre>
+<p>Finally, you can add commands to menus, using the
+<code>Menu::Insert</code> method. The library supports adding commands
+handler via: - free functions - <code>std::function</code> - lambdas</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">void</span> foo<span class="op">(</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="dt">int</span> x<span class="op">)</span> <span class="op">{</span> out <span class="op">&lt;&lt;</span> x <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>function<span class="op">&lt;</span><span class="dt">void</span><span class="op">(</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="dt">int</span> x<span class="op">)&gt;</span> fun<span class="op">(</span>foo<span class="op">);</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span><span class="st">&quot;free_function&quot;</span><span class="op">,</span> foo<span class="op">);</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span><span class="st">&quot;std_function&quot;</span><span class="op">,</span> fun<span class="op">);</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span><span class="st">&quot;lambda&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="dt">int</span> x<span class="op">){</span> out <span class="op">&lt;&lt;</span> x <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span> <span class="op">}</span> <span class="op">);</span></span></code></pre></div>
+<p>There is no limit to the number of parameters that a command handler
+can take. They can be basic types and <code>std::string</code>s</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;mycmd&quot;</span><span class="op">,</span> </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="dt">int</span> a<span class="op">,</span> <span class="dt">double</span> b<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> c<span class="op">,</span> <span class="dt">bool</span> d<span class="op">,</span> <span class="dt">long</span> e<span class="op">)</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">...</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="op">);</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;complex&quot;</span><span class="op">,</span> </span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="bu">std::</span>complex c<span class="op">)</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> </span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">...</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="op">);</span></span></code></pre></div>
+<p>Or they can be custom types by overloading the
+<code>std::istream::operator&gt;&gt;</code>:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Foo</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">friend</span> istream <span class="op">&amp;</span> <span class="kw">operator</span> <span class="op">&gt;&gt;</span> <span class="op">(</span>istream <span class="op">&amp;</span>in<span class="op">,</span> Foo<span class="op">&amp;</span> p<span class="op">);</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> value<span class="op">;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>istream <span class="op">&amp;</span> <span class="kw">operator</span> <span class="op">&gt;&gt;</span> <span class="op">(</span>istream<span class="op">&amp;</span> in<span class="op">,</span> Foo<span class="op">&amp;</span> p<span class="op">)</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    in <span class="op">&gt;&gt;</span> p<span class="op">.</span>value<span class="op">;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> in<span class="op">;</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;foo&quot;</span><span class="op">,</span> </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> Foo f<span class="op">)</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> </span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">...</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="op">);</span></span></code></pre></div>
+<p>If you need it, you can have a command handlers taking an arbitrary
+number of <code>std::string</code> parameters:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>myMenu<span class="op">-&gt;</span>Insert<span class="op">(</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;mycmd&quot;</span><span class="op">,</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&amp;</span> pars<span class="op">)</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span> </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">...</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="op">);</span></span></code></pre></div>
+<p>Please note that in this case your command handler must take <em>only
+one</em> parameter of type
+<code>std::vector&lt;std::string&gt;</code>.</p>
+<h2 id="enter-and-exit-actions">Enter and exit actions</h2>
+<p>You can add an enter action and/or an exit action (for example to
+print a welcome/goodbye message every time a user opens/closes a
+session, even a remote one):</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>Cli cli<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>rootMenu<span class="op">));</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>EnterAction<span class="op">(</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[&amp;</span>enterActionDone<span class="op">](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">)</span> <span class="op">{</span> out <span class="op">&lt;&lt;</span> <span class="st">&quot;Welcome</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">});</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>ExitAction<span class="op">(</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">[&amp;</span>enterActionDone<span class="op">](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">)</span> <span class="op">{</span> out <span class="op">&lt;&lt;</span> <span class="st">&quot;Goodbye</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span> <span class="op">});</span></span></code></pre></div>
+<h2 id="custom-handler-for-unknown-commands">Custom Handler for Unknown
+Commands</h2>
+<p>You can modify the default behavior of the library for cases where
+the user enters an unknown command or its parameters do not match:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>Cli cli<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>rootMenu<span class="op">));</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>WrongCommandHandler<span class="op">(</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> cmd<span class="op">)</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        out <span class="op">&lt;&lt;</span> <span class="st">&quot;Unknown command or incorrect parameters: &quot;</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> cmd</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<h2 id="standard-exception-custom-handler">Standard Exception Custom
+Handler</h2>
+<p>You can handle cases where an exception is thrown inside a command
+handler by registering a specific handler:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>Cli cli<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>rootMenu<span class="op">));</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>cli<span class="op">.</span>StdExceptionHandler<span class="op">(</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[](</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> out<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> cmd<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> e<span class="op">)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        out <span class="op">&lt;&lt;</span> <span class="st">&quot;Exception caught in CLI handler: &quot;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> e<span class="op">.</span>what<span class="op">()</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> <span class="st">&quot; while handling command: &quot;</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> cmd</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<h2 id="unicode">Unicode</h2>
+<p><code>cli</code> uses the input and output stream objects provided by
+the standard library (such as <code>std::cin</code> and
+<code>std::cout</code>) by default, so currently <code>cli</code> does
+not have effective support for unicode input and output.</p>
+<p>If you want to handle unicode input and output, you need to provide
+custom i/o unicode aware stream objects derived from
+<code>std::istream</code> or <code>std::ostream</code>.</p>
+<p>For example, you can use <a
+href="https://github.com/boostorg/nowide">boost::nowide</a> as an
+alternative to implement UTF-8 aware programming in a out-of-box and
+cross-platform way:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/nowide/iostream.hpp&gt;</span><span class="pp"> </span><span class="co">// for boost::nowide::cin and boost::nowide::cout</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// other headers...</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>cli<span class="op">::</span>Cli app<span class="op">{</span><span class="co">/*init code*/</span><span class="op">};</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co">// FileSession session{app}; // default</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="co">// now, all parameters is in a UTF-8 encoded std::string</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co">// pass boost::nowide::cin and boost::nowide::cout as parameters(FileSession requires std::istream and std::ostream)</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>FileSession session<span class="op">{</span>app<span class="op">,</span> <span class="ex">boost::</span>nowide::cin<span class="op">,</span> <span class="ex">boost::</span>nowide::cout<span class="op">};</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co">/*....*/</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="co">// you can call this command funtion and get UTF-8 encoded input data (p), just use it.</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="co">// boost::noide helps us avoid the trouble</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co">// caused by inconsistent default code page and encoding of the console under different platforms.</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> a_command_function<span class="op">(</span><span class="bu">std::</span>ostream<span class="op">&amp;</span> os<span class="op">,</span> <span class="bu">std::</span>string <span class="at">const</span><span class="op">&amp;</span> p<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a> <span class="co">/* implements */</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Of course, you can also pass stream objects with other capabilities
+to achieve more customized input and output functions.</p>
+<h2 id="license">License</h2>
+<p>Distributed under the Boost Software License, Version 1.0. (See
+accompanying file <a href="LICENSE.txt">LICENSE.txt</a> or copy at <a
+href="http://www.boost.org/LICENSE_1_0.txt"
+class="uri">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+<h2 id="contact">Contact</h2>
+<p>Please report issues here: <a
+href="http://github.com/daniele77/cli/issues"
+class="uri">http://github.com/daniele77/cli/issues</a></p>
+<p>and questions, feature requests, ideas, anything else here: <a
+href="http://github.com/daniele77/cli/discussions"
+class="uri">http://github.com/daniele77/cli/discussions</a></p>
+<p>You can always contact me via twitter at <span class="citation"
+data-cites="DPallastrelli">@DPallastrelli</span></p>
+<hr />
+<h2 id="contributing-we-need-your-help">Contributing (We Need Your
+Help!)</h2>
+<p>Any feedback from users and stakeholders, even simple questions about
+how things work or why they were done a certain way, carries value and
+can be used to improve the library.</p>
+<p>Even if you just have questions, asking them in <a
+href="http://github.com/daniele77/cli/discussions">GitHub
+Discussions</a> provides valuable information that can be used to
+improve the library - do not hesitate, no question is insignificant or
+unimportant!</p>
+<p>If you or your company uses cli library, please consider becoming a
+sponsor to keep the project strong and dependable.</p>
