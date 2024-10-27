@@ -13,6 +13,7 @@ void build(Solution &s)
     intl -=
         "gettext-runtime/intl/intl-exports.c",
         "gettext-runtime/intl/os2compat.c",
+        "gettext-runtime/intl/osdep.c", // for cygwin, mingw, (__EMX__ && !__KLIBC__)
         //"gettext-runtime/intl/printf.c",
         "gettext-runtime/intl/gnulib-lib/asnprintf.c",
         "gettext-runtime/intl/gnulib-lib/asnwprintf.c",
@@ -96,7 +97,7 @@ void build(Solution &s)
     intl.configureFile("gettext-runtime/intl/libgnuintl.in.h", "libintl.h");
     intl.configureFile("gettext-runtime/intl/libgnuintl.in.h", "gettext.h");
 
-    if (intl.getBuildSettings().TargetOS.Type == OSType::Windows)
+    if (intl.getBuildSettings().TargetOS.Type == OSType::Windows && intl.getCompilerType() != CompilerType::GNU)
     {
         intl.Variables["GNULIB_MDA_LFIND"] = 1;
         intl.Variables["GNULIB_MDA_LSEARCH"] = 1;
@@ -137,8 +138,11 @@ void build(Solution &s)
 
 #if defined(_MSC_VER)
 //#define LOCALEDIR "."
-#define LOCALE_ALIAS_PATH "."
+//#define LOCALE_ALIAS_PATH "."
 #define tmp_dirname "%TEMP%"
+#endif
+#ifndef LOCALE_ALIAS_PATH
+#define LOCALE_ALIAS_PATH "."
 #endif
 
 #define _GL_ATTRIBUTE_PURE
@@ -312,11 +316,12 @@ void check(Checker &c)
     s.checkFunctionExists("_wgetcwd");
     s.checkFunctionExists("mempcpy");
     s.checkFunctionExists("stpcpy");
-    s.checkFunctionExists("tsearch");
+    s.checkFunctionExists("tsearch").Parameters.Includes.push_back("search.h");
+    s.checkFunctionExists("tfind");
+    s.checkFunctionExists("lfind");
     s.checkFunctionExists("wcrtomb");
     s.checkFunctionExists("stpcpy");
     s.checkFunctionExists("twalk");
-    s.checkFunctionExists("tsearch");
     s.checkFunctionExists("snprintf");
     s.checkIncludeExists("alloca.h");
     s.checkIncludeExists("argz.h");
