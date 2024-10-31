@@ -338,7 +338,7 @@ void build(Solution &s) {
                 << cmd::prog(bootstrap)
                 << name
                 << cmd::in(path)
-                << cmd::out("Python/frozen_modules/" + name + ".h")
+                << cmd::out("frozen_modules/" + name + ".h")
                 ;
         };
         auto freeze_modules = [&](String name, String name2 = {}) {
@@ -369,33 +369,33 @@ void build(Solution &s) {
         freeze_modules("__phello__.ham.eggs");
         freeze_modules1("Tools/freeze/flag.py", "frozen_only");
         freeze_modules1("Modules/getpath.py", "getpath");
-        //lib.patch("Modules/getpath.c", "Python/frozen_modules/", "frozen_modules/");
+        lib.patch("Modules/getpath.c", "Python/frozen_modules/", "frozen_modules/");
 
         {
             auto list = {
-                "Python/frozen_modules/importlib._bootstrap.h:importlib._bootstrap",
-                "Python/frozen_modules/importlib._bootstrap_external.h:importlib._bootstrap_external",
-                "Python/frozen_modules/zipimport.h:zipimport",
-                "Python/frozen_modules/abc.h:abc",
-                "Python/frozen_modules/codecs.h:codecs",
-                "Python/frozen_modules/io.h:io",
-                "Python/frozen_modules/_collections_abc.h:_collections_abc",
-                "Python/frozen_modules/_sitebuiltins.h:_sitebuiltins",
-                "Python/frozen_modules/genericpath.h:genericpath",
-                "Python/frozen_modules/ntpath.h:ntpath",
-                "Python/frozen_modules/posixpath.h:posixpath",
-                "Python/frozen_modules/os.h:os",
-                "Python/frozen_modules/site.h:site",
-                "Python/frozen_modules/stat.h:stat",
-                "Python/frozen_modules/importlib.util.h:importlib.util",
-                "Python/frozen_modules/importlib.machinery.h:importlib.machinery",
-                "Python/frozen_modules/runpy.h:runpy",
-                "Python/frozen_modules/__hello__.h:__hello__",
-                "Python/frozen_modules/__phello__.h:__phello__",
-                "Python/frozen_modules/__phello__.ham.h:__phello__.ham",
-                "Python/frozen_modules/__phello__.ham.eggs.h:__phello__.ham.eggs",
-                "Python/frozen_modules/__phello__.spam.h:__phello__.spam",
-                "Python/frozen_modules/frozen_only.h:frozen_only",
+                "frozen_modules/importlib._bootstrap.h:importlib._bootstrap",
+                "frozen_modules/importlib._bootstrap_external.h:importlib._bootstrap_external",
+                "frozen_modules/zipimport.h:zipimport",
+                "frozen_modules/abc.h:abc",
+                "frozen_modules/codecs.h:codecs",
+                "frozen_modules/io.h:io",
+                "frozen_modules/_collections_abc.h:_collections_abc",
+                "frozen_modules/_sitebuiltins.h:_sitebuiltins",
+                "frozen_modules/genericpath.h:genericpath",
+                "frozen_modules/ntpath.h:ntpath",
+                "frozen_modules/posixpath.h:posixpath",
+                "frozen_modules/os.h:os",
+                "frozen_modules/site.h:site",
+                "frozen_modules/stat.h:stat",
+                "frozen_modules/importlib.util.h:importlib.util",
+                "frozen_modules/importlib.machinery.h:importlib.machinery",
+                "frozen_modules/runpy.h:runpy",
+                "frozen_modules/__hello__.h:__hello__",
+                "frozen_modules/__phello__.h:__phello__",
+                "frozen_modules/__phello__.ham.h:__phello__.ham",
+                "frozen_modules/__phello__.ham.eggs.h:__phello__.ham.eggs",
+                "frozen_modules/__phello__.spam.h:__phello__.spam",
+                "frozen_modules/frozen_only.h:frozen_only",
             };
 
             auto c = lib.addCommand()
