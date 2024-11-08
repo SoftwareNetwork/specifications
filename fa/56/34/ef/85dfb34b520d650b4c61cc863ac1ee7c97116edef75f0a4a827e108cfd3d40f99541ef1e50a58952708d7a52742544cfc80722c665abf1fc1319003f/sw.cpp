@@ -19,6 +19,25 @@ struct PythonExecutable : ExecutableTarget {
     }
 };
 
+static int fix_deepfreeze(path i, path o)
+{
+    auto s = read_file(i);
+    s = R"(
+#include "Python.h"
+#include "internal/pycore_object.h"
+#include "internal/pycore_gc.h"
+#include "internal/pycore_code.h"
+#include "internal/pycore_frame.h"
+#include "internal/pycore_long.h"
+
+PyCodeObject *_PyStaticCode_Init(PyCodeObject *o) {return o;}
+void _PyStaticCode_Fini(PyCodeObject *o) {}
+            )" + s;
+    write_file(o, s);
+    return 0;
+}
+SW_DEFINE_VISIBLE_FUNCTION_JUMPPAD2(fix_deepfreeze)
+
 void build(Solution &s) {
     auto &python = s.addProject("python", "3.13.0");
     python += Git("https://github.com/python/cpython", "v{v}");
@@ -407,7 +426,7 @@ void build(Solution &s) {
                 c << n;
             }
             c
-                << "-o" << cmd::out("deepfreeze.c")
+                << "-o" << cmd::out("deepfreeze.c.in")
                 << cmd::end()
                 ;
             for (auto &&n : list) {
@@ -415,18 +434,11 @@ void build(Solution &s) {
                 c << cmd::in(vec[0]);
             }
 
-            lib.writeFileOnce("deepfreezeinit.c", R"(
-#include "Python.h"
-#include "internal/pycore_object.h"
-#include "internal/pycore_gc.h"
-#include "internal/pycore_code.h"
-#include "internal/pycore_frame.h"
-#include "internal/pycore_long.h"
-
-PyCodeObject *_PyStaticCode_Init(PyCodeObject *o) {return o;}
-void _PyStaticCode_Fini(PyCodeObject *o) {}
-            )");
-            lib += "deepfreezeinit.c";
+            {
+                auto c = lib.addCommand(SW_VISIBLE_FUNCTION(fix_deepfreeze));
+                c << cmd::in("deepfreeze.c.in");
+                c << cmd::out("deepfreeze.c");
+            }
         }
     }
 
