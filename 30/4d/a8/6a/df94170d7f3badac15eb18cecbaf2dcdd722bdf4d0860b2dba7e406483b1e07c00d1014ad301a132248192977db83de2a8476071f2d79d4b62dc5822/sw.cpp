@@ -215,6 +215,10 @@ void build(Solution &s)
             glib += "USE_LIBICONV_GNU"_d;
             glib += "_INTL_REDIRECT_MACROS"_d;
 
+            glib -=
+                "glib/gthread-posix.c"
+                ;
+
             glib +=
                 "pthread"_slib
                 ;
