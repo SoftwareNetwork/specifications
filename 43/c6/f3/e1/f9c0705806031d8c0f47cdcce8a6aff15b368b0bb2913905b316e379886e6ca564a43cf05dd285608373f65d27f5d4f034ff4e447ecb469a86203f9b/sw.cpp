@@ -451,14 +451,16 @@ void build(Solution &s) {
         exe.Public += lib;
 
         // https://bugs.python.org/issue45623
-        exe.patch("Lib/site.py",
+        // https://github.com/python/cpython/issues/89786
+        // fixed already?
+        /*exe.patch("Lib/site.py",
             "ver_nodot = sys.winver.replace('.', '')",
             "#ver_nodot = sys.winver.replace('.', '')"
         );
         exe.patch("Lib/site.py",
-            "return f'{userbase}\\\\Python{ver_nodot}\\\\site-packages'",
+            R"return f'{userbase}\\{implementation}{ver_nodot}\\site-packages'",
             "return f'{userbase}/lib/python{version[0]}.{version[1]}/site-packages'"
-        );
+        );*/
 
         exe.pushFrontToFileOnce("Lib/site.py", R"xxx(
 # sw importer
