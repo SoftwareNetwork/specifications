@@ -617,6 +617,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
         gio += IncludeDirectory(gio.BinaryDir / "gio");
 
         gio += "subprojects/gvdb/.*"_rr;
+        gio -= "subprojects/gvdb/gvdb/tests/.*"_rr;
         gio += "subprojects/gvdb"_idir;
 
         gio += "gio/.*\\.[hcm]"_r;
@@ -633,13 +634,13 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         gio -= "gio/gdbusauthmechanism.h";
         gio -= "gio/gwin32registrykey.h";
+        gio -= "gio/gio-launch-desktop.c";
 
         //gio -= "com.Microsoft.Windows.SDK.winrt"_dep;
         if (gio.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
             gio -= "gio/gdesktopappinfo.c";
             gio -= "gio/giowin32-private.c";
-            gio -= "gio/gio-launch-desktop.c";
 
             gio -= "gio/.*portal.*\\.c"_rr;
 
