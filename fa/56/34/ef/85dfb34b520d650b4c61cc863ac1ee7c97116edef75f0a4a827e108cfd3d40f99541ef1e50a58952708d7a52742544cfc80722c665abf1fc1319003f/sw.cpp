@@ -46,7 +46,7 @@ void build(Solution &s) {
     {
         lib.setChecks("lib");//, true);
 
-        lib += c99;
+        lib += c11;
         lib -= "PC/.*"_rr, "Include/.*"_rr, "Python/.*"_rr, "Objects/.*"_rr, "Modules/.*"_rr;
 
         lib += "pyconfig.h.in", "Include/.*"_rr, "Modules/.*\\.h"_rr, "Modules/_abc.c", "Modules/_bisectmodule.c",
