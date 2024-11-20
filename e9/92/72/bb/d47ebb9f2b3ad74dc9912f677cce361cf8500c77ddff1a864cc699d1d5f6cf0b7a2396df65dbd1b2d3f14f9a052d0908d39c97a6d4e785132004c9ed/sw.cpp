@@ -1734,6 +1734,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 bootstrap -=
                     "src/3rdparty/sha1/sha1.cpp",
                     "src/corelib/global/archdetect.cpp",
+                    "src/corelib/global/qfloat16ta.*"_rr,
                     "src/corelib/global/qoperatingsystemversion_darwin.mm",
                     "src/corelib/global/qoperatingsystemversion_win.cpp",
                     "src/corelib/io/qfilesystemengine_unix.cpp",
@@ -1751,7 +1752,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/plugin/qsystemlibrary.cpp",
                     "src/corelib/text/qchar.cpp",
                     "src/corelib/text/qstringmatcher.cpp",
-                    "src/corelib/text/qunicodetables.cpp";
+                    "src/corelib/text/qunicodetables.cpp"
+                    ;
 
                 // included via qcborvalue.cpp
                 bootstrap -= "src/corelib/serialization/qcborarray.cpp";
@@ -1761,6 +1763,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib"_id
                     ;
                 bootstrap.Public +=
+                    "src/tools/shared/.*"_rr,
                     "src/tools/shared"_id
                     ;
             }

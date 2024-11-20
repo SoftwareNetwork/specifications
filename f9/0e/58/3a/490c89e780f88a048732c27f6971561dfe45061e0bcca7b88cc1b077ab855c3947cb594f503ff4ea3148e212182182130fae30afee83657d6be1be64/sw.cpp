@@ -17,6 +17,7 @@ void build(Solution &s)
         "pixman/dither/.*"_rr,
         "pixman/pixman-arm-neon.c",
         "pixman/pixman-arm-simd.c",
+        "pixman/pixman-rvv.c",
         "pixman/pixman-mips-dspr2.c",
         "pixman/pixman-region.c",
         "pixman/pixman-vmx.c"
