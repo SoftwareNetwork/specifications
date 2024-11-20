@@ -1664,7 +1664,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/3rdparty/md4/.*"_rr,
                     "src/3rdparty/rfc6234/.*"_rr,
                     "src/3rdparty/sha1/.*"_rr,
-                    "src/3rdparty/sha3/.*"_rr
+                    "src/3rdparty/sha3/.*"_rr,
+                    "src/3rdparty/siphash/.*"_rr
                     ;
 
                 bootstrap +=
@@ -2067,7 +2068,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "src/3rdparty/rfc6234/sha384-512.c",
                 "src/3rdparty/sha1/sha1.cpp",
                 "src/3rdparty/tinycbor/src/.*"_rr,
-                "src/3rdparty/sha3/.*"_rr;
+                "src/3rdparty/sha3/.*"_rr,
+                "src/3rdparty/siphash/.*"_rr
+                ;
             core -=
                 ".*\\.qdoc"_rr;
             core -= "src/3rdparty/sha3/.*"_rr;

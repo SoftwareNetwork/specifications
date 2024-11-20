@@ -735,7 +735,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             else
             {
                 gio += "gio/kqueue/.*"_rr;
-                gio -= "gio/gcontenttype.c";
+                //gio -= "gio/gcontenttype.c";
+                gio -= "gio/.*-fdo\\..*"_rr;
                 gio -= "gio/gdesktopappinfo.c";
                 gio -= "gio/.*networkmonitornetlink.*\\.c"_rr;
                 gio -= "gio/.*networkmonitornm.*\\.c"_rr;
