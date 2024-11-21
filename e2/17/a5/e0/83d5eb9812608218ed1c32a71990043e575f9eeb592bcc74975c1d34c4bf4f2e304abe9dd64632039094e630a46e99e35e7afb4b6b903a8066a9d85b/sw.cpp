@@ -36,6 +36,8 @@ void build(Solution &s)
     re2c.setChecks("re2c", true);
     re2c += cpp14;
     re2c += "bootstrap/src/.*"_rr;
+    re2c -= "bootstrap/src/msg/help.*"_rr;
+    re2c += "bootstrap/src/msg/help_re2c.cc";
     re2c += "src/.*"_rr;
     re2c -= "src/test/.*"_rr;
     re2c += "."_idir, "bootstrap"_idir;

@@ -253,6 +253,7 @@ void build(Solution &s)
 
         recv_args(libcurl);
 
+        libcurl.Variables["CURL_OS"] = "\"CURL_OS sw\"";
         libcurl.Variables["CURL_EXTERN_SYMBOL"] = "SW_EXPORT";
 
         libcurl.configureFile("lib/curl_config.h.cmake", "curl_config.h");
