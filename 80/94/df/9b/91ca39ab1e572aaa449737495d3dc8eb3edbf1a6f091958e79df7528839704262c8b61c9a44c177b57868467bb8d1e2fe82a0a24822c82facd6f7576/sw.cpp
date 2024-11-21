@@ -59,6 +59,7 @@ void build(Solution &s)
         t += "src/core/ext/upb-gen/.*"_rr;
         t += "src/core/ext/upbdefs-gen/.*"_rr;
         t += "src/core/client_channel/.*"_rr;
+        t += "src/core/filter/.*"_rr;
         t += "src/core/service_config/.*"_rr;
         t += "src/core/resolver/.*"_rr;
         t += "src/core/channelz/.*"_rr;
