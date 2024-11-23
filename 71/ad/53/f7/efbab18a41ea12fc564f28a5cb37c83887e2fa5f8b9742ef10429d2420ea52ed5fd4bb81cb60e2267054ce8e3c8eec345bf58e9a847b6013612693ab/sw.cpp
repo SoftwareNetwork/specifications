@@ -3313,6 +3313,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 windows.Public += "D3d9.lib"_slib;
                 windows.Public += "Shlwapi.lib"_slib;
                 windows.Public += "Setupapi.lib"_slib;
+                windows.Public += "Uiautomationcore.lib"_slib;
                 //windows += "EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE=EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE"_d;
             }
 
