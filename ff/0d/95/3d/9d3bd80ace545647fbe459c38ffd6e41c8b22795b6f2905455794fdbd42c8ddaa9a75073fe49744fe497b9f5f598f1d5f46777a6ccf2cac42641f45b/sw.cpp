@@ -3019,6 +3019,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             {
                 qt_network_desc.config.public_.features.insert({ "gssapi", false });
                 qt_network_desc.config.private_.features.insert({ "sspi", true });
+                qt_network_desc.config.private_.features.insert({ "libresolv", false });
             }
             else if (network.getBuildSettings().TargetOS.Type == OSType::Linux)
             {
