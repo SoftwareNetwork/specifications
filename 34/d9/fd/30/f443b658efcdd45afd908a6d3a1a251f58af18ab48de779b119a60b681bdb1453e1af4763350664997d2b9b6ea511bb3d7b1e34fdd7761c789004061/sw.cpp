@@ -2183,6 +2183,10 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 core.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
                 core.Public += "QT_COMPILER_SUPPORTS_F16C"_d;
             }
+            else
+            {
+                core.Public += "QT_COMPILER_SUPPORTS_INT128"_def;
+            }
             core -= forkfd;
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
