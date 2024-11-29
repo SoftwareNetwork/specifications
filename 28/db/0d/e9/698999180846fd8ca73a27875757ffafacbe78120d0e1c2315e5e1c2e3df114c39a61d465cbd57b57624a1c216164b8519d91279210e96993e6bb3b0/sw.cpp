@@ -1502,7 +1502,7 @@ void build(Solution &s)
     };
     auto common_setup = [&](auto &t, const String &custom_name = {}) {
         //t += cpp20; // we still have issues with that
-        t += cpp17;
+        t += gnupp17; // usual cpp does not work because of 128 bit types
         if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
             // cpp17 + msvc requires /permissive-
@@ -2185,7 +2185,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             }
             else
             {
-                core.Public += "QT_COMPILER_SUPPORTS_INT128"_def;
+                //core.Public += "QT_COMPILER_SUPPORTS_INT128"_def;
             }
             core -= forkfd;
             if (core.getBuildSettings().TargetOS.Type == OSType::Windows)
@@ -4576,7 +4576,6 @@ qt_qml_plugin_outro
     {
         auto &core = webengine.addLibrary("core");
         common_setup(core, "webenginecore");
-        core += cpp17;
         core += "src/core/.*"_rr;
         core -= "src/core/doc/.*"_rr;
         core += "BUILDING_CHROMIUM"_def;
