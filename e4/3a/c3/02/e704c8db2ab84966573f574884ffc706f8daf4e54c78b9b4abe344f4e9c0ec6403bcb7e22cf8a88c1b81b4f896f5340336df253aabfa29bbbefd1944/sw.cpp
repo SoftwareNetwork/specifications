@@ -48,6 +48,8 @@ void build(Solution &s)
         upb.Public += "org.sw.demo.google.protobuf.utf8_range"_dep;
         //upb += "utf8_range/utf8_range.*"_rr;
         //upb.Public += "utf8_range"_idir;
+        // or change to float
+        upb.patch("upb/upb/message/internal/message.c", "const double kUpb_NaN = NAN;", "//const  double kUpb_NaN = NAN;");
     }
 
     // core
