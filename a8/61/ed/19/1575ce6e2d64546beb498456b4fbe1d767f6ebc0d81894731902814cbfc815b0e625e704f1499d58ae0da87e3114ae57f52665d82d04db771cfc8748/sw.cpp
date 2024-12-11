@@ -4,6 +4,7 @@ void build(Solution &s) {
 
     t += "gif.*"_r;
     t += "fliplay.*"_r;
+    t.patch("gif.cpp", "printf", ";//print f");
 
     auto &exe = t.addExecutable("exe");
     exe += "fli2gif.cpp";
