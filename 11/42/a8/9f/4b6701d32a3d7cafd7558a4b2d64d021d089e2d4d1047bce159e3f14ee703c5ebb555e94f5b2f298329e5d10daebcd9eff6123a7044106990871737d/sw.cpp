@@ -4,64 +4,78 @@ void build(Solution &s)
     p += RemoteFile("https://ftp.gnu.org/pub/gnu/libiconv/libiconv-{M}.{m}.tar.gz");
 
     auto &libcharset = p.addTarget<LibraryTarget>("libcharset");
-
-    libcharset.setChecks("libcharset");
-
-    libcharset +=
-        "libcharset/include/localcharset.h.build.in",
-        "libcharset/lib/localcharset.c";
-
-    libcharset += "HAVE_VISIBILITY=0"_v;
-    libcharset.ApiName = "LIBCHARSET_DLL_EXPORTED";
-    libcharset.writeFileOnce(libcharset.BinaryPrivateDir / "config.h");
-    libcharset.replaceInFileOnce("libcharset/include/localcharset.h.build.in",
-        "#define LIBCHARSET_DLL_EXPORTED",
-        "//#define LIBCHARSET_DLL_EXPORTED");
-    libcharset.configureFile(libcharset.SourceDir / "libcharset/include/localcharset.h.build.in", libcharset.BinaryDir / "localcharset.h");
-
-    if (libcharset.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
-        libcharset.Public.Definitions["LIBDIR"] = "\".\"";
-        libcharset.Public.Definitions["LOCALEDIR"] = "\"./locale\"";
-    }
-    else
-    {
-        libcharset.Public.Definitions["HAVE_WORKING_O_NOFOLLOW"];
-        libcharset.Public.Definitions["LIBDIR"] = "\"/usr/local/lib\"";
-        libcharset.Public.Definitions["LOCALEDIR"] = "\"/usr/share/locale\"";
-    }
+        libcharset.setChecks("libcharset");
 
-    if (libcharset.Variables["HAVE_LANGINFO_H"] == 1 && libcharset.Variables["HAVE_NL_LANGINFO"] == 1)
-        libcharset.Public.Definitions["HAVE_LANGINFO_CODESET"];
+        libcharset +=
+            "libcharset/include/localcharset.h.build.in",
+            "libcharset/lib/localcharset.c";
+
+        libcharset += "HAVE_VISIBILITY=0"_v;
+        /*if (libcharset.getBuildSettings().TargetOS.Type == OSType::Windows || libcharset.getBuildSettings().TargetOS.Type == OSType::Mingw) {
+            libcharset += "HAVE_VISIBILITY=0"_v;
+        } else {
+            libcharset += "HAVE_VISIBILITY=1"_v;
+        }*/
+        auto dllexp = "LIBCHARSET_SHLIB_EXPORTED"s;
+        libcharset.ApiName = dllexp;
+        libcharset.writeFileOnce(libcharset.BinaryPrivateDir / "config.h");
+        libcharset.replaceInFileOnce("libcharset/include/localcharset.h.build.in",
+            "# define " + dllexp,
+            "//#define " + dllexp);
+        libcharset.configureFile(libcharset.SourceDir / "libcharset/include/localcharset.h.build.in", libcharset.BinaryDir / "localcharset.h");
+
+        if (libcharset.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            libcharset.Public.Definitions["LIBDIR"] = "\".\"";
+            libcharset.Public.Definitions["LOCALEDIR"] = "\"./locale\"";
+        }
+        else
+        {
+            libcharset.Public.Definitions["HAVE_WORKING_O_NOFOLLOW"];
+            libcharset.Public.Definitions["LIBDIR"] = "\"/usr/local/lib\"";
+            libcharset.Public.Definitions["LOCALEDIR"] = "\"/usr/share/locale\"";
+        }
+
+        if (libcharset.Variables["HAVE_LANGINFO_H"] == 1 && libcharset.Variables["HAVE_NL_LANGINFO"] == 1)
+            libcharset.Public.Definitions["HAVE_LANGINFO_CODESET"];
+    }
 
     auto &libiconv = p.addTarget<LibraryTarget>("libiconv");
-    libiconv.setChecks("libiconv");
+    {
+        libiconv.setChecks("libiconv");
 
-    libiconv +=
-        "include/iconv.h.build.in",
-        "lib/.*\\.def"_rr,
-        "lib/.*\\.gperf"_rr,
-        "lib/.*\\.h"_rr,
-        "lib/iconv.c";
-    // prevent adding to linker
-    libiconv -= "lib/.*\\.def"_rr;
+        libiconv +=
+            "include/iconv.h.build.in",
+            "lib/.*\\.def"_rr,
+            "lib/.*\\.gperf"_rr,
+            "lib/.*\\.h"_rr,
+            "lib/iconv.c";
+        // prevent adding to linker
+        libiconv -= "lib/.*\\.def"_rr;
 
-    libiconv.Public += libcharset;
-    libiconv.Public.Definitions["ICONV_CONST"] = "";
-    libiconv += "HAVE_VISIBILITY=0"_v;
-    libiconv += "USE_MBSTATE_T=0"_v;
-    libiconv += "BROKEN_WCHAR_H=0"_v;
-    libiconv += "ICONV_CONST="_v;
-    libiconv.ApiName = "LIBICONV_DLL_EXPORTED";
-    libiconv.replaceInFileOnce("include/iconv.h.build.in",
-        "#define LIBICONV_DLL_EXPORTED",
-        "//#define LIBICONV_DLL_EXPORTED");
-    libiconv.replaceInFileOnce("include/iconv.h.build.in",
-        "dummy1[28]",
-        "dummy1[40]");
-    libiconv.configureFile(libiconv.SourceDir / "include/iconv.h.build.in", libiconv.BinaryDir / "iconv.h");
-    libiconv.writeFileOnce(libiconv.BinaryPrivateDir / "config.h",
-        R"(
+        libiconv.Public += libcharset;
+        libiconv.Public.Definitions["ICONV_CONST"] = "";
+        libiconv += "HAVE_VISIBILITY=0"_v;
+        /*if (libiconv.getBuildSettings().TargetOS.Type == OSType::Windows || libiconv.getBuildSettings().TargetOS.Type == OSType::Mingw) {
+            libiconv += "HAVE_VISIBILITY=0"_v;
+        } else {
+            libiconv += "HAVE_VISIBILITY=1"_v;
+        }*/
+        auto dllexp = "LIBICONV_SHLIB_EXPORTED"s;
+        libiconv += "USE_MBSTATE_T=0"_v;
+        libiconv += "BROKEN_WCHAR_H=0"_v;
+        libiconv += "ICONV_CONST="_v;
+        libiconv.ApiName = dllexp;
+        libiconv.replaceInFileOnce("include/iconv.h.build.in",
+            "# define " + dllexp,
+            "//#define " + dllexp);
+        libiconv.replaceInFileOnce("include/iconv.h.build.in",
+            "dummy1[28]",
+            "dummy1[40]");
+        libiconv.configureFile(libiconv.SourceDir / "include/iconv.h.build.in", libiconv.BinaryDir / "iconv.h");
+        libiconv.writeFileOnce(libiconv.BinaryPrivateDir / "config.h",
+            R"(
 #define ENABLE_NLS 1
 #define WORDS_LITTLEENDIAN ( ! ( WORDS_BIGENDIAN ) )
 
@@ -76,8 +90,6 @@ void build(Solution &s)
 #  define _Noreturn
 # endif
 #endif
-
-
 
 /* Define to the equivalent of the C99 'restrict' keyword, or to
     nothing if this is not supported.  Do not define if restrict is
@@ -126,8 +138,8 @@ void build(Solution &s)
 //# define DLL_VARIABLE
 //#endif
 )"
-);
-
+        );
+    }
 }
 
 void check(Checker &c)
