@@ -141,12 +141,13 @@ void build(Solution &s)
         auto &t = proto;
         t += cppstd;
         t += "src/proto/.*\\.proto"_rr;
-        //t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t -= "src/proto/grpc/status/.*\\.proto"_rr;
+        t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
         t.Public += core;
         ProtobufData d;
         d.public_protobuf = true;
-        for (auto &[p, sf] : t["src/proto/.*\\.proto"_rr])
+        for (auto &[p, sf] : t["src/.*\\.proto"_rr])
         {
             if (sf->skip)
                 continue;
@@ -220,6 +221,8 @@ void build(Solution &s)
         t += cppstd;
         t += "src/cpp/.*"_rr;
         t -= "src/cpp/common/insecure_create_auth_context.cc";
+        t -= "src/cpp/server/admin/.*"_rr;
+        t -= "src/cpp/server/csds/.*"_rr;
         t -= "src/cpp/ext/gcp.*"_rr;
         //t -= "src/cpp/ext/gcp/observability.*"_rr;
         t -= "src/cpp/ext/otel.*"_rr;
