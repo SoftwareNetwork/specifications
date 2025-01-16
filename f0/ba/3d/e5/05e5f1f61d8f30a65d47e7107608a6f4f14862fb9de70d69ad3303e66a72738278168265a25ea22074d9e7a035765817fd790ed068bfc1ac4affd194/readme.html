@@ -1,0 +1,818 @@
+<h1 id="toml11">toml11</h1>
+<p><a href="https://github.com/ToruNiina/toml11/actions"><img
+src="https://github.com/ToruNiina/toml11/workflows/build/badge.svg"
+alt="Build Status on GitHub Actions" /></a> <a
+href="https://ci.appveyor.com/project/ToruNiina/toml11/branch/main"><img
+src="https://ci.appveyor.com/api/projects/status/m2n08a926asvg5mg/branch/main?svg=true"
+alt="Build status" /></a> <a
+href="https://github.com/ToruNiina/toml11/releases"><img
+src="https://img.shields.io/github/release/ToruNiina/toml11.svg?style=flat"
+alt="Version" /></a> <a href="LICENSE"><img
+src="https://img.shields.io/github/license/ToruNiina/toml11.svg?style=flat"
+alt="License" /></a> <a
+href="https://doi.org/10.5281/zenodo.1209136"><img
+src="https://zenodo.org/badge/DOI/10.5281/zenodo.1209136.svg"
+alt="DOI" /></a></p>
+<p><a
+href="https://github.com/ToruNiina/toml11/blob/main/README_ja.md">日本語版</a></p>
+<p>toml11 is a feature-rich TOML language library for
+C++11/14/17/20.</p>
+<ul>
+<li>It complies with <a href="https://toml.io/en/v1.0.0">the latest TOML
+language specification</a>.</li>
+<li>It passes all the standard TOML language <a
+href="https://github.com/toml-lang/toml-test">test cases</a>.</li>
+<li>It supports new features merged into the upcoming TOML version
+(v1.1.0).</li>
+<li>It provides clear error messages, including the location of the
+error.</li>
+<li>It parses and retains comments, associating them with corresponding
+values.</li>
+<li>It maintains formatting information such as hex integers and
+considers these during serialization.</li>
+<li>It provides exception-less parse function.</li>
+<li>It supports complex type conversions from TOML values.</li>
+<li>It allows customization of the types stored in
+<code>toml::value</code>.</li>
+<li>It provides some extensions not present in the TOML language
+standard.</li>
+</ul>
+<h2 id="example">Example</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode toml"><code class="sourceCode toml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># example.toml</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span> <span class="op">=</span> <span class="st">&quot;an example toml file&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">nums</span>  <span class="op">=</span> <span class="op">[</span><span class="dv">3</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">4</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">5</span><span class="op">]</span> <span class="co"># pi!</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;toml.hpp&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// select TOML version at runtime (optional)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> data <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;example.toml&quot;</span><span class="op">,</span> toml<span class="op">::</span>spec<span class="op">::</span>v<span class="op">(</span><span class="dv">1</span><span class="op">,</span><span class="dv">1</span><span class="op">,</span><span class="dv">0</span><span class="op">));</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// find a value with the specified type from a table</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string title <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span>data<span class="op">,</span> <span class="st">&quot;title&quot;</span><span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// convert the whole array into STL-like container automatically</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> nums <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&gt;(</span>data<span class="op">,</span> <span class="st">&quot;nums&quot;</span><span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// access with STL-like manner</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span> <span class="op">!</span> data<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;foo&quot;</span><span class="op">))</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        data<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;bar&quot;</span><span class="op">;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>data<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;nums&quot;</span><span class="op">).</span>is_array<span class="op">())</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        data<span class="op">[</span><span class="st">&quot;nums&quot;</span><span class="op">].</span>as_array<span class="op">().</span>push_back<span class="op">(</span><span class="dv">9</span><span class="op">);</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// check comments</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="ot">assert</span><span class="op">(</span>data<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;nums&quot;</span><span class="op">).</span>comments<span class="op">().</span>at<span class="op">(</span><span class="dv">0</span><span class="op">)</span> <span class="op">==</span> <span class="st">&quot;# pi!&quot;</span><span class="op">);</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// pass a fallback</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string name <span class="op">=</span> toml<span class="op">::</span>find_or<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span>data<span class="op">,</span> <span class="st">&quot;name&quot;</span><span class="op">,</span> <span class="st">&quot;not found&quot;</span><span class="op">);</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// serialization considering format info</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    data<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;nums&quot;</span><span class="op">).</span>as_array_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>array_format<span class="op">::</span>multiline<span class="op">;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    data<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;nums&quot;</span><span class="op">).</span>as_array_fmt<span class="op">().</span><span class="dt">indent_type</span> <span class="op">=</span> toml<span class="op">::</span>indent_char<span class="op">::</span>space<span class="op">;</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    data<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;nums&quot;</span><span class="op">).</span>as_array_fmt<span class="op">().</span>body_indent <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>format<span class="op">(</span>data<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For more details, please refer to the <a
+href="https://toruniina.github.io/toml11/">documentation</a>.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#toml11">toml11</a>
+<ul>
+<li><a href="#example">Example</a></li>
+<li><a href="#table-of-contents">Table of Contents</a></li>
+<li><a href="#integration">Integration</a>
+<ul>
+<li><a href="#single-include-file">Single Include File</a></li>
+<li><a href="#git-submodule">git submodule</a></li>
+<li><a href="#cmake-fetchcontent">CMake
+<code>FetchContent</code></a></li>
+<li><a href="#cmake-package-manager-cpm">CMake Package Manager
+(CPM)</a></li>
+<li><a href="#install-using-cmake">Install Using CMake</a></li>
+<li><a href="#precompile-library">Precompile Library</a></li>
+<li><a href="#building-example">Building Example</a></li>
+<li><a href="#building-tests">Building Tests</a></li>
+</ul></li>
+<li><a href="#features">Features</a>
+<ul>
+<li><a href="#parsing-a-file">Parsing a File</a></li>
+<li><a href="#finding-a-value">finding a value</a></li>
+<li><a href="#comments">comments</a></li>
+<li><a href="#error-messages">error messages</a></li>
+<li><a href="#serialization">serialization</a></li>
+<li><a href="#configuring-types">Configuring Types</a></li>
+</ul></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#changes-from-v3">Changes from v3</a>
+<ul>
+<li><a href="#breaking-changes">Breaking Changes</a></li>
+<li><a href="#added-features">Added features</a></li>
+</ul></li>
+<li><a href="#contributors">Contributors</a></li>
+<li><a href="#licensing-terms">Licensing terms</a></li>
+</ul></li>
+</ul>
+<h2 id="integration">Integration</h2>
+<p>There are several ways to use toml11.</p>
+<p>Here is a brief overview of each method. For more details, please
+refer to the <a
+href="https://toruniina.github.io/toml11/docs/installation/">documentation</a>.</p>
+<h3 id="single-include-file">Single Include File</h3>
+<p>Copy <code>single_include/toml.hpp</code> to your preferred location
+and add it to your include path.</p>
+<h3 id="git-submodule">git submodule</h3>
+<p>By adding toml11 as a subdirectory using <code>git submodule</code>
+(or any other way), you can either add <code>toml11/include</code> to
+your include path or use <code>add_subdirectory(toml11)</code> in your
+CMake project.</p>
+<h3 id="cmake-fetchcontent">CMake <code>FetchContent</code></h3>
+<p>Using <code>FetchContent</code>, you can automatically download
+it.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>(<span class="im">FetchContent</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  toml11</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_REPOSITORY</span> https://github.com/ToruNiina/toml11.git</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_TAG</span>        v4.<span class="dt">3.0</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_MakeAvailable</span>(toml11)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="bn">main</span> main.cpp)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">main</span> <span class="ot">PRIVATE</span> <span class="bn">toml11::toml11</span>)</span></code></pre></div>
+<h3 id="cmake-package-manager-cpm">CMake Package Manager (CPM)</h3>
+<p>After <a
+href="https://github.com/cpm-cmake/CPM.cmake?tab=readme-ov-file#adding-cpm">adding
+cpm to your project</a>, you can use toml11 by doing:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>(cmake/CPM.cmake)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">CPMAddPackage</span>(<span class="st">&quot;gh:ToruNiina/toml11@4.3.0&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># OR</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">CPMAddPackage</span>(</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    NAME toml11</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    GITHUB_REPOSITORY <span class="st">&quot;ToruNiina/toml11&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    VERSION <span class="dt">4.3.0</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    OPTIONS <span class="st">&quot;TOML11_PRECOMPILE ON&quot;</span> <span class="co"># to pre-compile</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="bn">main</span> main.cpp)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">main</span> <span class="ot">PUBLIC</span> <span class="bn">toml11::toml11</span>)</span></code></pre></div>
+<h3 id="install-using-cmake">Install Using CMake</h3>
+<p>You can install toml11 using CMake with the following steps:</p>
+<pre class="console"><code>$ git clone https://github.com/ToruNiina/toml11
+$ cd toml11
+$ git submodule update --init --recursive
+$ cmake -B ./build/
+$ cmake --build ./build/
+$ cmake --install ./build/ --prefix /path/to/toml11</code></pre>
+<h3 id="precompile-library">Precompile Library</h3>
+<p>By setting <code>-DTOML11_PRECOMPILE=ON</code>, you can precompile
+some of the library functions. In this case, the standard library
+features available will vary with the C++ version, and part of the
+interface will change. Therefore, you need to specify
+<code>CMAKE_CXX_STANDARD</code>.</p>
+<pre class="console"><code>$ cmake -B ./build/ -DTOML11_PRECOMPILE=ON -DCMAKE_CXX_STANDARD=11/14/17/20
+$ cmake --build ./build/</code></pre>
+<p>When linking the library, use <code>target_link_libraries</code> in
+CMake</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">your_target</span> <span class="ot">PUBLIC</span> <span class="bn">toml11::toml11</span>)</span></code></pre></div>
+<p>or pass <code>-DTOML11_COMPILE_SOURCES</code> to the compiler.</p>
+<h3 id="building-example">Building Example</h3>
+<p>To compile the examples in the <code>examples/</code> directory, set
+<code>-DTOML11_BUILD_EXAMPLES=ON</code>.</p>
+<pre class="console"><code>$ cmake -B ./build/ -DTOML11_BUILD_EXAMPLES=ON
+$ cmake --build ./build/</code></pre>
+<h3 id="building-tests">Building Tests</h3>
+<p>To compile unit tests, set <code>-DTOML11_BUILD_TESTS=ON</code>.
+Additionally, to compile the encoder and decoder for toml-test, set
+<code>-DTOML11_BUILD_TOML_TESTS=ON</code>.</p>
+<pre class="console"><code>$ cmake -B ./build/ -DTOML11_BUILD_EXAMPLES=ON
+$ cmake --build ./build/</code></pre>
+<h2 id="features">Features</h2>
+<p>Here is a brief overview of the features provided by toml11.</p>
+<p>For more details, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/">documentation</a>.</p>
+<h3 id="parsing-a-file">Parsing a File</h3>
+<p>To parse a file, use <code>toml::parse</code>.</p>
+<p>The overall type of the file is always a table. However, since
+<code>toml::value</code> contains metadata such as comments and
+formatting information, <code>toml::parse</code> returns a
+<code>toml::value</code> rather than a <code>toml::table</code>.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>To parse a string directly, use <code>toml::parse_str</code>.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse_str<span class="op">(</span><span class="st">&quot;a = 42&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>When parsing string literals, you can use the <code>""_toml</code>
+literal.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> toml<span class="op">::</span>literals<span class="op">::</span>toml_literals<span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value lit <span class="op">=</span> <span class="st">&quot;a = 42&quot;</span><span class="op">_toml;</span></span></code></pre></div>
+<p><code>toml::parse</code>, <code>parse_str</code> and
+<code>_toml</code> literal throw a <code>toml::syntax_error</code>
+exception in case of a syntax error.</p>
+<p>The error message obtained with <code>what()</code> will look like
+this:</p>
+<pre><code>[error] bad integer: `_` must be surrounded by digits
+ --&gt; internal string at line 64 in file main.cpp
+   |
+ 1 | a = 123__456
+   |        ^-- invalid underscore
+Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755
+Hint: invalid: _42, 1__000, 0123</code></pre>
+<p>Error messages can also be colorized by calling
+<code>toml::color::enable()</code>.</p>
+<p>By using <code>toml::try_parse</code>, you can receive a
+<code>toml::result&lt;toml::value, std::vector&lt;toml::error_info&gt;&gt;</code>
+without throwing exceptions.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> input <span class="op">=</span> toml<span class="op">::</span>try_parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span><span class="op">(</span>input<span class="op">.</span>is_ok<span class="op">())</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input<span class="op">.</span>unwrap<span class="op">().</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>as_integer<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Additionally, toml11 allows easy and precise control over the version
+of the TOML language being used.</p>
+<p>You can enable specific new features from TOML v1.1.0 while using
+TOML v1.0.0.</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>spec s <span class="op">=</span> toml<span class="op">::</span>spec<span class="op">::</span>v<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>s<span class="op">.</span>v1_1_0_allow_trailing_comma_in_inline_tables <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Moreover, several language extensions not included in the TOML
+standard are available.</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>spec s <span class="op">=</span> toml<span class="op">::</span>spec<span class="op">::</span>v<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>s<span class="op">.</span>ext_hex_float  <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// this allows hexadecimal floating-point numbers</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>s<span class="op">.</span>ext_null_value <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// this allows `key = null` value</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>s<span class="op">.</span>ext_num_suffix <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// this allows numeric suffixes like `100_msec`</span></span></code></pre></div>
+<p>For more detail and reference of each feature, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/">documentation</a>.</p>
+<h3 id="finding-a-value">finding a value</h3>
+<p><code>toml::value</code> provides member functions for accessing
+values, such as <code>at()</code>, <code>is_xxx()</code>, and
+<code>as_xxx()</code>.</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span><span class="op">(</span>input<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span> input<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>is_integer<span class="op">())</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>as_integer<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>By using <code>toml::find</code>, you can perform type conversion and
+search simultaneously.</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span>input<span class="op">,</span> <span class="st">&quot;a&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>If type conversion or value lookup fails, a
+<code>toml::type_error</code> is thrown. The error message will look
+like this:</p>
+<pre><code>[error] toml::value::as_string(): bad_cast to string
+ --&gt; input.toml
+   |
+ 1 | a = 123_456
+   |     ^^^^^^^-- the actual type is integer</code></pre>
+<p>You can access nested tables or arrays of tables in the same way.</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// [a]</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// b = [</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">//   {c = 42},</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">//   {c = 54}</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ]</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span>input<span class="op">,</span> <span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="st">&quot;c&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>Most STL containers and those with similar interfaces can be
+converted.</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// array = [3,1,4,1,5]</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> a1 <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&gt;(</span>input<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">);</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> a2 <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="bu">std::</span>array<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dv">5</span><span class="op">&gt;&gt;(</span>input<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">);</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> a3 <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="bu">std::</span>deque<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&gt;(</span>input<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">);</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> a4 <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span><span class="ex">boost::</span>container::small_vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dv">8</span><span class="op">&gt;&gt;(</span>input<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>You can perform advanced type conversions on complex TOML values.</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode toml"><code class="sourceCode toml"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="dt">mixed_array</span> <span class="op">=</span> <span class="op">[</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="dv">42</span><span class="op">,</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="fl">3.14</span><span class="op">,</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span><span class="dt">a</span><span class="op"> =</span> <span class="st">&quot;foo&quot;</span><span class="op">, </span><span class="dt">b</span><span class="op"> =</span> <span class="st">&quot;bar&quot;</span><span class="op">}</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="op">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> mixed <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>tuple<span class="op">&lt;</span><span class="dt">int</span><span class="op">,</span> <span class="dt">double</span><span class="op">,</span> <span class="bu">std::</span>map<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;&gt;</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;(</span>input<span class="op">,</span> <span class="st">&quot;mixed_array&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>User-defined types can also be converted by using macros or defining
+some specific functions.</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> extlib</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> foo</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> a<span class="op">;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string b<span class="op">;</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// extlib</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>TOML11_DEFINE_CONVERSION_NON_INTRUSIVE<span class="op">(</span>extlib<span class="op">::</span>foo<span class="op">,</span> a<span class="op">,</span> b<span class="op">)</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co">// ...</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="kw">auto</span> input <span class="op">=</span> <span class="st">R&quot;(</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="vs">  [foo]</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="vs">  a = 42</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="vs">  b = &quot;bar&quot;</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="st">)&quot;</span>_toml<span class="op">;</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> extlib<span class="op">::</span>foo f <span class="op">=</span> toml<span class="op">::</span>find<span class="op">&lt;</span>extlib<span class="op">::</span>foo<span class="op">&gt;(</span>input<span class="op">,</span> <span class="st">&quot;foo&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Using <code>toml::find_or</code>, you can get a default value in case
+of failure.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>find_or<span class="op">(</span>input<span class="op">,</span> <span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dv">6</span><span class="op">*</span><span class="dv">9</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>For more details, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/value/">documentation</a>.</p>
+<h3 id="comments">comments</h3>
+<p>toml11 stores comments related to values within the value itself.</p>
+<p>Comments related to a value include a series of comments written
+immediately before the value and any comments written after the value
+without a newline in between.</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode toml"><code class="sourceCode toml"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This is a comment for a.</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># This is also a comment for a.</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="dt">a</span> <span class="op">=</span> <span class="dv">42</span> <span class="co"># This is also a comment for a.</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co"># This is separated by a newline, so it is not a comment for b.</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="co"># This is a comment for b.</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="dt">b</span> <span class="op">=</span> <span class="st">&quot;foo&quot;</span></span></code></pre></div>
+<p>These comments are stored in <code>toml::value</code> with an
+interface similar to <code>std::vector&lt;std::string&gt;</code>.</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>comments<span class="op">().</span>size<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>comments<span class="op">().</span>at<span class="op">(</span><span class="dv">0</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>For more details, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/value/#accessing-comments">documentation</a>.</p>
+<h3 id="error-messages">error messages</h3>
+<p>One of the goals of toml11 is to provide clear and understandable
+error messages.</p>
+<p>For parsing errors, you might see an error message like the
+following:</p>
+<pre><code>[error] bad integer: `_` must be surrounded by digits
+ --&gt; internal string at line 64 in file main.cpp
+   |
+ 1 | a = 123__456
+   |        ^-- invalid underscore
+Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755
+Hint: invalid: _42, 1__000, 0123</code></pre>
+<p>If you request a type different from the actual stored type, an error
+message like this will be displayed:</p>
+<pre><code>[error] toml::value::as_string(): bad_cast to string
+ --&gt; input.toml
+   |
+ 1 | a = 123_456
+   |     ^^^^^^^-- the actual type is integer</code></pre>
+<p>Such error messages can also be produced for user-specific algorithm
+that is not related to TOML syntax.</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value<span class="op">&amp;</span> a <span class="op">=</span> input<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">);</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span><span class="op">(</span>a<span class="op">.</span>as_integer<span class="op">()</span> <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> toml<span class="op">::</span>error_info err <span class="op">=</span> toml<span class="op">::</span>make_error_info<span class="op">(</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;positive integer is required&quot;</span><span class="op">,</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>            a<span class="op">,</span> <span class="st">&quot;but got negative value&quot;</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> toml<span class="op">::</span>format_error<span class="op">(</span>err<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For more details, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/error_message/">documentation</a>.</p>
+<h3 id="serialization">serialization</h3>
+<p>You can format a <code>toml::value</code> into a
+<code>std::string</code> using <code>toml::format</code>.</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>format<span class="op">(</span>input<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p><code>toml::format</code> references the formatting information,
+allowing you to change the formatting method.</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>value output<span class="op">(</span>toml<span class="op">::</span>table<span class="op">{</span> <span class="op">{</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="bn">0xDEADBEEF</span><span class="op">}</span> <span class="op">});</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>as_integer_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>integer_format<span class="op">::</span>hex<span class="op">;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;a&quot;</span><span class="op">).</span>as_integer_fmt<span class="op">().</span>spacer <span class="op">=</span> <span class="dv">4</span><span class="op">;</span> <span class="co">// position of `_`</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>format<span class="op">(</span>input<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co">// a = 0xdead_beef</span></span></code></pre></div>
+<p>You can also specify the formatting for tables and arrays.</p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>value output<span class="op">(</span>toml<span class="op">::</span>table<span class="op">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span><span class="st">&quot;array-of-tables&quot;</span><span class="op">,</span> toml<span class="op">::</span>array<span class="op">{}},</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span><span class="st">&quot;subtable&quot;</span><span class="op">,</span> toml<span class="op">::</span>table<span class="op">{}},</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span><span class="op">&amp;</span> aot <span class="op">=</span> output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;array-of-tables&quot;</span><span class="op">);</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>aot<span class="op">.</span>as_array_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>array_format<span class="op">::</span>multiline<span class="op">;</span> <span class="co">// one element per line</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>aot<span class="op">.</span>as_array_fmt<span class="op">().</span>body_indent    <span class="op">=</span> <span class="dv">4</span><span class="op">;</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>aot<span class="op">.</span>as_array_fmt<span class="op">().</span>closing_indent <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>value v1<span class="op">(</span>toml<span class="op">::</span>table<span class="op">{</span> <span class="op">{</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dv">42</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="fl">3.14</span><span class="op">}</span> <span class="op">});</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>v1<span class="op">.</span>as_table_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>table_format<span class="op">::</span>oneline<span class="op">;</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>aot<span class="op">.</span>push_back<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>v1<span class="op">));</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>toml<span class="op">::</span>value v2<span class="op">(</span>toml<span class="op">::</span>table<span class="op">{</span> <span class="op">{</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dv">42</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="fl">3.14</span><span class="op">}</span> <span class="op">});</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>v2<span class="op">.</span>as_table_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>table_format<span class="op">::</span>oneline<span class="op">;</span></span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>aot<span class="op">.</span>push_back<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>v2<span class="op">));</span></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;subtable&quot;</span><span class="op">).</span>as_table_fmt<span class="op">().</span>fmt <span class="op">=</span> toml<span class="op">::</span>table_format<span class="op">::</span>dotted<span class="op">;</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;subtable&quot;</span><span class="op">)[</span><span class="st">&quot;a&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="dv">42</span><span class="op">;</span></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>output<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;subtable&quot;</span><span class="op">)[</span><span class="st">&quot;b&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="fl">3.14</span><span class="op">;</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> toml<span class="op">::</span>format<span class="op">(</span>output<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a><span class="co">// subtable.b = 3.14</span></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a><span class="co">// subtable.a = 42</span></span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a><span class="co">// array-of-tables = [</span></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a><span class="co">//     {b = 3.14, a = 42},</span></span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a><span class="co">//     {b = 3.14, a = 42},</span></span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a><span class="co">//   ]</span></span></code></pre></div>
+<p>These settings are read during parsing and will be maintained as long
+as the value type does not change when modified.</p>
+<p>For details on possible formatting specifications, please refer to
+the <a
+href="https://toruniina.github.io/toml11/docs/features/serialize/">documentation</a>.</p>
+<h3 id="configuring-types">Configuring Types</h3>
+<p>Many types in <code>toml::value</code>, such as
+<code>integer_type</code>, <code>array_type</code>,
+<code>table_type</code>, etc, can be modified by changing the
+<code>type_config</code> type.</p>
+<p>One commonly used example is an <code>ordered_map</code> that keeps
+the added order. toml11 provides a<code>type_config</code> that changes
+<code>table_type</code> to <code>ordered_map</code> as
+<code>toml::ordered_type_config</code>.</p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> toml<span class="op">::</span>ordered_value input <span class="op">=</span> toml<span class="op">::</span>parse<span class="op">&lt;</span>toml<span class="op">::</span>ordered_type_config<span class="op">&gt;(</span><span class="st">&quot;input.toml&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Here, <code>toml::ordered_value</code> is an alias of
+<code>toml::basic_value&lt;toml::ordered_type_config&gt;</code>.</p>
+<p>Note that, since <code>toml::value</code> uses
+<code>std::unordered_map</code>, once you convert it to
+<code>toml::value</code>, then the order of the values will be
+randomized.</p>
+<p>For more details about how to implement <code>type_config</code>
+variant, please refer to the <a
+href="https://toruniina.github.io/toml11/docs/features/configure_types/">documentation</a>.</p>
+<p>Also, refer to the <a
+href="https://github.com/ToruNiina/toml11/tree/main/examples"><code>examples</code>
+directory</a> for complex use cases such as using multi-precision
+integers, changing containers, and normalizing Unicode. Use these
+examples as references for implementing such configurations.</p>
+<h2 id="examples">Examples</h2>
+<p>The <a
+href="https://github.com/ToruNiina/toml11/tree/main/examples"><code>examples</code></a>
+directory provides various implementation examples in addition to type
+configurations.</p>
+<ul>
+<li><a
+href="https://github.com/ToruNiina/toml11/tree/main/examples/boost_container">boost_container</a>
+<ul>
+<li>This example shows how to use <code>boost::container</code>
+containers for <code>array_type</code> and <code>table_type</code>.</li>
+</ul></li>
+<li><a
+href="https://github.com/ToruNiina/toml11/tree/main/examples/boost_multiprecision">boost_multiprecision</a>
+<ul>
+<li>This example demonstrates the use of
+<code>boost::multiprecision</code> multi-precision numeric types for
+<code>integer_type</code> and <code>floating_type</code>.</li>
+</ul></li>
+<li><a
+href="https://github.com/ToruNiina/toml11/tree/main/examples/parse_file">parse_file</a>
+<ul>
+<li>This example includes type conversion implementations, covering
+slightly more complex cases. The corresponding TOML file is
+included.</li>
+</ul></li>
+<li><a
+href="https://github.com/ToruNiina/toml11/tree/main/examples/reflect">reflect</a>
+<ul>
+<li>This example shows self-type conversion using boost-ext/reflect for
+user-defined types.</li>
+</ul></li>
+<li><a
+href="https://github.com/ToruNiina/toml11/tree/main/examples/unicode">unicode</a>
+<ul>
+<li>This example demonstrates normalizing Unicode strings when searching
+for keys using uni-algo.</li>
+</ul></li>
+</ul>
+<h2 id="changes-from-v3">Changes from v3</h2>
+<p>toml11 v4 introduces several breaking changes.</p>
+<p>Efforts have been made to minimize the need for changes for those
+using simple functionality. However, if you were utilizing advanced
+features, some adjustments may be necessary.</p>
+<p>Nevertheless, we believe that the added or streamlined features will
+provide enhanced convenience in return.</p>
+<h3 id="breaking-changes">Breaking Changes</h3>
+<ul>
+<li>Changed branch from <code>master</code> to <code>main</code>.</li>
+<li>Changed template arguments of <code>toml::basic_value</code>.</li>
+<li>Removed <code>toml::string</code> and explicitly store formatting
+information of all the values.</li>
+<li>Modified arguments of <code>toml::format</code> to accommodate
+formatting information.</li>
+<li>Changed default arguments of <code>toml::parse</code> to take
+<code>toml::spec</code> for specifying TOML version information.</li>
+<li>Updated the interface of <code>toml::source_location</code> to
+accommodate multiline regions.</li>
+<li>Modified arguments of <code>toml::format_error</code>.</li>
+<li>Renamed <code>toml::format_underline</code> to
+<code>toml::format_location</code>.</li>
+<li>Unified control method of <code>toml::color</code> to
+<code>toml::color::enable/disable()</code>.</li>
+</ul>
+<h3 id="added-features">Added features</h3>
+<ul>
+<li>Added <code>toml::parse_str</code>.</li>
+<li>Added <code>toml::try_parse</code>.</li>
+<li>Added support for parsing byte sequences.</li>
+<li>Added formatting information to <code>toml::value</code>.</li>
+<li>Changed to saving comments in <code>toml::value</code> by
+default.</li>
+<li>Added <code>single_include/toml.hpp</code>.</li>
+<li>Enabled to use as a precompiled library.</li>
+</ul>
+<h2 id="contributors">Contributors</h2>
+<p>I appreciate the help of the contributors who introduced the great
+feature to this library.</p>
+<ul>
+<li>Guillaume Fraux (<span class="citation"
+data-cites="Luthaf">@Luthaf</span>)
+<ul>
+<li>Windows support and CI on Appvayor</li>
+<li>Intel Compiler support</li>
+</ul></li>
+<li>Quentin Khan (<span class="citation"
+data-cites="xaxousis">@xaxousis</span>)
+<ul>
+<li>Found &amp; Fixed a bug around ODR</li>
+<li>Improved error messages for invalid keys to show the location where
+the parser fails</li>
+</ul></li>
+<li>Petr Beneš (<span class="citation"
+data-cites="wbenny">@wbenny</span>)
+<ul>
+<li>Fixed warnings on MSVC</li>
+</ul></li>
+<li>Ivan Shynkarenka (<span class="citation"
+data-cites="chronoxor">@chronoxor</span>)
+<ul>
+<li>Fixed Visual Studio 2019 warnings</li>
+<li>Fix compilation error in <code>&lt;filesystem&gt;</code> with
+MinGW</li>
+</ul></li>
+<li>Khoi Dinh Trinh (<span class="citation"
+data-cites="khoitd1997">@khoitd1997</span>)
+<ul>
+<li>Fixed warnings while type conversion</li>
+</ul></li>
+<li><span class="citation"
+data-cites="KerstinKeller">@KerstinKeller</span>
+<ul>
+<li>Added installation script to CMake</li>
+</ul></li>
+<li>J.C. Moyer (<span class="citation"
+data-cites="jcmoyer">@jcmoyer</span>)
+<ul>
+<li>Fixed an example code in the documentation</li>
+</ul></li>
+<li>Jt Freeman (<span class="citation"
+data-cites="blockparty-sh">@blockparty-sh</span>)
+<ul>
+<li>Fixed feature test macro around <code>localtime_s</code></li>
+<li>Suppress warnings in Debug mode</li>
+</ul></li>
+<li>OGAWA Kenichi (<span class="citation"
+data-cites="kenichiice">@kenichiice</span>)
+<ul>
+<li>Suppress warnings on intel compiler</li>
+<li>Fix include path in README</li>
+</ul></li>
+<li>Jordan Williams (<span class="citation"
+data-cites="jwillikers">@jwillikers</span>)
+<ul>
+<li>Fixed clang range-loop-analysis warnings</li>
+<li>Fixed feature test macro to suppress -Wundef</li>
+<li>Use cache variables in CMakeLists.txt</li>
+<li>Automate test set fetching, update and refactor CMakeLists.txt</li>
+</ul></li>
+<li>Scott McCaskill
+<ul>
+<li>Parse 9 digits (nanoseconds) of fractional seconds in a
+<code>local_time</code></li>
+</ul></li>
+<li>Shu Wang (<span class="citation"
+data-cites="halfelf">@halfelf</span>)
+<ul>
+<li>fix “Finding a value in an array” example in README</li>
+</ul></li>
+<li><span class="citation" data-cites="maass-tv">@maass-tv</span> and
+<span class="citation"
+data-cites="SeverinLeonhardt">@SeverinLeonhardt</span>
+<ul>
+<li>Fix MSVC warning C4866</li>
+</ul></li>
+<li>Mohammed Alyousef (<span class="citation"
+data-cites="MoAlyousef">@MoAlyousef</span>)
+<ul>
+<li>Made testing optional in CMake</li>
+</ul></li>
+<li>Alex Merry (<span class="citation"
+data-cites="amerry">@amerry</span>)
+<ul>
+<li>Add missing include files</li>
+</ul></li>
+<li>sneakypete81 (<span class="citation"
+data-cites="sneakypete81">@sneakypete81</span>)
+<ul>
+<li>Fix typo in error message</li>
+</ul></li>
+<li>Oliver Kahrmann (<span class="citation"
+data-cites="founderio">@founderio</span>)
+<ul>
+<li>Fix missing filename in error message if parsed file is empty</li>
+</ul></li>
+<li>Karl Nilsson (<span class="citation"
+data-cites="karl-nilsson">@karl-nilsson</span>)
+<ul>
+<li>Fix many spelling errors</li>
+</ul></li>
+<li>ohdarling88 (<span class="citation"
+data-cites="ohdarling">@ohdarling</span>)
+<ul>
+<li>Fix a bug in a constructor of serializer</li>
+</ul></li>
+<li>estshorter (<span class="citation"
+data-cites="estshorter">@estshorter</span>)
+<ul>
+<li>Fix MSVC warning C26478</li>
+</ul></li>
+<li>Philip Top (<span class="citation"
+data-cites="phlptp">@phlptp</span>)
+<ul>
+<li>Improve checking standard library feature availability check</li>
+</ul></li>
+<li>Louis Marascio (<span class="citation"
+data-cites="marascio">@marascio</span>)
+<ul>
+<li>Fix free-nonheap-object warning</li>
+</ul></li>
+<li>Axel Huebl (<span class="citation" data-cites="ax3l">@ax3l</span>)
+<ul>
+<li>Make installation optional if the library is embedded</li>
+</ul></li>
+<li>Ken Matsui (<span class="citation"
+data-cites="ken-matsui">@ken-matsui</span>)
+<ul>
+<li>Support user-defined error message prefix</li>
+<li>Support dynamic color mode</li>
+<li>Support <code>std::optional</code> members for
+<code>TOML11_DEFINE_CONVERSION_NON_INTRUSIVE</code></li>
+<li>Make <code>thread_local</code> for <code>color_mode</code>
+optional</li>
+</ul></li>
+<li>Giel van Schijndel (<span class="citation"
+data-cites="muggenhor">@muggenhor</span>)
+<ul>
+<li>Remove needless copy in <code>parse</code> function</li>
+</ul></li>
+<li>Lukáš Hrázký (<span class="citation"
+data-cites="lukash">@lukash</span>)
+<ul>
+<li>Add a <code>parse(FILE *)</code> interface and improve file-related
+error messages</li>
+</ul></li>
+<li>spiderman idog (<span class="citation"
+data-cites="spiderman-idog">@spiderman-idog</span>)
+<ul>
+<li>Fix typo in README</li>
+</ul></li>
+<li>Jajauma’s GitHub (<span class="citation"
+data-cites="Jajauma">@Jajauma</span>)
+<ul>
+<li>Avoid possible lexer truncation warnings</li>
+</ul></li>
+<li>Moritz Klammler (<span class="citation"
+data-cites="ctcmkl">@ctcmkl</span>)
+<ul>
+<li>Many patches in (#200) including:</li>
+<li>Improve CMake scripts, build process, and test file handling</li>
+<li>Detect error when <code>discard_comments</code> is accessed</li>
+<li>And more.</li>
+</ul></li>
+<li>Chris White (<span class="citation"
+data-cites="cxw42">@cxw42</span>)
+<ul>
+<li>Fix address-sanitizer error when parsing literal strings having
+invalid UTF-8 characters</li>
+<li>Fix function name in error messages</li>
+</ul></li>
+<li>offa (<span class="citation" data-cites="offa">@offa</span>)
+<ul>
+<li>Update checkout action to v3</li>
+<li>Update Required CMake version</li>
+<li>Cleanup old CI settings</li>
+</ul></li>
+<li>Sergey Vidyuk (<span class="citation"
+data-cites="VestniK">@VestniK</span>)
+<ul>
+<li>Fix for case when vector iterator is raw pointer</li>
+</ul></li>
+<li>Kfir Gollan (<span class="citation"
+data-cites="kfirgollan">@kfirgollan</span>)
+<ul>
+<li>Add installation example with checkinstall and cmake</li>
+</ul></li>
+<li>Martin Tournoij (<span class="citation"
+data-cites="arp242">@arp242</span>)
+<ul>
+<li>Escape control characters in keys</li>
+</ul></li>
+<li><span class="citation"
+data-cites="DavidKorczynski">@DavidKorczynski</span>
+<ul>
+<li>Add fuzzing test based on ClusterFuzzLite</li>
+</ul></li>
+<li>Esonhugh Skyworship (<span class="citation"
+data-cites="Esonhugh">@Esonhugh</span>)
+<ul>
+<li>Fix function signature of <code>strerror_r</code> on macos</li>
+</ul></li>
+<li>Alberto (<span class="citation" data-cites="0X1A">@0X1A</span>)
+<ul>
+<li>Fix issues with CMake package configuration when used with
+vcpkg</li>
+</ul></li>
+<li>Egor Pugin (<span class="citation"
+data-cites="egorpugin">@egorpugin</span>)
+<ul>
+<li>Fix incorrect operator&lt;&lt;() argument type that gives build
+error</li>
+</ul></li>
+<li>Andreas Keller (<span class="citation"
+data-cites="andreaskeller96">@andreaskeller96</span>)
+<ul>
+<li>Fix not checking for when parsing line comments</li>
+</ul></li>
+<li>萧迩珀 (<span class="citation"
+data-cites="CDK6182CHR">@CDK6182CHR</span>)
+<ul>
+<li>Support template into_toml members</li>
+</ul></li>
+<li>Pino Toscano (<span class="citation"
+data-cites="pinotree">@pinotree</span>)
+<ul>
+<li>Suppress warnings by manually cast file size to
+<code>std::streamsize</code></li>
+</ul></li>
+<li>Jack W (<span class="citation"
+data-cites="jackwil1">@jackwil1</span>)
+<ul>
+<li>Fix typos in documentation template syntax</li>
+</ul></li>
+<li>amatej (<span class="citation" data-cites="kontura">@kontura</span>)
+<ul>
+<li>Fix: <code>toml::detail::region::last_</code> may be used
+uninitialized</li>
+</ul></li>
+<li>Severin Leonhardt (<span class="citation"
+data-cites="SeverinLeonhardt">@SeverinLeonhardt</span>)
+<ul>
+<li>Fix use with CMake 3.21 and older</li>
+</ul></li>
+<li>hayt (<span class="citation" data-cites="hayt">@hayt</span>)
+<ul>
+<li>fix: prevent size_t-max length string allocation</li>
+</ul></li>
+<li>somebody (<span class="citation"
+data-cites="oldoldtea">@oldoldtea</span>), (lz)
+<ul>
+<li>Update README for better ToC, fixing example code</li>
+</ul></li>
+</ul>
+<h2 id="licensing-terms">Licensing terms</h2>
+<p>This product is licensed under the terms of the <a href="LICENSE">MIT
+License</a>.</p>
+<ul>
+<li>Copyright (c) 2017-2024 Toru Niina</li>
+</ul>
+<p>All rights reserved.</p>
