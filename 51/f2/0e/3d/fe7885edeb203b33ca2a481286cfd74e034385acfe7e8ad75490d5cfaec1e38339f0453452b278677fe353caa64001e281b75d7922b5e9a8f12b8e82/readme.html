@@ -1,0 +1,1404 @@
+<p align="center">
+<img height="100" src="https://i.imgur.com/oDXeMUQ.png" alt="argparse"/>
+</p>
+<p align="center">
+<a href="https://github.com/p-ranav/argparse/blob/master/LICENSE">
+<img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="license"/>
+</a>
+<img src="https://img.shields.io/badge/version-3.2-blue.svg?cacheSeconds=2592000" alt="version"/>
+</p>
+<h2 id="highlights">Highlights</h2>
+<ul>
+<li>Single header file</li>
+<li>Requires C++17</li>
+<li>MIT License</li>
+</ul>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#quick-start">Quick Start</a>
+<ul>
+<li><a href="#positional-arguments">Positional Arguments</a></li>
+<li><a href="#optional-arguments">Optional Arguments</a>
+<ul>
+<li><a href="#requiring-optional-arguments">Requiring optional
+arguments</a></li>
+<li><a
+href="#accessing-optional-arguments-without-default-values">Accessing
+optional arguments without default values</a></li>
+<li><a href="#deciding-if-the-value-was-given-by-the-user">Deciding if
+the value was given by the user</a></li>
+<li><a href="#joining-values-of-repeated-optional-arguments">Joining
+values of repeated optional arguments</a></li>
+<li><a href="#repeating-an-argument-to-increase-a-value">Repeating an
+argument to increase a value</a></li>
+<li><a href="#mutually-exclusive-group">Mutually Exclusive
+Group</a></li>
+</ul></li>
+<li><a href="#store-into">Storing values into variables</a></li>
+<li><a href="#negative-numbers">Negative Numbers</a></li>
+<li><a href="#combining-positional-and-optional-arguments">Combining
+Positional and Optional Arguments</a></li>
+<li><a href="#printing-help">Printing Help</a></li>
+<li><a href="#adding-a-description-and-an-epilog-to-help">Adding a
+description and an epilog to help</a></li>
+<li><a href="#list-of-arguments">List of Arguments</a></li>
+<li><a href="#compound-arguments">Compound Arguments</a></li>
+<li><a href="#converting-to-numeric-types">Converting to Numeric
+Types</a></li>
+<li><a href="#default-arguments">Default Arguments</a></li>
+<li><a href="#gathering-remaining-arguments">Gathering Remaining
+Arguments</a></li>
+<li><a href="#parent-parsers">Parent Parsers</a></li>
+<li><a href="#subcommands">Subcommands</a></li>
+<li><a href="#getting-argument-and-subparser-instances">Getting Argument
+and Subparser Instances</a></li>
+<li><a href="#parse-known-args">Parse Known Args</a></li>
+<li><a href="#hidden-argument-alias">Hidden argument and alias</a></li>
+<li><a href="#argumentparser-in-bool-context">ArgumentParser in bool
+Context</a></li>
+<li><a href="#custom-prefix-characters">Custom Prefix
+Characters</a></li>
+<li><a href="#custom-assignment-characters">Custom Assignment
+Characters</a></li>
+</ul></li>
+<li><a href="#further-examples">Further Examples</a>
+<ul>
+<li><a
+href="#construct-a-json-object-from-a-filename-argument">Construct a
+JSON object from a filename argument</a></li>
+<li><a
+href="#positional-arguments-with-compound-toggle-arguments">Positional
+Arguments with Compound Toggle Arguments</a></li>
+<li><a href="#restricting-the-set-of-values-for-an-argument">Restricting
+the set of values for an argument</a></li>
+<li><a href="#using-optionvalue-syntax">Using <code>option=value</code>
+syntax</a></li>
+<li><a href="#advanced-usage-formatting">Advanced usage
+formatting</a></li>
+</ul></li>
+<li><a href="#developer-notes">Developer Notes</a>
+<ul>
+<li><a href="#copying-and-moving">Copying and Moving</a></li>
+</ul></li>
+<li><a href="#cmake-integration">CMake Integration</a></li>
+<li><a href="#building-installing-and-testing">Building, Installing, and
+Testing</a></li>
+<li><a href="#supported-toolchains">Supported Toolchains</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<p>Simply include argparse.hpp and you’re good to go.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span></code></pre></div>
+<p>To start parsing command-line arguments, create an
+<code>ArgumentParser</code>.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;program_name&quot;</span><span class="op">);</span></span></code></pre></div>
+<p><strong>NOTE:</strong> There is an optional second argument to the
+<code>ArgumentParser</code> which is the program version. Example:
+<code>argparse::ArgumentParser program("libfoo", "1.9.0");</code></p>
+<p><strong>NOTE:</strong> There are optional third and fourth arguments
+to the <code>ArgumentParser</code> which control default arguments.
+Example:
+<code>argparse::ArgumentParser program("libfoo", "1.9.0", default_arguments::help, false);</code>
+See <a href="#default-arguments">Default Arguments</a>, below.</p>
+<p>To add a new argument, simply call <code>.add_argument(...)</code>.
+You can provide a variadic list of argument names that you want to group
+together, e.g., <code>-v</code> and <code>--verbose</code></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;foo&quot;</span><span class="op">);</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-v&quot;</span><span class="op">,</span> <span class="st">&quot;--verbose&quot;</span><span class="op">);</span> <span class="co">// parameter packing</span></span></code></pre></div>
+<p>Argparse supports a variety of argument types including positional,
+optional, and compound arguments. Below you can see how to configure
+each of these types:</p>
+<h3 id="positional-arguments">Positional Arguments</h3>
+<p>Here’s an example of a <strong><em>positional
+argument</em></strong>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;program_name&quot;</span><span class="op">);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;square&quot;</span><span class="op">)</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;display the square of a given integer&quot;</span><span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> input <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span><span class="st">&quot;square&quot;</span><span class="op">);</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="op">(</span>input <span class="op">*</span> input<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>And running the code:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main 15
+225</code></pre>
+<p>Here’s what’s happening:</p>
+<ul>
+<li>The <code>add_argument()</code> method is used to specify which
+command-line options the program is willing to accept. In this case,
+I’ve named it square so that it’s in line with its function.</li>
+<li>Command-line arguments are strings. To square the argument and print
+the result, we need to convert this argument to a number. In order to do
+this, we use the <code>.scan</code> method to convert user input into an
+integer.</li>
+<li>We can get the value stored by the parser for a given argument using
+<code>parser.get&lt;T&gt;(key)</code> method.</li>
+</ul>
+<h3 id="optional-arguments">Optional Arguments</h3>
+<p>Now, let’s look at <strong><em>optional arguments</em></strong>.
+Optional arguments start with <code>-</code> or <code>--</code>, e.g.,
+<code>--verbose</code> or <code>-a</code>. Optional arguments can be
+placed anywhere in the input sequence.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--verbose&quot;</span><span class="op">)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;increase output verbosity&quot;</span><span class="op">)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>program<span class="op">[</span><span class="st">&quot;--verbose&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Verbosity enabled&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main --verbose
+Verbosity enabled</code></pre>
+<p>Here’s what’s happening: * The program is written so as to display
+something when –verbose is specified and display nothing when not. *
+Since the argument is actually optional, no error is thrown when running
+the program without <code>--verbose</code>. Note that by using
+<code>.default_value(false)</code>, if the optional argument isn’t used,
+it’s value is automatically set to false. * By using
+<code>.implicit_value(true)</code>, the user specifies that this option
+is more of a flag than something that requires a value. When the user
+provides the –verbose option, it’s value is set to true.</p>
+<h4 id="flag">Flag</h4>
+<p>When defining flag arguments, you can use the shorthand
+<code>flag()</code> which is the same as
+<code>default_value(false).implicit_value(true)</code>.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--verbose&quot;</span><span class="op">)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;increase output verbosity&quot;</span><span class="op">)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>flag<span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>program<span class="op">[</span><span class="st">&quot;--verbose&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Verbosity enabled&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="requiring-optional-arguments">Requiring optional arguments</h4>
+<p>There are scenarios where you would like to make an optional argument
+<strong><em>required</em></strong>. As discussed above, optional
+arguments either begin with <code>-</code> or <code>--</code>. You can
+make these types of arguments required like so:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-o&quot;</span><span class="op">,</span> <span class="st">&quot;--output&quot;</span><span class="op">)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>required<span class="op">()</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;specify the output file.&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>If the user does not provide a value for this parameter, an exception
+is thrown.</p>
+<p>Alternatively, you could provide a default value like so:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-o&quot;</span><span class="op">,</span> <span class="st">&quot;--output&quot;</span><span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>string<span class="op">(</span><span class="st">&quot;-&quot;</span><span class="op">))</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>required<span class="op">()</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;specify the output file.&quot;</span><span class="op">);</span></span></code></pre></div>
+<h4 id="accessing-optional-arguments-without-default-values">Accessing
+optional arguments without default values</h4>
+<p>If you require an optional argument to be present but have no good
+default value for it, you can combine testing and accessing the argument
+as following:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="kw">auto</span> fn <span class="op">=</span> program<span class="op">.</span>present<span class="op">(</span><span class="st">&quot;-o&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    do_something_with<span class="op">(*</span>fn<span class="op">);</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Similar to <code>get</code>, the <code>present</code> method also
+accepts a template argument. But rather than returning <code>T</code>,
+<code>parser.present&lt;T&gt;(key)</code> returns
+<code>std::optional&lt;T&gt;</code>, so that when the user does not
+provide a value to this parameter, the return value compares equal to
+<code>std::nullopt</code>.</p>
+<h4 id="deciding-if-the-value-was-given-by-the-user">Deciding if the
+value was given by the user</h4>
+<p>If you want to know whether the user supplied a value for an argument
+that has a <code>.default_value</code>, check whether the argument
+<code>.is_used()</code>.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--color&quot;</span><span class="op">)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>string<span class="op">{</span><span class="st">&quot;orange&quot;</span><span class="op">})</span>   <span class="co">// might otherwise be type const char* leading to an error when trying program.get&lt;std::string&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;specify the cat&#39;s fur color&quot;</span><span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span>    <span class="co">// Example: ./main --color orange</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> color <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span><span class="st">&quot;--color&quot;</span><span class="op">);</span>  <span class="co">// &quot;orange&quot;</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> explicit_color <span class="op">=</span> program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;--color&quot;</span><span class="op">);</span>  <span class="co">// true, user provided orange</span></span></code></pre></div>
+<h4 id="joining-values-of-repeated-optional-arguments">Joining values of
+repeated optional arguments</h4>
+<p>You may want to allow an optional argument to be repeated and gather
+all values in one place.</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--color&quot;</span><span class="op">)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;({</span> <span class="st">&quot;orange&quot;</span> <span class="op">})</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>append<span class="op">()</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;specify the cat&#39;s fur color&quot;</span><span class="op">);</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span>    <span class="co">// Example: ./main --color red --color green --color blue</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> colors <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;--color&quot;</span><span class="op">);</span>  <span class="co">// {&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;}</span></span></code></pre></div>
+<p>Notice that <code>.default_value</code> is given an explicit template
+parameter to match the type you want to <code>.get</code>.</p>
+<h4 id="repeating-an-argument-to-increase-a-value">Repeating an argument
+to increase a value</h4>
+<p>A common pattern is to repeat an argument to indicate a greater
+value.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> verbosity <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-V&quot;</span><span class="op">,</span> <span class="st">&quot;--verbose&quot;</span><span class="op">)</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>action<span class="op">([&amp;](</span><span class="at">const</span> <span class="kw">auto</span> <span class="op">&amp;)</span> <span class="op">{</span> <span class="op">++</span>verbosity<span class="op">;</span> <span class="op">})</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>append<span class="op">()</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">)</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span>    <span class="co">// Example: ./main -VVVV</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;verbose level: &quot;</span> <span class="op">&lt;&lt;</span> verbosity <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span>    <span class="co">// verbose level: 4</span></span></code></pre></div>
+<h4 id="mutually-exclusive-group">Mutually Exclusive Group</h4>
+<p>Create a mutually exclusive group using
+<code>program.add_mutually_exclusive_group(required = false)</code>.
+`argparse`` will make sure that only one of the arguments in the
+mutually exclusive group was present on the command line:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> <span class="op">&amp;</span>group <span class="op">=</span> program<span class="op">.</span>add_mutually_exclusive_group<span class="op">();</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--first&quot;</span><span class="op">);</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--second&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>with the following usage will yield an error:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main --first 1 --second 2
+Argument &#39;--second VAR&#39; not allowed with &#39;--first VAR&#39;</code></pre>
+<p>The <code>add_mutually_exclusive_group()</code> function also accepts
+a <code>required</code> argument, to indicate that at least one of the
+mutually exclusive arguments is required:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> <span class="op">&amp;</span>group <span class="op">=</span> program<span class="op">.</span>add_mutually_exclusive_group<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--first&quot;</span><span class="op">);</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--second&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>with the following usage will yield an error:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main
+One of the arguments &#39;--first VAR&#39; or &#39;--second VAR&#39; is required</code></pre>
+<h3 id="storing-values-into-variables">Storing values into
+variables</h3>
+<p>It is possible to bind arguments to a variable storing their value,
+as an alternative to explicitly calling
+<code>program.get&lt;T&gt;(arg_name)</code> or
+<code>program[arg_name]</code></p>
+<p>This is currently implementeted for variables of type
+<code>bool</code> (this also implicitly calls <code>flag()</code>),
+<code>int</code>, <code>double</code>, <code>std::string</code>,
+<code>std::vector&lt;std::string&gt;</code> and
+<code>std::vector&lt;int&gt;</code>. If the argument is not specified in
+the command line, the default value (if set) is set into the
+variable.</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="dt">bool</span> flagvar <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--flagvar&quot;</span><span class="op">).</span>store_into<span class="op">(</span>flagvar<span class="op">);</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> intvar <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--intvar&quot;</span><span class="op">).</span>store_into<span class="op">(</span>intvar<span class="op">);</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> doublevar <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--doublevar&quot;</span><span class="op">).</span>store_into<span class="op">(</span>doublevar<span class="op">);</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string strvar<span class="op">;</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--strvar&quot;</span><span class="op">).</span>store_into<span class="op">(</span>strvar<span class="op">);</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;</span> strvar_repeated<span class="op">;</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--strvar-repeated&quot;</span><span class="op">).</span>append<span class="op">().</span>store_into<span class="op">(</span>strvar_repeated<span class="op">);</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;</span> strvar_multi_valued<span class="op">;</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--strvar-multi-valued&quot;</span><span class="op">).</span>nargs<span class="op">(</span><span class="dv">2</span><span class="op">).</span>store_into<span class="op">(</span>strvar_multi_valued<span class="op">);</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> intvar_repeated<span class="op">;</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--intvar-repeated&quot;</span><span class="op">).</span>append<span class="op">().</span>store_into<span class="op">(</span>intvar_repeated<span class="op">);</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> intvar_multi_valued<span class="op">;</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--intvar-multi-valued&quot;</span><span class="op">).</span>nargs<span class="op">(</span><span class="dv">2</span><span class="op">).</span>store_into<span class="op">(</span>intvar_multi_valued<span class="op">);</span></span></code></pre></div>
+<h3 id="negative-numbers">Negative Numbers</h3>
+<p>Optional arguments start with <code>-</code>. Can
+<code>argparse</code> handle negative numbers? The answer is yes!</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;integer&quot;</span><span class="op">)</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Input number&quot;</span><span class="op">)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;floats&quot;</span><span class="op">)</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Vector of floats&quot;</span><span class="op">)</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">4</span><span class="op">)</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;g&#39;</span><span class="op">,</span> <span class="dt">float</span><span class="op">&gt;();</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="co">// Some code to print arguments</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main -5 -1.1 -3.1415 -3.1e2 -4.51329E3
+integer : -5
+floats  : -1.1 -3.1415 -310 -4513.29</code></pre>
+<p>As you can see here, <code>argparse</code> supports negative
+integers, negative floats and scientific notation.</p>
+<h3 id="combining-positional-and-optional-arguments">Combining
+Positional and Optional Arguments</h3>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;main&quot;</span><span class="op">);</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;square&quot;</span><span class="op">)</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;display the square of a given number&quot;</span><span class="op">)</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--verbose&quot;</span><span class="op">)</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> input <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span><span class="st">&quot;square&quot;</span><span class="op">);</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>program<span class="op">[</span><span class="st">&quot;--verbose&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;The square of &quot;</span> <span class="op">&lt;&lt;</span> input <span class="op">&lt;&lt;</span> <span class="st">&quot; is &quot;</span> <span class="op">&lt;&lt;</span> <span class="op">(</span>input <span class="op">*</span> input<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="op">(</span>input <span class="op">*</span> input<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main 4
+16
+
+foo@bar:/home/dev/$ ./main 4 --verbose
+The square of 4 is 16
+
+foo@bar:/home/dev/$ ./main --verbose 4
+The square of 4 is 16</code></pre>
+<h3 id="printing-help">Printing Help</h3>
+<p><code>std::cout &lt;&lt; program</code> prints a help message,
+including the program usage and information about the arguments
+registered with the <code>ArgumentParser</code>. For the previous
+example, here’s the default help message:</p>
+<pre><code>foo@bar:/home/dev/$ ./main --help
+Usage: main [-h] [--verbose] square
+
+Positional arguments:
+  square        display the square of a given number
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+  --verbose</code></pre>
+<p>You may also get the help message in string via
+<code>program.help().str()</code>.</p>
+<h4 id="adding-a-description-and-an-epilog-to-help">Adding a description
+and an epilog to help</h4>
+<p><code>ArgumentParser::add_description</code> will add text before the
+detailed argument information. <code>ArgumentParser::add_epilog</code>
+will add text after all other help output.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;main&quot;</span><span class="op">);</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;thing&quot;</span><span class="op">).</span>help<span class="op">(</span><span class="st">&quot;Thing to use.&quot;</span><span class="op">).</span>metavar<span class="op">(</span><span class="st">&quot;THING&quot;</span><span class="op">);</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--member&quot;</span><span class="op">).</span>help<span class="op">(</span><span class="st">&quot;The alias for the member to pass to.&quot;</span><span class="op">).</span>metavar<span class="op">(</span><span class="st">&quot;ALIAS&quot;</span><span class="op">);</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--verbose&quot;</span><span class="op">).</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">).</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Forward a thing to the next member.&quot;</span><span class="op">);</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_epilog<span class="op">(</span><span class="st">&quot;Possible things include betingalw, chiz, and res.&quot;</span><span class="op">);</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> program <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>Usage: main [-h] [--member ALIAS] [--verbose] THING
+
+Forward a thing to the next member.
+
+Positional arguments:
+  THING             Thing to use.
+
+Optional arguments:
+  -h, --help        shows help message and exits
+  -v, --version     prints version information and exits
+  --member ALIAS    The alias for the member to pass to.
+  --verbose
+
+Possible things include betingalw, chiz, and res.</code></pre>
+<h3 id="list-of-arguments">List of Arguments</h3>
+<p>ArgumentParser objects usually associate a single command-line
+argument with a single action to be taken. The <code>.nargs</code>
+associates a different number of command-line arguments with a single
+action. When using <code>nargs(N)</code>, N arguments from the command
+line will be gathered together into a list.</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;main&quot;</span><span class="op">);</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--input_files&quot;</span><span class="op">)</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;The list of input files&quot;</span><span class="op">)</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span>   <span class="co">// Example: ./main --input_files config.yml System.xml</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> files <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;--input_files&quot;</span><span class="op">);</span>  <span class="co">// {&quot;config.yml&quot;, &quot;System.xml&quot;}</span></span></code></pre></div>
+<p><code>ArgumentParser.get&lt;T&gt;()</code> has specializations for
+<code>std::vector</code> and <code>std::list</code>. So, the following
+variant, <code>.get&lt;std::list&gt;</code>, will also work.</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> files <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>list<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;--input_files&quot;</span><span class="op">);</span>  <span class="co">// {&quot;config.yml&quot;, &quot;System.xml&quot;}</span></span></code></pre></div>
+<p>Using <code>.scan</code>, one can quickly build a list of desired
+value types from command line arguments. Here’s an example:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;main&quot;</span><span class="op">);</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--query_point&quot;</span><span class="op">)</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;3D query point&quot;</span><span class="op">)</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">3</span><span class="op">)</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">double</span><span class="op">&gt;{</span><span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">,</span> <span class="fl">0.0</span><span class="op">})</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;g&#39;</span><span class="op">,</span> <span class="dt">double</span><span class="op">&gt;();</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span> <span class="co">// Example: ./main --query_point 3.5 4.7 9.2</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> query_point <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">double</span><span class="op">&gt;&gt;(</span><span class="st">&quot;--query_point&quot;</span><span class="op">);</span>  <span class="co">// {3.5, 4.7, 9.2}</span></span></code></pre></div>
+<p>You can also make a variable length list of arguments with the
+<code>.nargs</code>. Below are some examples.</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--input_files&quot;</span><span class="op">)</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">3</span><span class="op">);</span>  <span class="co">// This accepts 1 to 3 arguments.</span></span></code></pre></div>
+<p>Some useful patterns are defined like “?”, “*“,”+” of argparse in
+Python.</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--input_files&quot;</span><span class="op">)</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span>argparse<span class="op">::</span>nargs_pattern<span class="op">::</span>any<span class="op">);</span>  <span class="co">// &quot;*&quot; in Python. This accepts any number of arguments including 0.</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--input_files&quot;</span><span class="op">)</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span>argparse<span class="op">::</span>nargs_pattern<span class="op">::</span>at_least_one<span class="op">);</span>  <span class="co">// &quot;+&quot; in Python. This accepts one or more number of arguments.</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--input_files&quot;</span><span class="op">)</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span>argparse<span class="op">::</span>nargs_pattern<span class="op">::</span>optional<span class="op">);</span>  <span class="co">// &quot;?&quot; in Python. This accepts an argument optionally.</span></span></code></pre></div>
+<h3 id="compound-arguments">Compound Arguments</h3>
+<p>Compound arguments are optional arguments that are combined and
+provided as a single argument. Example: <code>ps -aux</code></p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-a&quot;</span><span class="op">)</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-b&quot;</span><span class="op">)</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-c&quot;</span><span class="op">)</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">2</span><span class="op">)</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;{</span><span class="fl">0.0</span><span class="bu">f</span><span class="op">,</span> <span class="fl">0.0</span><span class="bu">f</span><span class="op">})</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;g&#39;</span><span class="op">,</span> <span class="dt">float</span><span class="op">&gt;();</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span>                  <span class="co">// Example: ./main -abc 1.95 2.47</span></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> a <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;-a&quot;</span><span class="op">);</span>                  <span class="co">// true</span></span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> b <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;-b&quot;</span><span class="op">);</span>                  <span class="co">// true</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> c <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;&gt;(</span><span class="st">&quot;-c&quot;</span><span class="op">);</span>    <span class="co">// {1.95, 2.47}</span></span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a><span class="co">/// Some code that prints parsed arguments</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main -ac 3.14 2.718
+a = true
+b = false
+c = {3.14, 2.718}
+
+foo@bar:/home/dev/$ ./main -cb
+a = false
+b = true
+c = {0.0, 0.0}</code></pre>
+<p>Here’s what’s happening: * We have three optional arguments
+<code>-a</code>, <code>-b</code> and <code>-c</code>. * <code>-a</code>
+and <code>-b</code> are toggle arguments. * <code>-c</code> requires 2
+floating point numbers from the command-line. * argparse can handle
+compound arguments, e.g., <code>-abc</code> or <code>-bac</code> or
+<code>-cab</code>. This only works with short single-character argument
+names. - <code>-a</code> and <code>-b</code> become true. - argv is
+further parsed to identify the inputs mapped to <code>-c</code>. - If
+argparse cannot find any arguments to map to c, then c defaults to {0.0,
+0.0} as defined by <code>.default_value</code></p>
+<h3 id="converting-to-numeric-types">Converting to Numeric Types</h3>
+<p>For inputs, users can express a primitive type for the value.</p>
+<p>The <code>.scan&lt;Shape, T&gt;</code> method attempts to convert the
+incoming <code>std::string</code> to <code>T</code> following the
+<code>Shape</code> conversion specifier. An
+<code>std::invalid_argument</code> or <code>std::range_error</code>
+exception is thrown for errors.</p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-x&quot;</span><span class="op">)</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>       <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;d&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;scale&quot;</span><span class="op">)</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>       <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;g&#39;</span><span class="op">,</span> <span class="dt">double</span><span class="op">&gt;();</span></span></code></pre></div>
+<p><code>Shape</code> specifies what the input “looks like”, and the
+type template argument specifies the return value of the predefined
+action. Acceptable types are floating point (i.e float, double, long
+double) and integral (i.e. signed char, short, int, long, long
+long).</p>
+<p>The grammar follows <code>std::from_chars</code>, but does not
+exactly duplicate it. For example, hexadecimal numbers may begin with
+<code>0x</code> or <code>0X</code> and numbers with a leading zero may
+be handled as octal values.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Shape</th>
+<th>interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">‘a’ or ‘A’</td>
+<td>hexadecimal floating point</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">‘e’ or ‘E’</td>
+<td>scientific notation (floating point)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">‘f’ or ‘F’</td>
+<td>fixed notation (floating point)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">‘g’ or ‘G’</td>
+<td>general form (either fixed or scientific)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">‘d’</td>
+<td>decimal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">‘i’</td>
+<td><code>std::from_chars</code> grammar with base == 10</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">‘o’</td>
+<td>octal (unsigned)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">‘u’</td>
+<td>decimal (unsigned)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">‘x’ or ‘X’</td>
+<td>hexadecimal (unsigned)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="default-arguments">Default Arguments</h3>
+<p><code>argparse</code> provides predefined arguments and actions for
+<code>-h</code>/<code>--help</code> and
+<code>-v</code>/<code>--version</code>. By default, these actions will
+<strong>exit</strong> the program after displaying a help or version
+message, respectively. This exit does not call destructors, skipping
+clean-up of taken resources.</p>
+<p>These default arguments can be disabled during
+<code>ArgumentParser</code> creation so that you can handle these
+arguments in your own way. (Note that a program name and version must be
+included when choosing default arguments.)</p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="st">&quot;1.0&quot;</span><span class="op">,</span> default_arguments<span class="op">::</span>none<span class="op">);</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-h&quot;</span><span class="op">,</span> <span class="st">&quot;--help&quot;</span><span class="op">)</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>action<span class="op">([=](</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> help<span class="op">().</span>str<span class="op">();</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">})</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;shows help message&quot;</span><span class="op">)</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">)</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span></code></pre></div>
+<p>The above code snippet outputs a help message and continues to run.
+It does not support a <code>--version</code> argument.</p>
+<p>The default is <code>default_arguments::all</code> for included
+arguments. No default arguments will be added with
+<code>default_arguments::none</code>.
+<code>default_arguments::help</code> and
+<code>default_arguments::version</code> will individually add
+<code>--help</code> and <code>--version</code>.</p>
+<p>The default arguments can be used while disabling the default exit
+with these arguments. This forth argument to <code>ArgumentParser</code>
+(<code>exit_on_default_arguments</code>) is a bool flag with a default
+<strong>true</strong> value. The following call will retain
+<code>--help</code> and <code>--version</code>, but will not exit when
+those arguments are used.</p>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="st">&quot;1.0&quot;</span><span class="op">,</span> default_arguments<span class="op">::</span>all<span class="op">,</span> <span class="kw">false</span><span class="op">)</span></span></code></pre></div>
+<h3 id="gathering-remaining-arguments">Gathering Remaining
+Arguments</h3>
+<p><code>argparse</code> supports gathering “remaining” arguments at the
+end of the command, e.g., for use in a compiler:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ compiler file1 file2 file3</code></pre>
+<p>To enable this, simply create an argument and mark it as
+<code>remaining</code>. All remaining arguments passed to argparse are
+gathered here.</p>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;compiler&quot;</span><span class="op">);</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;files&quot;</span><span class="op">)</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>remaining<span class="op">();</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> files <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;files&quot;</span><span class="op">);</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> files<span class="op">.</span>size<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="st">&quot; files provided&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span><span class="op">&amp;</span> file <span class="op">:</span> files<span class="op">)</span></span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> file <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">std::</span>logic_error<span class="op">&amp;</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;No files provided&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>When no arguments are provided:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./compiler
+No files provided</code></pre>
+<p>and when multiple arguments are provided:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./compiler foo.txt bar.txt baz.txt
+3 files provided
+foo.txt
+bar.txt
+baz.txt</code></pre>
+<p>The process of gathering remaining arguments plays nicely with
+optional arguments too:</p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;compiler&quot;</span><span class="op">);</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_arguments<span class="op">(</span><span class="st">&quot;-o&quot;</span><span class="op">)</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>string<span class="op">(</span><span class="st">&quot;a.out&quot;</span><span class="op">));</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;files&quot;</span><span class="op">)</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>remaining<span class="op">();</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> output_filename <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span><span class="st">&quot;-o&quot;</span><span class="op">);</span></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Output filename: &quot;</span> <span class="op">&lt;&lt;</span> output_filename <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> files <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;files&quot;</span><span class="op">);</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> files<span class="op">.</span>size<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="st">&quot; files provided&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span><span class="op">&amp;</span> file <span class="op">:</span> files<span class="op">)</span></span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> file <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">std::</span>logic_error<span class="op">&amp;</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;No files provided&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./compiler -o main foo.cpp bar.cpp baz.cpp
+Output filename: main
+3 files provided
+foo.cpp
+bar.cpp
+baz.cpp</code></pre>
+<p><strong><em>NOTE</em></strong>: Remember to place all optional
+arguments BEFORE the remaining argument. If the optional argument is
+placed after the remaining arguments, it too will be deemed
+remaining:</p>
+<pre class="console"><code>foo@bar:/home/dev/$ ./compiler foo.cpp bar.cpp baz.cpp -o main
+5 arguments provided
+foo.cpp
+bar.cpp
+baz.cpp
+-o
+main</code></pre>
+<h3 id="parent-parsers">Parent Parsers</h3>
+<p>A parser may use arguments that could be used by other parsers.</p>
+<p>These shared arguments can be added to a parser which is then used as
+a “parent” for parsers which also need those arguments. One or more
+parent parsers may be added to a parser with <code>.add_parents</code>.
+The positional and optional arguments in each parent is added to the
+child parser.</p>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser surface_parser<span class="op">(</span><span class="st">&quot;surface&quot;</span><span class="op">,</span> <span class="st">&quot;1.0&quot;</span><span class="op">,</span> argparse<span class="op">::</span>default_arguments<span class="op">::</span>none<span class="op">);</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>surface_parser<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--area&quot;</span><span class="op">)</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser floor_parser<span class="op">(</span><span class="st">&quot;floor&quot;</span><span class="op">);</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>floor_parser<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;tile_size&quot;</span><span class="op">).</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>floor_parser<span class="op">.</span>add_parents<span class="op">(</span>surface_parser<span class="op">);</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>floor_parser<span class="op">.</span>parse_args<span class="op">({</span> <span class="st">&quot;./main&quot;</span><span class="op">,</span> <span class="st">&quot;--area&quot;</span><span class="op">,</span> <span class="st">&quot;200&quot;</span><span class="op">,</span> <span class="st">&quot;12&quot;</span> <span class="op">});</span>  <span class="co">// --area = 200, tile_size = 12</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser ceiling_parser<span class="op">(</span><span class="st">&quot;ceiling&quot;</span><span class="op">);</span></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>ceiling_parser<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--color&quot;</span><span class="op">);</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>ceiling_parser<span class="op">.</span>add_parents<span class="op">(</span>surface_parser<span class="op">);</span></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>ceiling_parser<span class="op">.</span>parse_args<span class="op">({</span> <span class="st">&quot;./main&quot;</span><span class="op">,</span> <span class="st">&quot;--color&quot;</span><span class="op">,</span> <span class="st">&quot;gray&quot;</span> <span class="op">});</span>  <span class="co">// --area = 0, --color = &quot;gray&quot;</span></span></code></pre></div>
+<p>Changes made to parents after they are added to a parser are not
+reflected in any child parsers. Completely initialize parent parsers
+before adding them to a parser.</p>
+<p>Each parser will have the standard set of default arguments. Disable
+the default arguments in parent parsers to avoid duplicate help
+output.</p>
+<h3 id="subcommands">Subcommands</h3>
+<p>Many programs split up their functionality into a number of
+sub-commands, for example, the <code>git</code> program can invoke
+sub-commands like <code>git checkout</code>, <code>git add</code>, and
+<code>git commit</code>. Splitting up functionality this way can be a
+particularly good idea when a program performs several different
+functions which require different kinds of command-line arguments.
+<code>ArgumentParser</code> supports the creation of such sub-commands
+with the <code>add_subparser()</code> member function.</p>
+<div class="sourceCode" id="cb47"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;git&quot;</span><span class="op">);</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">// git add subparser</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser add_command<span class="op">(</span><span class="st">&quot;add&quot;</span><span class="op">);</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>  add_command<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Add file contents to the index&quot;</span><span class="op">);</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>  add_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;files&quot;</span><span class="op">)</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Files to add content from. Fileglobs (e.g.  *.c) can be given to add all matching files.&quot;</span><span class="op">)</span></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>remaining<span class="op">();</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">// git commit subparser</span></span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser commit_command<span class="op">(</span><span class="st">&quot;commit&quot;</span><span class="op">);</span></span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>  commit_command<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Record changes to the repository&quot;</span><span class="op">);</span></span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>  commit_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-a&quot;</span><span class="op">,</span> <span class="st">&quot;--all&quot;</span><span class="op">)</span></span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Tell the command to automatically stage files that have been modified and deleted.&quot;</span><span class="op">)</span></span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>  commit_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-m&quot;</span><span class="op">,</span> <span class="st">&quot;--message&quot;</span><span class="op">)</span></span>
+<span id="cb47-22"><a href="#cb47-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Use the given &lt;msg&gt; as the commit message.&quot;</span><span class="op">);</span></span>
+<span id="cb47-23"><a href="#cb47-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-24"><a href="#cb47-24" aria-hidden="true" tabindex="-1"></a>  <span class="co">// git cat-file subparser</span></span>
+<span id="cb47-25"><a href="#cb47-25" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser catfile_command<span class="op">(</span><span class="st">&quot;cat-file&quot;</span><span class="op">);</span></span>
+<span id="cb47-26"><a href="#cb47-26" aria-hidden="true" tabindex="-1"></a>  catfile_command<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Provide content or type and size information for repository objects&quot;</span><span class="op">);</span></span>
+<span id="cb47-27"><a href="#cb47-27" aria-hidden="true" tabindex="-1"></a>  catfile_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-t&quot;</span><span class="op">)</span></span>
+<span id="cb47-28"><a href="#cb47-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Instead of the content, show the object type identified by &lt;object&gt;.&quot;</span><span class="op">);</span></span>
+<span id="cb47-29"><a href="#cb47-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-30"><a href="#cb47-30" aria-hidden="true" tabindex="-1"></a>  catfile_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-p&quot;</span><span class="op">)</span></span>
+<span id="cb47-31"><a href="#cb47-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>help<span class="op">(</span><span class="st">&quot;Pretty-print the contents of &lt;object&gt; based on its type.&quot;</span><span class="op">);</span></span>
+<span id="cb47-32"><a href="#cb47-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-33"><a href="#cb47-33" aria-hidden="true" tabindex="-1"></a>  <span class="co">// git submodule subparser</span></span>
+<span id="cb47-34"><a href="#cb47-34" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser submodule_command<span class="op">(</span><span class="st">&quot;submodule&quot;</span><span class="op">);</span></span>
+<span id="cb47-35"><a href="#cb47-35" aria-hidden="true" tabindex="-1"></a>  submodule_command<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Initialize, update or inspect submodules&quot;</span><span class="op">);</span></span>
+<span id="cb47-36"><a href="#cb47-36" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser submodule_update_command<span class="op">(</span><span class="st">&quot;update&quot;</span><span class="op">);</span></span>
+<span id="cb47-37"><a href="#cb47-37" aria-hidden="true" tabindex="-1"></a>  submodule_update_command<span class="op">.</span>add_description<span class="op">(</span><span class="st">&quot;Update the registered submodules to match what the superproject expects&quot;</span><span class="op">);</span></span>
+<span id="cb47-38"><a href="#cb47-38" aria-hidden="true" tabindex="-1"></a>  submodule_update_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--init&quot;</span><span class="op">)</span></span>
+<span id="cb47-39"><a href="#cb47-39" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb47-40"><a href="#cb47-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb47-41"><a href="#cb47-41" aria-hidden="true" tabindex="-1"></a>  submodule_update_command<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--recursive&quot;</span><span class="op">)</span></span>
+<span id="cb47-42"><a href="#cb47-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb47-43"><a href="#cb47-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb47-44"><a href="#cb47-44" aria-hidden="true" tabindex="-1"></a>  submodule_command<span class="op">.</span>add_subparser<span class="op">(</span>submodule_update_command<span class="op">);</span></span>
+<span id="cb47-45"><a href="#cb47-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-46"><a href="#cb47-46" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_subparser<span class="op">(</span>add_command<span class="op">);</span></span>
+<span id="cb47-47"><a href="#cb47-47" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_subparser<span class="op">(</span>commit_command<span class="op">);</span></span>
+<span id="cb47-48"><a href="#cb47-48" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_subparser<span class="op">(</span>catfile_command<span class="op">);</span></span>
+<span id="cb47-49"><a href="#cb47-49" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_subparser<span class="op">(</span>submodule_command<span class="op">);</span></span>
+<span id="cb47-50"><a href="#cb47-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-51"><a href="#cb47-51" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb47-52"><a href="#cb47-52" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb47-53"><a href="#cb47-53" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb47-54"><a href="#cb47-54" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb47-55"><a href="#cb47-55" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb47-56"><a href="#cb47-56" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb47-57"><a href="#cb47-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb47-58"><a href="#cb47-58" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb47-59"><a href="#cb47-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-60"><a href="#cb47-60" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Use arguments</span></span>
+<span id="cb47-61"><a href="#cb47-61" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./git --help
+Usage: git [-h] {add,cat-file,commit,submodule}
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+
+Subcommands:
+  add           Add file contents to the index
+  cat-file      Provide content or type and size information for repository objects
+  commit        Record changes to the repository
+  submodule     Initialize, update or inspect submodules
+
+foo@bar:/home/dev/$ ./git add --help
+Usage: add [-h] files
+
+Add file contents to the index
+
+Positional arguments:
+  files         Files to add content from. Fileglobs (e.g.  *.c) can be given to add all matching files.
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+
+foo@bar:/home/dev/$ ./git commit --help
+Usage: commit [-h] [--all] [--message VAR]
+
+Record changes to the repository
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+  -a, --all     Tell the command to automatically stage files that have been modified and deleted.
+  -m, --message Use the given &lt;msg&gt; as the commit message.
+
+foo@bar:/home/dev/$ ./git submodule --help
+Usage: submodule [-h] {update}
+
+Initialize, update or inspect submodules
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+
+Subcommands:
+  update        Update the registered submodules to match what the superproject expects</code></pre>
+<p>When a help message is requested from a subparser, only the help for
+that particular parser will be printed. The help message will not
+include parent parser or sibling parser messages.</p>
+<p>Additionally, every parser has the
+<code>.is_subcommand_used("&lt;command_name&gt;")</code> and
+<code>.is_subcommand_used(subparser)</code> member functions to check if
+a subcommand was used.</p>
+<p>Sometimes there may be a need to hide part of the subcommands from
+the user by suppressing information about them in an help message. To do
+this, <code>ArgumentParser</code> contains the method
+<code>.set_suppress(bool suppress)</code>:</p>
+<div class="sourceCode" id="cb49"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser hidden_cmd<span class="op">(</span><span class="st">&quot;hidden&quot;</span><span class="op">);</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>hidden_cmd<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;files&quot;</span><span class="op">).</span>remaining<span class="op">();</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>hidden_cmd<span class="op">.</span>set_suppress<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_subparser<span class="op">(</span>hidden_cmd<span class="op">);</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main -h
+Usage: test [--help] [--version] {}
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+
+foo@bar:/home/dev/$ ./main hidden -h
+Usage: hidden [--help] [--version] files
+
+Positional arguments:
+  files         [nargs: 0 or more]
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits</code></pre>
+<h3 id="getting-argument-and-subparser-instances">Getting Argument and
+Subparser Instances</h3>
+<p><code>Argument</code> and <code>ArgumentParser</code> instances added
+to an <code>ArgumentParser</code> can be retrieved with
+<code>.at&lt;T&gt;()</code>. The default return type is
+<code>Argument</code>.</p>
+<div class="sourceCode" id="cb51"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--dir&quot;</span><span class="op">);</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>at<span class="op">(</span><span class="st">&quot;--dir&quot;</span><span class="op">).</span>default_value<span class="op">(</span><span class="bu">std::</span>string<span class="op">(</span><span class="st">&quot;/home/user&quot;</span><span class="op">));</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_subparser<span class="op">(</span>argparse<span class="op">::</span>ArgumentParser<span class="op">{</span><span class="st">&quot;walk&quot;</span><span class="op">});</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>at<span class="op">&lt;</span>argparse<span class="op">::</span>ArgumentParser<span class="op">&gt;(</span><span class="st">&quot;walk&quot;</span><span class="op">).</span>add_argument<span class="op">(</span><span class="st">&quot;depth&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="parse-known-args">Parse Known Args</h3>
+<p>Sometimes a program may only parse a few of the command-line
+arguments, passing the remaining arguments on to another script or
+program. In these cases, the <code>parse_known_args()</code> function
+can be useful. It works much like <code>parse_args()</code> except that
+it does not produce an error when extra arguments are present. Instead,
+it returns a list of remaining argument strings.</p>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">).</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">).</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;bar&quot;</span><span class="op">);</span></span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> unknown_args <span class="op">=</span></span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_known_args<span class="op">({</span><span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="st">&quot;--foo&quot;</span><span class="op">,</span> <span class="st">&quot;--badger&quot;</span><span class="op">,</span> <span class="st">&quot;BAR&quot;</span><span class="op">,</span> <span class="st">&quot;spam&quot;</span><span class="op">});</span></span>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-12"><a href="#cb52-12" aria-hidden="true" tabindex="-1"></a>  <span class="ot">assert</span><span class="op">(</span>program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;--foo&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb52-13"><a href="#cb52-13" aria-hidden="true" tabindex="-1"></a>  <span class="ot">assert</span><span class="op">(</span>program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span><span class="st">&quot;bar&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="bu">std::</span>string<span class="op">{</span><span class="st">&quot;BAR&quot;</span><span class="op">});</span></span>
+<span id="cb52-14"><a href="#cb52-14" aria-hidden="true" tabindex="-1"></a>  <span class="ot">assert</span><span class="op">((</span>unknown_args <span class="op">==</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;{</span><span class="st">&quot;--badger&quot;</span><span class="op">,</span> <span class="st">&quot;spam&quot;</span><span class="op">}));</span></span>
+<span id="cb52-15"><a href="#cb52-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="hidden-argument-and-alias">Hidden argument and alias</h3>
+<p>It is sometimes desirable to offer an alias for an argument, but
+without it appearing it in the usage. For example, to phase out a
+deprecated wording of an argument while not breaking backwards
+compatible. This can be done with the
+`<code>ArgumentParser::add_hidden_alias_for()</code> method.</p>
+<div class="sourceCode" id="cb53"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> <span class="op">&amp;</span>arg <span class="op">=</span> program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--suppress&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_hidden_alias_for<span class="op">(</span>arg<span class="op">,</span> <span class="st">&quot;--supress&quot;</span><span class="op">);</span> <span class="co">// old misspelled alias</span></span></code></pre></div>
+<p>The <code>Argument::hidden()</code> method can also be used to
+prevent a (generally optional) argument from appearing in the usage or
+help.</p>
+<div class="sourceCode" id="cb54"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--non-documented&quot;</span><span class="op">).</span>flag<span class="op">().</span>hidden<span class="op">();</span></span></code></pre></div>
+<p>This can also be used on positional arguments, but in that later case
+it only makes sense in practice for the last ones.</p>
+<h3 id="argumentparser-in-bool-context">ArgumentParser in bool
+Context</h3>
+<p>An <code>ArgumentParser</code> is <code>false</code> until it (or one
+of its subparsers) have extracted known value(s) with
+<code>.parse_args</code> or <code>.parse_known_args</code>. When using
+<code>.parse_known_args</code>, unknown arguments will not make a parser
+<code>true</code>.</p>
+<h3 id="custom-prefix-characters">Custom Prefix Characters</h3>
+<p>Most command-line options will use <code>-</code> as the prefix,
+e.g. <code>-f/--foo</code>. Parsers that need to support different or
+additional prefix characters, e.g. for options like <code>+f</code> or
+<code>/foo</code>, may specify them using the
+<code>set_prefix_chars()</code>.</p>
+<p>The default prefix character is <code>-</code>.</p>
+<div class="sourceCode" id="cb55"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>set_prefix_chars<span class="op">(</span><span class="st">&quot;-+/&quot;</span><span class="op">);</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;+f&quot;</span><span class="op">);</span></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">);</span></span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;/foo&quot;</span><span class="op">);</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;+f&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;+f    : &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;+f&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;--bar : &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb55-28"><a href="#cb55-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-29"><a href="#cb55-29" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;/foo&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb55-30"><a href="#cb55-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;/foo  : &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;/foo&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb55-31"><a href="#cb55-31" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>  </span>
+<span id="cb55-32"><a href="#cb55-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main +f 5 --bar 3.14f /foo &quot;Hello&quot;
++f    : 5
+--bar : 3.14f
+/foo  : Hello</code></pre>
+<h3 id="custom-assignment-characters">Custom Assignment Characters</h3>
+<p>In addition to prefix characters, custom ‘assign’ characters can be
+set. This setting is used to allow invocations like
+<code>./test --foo=Foo /B:Bar</code>.</p>
+<p>The default assign character is <code>=</code>.</p>
+<div class="sourceCode" id="cb57"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;argparse/argparse.hpp&gt;</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>set_prefix_chars<span class="op">(</span><span class="st">&quot;-+/&quot;</span><span class="op">);</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>set_assign_chars<span class="op">(</span><span class="st">&quot;=:&quot;</span><span class="op">);</span></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">);</span></span>
+<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;/B&quot;</span><span class="op">);</span></span>
+<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb57-15"><a href="#cb57-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb57-16"><a href="#cb57-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb57-17"><a href="#cb57-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb57-18"><a href="#cb57-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb57-19"><a href="#cb57-19" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb57-20"><a href="#cb57-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-21"><a href="#cb57-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb57-22"><a href="#cb57-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;--foo : &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb57-23"><a href="#cb57-23" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb57-24"><a href="#cb57-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-25"><a href="#cb57-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;/B&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb57-26"><a href="#cb57-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;/B    : &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;/B&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb57-27"><a href="#cb57-27" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb57-28"><a href="#cb57-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main --foo=Foo /B:Bar
+--foo : Foo
+/B    : Bar</code></pre>
+<h2 id="further-examples">Further Examples</h2>
+<h3 id="construct-a-json-object-from-a-filename-argument">Construct a
+JSON object from a filename argument</h3>
+<div class="sourceCode" id="cb59"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;json_test&quot;</span><span class="op">);</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;config&quot;</span><span class="op">)</span></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>action<span class="op">([](</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> value<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// read a JSON file</span></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>ifstream stream<span class="op">(</span>value<span class="op">);</span></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>    nlohmann<span class="op">::</span>json config_json<span class="op">;</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>    stream <span class="op">&gt;&gt;</span> config_json<span class="op">;</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> config_json<span class="op">;</span></span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">});</span></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">({</span><span class="st">&quot;./test&quot;</span><span class="op">,</span> <span class="st">&quot;config.json&quot;</span><span class="op">});</span></span>
+<span id="cb59-14"><a href="#cb59-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb59-15"><a href="#cb59-15" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb59-16"><a href="#cb59-16" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb59-17"><a href="#cb59-17" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb59-18"><a href="#cb59-18" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb59-19"><a href="#cb59-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb59-20"><a href="#cb59-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-21"><a href="#cb59-21" aria-hidden="true" tabindex="-1"></a>nlohmann<span class="op">::</span>json config <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span>nlohmann<span class="op">::</span>json<span class="op">&gt;(</span><span class="st">&quot;config&quot;</span><span class="op">);</span></span></code></pre></div>
+<h3 id="positional-arguments-with-compound-toggle-arguments">Positional
+Arguments with Compound Toggle Arguments</h3>
+<div class="sourceCode" id="cb60"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;numbers&quot;</span><span class="op">)</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">3</span><span class="op">)</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-a&quot;</span><span class="op">)</span></span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-b&quot;</span><span class="op">)</span></span>
+<span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">)</span></span>
+<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb60-14"><a href="#cb60-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-15"><a href="#cb60-15" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-c&quot;</span><span class="op">)</span></span>
+<span id="cb60-16"><a href="#cb60-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">2</span><span class="op">)</span></span>
+<span id="cb60-17"><a href="#cb60-17" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>scan<span class="op">&lt;</span><span class="ch">&#39;g&#39;</span><span class="op">,</span> <span class="dt">float</span><span class="op">&gt;();</span></span>
+<span id="cb60-18"><a href="#cb60-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-19"><a href="#cb60-19" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--files&quot;</span><span class="op">)</span></span>
+<span id="cb60-20"><a href="#cb60-20" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>nargs<span class="op">(</span><span class="dv">3</span><span class="op">);</span></span>
+<span id="cb60-21"><a href="#cb60-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-22"><a href="#cb60-22" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb60-23"><a href="#cb60-23" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb60-24"><a href="#cb60-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb60-25"><a href="#cb60-25" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb60-26"><a href="#cb60-26" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb60-27"><a href="#cb60-27" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb60-28"><a href="#cb60-28" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb60-29"><a href="#cb60-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb60-30"><a href="#cb60-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-31"><a href="#cb60-31" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> numbers <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;&gt;(</span><span class="st">&quot;numbers&quot;</span><span class="op">);</span>        <span class="co">// {1, 2, 3}</span></span>
+<span id="cb60-32"><a href="#cb60-32" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> a <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;-a&quot;</span><span class="op">);</span>                               <span class="co">// true</span></span>
+<span id="cb60-33"><a href="#cb60-33" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> b <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;-b&quot;</span><span class="op">);</span>                               <span class="co">// true</span></span>
+<span id="cb60-34"><a href="#cb60-34" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> c <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;&gt;(</span><span class="st">&quot;-c&quot;</span><span class="op">);</span>                 <span class="co">// {3.14f, 2.718f}</span></span>
+<span id="cb60-35"><a href="#cb60-35" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> files <span class="op">=</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;(</span><span class="st">&quot;--files&quot;</span><span class="op">);</span>  <span class="co">// {&quot;a.txt&quot;, &quot;b.txt&quot;, &quot;c.txt&quot;}</span></span>
+<span id="cb60-36"><a href="#cb60-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-37"><a href="#cb60-37" aria-hidden="true" tabindex="-1"></a><span class="co">/// Some code that prints parsed arguments</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main 1 2 3 -abc 3.14 2.718 --files a.txt b.txt c.txt
+numbers = {1, 2, 3}
+a = true
+b = true
+c = {3.14, 2.718}
+files = {&quot;a.txt&quot;, &quot;b.txt&quot;, &quot;c.txt&quot;}</code></pre>
+<h3 id="restricting-the-set-of-values-for-an-argument">Restricting the
+set of values for an argument</h3>
+<div class="sourceCode" id="cb62"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;input&quot;</span><span class="op">)</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="bu">std::</span>string<span class="op">{</span><span class="st">&quot;baz&quot;</span><span class="op">})</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>choices<span class="op">(</span><span class="st">&quot;foo&quot;</span><span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">,</span> <span class="st">&quot;baz&quot;</span><span class="op">);</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb62-15"><a href="#cb62-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-16"><a href="#cb62-16" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> input <span class="op">=</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;input&quot;</span><span class="op">);</span></span>
+<span id="cb62-17"><a href="#cb62-17" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main fex
+Invalid argument &quot;fex&quot; - allowed options: {foo, bar, baz}</code></pre>
+<p>Using choices also works with integer types, e.g.,</p>
+<div class="sourceCode" id="cb64"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;input&quot;</span><span class="op">)</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>default_value<span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span>choices<span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">4</span><span class="op">,</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a><span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>exit<span class="op">(</span><span class="dv">1</span><span class="op">);</span></span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> input <span class="op">=</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;input&quot;</span><span class="op">);</span></span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> input <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./main 6
+Invalid argument &quot;6&quot; - allowed options: {0, 1, 2, 3, 4, 5}</code></pre>
+<h3 id="using-optionvalue-syntax">Using <code>option=value</code>
+syntax</h3>
+<div class="sourceCode" id="cb66"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;argparse.hpp&quot;</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cassert&gt;</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>  argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">);</span></span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">).</span>implicit_value<span class="op">(</span><span class="kw">true</span><span class="op">).</span>default_value<span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>  program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">);</span></span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>parse_args<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">catch</span> <span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>exception<span class="op">&amp;</span> err<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> err<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> program<span class="op">;</span></span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;--foo&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;--foo: &quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>boolalpha <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;(</span><span class="st">&quot;--foo&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="op">(</span>program<span class="op">.</span>is_used<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;--bar: &quot;</span> <span class="op">&lt;&lt;</span> program<span class="op">.</span>get<span class="op">(</span><span class="st">&quot;--bar&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span>  </span>
+<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<pre class="console"><code>foo@bar:/home/dev/$ ./test --bar=BAR --foo
+--foo: true
+--bar: BAR</code></pre>
+<h3 id="advanced-usage-formatting">Advanced usage formatting</h3>
+<p>By default usage is reported on a single line.</p>
+<p>The <code>ArgumentParser::set_usage_max_line_width(width)</code>
+method can be used to display the usage() on multiple lines, by defining
+the maximum line width.</p>
+<p>It can be combined with a call to
+<code>ArgumentParser::set_usage_break_on_mutex()</code> to ask grouped
+mutually exclusive arguments to be displayed on a separate line.</p>
+<p><code>ArgumentParser::add_usage_newline()</code> can also be used to
+force the next argument to be displayed on a new line in the usage
+output.</p>
+<p>The following snippet</p>
+<div class="sourceCode" id="cb68"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>    argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;program&quot;</span><span class="op">);</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>set_usage_max_line_width<span class="op">(</span><span class="dv">80</span><span class="op">);</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>set_usage_break_on_mutex<span class="op">();</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--quite-long-option-name&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> <span class="op">&amp;</span>group <span class="op">=</span> program<span class="op">.</span>add_mutually_exclusive_group<span class="op">();</span></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>    group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-a&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>    group<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-b&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-c&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--another-one&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-d&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--yet-another-long-one&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-12"><a href="#cb68-12" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--will-go-on-new-line&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-13"><a href="#cb68-13" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_usage_newline<span class="op">();</span></span>
+<span id="cb68-14"><a href="#cb68-14" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;--new-line&quot;</span><span class="op">).</span>flag<span class="op">();</span></span>
+<span id="cb68-15"><a href="#cb68-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> program<span class="op">.</span>usage<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>will display:</p>
+<pre class="console"><code>Usage: program [--help] [--version] [--quite-long-option-name]
+               [[-a]|[-b]]
+               [-c] [--another-one] [-d] [--yet-another-long-one]
+               [--will-go-on-new-line]
+               [--new-line]</code></pre>
+<p>Furthermore arguments can be separated into several groups by calling
+<code>ArgumentParser::add_group(group_name)</code>. Only optional
+arguments should be specified after the first call to add_group().</p>
+<div class="sourceCode" id="cb70"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>    argparse<span class="op">::</span>ArgumentParser program<span class="op">(</span><span class="st">&quot;program&quot;</span><span class="op">);</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>set_usage_max_line_width<span class="op">(</span><span class="dv">80</span><span class="op">);</span></span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-a&quot;</span><span class="op">).</span>flag<span class="op">().</span>help<span class="op">(</span><span class="st">&quot;help_a&quot;</span><span class="op">);</span></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_group<span class="op">(</span><span class="st">&quot;Advanced options&quot;</span><span class="op">);</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>    program<span class="op">.</span>add_argument<span class="op">(</span><span class="st">&quot;-b&quot;</span><span class="op">).</span>flag<span class="op">().</span>help<span class="op">(</span><span class="st">&quot;help_b&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>will display:</p>
+<pre class="console"><code>Usage: program [--help] [--version] [-a]
+
+Advanced options:
+               [-b]</code></pre>
+<h2 id="developer-notes">Developer Notes</h2>
+<h3 id="copying-and-moving">Copying and Moving</h3>
+<p><code>argparse::ArgumentParser</code> is intended to be used in a
+single function - setup everything and parse arguments in one place.
+Attempting to move or copy invalidates internal references (issue #260).
+Thus, starting with v3.0, <code>argparse::ArgumentParser</code> copy and
+move constructors are marked as <code>delete</code>.</p>
+<h2 id="cmake-integration">CMake Integration</h2>
+<p>Use the latest argparse in your CMake project without copying any
+content.</p>
+<div class="sourceCode" id="cb72"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> <span class="dt">3.14</span>)</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a><span class="kw">PROJECT</span>(myproject)</span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a><span class="co"># fetch latest argparse</span></span>
+<span id="cb72-6"><a href="#cb72-6" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>(<span class="im">FetchContent</span>)</span>
+<span id="cb72-7"><a href="#cb72-7" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb72-8"><a href="#cb72-8" aria-hidden="true" tabindex="-1"></a>    argparse</span>
+<span id="cb72-9"><a href="#cb72-9" aria-hidden="true" tabindex="-1"></a>    <span class="ot">GIT_REPOSITORY</span> https://github.com/p-ranav/argparse.git</span>
+<span id="cb72-10"><a href="#cb72-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb72-11"><a href="#cb72-11" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_MakeAvailable</span>(argparse)</span>
+<span id="cb72-12"><a href="#cb72-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-13"><a href="#cb72-13" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="bn">myproject</span> main.cpp)</span>
+<span id="cb72-14"><a href="#cb72-14" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">myproject</span> argparse)</span></code></pre></div>
+<h2 id="bazel-integration">Bazel Integration</h2>
+<p>Add an <code>http_archive</code> in WORKSPACE.bazel, for example</p>
+<pre class="starlark"><code>http_archive(
+    name = &quot;argparse&quot;,
+    sha256 = &quot;674e724c2702f0bfef1619161815257a407e1babce30d908327729fba6ce4124&quot;,
+    strip_prefix = &quot;argparse-3.1&quot;,
+    url = &quot;https://github.com/p-ranav/argparse/archive/refs/tags/v3.1.zip&quot;,
+)</code></pre>
+<h2 id="building-installing-and-testing">Building, Installing, and
+Testing</h2>
+<div class="sourceCode" id="cb74"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clone the repository</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/p-ranav/argparse</span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> argparse</span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the tests</span></span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DARGPARSE_BUILD_SAMPLES</span><span class="op">=</span>on <span class="at">-DARGPARSE_BUILD_TESTS</span><span class="op">=</span>on ..</span>
+<span id="cb74-9"><a href="#cb74-9" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span>
+<span id="cb74-10"><a href="#cb74-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-11"><a href="#cb74-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tests</span></span>
+<span id="cb74-12"><a href="#cb74-12" aria-hidden="true" tabindex="-1"></a><span class="ex">./test/tests</span></span>
+<span id="cb74-13"><a href="#cb74-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-14"><a href="#cb74-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Install the library</span></span>
+<span id="cb74-15"><a href="#cb74-15" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> make install</span></code></pre></div>
+<h2 id="supported-toolchains">Supported Toolchains</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Compiler</th>
+<th style="text-align: left;">Standard Library</th>
+<th style="text-align: left;">Test Environment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">GCC &gt;= 8.3.0</td>
+<td style="text-align: left;">libstdc++</td>
+<td style="text-align: left;">Ubuntu 18.04</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Clang &gt;= 7.0.0</td>
+<td style="text-align: left;">libc++</td>
+<td style="text-align: left;">Xcode 10.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MSVC &gt;= 16.8</td>
+<td style="text-align: left;">Microsoft STL</td>
+<td style="text-align: left;">Visual Studio 2019</td>
+</tr>
+</tbody>
+</table>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions are welcome, have a look at the <a
+href="CONTRIBUTING.md">CONTRIBUTING.md</a> document for more
+information.</p>
+<h2 id="license">License</h2>
+<p>The project is available under the <a
+href="https://opensource.org/licenses/MIT">MIT</a> license.</p>
