@@ -16,4 +16,7 @@ void build(Solution &s)
     t.Public += sw::Shared, "HWY_SHARED_DEFINE"_def;
     /*t += sw::Shared, "hwy_EXPORTS"_def;
     t += sw::Shared, "hwy_contrib_EXPORTS"_def;*/
+
+    // clang only? darwin?
+    t.Public += "HWY_DISABLED_TARGETS=HWY_ALL_SVE"_def;
 }

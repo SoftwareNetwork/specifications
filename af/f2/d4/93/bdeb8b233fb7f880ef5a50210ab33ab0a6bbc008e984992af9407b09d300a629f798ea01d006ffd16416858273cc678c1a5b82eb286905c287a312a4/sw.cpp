@@ -4,6 +4,7 @@ void build(Solution &s)
     p += Git("https://github.com/ArtifexSoftware/thirdparty-lcms2", "lcms{M}.{m}{po}");
 
     auto &t = p.addTarget<Library>("lcms2");
+    t += cpp17;
     t.Public += sw::Shared, "CMS_DLL"_def;
     t += sw::Shared, "CMS_DLL_BUILD"_def;
     t += "include/.*\\.h"_rr;
