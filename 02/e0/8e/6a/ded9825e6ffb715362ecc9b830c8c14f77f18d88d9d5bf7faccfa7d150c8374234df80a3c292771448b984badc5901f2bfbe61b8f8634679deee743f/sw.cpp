@@ -280,6 +280,7 @@ void build(Solution &s)
     {
         highgui.Public += imgcodecs;
         highgui -=
+            "modules/highgui/src/window_framebuffer.cpp",
             "modules/highgui/src/window_winrt.cpp",
             "modules/highgui/src/window_winrt_bridge.cpp"
             ;
