@@ -1,0 +1,281 @@
+<h1 id="ngtcp2">ngtcp2</h1>
+<p>"Call it TCP/2. One More Time."</p>
+<p>ngtcp2 project is an effort to implement <a
+href="https://datatracker.ietf.org/doc/html/rfc9000">RFC9000</a> QUIC
+protocol.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://nghttp2.org/ngtcp2/">Online documentation</a> is
+available.</p>
+<h2 id="public-test-server">Public test server</h2>
+<p>The following endpoints are available to try out ngtcp2
+implementation:</p>
+<ul>
+<li><p><a
+href="https://nghttp2.org:4433">https://nghttp2.org:4433</a></p></li>
+<li><p><a href="https://nghttp2.org:4434">https://nghttp2.org:4434</a>
+(requires address validation token)</p></li>
+<li><p><a href="https://nghttp2.org">https://nghttp2.org</a> (powered by
+<a
+href="https://nghttp2.org/documentation/nghttpx.1.html">nghttpx</a>)</p>
+<p>This endpoints sends Alt-Svc header field to clients if it is
+accessed via HTTP/1.1 or HTTP/2 to tell them that HTTP/3 is available at
+UDP 443.</p></li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<p>The libngtcp2 C library itself does not depend on any external
+libraries. The example client, and server are written in C++20, and
+should compile with the modern C++ compilers (e.g., clang &gt;= 11.0, or
+gcc &gt;= 11.0).</p>
+<p>The following packages are required to configure the build
+system:</p>
+<ul>
+<li>pkg-config &gt;= 0.20</li>
+<li>autoconf</li>
+<li>automake</li>
+<li>autotools-dev</li>
+<li>libtool</li>
+</ul>
+<p>To build sources under the examples directory, libev and nghttp3 are
+required:</p>
+<ul>
+<li>libev</li>
+<li><a href="https://github.com/ngtcp2/nghttp3">nghttp3</a> for
+HTTP/3</li>
+</ul>
+<p>To enable <a href="https://datatracker.ietf.org/doc/html/rfc8879">TLS
+Certificate Compression</a> in bsslclient and bsslserver (BoringSSL
+(aws-lc) examples client and server), the following library is
+required:</p>
+<ul>
+<li>libbrotli-dev &gt;= 1.0.9</li>
+</ul>
+<p>ngtcp2 crypto helper library, and client and server under examples
+directory require at least one of the following TLS backends:</p>
+<ul>
+<li><a
+href="https://github.com/quictls/openssl/tree/OpenSSL_1_1_1w+quic">quictls</a></li>
+<li>GnuTLS &gt;= 3.7.5</li>
+<li>BoringSSL (commit 294ab9730c570213b496cfc2fc14b3c0bfcd4bcc); or
+aws-lc &gt;= 1.39.0</li>
+<li>Picotls (commit bbcdbe6dc31ec5d4b72a7beece4daf58098bad42)</li>
+<li>wolfSSL &gt;= 5.5.0</li>
+<li>LibreSSL &gt;= v3.9.2</li>
+</ul>
+<h2 id="before-building-from-git">Before building from git</h2>
+<p>When build from git, run the following command to pull
+submodules:</p>
+<pre class="shell"><code>$ git submodule update --init</code></pre>
+<h2 id="build-with-wolfssl">Build with wolfSSL</h2>
+<pre class="shell"><code>$ git clone --depth 1 -b v5.7.6-stable https://github.com/wolfSSL/wolfssl
+$ cd wolfssl
+$ autoreconf -i
+$ # For wolfSSL &lt; v5.6.6, append --enable-quic.
+$ ./configure --prefix=$PWD/build \
+    --enable-all --enable-aesni --enable-harden --enable-keylog-export \
+    --disable-ech
+$ make -j$(nproc)
+$ make install
+$ cd ..
+$ git clone --recursive https://github.com/ngtcp2/nghttp3
+$ cd nghttp3
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only
+$ make -j$(nproc) check
+$ make install
+$ cd ..
+$ git clone --recursive https://github.com/ngtcp2/ngtcp2
+$ cd ngtcp2
+$ autoreconf -i
+$ # For Mac users who have installed libev with MacPorts, append
+$ # LIBEV_CFLAGS=&quot;-I/opt/local/include&quot; LIBEV_LIBS=&quot;-L/opt/local/lib -lev&quot;
+$ ./configure PKG_CONFIG_PATH=$PWD/../wolfssl/build/lib/pkgconfig:$PWD/../nghttp3/build/lib/pkgconfig \
+    --with-wolfssl
+$ make -j$(nproc) check</code></pre>
+<h2 id="build-with-boringssl">Build with BoringSSL</h2>
+<pre class="shell"><code>$ git clone https://boringssl.googlesource.com/boringssl
+$ cd boringssl
+$ git checkout 294ab9730c570213b496cfc2fc14b3c0bfcd4bcc
+$ cmake -B build -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+$ make -j$(nproc) -C build
+$ cd ..
+$ git clone --recursive https://github.com/ngtcp2/nghttp3
+$ cd nghttp3
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only
+$ make -j$(nproc) check
+$ make install
+$ cd ..
+$ git clone --recursive  https://github.com/ngtcp2/ngtcp2
+$ cd ngtcp2
+$ autoreconf -i
+$ # For Mac users who have installed libev with MacPorts, append
+$ # LIBEV_CFLAGS=&quot;-I/opt/local/include&quot; LIBEV_LIBS=&quot;-L/opt/local/lib -lev&quot;
+$ ./configure PKG_CONFIG_PATH=$PWD/../nghttp3/build/lib/pkgconfig \
+    BORINGSSL_LIBS=&quot;-L$PWD/../boringssl/build/ssl -lssl -L$PWD/../boringssl/build/crypto -lcrypto&quot; \
+    BORINGSSL_CFLAGS=&quot;-I$PWD/../boringssl/include&quot; \
+    --with-boringssl
+$ make -j$(nproc) check</code></pre>
+<h2 id="build-with-aws-lc">Build with aws-lc</h2>
+<pre class="shell"><code>$ git clone --depth 1 -b v1.46.1 https://github.com/aws/aws-lc
+$ cd aws-lc
+$ cmake -B build -DDISABLE_GO=ON
+$ make -j$(nproc) -C build
+$ cd ..
+$ git clone --recursive https://github.com/ngtcp2/nghttp3
+$ cd nghttp3
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only
+$ make -j$(nproc) check
+$ make install
+$ cd ..
+$ git clone --recursive  https://github.com/ngtcp2/ngtcp2
+$ cd ngtcp2
+$ autoreconf -i
+$ # For Mac users who have installed libev with MacPorts, append
+$ # LIBEV_CFLAGS=&quot;-I/opt/local/include&quot; LIBEV_LIBS=&quot;-L/opt/local/lib -lev&quot;
+$ ./configure PKG_CONFIG_PATH=$PWD/../nghttp3/build/lib/pkgconfig \
+    BORINGSSL_CFLAGS=&quot;-I$PWD/../aws-lc/include&quot; \
+    BORINGSSL_LIBS=&quot;-L$PWD/../aws-lc/build/ssl -lssl -L$PWD/../aws-lc/build/crypto -lcrypto&quot; \
+    --with-boringssl
+$ make -j$(nproc) check</code></pre>
+<p>Build with libressl -----------------</p>
+<pre class="shell"><code>$ git clone --depth 1 -b v4.0.0 https://github.com/libressl/portable.git libressl
+$ cd libressl
+$ # Workaround autogen.sh failure
+$ export LIBRESSL_GIT_OPTIONS=&quot;-b libressl-v4.0.0&quot;
+$ ./autogen.sh
+$ ./configure --prefix=$PWD/build
+$ make -j$(nproc) install
+$ cd ..
+$ git clone --recursive https://github.com/ngtcp2/nghttp3
+$ cd nghttp3
+$ autoreconf -i
+$ ./configure --prefix=$PWD/build --enable-lib-only
+$ make -j$(nproc) check
+$ make install
+$ cd ..
+$ git clone --recursive  https://github.com/ngtcp2/ngtcp2
+$ cd ngtcp2
+$ autoreconf -i
+$ # For Mac users who have installed libev with MacPorts, append
+$ # LIBEV_CFLAGS=&quot;-I/opt/homebrew/Cellar/libev/4.33/include&quot; LIBEV_LIBS=&quot;-L/opt/homebrew/Cellar/libev/4.33/lib -lev&quot;
+$ ./configure PKG_CONFIG_PATH=$PWD/../nghttp3/build/lib/pkgconfig:$PWD/../libressl/build/lib/pkgconfig
+$ make -j$(nproc) check</code></pre>
+<h2 id="clientserver">Client/Server</h2>
+<p>After successful build, the client and server executable should be
+found under examples directory. They talk HTTP/3.</p>
+<h3 id="client">Client</h3>
+<pre class="shell"><code>$ examples/wsslclient [OPTIONS] &lt;HOST&gt; &lt;PORT&gt; [&lt;URI&gt;...]</code></pre>
+<p>The notable options are:</p>
+<ul>
+<li><code>-d</code>, <code>--data=&lt;PATH&gt;</code>: Read data from
+&lt;PATH&gt; and send it to a peer.</li>
+</ul>
+<h3 id="server">Server</h3>
+<pre class="shell"><code>$ examples/wsslserver [OPTIONS] &lt;ADDR&gt; &lt;PORT&gt; &lt;PRIVATE_KEY_FILE&gt; &lt;CERTIFICATE_FILE&gt;</code></pre>
+<p>The notable options are:</p>
+<ul>
+<li><code>-V</code>, <code>--validate-addr</code>: Enforce stateless
+address validation.</li>
+</ul>
+<h2 id="h09wsslclienth09wsslserver">H09wsslclient/H09wsslserver</h2>
+<p>There are h09wsslclient and h09wsslserver which speak HTTP/0.9. They
+are written just for <a
+href="https://github.com/marten-seemann/quic-interop-runner">quic-interop-runner</a>.
+They share the basic functionalities with HTTP/3 client and server but
+have less functions (e.g., h09wsslclient does not have a capability to
+send request body, and h09wsslserver does not understand numeric request
+path, like /1000).</p>
+<h2 id="resumption-and-0-rtt">Resumption and 0-RTT</h2>
+<p>In order to resume a session, a session ticket, and a transport
+parameters must be fetched from server. First, run examples/wsslclient
+with --session-file, and --tp-file options which specify a path to
+session ticket, and transport parameter files respectively to save them
+locally.</p>
+<p>Once these files are available, run examples/wsslclient with the same
+arguments again. You will see that session is resumed in your log if
+resumption succeeds. Resuming session makes server's first Handshake
+packet pretty small because it does not send its certificates.</p>
+<p>To send 0-RTT data, after making sure that resumption works, use -d
+option to specify a file which contains data to send.</p>
+<h2 id="token-not-something-included-in-retry-packet">Token (Not
+something included in Retry packet)</h2>
+<p>QUIC server might send a token to client after connection has been
+established. Client can send this token in subsequent connection to the
+server. Server verifies the token and if it succeeds, the address
+validation completes and lifts some restrictions on server which might
+speed up transfer. In order to save and/or load a token, use
+--token-file option of examples/wsslclient. The given file is
+overwritten if it already exists when storing a token.</p>
+<h2 id="crypto-helper-library">Crypto helper library</h2>
+<p>In order to make TLS stack integration less painful, we provide a
+crypto helper library which offers the basic crypto operations.</p>
+<p>The header file exists under crypto/includes/ngtcp2 directory.</p>
+<p>Each library file is built for a particular TLS backend. The
+available crypto helper libraries are:</p>
+<ul>
+<li>libngtcp2_crypto_quictls: Use quictls and libressl as TLS
+backend</li>
+<li>libngtcp2_crypto_gnutls: Use GnuTLS as TLS backend</li>
+<li>libngtcp2_crypto_boringssl: Use BoringSSL and aws-lc as TLS
+backend</li>
+<li>libngtcp2_crypto_picotls: Use Picotls as TLS backend</li>
+<li>libngtcp2_crypto_wolfssl: Use wolfSSL as TLS backend</li>
+</ul>
+<p>Because BoringSSL and Picotls are an unversioned product, we only
+tested their particular revision. See Requirements section above.</p>
+<p>We use Picotls with OpenSSL as crypto backend.</p>
+<p>The examples directory contains client and server that are linked to
+those crypto helper libraries and TLS backends. They are only built if
+their corresponding crypto helper library is built:</p>
+<ul>
+<li>qtlsclient: quictls(libressl) client</li>
+<li>qtlsserver: quictls(libressl) server</li>
+<li>gtlsclient: GnuTLS client</li>
+<li>gtlsserver: GnuTLS server</li>
+<li>bsslclient: BoringSSL(aws-lc) client</li>
+<li>bsslserver: BoringSSL(aws-lc) server</li>
+<li>ptlsclient: Picotls client</li>
+<li>ptlsserver: Picotls server</li>
+<li>wsslclient: wolfSSL client</li>
+<li>wsslserver: wolfSSL server</li>
+</ul>
+<h2 id="quic-protocol-extensions">QUIC protocol extensions</h2>
+<p>The library implements the following QUIC protocol extensions:</p>
+<ul>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc9221">An
+Unreliable Datagram Extension to QUIC</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc9287">Greasing the
+QUIC Bit</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc9368">Compatible
+Version Negotiation for QUIC</a></li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc9369">QUIC Version
+2</a></li>
+</ul>
+<h2 id="configuring-wireshark-for-quic">Configuring Wireshark for
+QUIC</h2>
+<p><a href="https://www.wireshark.org/download.html">Wireshark</a> can
+be configured to analyze QUIC traffic using the following steps:</p>
+<ol type="1">
+<li><p>Set <em>SSLKEYLOGFILE</em> environment variable:</p>
+<pre class="shell"><code>$ export SSLKEYLOGFILE=quic_keylog_file</code></pre></li>
+<li><p>Set the port that QUIC uses</p>
+<p>Go to <em>Preferences-&gt;Protocols-&gt;QUIC</em> and set the port
+the program listens to. In the case of the example application this
+would be the port specified on the command line.</p></li>
+<li><p>Set Pre-Master-Secret logfile</p>
+<p>Go to <em>Preferences-&gt;Protocols-&gt;TLS</em> and set the
+<em>Pre-Master-Secret log file</em> to the same value that was specified
+for <em>SSLKEYLOGFILE</em>.</p></li>
+<li><p>Choose the correct network interface for capturing</p>
+<p>Make sure you choose the correct network interface for capturing. For
+example, if using localhost choose the <em>loopback</em> network
+interface on macos.</p></li>
+<li><p>Create a filter</p>
+<p>Create A filter for the udp.port and set the port to the port the
+application is listening to. For example:</p>
+<pre class="text"><code>udp.port == 7777</code></pre></li>
+</ol>
+<h2 id="license">License</h2>
+<p>The MIT License</p>
+<p>Copyright (c) 2016 ngtcp2 contributors</p>
