@@ -3,6 +3,21 @@ void build(Solution &s)
     auto &p = s.addProject("gnome.glib", "2.84.0");
     p += RemoteFile("https://ftp.gnome.org/pub/gnome/sources/glib/{M}.{m}/glib-{v}.tar.xz");
 
+    auto gen_visibility_macros = [&](auto &&t, auto &&what, auto &&arg1, auto &&output) {
+        auto c = t.addCommand();
+        c << cmd::prog("org.sw.demo.python.exe"_dep)
+            << cmd::in("tools/gen-visibility-macros.py")
+            << (std::string)t.Variables["PACKAGE_VERSION"]
+            << what
+            << arg1
+            << cmd::out(output)
+            ;
+    };
+    auto gen_visibility = [&](auto &&t) {
+        auto n = t.getPackage().getPath().back();
+        gen_visibility_macros(t, "visibility-macros", boost::to_upper_copy(n), std::format("{}/{}-visibility.h", n, n));
+    };
+
     auto &glib = p.addTarget<LibraryTarget>("glib");
     {
         glib.ExportAllSymbols = true;
@@ -22,6 +37,8 @@ void build(Solution &s)
         glib -=
             "glib/gtester.c",
             "glib/win_iconv.c",
+            "glib/gthread-posix.c",
+            "glib/gthread-win32.c",
             "glib/gnulib/isnan.c",
             "glib/gstdio-private.c",
             "glib/gwin32-private.c",
@@ -35,9 +52,12 @@ void build(Solution &s)
                 "glib/dirent/.*"_rr;
             glib.Public +=
                 "glib/gnulib"_id;
+            //glib -= "glib/gspawn-win32.c";
         }
         else
-            glib -= "glib/gspawn.c";
+        {
+            glib -= "glib/gspawn-posix.c";
+        }
         if (glib.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
             glib += "glib/gnulib"_id;
@@ -107,8 +127,8 @@ void build(Solution &s)
         glib.Variables["gint64_format"] = "\"lli\"";
         glib.Variables["guint64_format"] = "\"llu\"";
 
-        glib.Variables["gint64_constant"] = "(val##L)";
-        glib.Variables["guint64_constant"] = "(val##UL)";
+        glib.Variables["gint64_constant"] = "(val##LL)";
+        glib.Variables["guint64_constant"] = "(val##ULL)";
 
         glib.Variables["g_pollin"] = "1";
         glib.Variables["g_pollout"] = "4";
@@ -152,6 +172,9 @@ void build(Solution &s)
 
         glib.Variables["gintbits"] = "32";
 
+        gen_visibility_macros(glib, "versions-macros", cmd::in("glib/gversionmacros.h.in"), "glib/gversionmacros.h");
+        gen_visibility(glib);
+
         if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
             glib.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
@@ -162,7 +185,7 @@ void build(Solution &s)
 
             glib.Variables["gintptr_modifier"] = "G_GINT64_MODIFIER";
             glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
-            glib.Variables["guintptr_format"] = "G_GINT64_CONSTANT(val)";
+            glib.Variables["guintptr_format"] = "G_GUINT64_FORMAT";
 
             glib.Variables["glib_os"] = "#define G_OS_UNIX";
             glib.Variables["g_threads_impl_def"] = "POSIX";
@@ -188,9 +211,10 @@ void build(Solution &s)
         }
         else // win32
         {
-            glib.Variables["g_pid_type"] = "void*";
             glib.CompileOptions.insert("/utf-8");
+            glib.Variables["g_pid_type"] = "void*";
             glib.Variables["glongbits"] = "32";
+            glib.Variables["glib_msize_type"] = "INT64";
             if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64 || glib.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
             {
                 glib.Variables["glib_intptr_type_define"] = "long long";
@@ -198,7 +222,7 @@ void build(Solution &s)
 
                 glib.Variables["gintptr_modifier"] = "G_GINT64_MODIFIER";
                 glib.Variables["gintptr_format"] = "G_GINT64_FORMAT";
-                glib.Variables["guintptr_format"] = "G_GINT64_CONSTANT(val)";
+                glib.Variables["guintptr_format"] = "G_GUINT64_FORMAT";
             }
             else
             {
@@ -207,8 +231,11 @@ void build(Solution &s)
 
                 glib.Variables["gintptr_modifier"] = "G_GINT32_MODIFIER";
                 glib.Variables["gintptr_format"] = "G_GINT32_FORMAT";
-                glib.Variables["guintptr_format"] = "G_GINT32_CONSTANT(val)";
+                glib.Variables["guintptr_format"] = "G_GINT32_FORMAT";
             }
+
+            glib.Variables["gint64_constant"] = "((val##LL))";
+            glib.Variables["guint64_constant"] = "((val##ULL))";
 
             glib.Variables["g_module_suffix"] = "dll";
             glib.Variables["g_dir_separator"] = "\\\\";
@@ -222,9 +249,8 @@ void build(Solution &s)
 
             glib -=
                 "glib/giounix.c",
-                "glib/gspawn.c",
-                "glib/gthread-posix.c",
-                "glib/glib-unix.c";
+                "glib/glib-unix.c"
+                ;
 
             glib +=
                 "Ole32.lib"_slib,
@@ -471,6 +497,7 @@ HMODULE glib_dll;
         gobject.Public += "org.sw.demo.libffi"_dep;
         gobject.Public += glib;
         gobject.writeFileOnce(gobject.BinaryPrivateDir / "config.h");
+        gen_visibility(gobject);
 
         for (auto ext : {"h", "c"})
         {
@@ -546,8 +573,8 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
         gmodule.Variables["G_MODULE_BROKEN_RTLD_GLOBAL"] = 0;
 
         gmodule.configureFile("gmodule/gmoduleconf.h.in", "gmoduleconf.h");
-
         gmodule.writeFileOnce(gmodule.BinaryPrivateDir / "config.h");
+        gen_visibility(gmodule);
     }
 
     auto &gio = p.addTarget<LibraryTarget>("gio");
@@ -572,7 +599,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
             "gio"_id;
         gio += IncludeDirectory(gio.BinaryDir / "gio");
 
-        gio += "subprojects/gvdb/.*"_rr;
+        gio += "subprojects/gvdb/gvdb/.*"_r;
         gio += "subprojects/gvdb"_idir;
 
         gio += "gio/.*\\.[hc]"_r;
@@ -697,6 +724,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio += "resolv"_slib;
         }
 
+        gio += "GLIB_RUNSTATEDIR=\"/var\""_def; // /var/run? /run?
+
         //gio.CompileOptions.push_back("/W0");
 
         //gio.Protected += gvdb;
@@ -707,8 +736,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio.Public += "org.sw.demo.tronkko.dirent-master"_dep;
 
         gio.writeFileOnce(gio.BinaryPrivateDir / "config.h");
-
         gio.configureFile("gio/gnetworking.h.in", "gio/gnetworking.h");
+        gen_visibility(gio);
 
         for (auto ext : {"h", "c"})
         {
@@ -741,6 +770,11 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             "'#   include <gio/gunixfdlist.h>\\n'");
         gio.patch("gio/gio-launch-desktop.c", "G_STATIC_ASSERT (LOG_", "//G_STATIC_ASSERT  (LOG_");
 
+        gio.pushBackToFileOnce("gio/gio.h", "#include <gio/gsandbox.h>");
+        gio.patch("gio/xdgmime/xdgmimeint.c", "__attribute__((unused))", "");
+        gio.patch("gio/xdgmime/xdgmime.c", "__attribute__((unused))", "");
+        gio.patch("gio/xdgmime/xdgmime.c", "__attribute__((__unused__))", "");
+
         {
             auto c = gio.addCommand();
             c << cmd::prog("org.sw.demo.python.exe-3"_dep)
@@ -756,6 +790,14 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
                 ;
         }
 
+        if (!gio.getBuildSettings().TargetOS.isApple())
+        {
+            gio -= "gio/gosxnetworkmonitor.c";
+        }
+        if (gio.getBuildSettings().TargetOS.Type != OSType::Linux)
+        {
+            //gio -= "gio/gdbusaddress.c";
+        }
         if (gio.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
             auto c = gio.addCommand();
@@ -815,7 +857,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             "gio/glib-compile-resources.c";
         rc += "GIO_COMPILATION"_def;
         rc += gio;
-        rc += "subprojects/gvdb/.*"_rr;
+        rc += "subprojects/gvdb/gvdb/.*"_r;
         rc += "subprojects/gvdb"_idir;
         rc.writeFileOnce(rc.BinaryPrivateDir / "config.h");
 
