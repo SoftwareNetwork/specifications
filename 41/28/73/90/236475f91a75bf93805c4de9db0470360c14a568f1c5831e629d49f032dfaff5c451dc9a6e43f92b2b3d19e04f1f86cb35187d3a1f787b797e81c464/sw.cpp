@@ -218,6 +218,7 @@ void build(Solution &s)
 
         upb -= ".*test.*"_rr;
         upb -= "upb/conform.*"_rr;
+        upb -= "upb/.*_benchmark.cc"_rr;
 
         //upb.Public += "cmake"_idir;
         upb.Public += "upb/reflection/stage0"_idir;
@@ -229,16 +230,6 @@ void build(Solution &s)
 
         //upb.Public += "org.sw.demo.google.protocolbuffers.utf8_range-main"_dep;
         upb.Public += utf8_range;
-    }
-
-    auto &mangle = p.addTarget<StaticLibraryTarget>("upb_generator.mangle");
-    {
-        mangle += cppstd;
-        mangle += "upb_generator/common/.*"_r;
-        mangle += "upb_generator/minitable/names.*"_r;
-        mangle.Public += "org.sw.demo.google.abseil"_dep;
-        mangle.Public += "."_idir;
-        mangle.Public += upb;
     }
 
     auto lite_sources = [](auto &&f) {
@@ -364,6 +355,16 @@ void build(Solution &s)
         }
         protobuf.patch("src/google/protobuf/port_def.inc", "[[nodiscard]]", ""); // does not work on clang+shared build
         protobuf.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
+    }
+
+    auto &mangle = p.addTarget<StaticLibraryTarget>("upb_generator.mangle");
+    {
+        mangle += cppstd;
+        mangle += "upb_generator/common/.*"_r;
+        mangle += "upb_generator/minitable/names.*"_r;
+        mangle.Public += "org.sw.demo.google.abseil"_dep;
+        mangle.Public += "."_idir;
+        mangle.Public += upb, protobuf;
     }
 
     auto &protoc_lib = p.addTarget<StaticLibraryTarget>("protoc_lib");
