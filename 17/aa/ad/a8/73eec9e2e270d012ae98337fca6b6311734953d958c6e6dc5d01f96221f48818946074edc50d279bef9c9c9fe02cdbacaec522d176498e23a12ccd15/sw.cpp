@@ -555,16 +555,19 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         gmodule.Public += glib;
 
-        if (gmodule.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (gmodule.getBuildSettings().TargetOS.Type == OSType::Windows) {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_WIN32";
-        else if (gmodule.getBuildSettings().TargetOS.Type == OSType::Macos)
+            gmodule += "gmodule/gmodule-win32.c";
+        } else if (gmodule.getBuildSettings().TargetOS.Type == OSType::Macos) {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DYLD";
-        else
+        } else {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DL";
+        }
         // G_MODULE_IMPL_AR
 
         if (gmodule.getBuildSettings().TargetOS.Type != OSType::Windows)
         {
+            gmodule += "gmodule/gmodule-deprecated.c";
             gmodule += "dl"_slib;
         }
 
@@ -720,6 +723,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio += "USE_STATFS"_def;
             gio += "GIO_MODULE_DIR=\".\""_def;
             gio += "LOCALSTATEDIR=\"/var\""_def;
+            gio += "GLIB_LOCALSTATEDIR=\"/var\""_def;
             gio += "GIO_LAUNCH_DESKTOP=\"gio-launch-desktop\""_def;
             gio += "resolv"_slib;
         }
