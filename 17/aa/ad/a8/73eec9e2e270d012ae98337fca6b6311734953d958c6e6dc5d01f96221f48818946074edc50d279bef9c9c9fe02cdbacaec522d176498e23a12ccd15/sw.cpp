@@ -69,7 +69,6 @@ void build(Solution &s)
         glib ^= "glib/glib-object.h";
 
         glib.Private += "GLIB_COMPILATION"_d;
-        glib += "STRERROR_R_CHAR_P"_def;
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
         glib.Public += "GLIB_BINARY_AGE=2"_d;
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;
@@ -175,6 +174,9 @@ void build(Solution &s)
         gen_visibility_macros(glib, "versions-macros", cmd::in("glib/gversionmacros.h.in"), "glib/gversionmacros.h");
         gen_visibility(glib);
 
+        if (!glib.getBuildSettings().TargetOS.isApple()) {
+            glib += "STRERROR_R_CHAR_P"_def;
+        }
         if (glib.getBuildSettings().TargetOS.Type != OSType::Windows &&
             glib.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {

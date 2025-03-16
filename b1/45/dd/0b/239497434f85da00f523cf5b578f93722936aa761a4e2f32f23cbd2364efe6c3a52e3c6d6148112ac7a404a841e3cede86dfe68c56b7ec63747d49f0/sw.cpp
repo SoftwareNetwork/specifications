@@ -190,7 +190,8 @@ void build(Solution &s)
             //"range2-neon.c",
             //"range2-sse.c",
             "utf8_range.c",
-            "utf8_range.h"
+            "utf8_range.h",
+            "utf8_range_.*inc"_r
             ;
 
         auto &utf8_validity = p.addStaticLibrary("utf8_validity");
