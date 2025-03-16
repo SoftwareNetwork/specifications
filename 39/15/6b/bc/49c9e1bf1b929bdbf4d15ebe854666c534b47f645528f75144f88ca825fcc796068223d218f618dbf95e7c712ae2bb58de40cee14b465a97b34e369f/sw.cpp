@@ -214,9 +214,9 @@ void build(Solution &s)
             glib.CompileOptions.insert("/utf-8");
             glib.Variables["g_pid_type"] = "void*";
             glib.Variables["glongbits"] = "32";
-            glib.Variables["glib_msize_type"] = "INT64";
             if (glib.getBuildSettings().TargetOS.Arch == ArchType::x86_64 || glib.getBuildSettings().TargetOS.Arch == ArchType::aarch64)
             {
+                glib.Variables["glib_msize_type"] = "INT64";
                 glib.Variables["glib_intptr_type_define"] = "long long";
                 glib.Variables["glib_size_type_define"] = "long long";
 
@@ -226,6 +226,7 @@ void build(Solution &s)
             }
             else
             {
+                glib.Variables["glib_msize_type"] = "INT";
                 glib.Variables["glib_intptr_type_define"] = "long";
                 glib.Variables["glib_size_type_define"] = "long";
 
@@ -557,7 +558,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         if (gmodule.getBuildSettings().TargetOS.Type == OSType::Windows) {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_WIN32";
-            gmodule += "gmodule/gmodule-win32.c";
+            //gmodule += "gmodule/gmodule-win32.c";
         } else if (gmodule.getBuildSettings().TargetOS.Type == OSType::Macos) {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_DYLD";
         } else {
