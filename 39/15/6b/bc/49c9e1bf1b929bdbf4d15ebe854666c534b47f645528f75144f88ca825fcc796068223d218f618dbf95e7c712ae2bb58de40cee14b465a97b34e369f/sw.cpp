@@ -15,7 +15,10 @@ void build(Solution &s)
     };
     auto gen_visibility = [&](auto &&t) {
         auto n = t.getPackage().getPath().back();
-        gen_visibility_macros(t, "visibility-macros", boost::to_upper_copy(n), std::format("{}/{}-visibility.h", n, n));
+        auto u = boost::to_upper_copy(n);
+        gen_visibility_macros(t, "visibility-macros", u, std::format("{}/{}-visibility.h", n, n));
+        t += Definition{u + "_COMPILATION"};
+        t.Public += sw::Static, Definition{u + "_STATIC_COMPILATION"};
     };
 
     auto &glib = p.addTarget<LibraryTarget>("glib");
@@ -68,7 +71,7 @@ void build(Solution &s)
 
         glib ^= "glib/glib-object.h";
 
-        glib.Private += "GLIB_COMPILATION"_d;
+        //glib.Private += "GLIB_COMPILATION"_d;
         glib.Public += "GETTEXT_PACKAGE=\"\""_d;
         glib.Public += "GLIB_BINARY_AGE=2"_d;
         glib.Public += "GLIB_INTERFACE_AGE=2"_d;
@@ -78,8 +81,8 @@ void build(Solution &s)
         glib.Public.Definitions["ALIGNOF_GUINT32"] += glib.Variables["ALIGNOF_UINT32_T"];
         glib.Public.Definitions["ALIGNOF_GUINT64"] += glib.Variables["ALIGNOF_UINT64_T"];
 
-        glib.Private += sw::Shared, "DLL_EXPORT"_d;
-        glib.Public += sw::Static, "GLIB_STATIC_COMPILATION"_d;
+        //glib.Private += sw::Shared, "DLL_EXPORT"_d;
+        //glib.Public += sw::Static, "GLIB_STATIC_COMPILATION"_d;
 
         glib.Public += "ENABLE_NLS"_def;
         glib.Public += "org.sw.demo.gnu.gettext.intl"_dep;
@@ -493,9 +496,9 @@ HMODULE glib_dll;
 
         gobject += "glib/glib-object.h";
 
-        gobject.Private += "GOBJECT_COMPILATION"_d;
-        gobject.Private += sw::Shared, "DLL_EXPORT"_d;
-        gobject.Public += sw::Static, "GOBJECT_STATIC_COMPILATION"_d;
+        //gobject.Private += "GOBJECT_COMPILATION"_d;
+        //gobject.Private += sw::Shared, "DLL_EXPORT"_d;
+        //gobject.Public += sw::Static, "GOBJECT_STATIC_COMPILATION"_d;
 
         gobject.Public += "org.sw.demo.libffi"_dep;
         gobject.Public += glib;
@@ -558,6 +561,9 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         gmodule.Public += glib;
 
+        //gmodule.Private += "GMODULE_COMPILATION"_d;
+        //gmodule.Public += sw::Static, "GMODULE_STATIC_COMPILATION"_d;
+
         if (gmodule.getBuildSettings().TargetOS.Type == OSType::Windows) {
             gmodule.Variables["G_MODULE_IMPL"] = "G_MODULE_IMPL_WIN32";
             //gmodule += "gmodule/gmodule-win32.c";
@@ -610,7 +616,8 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
 
         gio += "gio/.*\\.[hc]"_r;
         gio -= "gio/inotify/.*\\.[hc]"_r;
-        gio += "GIO_COMPILATION"_def;
+        //gio += "GIO_COMPILATION"_def;
+        //gio.Public += sw::Static, "GIO_STATIC_COMPILATION"_d;
 
         gio -= "gio/gio-querymodules.c";
         gio -= "gio/glib-compile-resources.c";
@@ -860,9 +867,8 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
     auto &rc = p.addTarget<Executable>("compile_resources");
     {
         rc.PackageDefinitions = true;
-        rc +=
-            "gio/glib-compile-resources.c";
-        rc += "GIO_COMPILATION"_def;
+        rc += "gio/glib-compile-resources.c";
+        //rc += "GIO_COMPILATION"_def;
         rc += gio;
         rc += "subprojects/gvdb/gvdb/.*"_r;
         rc += "subprojects/gvdb"_idir;
