@@ -10,6 +10,7 @@ void build(Solution &s)
 
     libxml2 +=
         ".*\\.h"_rr,
+        ".*\\.inc"_rr,
         "HTMLparser.c",
         "HTMLtree.c",
         //"SAX.c",
@@ -84,6 +85,7 @@ void build(Solution &s)
     }
 
     libxml2.Variables["VERSION"] = libxml2.getPackage().getVersion().toString();
+    libxml2.Variables["XML_SYSCONFDIR"] = "/etc";
     libxml2.Variables["LIBXML_VERSION_NUMBER"] =
         libxml2.getPackage().getVersion().getMajor() * 10000 +
         libxml2.getPackage().getVersion().getMinor() * 100 +
@@ -132,7 +134,10 @@ void build(Solution &s)
     libxml2.configureFile(
         libxml2.SourceDir / "include/libxml/xmlversion.h.in",
         libxml2.BinaryDir / "libxml/xmlversion.h");
-    libxml2.writeFileOnce(libxml2.BinaryPrivateDir / "config.h",
+    libxml2.configureFile(
+        libxml2.SourceDir / "config.h.cmake.in",
+        libxml2.BinaryPrivateDir / "config.h");
+    /*libxml2.writeFileOnce(libxml2.BinaryPrivateDir / "config.h",
         R"(
 #ifdef _WIN32
 #define _WINSOCKAPI_ 1
@@ -153,7 +158,7 @@ void build(Solution &s)
 
 #endif
 )"
-);
+);*/
 }
 
 void check(Checker &c)
@@ -167,7 +172,9 @@ void check(Checker &c)
     s.checkFunctionExists("fp_class");
     s.checkFunctionExists("ftime");
     s.checkFunctionExists("getaddrinfo");
+    s.checkFunctionExists("getentropy");
     s.checkFunctionExists("gettimeofday");
+    s.checkFunctionExists("glob");
     s.checkFunctionExists("isascii");
     s.checkFunctionExists("isinf");
     s.checkFunctionExists("isnan");
