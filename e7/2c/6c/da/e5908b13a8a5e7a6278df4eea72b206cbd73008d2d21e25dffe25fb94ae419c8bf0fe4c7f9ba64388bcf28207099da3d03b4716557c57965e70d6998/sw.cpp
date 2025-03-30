@@ -40,7 +40,7 @@ void build(Solution &s)
         upb += "UPB_BOOTSTRAP_STAGE0"_def;
         upb.Public += "."_idir;
         upb.Public += "upb"_idir;
-        upb += "upb/upb/reflection/stage0"_idir;
+        //upb += "upb/upb/reflection/stage0"_idir;
         upb += "upb/upb/reflection/cmake"_idir;
         //upb.Public += "org.sw.demo.google.protobuf.protobuf"_dep;
         //(upb + core)->IncludeDirectoriesOnly = true;

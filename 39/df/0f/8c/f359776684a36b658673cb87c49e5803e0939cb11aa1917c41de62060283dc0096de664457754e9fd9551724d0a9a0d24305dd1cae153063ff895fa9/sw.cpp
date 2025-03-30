@@ -221,7 +221,11 @@ void build(Solution &s)
         upb -= "upb/conform.*"_rr;
         upb -= "upb/.*_benchmark.cc"_rr;
 
+        upb -= "upb/reflection/field_def.c";
+        upb -= "upb/reflection/internal/def_builder.c";
+
         //upb.Public += "cmake"_idir;
+        //if (upb.getCompilerType() != CompilerType::GNU)
         upb.Public += "upb/reflection/stage0"_idir;
         upb.Public += "upb/reflection/cmake"_idir;
         upb.Public += "."_idir;
