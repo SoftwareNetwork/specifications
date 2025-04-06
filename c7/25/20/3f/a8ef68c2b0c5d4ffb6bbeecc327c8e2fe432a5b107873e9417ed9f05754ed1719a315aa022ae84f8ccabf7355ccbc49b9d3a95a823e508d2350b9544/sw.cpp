@@ -15,6 +15,9 @@ void build(Solution &s)
 
     t.Public += "api"_idir;
     t += "."_idir;
+    if (!t.DryRun && !fs::exists(t.BinaryDir / "s2n")) {
+        fs::create_directory_symlink(t.SourceDir / "api", t.BinaryDir / "s2n");
+    }
 
     t += "utils/s2n_prelude.h"_fi;
 
