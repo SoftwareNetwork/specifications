@@ -735,7 +735,7 @@ inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
             gio += "LOCALSTATEDIR=\"/var\""_def;
             gio += "GLIB_LOCALSTATEDIR=\"/var\""_def;
             gio += "GIO_LAUNCH_DESKTOP=\"gio-launch-desktop\""_def;
-            gio += "resolv"_slib;
+            //gio += "resolv"_slib;
         }
 
         gio += "GLIB_RUNSTATEDIR=\"/var\""_def; // /var/run? /run?
