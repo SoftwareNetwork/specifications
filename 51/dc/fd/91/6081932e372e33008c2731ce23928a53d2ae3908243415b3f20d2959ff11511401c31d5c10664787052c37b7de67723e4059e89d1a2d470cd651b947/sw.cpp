@@ -2445,6 +2445,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             common_setup(gui);
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, gui, { "QtGui" });
             gui += "src/3rdparty/icc/sRGB2014.icc";
+            gui += "src/3rdparty/emoji-segmenter/emoji_presentation_scanner.c";
             SwapAndRestore sr(gui.SourceDir);
             gui.SourceDir /= "src/gui";
             gui +=
