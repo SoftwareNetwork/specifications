@@ -7,6 +7,8 @@ void build(Solution &s)
         "include/.*"_rr,
         "source/.*"_rr;
     t += "source/.*"_r;
+    t += "source/shared/.*"_rr;
+    t -= "source/shared/ed25519_noop.c";
 
     if (t.getCompilerType() == CompilerType::MSVC)
         t.CompileOptions.push_back("-bigobj");
