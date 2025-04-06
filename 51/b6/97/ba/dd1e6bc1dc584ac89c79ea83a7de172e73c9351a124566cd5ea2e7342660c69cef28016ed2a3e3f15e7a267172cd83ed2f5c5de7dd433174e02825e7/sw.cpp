@@ -941,7 +941,6 @@ void build(Solution &s)
         {"textcodec", true},
         {"textdate", true},
         {"timezone_locale", true},
-        {"timezone_tzdb", true}, // cpp20 only
         {"timezone", true},
         {"topleveldomain", true},
         {"translation", true},
@@ -1682,6 +1681,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/global/qlogging.cpp",
                     "src/corelib/global/qmalloc.cpp",
                     "src/corelib/global/qtenvironmentvariables.cpp",
+                    "src/corelib/global/qoperatingsystemversion.cpp",
                     "src/corelib/io/qabstractfileengine.cpp",
                     "src/corelib/io/qbuffer.cpp",
                     "src/corelib/io/qdebug.cpp",
@@ -1695,6 +1695,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/io/qfsfileengine_iterator.cpp",
                     "src/corelib/io/qiodevice.cpp",
                     "src/corelib/io/qstandardpaths.cpp",
+                    //"src/corelib/io/qurl.cpp",
                     "src/corelib/kernel/qcoreapplication.cpp",
                     "src/corelib/kernel/qmetatype.cpp",
                     "src/corelib/kernel/qsystemerror.cpp",
@@ -1756,7 +1757,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/plugin/qsystemlibrary.cpp",
                     "src/corelib/text/qchar.cpp",
                     "src/corelib/text/qstringmatcher.cpp",
-                    "src/corelib/text/qunicodetables.cpp"
+                    "src/corelib/text/qunicodetables.cpp",
+                    "src/corelib/tools/qversionnumber.cpp"
                     ;
 
                 // included via qcborvalue.cpp
@@ -1813,6 +1815,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             if (bootstrap.getBuildSettings().TargetOS.isApple())
             {
                 //bootstrap += "src/corelib/time/qtimezoneprivate_mac.mm";
+                bootstrap += "src/corelib/tools/qversionnumber.cpp";
             }
 
             bootstrap.Public += tinycbor;
@@ -1820,6 +1823,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
             bootstrap.Public += "org.sw.demo.pcre.pcre16-10"_dep;
             // natvis
             bootstrap.Public += "org.sw.demo.qtproject.qt.labs.vstools.natvis.qt6"_dep;
+
+            bootstrap.Public += "UniformTypeIdentifiers"_framework;
 
             auto qt_desc2 = qt_desc;
             qt_desc2.config.public_.features.insert({"datetimeparser", false});
@@ -1860,11 +1865,17 @@ Q_IMPORT_PLUGIN()" + name + R"();
             {
                 bootstrap +=
                     "src/corelib/kernel/qcore_unix.cpp",
-                    "src/corelib/io/qfilesystemengine_unix.cpp",
                     "src/corelib/io/qfilesystemiterator_unix.cpp",
                     "src/corelib/io/qfsfileengine_unix.cpp",
                     "src/corelib/io/qstandardpaths_unix.cpp"
                     ;
+                if (bootstrap.getBuildSettings().TargetOS.isApple()) {
+                    bootstrap.add("src/corelib/io/qfilesystemengine_unix.cpp", ".mm"s);
+                    if (auto f = bootstrap["src/corelib/io/qfilesystemengine_unix.cpp"].as<NativeSourceFile *>())
+                        f->BuildAs = NativeSourceFile::ObjCpp;
+                } else {
+                    bootstrap.add("src/corelib/io/qfilesystemengine_unix.cpp");
+                }
             }
 
             bootstrap -=
@@ -1887,8 +1898,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/kernel/qcore_foundation.mm",
                     "src/corelib/kernel/qcoreapplication_mac.cpp",
                     "src/corelib/global/qoperatingsystemversion_darwin.mm",
-                    "src/corelib/io/qstandardpaths_mac.mm",
-                    "src/corelib/io/qfilesystemengine_mac.mm"
+                    "src/corelib/io/qstandardpaths_mac.mm"//,
+                    //"src/corelib/io/qfilesystemengine_mac.mm"
                     ;
             }
 
@@ -2281,6 +2292,11 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_ppoll", true });
                 qt_core_desc.config.public_.features.insert({ "poll_select", true });
                 qt_core_desc.config.public_.features.insert({ "close_range", true });
+                qt_core_desc.config.public_.features.insert({ "pthread_condattr_setclock", true });
+                qt_core_desc.config.public_.features.insert({ "pthread_clockjoin", true });
+                qt_core_desc.config.public_.features.insert({ "pthread_timedjoin", true });
+                qt_core_desc.config.public_.features.insert({ "pthread_timedjoin_np", true });
+                qt_core_desc.config.public_.features.insert({ "broken_threadlocal_dtors", false });
             }
             if (core.getBuildSettings().TargetOS.Type == OSType::Macos) {
                 //core += "platform/darwin/.*"_rr; > qt6. 4. 1
@@ -2293,6 +2309,16 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 qt_core_desc.config.public_.features.insert({ "poll_pollts", false });
                 qt_core_desc.config.public_.features.insert({ "process", false });
                 qt_core_desc.config.private_.features.insert({ "icu", true });
+                qt_core_desc.config.public_.features.insert({ "pthread_condattr_setclock", false });
+                qt_core_desc.config.public_.features.insert({ "pthread_clockjoin", false });
+                qt_core_desc.config.public_.features.insert({ "pthread_timedjoin", false });
+                qt_core_desc.config.public_.features.insert({ "pthread_timedjoin_np", false });
+                qt_core_desc.config.public_.features.insert({ "timezone_tzdb", false });
+                qt_core_desc.config.public_.features.insert({ "broken_threadlocal_dtors", true });
+            }
+            else
+            {
+                qt_core_desc.config.public_.features.insert({ "timezone_tzdb", true });
             }
 
             if (core.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
@@ -2358,7 +2384,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             platform_files(core);
 
             core -= "time/qtimezoneprivate_.*"_rr;
-            core += "time/qtimezoneprivate_chrono.cpp";
 
             core -=
                 "io/qstorageinfo_stub.cpp",
@@ -2373,6 +2398,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             {
                 core.Public += "kernel/qmetatype.cpp"; // not only mac?
                 core += "plugin/qmachparser.cpp";
+                core += "time/qtimezoneprivate_mac.mm";
 
                 core -= "io/qstorageinfo_unix.cpp";
                 //core -= "kernel/qelapsedtimer_unix.cpp";
@@ -2382,8 +2408,18 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
                 core -= "kernel/qpermissions.*"_rr;
                 core -= "platform/darwin/qdarwinpermission.*"_rr;
+
+                core.add("io/qfilesystemengine_unix.cpp", ".mm"s);
+                if (auto f = core["io/qfilesystemengine_unix.cpp"].as<NativeSourceFile *>())
+                    f->BuildAs = NativeSourceFile::ObjCpp;
+            }
+            else
+            {
+                core += "time/qtimezoneprivate_chrono.cpp";
             }
             set_apple_flags(core);
+
+            core.Protected += "UniformTypeIdentifiers"_framework;
 
             auto add_darwin_permission_plugin = [&](String name) {
             };
@@ -2495,6 +2531,8 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui += "platform/darwin/.*"_rr;
                 gui += "rhi/qrhimetal.*"_rr;
                 gui += "platform/unix/qunixeventdispatcher.cpp";
+                gui -= "util/qgraphicsframecapturerenderdoc.cpp";
+                gui -= "rhi/qdxg.*"_rr;
             }
             else
             {
@@ -2621,6 +2659,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             gui.Protected += "Carbon"_framework;
             gui.Protected += "Metal"_framework;
+            gui.Protected += "QuartzCore"_framework;
 
             platform_files(gui);
             gui += "text/freetype/.*"_rr;
