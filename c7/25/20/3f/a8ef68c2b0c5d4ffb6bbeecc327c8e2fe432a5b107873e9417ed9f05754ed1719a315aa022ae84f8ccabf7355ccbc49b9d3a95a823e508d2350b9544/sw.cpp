@@ -16,6 +16,8 @@ void build(Solution &s)
     t.Public += "api"_idir;
     t += "."_idir;
 
+    t += "utils/s2n_prelude.h"_fi;
+
     t.patch("api/s2n.h", "#    define S2N_API", "//#     define S2N_API");
     //t.patch("utils/s2n_asn1_time.c", "__tm_gmtoff", "tm_gmtoff");
 
