@@ -22,7 +22,9 @@ void build(Solution &s)
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         t += "source/windows/.*"_rr;
-        t.Public += "AWS_USE_IO_COMPLETION_PORTS"_d;
+        //t.Public += "AWS_USE_IO_COMPLETION_PORTS"_d;
+        t.Public += "AWS_ENABLE_IO_COMPLETION_PORTS"_d;
+        t.Public += "AWS_OS_WINDOWS"_d;
         t += "advapi32.lib"_slib;
         t += "Crypt32.lib"_slib;
         t += "Secur32.lib"_slib;
@@ -40,6 +42,7 @@ void build(Solution &s)
         t += "source/s2n/.*"_r;
         t += "org.sw.demo.amazon.awslabs.s2n"_dep;
         t += "USE_S2N=1"_def;
+        t.Public += "AWS_ENABLE_EPOLL"_def;
     }
     else
     {
@@ -51,6 +54,7 @@ void build(Solution &s)
         t += "source/darwin/.*"_rr;
         t += "CoreFoundation"_framework;
         t += "Security"_framework;
+        t.Public += "AWS_ENABLE_KQUEUE"_def;
     }
 
     t.Public += "org.sw.demo.amazon.awslabs.c_cal"_dep;
