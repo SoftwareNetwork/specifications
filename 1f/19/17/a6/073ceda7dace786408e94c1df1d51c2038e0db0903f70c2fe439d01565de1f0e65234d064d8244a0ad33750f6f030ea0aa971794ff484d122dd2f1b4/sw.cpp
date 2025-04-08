@@ -1506,6 +1506,7 @@ void build(Solution &s)
         //t += cpp20; // we still have issues with that
         //t += gnupp17; // usual cpp does not work because of 128 bit types
         t += gnupp20; // usual cpp does not work because of 128 bit types
+        t.Protected += "QT_BUILDING_QT"_def;
         if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl) {
             t.Public.CompileOptions.push_back("/Zc:__cplusplus");
             // cpp17 + msvc requires /permissive-
@@ -2197,7 +2198,6 @@ Q_IMPORT_PLUGIN()" + name + R"();
             core.Interface += sw::Shared, "QT_NO_VERSION_TAGGING"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
             core.Protected += "QT_USE_QSTRINGBUILDER"_d;
-            core.Protected += "QT_BUILDING_QT"_d;
             if (core.getCompilerType() == CompilerType::MSVC) {
                 core.Public += "_ENABLE_EXTENDED_ALIGNED_STORAGE"_d;
                 core.Public += "QT_COMPILER_SUPPORTS_F16C"_d;
