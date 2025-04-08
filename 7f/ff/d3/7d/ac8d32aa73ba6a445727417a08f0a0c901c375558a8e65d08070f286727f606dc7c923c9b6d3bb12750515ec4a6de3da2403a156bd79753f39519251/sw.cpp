@@ -1873,6 +1873,10 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     bootstrap.add("src/corelib/io/qfilesystemengine_unix.cpp", ".mm"s);
                     if (auto f = bootstrap["src/corelib/io/qfilesystemengine_unix.cpp"].as<NativeSourceFile *>())
                         f->BuildAs = NativeSourceFile::ObjCpp;
+                    bootstrap.Public.CompileOptions.push_back("-ffunction-sections");
+                    //bootstrap.Public.CompileOptions.push_back("-fdata-sections");
+                    //bootstrap.Interface.LinkOptions.push_back("-Wl,-gc-sections");
+                    bootstrap.Interface.LinkOptions.push_back("-Wl,-dead_strip");
                 } else {
                     bootstrap.add("src/corelib/io/qfilesystemengine_unix.cpp");
                 }
