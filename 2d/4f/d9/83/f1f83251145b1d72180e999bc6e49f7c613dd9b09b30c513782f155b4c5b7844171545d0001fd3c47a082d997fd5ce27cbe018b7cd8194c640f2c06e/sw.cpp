@@ -2536,7 +2536,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 gui += "rhi/qrhimetal.*"_rr;
                 gui += "platform/unix/qunixeventdispatcher.cpp";
                 gui -= "util/qgraphicsframecapturerenderdoc.cpp";
-                gui -= "rhi/qdxg.*"_rr;
             }
             else
             {
@@ -2597,6 +2596,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             }
             else
             {
+                gui -= "rhi/qdxg.*"_rr;
                 gui.Public += dbus;
             }
             if (gui.getBuildSettings().TargetOS.Type == OSType::Linux)
@@ -4449,6 +4449,7 @@ qt_qml_plugin_outro
             client += "src/client/hardwareintegration"_idir;
             client += "src/client/inputdeviceintegration"_idir;
             client += "src/client/shellintegration"_idir;
+            client.Protected += "src"_idir;
 
             //client -= "src/client/qwaylandtextinputv4.cpp";
             client -= "src/3rdparty/protocol/.*xml"_rr;
