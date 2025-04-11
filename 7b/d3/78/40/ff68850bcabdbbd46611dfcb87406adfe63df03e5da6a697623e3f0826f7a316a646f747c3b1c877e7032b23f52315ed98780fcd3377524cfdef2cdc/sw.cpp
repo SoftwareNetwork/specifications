@@ -162,7 +162,6 @@ void build(Solution &s)
         "pool",
         "predef",
         "preprocessor",
-        "process",
         "property_map",
         "property_tree",
         "proto",
@@ -342,6 +341,7 @@ sizeof(has_iterator_category_detail::check< T >(0)) ==  sizeof(has_iterator_cate
         "math",
         //"mpi",
         "nowide",
+        "process",
         "program_options",
         "python",
         "random",
@@ -411,6 +411,18 @@ sizeof(is_convertible_to_path_source_impl::check(boost::declval< T const& >())) 
     *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.facebook.zstd.zstd-1"_dep;
+    if (boost_targets["process"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["process"]->getBuildSettings().TargetOS.Type == OSType::Mingw) {
+        boost_targets["process"]->Public += "BOOST_ASIO_NO_DEPRECATED"_def;
+        boost_targets["process"]->Public += "WIN32_LEAN_AND_MEAN"_def;
+        boost_targets["process"]->Public += "BOOST_PROCESS_USE_STD_FS"_def;
+        *boost_targets["process"] += "Advapi32.lib"_slib;
+        *boost_targets["process"] += "shell32.lib"_slib;
+        *boost_targets["process"] += "user32.lib"_slib;
+        *boost_targets["process"] += "ws2_32.lib"_slib;
+        *boost_targets["process"] += "ntdll.lib"_slib;
+    } else {
+        *boost_targets["process"] += "pthread"_slib;
+    }
     if (boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["random"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["random"] += "Advapi32.lib"_slib;
 
