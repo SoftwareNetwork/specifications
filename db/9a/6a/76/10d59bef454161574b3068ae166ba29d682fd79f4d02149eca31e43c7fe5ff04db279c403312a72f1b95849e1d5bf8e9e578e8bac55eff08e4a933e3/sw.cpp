@@ -289,6 +289,13 @@ sizeof(has_iterator_category_detail::check< T >(0)) ==  sizeof(has_iterator_cate
         boost_targets["mpl"]->patch(f,
             "#if defined(_MSC_VER) && !defined(__clang__)",
             "#if defined(_MSC_VER)// && !defined(__clang__)");
+        boost_targets["mpl"]->patch(f,
+            "#if defined(_MSC_VER) && !defined(__cplusplus)",
+            "#if defined(_MSC_VER)// && !defined(__cplusplus)");
+        // or.hpp
+        boost_targets["mpl"]->patch(f,
+            "#if defined(_MSC_VER)&& !defined(__cplusplus)",
+            "#if defined(_MSC_VER)// && !defined(__cplusplus)");
     }
 
     /*boost_targets["process"]->patch("include/boost/process/detail/posix/executor.hpp",
