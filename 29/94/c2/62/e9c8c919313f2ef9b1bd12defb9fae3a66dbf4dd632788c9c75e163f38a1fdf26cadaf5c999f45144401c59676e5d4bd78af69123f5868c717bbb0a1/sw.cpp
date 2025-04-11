@@ -81,9 +81,9 @@ void build(Solution &s)
     if (c_ares.getBuildSettings().TargetOS.isApple())
     {
         c_ares -= "src/lib/ares_sysconfig_mac.c";
-        c_ares -= "src/lib/ares_event_configchg.c";
         c_ares.add("src/lib/ares_sysconfig_mac.c", ".m");
-        c_ares.add("src/lib/ares_event_configchg.c", ".m");
+        //c_ares -= "src/lib/ares_event_configchg.c";
+        //c_ares.add("src/lib/ares_event_configchg.c", ".m");
     }
 
     c_ares.Public += "include"_idir;
