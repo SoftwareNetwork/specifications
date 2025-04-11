@@ -422,11 +422,11 @@ sizeof(is_convertible_to_path_source_impl::check(boost::declval< T const& >())) 
         boost_targets["process"]->Public += "BOOST_ASIO_NO_DEPRECATED"_def;
         boost_targets["process"]->Public += "WIN32_LEAN_AND_MEAN"_def;
         boost_targets["process"]->Public += "BOOST_PROCESS_USE_STD_FS"_def;
-        *boost_targets["process"] += "Advapi32.lib"_slib;
-        *boost_targets["process"] += "shell32.lib"_slib;
-        *boost_targets["process"] += "user32.lib"_slib;
-        *boost_targets["process"] += "ws2_32.lib"_slib;
-        *boost_targets["process"] += "ntdll.lib"_slib;
+        boost_targets["process"]->Public += "Advapi32.lib"_slib;
+        boost_targets["process"]->Public += "shell32.lib"_slib; // this is needed for v1, not sure about others
+        boost_targets["process"]->Public += "user32.lib"_slib;
+        boost_targets["process"]->Public += "ws2_32.lib"_slib;
+        boost_targets["process"]->Public += "ntdll.lib"_slib;
     } else {
         *boost_targets["process"] += "pthread"_slib;
     }
