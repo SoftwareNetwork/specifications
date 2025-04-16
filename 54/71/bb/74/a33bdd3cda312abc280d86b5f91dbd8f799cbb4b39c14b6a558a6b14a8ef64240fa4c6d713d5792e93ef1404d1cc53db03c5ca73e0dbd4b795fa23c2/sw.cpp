@@ -10,6 +10,7 @@ void build(Solution &s)
     yaml_cpp += "YAML_CPP_API"_api;
     yaml_cpp += cpp11;
     yaml_cpp.writeFileOnce("include/yaml-cpp/dll.h");
+    yaml_cpp.pushFrontToFileOnce("src/emitterutils.cpp", "#include <stdint.h>\n");
 
     yaml_cpp.Public += "org.sw.demo.boost.iterator"_dep;
     yaml_cpp.Public += "org.sw.demo.boost.smart_ptr"_dep;
