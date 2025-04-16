@@ -101,6 +101,7 @@ void build(Solution &s)
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
         llvm_support_lite.writeFileOnce("llvm/Config/abi-breaking.h");
+        llvm_support_lite.pushFrontToFileOnce("include/llvm/ADT/SmallVector.h", "#include <stdint.h>\n");
 
         if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows || llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
