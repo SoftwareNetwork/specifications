@@ -7,7 +7,7 @@ void build(Solution &s)
 
     auto &llvm_demangle = llvm.addTarget<StaticLibraryTarget>("demangle");
     {
-        llvm_demangle += cpp14;
+        llvm_demangle += cpp17;
         llvm_demangle.setRootDirectory("llvm");
         llvm_demangle +=
             "include/llvm/Demangle/.*"_rr,
@@ -23,7 +23,7 @@ void build(Solution &s)
 
     auto &llvm_support_lite = llvm.addTarget<StaticLibraryTarget>("support_lite");
     {
-        llvm_support_lite += cpp14;
+        llvm_support_lite += cpp17;
         llvm_support_lite.setRootDirectory("llvm");
         llvm_support_lite.setChecks("support_lite");
         llvm_support_lite +=
@@ -32,15 +32,26 @@ void build(Solution &s)
             "include/llvm-c/ErrorHandling.h",
             "include/llvm-c/ExternC.h",
             "include/llvm-c/Support.h",
+            "include/llvm-c/blake3.h",
             "include/llvm/ADT/.*\\.h"_rr,
             "include/llvm/Config/.*\\.cmake"_rr,
             "include/llvm/Support/.*"_rr,
+            "include/llvm/TargetParser/.*"_rr,
             "lib/Support/.*\\.c"_rr,
             "lib/Support/.*\\.cpp"_rr,
             "lib/Support/.*\\.h"_rr,
-            "lib/Support/.*\\.inc"_rr;
-        llvm_support_lite -=
-            "include/llvm/Support/.*def"_rr;
+            "lib/Support/.*\\.inc"_rr,
+            "lib/TargetParser/.*"_rr
+            ;
+
+        llvm_support_lite -= "include/llvm/Support/.*def"_rr;
+        llvm_support_lite -= "lib/TargetParser/RISC.*"_rr;
+        llvm_support_lite -= "lib/Support/BLAKE3/.*"_rr;
+        llvm_support_lite += "lib/Support/BLAKE3/blake3_portable.c";
+        if (llvm_support_lite.getBuildSettings().TargetOS.isApple()) {
+            llvm_support_lite -= "lib/Support/RWMutex.cpp";
+        }
+
         llvm_support_lite.Private +=
             "lib"_id;
         llvm_support_lite.Public +=
@@ -81,14 +92,20 @@ void build(Solution &s)
             "//GlobalParser->registerCategory(this);"
         );
 
+        llvm_support_lite.Variables["PACKAGE_BUGREPORT"] = "x";
+        llvm_support_lite.Variables["PACKAGE_NAME"] = "x";
+        llvm_support_lite.Variables["PACKAGE_STRING"] = "x";
+        llvm_support_lite.Variables["PACKAGE_VERSION"] = "x";
+        llvm_support_lite.Variables["PACKAGE_VENDOR"] = "x";
         llvm_support_lite.configureFile("include/llvm/Config/config.h.cmake", "llvm/Config/config.h");
         llvm_support_lite.configureFile("include/llvm/Config/llvm-config.h.cmake", "llvm/Config/llvm-config.h");
         //llvm_support_lite.configureFile("include/llvm/Config/abi-breaking.h.cmake", "llvm/Config/abi-breaking.h");
         llvm_support_lite.writeFileOnce("llvm/Config/abi-breaking.h");
+        llvm_support_lite.pushFrontToFileOnce("include/llvm/ADT/SmallVector.h", "#include <stdint.h>\n");
 
         if (llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Windows || llvm_support_lite.getBuildSettings().TargetOS.Type == OSType::Mingw)
         {
-            llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib, "uuid.lib"_slib;
+            llvm_support_lite += "advapi32.lib"_slib, "ole32.lib"_slib, "shell32.lib"_slib, "uuid.lib"_slib, "ws2_32.lib"_slib;
         }
         else
         {
