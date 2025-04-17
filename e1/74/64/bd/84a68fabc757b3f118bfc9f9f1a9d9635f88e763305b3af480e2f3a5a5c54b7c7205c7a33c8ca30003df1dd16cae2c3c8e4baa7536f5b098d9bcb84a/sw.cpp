@@ -11,7 +11,7 @@ struct GawkExecutable : ExecutableTarget
 void build(Solution &s)
 {
     auto &p = s.addProject("gnu.gawk", "5.1.0");
-    p += RemoteFile("https://ftp.gnu.org/gnu/gawk/gawk-{v}.tar.xz");
+    p += RemoteFile("https://git.savannah.gnu.org/cgit/gawk.git/snapshot/gawk-{v}.tar.gz");
 
     auto &getopt = p.addTarget<StaticLibraryTarget>("getopt");
     {
@@ -27,6 +27,7 @@ void build(Solution &s)
 
     auto &gawk = p.addTarget<GawkExecutable>("gawk");
     {
+        gawk += c99;
         gawk.PackageDefinitions = true;
         gawk.setChecks("gawk", true);
 
