@@ -1,0 +1,978 @@
+<h1 id="rapid-yaml">Rapid YAML</h1>
+<p><a
+href="https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt"><img
+src="https://img.shields.io/badge/License-MIT-green.svg"
+alt="MIT Licensed" /></a> <a
+href="https://github.com/biojppm/rapidyaml/releases"><img
+src="https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&amp;include_prereleases&amp;label=release%20&amp;sort=semver"
+alt="release" /></a> <a
+href="https://rapidyaml.readthedocs.io/latest/?badge=latest"><img
+src="https://readthedocs.org/projects/rapidyaml/badge/?version=latest"
+alt="Documentation Status" /></a></p>
+<p><a href="https://pypi.org/project/rapidyaml/"><img
+src="https://img.shields.io/pypi/v/rapidyaml?color=g"
+alt="PyPI" /></a></p>
+<p><a href="https://coveralls.io/github/biojppm/rapidyaml"><img
+src="https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master"
+alt="Coveralls" /></a> <a
+href="https://codecov.io/gh/biojppm/rapidyaml"><img
+src="https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master"
+alt="Codecov" /></a></p>
+<p>Or ryml, for short. ryml is a C++ library to parse and emit YAML, and
+do it fast, on everything from x64 to bare-metal chips without operating
+system. (If you are looking to use your programs with a YAML tree as a
+configuration tree with override facilities, take a look at <a
+href="https://github.com/biojppm/c4conf">c4conf</a>).</p>
+<p>ryml parses both read-only and in-situ source buffers; the resulting
+data nodes hold only views to sub-ranges of the source buffer. No string
+copies or duplications are done, and no virtual functions are used. The
+data tree is a flat index-based structure stored in a single array.
+Serialization happens only at your direct request, after parsing /
+before emitting. Internally, the data tree representation stores only
+string views and has no knowledge of types, but of course, every node
+can have a YAML type tag. ryml makes it easy and fast to read and modify
+the data tree.</p>
+<p>ryml is available as a single header file, or it can be used as a
+simple library with cmake – both separately (ie
+build-&gt;install-&gt;<code>find_package()</code>) or together with your
+project (ie with <code>add_subdirectory()</code>). (See below for
+examples).</p>
+<p>ryml can use custom global and per-tree memory allocators and error
+handler callbacks, and is exception-agnostic. ryml provides a default
+implementation for the allocator (using <code>std::malloc()</code>) and
+error handlers (using using either exceptions, <code>longjmp()</code> or
+<code>std::abort()</code>), but you can opt out and provide your own
+memory allocation and eg, exception-throwing callbacks.</p>
+<p>ryml does not depend on the STL, ie, it does not use any std
+container as part of its data structures), but it can serialize and
+deserialize these containers into the data tree, with the use of
+optional headers. ryml ships with <a
+href="https://github.com/biojppm/c4core">c4core</a>, a small C++
+utilities multiplatform library.</p>
+<p>ryml is written in C++11, and compiles cleanly with: * Visual Studio
+2015 and later * clang++ 3.9 and later * g++ 4.8 and later * Intel
+Compiler</p>
+<p>ryml’s API documentation is <a
+href="https://rapidyaml.readthedocs.io/latest/">available at
+ReadTheDocs</a>.</p>
+<p>ryml is <a
+href="https://github.com/biojppm/rapidyaml/actions">extensively
+unit-tested in Linux, Windows and MacOS</a>. The tests cover x64, x86,
+wasm (emscripten), arm, aarch64, ppc64le and s390x architectures, and
+include analysing ryml with: * valgrind * clang-tidy * gcc/clang
+sanitizers: * memory * address * undefined behavior</p>
+<p>ryml also <a
+href="https://github.com/biojppm/rapidyaml/issues/193">runs in
+bare-metal</a>, and <a
+href="https://github.com/biojppm/c4core/pull/69">RISC-V
+architectures</a>. Both of these are pending implementation of CI
+actions for continuous validation, but ryml has been proven to work
+there.</p>
+<p>ryml is <a href="https://pypi.org/project/rapidyaml/">available in
+Python</a>, and can very easily be compiled to JavaScript through
+emscripten (see below).</p>
+<p>See also <a
+href="https://github.com/biojppm/rapidyaml/tree/master/changelog">the
+changelog</a> and <a
+href="https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md">the
+roadmap</a>.</p>
+<!-- endpythonreadme -->
+<hr />
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="#license">License</a></li>
+<li><a href="#is-it-rapid">Is it rapid?</a>
+<ul>
+<li><a href="#comparison-with-yaml-cpp">Comparison with
+yaml-cpp</a></li>
+<li><a href="#performance-reading-json">Performance reading
+JSON</a></li>
+<li><a href="#performance-emitting">Performance emitting</a></li>
+</ul></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#using-ryml-in-your-project">Using ryml in your project</a>
+<ul>
+<li><a href="#package-managers">Package managers</a></li>
+<li><a href="#single-header-file">Single header file</a></li>
+<li><a href="#as-a-library">As a library</a></li>
+<li><a href="#quickstart-samples">Quickstart samples</a></li>
+<li><a href="#cmake-build-settings-for-ryml">CMake build settings for
+ryml</a>
+<ul>
+<li><a href="#forcing-ryml-to-use-a-different-c4core-version">Forcing
+ryml to use a different c4core version</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#other-languages">Other languages</a>
+<ul>
+<li><a href="#javascript">JavaScript</a></li>
+<li><a href="#python">Python</a></li>
+</ul></li>
+<li><a href="#yaml-standard-conformance">YAML standard conformance</a>
+<ul>
+<li><a href="#test-suite-status">Test suite status</a></li>
+</ul></li>
+<li><a href="#known-limitations">Known limitations</a></li>
+<li><a href="#alternative-libraries">Alternative libraries</a></li>
+</ul>
+<table style="width:10%;">
+<colgroup>
+<col style="width: 9%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td>## License</td>
+</tr>
+<tr class="even">
+<td>ryml is permissively licensed under the <a href="LICENSE.txt">MIT
+license</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="is-it-rapid">Is it rapid?</h2>
+<p>You bet! On a i7-6800K CPU <span class="citation"
+data-cites="3.40GHz">@3.40GHz</span>: * ryml parses YAML at about
+~150MB/s on Linux and ~100MB/s on Windows (vs2017). * <strong>ryml
+parses JSON at about ~450MB/s on Linux</strong>, faster than sajson
+(didn’t try yet on Windows). * compared against the other existing YAML
+libraries for C/C++: * ryml is in general between 2 and 3 times faster
+than <a href="https://github.com/yaml/libyaml">libyaml</a> * ryml is in
+general between 10 and 70 times faster than <a
+href="https://github.com/jbeder/yaml-cpp">yaml-cpp</a>, and in some
+cases as much as 100x and <a
+href="https://github.com/biojppm/c4core/pull/16#issuecomment-700972614">even
+200x</a> faster.</p>
+<p><a href="./bm/bm_parse.cpp">Here’s the benchmark</a>. Using different
+approaches within ryml (in-situ/read-only vs. with/without reuse), a
+YAML / JSON buffer is repeatedly parsed, and compared against other
+libraries.</p>
+<h3 id="comparison-with-yaml-cpp">Comparison with yaml-cpp</h3>
+<p>The first result set is for Windows, and is using a <a
+href="./bm/cases/appveyor.yml">appveyor.yml config file</a>. A
+comparison of these results is summarized on the table below:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Read rates (MB/s)</th>
+<th>ryml</th>
+<th>yamlcpp</th>
+<th>compared</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>appveyor / vs2017 / Release</td>
+<td>101.5</td>
+<td>5.3</td>
+<td>20x / 5.2%</td>
+</tr>
+<tr class="even">
+<td>appveyor / vs2017 / Debug</td>
+<td>6.4</td>
+<td>0.0844</td>
+<td>76x / 1.3%</td>
+</tr>
+</tbody>
+</table>
+<p>The next set of results is taken in Linux, comparing g++ 8.2 and
+clang++ 7.0.1 in parsing a YAML buffer from a <a
+href="./bm/cases/travis.yml">travis.yml config file</a> or a JSON buffer
+from a <a href="./bm/cases/compile_commands.json">compile_commands.json
+file</a>. You can <a href="./bm/results/parse.linux.i7_6800K.md">see the
+full results here</a>. Summarizing:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Read rates (MB/s)</th>
+<th>ryml</th>
+<th>yamlcpp</th>
+<th>compared</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>json / clang++ / Release</td>
+<td>453.5</td>
+<td>15.1</td>
+<td>30x / 3%</td>
+</tr>
+<tr class="even">
+<td>json / g++ / Release</td>
+<td>430.5</td>
+<td>16.3</td>
+<td>26x / 4%</td>
+</tr>
+<tr class="odd">
+<td>json / clang++ / Debug</td>
+<td>61.9</td>
+<td>1.63</td>
+<td>38x / 3%</td>
+</tr>
+<tr class="even">
+<td>json / g++ / Debug</td>
+<td>72.6</td>
+<td>1.53</td>
+<td>47x / 2%</td>
+</tr>
+<tr class="odd">
+<td>travis / clang++ / Release</td>
+<td>131.6</td>
+<td>8.08</td>
+<td>16x / 6%</td>
+</tr>
+<tr class="even">
+<td>travis / g++ / Release</td>
+<td>176.4</td>
+<td>8.23</td>
+<td>21x / 5%</td>
+</tr>
+<tr class="odd">
+<td>travis / clang++ / Debug</td>
+<td>10.2</td>
+<td>1.08</td>
+<td>9x / 1%</td>
+</tr>
+<tr class="even">
+<td>travis / g++ / Debug</td>
+<td>12.5</td>
+<td>1.01</td>
+<td>12x / 8%</td>
+</tr>
+</tbody>
+</table>
+<p>The 450MB/s read rate for JSON puts ryml squarely in the same
+ballpark as <a href="https://github.com/Tencent/rapidjson">RapidJSON</a>
+and other fast json readers (<a
+href="https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/">data
+from here</a>). Even parsing full YAML is at ~150MB/s, which is still in
+that performance ballpark, albeit at its lower end. This is something to
+be proud of, as the YAML specification is much more complex than JSON:
+<a
+href="https://www.arp242.net/yaml-config.html#its-pretty-complex">23449
+vs 1969 words</a>.</p>
+<h3 id="performance-reading-json">Performance reading JSON</h3>
+<p>So how does ryml compare against other JSON readers? Well, it’s one
+of the fastest!</p>
+<p>The benchmark is the <a href="./bm/parse.cpp">same as above</a>, and
+it is reading the <a
+href="./bm/cases/compile_commands.json">compile_commands.json</a>, The
+<code>_arena</code> suffix notes parsing a read-only buffer (so buffer
+copies are performed), while the <code>_inplace</code> suffix means that
+the source buffer can be parsed in place. The <code>_reuse</code> means
+the data tree and/or parser are reused on each benchmark repeat.</p>
+<p>Here’s what we get with g++ 8.2:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Benchmark</th>
+<th style="text-align: right;">Release,MB/s</th>
+<th style="text-align: right;">Debug,MB/s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">rapidjson_arena</td>
+<td style="text-align: right;">509.9</td>
+<td style="text-align: right;">43.4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">rapidjson_inplace</td>
+<td style="text-align: right;">1329.4</td>
+<td style="text-align: right;">68.2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sajson_inplace</td>
+<td style="text-align: right;">434.2</td>
+<td style="text-align: right;">176.5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sajson_arena</td>
+<td style="text-align: right;">430.7</td>
+<td style="text-align: right;">175.6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">jsoncpp_arena</td>
+<td style="text-align: right;">183.6</td>
+<td style="text-align: right;">? 187.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">nlohmann_json_arena</td>
+<td style="text-align: right;">115.8</td>
+<td style="text-align: right;">21.5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yamlcpp_arena</td>
+<td style="text-align: right;">16.6</td>
+<td style="text-align: right;">1.6</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">libyaml_arena</td>
+<td style="text-align: right;">113.9</td>
+<td style="text-align: right;">35.7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">libyaml_arena_reuse</td>
+<td style="text-align: right;">114.6</td>
+<td style="text-align: right;">35.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ryml_arena</td>
+<td style="text-align: right;">388.6</td>
+<td style="text-align: right;">36.9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ryml_inplace</td>
+<td style="text-align: right;">393.7</td>
+<td style="text-align: right;">36.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ryml_arena_reuse</td>
+<td style="text-align: right;">446.2</td>
+<td style="text-align: right;">74.6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ryml_inplace_reuse</td>
+<td style="text-align: right;">457.1</td>
+<td style="text-align: right;">74.9</td>
+</tr>
+</tbody>
+</table>
+<p>You can verify that (at least for this test) ryml beats most json
+parsers at their own game, with the only exception of <a
+href="https://github.com/Tencent/rapidjson">rapidjson</a>. And actually,
+in Debug, <a href="https://github.com/Tencent/rapidjson">rapidjson</a>
+is slower than ryml, and <a
+href="https://github.com/chadaustin/sajson">sajson</a> manages to be
+faster (but not sure about jsoncpp; need to scrutinize there the
+suspicious fact that the Debug result is faster than the Release
+result).</p>
+<h3 id="performance-emitting">Performance emitting</h3>
+<p><a href="bm/bm_emit.cpp">Emitting benchmarks</a> also show similar
+speedups from the existing libraries, also anecdotally reported by some
+users <a
+href="https://github.com/biojppm/rapidyaml/issues/28#issue-553855608">(eg,
+here’s a user reporting 25x speedup from yaml-cpp)</a>. Also, in some
+cases (eg, block folded multiline scalars), the speedup is as high as
+200x (eg, 7.3MB/s -&gt; 1.416MG/s).</p>
+<h3 id="ci-results-and-request-for-files">CI results and request for
+files</h3>
+<p>While a more effective way of showing the benchmark results is not
+available yet, you can browse through the <a
+href="https://github.com/biojppm/rapidyaml/actions/workflows/benchmarks.yml">runs
+of the benchmark workflow in the CI</a> to scroll through the results
+for yourself.</p>
+<p>Also, if you have a case where ryml behaves very nicely or not as
+nicely as claimed above, we would definitely like to see it! Please open
+an issue, or submit a pull request adding the file to <a
+href="bm/cases">bm/cases</a>, or just send us the files.</p>
+<hr />
+<h2 id="quick-start">Quick start</h2>
+<p>If you’re wondering whether ryml’s speed comes at a usage cost, you
+need not: with ryml, you can have your cake and eat it too. Being rapid
+is definitely NOT the same as being unpractical, so ryml was written
+with easy AND efficient usage in mind, and comes with a two level API
+for accessing and traversing the data tree.</p>
+<p>The following snippet is a very quick overview taken from quickstart
+sample (<a
+href="https://rapidyaml.readthedocs.io/latest/group__doc__quickstart.html">see
+on doxygen</a>/<a href="samples/quickstart.cpp">see on github</a>. After
+cloning ryml (don’t forget the <code>--recursive</code> flag for git),
+you can very easily build and run this executable using any of the build
+samples, eg the <a
+href="samples/add_subdirectory/"><code>add_subdirectory()</code>
+sample</a> (see <a href="#quickstart-samples">the relevant
+section</a>).</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Parse YAML code in place, potentially mutating the buffer:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> yml_buf<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;{foo: 1, bar: [2, 3], john: doe}&quot;</span><span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>Tree tree <span class="op">=</span> ryml<span class="op">::</span>parse_in_place<span class="op">(</span>yml_buf<span class="op">);</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ryml has a two-level API:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">// The lower level index API is based on the indices of nodes,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">// where the node&#39;s id is the node&#39;s position in the tree&#39;s data</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">// array. This API is very efficient, but somewhat difficult to use:</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> root_id <span class="op">=</span> tree<span class="op">.</span>root_id<span class="op">();</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> bar_id <span class="op">=</span> tree<span class="op">.</span>find_child<span class="op">(</span>root_id<span class="op">,</span> <span class="st">&quot;bar&quot;</span><span class="op">);</span> <span class="co">// need to get the index right</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>tree<span class="op">.</span>is_map<span class="op">(</span>root_id<span class="op">));</span> <span class="co">// all of the index methods are in the tree</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>tree<span class="op">.</span>is_seq<span class="op">(</span>bar_id<span class="op">));</span>  <span class="co">// ... and receive the subject index</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">// The node API is a lightweight abstraction sitting on top of the</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">// index API, but offering a much more convenient interaction:</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>ConstNodeRef root <span class="op">=</span> tree<span class="op">.</span>rootref<span class="op">();</span>  <span class="co">// a const node reference</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>ConstNodeRef bar <span class="op">=</span> tree<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">];</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">.</span>is_map<span class="op">());</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>bar<span class="op">.</span>is_seq<span class="op">());</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">// The resulting tree stores only string views to the YAML source buffer.</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="st">&quot;1&quot;</span><span class="op">);</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">].</span>key<span class="op">().</span>str <span class="op">==</span> yml_buf <span class="op">+</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>bar<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="st">&quot;2&quot;</span><span class="op">);</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="st">&quot;doe&quot;</span><span class="op">);</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">// To get actual values, you need to deserialize the nodes.</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">// Deserializing: use operator&gt;&gt;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> foo <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> bar0 <span class="op">=</span> <span class="dv">0</span><span class="op">,</span> bar1 <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string john_str<span class="op">;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string bar_str<span class="op">;</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    root<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">]</span> <span class="op">&gt;&gt;</span> foo<span class="op">;</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">0</span><span class="op">]</span> <span class="op">&gt;&gt;</span> bar0<span class="op">;</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">]</span> <span class="op">&gt;&gt;</span> bar1<span class="op">;</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    root<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">]</span> <span class="op">&gt;&gt;</span> john_str<span class="op">;</span> <span class="co">// requires from_chars(std::string). see API doc.</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">]</span> <span class="op">&gt;&gt;</span> ryml<span class="op">::</span>key<span class="op">(</span>bar_str<span class="op">);</span> <span class="co">// to deserialize the key, use the tag function ryml::key()</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>foo <span class="op">==</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>bar0 <span class="op">==</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>bar1 <span class="op">==</span> <span class="dv">3</span><span class="op">);</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>john_str <span class="op">==</span> <span class="st">&quot;doe&quot;</span><span class="op">);</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    CHECK<span class="op">(</span>bar_str <span class="op">==</span> <span class="st">&quot;bar&quot;</span><span class="op">);</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="co">// To modify existing nodes, use operator= or operator&lt;&lt;.</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="co">// operator= assigns an existing string to the receiving node.</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co">// The contents are NOT copied, and this pointer will be in effect</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="co">// until the tree goes out of scope! So BEWARE to only assign from</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="co">// strings outliving the tree.</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;says you&quot;</span><span class="op">;</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;-2&quot;</span><span class="op">;</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;-3&quot;</span><span class="op">;</span></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;ron&quot;</span><span class="op">;</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="co">// Now the tree is _pointing_ at the memory of the strings above.</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="co">// In this case it is OK because those are static strings and will</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="co">// outlive the tree.</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;says you&quot;</span><span class="op">);</span></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">0</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;-2&quot;</span><span class="op">);</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;-3&quot;</span><span class="op">);</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;ron&quot;</span><span class="op">);</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a><span class="co">// But WATCHOUT: do not assign from temporary objects:</span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="co">// {</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="co">//     std::string crash(&quot;will dangle&quot;);</span></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="co">//     root[&quot;john&quot;] = ryml::to_csubstr(crash);</span></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a><span class="co">// }</span></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="co">// CHECK(root[&quot;john&quot;] == &quot;dangling&quot;); // CRASH! the string was deallocated</span></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="co">// operator&lt;&lt; first serializes the input to the tree&#39;s arena, then</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a><span class="co">// assigns the serialized string to the receiving node. This avoids</span></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="co">// constraints with the lifetime, since the arena lives with the tree.</span></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>tree<span class="op">.</span>arena<span class="op">().</span>empty<span class="op">());</span></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">]</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;says who&quot;</span><span class="op">;</span>  <span class="co">// requires to_chars(). see serialization samples below.</span></span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">0</span><span class="op">]</span> <span class="op">&lt;&lt;</span> <span class="dv">20</span><span class="op">;</span></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">]</span> <span class="op">&lt;&lt;</span> <span class="dv">30</span><span class="op">;</span></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">]</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;deere&quot;</span><span class="op">;</span></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;says who&quot;</span><span class="op">);</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">0</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;20&quot;</span><span class="op">);</span></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;30&quot;</span><span class="op">);</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;john&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;deere&quot;</span><span class="op">);</span></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>tree<span class="op">.</span>arena<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;says who2030deere&quot;</span><span class="op">);</span> <span class="co">// the result of serializations to the tree arena</span></span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a><span class="co">// Adding new nodes:</span></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a><span class="co">// adding a keyval node to a map:</span></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">.</span>num_children<span class="op">()</span> <span class="op">==</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">[</span><span class="st">&quot;newkeyval&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="st">&quot;shiny and new&quot;</span><span class="op">;</span> <span class="co">// using these strings</span></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>wroot<span class="op">.</span>append_child<span class="op">()</span> <span class="op">&lt;&lt;</span> ryml<span class="op">::</span>key<span class="op">(</span><span class="st">&quot;newkeyval (serialized)&quot;</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot;shiny and new (serialized)&quot;</span><span class="op">;</span> <span class="co">// serializes and assigns the serialization</span></span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">.</span>num_children<span class="op">()</span> <span class="op">==</span> <span class="dv">7</span><span class="op">);</span></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;newkeyval&quot;</span><span class="op">].</span>key<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;newkeyval&quot;</span><span class="op">);</span></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;newkeyval&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;shiny and new&quot;</span><span class="op">);</span></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;newkeyval (serialized)&quot;</span><span class="op">].</span>key<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;newkeyval (serialized)&quot;</span><span class="op">);</span></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>root<span class="op">[</span><span class="st">&quot;newkeyval (serialized)&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;shiny and new (serialized)&quot;</span><span class="op">);</span></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a><span class="co">// Emitting:</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>csubstr expected_result <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">foo: says who</span></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="vs">bar:</span></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a><span class="vs">- 20</span></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a><span class="vs">- 30</span></span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a><span class="vs">- oh so nice</span></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a><span class="vs">- oh so nice (serialized)</span></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a><span class="vs">john: in_scope</span></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a><span class="vs">float: 2.4</span></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a><span class="vs">digits: 2.400000</span></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a><span class="vs">newkeyval: shiny and new</span></span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a><span class="vs">newkeyval (serialized): shiny and new (serialized)</span></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a><span class="vs">newseq: []</span></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a><span class="vs">newseq (serialized): []</span></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a><span class="vs">newmap: </span><span class="sc">{}</span></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a><span class="vs">newmap (serialized): </span><span class="sc">{}</span></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a><span class="vs">I am something: indeed</span></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a><span class="co">// emit to a FILE*</span></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>emit_yaml<span class="op">(</span>tree<span class="op">,</span> stdout<span class="op">);</span></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a><span class="co">// emit to a stream</span></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>stringstream ss<span class="op">;</span></span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>ss <span class="op">&lt;&lt;</span> tree<span class="op">;</span></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string stream_result <span class="op">=</span> ss<span class="op">.</span>str<span class="op">();</span></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a><span class="co">// emit to a buffer:</span></span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string str_result <span class="op">=</span> ryml<span class="op">::</span>emitrs_yaml<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;(</span>tree<span class="op">);</span></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="co">// can emit to any given buffer:</span></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> buf<span class="op">[</span><span class="dv">1024</span><span class="op">];</span></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>csubstr buf_result <span class="op">=</span> ryml<span class="op">::</span>emit_yaml<span class="op">(</span>tree<span class="op">,</span> buf<span class="op">);</span></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="co">// now check</span></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>buf_result <span class="op">==</span> expected_result<span class="op">);</span></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>str_result <span class="op">==</span> expected_result<span class="op">);</span></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>stream_result <span class="op">==</span> expected_result<span class="op">);</span></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a><span class="co">// UTF8</span></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>Tree langs <span class="op">=</span> ryml<span class="op">::</span>parse_in_arena<span class="op">(</span><span class="st">R&quot;(</span></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a><span class="vs">en: Planet (Gas)</span></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="vs">fr: Planète (Gazeuse)</span></span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="vs">ru: Планета (Газ)</span></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="vs">ja: 惑星（ガス）</span></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a><span class="vs">zh: 行星（气体）</span></span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a><span class="vs"># UTF8 decoding only happens in double-quoted strings,</span></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="vs"># as per the YAML standard</span></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a><span class="vs">decode this: &quot;\u263A \xE2\x98\xBA&quot;</span></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a><span class="vs">and this as well: &quot;\u2705 \U0001D11E&quot;</span></span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a><span class="vs">not decoded: &#39;\u263A \xE2\x98\xBA&#39;</span></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a><span class="vs">neither this: &#39;\u2705 \U0001D11E&#39;</span></span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="co">// in-place UTF8 just works:</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;en&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;Planet (Gas)&quot;</span><span class="op">);</span></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;fr&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;Planète (Gazeuse)&quot;</span><span class="op">);</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;ru&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;Планета (Газ)&quot;</span><span class="op">);</span></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;ja&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;惑星（ガス）&quot;</span><span class="op">);</span></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;zh&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;行星（气体）&quot;</span><span class="op">);</span></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a><span class="co">// and \x \u \U codepoints are decoded, but only when they appear</span></span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a><span class="co">// inside double-quoted strings, as dictated by the YAML</span></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a><span class="co">// standard:</span></span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;decode this&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;☺ ☺&quot;</span><span class="op">);</span></span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;and this as well&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;✅ 𝄞&quot;</span><span class="op">);</span></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;not decoded&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;</span><span class="sc">\\</span><span class="st">u263A </span><span class="sc">\\</span><span class="st">xE2</span><span class="sc">\\</span><span class="st">x98</span><span class="sc">\\</span><span class="st">xBA&quot;</span><span class="op">);</span></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>langs<span class="op">[</span><span class="st">&quot;neither this&quot;</span><span class="op">].</span>val<span class="op">()</span> <span class="op">==</span> <span class="st">&quot;</span><span class="sc">\\</span><span class="st">u2705 </span><span class="sc">\\</span><span class="st">U0001D11E&quot;</span><span class="op">);</span></span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a><span class="co">//------------------------------------------------------------------</span></span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a><span class="co">// Getting the location of nodes in the source:</span></span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a><span class="co">// Location tracking is opt-in:</span></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>Parser parser<span class="op">(</span>ryml<span class="op">::</span>ParserOptions<span class="op">().</span>locations<span class="op">(</span><span class="kw">true</span><span class="op">));</span></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a><span class="co">// Now the parser will start by building the accelerator structure:</span></span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>Tree tree2 <span class="op">=</span> parser<span class="op">.</span>parse_in_arena<span class="op">(</span><span class="st">&quot;expected.yml&quot;</span><span class="op">,</span> expected_result<span class="op">);</span></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a><span class="co">// ... and use it when querying</span></span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a>ryml<span class="op">::</span>Location loc <span class="op">=</span> parser<span class="op">.</span>location<span class="op">(</span>tree2<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">][</span><span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>parser<span class="op">.</span>location_contents<span class="op">(</span>loc<span class="op">).</span>begins_with<span class="op">(</span><span class="st">&quot;30&quot;</span><span class="op">));</span></span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>loc<span class="op">.</span>line <span class="op">==</span> <span class="dv">3</span><span class="bu">u</span><span class="op">);</span></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>CHECK<span class="op">(</span>loc<span class="op">.</span>col <span class="op">==</span> <span class="dv">4</span><span class="bu">u</span><span class="op">);</span></span></code></pre></div>
+<hr />
+<h2 id="using-ryml-in-your-project">Using ryml in your project</h2>
+<p>Note that ryml uses submodules. Take care to use the
+<code>--recursive</code> flag when cloning the repo, to ensure ryml’s
+submodules are checked out as well:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recursive</span> https://github.com/biojppm/rapidyaml</span></code></pre></div>
+<p>If you omit <code>--recursive</code>, after cloning you will have to
+do <code>git submodule update --init --recursive</code> to ensure ryml’s
+submodules are checked out.</p>
+<h3 id="single-header-file">Single header file</h3>
+<p>ryml is provided chiefly as a cmake library project, but it can also
+be used as a single header file, and there is a <a
+href="./tools/amalgamate.py">tool to amalgamate</a> the code into a
+single header file. The amalgamated header file is provided with each
+release, but you can also generate a customized file suiting your
+particular needs (or commit):</p>
+<pre class="console"><code>[user@host rapidyaml]$ python3 tools/amalgamate.py -h
+usage: amalgamate.py [-h] [--c4core | --no-c4core] [--fastfloat | --no-fastfloat] [--stl | --no-stl] [output]
+
+positional arguments:
+  output          output file. defaults to stdout
+
+optional arguments:
+  -h, --help      show this help message and exit
+  --c4core        amalgamate c4core together with ryml. this is the default.
+  --no-c4core     amalgamate c4core together with ryml. the default is --c4core.
+  --fastfloat     enable fastfloat library. this is the default.
+  --no-fastfloat  enable fastfloat library. the default is --fastfloat.
+  --stl           enable stl interop. this is the default.
+  --no-stl        enable stl interop. the default is --stl.</code></pre>
+<p>The amalgamated header file contains all the function declarations
+and definitions. To use it in the project, <code>#include</code> the
+header at will in any header or source file in the project, but in one
+source file, and only in that one source file, <code>#define</code> the
+macro <code>RYML_SINGLE_HDR_DEFINE_NOW</code> <strong>before including
+the header</strong>. This will enable the function definitions. For
+example:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// foo.h</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;ryml_all.hpp&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// foo.cpp</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ensure that foo.h is not included before this define!</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#define RYML_SINGLE_HDR_DEFINE_NOW</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;ryml_all.hpp&gt;</span></span></code></pre></div>
+<p>If you wish to package the single header into a shared library, then
+you will need to define the preprocessor symbol <code>RYML_SHARED</code>
+during compilation.</p>
+<h3 id="as-a-library">As a library</h3>
+<p>The single header file is a good approach to quickly try the library,
+but if you wish to make good use of CMake and its tooling ecosystem,
+(and get better compile times), then ryml has you covered.</p>
+<p>As with any other cmake library, you have the option to integrate
+ryml into your project’s build setup, thereby building ryml together
+with your project, or – prior to configuring your project – you can have
+ryml installed either manually or through package managers.</p>
+<p>Currently <a href="https://cmake.org/">cmake</a> is required to build
+ryml; we recommend a recent cmake version, at least 3.13.</p>
+<h3 id="package-managers">Package managers</h3>
+<p>ryml is available in most package managers (thanks to all the
+contributors!) and linux distributions. But please be aware: those
+packages are maintained downstream of this repository, so if you have
+issues with the package, file a report with the respective
+maintainer.</p>
+<p>Here’s a quick roundup (not maintained): * Package managers: * <a
+href="https://conan.io/center/recipes/rapidyaml">conan</a> * <a
+href="https://vcpkg.io/en/packages.html">vcpkg</a>:
+<code>vcpkg install ryml</code> * <a
+href="https://pypi.org/project/rapidyaml/">PyPI</a> * <a
+href="https://github.com/Homebrew/homebrew-core/blob/master/Formula/r/rapidyaml.rb">brew</a>
+* Linux distributions: * Arch Linux/Manjaro: * <a
+href="https://archlinuxarm.org/packages/aarch64/rapidyaml">rapidyaml
+(aarch64)</a> * <a
+href="https://aur.archlinux.org/packages/rapidyaml-git/">rapidyaml-git
+(AUR)</a> * <a
+href="https://aur.archlinux.org/packages/python-rapidyaml-git/">python-rapidyaml-git
+(AUR)</a> * <a href="https://getfedora.org/">Fedora Linux</a>/<a
+href="https://docs.fedoraproject.org/en-US/epel/">EPEL</a>: *
+<code>dnf install rapidyaml-devel</code> *
+<code>dnf install python3-rapidyaml</code> * <a
+href="https://packages.gentoo.org/packages/dev-cpp/rapidyaml">Gentoo</a>
+* <a
+href="https://build.openbuildservice.org/package/show/Emulators/rapidyaml">OpenSuse</a>
+* <a
+href="https://slackbuilds.org/repository/15.0/libraries/rapidyaml/">Slackbuilds</a>
+* <a
+href="https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141">AltLinux</a></p>
+<p>Although package managers are very useful for quickly getting up to
+speed, the advised way is still to bring ryml as a submodule of your
+project, building both together. This makes it easy to track any
+upstream changes in ryml. Also, ryml is small and quick to build, so
+there’s not much of a cost for building it with your project.</p>
+<h3 id="quickstart-samples">Quickstart samples</h3>
+<p>These samples show different ways of getting ryml into your
+application. All the samples use <a href="./samples/quickstart.cpp">the
+same quickstart executable source</a>, but are built in different ways,
+showing several alternatives to integrate ryml into your project. We
+also encourage you to refer to the <a
+href="./samples/quickstart.cpp">quickstart source</a> itself, which
+extensively covers most of the functionality that you may want out of
+ryml.</p>
+<p>Each sample brings a <code>run.sh</code> script with the sequence of
+commands required to successfully build and run the application (this is
+a bash script and runs in Linux and MacOS, but it is also possible to
+run in Windows via Git Bash or the WSL). Click on the links below to
+find out more about each sample:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 35%" />
+<col style="width: 18%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Sample name</th>
+<th>ryml is part of build?</th>
+<th style="text-align: left;">cmake file</th>
+<th style="text-align: left;">commands</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><a
+href="./samples/singleheader"><code>singleheader</code></a></td>
+<td><strong>yes</strong><br>ryml brought as a single header file,<br>not
+as a library</td>
+<td style="text-align: left;"><a
+href="./samples/singleheader/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td style="text-align: left;"><a
+href="./samples/singleheader/run.sh"><code>run.sh</code></a></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><a
+href="./samples/singleheaderlib"><code>singleheaderlib</code></a></td>
+<td><strong>yes</strong><br>ryml brought as a library<br>but from the
+single header file</td>
+<td style="text-align: left;"><a
+href="./samples/singleheaderlib/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td style="text-align: left;"><a
+href="./samples/singleheaderlib/run_shared.sh"><code>run_shared.sh</code>
+(shared library)</a><br> <a
+href="./samples/singleheaderlib/run_static.sh"><code>run_static.sh</code>
+(static library)</a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><a
+href="./samples/add_subdirectory"><code>add_subdirectory</code></a></td>
+<td><strong>yes</strong></td>
+<td style="text-align: left;"><a
+href="./samples/add_subdirectory/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td style="text-align: left;"><a
+href="./samples/add_subdirectory/run.sh"><code>run.sh</code></a></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><a
+href="./samples/fetch_content"><code>fetch_content</code></a></td>
+<td><strong>yes</strong></td>
+<td style="text-align: left;"><a
+href="./samples/fetch_content/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td style="text-align: left;"><a
+href="./samples/fetch_content/run.sh"><code>run.sh</code></a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><a
+href="./samples/find_package"><code>find_package</code></a></td>
+<td><strong>no</strong><br>needs prior install or package</td>
+<td style="text-align: left;"><a
+href="./samples/find_package/CMakeLists.txt"><code>CMakeLists.txt</code></a></td>
+<td style="text-align: left;"><a
+href="./samples/find_package/run.sh"><code>run.sh</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="cmake-build-settings-for-ryml">CMake build settings for
+ryml</h3>
+<p>The following cmake variables can be used to control the build
+behavior of ryml:</p>
+<ul>
+<li><code>RYML_WITH_TAB_TOKENS=ON/OFF</code>. Enable/disable support for
+tabs as valid container tokens after <code>:</code> and <code>-</code>.
+Defaults to <code>OFF</code>, because this may cost up to 10% in
+processing time.</li>
+<li><code>RYML_DEFAULT_CALLBACKS=ON/OFF</code>. Enable/disable ryml’s
+default implementation of error and allocation callbacks. Defaults to
+<code>ON</code>.</li>
+<li><code>RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON/OFF</code> -
+Enable/disable the same-named macro, which will make the default error
+handler provided by ryml throw a <code>std::runtime_error</code>
+exception.</li>
+<li><code>RYML_USE_ASSERT</code> - enable assertions in the code
+regardless of build type. This is disabled by default. Failed assertions
+will trigger a call to the error callback.</li>
+<li><code>RYML_STANDALONE=ON/OFF</code>. ryml uses <a
+href="https://github.com/biojppm/c4core">c4core</a>, a C++ library with
+low-level multi-platform utilities for C++. When
+<code>RYML_STANDALONE=ON</code>, c4core is incorporated into ryml as if
+it is the same library. Defaults to <code>ON</code>.</li>
+<li><code>RYML_INSTALL=ON/OFF</code>. enable/disable install target.
+Defaults to <code>ON</code>.</li>
+</ul>
+<p>If you’re developing ryml or just debugging problems with ryml
+itself, the following cmake variables can be helpful: *
+<code>RYML_DEV=ON/OFF</code>: a bool variable which enables development
+targets such as unit tests, benchmarks, etc. Defaults to
+<code>OFF</code>. * <code>RYML_DBG=ON/OFF</code>: a bool variable which
+enables verbose prints from parsing code; can be useful to figure out
+parsing problems. Defaults to <code>OFF</code>.</p>
+<h4 id="forcing-ryml-to-use-a-different-c4core-version">Forcing ryml to
+use a different c4core version</h4>
+<p>ryml is strongly coupled to c4core, and this is reinforced by the
+fact that c4core is a submodule of the current repo. However, it is
+still possible to use a c4core version different from the one in the
+repo (of course, only if there are no incompatibilities between the
+versions). You can find out how to achieve this by looking at the <a
+href="./samples/custom_c4core/CMakeLists.txt"><code>custom_c4core</code>
+sample</a>.</p>
+<hr />
+<h2 id="other-languages">Other languages</h2>
+<p>One of the aims of ryml is to provide an efficient YAML API for other
+languages. JavaScript is fully available, and there is already a cursory
+implementation for Python using only the low-level API. After ironing
+out the general approach, other languages are likely to follow (all of
+this is possible because we’re using <a
+href="http://www.swig.org/">SWIG</a>, which makes it easy to do so).</p>
+<h3 id="javascript">JavaScript</h3>
+<p>A JavaScript+WebAssembly port is available, compiled through <a
+href="https://emscripten.org/">emscripten</a>.</p>
+<h3 id="python">Python</h3>
+<p>(Note that this is a work in progress. Additions will be made and
+things will be changed.). The python port is using only the index-based
+low-level API, which works with node indices and string views. This API
+is fast, but you may find it hard to use: it does not build a python
+structure of dicts/seqs/scalars, and all the scalars are strings, and
+not typed. With that said, it is really fast, and once you have the tree
+you can still walk over the tree to create the native python structure.
+Have a look at this <a href="api/python/tests/test_readme.py">test
+file</a> to see how the python API works, and to judge whether it may be
+useful to your case.</p>
+<p>As for performance, in a <a href="api/python/bm/parse_bm.py">timeit
+benchmark</a> compared against <a href="https://pyyaml.org/">PyYaml</a>
+and <a href="https://yaml.readthedocs.io/en/latest/">ruamel.yaml</a>,
+ryml parses quicker by generally 100x and up to 400x:</p>
+<pre><code>+----------------------------------------+-------+----------+----------+-----------+
+| style_seqs_blck_outer1000_inner100.yml | count | time(ms) | avg(ms)  | avg(MB/s) |
++----------------------------------------+-------+----------+----------+-----------+
+| parse:RuamelYamlParse                  |     1 | 4564.812 | 4564.812 |     0.173 |
+| parse:PyYamlParse                      |     1 | 2815.426 | 2815.426 |     0.280 |
+| parse:RymlParseInArena                 |    38 |  588.024 |   15.474 |    50.988 |
+| parse:RymlParseInArenaReuse            |    38 |  466.997 |   12.289 |    64.202 |
+| parse:RymlParseInPlace                 |    38 |  579.770 |   15.257 |    51.714 |
+| parse:RymlParseInPlaceReuse            |    38 |  462.932 |   12.182 |    64.765 |
++----------------------------------------+-------+----------+----------+-----------+</code></pre>
+<p>(Note that the parse timings above are somewhat biased towards ryml,
+because it does not perform any type conversions in Python-land: return
+types are merely <code>memoryviews</code> to the source buffer, possibly
+copied to the tree’s arena).</p>
+<p>As for emitting, the improvement can be as high as 3000x:</p>
+<pre><code>+----------------------------------------+-------+-----------+-----------+-----------+
+| style_maps_blck_outer1000_inner100.yml | count |  time(ms) |  avg(ms)  | avg(MB/s) |
++----------------------------------------+-------+-----------+-----------+-----------+
+| emit_yaml:RuamelYamlEmit               |     1 | 18149.288 | 18149.288 |     0.054 |
+| emit_yaml:PyYamlEmit                   |     1 |  2683.380 |  2683.380 |     0.365 |
+| emit_yaml:RymlEmitToNewBuffer          |    88 |   861.726 |     9.792 |    99.976 |
+| emit_yaml:RymlEmitReuse                |    88 |   437.931 |     4.976 |   196.725 |
++----------------------------------------+-------+-----------+-----------+-----------+</code></pre>
+<hr />
+<h2 id="yaml-standard-conformance">YAML standard conformance</h2>
+<p>ryml is feature complete with regards to the YAML specification. All
+the YAML features are well covered in the unit tests, and expected to
+work, unless in the exceptions noted below.</p>
+<p>Of course, there are many dark corners in YAML, and there certainly
+can appear cases which ryml fails to parse. Your <a
+href="https://github.com/biojppm/rapidyaml/issues">bug reports or pull
+requests</a> are very welcome.</p>
+<p>See also <a href="./ROADMAP.md">the roadmap</a> for a list of future
+work.</p>
+<h3 id="known-limitations">Known limitations</h3>
+<p>ryml deliberately makes no effort to follow the YAML standard in the
+following situations:</p>
+<ul>
+<li>ryml’s tree does NOT accept containers as map keys: keys stored in
+the tree must always be scalars. HOWEVER, this is a limitation only of
+the final tree. The event-based parse engine DOES parse container keys,
+as it is is meant to be used by other programming languages to create
+their native data-structures, and it is fully tested and fully
+conformant (other than the general error permissiveness noted
+below).</li>
+<li>Tab characters after <code>:</code> and <code>-</code> are not
+accepted tokens, unless ryml is compiled with the macro
+<code>RYML_WITH_TAB_TOKENS</code>. This requirement exists because
+checking for tabs introduces branching into the parser’s hot code and in
+some cases costs as much as 10% in parsing time.</li>
+<li>Non-unique map keys are allowed. Enforcing key uniqueness in the
+parser or in the tree would cause log-linear parsing complexity (for
+root children on a mostly flat tree), and would increase code size
+through added structural, logical and cyclomatic complexity. So
+enforcing uniqueness in the parser would hurt users who may not care
+about it (they may not care either because non-uniqueness is OK for
+their use case, or because it is impossible to occur). On the other
+hand, any user who requires uniqueness can easily enforce it by doing a
+post-parse walk through the tree. So choosing to not enforce key
+uniqueness adheres to the spirit of “don’t pay for what you don’t
+use”.</li>
+<li><code>%YAML</code> directives have no effect and are ignored.</li>
+<li><code>%TAG</code> directives are limited to a default maximum of 4
+instances per <code>Tree</code>. To increase this maximum, define the
+preprocessor symbol <code>RYML_MAX_TAG_DIRECTIVES</code> to a suitable
+value. This arbitrary limit reflects the usual practice of having at
+most 1 or 2 tag directives; also, be aware that this feature is under
+consideration for removal in YAML 1.3.</li>
+<li>Byte Order Marks: while ryml correctly handles BOMs at the beginning
+of the stream or documents (as per the standard), BOMs inside scalars
+are ignored. The <a
+href="https://yaml.org/spec/1.2.2/#52-character-encodings">standard
+mandates that they should be quoted</a> when emitted, this is not
+done.</li>
+<li>ryml tends to be on the permissive side in several cases where the
+YAML standard dictates that there should be an error; in many of these
+cases, ryml will tolerate the input. This may be good or bad, but in any
+case is being improved on, meaning ryml will grow progressively less
+tolerant of YAML errors in the coming releases. So we strongly suggest
+to stay away from those dark corners of YAML which are generally a
+source of problems; this is good practice anyway.</li>
+</ul>
+<p>If you do run into trouble and would like to investigate conformance
+of your YAML code, <strong>beware</strong> of existing online YAML
+linters, many of which are not fully conformant. Instead, try using <a
+href="https://play.yaml.io">https://play.yaml.io</a>, an amazingly
+useful tool which lets you dynamically input your YAML and continuously
+see the results from all the existing parsers (kudos to <span
+class="citation" data-cites="ingydotnet">@ingydotnet</span> and the
+people from the YAML test suite). And of course, if you detect anything
+wrong with ryml, please <a
+href="https://github.com/biojppm/rapidyaml/issues">open an issue</a> so
+that we can improve.</p>
+<h3 id="test-suite-status">Test suite status</h3>
+<p>As part of its CI testing, ryml uses the <a
+href="https://github.com/yaml/yaml-test-suite">YAML test suite</a>. (See
+also the test suite results at <a
+href="https://matrix.yaml.info/">https://matrix.yaml.info/</a>, but be
+aware that the results there may be using an older version of ryml.)
+This is an extensive and merciless set of reference cases covering the
+full YAML spec. Each of these cases has several subparts: *
+<code>in-yaml</code>: mildly, plainly or extremely difficult-to-parse
+YAML * <code>in-json</code>: equivalent JSON (where possible/meaningful)
+* <code>out-yaml</code>: equivalent standard YAML *
+<code>emit-yaml</code>: equivalent standard YAML * <code>events</code>:
+reference events according to the YAML standard</p>
+<p>When testing, ryml parses each of the yaml/json parts, then emits the
+parsed tree, then parses the emitted result and verifies that emission
+is idempotent, ie that the round trip emitted result is semantically the
+same as its input without any loss of information.</p>
+<p>To ensure consistency, this happens over four successive levels of
+parse-&gt;emit round trips. And to ensure correctness, each of the
+stages is compared against the <code>events</code> spec from the test,
+which constitutes the reference. The tests also check for equality
+between the reference events in the test case and the events emitted by
+ryml from the data tree parsed from the test case input. All of this is
+then carried out with several variations: both unix <code>\n</code> vs
+windows <code>\r\n</code> line endings, emitting to string, file or
+streams, which results in ~250 tests per case part.</p>
+<p>With multiple parts per case and ~400 reference cases in the test
+suite, this makes over several hundred thousand individual tests to
+which ryml is subjected, which are added to the unit tests in ryml,
+which also employ the same extensive combinatorial approach.</p>
+<p>Also, note that in <a href="http://matrix.yaml.info/">their own
+words</a>, the tests from the YAML test suite <em>contain a lot of edge
+cases that don’t play such an important role in real world
+examples</em>. And yet, despite the extreme focus of the test suite,
+currently ryml only fails a minor fraction of the test cases, mostly
+related with the deliberate limitations noted above.</p>
+<p>Other than those limitations, by far the main issue with ryml is that
+several standard-mandated parse errors fail to materialize (this will be
+addressed in the coming releases). For the up-to-date list of ryml
+failures in the test-suite, refer to the <a
+href="test/test_suite/test_suite_parts.cpp">list of known exceptions</a>
+from ryml’s test suite runner, which is used as part of ryml’s CI
+setup.</p>
+<hr />
+<h2 id="alternative-libraries">Alternative libraries</h2>
+<p>Why this library? Because none of the existing libraries was quite
+what I wanted. When I started this project in 2018, I was aware of these
+two alternative C/C++ libraries:</p>
+<ul>
+<li><a href="https://github.com/yaml/libyaml">libyaml</a>. This is a
+bare C library. It does not create a representation of the data tree, so
+I don’t see it as practical. My initial idea was to wrap parsing and
+emitting around libyaml’s convenient event handling, but to my surprise
+I found out it makes heavy use of allocations and string duplications
+when parsing. I briefly pondered on sending PRs to reduce these
+allocation needs, but not having a permanent tree to store the parsed
+data was too much of a downside.</li>
+<li><a href="https://github.com/jbeder/yaml-cpp">yaml-cpp</a>. This
+library may be full of functionality, but is heavy on the use of
+node-pointer-based structures like <code>std::map</code>, allocations,
+string copies, polymorphism and slow C++ stream serializations. This is
+generally a sure way of making your code slower, and strong evidence of
+this can be seen in the benchmark results above.</li>
+</ul>
+<p>Recently <a href="https://github.com/pantoniou/libfyaml">libfyaml</a>
+appeared. This is a newer C library, fully conformant to the YAML
+standard with an amazing 100% success in the test suite; it also offers
+the tree as a data structure. As a downside, it does not work in
+Windows, and it is also multiple times slower parsing and emitting.</p>
+<p>When performance and low latency are important, using contiguous
+structures for better cache behavior and to prevent the library from
+trampling caches, parsing in place and using non-owning strings is of
+central importance. Hence this Rapid YAML library which, with minimal
+compromise, bridges the gap from efficiency to usability. This library
+takes inspiration from <a
+href="https://github.com/Tencent/rapidjson">RapidJSON</a> and <a
+href="http://rapidxml.sourceforge.net/">RapidXML</a>.</p>
