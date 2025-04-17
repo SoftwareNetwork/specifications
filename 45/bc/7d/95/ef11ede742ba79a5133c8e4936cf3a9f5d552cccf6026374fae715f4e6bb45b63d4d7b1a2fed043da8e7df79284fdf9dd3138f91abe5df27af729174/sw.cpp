@@ -89,6 +89,7 @@ void build(Solution &s) {
             "Modules/symtablemodule.c", "Modules/timemodule.c", "Modules/xxsubtype.c", "Modules/zlibmodule.c"
             , "Modules/_tracemalloc.c"
             , "Modules/_sysconfig.c"
+            , "Modules/_suggestions.c"
 
             , "Objects/.*\\.h"_rr, "Objects/.*\\.inc"_rr, "Objects/abstract.c",
             //"Objects/accu.c",
