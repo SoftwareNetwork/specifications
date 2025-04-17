@@ -288,6 +288,7 @@ void build(Solution &s)
                 protobuf_lite += "pthread"_slib;
         }
         protobuf_lite.patch("src/google/protobuf/port_def.inc", "[[nodiscard]]", ""); // does not work on clang+shared build
+        protobuf_lite.patch("src/google/protobuf/port_def.inc", " && !defined(__i386__)", " &&  !defined(__i386__) && !defined(__GNUC__)"); // does not work on gcc-15
         protobuf_lite.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
         protobuf_lite.Public += "org.sw.demo.google.abseil"_dep;
         protobuf_lite.Public += "org.sw.demo.google.protocolbuffers.utf8_validity-main"_dep;
@@ -359,6 +360,7 @@ void build(Solution &s)
                 protobuf += "pthread"_slib;
         }
         protobuf.patch("src/google/protobuf/port_def.inc", "[[nodiscard]]", ""); // does not work on clang+shared build
+        protobuf.patch("src/google/protobuf/port_def.inc", " && !defined(__i386__)", " &&  !defined(__i386__) && !defined(__GNUC__)"); // does not work on gcc-15
         protobuf.patch("src/google/protobuf/parse_context.h", "PROTOBUF_EXPORT_TEMPLATE_DEFINE", "//PROTOBUF_EXPORT_TEMPLATE_DEFINE");
     }
 
