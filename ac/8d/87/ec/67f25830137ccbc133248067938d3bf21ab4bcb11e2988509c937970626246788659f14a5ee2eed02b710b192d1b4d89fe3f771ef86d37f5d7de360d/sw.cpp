@@ -51,6 +51,12 @@ void build(Solution &s)
 		t.Public += "org.sw.demo.google.gumbo_parser"_dep;
 
 		t.patch("include/mupdf/fitz/system.h", "#define hypotf _hypotf", "//#define  hypotf _hypotf");
+		t.patch("source/fitz/geometry.c", "const fz_quad fz_invalid_quad = { {NAN, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN} };", R"(
+//const  fz_quad fz_invalid_quad = { {NAN, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN} };
+
+#define MY_NAN (0.0 / 0.0)
+const fz_quad fz_invalid_quad = { {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN} };
+)");
 	}
 
 	auto &mutool = p.addTarget<Executable>("mutool");
