@@ -31,6 +31,9 @@ void build(Solution &s)
         t += "data/sql/.*"_r;
         t += "data/sql_filelist.cmake";
 
+        // EMBED_RESOURCE_FILES
+        t -= "src/embedded_resources.c";
+
         t.Public += "include"_idir;
         t.Public += "src"_idir;
 
