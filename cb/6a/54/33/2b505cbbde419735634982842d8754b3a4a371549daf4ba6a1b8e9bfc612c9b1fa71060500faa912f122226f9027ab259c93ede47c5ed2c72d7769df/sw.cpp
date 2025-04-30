@@ -10,8 +10,8 @@ void build(Solution &s)
     {
         auto &t = natvis;
         t.setRootDirectory("tools/generate_natvis");
-        t.patch("nlohmann_json.natvis.j2", "m_type ==", "m_data.m_type  ==");
-        t.patch("nlohmann_json.natvis.j2", "m_value.", "m_data.m_value .");
+        //t.patch("nlohmann_json.natvis.j2", "m_type ==", "m_data.m_type  ==");
+        //t.patch("nlohmann_json.natvis.j2", "m_value.", "m_data.m_value .");
         t.addCommand()
             << cmd::prog("org.sw.demo.python.exe-3.10"_dep)
             << cmd::dep("org.sw.demo.python.pypi.jinja2"_dep)
