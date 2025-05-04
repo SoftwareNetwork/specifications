@@ -1,0 +1,418 @@
+<h1 id="libheif">libheif</h1>
+<p><a href="https://github.com/strukturag/libheif/actions"><img
+src="https://github.com/strukturag/libheif/workflows/build/badge.svg"
+alt="Build Status" /></a> <a
+href="https://ci.appveyor.com/project/strukturag/libheif"><img
+src="https://ci.appveyor.com/api/projects/status/github/strukturag/libheif?svg=true"
+alt="Build Status" /></a> <a
+href="https://scan.coverity.com/projects/strukturag-libheif"><img
+src="https://scan.coverity.com/projects/16641/badge.svg"
+alt="Coverity Scan Build Status" /></a></p>
+<p>libheif is an ISO/IEC 23008-12:2017 HEIF and AVIF (AV1 Image File
+Format) file format decoder and encoder. There is partial support for
+ISO/IEC 23008-12:2022 (2nd Edition) capabilities.</p>
+<p>HEIF and AVIF are new image file formats employing HEVC (H.265) or
+AV1 image coding, respectively, for the best compression ratios
+currently possible.</p>
+<p>libheif makes use of <a
+href="https://github.com/strukturag/libde265">libde265</a> for HEIF
+image decoding and x265 for encoding. For AVIF, libaom, dav1d, svt-av1,
+or rav1e are used as codecs.</p>
+<h2 id="supported-features">Supported features</h2>
+<p>libheif has support for:</p>
+<ul>
+<li>HEIC, AVIF, VVC, AVC, JPEG-in-HEIF, JPEG2000, uncompressed (ISO/IEC
+23001-17:2024) codecs</li>
+<li>alpha channels, depth maps, thumbnails, auxiliary images</li>
+<li>multiple images in a file</li>
+<li>tiled images with decoding individual tiles and encoding tiled
+images by adding tiles one after another</li>
+<li>HDR images, correct color transform according to embedded color
+profiles</li>
+<li>image transformations (crop, mirror, rotate), overlay images</li>
+<li>plugin interface to add alternative codecs</li>
+<li>reading EXIF and XMP metadata</li>
+<li>region annotations and mask images</li>
+<li>decoding of files while downloading (e.g. extract image size before
+file has been completely downloaded)</li>
+</ul>
+<p>Supported codecs: | Format | Decoders | Encoders |
+|:————-|:——————-:|:—————————-:| | HEIC | libde265, ffmpeg | x265,
+kvazaar | | AVIF | AOM, dav1d | AOM, rav1e, svt-av1 | | VVC | vvdec |
+vvenc, uvg266 | | AVC | openh264 | - | | JPEG | libjpeg(-turbo) |
+libjpeg(-turbo) | | JPEG2000 | OpenJPEG | OpenJPEG | | HTJ2K | OpenJPEG
+| OpenJPH | | uncompressed | built-in | built-in |</p>
+<h2 id="api">API</h2>
+<p>The library has a C API for easy integration and wide language
+support.</p>
+<p>The decoder automatically supports both HEIF and AVIF (and the other
+compression formats) through the same API. The same decoding code can be
+used to decode any of them. The encoder can be switched between HEIF and
+AVIF simply by setting <code>heif_compression_HEVC</code> or
+<code>heif_compression_AV1</code> to
+<code>heif_context_get_encoder_for_format()</code>, or using any of the
+other compression formats.</p>
+<p>Loading the primary image in an HEIF file is as easy as this:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>heif_context<span class="op">*</span> ctx <span class="op">=</span> heif_context_alloc<span class="op">();</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>heif_context_read_from_file<span class="op">(</span>ctx<span class="op">,</span> input_filename<span class="op">,</span> <span class="kw">nullptr</span><span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">// get a handle to the primary image</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>heif_image_handle<span class="op">*</span> handle<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>heif_context_get_primary_image_handle<span class="op">(</span>ctx<span class="op">,</span> <span class="op">&amp;</span>handle<span class="op">);</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">// decode the image and convert colorspace to RGB, saved as 24bit interleaved</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>heif_image<span class="op">*</span> img<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>heif_decode_image<span class="op">(</span>handle<span class="op">,</span> <span class="op">&amp;</span>img<span class="op">,</span> heif_colorspace_RGB<span class="op">,</span> heif_chroma_interleaved_RGB<span class="op">,</span> <span class="kw">nullptr</span><span class="op">);</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> stride<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">uint8_t</span><span class="op">*</span> data <span class="op">=</span> heif_image_get_plane_readonly<span class="op">(</span>img<span class="op">,</span> heif_channel_interleaved<span class="op">,</span> <span class="op">&amp;</span>stride<span class="op">);</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">// ... process data as needed ...</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">// clean up resources</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>heif_image_release<span class="op">(</span>img<span class="op">);</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>heif_image_handle_release<span class="op">(</span>handle<span class="op">);</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>heif_context_free<span class="op">(</span>ctx<span class="op">);</span></span></code></pre></div>
+<p>Writing an HEIF file can be done like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>heif_context<span class="op">*</span> ctx <span class="op">=</span> heif_context_alloc<span class="op">();</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// get the default encoder</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>heif_encoder<span class="op">*</span> encoder<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>heif_context_get_encoder_for_format<span class="op">(</span>ctx<span class="op">,</span> heif_compression_HEVC<span class="op">,</span> <span class="op">&amp;</span>encoder<span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// set the encoder parameters</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>heif_encoder_set_lossy_quality<span class="op">(</span>encoder<span class="op">,</span> <span class="dv">50</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">// encode the image</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>heif_image<span class="op">*</span> image<span class="op">;</span> <span class="co">// code to fill in the image omitted in this example</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>heif_context_encode_image<span class="op">(</span>ctx<span class="op">,</span> image<span class="op">,</span> encoder<span class="op">,</span> <span class="kw">nullptr</span><span class="op">,</span> <span class="kw">nullptr</span><span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>heif_encoder_release<span class="op">(</span>encoder<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>heif_context_write_to_file<span class="op">(</span>ctx<span class="op">,</span> <span class="st">&quot;output.heic&quot;</span><span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>heif_context_free<span class="op">(</span>ctx<span class="op">);</span></span></code></pre></div>
+<p>Get the EXIF data from an HEIF file:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>heif_item_id exif_id<span class="op">;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> n <span class="op">=</span> heif_image_handle_get_list_of_metadata_block_IDs<span class="op">(</span>image_handle<span class="op">,</span> <span class="st">&quot;Exif&quot;</span><span class="op">,</span> <span class="op">&amp;</span>exif_id<span class="op">,</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>n<span class="op">==</span><span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">size_t</span> exifSize <span class="op">=</span> heif_image_handle_get_metadata_size<span class="op">(</span>image_handle<span class="op">,</span> exif_id<span class="op">);</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint8_t</span><span class="op">*</span> exifData <span class="op">=</span> malloc<span class="op">(</span>exifSize<span class="op">);</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> heif_error error <span class="op">=</span> heif_image_handle_get_metadata<span class="op">(</span>image_handle<span class="op">,</span> exif_id<span class="op">,</span> exifData<span class="op">);</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See the header file <code>heif.h</code> for the complete C API.</p>
+<p>There is also a C++ API which is a header-only wrapper to the C API.
+Hence, you can use the C++ API and still be binary compatible. Code
+using the C++ API is much less verbose than using the C API
+directly.</p>
+<h3 id="reading-and-writing-tiled-images">Reading and Writing Tiled
+Images</h3>
+<p>For very large resolution images, it is not always feasible to
+process the whole image. In this case, <code>libheif</code> can process
+the image tile by tile. See <a
+href="https://github.com/strukturag/libheif/wiki/Reading-and-Writing-Tiled-Images">this
+tutorial</a> on how to use the API for this.</p>
+<h2 id="compiling">Compiling</h2>
+<p>This library uses the CMake build system (the earlier autotools build
+files have been removed in v1.16.0).</p>
+<p>For a minimal configuration, we recommend to use the codecs libde265
+and x265 for HEIC and AOM for AVIF. Make sure that you compile and
+install <a href="https://github.com/strukturag/libde265">libde265</a>
+first, so that the configuration script will find this. Also install
+x265 and its development files if you want to use HEIF encoding, but
+note that x265 is GPL. An alternative to x265 is kvazaar (BSD).</p>
+<p>The basic build steps are as follows (–preset argument needs CMake
+&gt;= 3.21):</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--preset</span><span class="op">=</span>release ..</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code></pre></div>
+<p>There are CMake presets to cover the most frequent use cases.</p>
+<ul>
+<li><code>release</code>: the preferred preset which compiles all codecs
+as separate plugins. If you do not want to distribute some of these
+plugins (e.g. HEIC), you can omit packaging these.</li>
+<li><code>release-noplugins</code>: this is a smaller, self-contained
+build of libheif without using the plugin system. A single library is
+built with support for HEIC and AVIF.</li>
+<li><code>testing</code>: for building and executing the unit tests.
+Also the internal library symbols are exposed. Do not use for
+distribution.</li>
+<li><code>fuzzing</code>: all codecs like in release build, but
+configured into a self-contained library with enabled fuzzers. The
+library should not distributed.</li>
+</ul>
+<p>You can optionally adapt these standard configurations to your needs.
+This can be done, for example, by calling <code>ccmake .</code> from
+within the <code>build</code> directory.</p>
+<h3 id="cmake-configuration-variables">CMake configuration
+variables</h3>
+<p>Libheif supports many different codecs. In order to reduce the number
+of dependencies and the library size, you can choose which of these
+codecs to include. Each codec can be compiled either as built-in to the
+library with a hard dependency, or as a separate plugin file that is
+loaded dynamically.</p>
+<p>For each codec, there are two configuration variables:</p>
+<ul>
+<li><code>WITH_{codec}</code>: enables the codec</li>
+<li><code>WITH_{codec}_PLUGIN</code>: when enabled, the codec is
+compiled as a separate plugin.</li>
+</ul>
+<p>In order to use dynamic plugins, also make sure that
+<code>ENABLE_PLUGIN_LOADING</code> is enabled. The placeholder
+<code>{codec}</code> can have these values: <code>LIBDE265</code>,
+<code>X265</code>, <code>AOM_DECODER</code>, <code>AOM_ENCODER</code>,
+<code>SvtEnc</code>, <code>DAV1D</code>, <code>FFMPEG_DECODER</code>,
+<code>JPEG_DECODER</code>, <code>JPEG_ENCODER</code>,
+<code>KVAZAAR</code>, <code>OpenJPEG_DECODER</code>,
+<code>OpenJPEG_ENCODER</code>, <code>OPENJPH_ENCODER</code>,
+<code>VVDEC</code>, <code>VVENC</code>, <code>UVG266</code>.</p>
+<p>Further options are:</p>
+<ul>
+<li><code>WITH_UNCOMPRESSED_CODEC</code>: enable support for
+uncompressed images according to ISO/IEC 23001-17:2024. This is
+<em>experimental</em> and not available as a dynamic plugin. When
+enabled, it adds a dependency to <code>zlib</code>, and optionally will
+use <code>brotli</code>.</li>
+<li><code>WITH_HEADER_COMPRESSION</code>: enables support for compressed
+metadata. When enabled, it adds a dependency to <code>zlib</code>. Note
+that header compression is not widely supported yet.</li>
+<li><code>WITH_LIBSHARPYUV</code>: enables high-quality YCbCr/RGB color
+space conversion algorithms (requires <code>libsharpyuv</code>,
+e.g. from the <code>third-party</code> directory).</li>
+<li><code>ENABLE_EXPERIMENTAL_FEATURES</code>: enables functions that
+are currently in development and for which the API is not stable yet.
+When this is enabled, a header <code>heif_experimental.h</code> will be
+installed that contains this unstable API. Distributions that rely on a
+stable API should not enable this.</li>
+<li><code>ENABLE_MULTITHREADING_SUPPORT</code>: can be used to disable
+any multithreading support, e.g. for embedded platforms.</li>
+<li><code>ENABLE_PARALLEL_TILE_DECODING</code>: when enabled, libheif
+will decode tiled images in parallel to speed up compilation.</li>
+<li><code>PLUGIN_DIRECTORY</code>: the directory where libheif will
+search for dynamic plugins when the environment variable
+<code>LIBHEIF_PLUGIN_PATH</code> is not set.</li>
+<li><code>WITH_REDUCED_VISIBILITY</code>: only export those symbols into
+the library that are public API. Has to be turned off for running some
+tests.</li>
+</ul>
+<h3 id="macos">macOS</h3>
+<ol type="1">
+<li><p>Install dependencies with Homebrew</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install cmake make pkg-config x265 libde265 libjpeg libtool</span></code></pre></div></li>
+<li><p>Configure and build project (–preset argument needs CMake &gt;=
+3.21):</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--preset</span><span class="op">=</span>release ..</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">./configure</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code></pre></div></li>
+</ol>
+<h3 id="windows">Windows</h3>
+<p>You can build and install libheif using the <a
+href="https://github.com/Microsoft/vcpkg/">vcpkg</a> dependency
+manager:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/Microsoft/vcpkg.git</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> vcpkg</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">./bootstrap-vcpkg.bat</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">./vcpkg</span> integrate install</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./vcpkg</span> install libheif</span></code></pre></div>
+<p>The libheif port in vcpkg is kept up to date by Microsoft team
+members and community contributors. If the version is out of date,
+please <a href="https://github.com/Microsoft/vcpkg">create an issue or
+pull request</a> on the vcpkg repository.</p>
+<h3 id="adding-libaom-encoderdecoder-for-avif">Adding libaom
+encoder/decoder for AVIF</h3>
+<ul>
+<li>Run the <code>aom.cmd</code> script in the <code>third-party</code>
+directory to download libaom and compile it.</li>
+</ul>
+<p>When running <code>cmake</code> or <code>configure</code>, make sure
+that the environment variable <code>PKG_CONFIG_PATH</code> includes the
+absolute path to <code>third-party/aom/dist/lib/pkgconfig</code>.</p>
+<h3 id="adding-rav1e-encoder-for-avif">Adding rav1e encoder for
+AVIF</h3>
+<ul>
+<li>Install <code>cargo</code>.</li>
+<li>Install <code>cargo-c</code> by executing</li>
+</ul>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">cargo</span> install <span class="at">--force</span> cargo-c</span></code></pre></div>
+<ul>
+<li>Run the <code>rav1e.cmd</code> script in the
+<code>third-party</code> directory to download rav1e and compile
+it.</li>
+</ul>
+<p>When running <code>cmake</code>, make sure that the environment
+variable <code>PKG_CONFIG_PATH</code> includes the absolute path to
+<code>third-party/rav1e/dist/lib/pkgconfig</code>.</p>
+<h3 id="adding-dav1d-decoder-for-avif">Adding dav1d decoder for
+AVIF</h3>
+<ul>
+<li>Install <a
+href="https://mesonbuild.com/"><code>meson</code></a>.</li>
+<li>Run the <code>dav1d.cmd</code> script in the
+<code>third-party</code> directory to download dav1d and compile
+it.</li>
+</ul>
+<p>When running <code>cmake</code>, make sure that the environment
+variable <code>PKG_CONFIG_PATH</code> includes the absolute path to
+<code>third-party/dav1d/dist/lib/x86_64-linux-gnu/pkgconfig</code>.</p>
+<h3 id="adding-svt-av1-encoder-for-avif">Adding SVT-AV1 encoder for
+AVIF</h3>
+<p>You can either use the SVT-AV1 encoder libraries installed in the
+system or use a self-compiled current version. If you want to compile
+SVT-AV1 yourself,</p>
+<ul>
+<li>Run the <code>svt.cmd</code> script in the <code>third-party</code>
+directory to download SVT-AV1 and compile it.</li>
+</ul>
+<p>When running <code>cmake</code> or <code>configure</code>, make sure
+that the environment variable <code>PKG_CONFIG_PATH</code> includes the
+absolute path to
+<code>third-party/SVT-AV1/Build/linux/install/lib/pkgconfig</code>. You
+may have to replace <code>linux</code> in this path with your system’s
+identifier.</p>
+<p>You have to enable SVT-AV1 with CMake.</p>
+<h2 id="codec-plugins">Codec plugins</h2>
+<p>Starting with v1.14.0, each codec backend can be compiled statically
+into libheif or as a dynamically loaded plugin. You can choose this
+individually for each codec backend in the CMake settings. Compiling a
+codec backend as dynamic plugin will generate a shared library that is
+installed in the system together with libheif. The advantage is that
+only the required plugins have to be installed and libheif has fewer
+dependencies.</p>
+<p>The plugins are loaded from the colon-separated (semicolon-separated
+on Windows) list of directories stored in the environment variable
+<code>LIBHEIF_PLUGIN_PATH</code>. If this variable is empty, they are
+loaded from a directory specified in the CMake configuration. You can
+also add plugin directories programmatically.</p>
+<h3 id="codec-specific-notes">Codec specific notes</h3>
+<ul>
+<li>the FFMPEG decoding plugin can make use of h265 hardware decoders.
+However, it currently (v1.17.0, ffmpeg v4.4.2) does not work correctly
+with all streams. Thus, libheif still prefers the libde265 decoder if it
+is available.</li>
+</ul>
+<h2 id="encoder-benchmark">Encoder benchmark</h2>
+<p>A current benchmark of the AVIF encoders (as of 14 Oct 2022) can be
+found on the Wiki page <a
+href="https://github.com/strukturag/libheif/wiki/AVIF-Encoder-Benchmark">AVIF
+encoding benchmark</a>.</p>
+<h2 id="language-bindings">Language bindings</h2>
+<ul>
+<li>.NET Platform (C#, F#, and other languages): <a
+href="https://github.com/0xC0000054/libheif-sharp">libheif-sharp</a></li>
+<li>C++: part of libheif</li>
+<li>Go: <a
+href="https://github.com/strukturag/libheif-go">libheif-go</a>, the
+wrapper distributed with libheif is deprecated</li>
+<li>JavaScript: by compilation with emscripten (see below)</li>
+<li>NodeJS module: <a
+href="https://www.npmjs.com/package/libheif-js">libheif-js</a></li>
+<li>Python: <a href="https://pypi.org/project/pyheif/">pyheif</a>, <a
+href="https://pypi.org/project/pillow-heif/">pillow_heif</a></li>
+<li>Rust: <a
+href="https://github.com/Cykooz/libheif-sys">libheif-sys</a></li>
+<li>Swift: <a
+href="https://swiftpackageregistry.com/SDWebImage/libheif-Xcode">libheif-Xcode</a></li>
+<li>JavaFX: <a
+href="https://github.com/lanthale/LibHeifFX">LibHeifFx</a></li>
+</ul>
+<p>Languages that can directly interface with C libraries (e.g., Swift,
+C#) should work out of the box.</p>
+<h2 id="compiling-to-javascript-wasm">Compiling to JavaScript /
+WASM</h2>
+<p>libheif can also be compiled to JavaScript using <a
+href="http://kripken.github.io/emscripten-site/">emscripten</a>. It can
+be built like this (in the libheif directory):</p>
+<pre><code>mkdir buildjs
+cd buildjs
+USE_WASM=0 ../build-emscripten.sh ..</code></pre>
+<p>Set <code>USE_WASM=1</code> to build with WASM output. See the
+<code>build-emscripten.sh</code> script for further options.</p>
+<h2 id="online-demo">Online demo</h2>
+<p>Check out this <a href="https://strukturag.github.io/libheif/">online
+demo</a>. This is <code>libheif</code> running in JavaScript in your
+browser.</p>
+<h2 id="example-programs">Example programs</h2>
+<p>Some example programs are provided in the <code>examples</code>
+directory. The program <code>heif-dec</code> converts all images stored
+in an HEIF/AVIF file to JPEG or PNG. <code>heif-enc</code> lets you
+convert JPEG files to HEIF/AVIF. The program <code>heif-info</code> is a
+simple, minimal decoder that dumps the file structure to the
+console.</p>
+<p>For example convert <code>example.heic</code> to JPEGs and one of the
+JPEGs back to HEIF:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> examples/</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./heif-dec</span> example.heic example.jpeg</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">./heif-enc</span> example-1.jpeg <span class="at">-o</span> example.heif</span></code></pre></div>
+<p>In order to convert <code>example-1.jpeg</code> to AVIF use:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./heif-enc</span> example-1.jpeg <span class="at">-A</span> <span class="at">-o</span> example.avif</span></code></pre></div>
+<p>There is also a GIMP plugin using libheif <a
+href="https://github.com/strukturag/heif-gimp-plugin">here</a>.</p>
+<h2 id="heifavif-thumbnails-for-the-gnome-desktop">HEIF/AVIF thumbnails
+for the Gnome desktop</h2>
+<p>The program <code>heif-thumbnailer</code> can be used as an HEIF/AVIF
+thumbnailer for the Gnome desktop. The matching Gnome configuration
+files are in the <code>gnome</code> directory. Place the files
+<code>heif.xml</code> and <code>avif.xml</code> into
+<code>/usr/share/mime/packages</code> and <code>heif.thumbnailer</code>
+into <code>/usr/share/thumbnailers</code>. You may have to run
+<code>update-mime-database /usr/share/mime</code> to update the list of
+known MIME types.</p>
+<h2 id="gdk-pixbuf-loader">gdk-pixbuf loader</h2>
+<p>libheif also includes a gdk-pixbuf loader for HEIF/AVIF images. ‘make
+install’ will copy the plugin into the system directories. However, you
+will still have to run
+<code>gdk-pixbuf-query-loaders --update-cache</code> to update the
+gdk-pixbuf loader database.</p>
+<h2 id="software-using-libheif">Software using libheif</h2>
+<ul>
+<li><a href="https://www.gimp.org/">GIMP</a></li>
+<li><a href="https://krita.org">Krita</a></li>
+<li><a href="https://imagemagick.org/">ImageMagick</a></li>
+<li><a href="http://www.graphicsmagick.org/">GraphicsMagick</a></li>
+<li><a href="https://www.darktable.org">darktable</a></li>
+<li><a href="https://www.digikam.org/">digiKam 7.0.0</a></li>
+<li><a href="https://github.com/libvips/libvips">libvips</a></li>
+<li><a
+href="https://api.kde.org/frameworks/kimageformats/html/index.html">kImageFormats</a></li>
+<li><a href="https://libgd.github.io/">libGD</a></li>
+<li><a href="https://kodi.wiki/view/Add-on:HEIF_image_decoder">Kodi HEIF
+image decoder plugin</a></li>
+<li><a href="https://github.com/h2non/bimg">bimg</a></li>
+<li><a href="https://gdal.org/drivers/raster/heif.html">GDAL</a></li>
+<li><a
+href="https://sites.google.com/site/openimageio/">OpenImageIO</a></li>
+<li><a href="https://www.xnview.com">XnView</a></li>
+</ul>
+<h2 id="packaging-status">Packaging status</h2>
+<p><a href="https://repology.org/project/libheif/versions"><img
+src="https://repology.org/badge/vertical-allrepos/libheif.svg?exclude_unsupported=1&amp;columns=3&amp;exclude_sources=modules,site&amp;header=libheif%20packaging%20status"
+alt="libheif packaging status" /></a></p>
+<h2 id="sponsors">Sponsors</h2>
+<p>Since I work as an independent developer, I need your support to be
+able to allocate time for libheif. You can <a
+href="https://github.com/sponsors/farindk">sponsor</a> the development
+using the link in the right hand column.</p>
+<p>A big thank you goes to these major sponsors for supporting the
+development of libheif:</p>
+<ul>
+<li>Pinterest</li>
+<li>Shopify
+<img src="logos/sponsors/shopify.svg" alt="shopify-logo" height="20"/></li>
+<li>StrukturAG</li>
+</ul>
+<h2 id="license">License</h2>
+<p>The libheif is distributed under the terms of the GNU Lesser General
+Public License. The sample applications are distributed under the terms
+of the MIT License.</p>
+<p>See COPYING for more details.</p>
+<p>Copyright (c) 2017-2020 Struktur AG</br> Copyright (c) 2017-2025 Dirk
+Farin</br> Contact: Dirk Farin <a href="mailto:dirk.farin@gmail.com"
+class="email">dirk.farin@gmail.com</a></p>
