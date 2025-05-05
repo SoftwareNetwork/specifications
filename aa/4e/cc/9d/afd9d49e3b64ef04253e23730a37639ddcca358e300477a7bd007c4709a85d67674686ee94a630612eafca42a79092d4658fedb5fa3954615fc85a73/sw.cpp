@@ -19,5 +19,9 @@ void build(Solution &s)
     t.Public += "org.sw.demo.zaphoyd.websocketpp"_dep;
     t.Public += "org.sw.demo.whoshuu.cpr"_dep;
     t.Public += "org.sw.demo.xiph.opus"_dep;
+
     t.Public += "org.sw.demo.chriskohlhoff.asio"_dep;
+    //t.Public += "org.sw.demo.boost.asio"_dep;
+    //t.Public += "SLEEPY_USE_BOOST"_def;
+    //t.Public += "EXISTENT_BOOST_ASIO"_def;
 }
