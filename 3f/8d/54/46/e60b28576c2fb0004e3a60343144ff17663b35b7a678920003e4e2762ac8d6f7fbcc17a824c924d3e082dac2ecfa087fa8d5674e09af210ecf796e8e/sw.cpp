@@ -12,6 +12,7 @@ void build(Solution &s)
         "src/liblzma/.*\\.h"_rr;
 
     lzma -=
+        "src/liblzma/check/crc_clmul_consts_gen.c",
         "src/liblzma/check/crc32_small.c",
         "src/liblzma/check/crc32_tablegen.c",
         "src/liblzma/check/crc64_small.c",
