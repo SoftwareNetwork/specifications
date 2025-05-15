@@ -296,7 +296,7 @@ void check(Checker &c)
     s.checkTypeSize("sig_atomic_t");
     s.checkTypeSize("size_t");
     s.checkTypeSize("socket");
-    s.checkTypeSize("socklen_t").Parameters.Includes.push_back("sys/socket.h");
+    //s.checkTypeSize("socklen_t").Parameters.Includes.push_back("sys/socket.h");
     s.checkTypeSize("ssize_t");
     s.checkTypeSize("struct addrinfo");
     s.checkTypeSize("struct in6_addr");
@@ -387,6 +387,7 @@ int main() {return 0;}
         }
 
         for (auto &f : {
+            "getaddrinfo",
             "ioctl",
             //"ioctlsocket",
             "recv",
@@ -409,4 +410,7 @@ int main() {return 0;}
             add_headers(c);
         }
     }
+
+    for (auto &check : s.all)
+        check->Prefixes.insert("CARES_");
 }
