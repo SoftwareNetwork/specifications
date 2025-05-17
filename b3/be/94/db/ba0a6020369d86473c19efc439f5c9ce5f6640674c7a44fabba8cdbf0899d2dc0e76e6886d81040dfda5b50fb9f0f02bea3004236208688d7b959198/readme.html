@@ -1,0 +1,1128 @@
+<p><a href="https://www.genivia.com/reflex.html"><img
+src="https://www.genivia.com/images/reflex-logo.png"
+alt="logo" /></a></p>
+<p><a
+href="https://github.com/Genivia/RE-flex/actions/workflows/c-cpp.yml"><img
+src="https://github.com/Genivia/RE-flex/actions/workflows/c-cpp.yml/badge.svg"
+alt="build status" /></a> <a
+href="https://opensource.org/licenses/BSD-3-Clause"><img
+src="https://img.shields.io/badge/license-BSD%203--Clause-blue.svg"
+alt="license" /></a> <a
+href="https://www.codeproject.com/Articles/1180430/Constructing-Fast-Lexical-Analyzers-with-RE-flex-W"><img
+src="https://img.shields.io/badge/CodeProject-★★★★★-orange.svg"
+alt="CodeProject" /></a></p>
+<p>A high-performance C++ regex library and lexical analyzer generator
+with Unicode support.</p>
+<p>Two example use cases:</p>
+<ol type="1">
+<li>A RE/flex-generated tokenizer is used by the <a
+href="https://assignments.lrde.epita.fr/tools/reflex.html">Tiger
+Compiler</a>.</li>
+<li>The RE/flex C++ regex engines are used by <a
+href="https://ugrep.com">ugrep</a>.</li>
+</ol>
+<p>The RE/flex lexical analyzer generator extends Flex++ with Unicode
+support, indent/dedent anchors, POSIX regex lazy quantifiers, word
+boundaries, functions for lex and syntax error reporting, lexer rule
+execution performance profiling, and other new features.</p>
+<p>Only RE/flex supports backtrack-free regex lazy matching in linear
+time using an advanced DFA transformation algorithm (invented by
+Dr. Robert van Engelen.)</p>
+<p>RE/flex is faster than Flex and much faster than regex libraries such
+as Boost.Regex, C++11 std::regex, PCRE2 and RE2. For example, tokenizing
+a 2 KB representative C source code file into 244 tokens takes only 8.7
+microseconds:</p>
+<table>
+<tr>
+<th>
+Command / Function
+</th>
+<th>
+Software
+</th>
+<th>
+Time (μs)
+</th>
+</tr>
+<tr>
+<td>
+<b>reflex –fast –noindent</b>
+</td>
+<td>
+<b>RE/flex 3.4.1</b>
+</td>
+<td>
+<b>8.7</b>
+</td>
+</tr>
+<tr>
+<td>
+<b>reflex –fast</b>
+</td>
+<td>
+<b>RE/flex 3.4.1</b>
+</td>
+<td>
+<b>8.9</b>
+</td>
+</tr>
+<tr>
+<td>
+flex -+ –full
+</td>
+<td>
+Flex 2.5.35
+</td>
+<td>
+9.8
+</td>
+</tr>
+<tr>
+<td>
+boost::spirit::lex::lexertl::actor_lexer::iterator_type
+</td>
+<td>
+Boost.Spirit.Lex 1.82.0
+</td>
+<td>
+10.7
+</td>
+</tr>
+<tr>
+<td>
+reflex –full
+</td>
+<td>
+RE/flex 3.4.1
+</td>
+<td>
+20.6
+</td>
+</tr>
+<tr>
+<td>
+pcre2_jit_match()
+</td>
+<td>
+PCRE2 (jit) 10.42
+</td>
+<td>
+60.8
+</td>
+</tr>
+<tr>
+<td>
+hs_compile_multi(), hs_scan()
+</td>
+<td>
+Hyperscan 5.4.2
+</td>
+<td>
+129
+</td>
+</tr>
+<tr>
+<td>
+reflex -m=boost-perl
+</td>
+<td>
+Boost.Regex 1.82.0
+</td>
+<td>
+205
+</td>
+</tr>
+<tr>
+<td>
+RE2::Consume()
+</td>
+<td>
+RE2 (pre-compiled) 2023-09-01
+</td>
+<td>
+218
+</td>
+</tr>
+<tr>
+<td>
+reflex -m=boost
+</td>
+<td>
+Boost.Regex POSIX 1.82.0
+</td>
+<td>
+392
+</td>
+</tr>
+<tr>
+<td>
+pcre2_match()
+</td>
+<td>
+PCRE2 10.42
+</td>
+<td>
+500
+</td>
+</tr>
+<tr>
+<td>
+RE2::Consume()
+</td>
+<td>
+RE2 POSIX (pre-compiled) 2023-09-01
+</td>
+<td>
+534
+</td>
+</tr>
+<tr>
+<td>
+flex -+
+</td>
+<td>
+Flex 2.5.35
+</td>
+<td>
+3759
+</td>
+</tr>
+<tr>
+<td>
+pcre2_dfa_match()
+</td>
+<td>
+PCRE2 POSIX (dfa) 10.42
+</td>
+<td>
+4029
+</td>
+</tr>
+<tr>
+<td>
+regcomp(), regexec()
+</td>
+<td>
+GNU C POSIX.2 regex
+</td>
+<td>
+4932
+</td>
+</tr>
+<tr>
+<td>
+std::cregex_iterator()
+</td>
+<td>
+C++11 std::regex
+</td>
+<td>
+6490
+</td>
+</tr>
+</table>
+<p>Note: <em>performance in elapsed time (lower is better) in
+microseconds for 1000 to 10000 benchmark runs using Mac OS X 12.6.9 with
+clang 12.0.0 -O2, 2.9 GHz Intel Core i7, 16 GB 2133 MHz LPDDR3.
+Hyperscan disqualifies as a scanner due to its “All matches reported”
+semantics resulting in 1915 matches for this test, and due to its event
+handler requirements.</em> <a
+href="https://www.genivia.com/files/perfcomp.zip">Download the
+tests</a></p>
+<p>The performance table is indicative of the impact on performance when
+using PCRE2 and Boost.Regex with RE/flex. PCRE2 and Boost.Regex are
+optional libraries integrated with RE/flex for Perl matching because of
+their efficiency. By default, RE/flex uses DFA-based extended regular
+expression matching in linear time, the fastest method (as shown in the
+table).</p>
+<p>The RE/flex matcher tracks line numbers, column numbers, and
+indentations, whereas Lex and Flex do not (option noyylineno) and
+neither do the other regex matchers in the table (except PCRE2 and
+Boost.Regex when used with RE/flex). Tracking this information incurs
+some overhead. RE/flex also automatically decodes UTF-8/16/32 input and
+accepts <code>std::istream</code>, strings, and wide strings as
+input.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Includes many examples, such as a mini C compiler to Java bytecode,
+a tokenizer for C/C++ source code, a tokenizer for Python source code, a
+tokenizer for Java source code, Lua, JSON, XML, YAML, and more.</li>
+<li>Compatible with Flex and Bison to eliminate a learning curve, making
+a transition from Flex++ to RE/flex frustration-free.</li>
+<li>Auto-generates code that integrates seamlessly with Bison Reentrant,
+Bison-Bridge, Bison-Locations, Bison 3.0 C++ interface
+<code>%skeleton   "lalr1.cc"</code> and Bison Complete Symbols.</li>
+<li>Generates code and includes methods for lexical and syntax error
+reporting and recovery.</li>
+<li>The generated scanner source code is structured and easy to
+understand.</li>
+<li>Fully supports Unicode and Unicode properties <code>\p{C}</code>,
+including Unicode identifier matching for C++11, Java, C#, and Python
+source code.</li>
+<li>Auto-detects UTF-8/16/32 input to match Unicode patterns.</li>
+<li>Supports file encodings ISO-8859-1 through ISO-8859-15, CP 1250
+through 1258, CP 437, CP 850, CP 858, KOI8, MACROMAN, EBCDIC, and custom
+code pages.</li>
+<li>Generates scanners for lexical analysis on files, C++ streams,
+(wide) strings, and memory such as mmap files.</li>
+<li>Indent/nodent/dedent anchors to match indentation levels to
+tokenize.</li>
+<li>Lazy quantifiers for POSIX regex matching, i.e. no hacks are needed
+to work around greedy repetitions.</li>
+<li>Word boundary anchors.</li>
+<li>Freespace mode option to improve readability of lexer
+specifications.</li>
+<li><code>%class</code> and <code>%init</code> to customize the
+generated Lexer classes.</li>
+<li><code>%include</code> to modularize lexer specifications.</li>
+<li>Multiple lexer classes can be combined and used in one application,
+e.g. by multiple threads in a thread-safe manner.</li>
+<li>Configurable Lexer class generation to customize the interface for
+various parsers, including Yacc and Bison.</li>
+<li>Generates Graphviz files to visualize FSMs with the Graphviz dot
+tool.</li>
+<li>Includes an extensible hierarchy of pattern matcher engines, with a
+choice of regex engines, including the RE/flex regex engine, PCRE2, and
+Boost.Regex.</li>
+<li>The RE/flex regex library makes C++11 std::regex, PCRE2, and
+Boost.Regex much easier to use for pattern matching on (wide) strings,
+files, and streams.</li>
+<li>IEEE POSIX P1003.2 standard compliant like Lex and Flex (but
+generates C++).</li>
+<li>Extensive documentation in the online <a
+href="https://www.genivia.com/doc/reflex/html">User Guide</a>.</li>
+<li>Lots of other improvements over Flex++, such as
+<code>yypush_buffer_state</code> saves the scanner state (line, column,
+and indentation positions), not just the input buffer; no input buffer
+length limit (Flex has a 16KB limit); <code>line()</code> returns the
+current line (e.g. for error reporting).</li>
+</ul>
+<p>Note: PCRE2 and Boost.Regex are not dependencies, they can be used as
+optional regex engines in addition to the RE/flex regex engine.</p>
+<h2 id="installation">Installation</h2>
+<h3 id="windows">Windows</h3>
+<p>Use <code>reflex/bin/reflex.exe</code> from the command line or add a
+<strong>Custom Build Step</strong> in MSVC++ as follows:</p>
+<ol type="1">
+<li><p>select the project name in <strong>Solution Explorer</strong>
+then <strong>Property Pages</strong> from the <strong>Project</strong>
+menu (see also <a
+href="http://msdn.microsoft.com/en-us/library/hefydhhy.aspx">custom-build
+steps in Visual Studio</a>);</p></li>
+<li><p>add an extra path to the <code>reflex/include</code> folder in
+the <strong>Include Directories</strong> under <strong>VC++
+Directories</strong>, which should look like
+<code>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\YourUserName\Documents\reflex\include</code>
+(this assumes the <code>reflex</code> source package is in your
+<strong>Documents</strong> folder).</p></li>
+<li><p>enter
+<code>"C:\Users\YourUserName\Documents\reflex\bin\win32\reflex.exe" --header-file    "C:\Users\YourUserName\Documents\mylexer.l"</code>
+in the <strong>Command Line</strong> property under <strong>Custom Build
+Step</strong> (this assumes <code>mylexer.l</code> is in your
+<strong>Documents</strong> folder);</p></li>
+<li><p>enter <code>lex.yy.h lex.yy.cpp</code> in the
+<strong>Outputs</strong> property;</p></li>
+<li><p>specify <strong>Execute Before</strong> as
+<code>PreBuildEvent</code>.</p></li>
+</ol>
+<p>If you are using specific reflex options such as <code>--flex</code>
+then add these in step 3.</p>
+<p>Before compiling your program with MSVC++, drag the folders
+<code>reflex/lib</code> and <code>reflex/unicode</code> to the
+<strong>Source Files</strong> in the <strong>Solution Explorer</strong>
+panel of your project. Next, run <code>reflex.exe</code> simply by
+compiling your project (which may fail, but that is OK for now as long
+as we executed the custom build step to run <code>reflex.exe</code>).
+Drag the generated <code>lex.yy.h</code> (if present) and
+<code>lex.yy.cpp</code> files to the <strong>Source Files</strong>. Now
+you are all set!</p>
+<p>In addition, the <code>reflex/vs</code> directory contains batch
+scripts to build projects with MS Visual Studio C++.</p>
+<h3 id="macos">MacOS</h3>
+<p>On macOS systems you can use <a href="https://brew.sh">homebrew</a>
+to install RE/flex with <code>brew install re-flex</code>. Or use <a
+href="https://www.macports.org">MacPorts</a> to install RE/flex with
+<code>sudo port install re-flex</code>.</p>
+<h3 id="netbsd">NetBSD</h3>
+<p>On NetBSD systems you can use the standard NetBSD package installer
+(pkgsrc): <a
+href="http://cdn.netbsd.org/pub/pkgsrc/current/pkgsrc/devel/RE-flex/README.html"
+class="uri">http://cdn.netbsd.org/pub/pkgsrc/current/pkgsrc/devel/RE-flex/README.html</a></p>
+<h3 id="quick-install">Quick install</h3>
+<p>First clone the code:</p>
+<pre><code>$ git clone https://github.com/Genivia/RE-flex</code></pre>
+<p>Then simply do a quick clean build, assuming your environment is
+pretty much standard:</p>
+<pre><code>$ ./clean.sh
+$ ./build.sh</code></pre>
+<p>This compiles the <strong>reflex</strong> tool and installs it
+locally in <code>reflex/bin</code>. For local use of RE/flex in your
+project, you can add this location to your <code>$PATH</code> variable
+to enable the new <code>reflex</code> command:</p>
+<pre><code>$ export PATH=$PATH:/your_path_to_reflex/reflex/bin</code></pre>
+<p>Note that the <code>libreflex.a</code> and <code>libreflex.so</code>
+libraries are saved locally in <code>reflex/lib</code>. Link against the
+library when you use the RE/flex regex engine in your code, such as:</p>
+<pre><code>$ c++ &lt;options and .o/.cpp files&gt; -L/your_path_to_reflex/reflex/lib -lreflex</code></pre>
+<p>or you could statically link libreflex.a with:</p>
+<pre><code>$ c++ &lt;options and .o/.cpp files&gt; /your_path_to_reflex/reflex/lib/libreflex.a</code></pre>
+<p>Also note that the RE/flex header files that you will need to include
+in your project are locally located in <code>include/reflex</code>.</p>
+<p>To install the man page, the header files in
+<code>/usr/local/include/reflex</code>, the library in
+<code>/usr/local/lib</code> and the <code>reflex</code> command in
+<code>/usr/local/bin</code>:</p>
+<pre><code>$ sudo ./allinstall.sh</code></pre>
+<h3 id="configure-and-make">Configure and make</h3>
+<p>The configure script accepts configuration and installation options.
+To view these options, run:</p>
+<pre><code>$ ./configure --help</code></pre>
+<p>Run configure and make:</p>
+<pre><code>$ ./configure &amp;&amp; make</code></pre>
+<p>To build the examples also:</p>
+<pre><code>$ ./configure --enable-examples &amp;&amp; make</code></pre>
+<p>After this successfully completes, you can optionally run
+<code>make install</code> to install the <code>reflex</code> command and
+the <code>libreflex</code> library:</p>
+<pre><code>$ sudo make install</code></pre>
+<p>Unfortunately, cloning from Git does not preserve timestamps which
+means that you may run into “WARNING: ‘aclocal-1.15’ is missing on your
+system.” To work around this problem, run:</p>
+<pre><code>$ autoreconf -fi
+$ ./configure &amp;&amp; make</code></pre>
+<p>The above builds the library with SSE/AVX optimizations applied. To
+disable AVX optimizations:</p>
+<pre><code>$ ./configure --disable-avx &amp;&amp; make</code></pre>
+<p>To disable both SSE2 and AVX optimizations:</p>
+<pre><code>$ ./configure --disable-sse2 &amp;&amp; make</code></pre>
+<h3 id="optional-libraries-to-install">Optional libraries to
+install</h3>
+<ul>
+<li><p>To use PCRE2 as a regex engine with the RE/flex library and
+scanner generator, install <a href="http://www.pcre.org">PCRE2</a> and
+link your code with <code>-lpcre2-8</code>.</p></li>
+<li><p>To use Boost.Regex as a regex engine with the RE/flex library and
+scanner generator, install <a href="http://www.boost.org">Boost</a> and
+link your code with <code>-lboost_regex</code> or
+<code>-lboost_regex-mt</code>.</p></li>
+<li><p>To visualize the FSM graphs generated with
+<strong>reflex</strong> option <code>--graphs-file</code>, install <a
+href="http://www.graphviz.org">Graphviz dot</a>.</p></li>
+</ul>
+<h3 id="improved-vim-syntax-highlighting">Improved Vim syntax
+highlighting</h3>
+<p>Copy the <code>lex.vim</code> file to <code>~/.vim/syntax/</code> to
+enjoy improved syntax highlighting for both Flex and RE/flex.</p>
+<h2 id="usage">Usage</h2>
+<p>There are two ways you can use this project:</p>
+<ol type="1">
+<li>as a scanner generator for C++, similar to Flex;</li>
+<li>as a flexible regex library API for C++.</li>
+</ol>
+<p>For the first use case, use the <strong>reflex</strong> tool on the
+command line on a lexer specification:</p>
+<pre><code>$ reflex --flex --bison --graphs-file lexspec.l</code></pre>
+<p>This generates a scanner for Bison from the lexer specification
+<code>lexspec.l</code> and saves the finite state machine (FSM) as a
+Graphviz <code>.gv</code> file that can be visualized with the <a
+href="http://www.graphviz.org">Graphviz dot</a> tool:</p>
+<pre><code>$ dot -Tpdf reflex.INITIAL.gv &gt; reflex.INITIAL.pdf
+$ open reflex.INITIAL.pdf</code></pre>
+<figure>
+<img src="https://www.genivia.com/images/reflex-FSM.png"
+alt="Visualize DFA graphs with Graphviz dot" />
+<figcaption aria-hidden="true">Visualize DFA graphs with Graphviz
+dot</figcaption>
+</figure>
+<p>Several examples are included to get you started. See the <a
+href="https://www.genivia.com/doc/reflex/html">manual</a> for more
+details.</p>
+<p>For the second use case, use the RE/flex matcher API classes to start
+pattern search, matching, splitting and scanning on strings, wide
+strings, files, and streams.</p>
+<p>You can select matchers that are based on different regex
+engines:</p>
+<ul>
+<li>RE/flex regex: <code>#include &lt;reflex/matcher.h&gt;</code> and
+use <code>reflex::Matcher</code>;</li>
+<li>RE/flex fuzzy regex for approximate matching:
+<code>#include &lt;reflex/fuzzymatcher.h&gt;</code> and use
+<code>reflex::FuzzyMatcher</code></li>
+<li>PCRE2: <code>#include &lt;reflex/pcre2matcher.h&gt;</code> and use
+<code>reflex::PCRE2Matcher</code> or
+<code>reflex::PCRE2UTFMatcher</code>.</li>
+<li>Boost.Regex: <code>#include &lt;reflex/boostmatcher.h&gt;</code> and
+use <code>reflex::BoostMatcher</code> or
+<code>reflex::BoostPosixMatcher</code>;</li>
+<li>C++11 std::regex: <code>#include &lt;reflex/stdmatcher.h&gt;</code>
+and use <code>reflex::StdMatcher</code> or
+<code>reflex::StdPosixMatcher</code>.</li>
+</ul>
+<p>Each matcher may differ in regex syntax features (see the full
+documentation), but they all share the same methods and iterators, such
+as:</p>
+<ul>
+<li><code>matches()</code> returns nonzero if the whole input from start
+to end matches the specified pattern;</li>
+<li><code>find()</code> search input and returns nonzero if a match was
+found, can be repeated;</li>
+<li><code>scan()</code> scan input and returns nonzero if input at
+current position matches, can be repeated;</li>
+<li><code>split()</code> returns nonzero for a split of the input at the
+next match, can be repeated;</li>
+<li><code>find.begin()</code>…<code>find.end()</code> a filter iterator,
+iterates with <code>find()</code>;</li>
+<li><code>scan.begin()</code>…<code>scan.end()</code> a tokenizer
+iterator, iterates with <code>scan()</code>;</li>
+<li><code>split.begin()</code>…<code>split.end()</code> a splitter
+iterator, iterates with <code>split()</code>.</li>
+</ul>
+<p>The input matched and searched may be a string, a wide string, a
+file, or a stream. Searching is incremental, meaning that the input is
+not buffered as a whole in memory, but rather buffered in parts in a
+sliding window of a few KB. The window size may grow to fit a pattern
+match. UTF-16/32 file input with a UTF BOM is automatically normalized
+and matched as UTF-8.</p>
+<p>For example, using Boost.Regex (alternatively use PCRE2
+<code>reflex::PCRE2Matcher</code> or
+<code>reflex::PCRE2UTFMatcher</code> to match Unicode UTF-8 input):</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to check if the birthdate string is a valid date</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>reflex<span class="op">::</span>BoostMatcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{4}</span><span class="st">-</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{2}</span><span class="st">-</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{2}</span><span class="st">&quot;</span><span class="op">,</span> birthdate<span class="op">).</span>matches<span class="op">()</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Valid date!&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>With a group capture to fetch the year:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to check if the birthdate string is a valid date</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;(</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{4}</span><span class="st">)-</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{2}</span><span class="st">-</span><span class="sc">\\</span><span class="st">d</span><span class="sc">{2}</span><span class="st">&quot;</span><span class="op">,</span> birthdate<span class="op">);</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>matcher<span class="op">.</span>matches<span class="op">()</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="bu">std::</span>string<span class="op">(</span>matcher<span class="op">[</span><span class="dv">1</span><span class="op">].</span>first<span class="op">,</span> matcher<span class="op">[</span><span class="dv">1</span><span class="op">].</span>second<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="st">&quot; was a good year!&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>A pattern match made by any of the regex engines to match input with
+<code>matches()</code>, or search with <code>find()</code>, or tokenize
+with <code>scan()</code>, or split with <code>split()</code> includes
+detailed information that can be retrieved with the following
+methods:</p>
+<ul>
+<li><code>accept()</code> returns group capture index (or zero if not
+captured/matched)</li>
+<li><code>text()</code> returns <code>const char*</code> to 0-terminated
+match (ends in <code>\0</code>)</li>
+<li><code>strview()</code>returns <code>std::string_view</code> text
+match (preserves <code>\0</code>s) (C++17)</li>
+<li><code>str()</code> returns <code>std::string</code> text match
+(preserves <code>\0</code>s)</li>
+<li><code>wstr()</code> returns <code>std::wstring</code> wide text
+match (converted from UTF-8)</li>
+<li><code>chr()</code> returns first 8-bit char of the text match
+(<code>str()[0]</code> as int)</li>
+<li><code>wchr()</code> returns first wide char of the text match
+(<code>wstr()[0]</code> as int)</li>
+<li><code>pair()</code> returns
+<code>std::pair&lt;size_t,std::string&gt;(accept(),str())</code></li>
+<li><code>wpair()</code> returns
+<code>std::pair&lt;size_t,std::wstring&gt;(accept(),wstr())</code></li>
+<li><code>size()</code> returns the length of the text match in
+bytes</li>
+<li><code>wsize()</code> returns the length of the match in number of
+wide characters</li>
+<li><code>lines()</code> returns the number of lines in the text match
+(&gt;=1)</li>
+<li><code>columns()</code> returns the number of columns of the text
+match (&gt;=0)</li>
+<li><code>begin()</code> returns <code>const char*</code> to
+non-0-terminated text match begin</li>
+<li><code>end()</code> returns <code>const char*</code> to
+non-0-terminated text match end</li>
+<li><code>rest()</code> returns <code>const char*</code> to 0-terminated
+rest of input</li>
+<li><code>span()</code> returns <code>const char*</code> to 0-terminated
+match enlarged to span the line</li>
+<li><code>line()</code> returns <code>std::string</code> line with the
+matched text as a substring</li>
+<li><code>wline()</code> returns <code>std::wstring</code> line with the
+matched text as a substring</li>
+<li><code>more()</code> tells the matcher to append the next match (when
+using <code>scan()</code>)</li>
+<li><code>less(n)</code> cuts <code>text()</code> to <code>n</code>
+bytes and repositions the matcher</li>
+<li><code>lineno()</code> returns line number of the match, starting at
+line 1</li>
+<li><code>columno()</code> returns column number of the match in
+characters, starting at 0</li>
+<li><code>lineno_end()</code> returns ending line number of the match,
+starting at line 1</li>
+<li><code>columno_end()</code> returns ending column number of the
+match, starting at 0</li>
+<li><code>bol()</code> returns <code>const char*</code> to begin of
+matching line (not 0-terminated)</li>
+<li><code>border()</code>returns the byte offset from the start of the
+line of the match</li>
+<li><code>first()</code> returns input position of the first character
+of the match</li>
+<li><code>last()</code> returns input position + 1 of the last character
+of the match</li>
+<li><code>at_bol()</code> true if matcher reached the begin of a new
+line <code>\n</code></li>
+<li><code>at_bob()</code> true if matcher is at the begin of input and
+no input consumed</li>
+<li><code>at_end()</code> true if matcher is at the end of input</li>
+<li><code>[0]</code> operator returns
+<code>std::pair&lt;const char*,size_t&gt;(begin(),size())</code></li>
+<li><code>[n]</code> operator returns n’th capture
+<code>std::pair&lt;const char*,size_t&gt;</code></li>
+</ul>
+<p>Note: POSIX matchers do not generally support group capturing, e.g.
+<code>BoostPosixMatcher</code> and <code>StdPosixMatcher</code> do not.
+RE/flex is an efficient backtrack-free DFA-based POSIX engine that
+supports a limited form of capturing, limited to outermost gouping, such
+as <code>(abc)|(def)</code> which has two groups. This may be extended
+in a future release to full capturing.</p>
+<p>To search a string for words <code>\w+</code> to display with the
+column number of each word found:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to search for words in a sentence</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> <span class="st">&quot;How now brown cow.&quot;</span><span class="op">);</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span>matcher<span class="op">.</span>find<span class="op">()</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> matcher<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="st">&quot; at column &quot;</span> <span class="op">&lt;&lt;</span> matcher<span class="op">.</span>columno<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>The <code>split</code> method is roughly the inverse of the
+<code>find</code> method and returns text located between matches. For
+example using non-word matching <code>\W+</code>:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to search for words in a sentence</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">W+&quot;</span><span class="op">,</span> <span class="st">&quot;How now brown cow.&quot;</span><span class="op">);</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span>matcher<span class="op">.</span>split<span class="op">())</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> matcher<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>To pattern match the content of a file, where the file may use UTF-8,
+16, or 32 encodings that are automatically converted when a UTF BOM is
+present:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to search and display words from a FILE</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="dt">FILE</span> <span class="op">*</span>fd <span class="op">=</span> fopen<span class="op">(</span><span class="st">&quot;somefile.txt&quot;</span><span class="op">,</span> <span class="st">&quot;r&quot;</span><span class="op">);</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>fd <span class="op">==</span> NULL<span class="op">)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  exit<span class="op">(</span>EXIT_FAILURE<span class="op">);</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> fd<span class="op">);</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span>matcher<span class="op">.</span>find<span class="op">())</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> matcher<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>fclose<span class="op">(</span>fd<span class="op">);</span></span></code></pre></div>
+<p>Same again, but this time with a C++ input stream:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to search and display words from a stream</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>ifstream file<span class="op">(</span><span class="st">&quot;somefile.txt&quot;</span><span class="op">,</span> <span class="bu">std::</span>ifstream::in<span class="op">);</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> file<span class="op">);</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="op">(</span>matcher<span class="op">.</span>find<span class="op">())</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> matcher<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>file<span class="op">.</span>close<span class="op">();</span></span></code></pre></div>
+<p>Stuffing the search results into a container using RE/flex
+iterators:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/boostmatcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::BoostMatcher, reflex::Input, boost::regex</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;vector&gt;</span><span class="pp">         </span><span class="co">// std::vector</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// use a BoostMatcher to convert words of a sentence into a string vector</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>BoostMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> <span class="st">&quot;How now brown cow.&quot;</span><span class="op">);</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;</span> words<span class="op">(</span>matcher<span class="op">.</span>find<span class="op">.</span>begin<span class="op">(),</span> matcher<span class="op">.</span>find<span class="op">.</span>end<span class="op">());</span></span></code></pre></div>
+<p>Use C++11 range-based loops with RE/flex iterators:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/pcre2matcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::PCRE2TFMatcher, reflex::Input, std::regex</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a PCRE2UTFMatcher to search for words in a sentence</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>reflex<span class="op">::</span>PCRE2UTFMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> <span class="st">&quot;How now brown cow.&quot;</span><span class="op">);</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span><span class="op">&amp;</span> match <span class="op">:</span> matcher<span class="op">.</span>find<span class="op">)</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> match<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>Note that we cannot generally simplify this loop to the following,
+because the temporary matcher object is destroyed (some compilers handle
+this in C++23):</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span><span class="op">&amp;</span> match <span class="op">:</span> reflex<span class="op">::</span>PCRE2UTFMatcher matcher<span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">w+&quot;</span><span class="op">,</span> <span class="st">&quot;How now brown cow.&quot;</span><span class="op">).</span>find<span class="op">);</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found &quot;</span> <span class="op">&lt;&lt;</span> match<span class="op">.</span>text<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>RE/flex also allows you to convert expressive regex syntax forms such
+as <code>\p</code> Unicode classes, character class set operations such
+as <code>[a-z--[aeiou]]</code>, escapes such as <code>\X</code>, and
+<code>(?x)</code> mode modifiers, to a regex string that the underlying
+regex library understands and will be able to use:</p>
+<ul>
+<li><code>std::string reflex::Matcher::convert(const std::string&amp; regex, reflex::convert_flag_type flags)</code></li>
+<li><code>std::string reflex::PCRE2Matcher::convert(const std::string&amp; regex, reflex::convert_flag_type flags)</code></li>
+<li><code>std::string reflex::PCRE2UTFMatcher::convert(const std::string&amp; regex, reflex::convert_flag_type flags)</code></li>
+<li><code>std::string reflex::BoostMatcher::convert(const std::string&amp; regex, reflex::convert_flag_type flags)</code></li>
+<li><code>std::string reflex::StdMatcher::convert(const std::string&amp; regex, reflex::convert_flag_type flags)</code></li>
+</ul>
+<p>For example:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;reflex/matcher.h&gt;</span><span class="pp"> </span><span class="co">// reflex::Matcher, reflex::Input, reflex::Pattern</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// use a Matcher to check if sentence is in Greek:</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="at">const</span> reflex<span class="op">::</span>Pattern pattern<span class="op">(</span>reflex<span class="op">::</span>Matcher<span class="op">::</span>convert<span class="op">(</span><span class="st">&quot;[</span><span class="sc">\\</span><span class="st">p{Greek}</span><span class="sc">\\</span><span class="st">p{Zs}</span><span class="sc">\\</span><span class="st">pP]+&quot;</span><span class="op">,</span> reflex<span class="op">::</span>convert_flag<span class="op">::</span>unicode<span class="op">));</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>reflex<span class="op">::</span>Matcher<span class="op">(</span>pattern<span class="op">,</span> sentence<span class="op">).</span>matches<span class="op">()</span> <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;This is Greek&quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span></code></pre></div>
+<p>We use <code>convert</code> with optional flag
+<code>reflex::convert_flag::unicode</code> to make <code>.</code> (dot),
+<code>\w</code>, <code>\s</code> and so on match Unicode and to convert
+<code>\p</code> Unicode character classes.</p>
+<p>Conversion is fast (it runs in linear time in the size of the regex),
+but it is not without some overhead. Making converted regex patterns
+<code>static</code> as shown above saves the cost of conversion to just
+once to support many matchings.</p>
+<h2 id="how-to-contribute">How to contribute?</h2>
+<p>Please see <a href="CONTRIBUTING.md">CONTRIBUTING</a>.</p>
+<h2 id="where-do-i-find-the-documentation">Where do I find the
+documentation?</h2>
+<p>Read more about RE/flex in the <a
+href="https://www.genivia.com/doc/reflex/html">manual</a>.</p>
+<h2 id="license-and-copyright">License and copyright</h2>
+<p>RE/flex by Robert van Engelen, Genivia Inc. Copyright (c) 2016-2025,
+All rights reserved.</p>
+<p>RE/flex is distributed under the BSD-3 license LICENSE.txt. Use,
+modification, and distribution are subject to the BSD-3 license.</p>
+<h2 id="reporting-bugs">Reporting bugs</h2>
+<p>Visit GitHub to report bugs: https://github.com/Genivia/RE-flex</p>
+<h2 id="changelog">Changelog</h2>
+<ul>
+<li>Nov 14, 2016: 0.9.0 beta released</li>
+<li>Nov 15, 2016: 0.9.1 improved portability</li>
+<li>Nov 17, 2016: 0.9.2 improvements and fixes for minor issues</li>
+<li>Nov 19, 2016: 0.9.3 replaces <code>%import</code> with
+<code>%include</code>, adds freespace option <code>-x</code>, fixes
+minor issues</li>
+<li>Nov 20, 2016: 0.9.4 fixes minor issues, added new
+examples/json.l</li>
+<li>Nov 25, 2016: 0.9.5 bug fixes and improvements</li>
+<li>Dec 1, 2016: 0.9.6 portability improvements</li>
+<li>Dec 6, 2016: 0.9.7 bug fixes, added option
+<code>--regexp-file</code>, Python tokenizer</li>
+<li>Dec 9, 2016: 0.9.8 fixes minor issues, improved reflex tool options
+<code>--full</code> and <code>--fast</code>, generates scanner with FSM
+table or a fast scanner with FSM code, respectively</li>
+<li>Jan 8, 2017: 0.9.9 bug fixes and improved Flex compatibility</li>
+<li>Jan 15, 2017: 0.9.10 improved compatibility with Flex options, fixed
+critical issue with range unions</li>
+<li>Jan 25, 2017: 0.9.11 added C++11 std::regex matching engine support,
+moved .h files to include/reflex, requires
+<code>#include &lt;reflex/xyz.h&gt;</code> from now on, fixed
+<code>errno_t</code> portability issue</li>
+<li>Mar 3, 2017: 0.9.12 refactored and improved, includes new regex
+converters for regex engines that lack regex features such as Unicode
+character classes</li>
+<li>Mar 4, 2017: 0.9.13 improved warning and error messages</li>
+<li>Mar 6, 2017: 0.9.14 reflex option <code>-v</code> shows stats with
+execution timings, bug fixes</li>
+<li>Mar 8, 2017: 0.9.15 added <code>wtext()</code>,
+<code>wpair()</code>, <code>winput()</code> methods, other
+improvements</li>
+<li>Mar 22, 2017: 0.9.16 bug fixes, speed improvements, improved option
+<code>--unicode</code> regex conversion, also with <code>(?u:)</code>,
+changed <code>wtext()</code> to <code>wstr()</code> and added a
+<code>str()</code> method</li>
+<li>Mar 24, 2017: 0.9.17 improvements</li>
+<li>Mar 26, 2017: 0.9.18 added reflex option <code>-p</code>
+(<code>--perf-report</code>) for performance debugging, added
+doc/man/reflex.1 man page, added interactive readline example</li>
+<li>Mar 31, 2017: 0.9.19 fixed reflex option <code>-m</code>,
+<code>lexer.in(i)</code> now resets the lexer, fixed reassigning the
+same input to the lexer that caused UTF BOM to be read twice</li>
+<li>Apr 5, 2017: 0.9.20 EBCDIC file translation, other improvements</li>
+<li>Apr 10, 2017: 0.9.21 fixed option <code>-P</code> to support
+multiple lexer classes in one application, added <code>configure</code>
+installation script, optional quick install with
+<code>allinstall.sh</code> (renamed from <code>install.sh</code>)</li>
+<li>Apr 12, 2017: 0.9.22 improved explanations of
+<code>matches()</code>, <code>find()</code>, <code>scan()</code>,
+<code>split()</code> that return nonzero for a match, other minor
+improvements</li>
+<li>May 24, 2017: 0.9.23 improved portability, added file encoding
+conversions for CP-1250 to CP-1258, CP 437, and CP 850/858</li>
+<li>Jun 24, 2017: 0.9.24 added an option for users to define their own
+custom code pages to translate input, fixed <code>#</code> in free space
+mode</li>
+<li>Jun 28, 2017: 0.9.25 fixed <code>--fast</code> FSM not always
+halting on EOF after a mismatch; fixed buffer realloc, added new
+examples/csv.l</li>
+<li>Jul 5, 2017: 0.9.26 fixed <code>wstr()</code> always returning
+UTF-16 strings (should be UTF-16 only when <code>std::wstring</code>
+requires it)</li>
+<li>Sep 26, 2017: 0.9.27 the Flex-compatible
+<code>yy_scan_string()</code>, <code>yy_scan_bytes()</code> and
+<code>yy_scan_buffer()</code> functions now create a new buffer as in
+Flex, delete this buffer with <code>yy_delete_buffer()</code>; fixed
+examples to work with newer Bison versions (Bison 3.0.4)</li>
+<li>Dec 12, 2017: 0.9.28 added <code>yy_scan_wstring</code> and
+<code>yy_scan_wbuffer</code> for wide string scanning with Flex-like
+functions</li>
+<li>Jan 28, 2018: 1.0.0 removed dynamic exception specifications to
+comply with C++17, upgraded to stable release 1.0</li>
+<li>Feb 24, 2018: 1.0.1 added Unicode IsBlockName categories</li>
+<li>Mar 6, 2018: 1.0.2 added namespace nesting with
+<code>%option namespace=NAME1.NAME2.NAME3 ...</code></li>
+<li>Mar 7, 2018: 1.0.3 fixed <code>--namespace</code> and
+<code>%option namespace</code></li>
+<li>Apr 22, 2018: 1.0.4 updated to Unicode 10, cleaned up code to remove
+tool warnings</li>
+<li>Jun 29, 2018: 1.0.5 updated <code>--namespace</code> for options
+<code>--fast</code> and <code>--full</code> to support the generation of
+multiple optimized lexers placed in namespaces.</li>
+<li>Jul 9, 2018: 1.0.6 added <code>--bison-cc</code> option to generate
+scanners for Bison 3.0 <code>%skeleton "lalr1.cc"</code> C++ parsers,
+included two examples <code>flexexample9xx</code> and
+<code>reflexexample9xx</code> to demo this feature.</li>
+<li>Jul 12, 2018: 1.0.7 added <code>--bison-cc-namespace</code> and
+<code>--bison-cc-parser</code> options to customize Bison 3.0
+<code>%skeleton "lalr1.cc"</code> C++ parsers.</li>
+<li>Jul 30, 2018: 1.0.8 updated to Unicode 11.</li>
+<li>Aug 21, 2018: 1.0.9 fixed reflex regex library matching with range
+quantifiers by correcting coding typo.</li>
+<li>Dec 8, 2018: 1.0.10 fixed <code>columno()</code> to take tab spacing
+into account.</li>
+<li>Jan 18, 2019: 1.0.11 fixed GCC 8.2 warnings, additional
+enhancements.</li>
+<li>Jan 21, 2019: 1.0.12 the reflex tool now reads files using
+<code>reflex::Input</code>.</li>
+<li>Feb 20, 2019: 1.1.0 code quality updates.</li>
+<li>Mar 6, 2019: 1.1.1 fixed <code>configure</code> and
+<code>make install</code> header files, updated
+<code>--bison-locations</code> option.</li>
+<li>Mar 7, 2019: 1.1.2 fixed reflex tool handling of backslashes in file
+paths.</li>
+<li>Mar 11, 2019: 1.1.3 updated to Unicode 12, examples can now be built
+with <code>./configure --enable-examples</code>.</li>
+<li>Mar 27, 2019: 1.1.4 fixed reflex tool common top code block
+insertion for all inclusive states.</li>
+<li>Apr 6, 2019: 1.1.5 improved reflex tool command-line option
+handling, updated documentation.</li>
+<li>Apr 29, 2019: 1.2.0 added <code>--bison-complete</code> option, new
+ugrep utility example, updated manual, fixes minor issues.</li>
+<li>May 15, 2019: 1.2.1 added <code>reflex::convert_flag::basic</code>
+to convert BRE syntax to ERE syntax, used by <a
+href="https://github.com/Genivia/ugrep">ugrep</a>.</li>
+<li>May 28, 2019: 1.2.2 fixed MinGW builds, fixed
+<code>reflex::Input::get()</code> to return positive character code,
+matcher option <code>"N"</code> for <code>scan</code> and
+<code>find</code> matches empty input (<code>^$</code>).</li>
+<li>Jun 21, 2019: 1.2.3 fixed reflex long regex string generation,
+namespaces with option <code>--full</code>, updated documentation and
+other improvements.</li>
+<li>Jun 24, 2019: 1.2.4 fixed an issue with
+<code>reflex::StdMatcher</code> (<code>std::regex</code>) causing
+failures to match input with <code>split</code>.</li>
+<li>Jul 2, 2019: 1.2.5 added
+<code>reflex::Input::in(const char *memptr, size_t memlen)</code> to
+read a memory segment (for scanning etc.), added
+<code>reflex::Input::streambuf</code> class to use a
+<code>reflex::Input</code> object as a <code>std::streambuf</code>,
+improved <code>yy_scan_buffer</code> and
+<code>yy_scan_bytes</code>.</li>
+<li>Jul 3, 2019: 1.2.6 fixed a problem with lazy quantifiers used within
+negative patterns.</li>
+<li>Jul 4, 2019: 1.2.7 added <code>reflex::Input::dos_streambuf</code>
+to convert DOS CRLF to LF, other improvements.</li>
+<li>Jul 8, 2019: 1.2.8 added support for inverted mode modifiers
+<code>(?-imsux)</code> to <code>reflex::convert</code> and
+<code>reflex::Pattern</code>.</li>
+<li>Jul 11, 2019: 1.2.9 portability improvements.</li>
+<li>Jul 14, 2019: 1.2.10 added <code>AbstractMatcher::set_bob()</code>,
+moved <code>AbstractMatcher::peek()</code> to public, minor
+improvements.</li>
+<li>Jul 21, 2019: 1.3.0 added subtractive start condition scoping with
+<code>&lt;^...&gt;</code>, added undent <code>\k</code> anchor to undo
+indenting changes (“undenting”) with an example in
+<code>examples/indent2.l</code>, improved indent <code>\i</code> and
+dedent <code>\j</code> anchors and other improvements.</li>
+<li>Jul 24, 2019: 1.3.1 added <code>matcher().tabs(n)</code> to set tab
+size, used by <code>columno()</code> and indent <code>\i</code> and
+dedent <code>\j</code> anchors, new <code>reflex::Pattern</code>
+methods, other improvements.</li>
+<li>Jul 27, 2019: 1.3.2 added defined name expansion in bracket lists
+for the union <code>||</code>, intersection <code>&amp;&amp;</code>, and
+subtraction <code>--</code> operations,
+e.g. <code>[||{letter}||{digit}]</code> expands into
+<code>[a-zA-Z0-9]</code> when <code>letter</code> is defined as
+<code>[a-zA-Z]</code> and <code>digit</code> is defined as
+<code>[0-9]</code>, see Character Classes in the documentation.</li>
+<li>Aug 5, 2019: 1.3.3 fixed <code>reflex::BoostMatcher</code> (and
+derived <code>reflex::BoostPosixMatcher</code>,
+<code>reflex::BoostPerlMatcher</code>) regression bug that crept into
+the 1.2.4 update.</li>
+<li>Aug 7, 2019: 1.3.4 speed improvements for non-fast options.</li>
+<li>Aug 8, 2019: 1.3.5 further speed improvements for both fast and
+non-fast options (15% to 30% faster).</li>
+<li>Aug 12, 2019: 1.3.6 added lexer and matcher
+<code>buffer(base, size)</code> methods and improved Flex-compatible
+<code>yy_scan_buffer(base, size)</code>, these functions scan memory
+fast with zero copy overhead; added <code>mmap.l</code> example to scan
+an mmap-ed file fast with mmap(2) and <code>buffer(base, size)</code>;
+other improvements.</li>
+<li>Aug 16, 2019: 1.3.7 added
+<code>reflex::BufferedInput::dos_streambuf</code> to improve
+<code>dos_streambuf</code> speed by buffering
+(<code>reflex::Input::dos_streambuf</code> is unbuffered), fixed
+<code>%option token-type</code> to apply without restrictions.</li>
+<li>Aug 17, 2019: 1.3.8 added caching of <code>lineno()</code> and
+<code>columno()</code> to increase speed, which is essential for large
+buffers such as large mmap-ed files scanned with
+<code>buffer(base, size)</code>; other improvements.</li>
+<li>Sep 4, 2019: 1.4.0 added reflex option <code>-S</code>
+(<code>--find</code>) for efficient searching instead of scanning input
+(i.e. efficiently ignoring unmatched input) demonstrated with new
+<code>findfast</code> and <code>findsearch</code> examples; changed
+<code>--nodefault</code> to throw an exception when option
+<code>--flex</code> is not used and when the default rule is
+triggered.</li>
+<li>Sep 10, 2019: 1.4.1 fixed <code>lineno()</code> caching issue (1.3.8
+bug); faster <code>find</code>.</li>
+<li>Sep 15, 2019: 1.4.2 faster <code>find</code> for patterns beginning
+with optional repetitions such as <code>.*</code>.</li>
+<li>Sep 29, 2019: 1.4.3 added
+<code>reflex::AbstractMatcher::clone()</code> to clone a referenced
+concrete matcher object.</li>
+<li>Oct 23, 2019: 1.4.4 improved option <code>--flex</code> for Flex
+compatibility; fixed option <code>--token-type</code> with option
+<code>--flex</code>, now properly defines <code>YY_NULL</code> and
+<code>yyterminate</code>; fixed <code>AbstractMatcher::buffer(n)</code>
+for large <code>n</code>; faster <code>find</code>.</li>
+<li>Nov 5, 2019: 1.5.0 added <code>border()</code>, <code>span()</code>,
+<code>line()</code>, <code>wline()</code>, and <code>skip(c)</code>
+methods; added new section on error reporting and recovery to the
+documentation; fixed <code>yy_scan_string()</code> and
+<code>yy_scan_buffer()</code> when called before calling
+<code>yylex()</code> for the first time; improved performance.</li>
+<li>Nov 7, 2019: 1.5.1 improvements; added <code>dos.l</code> demo
+example of <code>reflex::InputBuffer::dos_streambuf</code>.</li>
+<li>Nov 12, 2019: 1.5.2 fixed an internal buffer allocation issue that
+may cause a crash when input lines are longer than 16KB (regression bug
+that crept into in 1.5.0).</li>
+<li>Nov 21, 2019: 1.5.3 added <code>lineno_end()</code> and
+<code>columno_end()</code> methods, updated <code>columns()</code> with
+clarifications in the updated documentation; expanded the documentation
+with additional error reporting and handling techniques with RE/flex and
+Bison bridge and complete configurations; FSM code generation
+improvements.</li>
+<li>Nov 22, 2019: 1.5.4 added <code>flexexample11xx</code> example with
+Flex specification and Bison complete parser; minor improvements.</li>
+<li>Dec 23, 2019: 1.5.5 expanded the <code>skip(c)</code> methods with a
+<code>wchar_t</code> wide character parameter and a UTF-8 string
+parameter to skip input; added new option <code>--token-eof</code>.</li>
+<li>Dec 28, 2019: 1.5.6 added new option <code>--noindent</code> to
+speed up pattern matching and lexical analysis by disabling indentation
+tracking in the input (also disables anchors <code>\i</code>,
+<code>\j</code>, and <code>\k</code>); speed improvements.</li>
+<li>Jan 19, 2020: 1.5.7 expanded file encoding formats to include
+ISO-8859-2 to 16, MacRoman, KOI8; fixed a bug in <code>line()</code> and
+<code>span()</code>.</li>
+<li>Feb 3, 2020: 1.5.8 added <code>wunput()</code> method; added
+<code>lex.vim</code> improved Flex and RE/flex Vim syntax highlighting;
+added <code>yaml.l</code> example; fixed <code>--freespace</code> with
+<code>--unicode</code> when bracket lists contain a <code>#</code>;
+character class operators <code>{+}</code>, <code>{-}</code>,
+<code>{&amp;}</code> now accept defined names as first operands and
+inverted character classes; indent anchor <code>\k</code> now matches
+only when indent level is changed as documented.</li>
+<li>Mar 2, 2020: 1.6.0 added PCRE2 regex matcher classes and updated
+reflex option <code>--matcher=pcre2-perl</code>; optimized RE/flex
+matcher <code>find()</code> with AVX/SSE2/NEON/AArch64; updated and
+improved regex converters.</li>
+<li>Mar 3, 2020: 1.6.1 fixed missing PCRE2 regex type
+<code>std::string</code> in generated scanners.</li>
+<li>Mar 10, 2020: 1.6.2 improved <code>reflex::PCRE2Matcher</code>;
+fixed MSVC++ x86 32-bit build error when <code>HAVE_AVX512BW</code> is
+enabled (requires AVX512BW).</li>
+<li>Mar 19, 2020: 1.6.3 updated to Unicode 13; fixed start condition
+scope specifications for patterns that start with a <code>{</code>;
+updated lex.vim.</li>
+<li>Mar 22, 2020: 1.6.4 added option <code>--yy</code> to enable
+<code>--flex</code> and <code>--bison</code>, but also defines the
+global <code>FILE*</code> variables <code>yyin</code> and
+<code>yyout</code> for enhanced Lex/Flex compatibility
+(<code>yyin</code> is otherwise a pointer to the
+<code>reflex::Input</code> object to read files, streams, and
+strings).</li>
+<li>Mar 23, 2020: 1.6.5 updated to permit <code>}</code> as closing
+marker for <code>%top{</code>, <code>%class{</code>, and
+<code>%init{</code> code blocks, i.e. <code>%}</code> or <code>}</code>
+may be used as closing markers.</li>
+<li>Mar 31, 2020: 1.6.6 fixed an issue where a trailing backslash in a
+pattern in a lexer specification causes a reflex-generated C++ comment
+to extend to the next line, which results in a compilation warning and
+possibly a line of code being skipped.</li>
+<li>Apr 30, 2020: 1.6.7 minor improvements to parse and convert regex
+patterns to FSMs.</li>
+<li>May 14, 2020: 2.0.0 faster FSM construction; new FSM VM opcodes;
+relaxed limits of pattern length and complexity (max 16,711,679 FSM
+opcode words, from 65,536 words previously) for high-performance pattern
+matching with very long and complex regex patterns.</li>
+<li>May 25, 2020: 2.0.1 resolved 64-bit build warnings; fixed reflex
+CRLF output in C++ source code on Windows.</li>
+<li>Jun 29, 2020: 2.1.0 added Bison complete locations filename member
+access; added example Mini C compiler <code>minic</code> using RE/flex
+scanner with Bison 3.2 C++ complete locations, compiles C-like source
+code to Java bytecode (class files); added fast fuzzy (approximate)
+regex matcher <code>reflex::FuzzyMatcher</code> derived from
+<code>reflex::Matcher</code>.</li>
+<li>Jul 8, 2020: 2.1.1 added <code>%option params</code> to extend
+<code>lex()</code>/<code>yylex()</code> parameters; updated AVX2
+detection for SIMD optimizations.</li>
+<li>Jul 9, 2020: 2.1.2 minor update to fix MSVC++ compiler error.</li>
+<li>Aug 3, 2020: 2.1.3 improved <code>--bison-bridge</code> option;
+updated examples.</li>
+<li>Aug 19, 2020: 2.1.4 changed <code>IN_HEADER</code> to
+<code>yyIN_HEADER</code> when <code>--flex</code> is used with
+<code>--header-file</code>; added <code>reflex::Input::Handler</code>
+event handler for custom handling of <code>FILE*</code> errors and
+non-blocking <code>FILE*</code> streams.</li>
+<li>Sep 20, 2020: 2.1.5 added matcher method <code>lineno(n)</code> to
+set or change the line number to <code>n</code>; added
+<code>yyset_lineno(n,s)</code> to <code>flexlexer.h</code>; updated Mini
+C compiler example.</li>
+<li>Oct 12, 2020: 3.0.0 fixed a regression bug since v2.x; redesigned
+internals to increase IO efficiency and regex pattern search speed.</li>
+<li>Oct 24, 2020: 3.0.1 improved handling of UTF-16/32 file encodings on
+Windows to prevent ^Z eof when files are opened in text mode.</li>
+<li>Mar 16, 2021: 3.0.2 minor improvements and additions; fixed MinGW
+builds.</li>
+<li>Apr 29, 2021: 3.0.3 fixed <code>reflex::Input</code> copy
+constructor; minor improvements.</li>
+<li>May 27, 2021: 3.0.4 improvements and fixes for minor issues.</li>
+<li>Jun 1, 2021: 3.0.5 minor usability improvements; changed
+<code>\d</code> to match Unicode when option <code>unicode</code> is
+enabled.</li>
+<li>Jun 4, 2021: 3.0.6 minor improvements.</li>
+<li>Jun 6, 2021: 3.0.7 updated examples to fix build problems.</li>
+<li>Jul 15, 2021: 3.0.8 minor improvements.</li>
+<li>Jul 22, 2021: 3.0.9 SIMD code split into <code>simd_avx2.cpp</code>
+and <code>simd_avx512bw.cpp</code> to support runtime CPU ID checking
+when the library is built with <code>./configure; make</code>, disable
+AVX with <code>./configure --disable-avx</code>, disable SSE2 with
+<code>./configure --disable-sse2</code>; UTF-16LE BOM detection
+correction.</li>
+<li>Aug 14, 2021: 3.0.10 fixed missing <code>simd.h</code> after
+installation, added <code>REFLEX_BUFFER_SIZE</code> to customize the
+initial size and growth of the input buffer.</li>
+<li>Sep 14, 2021: 3.0.11 minor change to apply <code>--prefix</code> to
+the generated <code>REFLEX_code_[PREFIX]STATE</code> code.</li>
+<li>Oct 11, 2021: 3.0.12 updated to Unicode 14; fixed a compilation
+issue with <code>--params</code> when used with
+<code>--flex</code>.</li>
+<li>Dec 10, 2021: 3.1.0 improved buffering mechanism with reduced buffer
+sizes; faster <code>columno()</code> for long lines; fix CP-1251 table
+typo.</li>
+<li>Feb 20, 2022: 3.2.0 new <code>%option ctorinit</code>; faster
+compilation of regular expressions to tables and direct code DFAs;
+refactored SIMD source code to enable AVX2 and AVX512BW optimizations in
+multi-version matcher code; updated Windows binary file opening.</li>
+<li>Feb 23, 2022: 3.2.1 regression bug in 3.2.0 fix.</li>
+<li>Mar 13, 2022: 3.2.2 minor improvements.</li>
+<li>Apr 2, 2022: 3.2.3 fixed C++17 compliance and dso build.</li>
+<li>Apr 29, 2022: 3.2.4 new <code>%begin</code> directive; new
+<code>--batch=SIZE</code> option argument.</li>
+<li>Apr 30, 2022: 3.2.5 minor correction.</li>
+<li>May 6, 2022: 3.2.6 improved fuzzy matcher.</li>
+<li>May 10, 2022: 3.2.7 improved fuzzy matcher, see also <a
+href="https://github.com/Genivia/FuzzyMatcher"
+class="uri">https://github.com/Genivia/FuzzyMatcher</a>.</li>
+<li>Jul 6, 2022: 3.2.8 minor update to correct a lexer file parsing
+issue in the reflex code generator tool.</li>
+<li>Aug 12, 2022: 3.2.9 add cmake rules for Windows builds.</li>
+<li>Aug 21, 2022: 3.2.10 bug fix in regular expression converter.</li>
+<li>Aug 29, 2022: 3.2.11 new lua2lisp transpiler example with Bison
+complete symbols and locations.</li>
+<li>Jan 6, 2023: 3.2.12 regression bug fix in trailing context pattern
+matching, e.g. <code>xy</code> and <code>x/x</code> patterns collided
+when they should not; updated yaml parser example.</li>
+<li>Jan 24, 2023: 3.3.0 overall update; corrected a problem with Unicode
+characters in regex patterns adjacent to curly braces; permit cxx
+extension in FSM filename output.</li>
+<li>Mar 6, 2023: 3.3.1 for consistency include NAME in default header
+file name, tables file name, and graphs file name when option
+<code>--prefix</code> is specified.</li>
+<li>Mar 17, 2023: 3.3.2 fix a performance issue with case-insensitive
+pattern construction.</li>
+<li>May 28, 2023: 3.3.3 fix <code>yyrestart</code> dropping the first
+character; faster <code>Matcher::find()</code>.</li>
+<li>May 31, 2023: 3.3.4 fix <code>Matcher::find()</code> initialization
+issue in 3.3.3.</li>
+<li>Jun 12, 2023: 3.3.5 improve source code output of lexer class
+definitions.</li>
+<li>Jul 11, 2023: 3.3.6 faster <code>Matcher::find()</code>; improved
+<code>--stdout</code> to include tables.</li>
+<li>Jul 17, 2023: 3.3.7 faster <code>Matcher::find()</code>.</li>
+<li>Aug 4, 2023: 3.3.8 minor update to sync up the code base with the
+ugrep project.</li>
+<li>Aug 16, 2023: 3.3.9 fix avx512bw compilation error; new LineMatcher
+matching engine.</li>
+<li>Sep 16, 2023: 3.4.0 fix <code>FuzzyMatcher::DEL</code> flag when
+this is the only flag selected; fix <code>FuzzyMatcher::matches()</code>
+bug that incorrectly matched an extra character before the end of the
+input; optimize <code>find()</code>; updated saving the FSM
+<code>pred[]</code> hashes to a file, which has changed; increase
+default buffer size <code>REFLEX_BUFSZ</code> to 128K for best
+throughput performance.</li>
+<li>Sep 25, 2023: 3.4.1 make word boundaries <code>\b</code>,
+<code>\B</code>, <code>\&lt;</code> and <code>\&gt;</code> applicable
+anywhere in a pattern.</li>
+<li>Oct 7, 2023: 3.5.0 updated to Unicode 15.1; clarify <code>.</code>
+(dot) with <code>%unicode</code> enabled, which is a catch-all pattern;
+update <code>\X</code> to match only valid Unicode characters.</li>
+<li>Nov 5, 2023: 3.5.1 minor improvements.</li>
+<li>Feb 17, 2024: 4.0.0 faster <code>Matcher::find()</code> with a new
+DFA cut algorithm to optimize match prediction speed and accuracy, see
+also ugrep 5.0; apply Unicode pattern canonicalization with
+<code>reflex::convert(..., reflex::convert_flag::unicode)</code>.</li>
+<li>Feb 23, 2024: 4.0.1 new <code>rawk</code> example to demonstrate
+awk-like fast search in C++; enable <code>&lt;&lt;EOF&gt;&gt;</code>
+rules for option <code>find</code> to generate a fast search
+engine.</li>
+<li>Mar 5, 2024: 4.1.0 improved lazy quantifiers for POSIX regex lazy
+matching in linear time using an advanced DFA transformation algorithm
+introduced in RE/flex in 2016.</li>
+<li>Mar 11, 2024: 4.1.1 minor update to correct a DFA construction
+problem for POSIX regex lazy quantifiers matching too much in some
+cases.</li>
+<li>Mar 17, 2024: 4.1.2 updated configure scripts; cast negative ctype
+function arguments (problem detected on NetBSD 10).</li>
+<li>Mar 27, 2024: 4.2.0 support pkg-config with <code>reflex.pc</code>
+(and <code>reflexmin.pc</code> minimized library) to use the reflex
+library <code>-lreflex</code>.</li>
+<li>Apr 10, 2024: 4.2.1 minor update to adjust the current input pointer
+by one when not matching anything.</li>
+<li>May 12, 2024: 4.3.0 faster <code>Matcher::find()</code> with
+refactored SIMD (SSE2/AVX2/AVX512BW/NEON/AArch64) code; larger default
+256KB buffer (from 128KB).</li>
+<li>Jun 6, 2024: 4.4.0 upgraded <code>reflex::Matcher</code> and
+<code>reflex::FuzzyMatcher</code> to respect Unicode word boundaries
+instead of only ASCII <code>\&lt;</code>, <code>\&gt;</code>,
+<code>\b</code>, <code>\B</code>; upgraded regex Unicode converters to
+Unicode <code>[::]</code> character classes instead of only ASCII
+<code>[[:alpha:]]</code> etc.; improved FSM code generation without
+local c0.</li>
+<li>Aug 1, 2024: 4.5.0 minor speed improvements.</li>
+<li>Oct 29, 2024: 5.0.0 faster SIMD regex search methods; improved
+anchor and word boundary matching speed and support; new
+<code>std::string_view strview()</code> matcher method.</li>
+<li>Nov 29, 2024: 5.1.0 appease <code>-Woverload-virtual</code> and
+<code>-Wshadow</code> warnings; fix a bug in case-insensitive Unicode
+negated character class matching too much.</li>
+<li>Jan 9, 2025: 5.1.1 fix a minor issue with case-insensitive matching
+when regex patterns are specified in certain ways in combination with
+“string-like” patterns such that one ore more alternating sub-patterns
+overlap from the start.</li>
+<li>Jan 24, 2025: 5.2.0 new file encoding type <code>null_data</code> to
+read NUL as LF and vice versa; supports reading <code>xargs -0</code>
+output for example.</li>
+<li>Jan 27, 2025: 5.2.1 fix a regression issue with non-SIMD-optimized
+search with <code>Matcher::find()</code>.</li>
+<li>Feb 3, 2025: 5.2.2 <code>Matcher::find()</code> speed improvements
+for certain regex patterns that do not match the input.</li>
+<li>Feb 28, 2025: 5.3.0 improve case-insensitive matching to support the
+Unicode upper/lower sets of letters.</li>
+<li>Apr 29, 2025: 5.4.0 natively support non-blocking <code>FILE*</code>
+input, i.e. for <code>fcntl</code> <code>O_NONBLOCK</code> the regex
+matchers will wait for input to become available again instead of giving
+up with an error; changed <code>reflex::Input::Handler</code> see
+documentation; remove compiler warnings.</li>
+<li>May 16, 2025: 5.5.0 new <code>reflex</code> option <code>-D</code>
+to immediately debug a scanner’s lexer patterns against a specified
+input file; fix an issue with <code>Matcher::find()</code> for certain
+short patterns with ^$ anchors; mark <code>likely</code> and
+<code>unlikely</code> branches in hot paths for
+<code>Matcher::find()</code> performance.</li>
+</ul>

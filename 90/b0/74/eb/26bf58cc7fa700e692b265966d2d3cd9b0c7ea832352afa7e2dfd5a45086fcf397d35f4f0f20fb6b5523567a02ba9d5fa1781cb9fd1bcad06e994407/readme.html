@@ -1,0 +1,194 @@
+<h1 id="d3d12-memory-allocator">D3D12 Memory Allocator</h1>
+<p>Easy to integrate memory allocation library for Direct3D 12.</p>
+<p><strong>Documentation:</strong> Browse online: <a
+href="https://gpuopen-librariesandsdks.github.io/D3D12MemoryAllocator/html/">D3D12
+Memory Allocator</a> (generated from Doxygen-style comments in <a
+href="include/D3D12MemAlloc.h">include/D3D12MemAlloc.h</a>)</p>
+<p><strong>License:</strong> MIT. See <a
+href="LICENSE.txt">LICENSE.txt</a></p>
+<p><strong>Changelog:</strong> See <a
+href="CHANGELOG.md">CHANGELOG.md</a></p>
+<p><strong>Product page:</strong> <a
+href="https://gpuopen.com/gaming-product/d3d12-memory-allocator/">D3D12
+Memory Allocator on GPUOpen</a></p>
+<p><a
+href="http://isitmaintained.com/project/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator"
+title="Average time to resolve an issue"><img
+src="http://isitmaintained.com/badge/resolution/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.svg"
+alt="Average time to resolve an issue" /></a></p>
+<h1 id="problem">Problem</h1>
+<p>Memory allocation and resource (buffer and texture) creation in new,
+explicit graphics APIs (Vulkan® and Direct3D 12) is difficult comparing
+to older graphics APIs like Direct3D 11 or OpenGL® because it is
+recommended to allocate bigger blocks of memory and assign parts of them
+to resources. <a
+href="https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/">Vulkan
+Memory Allocator</a> is a library that implements this functionality for
+Vulkan. It is available online since 2017 and it is successfully used in
+many software projects, including some AAA game studios. This is an
+equivalent library for D3D12.</p>
+<h1 id="features">Features</h1>
+<p>This library can help developers to manage memory allocations and
+resource creation by offering function
+<code>Allocator::CreateResource</code> similar to the standard
+<code>ID3D12Device::CreateCommittedResource</code>. It internally:</p>
+<ul>
+<li>Allocates and keeps track of bigger memory heaps, used and unused
+ranges inside them, finds best matching unused ranges to create new
+resources there as placed resources.</li>
+<li>Automatically respects size and alignment requirements for created
+resources.</li>
+<li>Automatically handles resource heap tier - whether it’s
+<code>D3D12_RESOURCE_HEAP_TIER_1</code> that requires to keep certain
+classes of resources separate or <code>D3D12_RESOURCE_HEAP_TIER_2</code>
+that allows to keep them all together.</li>
+</ul>
+<p>Additional features:</p>
+<ul>
+<li>Well-documented - description of all classes and functions provided,
+along with chapters that contain general description and example
+code.</li>
+<li>Thread-safety: Library is designed to be used in multithreaded
+code.</li>
+<li>Configuration: Fill optional members of <code>ALLOCATOR_DESC</code>
+structure to provide custom CPU memory allocator and other
+parameters.</li>
+<li>Customization and integration with custom engines: Predefine
+appropriate macros to provide your own implementation of external
+facilities used by the library, like assert, mutex, and atomic.</li>
+<li>Support for resource aliasing (overlap).</li>
+<li>Custom memory pools: Create a pool with desired parameters
+(e.g. fixed or limited maximum size, custom
+<code>D3D12_HEAP_PROPERTIES</code> and <code>D3D12_HEAP_FLAGS</code>)
+and allocate memory out of it.</li>
+<li>Support for GPU Upload Heaps from preview Agility SDK (needs
+compilation with <code>D3D12MA_OPTIONS16_SUPPORTED</code> macro).</li>
+<li>Linear allocator: Create a pool with linear algorithm and use it for
+much faster allocations and deallocations in free-at-once, stack, double
+stack, or ring buffer fashion.</li>
+<li>Defragmentation: Let the library move data around to free some
+memory blocks and make your allocations better compacted.</li>
+<li>Statistics: Obtain brief or detailed statistics about the amount of
+memory used, unused, number of allocated heaps, number of allocations
+etc. - globally and per memory heap type. Current memory usage and
+budget as reported by the system can also be queried.</li>
+<li>Debug annotations: Associate custom <code>void* pPrivateData</code>
+and debug <code>LPCWSTR pName</code> with each allocation.</li>
+<li>JSON dump: Obtain a string in JSON format with detailed map of
+internal state, including list of allocations, their string names, and
+gaps between them.</li>
+<li>Convert this JSON dump into a picture to visualize your memory. See
+<a href="tools/GpuMemDumpVis/README.md">tools/GpuMemDumpVis</a>.</li>
+<li>Virtual allocator - an API that exposes the core allocation
+algorithm to be used without allocating real GPU memory, to allocate
+your own stuff, e.g. sub-allocate pieces of one large buffer.</li>
+</ul>
+<h1 id="prerequisites">Prerequisites</h1>
+<ul>
+<li>Self-contained C++ library in single pair of H + CPP files. No
+external dependencies other than standard C, C++ library and Windows
+SDK. Some features of C++14 used. STL containers, C++ exceptions, and
+RTTI are not used.</li>
+<li>Object-oriented interface in a convention similar to D3D12.</li>
+<li>Error handling implemented by returning <code>HRESULT</code> error
+codes - same way as in D3D12.</li>
+<li>Interface documented using Doxygen-style comments.</li>
+</ul>
+<h1 id="example">Example</h1>
+<p>Basic usage of this library is very simple. Advanced features are
+optional. After you created global <code>Allocator</code> object, a
+complete code needed to create a texture may look like this:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>D3D12_RESOURCE_DESC resourceDesc <span class="op">=</span> <span class="op">{};</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Dimension <span class="op">=</span> D3D12_RESOURCE_DIMENSION_TEXTURE2D<span class="op">;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Alignment <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Width <span class="op">=</span> <span class="dv">1024</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Height <span class="op">=</span> <span class="dv">1024</span><span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>DepthOrArraySize <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>MipLevels <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Format <span class="op">=</span> DXGI_FORMAT_R8G8B8A8_UNORM<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>SampleDesc<span class="op">.</span>Count <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>SampleDesc<span class="op">.</span>Quality <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Layout <span class="op">=</span> D3D12_TEXTURE_LAYOUT_UNKNOWN<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>resourceDesc<span class="op">.</span>Flags <span class="op">=</span> D3D12_RESOURCE_FLAG_NONE<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>D3D12MA<span class="op">::</span>ALLOCATION_DESC allocDesc <span class="op">=</span> <span class="op">{};</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>allocDesc<span class="op">.</span>HeapType <span class="op">=</span> D3D12_HEAP_TYPE_DEFAULT<span class="op">;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>D3D12Resource<span class="op">*</span> resource<span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>D3D12MA<span class="op">::</span>Allocation<span class="op">*</span> allocation<span class="op">;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>HRESULT hr <span class="op">=</span> allocator<span class="op">-&gt;</span>CreateResource<span class="op">(</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">&amp;</span>allocDesc<span class="op">,</span> <span class="op">&amp;</span>resourceDesc<span class="op">,</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    D3D12_RESOURCE_STATE_COPY_DEST<span class="op">,</span> NULL<span class="op">,</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">&amp;</span>allocation<span class="op">,</span> IID_PPV_ARGS<span class="op">(&amp;</span>resource<span class="op">));</span></span></code></pre></div>
+<p>With this one function call:</p>
+<ol type="1">
+<li><code>ID3D12Heap</code> memory block is allocated if needed.</li>
+<li>An unused region of the memory block is reserved for the
+allocation.</li>
+<li><code>ID3D12Resource</code> is created as placed resource, bound to
+this region.</li>
+</ol>
+<p><code>Allocation</code> is an object that represents memory assigned
+to this texture. It can be queried for parameters like offset and
+size.</p>
+<h1 id="binaries">Binaries</h1>
+<p>The release comes with precompiled binary executable for
+“D3D12Sample” application which contains test suite. It is compiled
+using Visual Studio 2022, so it requires appropriate libraries to work,
+including “MSVCP140.dll”, “VCRUNTIME140.dll”, “VCRUNTIME140_1.dll”. If
+its launch fails with error message telling about those files missing,
+please download and install <a
+href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170">Microsoft
+Visual C++ Redistributable</a>, “X64” version.</p>
+<h1 id="copyright-notice">Copyright notice</h1>
+<p>This software package uses third party software:</p>
+<ul>
+<li>Parts of the code of <a
+href="https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/">Vulkan
+Memory Allocator</a> by AMD, license: MIT</li>
+<li>Parts of the code of <a
+href="https://github.com/microsoft/DirectX-Graphics-Samples">DirectX-Graphics-Samples</a>
+by Microsoft, license: MIT</li>
+</ul>
+<p>For more information see <a href="NOTICES.txt">NOTICES.txt</a>.</p>
+<h1 id="see-also">See also</h1>
+<ul>
+<li><strong><a
+href="https://github.com/Microsoft/vcpkg">Vcpkg</a></strong> dependency
+manager from Microsoft offers a port of this library that is easy to
+install.</li>
+<li><strong><a
+href="https://github.com/milliewalky/d3d12ma.c">d3d12ma.c</a></strong> -
+C bindings for this library. Author: Mateusz Maciejewski (Matt Walky).
+License: MIT.</li>
+<li><strong><a
+href="https://github.com/terrafx/terrafx.interop.d3d12memoryallocator">TerraFX.Interop.D3D12MemoryAllocator</a></strong>
+- interop bindings for this library for C#, as used by <a
+href="https://github.com/terrafx/terrafx">TerraFX</a>. License:
+MIT.</li>
+<li><strong><a
+href="https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/">Vulkan
+Memory Allocator</a></strong> - equivalent library for Vulkan. License:
+MIT.</li>
+</ul>
+<h1 id="software-using-this-library">Software using this library</h1>
+<ul>
+<li><strong><a href="https://github.com/qt">Qt Project</a></strong></li>
+<li><strong><a
+href="https://www.youtube.com/watch?v=cPKBDbCYctc&amp;t=698s">Ghost of
+Tsushima: Director’s Cut PC</a></strong> - Information avaliable in
+11:38 of credits</li>
+<li><strong><a href="https://github.com/godotengine/godot/">Godot
+Engine</a></strong> - multi-platform 2D and 3D game engine. License:
+MIT.</li>
+<li><strong><a href="https://github.com/ConfettiFX/The-Forge">The
+Forge</a></strong> - cross-platform rendering framework. Apache License
+2.0.</li>
+<li><strong><a href="https://github.com/turanszkij/WickedEngine">Wicked
+Engine</a></strong> - 3D engine with modern graphics</li>
+</ul>
+<p><a
+href="https://github.com/search?q=D3D12MemAlloc.h&amp;type=Code">Some
+other projects on GitHub</a> and some game development studios that use
+DX12 in their games.</p>
