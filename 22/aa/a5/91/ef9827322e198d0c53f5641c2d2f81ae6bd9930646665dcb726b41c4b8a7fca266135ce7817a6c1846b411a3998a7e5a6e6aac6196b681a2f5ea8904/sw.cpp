@@ -293,6 +293,10 @@ void build(Solution &s)
         protobuf_lite.Public += "org.sw.demo.google.abseil"_dep;
         protobuf_lite.Public += "org.sw.demo.google.protocolbuffers.utf8_validity-main"_dep;
         protobuf_lite.patch("src/google/protobuf/map_field.h", "constexpr MapFieldBase::VTable", "const MapFieldBase::VTable");
+        protobuf_lite.patch("src/google/protobuf/port.h",
+            "false_type HasConstexprDefaultConstructor",
+            "true_type HasConstexprDefaultConstructor"
+        );
     }
 
     auto &protobuf = p.addTarget<StaticLibraryTarget>("protobuf");
