@@ -215,7 +215,8 @@ void build(Solution &s)
             fs::create_directory_symlink(upb.SourceDir, upb.BinaryDir / "upb");
         }*/
         //upb -= "upb/reflection/.*"_rr;
-        upb -= "upb/cmake/.*"_rr;
+        //upb -= "upb/reflection/cmake/.*"_rr;
+        upb -= "upb/reflection/stage0/.*"_rr;
 
         upb -= ".*test.*"_rr;
         upb -= "upb/conform.*"_rr;
@@ -226,7 +227,7 @@ void build(Solution &s)
 
         //upb.Public += "cmake"_idir;
         //if (upb.getCompilerType() != CompilerType::GNU)
-        upb.Public += "upb/reflection/stage0"_idir;
+        //upb.Public += "upb/reflection/stage0"_idir;
         upb.Public += "upb/reflection/cmake"_idir;
         upb.Public += "."_idir;
 
@@ -294,8 +295,8 @@ void build(Solution &s)
         protobuf_lite.Public += "org.sw.demo.google.protocolbuffers.utf8_validity-main"_dep;
         protobuf_lite.patch("src/google/protobuf/map_field.h", "constexpr MapFieldBase::VTable", "const MapFieldBase::VTable");
         protobuf_lite.patch("src/google/protobuf/port.h",
-            "false_type HasConstexprDefaultConstructor",
-            "true_type HasConstexprDefaultConstructor"
+            "true_type HasConstexprDefaultConstructor",
+            "false_type HasConstexprDefaultConstructor"
         );
     }
 
