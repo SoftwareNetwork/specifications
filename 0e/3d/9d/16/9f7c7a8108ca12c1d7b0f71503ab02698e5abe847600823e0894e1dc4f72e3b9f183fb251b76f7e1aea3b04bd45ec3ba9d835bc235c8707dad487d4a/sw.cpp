@@ -90,6 +90,7 @@ void build(Solution &s) {
             << "-P"
             << "-xc++-header"
             << "-m64"
+            << "-DDEF_X64"
             << cmd::in(fn)
             << "-I" << t.SourceDir / "mingw-w64-crt/def-include"
             << cmd::std_out(out);
@@ -156,8 +157,12 @@ void build(Solution &s) {
         }
         throw std::runtime_error{"unk def file: " + name};
     };
+
     auto &kernel32 = get_def_lib("kernel32");
     auto &ucrtbase_def = get_def_lib("ucrtbase");
+    get_def_lib("ole32");
+    get_def_lib("oleaut32");
+    get_def_lib("advapi32");
 
     /*auto &gcc = mingw.addStaticLibrary("gcc");
     {
@@ -244,12 +249,12 @@ void build(Solution &s) {
 
         add_makefile_sources(t, "lib64_libmingwex_a_SOURCES");
 
-        t -= "mingw-w64-crt/stdio/_stat.c";
+        //t -= "mingw-w64-crt/stdio/_stat.c";
         t -= "mingw-w64-crt/stdio/ftello64.c";
         t -= "mingw-w64-crt/stdio/fseeko32.c";
         t -= "mingw-w64-crt/stdio/snprintf.c";
         t -= "mingw-w64-crt/stdio/ftello.c";
-        t -= "mingw-w64-crt/stdio/_wstat.c";
+        //t -= "mingw-w64-crt/stdio/_wstat.c";
         t -= "mingw-w64-crt/stdio/vwscanf.c";
         t -= "mingw-w64-crt/stdio/vscanf.c";
         t -= "mingw-w64-crt/stdio/fseeko64.c";
@@ -384,6 +389,7 @@ void build(Solution &s) {
         t.setRootDirectory("mingw-w64-tools/gendef");
         t += "src/.*"_rr;
         t += main_def;
+        t += Definition{"VERSION=\"" + t.Variables["PACKAGE_VERSION"].toString() + "\""};
     }
     auto &genidl = tools.addExecutable("genidl");
     {
@@ -404,6 +410,8 @@ void build(Solution &s) {
         t.setRootDirectory("mingw-w64-tools/widl");
         t += "include/.*"_rr;
         t += "src/.*"_r;
+        t += "INCLUDEDIR=\".\""_def;
+        t += "LIBDIR=\".\""_def;
         t += "BIN_TO_INCLUDEDIR=\".\""_def;
         t += "BIN_TO_DLLDIR=\".\""_def;
         t += "DLLDIR=\".\""_def;
@@ -411,6 +419,7 @@ void build(Solution &s) {
         t.Variables["HAVE_GETOPT_H"] = 1;
         t.Variables["HAVE_STRING_H"] = 1;
         t.Variables["PACKAGE_VERSION"] = "\"" + t.Variables["PACKAGE_VERSION"].toString() + "\"";
+        t.Variables["VERSION"] = "\"" + t.Variables["PACKAGE_VERSION"].toString() + "\"";
         t.configureFile("include/config.h.in", "config.h", ConfigureFlags::EnableUndefReplacements);
     }
 }
