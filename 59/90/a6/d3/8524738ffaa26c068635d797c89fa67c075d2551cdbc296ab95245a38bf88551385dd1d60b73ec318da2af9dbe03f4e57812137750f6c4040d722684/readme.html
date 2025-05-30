@@ -1,0 +1,213 @@
+<h2 id="hidapi-library-for-windows-linux-freebsd-and-macos">HIDAPI
+library for Windows, Linux, FreeBSD and macOS</h2>
+<table>
+<colgroup>
+<col style="width: 73%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>CI instance</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Linux/macOS/Windows (master)</code></td>
+<td><a
+href="https://github.com/libusb/hidapi/actions/workflows/builds.yml?query=branch%3Amaster"><img
+src="https://github.com/libusb/hidapi/actions/workflows/builds.yml/badge.svg?branch=master"
+alt="GitHub Builds" /></a></td>
+</tr>
+<tr class="even">
+<td><code>Windows (master)</code></td>
+<td><a
+href="https://ci.appveyor.com/project/libusb/hidapi/branch/master"><img
+src="https://ci.appveyor.com/api/projects/status/xfmr5fo8w0re8ded/branch/master?svg=true"
+alt="Build status" /></a></td>
+</tr>
+<tr class="odd">
+<td><code>BSD, last build (branch/PR)</code></td>
+<td><a href="https://builds.sr.ht/~z3ntu/hidapi"><img
+src="https://builds.sr.ht/~z3ntu/hidapi.svg"
+alt="builds.sr.ht status" /></a></td>
+</tr>
+<tr class="even">
+<td><code>Coverity Scan (last)</code></td>
+<td><a href="https://scan.coverity.com/projects/hidapi"><img
+src="https://scan.coverity.com/projects/583/badge.svg"
+alt="Coverity Scan" /></a></td>
+</tr>
+</tbody>
+</table>
+<p>HIDAPI is a multi-platform library which allows an application to
+interface with USB and Bluetooth HID-Class devices on Windows, Linux,
+FreeBSD, and macOS. HIDAPI can be either built as a shared library
+(<code>.so</code>, <code>.dll</code> or <code>.dylib</code>) or can be
+embedded directly into a target application by adding a <em>single
+source</em> file (per platform) and a single header.<br> See <a
+href="BUILD.md#embedding-hidapi-directly-into-your-source-tree">remarks</a>
+on embedding <em>directly</em> into your build system.</p>
+<p>HIDAPI library was originally developed by Alan Ott (<a
+href="https://github.com/signal11">signal11</a>).</p>
+<p>It was moved to <a
+href="https://github.com/libusb/hidapi">libusb/hidapi</a> on June 4th,
+2019, in order to merge important bugfixes and continue development of
+the library.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#about">About</a>
+<ul>
+<li><a href="#test-gui">Test GUI</a></li>
+<li><a href="#console-test-app">Console Test App</a></li>
+</ul></li>
+<li><a href="#what-does-the-api-look-like">What Does the API Look
+Like?</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#installing-hidapi">Installing HIDAPI</a></li>
+<li><a href="#build-from-source">Build from Source</a></li>
+</ul>
+<h2 id="about">About</h2>
+<h3 id="hidapi-has-four-back-ends">HIDAPI has four back-ends:</h3>
+<ul>
+<li>Windows (using <code>hid.dll</code>)</li>
+<li>Linux/hidraw (using the Kernel’s hidraw driver)</li>
+<li>libusb (using libusb-1.0 - Linux/BSD/other UNIX-like systems)</li>
+<li>macOS (using IOHidManager)</li>
+</ul>
+<p>On Linux, either the hidraw or the libusb back-end can be used. There
+are tradeoffs, and the functionality supported is slightly different.
+Both are built by default. It is up to the application linking to hidapi
+to choose the backend at link time by linking to either
+<code>libhidapi-libusb</code> or <code>libhidapi-hidraw</code>.</p>
+<p>Note that you will need to install an udev rule file with your
+application for unprivileged users to be able to access HID devices with
+hidapi. Refer to the <a href="udev/69-hid.rules">69-hid.rules</a> file
+in the <code>udev</code> directory for an example.</p>
+<h4 id="linuxhidraw-linuxhid.c"><strong>Linux/hidraw</strong>
+(<code>linux/hid.c</code>):</h4>
+<p>This back-end uses the hidraw interface in the Linux kernel, and
+supports both USB and Bluetooth HID devices. It requires kernel version
+at least 2.6.39 to build. In addition, it will only communicate with
+devices which have hidraw nodes associated with them. Keyboards, mice,
+and some other devices which are blacklisted from having hidraw nodes
+will not work. Fortunately, for nearly all the uses of hidraw, this is
+not a problem.</p>
+<h4
+id="linuxfreebsdlibusb-libusbhid.c"><strong>Linux/FreeBSD/libusb</strong>
+(<code>libusb/hid.c</code>):</h4>
+<p>This back-end uses libusb-1.0 to communicate directly to a USB
+device. This back-end will of course not work with Bluetooth
+devices.</p>
+<h3 id="test-gui">Test GUI</h3>
+<p>HIDAPI also comes with a Test GUI. The Test GUI is cross-platform and
+uses Fox Toolkit <a href="http://www.fox-toolkit.org"
+class="uri">http://www.fox-toolkit.org</a>. It will build on every
+platform which HIDAPI supports. Since it relies on a 3rd party library,
+building it is optional but it is useful when debugging hardware.</p>
+<p>NOTE: Test GUI based on Fox Toolkit is not actively developed nor
+supported by HIDAPI team. It is kept as a historical artifact. It may
+even work sometime or on some platforms, but it is not going to get any
+new features or bugfixes.</p>
+<p>Instructions for installing Fox-Toolkit on each platform is not
+provided. Make sure to use Fox-Toolkit v1.6 if you choose to use it.</p>
+<h3 id="console-test-app">Console Test App</h3>
+<p>If you want to play around with your HID device before starting any
+development with HIDAPI and using a GUI app is not an option for you,
+you may try <a
+href="https://github.com/todbot/hidapitester"><code>hidapitester</code></a>.</p>
+<p>This app has a console interface for most of the features supported
+by HIDAPI library.</p>
+<h2 id="what-does-the-api-look-like">What Does the API Look Like?</h2>
+<p>The API provides the most commonly used HID functions including
+sending and receiving of input, output, and feature reports. The sample
+program, which communicates with a heavily hacked up version of the
+Microchip USB Generic HID sample looks like this (with error checking
+removed for simplicity):</p>
+<p><strong>Warning: Only run the code you understand, and only when it
+conforms to the device spec. Writing data (<code>hid_write</code>) at
+random to your HID devices can break them.</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span><span class="pp"> </span><span class="co">// printf</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;wchar.h&gt;</span><span class="pp"> </span><span class="co">// wchar_t</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;hidapi.h&gt;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#define MAX_STR </span><span class="dv">255</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span><span class="op">*</span> argv<span class="op">[])</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> res<span class="op">;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">unsigned</span> <span class="dt">char</span> buf<span class="op">[</span><span class="dv">65</span><span class="op">];</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wchar_t</span> wstr<span class="op">[</span>MAX_STR<span class="op">];</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    hid_device <span class="op">*</span>handle<span class="op">;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> i<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize the hidapi library</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_init<span class="op">();</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Open the device using the VID, PID,</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// and optionally the Serial number.</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    handle <span class="op">=</span> hid_open<span class="op">(</span><span class="bn">0x4d8</span><span class="op">,</span> <span class="bn">0x3f</span><span class="op">,</span> NULL<span class="op">);</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>handle<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;Unable to open device</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        hid_exit<span class="op">();</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Read the Manufacturer String</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_get_manufacturer_string<span class="op">(</span>handle<span class="op">,</span> wstr<span class="op">,</span> MAX_STR<span class="op">);</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Manufacturer String: </span><span class="sc">%ls\n</span><span class="st">&quot;</span><span class="op">,</span> wstr<span class="op">);</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Read the Product String</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_get_product_string<span class="op">(</span>handle<span class="op">,</span> wstr<span class="op">,</span> MAX_STR<span class="op">);</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Product String: </span><span class="sc">%ls\n</span><span class="st">&quot;</span><span class="op">,</span> wstr<span class="op">);</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Read the Serial Number String</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_get_serial_number_string<span class="op">(</span>handle<span class="op">,</span> wstr<span class="op">,</span> MAX_STR<span class="op">);</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Serial Number String: (</span><span class="sc">%d</span><span class="st">) </span><span class="sc">%ls\n</span><span class="st">&quot;</span><span class="op">,</span> wstr<span class="op">[</span><span class="dv">0</span><span class="op">],</span> wstr<span class="op">);</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Read Indexed String 1</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_get_indexed_string<span class="op">(</span>handle<span class="op">,</span> <span class="dv">1</span><span class="op">,</span> wstr<span class="op">,</span> MAX_STR<span class="op">);</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;Indexed String 1: </span><span class="sc">%ls\n</span><span class="st">&quot;</span><span class="op">,</span> wstr<span class="op">);</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Toggle LED (cmd 0x80). The first byte is the report number (0x0).</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    buf<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="bn">0x0</span><span class="op">;</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>    buf<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="bn">0x80</span><span class="op">;</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_write<span class="op">(</span>handle<span class="op">,</span> buf<span class="op">,</span> <span class="dv">65</span><span class="op">);</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Request state (cmd 0x81). The first byte is the report number (0x0).</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>    buf<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="bn">0x0</span><span class="op">;</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>    buf<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="bn">0x81</span><span class="op">;</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_write<span class="op">(</span>handle<span class="op">,</span> buf<span class="op">,</span> <span class="dv">65</span><span class="op">);</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Read requested state</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_read<span class="op">(</span>handle<span class="op">,</span> buf<span class="op">,</span> <span class="dv">65</span><span class="op">);</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Print out the returned buffer.</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">4</span><span class="op">;</span> i<span class="op">++)</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>        printf<span class="op">(</span><span class="st">&quot;buf[</span><span class="sc">%d</span><span class="st">]: </span><span class="sc">%d\n</span><span class="st">&quot;</span><span class="op">,</span> i<span class="op">,</span> buf<span class="op">[</span>i<span class="op">]);</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Close the device</span></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>    hid_close<span class="op">(</span>handle<span class="op">);</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Finalize the hidapi library</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> hid_exit<span class="op">();</span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can also use <a href="hidtest/test.c">hidtest/test.c</a> as a
+starting point for your applications.</p>
+<h2 id="license">License</h2>
+<p>HIDAPI may be used by one of three licenses as outlined in <a
+href="LICENSE.txt">LICENSE.txt</a>.</p>
+<h2 id="installing-hidapi">Installing HIDAPI</h2>
+<p>If you want to build your own application that uses HID devices with
+HIDAPI, you need to get HIDAPI development package.</p>
+<p>Depending on what your development environment is, HIDAPI likely to
+be provided by your package manager.</p>
+<p>For instance on Ubuntu, HIDAPI is available via APT:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libhidapi-dev</span></code></pre></div>
+<p>HIDAPI package name for other systems/package managers may differ.
+Check the documentation/package list of your package manager.</p>
+<h2 id="build-from-source">Build from Source</h2>
+<p>Check <a href="BUILD.md">BUILD.md</a> for details.</p>

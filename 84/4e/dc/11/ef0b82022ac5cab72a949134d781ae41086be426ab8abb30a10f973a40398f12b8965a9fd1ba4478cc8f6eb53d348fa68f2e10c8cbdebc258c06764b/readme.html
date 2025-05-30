@@ -1,0 +1,227 @@
+<p><a href="https://travis-ci.org/jarro2783/cxxopts"><img
+src="https://travis-ci.org/jarro2783/cxxopts.svg?branch=master"
+alt="Build Status" /></a></p>
+<h1 id="release-versions">Release versions</h1>
+<p>Note that <code>master</code> is generally a work in progress, and
+you probably want to use a tagged release version.</p>
+<h2 id="version-3-breaking-changes">Version 3 breaking changes</h2>
+<p>If you have used version 2, there are a couple of breaking changes in
+version 3 that you should be aware of. If you are new to
+<code>cxxopts</code> you can skip this section.</p>
+<p>The parser no longer modifies its arguments, so you can pass a const
+<code>argc</code> and <code>argv</code> and expect them not to be
+changed.</p>
+<p>The <code>ParseResult</code> object no longer depends on the parser.
+So it can be returned from a scope outside the parser and still work.
+Now that the inputs are not modified, <code>ParseResult</code> stores a
+list of the unmatched arguments. These are retrieved like follows:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> result <span class="op">=</span> options<span class="op">.</span>parse<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>result<span class="op">.</span>unmatched<span class="op">();</span> <span class="co">// get the unmatched arguments</span></span></code></pre></div>
+<h1 id="quick-start">Quick start</h1>
+<p>This is a lightweight C++ option parser library, supporting the
+standard GNU style syntax for options.</p>
+<p>Options can be given as:</p>
+<pre><code>--long
+--long=argument
+--long argument
+-a
+-ab
+-abc argument</code></pre>
+<p>where c takes an argument, but a and b do not.</p>
+<p>Additionally, anything after <code>--</code> will be parsed as a
+positional argument.</p>
+<h2 id="basics">Basics</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cxxopts.hpp&gt;</span></span></code></pre></div>
+<p>Create a <code>cxxopts::Options</code> instance.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>cxxopts<span class="op">::</span>Options options<span class="op">(</span><span class="st">&quot;MyProgram&quot;</span><span class="op">,</span> <span class="st">&quot;One line description of MyProgram&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Then use <code>add_options</code>.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>options<span class="op">.</span>add_options<span class="op">()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;d,debug&quot;</span><span class="op">,</span> <span class="st">&quot;Enable debugging&quot;</span><span class="op">)</span> <span class="co">// a bool parameter</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;i,integer&quot;</span><span class="op">,</span> <span class="st">&quot;Int param&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;())</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;f,file&quot;</span><span class="op">,</span> <span class="st">&quot;File name&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;())</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;v,verbose&quot;</span><span class="op">,</span> <span class="st">&quot;Verbose output&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;()-&gt;</span>default_value<span class="op">(</span><span class="st">&quot;false&quot;</span><span class="op">))</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">;</span></span></code></pre></div>
+<p>Options are declared with a long and an optional short option. A
+description must be provided. The third argument is the value, if
+omitted it is boolean. Any type can be given as long as it can be
+parsed, with operator&gt;&gt;.</p>
+<p>To parse the command line do:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> result <span class="op">=</span> options<span class="op">.</span>parse<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span></code></pre></div>
+<p>To retrieve an option use <code>result.count("option")</code> to get
+the number of times it appeared, and</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>result<span class="op">[</span><span class="st">&quot;opt&quot;</span><span class="op">].</span>as<span class="op">&lt;</span>type<span class="op">&gt;()</span></span></code></pre></div>
+<p>to get its value. If “opt” doesn’t exist, or isn’t of the right type,
+then an exception will be thrown.</p>
+<h2 id="unrecognised-arguments">Unrecognised arguments</h2>
+<p>You can allow unrecognised arguments to be skipped. This applies to
+both positional arguments that are not parsed into another option, and
+<code>--</code> arguments that do not match an argument that you
+specify. This is done by calling:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>options<span class="op">.</span>allow_unrecognised_options<span class="op">();</span></span></code></pre></div>
+<p>and in the result object they are retrieved with:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>result<span class="op">.</span>unmatched<span class="op">()</span></span></code></pre></div>
+<h2 id="exceptions">Exceptions</h2>
+<p>Exceptional situations throw C++ exceptions. There are two types of
+exceptions: errors defining the options, and errors when parsing a list
+of arguments. All exceptions derive from
+<code>cxxopts::exceptions::exception</code>. Errors defining options
+derive from <code>cxxopts::exceptions::specification</code> and errors
+parsing arguments derive from
+<code>cxxopts::exceptions::parsing</code>.</p>
+<p>All exceptions define a <code>what()</code> function to get a
+printable string explaining the error.</p>
+<h2 id="help-groups">Help groups</h2>
+<p>Options can be placed into groups for the purposes of displaying help
+messages. To place options in a group, pass the group as a string to
+<code>add_options</code>. Then, when displaying the help, pass the
+groups that you would like displayed as a vector to the
+<code>help</code> function.</p>
+<h2 id="positional-arguments">Positional Arguments</h2>
+<p>Positional arguments are those given without a preceding flag and can
+be used alongside non-positional arguments. There may be multiple
+positional arguments, and the final positional argument may be a
+container type to hold a list of all remaining positionals.</p>
+<p>To set up positional arguments, first declare the options, then
+configure a set of those arguments as positional like:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>options<span class="op">.</span>add_options<span class="op">()</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;script&quot;</span><span class="op">,</span> <span class="st">&quot;The script file to execute&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;())</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;server&quot;</span><span class="op">,</span> <span class="st">&quot;The server to execute on&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;())</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="st">&quot;filenames&quot;</span><span class="op">,</span> <span class="st">&quot;The filename(s) to process&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;&gt;());</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>options<span class="op">.</span>parse_positional<span class="op">({</span><span class="st">&quot;script&quot;</span><span class="op">,</span> <span class="st">&quot;server&quot;</span><span class="op">,</span> <span class="st">&quot;filenames&quot;</span><span class="op">});</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Parse options the usual way</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>options<span class="op">.</span>parse<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span></code></pre></div>
+<p>For example, parsing the following arguments: ~~~ my_script.py
+my_server.com file1.txt file2.txt file3.txt ~~~ will result in parsed
+arguments like the following table:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"script"</code></td>
+<td><code>"my_script.py"</code></td>
+</tr>
+<tr class="even">
+<td><code>"server"</code></td>
+<td><code>"my_server.com"</code></td>
+</tr>
+<tr class="odd">
+<td><code>"filenames"</code></td>
+<td><code>{"file1.txt", "file2.txt", "file3.txt"}</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="default-and-implicit-values">Default and implicit values</h2>
+<p>An option can be declared with a default or an implicit value, or
+both.</p>
+<p>A default value is the value that an option takes when it is not
+specified on the command line. The following specifies a default value
+for an option:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;()-&gt;</span>default_value<span class="op">(</span><span class="st">&quot;value&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>An implicit value is the value that an option takes when it is given
+on the command line without an argument. The following specifies an
+implicit value:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;()-&gt;</span>implicit_value<span class="op">(</span><span class="st">&quot;implicit&quot;</span><span class="op">)</span></span></code></pre></div>
+<p>If an option had both, then not specifying it would give the value
+<code>"value"</code>, writing it on the command line as
+<code>--option</code> would give the value <code>"implicit"</code>, and
+writing <code>--option=another</code> would give it the value
+<code>"another"</code>.</p>
+<p>Note that the default and implicit value is always stored as a
+string, regardless of the type that you want to store it in. It will be
+parsed as though it was given on the command line.</p>
+<p>Default values are not counted by <code>Options::count</code>.</p>
+<h2 id="boolean-values">Boolean values</h2>
+<p>Boolean options have a default implicit value of <code>"true"</code>,
+which can be overridden. The effect is that writing <code>-o</code> by
+itself will set option <code>o</code> to <code>true</code>. However,
+they can also be written with various strings using <code>=value</code>.
+There is no way to disambiguate positional arguments from the value
+following a boolean, so we have chosen that they will be positional
+arguments, and therefore, <code>-o false</code> does not work.</p>
+<h2 id="stdvectort-values"><code>std::vector&lt;T&gt;</code> values</h2>
+<p>Parsing a list of values into a <code>std::vector&lt;T&gt;</code> is
+also supported, as long as <code>T</code> can be parsed. To separate
+single values in a list the define symbol
+<code>CXXOPTS_VECTOR_DELIMITER</code> is used, which is ‘,’ by default.
+Ensure that you use no whitespaces between values because those would be
+interpreted as the next command line option. Example for a command line
+option that can be parsed as a
+<code>std::vector&lt;double&gt;</code>:</p>
+<pre><code>--my_list=1,-2.1,3,4.5</code></pre>
+<h2 id="options-specified-multiple-times">Options specified multiple
+times</h2>
+<p>The same option can be specified several times, with different
+arguments, which will all be recorded in order of appearance. An
+example:</p>
+<pre><code>--use train --use bus --use ferry</code></pre>
+<p>this is supported through the use of a vector of value for the
+option:</p>
+<pre><code>options.add_options()
+  (&quot;use&quot;, &quot;Usable means of transport&quot;, cxxopts::value&lt;std::vector&lt;std::string&gt;&gt;())</code></pre>
+<h2 id="custom-help">Custom help</h2>
+<p>The string after the program name on the first line of the help can
+be completely replaced by calling <code>options.custom_help</code>. Note
+that you might also want to override the positional help by calling
+<code>options.positional_help</code>.</p>
+<h2 id="example">Example</h2>
+<p>Putting all together:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span><span class="op">**</span> argv<span class="op">)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    cxxopts<span class="op">::</span>Options options<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="st">&quot;A brief description&quot;</span><span class="op">);</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    options<span class="op">.</span>add_options<span class="op">()</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="st">&quot;b,bar&quot;</span><span class="op">,</span> <span class="st">&quot;Param bar&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;())</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="st">&quot;d,debug&quot;</span><span class="op">,</span> <span class="st">&quot;Enable debugging&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;()-&gt;</span>default_value<span class="op">(</span><span class="st">&quot;false&quot;</span><span class="op">))</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="st">&quot;f,foo&quot;</span><span class="op">,</span> <span class="st">&quot;Param foo&quot;</span><span class="op">,</span> cxxopts<span class="op">::</span>value<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;()-&gt;</span>default_value<span class="op">(</span><span class="st">&quot;10&quot;</span><span class="op">))</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">(</span><span class="st">&quot;h,help&quot;</span><span class="op">,</span> <span class="st">&quot;Print usage&quot;</span><span class="op">)</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">;</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> result <span class="op">=</span> options<span class="op">.</span>parse<span class="op">(</span>argc<span class="op">,</span> argv<span class="op">);</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>result<span class="op">.</span>count<span class="op">(</span><span class="st">&quot;help&quot;</span><span class="op">))</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> options<span class="op">.</span>help<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>      exit<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> debug <span class="op">=</span> result<span class="op">[</span><span class="st">&quot;debug&quot;</span><span class="op">].</span>as<span class="op">&lt;</span><span class="dt">bool</span><span class="op">&gt;();</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>string bar<span class="op">;</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>result<span class="op">.</span>count<span class="op">(</span><span class="st">&quot;bar&quot;</span><span class="op">))</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>      bar <span class="op">=</span> result<span class="op">[</span><span class="st">&quot;bar&quot;</span><span class="op">].</span>as<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;();</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> foo <span class="op">=</span> result<span class="op">[</span><span class="st">&quot;foo&quot;</span><span class="op">].</span>as<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;();</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="linking">Linking</h1>
+<p>This is a header only library.</p>
+<h1 id="requirements">Requirements</h1>
+<p>The only build requirement is a C++ compiler that supports C++11
+features such as:</p>
+<ul>
+<li>regex</li>
+<li>constexpr</li>
+<li>default constructors</li>
+</ul>
+<p>GCC &gt;= 4.9 or clang &gt;= 3.1 with libc++ are known to work.</p>
+<p>The following compilers are known not to work:</p>
+<ul>
+<li>MSVC 2013</li>
+</ul>
