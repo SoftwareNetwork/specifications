@@ -8,6 +8,7 @@ void build(Solution &s)
 
     auto &t = p.addTarget<StaticLibrary>("mupdf");
 	{
+        t += cpp17;
 		t += "include/.*"_rr;
 		t += "source/.*"_rr;
 		t -= "source/tools/.*"_rr;
@@ -49,6 +50,9 @@ void build(Solution &s)
 		t.Public += "org.sw.demo.ghostscript.mujs-master"_dep;
 		t.Public += "org.sw.demo.uclouvain.openjpeg.openjp2"_dep;
 		t.Public += "org.sw.demo.google.gumbo_parser"_dep;
+		t.Public += "org.sw.demo.google.brotli"_dep;
+        t.Public += "HAVE_ZXINGCPP"_def;
+		t.Public += "org.sw.demo.zxing_cpp.zxing_cpp"_dep;
 
 		t.patch("include/mupdf/fitz/system.h", "#define hypotf _hypotf", "//#define  hypotf _hypotf");
 		t.patch("source/fitz/geometry.c", "const fz_quad fz_invalid_quad = { {NAN, NAN}, {NAN, NAN}, {NAN, NAN}, {NAN, NAN} };", R"(
