@@ -329,6 +329,7 @@ void build(Solution &s)
             "src/google/protobuf/io/gzip_stream.cc",
             "src/google/protobuf/io/printer.cc",
             "src/google/protobuf/io/tokenizer.cc",
+            "src/google/protobuf/internal_feature_helper.cc",
             "src/google/protobuf/map_field.cc",
             "src/google/protobuf/message.cc",
             "src/google/protobuf/micro_string.cc",
