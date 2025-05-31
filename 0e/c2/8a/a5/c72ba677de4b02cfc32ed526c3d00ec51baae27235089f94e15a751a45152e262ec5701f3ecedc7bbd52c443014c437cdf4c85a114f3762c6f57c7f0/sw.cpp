@@ -48,6 +48,7 @@ void build(Solution &s)
     libarchive.Public += "HAVE_NETTLE_PBKDF2_H"_d;
     libarchive.Public += "HAVE_NETTLE_RIPEMD160_H"_d;
     libarchive.Public += "HAVE_NETTLE_SHA_H"_d;
+    libarchive.Public += "HAVE_NETTLE_VERSION_H"_d;
     libarchive.Public += "HAVE_ZLIB_H"_d;
     libarchive.Public += "HAVE_ZSTD_H"_d;
 
