@@ -201,6 +201,7 @@ void build(Solution &s)
 
         // needed
         t -= "Utilities/cmlibarchive/libarchive/archive_getdate.c";
+        t -= "Utilities/cmlibarchive/libarchive/archive_getdate.h";
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
