@@ -16,6 +16,7 @@ void build(Solution &s)
 
         t += "gcore/.*"_r;
         t += "gcore/mdreader/.*"_r;
+        t -= "gcore/embedded_resources.c";
         t.Public += "gcore"_idir;
 
         t += "ogr/.*"_r;
@@ -31,6 +32,7 @@ void build(Solution &s)
         t.Public += "alg"_idir;
 
         t += "apps/.*\\.h"_r;
+        t += "apps/gdalalg_main.cpp";
         t += "apps/argparse/.*"_r;
         t += "apps/commonutils.*"_r;
         t += "apps/gdalargumentparser.*"_r;
@@ -43,6 +45,10 @@ void build(Solution &s)
         t.Public += "CPL_INTERNAL="_def;
         t.Public += "CPL_UNSTABLE_API="_def;
         t.Public += "CPL_STDCALL="_def;
+
+        if (t.getCompilerType() == CompilerType::MSVC) {
+            t.CompileOptions.push_back("/bigobj");
+        }
 
         auto add_dir = [&t](const path &dir)
         {
@@ -74,12 +80,18 @@ void build(Solution &s)
             add_frmt("frmts/derived");
             add_frmt("frmts/gtiff");
             add_frmt("frmts/gtiff/libgeotiff");
+            add_frmt("frmts/gtiff/libtiff");
             add_frmt("frmts/hfa");
             add_frmt("frmts/mem");
             add_frmt("frmts/png");
             t -= "frmts/png/filter_sse2_intrinsics.c";
             t += "org.sw.demo.glennrp.png"_dep;
+
             add_frmt("frmts/vrt");
+            t += "GDAL_VRT_ENABLE_MUPARSER"_def;
+            t += "org.sw.demo.beltoforion.muparser"_dep;
+            t += "GDAL_VRT_ENABLE_EXPRTK"_def;
+            t += "org.sw.demo.ArashPartow.exprtk-master"_dep;
 
             /*{
             t += "frmts/.*"_r;
@@ -133,6 +145,11 @@ void build(Solution &s)
         t.configureFile("gcore/gdal_version.h.in", "gdal_version_full/gdal_version.h", ConfigureFlags::EnableUndefReplacements);
         t.configureFile("gcore/gdal_version.h.in", "gdal_version.h", ConfigureFlags::EnableUndefReplacements);
 
+        t.Variables["SFCGAL_VERSION_MAJOR"] = t.Variables["PACKAGE_VERSION_MAJOR"];
+        t.Variables["SFCGAL_VERSION_MINOR"] = t.Variables["PACKAGE_VERSION_MINOR"];
+        t.Variables["SFCGAL_VERSION_PATCH"] = t.Variables["PACKAGE_VERSION_PATCH"];
+        t.configureFile("ogr/ogr_sfcgal.h.in", "ogr_sfcgal.h");
+
         {
             t += "HAVE_LIBZ"_def;
             t += "org.sw.demo.madler.zlib"_dep;
@@ -141,7 +158,7 @@ void build(Solution &s)
             t += "org.sw.demo.expat"_dep;
 
             t += "org.sw.demo.json_c"_dep;
-            t += "org.sw.demo.tiff"_dep;
+            //t += "org.sw.demo.tiff"_dep;
             t += "org.sw.demo.Esri.lerc"_dep;
 
             t += "org.sw.demo.OSGeo.PROJ"_dep;
