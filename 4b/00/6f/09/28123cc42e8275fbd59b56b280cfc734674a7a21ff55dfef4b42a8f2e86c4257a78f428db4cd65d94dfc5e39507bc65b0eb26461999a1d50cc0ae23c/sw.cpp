@@ -7,6 +7,6 @@ void build(Solution &s)
     t -= "visualc/include/.*"_rr;
 
     t.Public += "src"_idir;
-    if (t.getCompilerType() == CompilerType::MSVC)
+    if (t.getCompilerType() == CompilerType::MSVC || t.getCompilerType() == CompilerType::ClangCl)
         t += "visualc/include"_idir;
 }
