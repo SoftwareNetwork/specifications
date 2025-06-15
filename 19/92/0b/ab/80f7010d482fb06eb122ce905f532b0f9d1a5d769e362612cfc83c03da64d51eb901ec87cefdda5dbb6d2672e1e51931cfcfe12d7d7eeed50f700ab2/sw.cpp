@@ -61,6 +61,9 @@ void build(Solution &s)
 #define MY_NAN (0.0 / 0.0)
 const fz_quad fz_invalid_quad = { {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN}, {MY_NAN, MY_NAN} };
 )");
+        if (t.getCompilerType() == CompilerType::Clang || t.getCompilerType() == CompilerType::ClangCl) {
+            t.CompileOptions.push_back("-msse4.2");
+        }
 	}
 
 	auto &mutool = p.addTarget<Executable>("mutool");
