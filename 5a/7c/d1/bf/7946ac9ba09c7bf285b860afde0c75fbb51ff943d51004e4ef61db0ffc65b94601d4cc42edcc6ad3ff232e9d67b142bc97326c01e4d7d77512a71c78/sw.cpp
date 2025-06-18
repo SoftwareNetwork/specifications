@@ -22,7 +22,7 @@ void build(Solution &s)
     auto &p = s.addProject("google.grpc", "1.73.0");
     p += Git("https://chromium.googlesource.com/external/github.com/grpc/grpc", "v{v}");
 
-    auto cppstd = cpp17;
+    auto cppstd = cpp20;
 
     auto &core = p.addStaticLibrary("core.lib");
 
