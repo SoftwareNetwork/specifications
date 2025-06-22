@@ -339,12 +339,43 @@ void build(Solution &s) {
         return lib;
     };
 
-    auto &bootstrap = python.addExecutable("freeze_module");
+    auto &freeze_module_bootstrap = python.addExecutable("freeze_module_bootstrap");
     {
-        auto &t = bootstrap;
+        auto &t = freeze_module_bootstrap;
         python_lib(t);
         t += "Modules/getpath_noop.c";
         t += "Programs/_freeze_module.c";
+    }
+    auto &freeze_module = python.addExecutable("freeze_module");
+    {
+        auto &t = freeze_module;
+        python_lib(t);
+        t += "Programs/_bootstrap_python.c";
+
+        auto freeze_modules1 = [&](String path, String name) {
+            t.addCommand()
+                << cmd::prog(freeze_module_bootstrap)
+                << name
+                << cmd::in(path)
+                << cmd::out("Python/frozen_modules/" + name + ".h")
+                ;
+        };
+        auto freeze_modules = [&](String name, String name2 = {}) {
+            auto path = boost::replace_all_copy(name, ".", "/");
+            freeze_modules1("Lib/" + path + ".py", name2.empty() ? name : name2);
+        };
+        freeze_modules("importlib._bootstrap");
+        freeze_modules("importlib._bootstrap_external");
+        freeze_modules1("Lib/zipimport.py", "zipimport");
+
+        //t += "Modules/getpath_noop.c";
+        t += "Modules/getpath.c";
+        t.addCommand()
+            << cmd::prog(freeze_module_bootstrap)
+            << "getpath"
+            << cmd::in("Modules/getpath.py")
+            << cmd::out("frozen_modules/getpath.h")
+            ;
     }
 
     auto &lib = python.addLibrary("lib");
@@ -356,7 +387,7 @@ void build(Solution &s) {
 
         auto freeze_modules1 = [&](String path, String name) {
             lib.addCommand()
-                << cmd::prog(bootstrap)
+                << cmd::prog(freeze_module_bootstrap)
                 << name
                 << cmd::in(path)
                 << cmd::out("frozen_modules/" + name + ".h")
@@ -419,9 +450,17 @@ void build(Solution &s) {
                 "frozen_modules/frozen_only.h:frozen_only",
             };
 
+            lib.patch(
+                "Tools/build/deepfreeze.py",
+                "if isinstance(obj, types.CodeType) :",
+                "if isinstance(obj, (types.CodeType, umarshal.Code)) :"
+            );
+
             auto c = lib.addCommand()
                 << cmd::wdir(lib.BinaryDir)
+                //<< cmd::prog("org.sw.demo.python.exe-3.13.3"_dep)
                 << cmd::prog("org.sw.demo.python.exe-3.10"_dep)
+                //<< cmd::prog(freeze_module)
                 << cmd::in("Tools/build/deepfreeze.py")
                 ;
             for (auto &&n : list) {
