@@ -68,6 +68,13 @@ void build(Solution &s)
 
     t.Variables["TARGET"] = arch;
     t.Variables["FFI_EXEC_TRAMPOLINE_TABLE"] = "0";
+    t.Variables["FFI_VERSION_STRING"] = t.Variables["PACKAGE_VERSION"];
+    // (x * 10000 + y * 100 + z)
+    t.Variables["FFI_VERSION_NUMBER"] =
+        (int)t.Variables["PACKAGE_VERSION_MAJOR"] * 10000 +
+        (int)t.Variables["PACKAGE_VERSION_MINOR"] * 100 +
+        (int)t.Variables["PACKAGE_VERSION_PATCH"]
+        ;
 
     t.configureFile("include/ffi.h.in", "ffi.h");
     // for asm
