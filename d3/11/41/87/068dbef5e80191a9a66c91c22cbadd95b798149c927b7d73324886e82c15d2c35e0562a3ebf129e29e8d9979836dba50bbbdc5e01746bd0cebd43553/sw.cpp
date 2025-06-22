@@ -59,6 +59,7 @@ void build(Solution &s)
         t += cppstd;
         t += "include/.*"_rr;
         t += "src/core/lib/.*"_rr;
+        t += "src/core/ext/filters/.*"_rr;
         t += "src/core/ext/upb-gen/.*"_rr;
         t += "src/core/ext/upbdefs-gen/.*"_rr;
         t += "src/core/call/.*"_rr;
@@ -184,6 +185,7 @@ void build(Solution &s)
         t += cppstd;
         t += "src/core/ext/.*"_rr;
         t -= "src/core/ext/upb-gen/.*"_rr;
+        t -= "src/core/ext/filters/.*"_rr;
         //t -= "src/core/ext/upbdefs-generated/.*"_rr;
         //t -= "src/core/ext/transport/cronet/plugin_registry/.*"_rr;
         //t -= "src/core/ext/filters/load_reporting/.*"_rr;
