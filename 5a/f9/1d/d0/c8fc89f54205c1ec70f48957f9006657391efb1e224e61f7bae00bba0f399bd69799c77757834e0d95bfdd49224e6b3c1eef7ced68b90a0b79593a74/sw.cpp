@@ -180,6 +180,7 @@ void build(Solution &s)
         port -= "src/port/.*armv8.*"_rr;
         port -= "src/port/pthread_barrier_wait.c";
         port -= "src/port/pg_popcount_avx512_choose.c";
+        port -= "src/port/pg_popcount_avx512.c";
         port -= "src/port/pg_crc32c_loongarch.c";
         if (!port.getBuildSettings().TargetOS.is(OSType::Windows))
         {
