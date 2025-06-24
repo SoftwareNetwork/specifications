@@ -80,6 +80,7 @@ void build(Solution &s)
             wt += "src/Wt/WServerGLWidget.C";
         }*/
 
+
         wt.Private += "WT_BUILDING"_d;
         wt.Public += "WT_FONTSUPPORT_PANGO"_d;
         wt.Private += sw::Shared, "wt_EXPORTS"_d;
@@ -89,9 +90,11 @@ void build(Solution &s)
 
         //wt += "OpenGL"_framework;
 
+        wt.Variables["WT_ASIO_IS_BOOST_ASIO"] = 1;
+        wt.Public += "org.sw.demo.boost.asio"_dep;
+
         wt.Public += "org.sw.demo.boost.math"_dep;
         wt.Public += "org.sw.demo.boost.multi_index"_dep;
-        wt.Public += "org.sw.demo.boost.asio"_dep;
         wt.Public += "org.sw.demo.boost.date_time"_dep;
         wt.Public += "org.sw.demo.boost.filesystem"_dep;
         wt.Public += "org.sw.demo.boost.interprocess"_dep;
@@ -107,8 +110,10 @@ void build(Solution &s)
         wt.Public += "org.sw.demo.openssl.ssl"_dep;
         wt.Public += "org.sw.demo.howardhinnant.date.date_full"_dep;
 
-        if (wt.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (wt.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            wt.Private += "WIN32_LEAN_AND_MEAN"_d;
             wt.Public += "Ole32.lib"_slib, "Shell32.lib"_slib;
+        }
 
         auto file2string = [&wt](path i, const std::string &name)
         {
@@ -152,7 +157,6 @@ void build(Solution &s)
         wt.Variables["WT_THREADED"] = "1";
 
         wt.Variables["WT_ANY_IS_STD_ANY"] = 1;
-        wt.Variables["WT_ASIO_IS_BOOST_ASIO"] = "1";
         wt.Variables["WT_DATE_TZ_USE_DATE"] = 1;
 
         wt.Variables["VERSION_SERIES"] = wt.Variables["PACKAGE_VERSION_MAJOR"];
@@ -194,6 +198,10 @@ void build(Solution &s)
         wt.patch("src/web/FileUtils.C",
             "std::string f = (*i).path().string();",
             "std::string f = p.path().string();"
+        );
+        wt.patch("src/Wt/WRasterImage-gm.C",
+            "strncpy(info.filename, imagePath.c_str(), 2048);",
+            "strncpy(info.filename, imagePath.string().c_str(), 2048);"
         );
     }
 
