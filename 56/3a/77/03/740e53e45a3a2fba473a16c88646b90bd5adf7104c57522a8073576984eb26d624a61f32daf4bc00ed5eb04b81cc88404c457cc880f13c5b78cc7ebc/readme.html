@@ -1,0 +1,114 @@
+<h1 id="expected">expected</h1>
+<p>Single header implementation of <code>std::expected</code> with
+functional-style extensions.</p>
+<p><a href="https://tl.tartanllama.xyz/en/latest/?badge=latest"><img
+src="https://readthedocs.org/projects/tl-docs/badge/?version=latest"
+alt="Documentation Status" /></a> Clang + GCC: <a
+href="https://github.com/TartanLlama/expected/actions/workflows/cmake.yml"><img
+src="https://github.com/TartanLlama/expected/actions/workflows/cmake.yml/badge.svg"
+alt="Linux Build Status" /></a> MSVC: <a
+href="https://ci.appveyor.com/project/TartanLlama/expected"><img
+src="https://ci.appveyor.com/api/projects/status/k5x00xa11y3s5wsg?svg=true"
+alt="Windows Build Status" /></a></p>
+<p>Available on <a
+href="https://github.com/microsoft/vcpkg/tree/master/ports/tl-expected">Vcpkg</a>,
+<a href="https://github.com/yipdw/conan-tl-expected">Conan</a> and <a
+href="https://cppget.org/tl-expected"><code>build2</code></a>.</p>
+<p><a
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0323r3.pdf"><code>std::expected</code></a>
+is proposed as the preferred way to represent object which will either
+have an expected value, or an unexpected value giving information about
+why something failed. Unfortunately, chaining together many computations
+which may fail can be verbose, as error-checking code will be mixed in
+with the actual programming logic. This implementation provides a number
+of utilities to make coding with <code>expected</code> cleaner.</p>
+<p>For example, instead of writing this code:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>expected<span class="op">&lt;</span>image<span class="op">,</span>fail_reason<span class="op">&gt;</span> get_cute_cat <span class="op">(</span><span class="at">const</span> image<span class="op">&amp;</span> img<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> cropped <span class="op">=</span> crop_to_cat<span class="op">(</span>img<span class="op">);</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>cropped<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> cropped<span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> with_tie <span class="op">=</span> add_bow_tie<span class="op">(*</span>cropped<span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>with_tie<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> with_tie<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> with_sparkles <span class="op">=</span> make_eyes_sparkle<span class="op">(*</span>with_tie<span class="op">);</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>with_sparkles<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>       <span class="cf">return</span> with_sparkles<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> add_rainbow<span class="op">(</span>make_smaller<span class="op">(*</span>with_sparkles<span class="op">));</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>You can do this:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>tl<span class="op">::</span>expected<span class="op">&lt;</span>image<span class="op">,</span>fail_reason<span class="op">&gt;</span> get_cute_cat <span class="op">(</span><span class="at">const</span> image<span class="op">&amp;</span> img<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> crop_to_cat<span class="op">(</span>img<span class="op">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>           <span class="op">.</span>and_then<span class="op">(</span>add_bow_tie<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>           <span class="op">.</span>and_then<span class="op">(</span>make_eyes_sparkle<span class="op">)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>           <span class="op">.</span>map<span class="op">(</span>make_smaller<span class="op">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>           <span class="op">.</span>map<span class="op">(</span>add_rainbow<span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The interface is the same as <code>std::expected</code> as proposed
+in <a
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0323r3.pdf">p0323r3</a>,
+but the following member functions are also defined. Explicit types are
+for clarity.</p>
+<ul>
+<li><code>map</code>: carries out some operation on the stored object if
+there is one.
+<ul>
+<li><code>tl::expected&lt;std::size_t,std::error_code&gt; s = exp_string.map(&amp;std::string::size);</code></li>
+</ul></li>
+<li><code>map_error</code>: carries out some operation on the unexpected
+object if there is one.
+<ul>
+<li><code>my_error_code translate_error (std::error_code);</code></li>
+<li><code>tl::expected&lt;int,my_error_code&gt; s = exp_int.map_error(translate_error);</code></li>
+</ul></li>
+<li><code>and_then</code>: like <code>map</code>, but for operations
+which return a <code>tl::expected</code>.
+<ul>
+<li><code>tl::expected&lt;ast, fail_reason&gt; parse (const std::string&amp; s);</code></li>
+<li><code>tl::expected&lt;ast, fail_reason&gt; exp_ast = exp_string.and_then(parse);</code></li>
+</ul></li>
+<li><code>or_else</code>: calls some function if there is no value
+stored.
+<ul>
+<li><code>exp.or_else([] { throw std::runtime_error{"oh no"}; });</code></li>
+</ul></li>
+</ul>
+<p>p0323r3 specifies calling <code>.error()</code> on an expected value,
+or using the <code>*</code> or <code>-&gt;</code> operators on an
+unexpected value, to be undefined behaviour. In this implementation it
+causes an assertion failure. The implementation of assertions can be
+overridden by defining the macro
+<code>TL_ASSERT(boolean_condition)</code> before #including
+&lt;tl/expected.hpp&gt;; by default,
+<code>assert(boolean_condition)</code> from the
+<code>&lt;cassert&gt;</code> header is used. Note that correct code
+would not rely on these assertions.</p>
+<h3 id="compiler-support">Compiler support</h3>
+<p>Tested on:</p>
+<ul>
+<li>Linux
+<ul>
+<li>clang++ 3.5, 3.6, 3.7, 3.8, 3.9, 4, 5, 6, 7, 8, 9, 10, 11</li>
+<li>g++ 4.8, 4.9, 5.5, 6.4, 7.5, 8, 9, 10</li>
+</ul></li>
+<li>Windows
+<ul>
+<li>MSVC 2015, 2017, 2019, 2022</li>
+</ul></li>
+</ul>
+<hr />
+<p><a
+href="%22http://creativecommons.org/publicdomain/zero/1.0/%22"><img
+src="http://i.creativecommons.org/p/zero/1.0/88x31.png"
+alt="CC0" /></a></p>
+<p>To the extent possible under law, <a
+href="https://twitter.com/TartanLlama">Sy Brand</a> has waived all
+copyright and related or neighboring rights to the <code>expected</code>
+library. This work is published from: United Kingdom.</p>
