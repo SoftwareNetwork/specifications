@@ -18,6 +18,8 @@ void build(Solution &s)
     t.Public += "sdk/include"_idir;
     t += "sdk"_idir;
 
+    t.Public += "org.sw.demo.biojppm.rapidyaml"_dep;
+
     auto &e = t.addStaticLibrary("exporters.ostream");
     e.setRootDirectory("exporters/ostream");
     e.Public += t;

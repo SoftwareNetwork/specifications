@@ -1,0 +1,712 @@
+<h1 id="c4core---c-core-utilities">c4core - C++ core utilities</h1>
+<p><a
+href="https://github.com/biojppm/c4core/blob/master/LICENSE.txt"><img
+src="https://img.shields.io/badge/License-MIT-green.svg"
+alt="MIT Licensed" /></a> <a
+href="https://github.com/biojppm/c4core/actions?query=ci"><img
+src="https://github.com/biojppm/c4core/workflows/ci/badge.svg"
+alt="ci" /></a> <a href="https://codecov.io/gh/biojppm/c4core"><img
+src="https://codecov.io/gh/biojppm/c4core/branch/master/graph/badge.svg"
+alt="Codecov" /></a>
+<!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/c4core/badge.svg)](https://coveralls.io/github/biojppm/c4core) --></p>
+<p>c4core is a library of low-level C++ utilities, written with
+low-latency projects in mind.</p>
+<p>Some of the utilities provided by c4core have already equivalent
+functionality in the C++ standard, but they are provided as the existing
+C++ equivalent may be insufficient (eg, std::string_view), inefficient
+(eg, std::string), heavy (eg streams), or plainly unusable on some
+platforms/projects, (eg exceptions); some other utilities have
+equivalent under consideration for C++ standardisation; and yet some
+other utilities have (to my knowledge) no equivalent under
+consideration. Be that as it may, I’ve been using these utilities in
+this or similar forms for some years now, and I’ve found them incredibly
+useful in my projects. I’m packing these as a separate library, as all
+of my projects use it.</p>
+<p>c4core is <a
+href="https://github.com/biojppm/c4core/actions">extensively unit-tested
+in Linux, Windows and MacOS</a>. The tests cover x64, x86, arm, wasm
+(emscripten), aarch64, ppc64le and s390x architectures, and include
+analysing c4core with: * valgrind * clang-tidy * clang sanitizers: *
+memory * address * undefined behavior * thread * <a
+href="https://lgtm.com/projects/g/biojppm/c4core">LGTM.com</a></p>
+<p>c4core also works <a
+href="https://github.com/biojppm/c4core/issues/63">in bare-metal</a>, as
+well as <a href="https://github.com/biojppm/c4core/pull/69">in
+RISC-V</a>, and <a href="https://github.com/biojppm/c4core/pull/119">in
+LoongArch</a>, but at the moment it’s not easy to add automated tests to
+the CI, so for now these are not in the list of official
+architectures.</p>
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+<ul>
+<li><a href="#c4core---c-core-utilities">c4core - C++ core utilities</a>
+<ul>
+<li><a href="#obtaining-c4core">Obtaining c4core</a></li>
+<li><a href="#using-c4core-in-your-project">Using c4core in your
+project</a>
+<ul>
+<li><a href="#cmake">CMake</a></li>
+<li><a href="#bazel">Bazel</a></li>
+<li><a href="#header-only">Header-only</a></li>
+<li><a href="#package-managers">Package managers</a></li>
+</ul></li>
+<li><a href="#quick-tour">Quick tour</a>
+<ul>
+<li><a href="#writeable-string-views-c4substr-and-c4csubstr">Writeable
+string views: c4::substr and c4::csubstr</a></li>
+<li><a href="#value---character-interoperation">Value &lt;-&gt;
+character interoperation</a></li>
+<li><a href="#string-formatting-and-parsing">String formatting and
+parsing</a></li>
+<li><a href="#c4span-and-c4blob"><code>c4::span</code> and
+<code>c4::blob</code></a></li>
+<li><a href="#enums-and-enum-symbols">Enums and enum symbols</a></li>
+<li><a href="#bitmasks-and-bitmask-symbols">Bitmasks and bitmask
+symbols</a></li>
+<li><a href="#base64-encoding--decoding">Base64 encoding /
+decoding</a></li>
+<li><a href="#fuzzy-float-comparison">Fuzzy float comparison</a></li>
+<li><a href="#multi-platform--multi-compiler-utilities">Multi-platform /
+multi-compiler utilities</a></li>
+<li><a href="#runtime-assertions-and-error-handling">Runtime assertions
+and error handling</a></li>
+<li><a href="#memory-allocation">Memory allocation</a></li>
+<li><a href="#mass-initializationconstructiondestruction">Mass
+initialization/construction/destruction</a></li>
+</ul></li>
+</ul></li>
+</ul>
+<!-- markdown-toc end -->
+<h2 id="obtaining-c4core">Obtaining c4core</h2>
+<p>c4core uses git submodules. It is best to clone c4core with the
+<code>--recursive</code> option:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># using --recursive makes sure git submodules are also cloned at the same time</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recursive</span> https://github.com/biojppm/c4core</span></code></pre></div>
+<p>If you ommit the <code>--recursive</code> option, then after cloning
+you will have to make git checkout the current version of the
+submodules, using <code>git submodule init</code> followed by
+<code>git submodule update</code>.</p>
+<h2 id="using-c4core-in-your-project">Using c4core in your project</h2>
+<p>c4core can be built with <a href="#cmake">cmake</a>, or can be used
+header only. It can also be obtained through some package managers.</p>
+<h3 id="cmake">CMake</h3>
+<p>The recommended way to use c4core is by making it part of your
+project by using <code>add_subdirectory(${path_to_c4core_root})</code>
+in your CMakeLists.txt. Doing this is not intrusive to your cmake
+project because c4core is fast to build, also prefixes every cmake
+variable with <code>C4CORE_</code>. But more importantly, this will
+enable you to compile c4core with the exact same compile settings used
+by your project.</p>
+<p>Here’s a very quick complete example of setting up your project to
+use c4core as a cmake subproject:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">project</span>(foo)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">add_subdirectory</span>(c4core)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">add_library</span>(<span class="bn">foo</span> foo.cpp)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">foo</span> <span class="ot">PUBLIC</span> c4core) <span class="co"># that&#39;s it!</span></span></code></pre></div>
+<p>Note above that the call to <code>target_link_libraries()</code> is
+using PUBLIC linking. This is required to make sure the include
+directories from <code>c4core</code> are transitively used by clients of
+<code>foo</code>.</p>
+<h3 id="header-only">Header-only</h3>
+<p>If you prefer to pick a single header to get you quickly going, <a
+href="tools/amalgamate.py">there is an amalgamation tool</a> which
+generates this header:</p>
+<pre class="console"><code>[user@host c4core]$ python tools/amalgamate.py -h
+usage: amalgamate.py [-h] [--fastfloat | --no-fastfloat] [--stl | --no-stl] [output]
+
+positional arguments:
+  output          output file. defaults to stdout
+
+options:
+  -h, --help      show this help message and exit
+  --fastfloat     enable fastfloat library. this is the default.
+  --no-fastfloat  enable fastfloat library. the default is --fastfloat.
+  --stl           enable stl interop. this is the default.
+  --no-stl        enable stl interop. the default is --stl.</code></pre>
+<h3 id="package-managers">Package managers</h3>
+<p>c4core is available through the following package managers:</p>
+<ul>
+<li><a href="https://vcpkg.io/en/packages.html">vcpkg</a>:
+<code>vcpkg install c4core</code></li>
+<li>Arch Linux/Manjaro:
+<ul>
+<li><a
+href="https://aur.archlinux.org/packages/rapidyaml/">rapidyaml</a></li>
+</ul></li>
+</ul>
+<!----------------------------------------------------->
+<h2 id="quick-tour">Quick tour</h2>
+<p>All of the utilities in this library are under the namespace
+<code>c4</code>; any exposed macros use the prefix <code>C4_</code>: eg
+<code>C4_ASSERT()</code>.</p>
+<p>See partial documentation in <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/index.html">rapidyaml’s
+doxygen docs</a>.</p>
+<h3 id="writeable-string-views-c4substr-and-c4csubstr">Writeable string
+views: c4::substr and c4::csubstr</h3>
+<p>Here: <a
+href="src/c4/substr.hpp"><code>#include &lt;c4/substr.hpp&gt;</code></a>.</p>
+<p>There is a <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html#ga43e253da0692c13967019446809c1113">useful
+quickstart sample</a> in rapidyaml’s doxygen docs.</p>
+<h3 id="charconv-value---character-interoperation">charconv: Value
+&lt;-&gt; character interoperation</h3>
+<p>Here: <a
+href="src/c4/charconv.hpp"><code>#include &lt;c4/charconv.hpp&gt;</code></a></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>digits_dec<span class="op">(),</span> c4<span class="op">::</span>read_dec<span class="op">(),</span> c4<span class="op">::</span>write_dec<span class="op">()</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>digits_hex<span class="op">(),</span> c4<span class="op">::</span>read_hex<span class="op">(),</span> c4<span class="op">::</span>write_hex<span class="op">()</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>digits_oct<span class="op">(),</span> c4<span class="op">::</span>read_oct<span class="op">(),</span> c4<span class="op">::</span>write_oct<span class="op">()</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>digits_bin<span class="op">(),</span> c4<span class="op">::</span>read_bin<span class="op">(),</span> c4<span class="op">::</span>write_bin<span class="op">()</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>utoa<span class="op">(),</span> c4<span class="op">::</span>atou<span class="op">()</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>itoa<span class="op">(),</span> c4<span class="op">::</span>atoi<span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>ftoa<span class="op">(),</span> c4<span class="op">::</span>atof<span class="op">()</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>dtoa<span class="op">(),</span> c4<span class="op">::</span>atod<span class="op">()</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>xtoa<span class="op">(),</span> c4<span class="op">::</span>atox<span class="op">()</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>to_chars<span class="op">(),</span> c4<span class="op">::</span>from_chars<span class="op">()</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>to_chars_sub<span class="op">()</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>to_chars_first<span class="op">()</span></span></code></pre></div>
+<p>The charconv funcions above are very fast; even faster than C++’s
+fastest facility <code>std::from_chars()</code>,
+<code>std::to_chars()</code>. For continuous benchmark results, browse
+through c4core’s <a
+href="https://github.com/biojppm/c4core/actions/workflows/benchmarks.yml">github
+CI benchmark runs</a>. For example, a benchmark run on Linux/g++11.2
+shows that: - <code>c4::to_chars()</code> can be expected to be roughly…
+- ~40% to 2x faster than <code>std::to_chars()</code> - ~10x-30x faster
+than <code>sprintf()</code> - ~50x-100x faster than a naive
+<code>stringstream::operator&lt;&lt;()</code> followed by
+<code>stringstream::str()</code> - <code>c4::from_chars()</code> can be
+expected to be roughly… - ~10%-30% faster than
+<code>std::from_chars()</code> - ~10x faster than <code>scanf()</code> -
+~30x-50x faster than a naive <code>stringstream::str()</code> followed
+by <code>stringstream::operator&gt;&gt;()</code></p>
+<p>Here are the results:</p>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 12%" />
+<col style="width: 36%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Write throughput</th>
+<th style="text-align: right;"></th>
+<th style="text-align: left;">Read throughput</th>
+<th style="text-align: right;"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>write
+<code>uint8_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>uint8_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>c4::to_chars&lt;u8&gt;</code></td>
+<td style="text-align: right;">526.86</td>
+<td style="text-align: left;"><code>c4::from_chars&lt;u8&gt;</code></td>
+<td style="text-align: right;">163.06</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::to_chars&lt;u8&gt;</code></td>
+<td style="text-align: right;">379.03</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;u8&gt;</code></td>
+<td style="text-align: right;">154.85</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::sprintf&lt;u8&gt;</code></td>
+<td style="text-align: right;">20.49</td>
+<td style="text-align: left;"><code>std::scanf&lt;u8&gt;</code></td>
+<td style="text-align: right;">15.75</td>
+</tr>
+<tr class="odd">
+<td
+style="text-align: left;"><code>std::stringstream&lt;u8&gt;</code></td>
+<td style="text-align: right;">3.82</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;u8&gt;</code></td>
+<td style="text-align: right;">3.83</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>write
+<code>int8_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>int8_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>c4::to_chars&lt;i8&gt;</code></td>
+<td style="text-align: right;">599.98</td>
+<td style="text-align: left;"><code>c4::from_chars&lt;i8&gt;</code></td>
+<td style="text-align: right;">184.20</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::to_chars&lt;i8&gt;</code></td>
+<td style="text-align: right;">246.32</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;i8&gt;</code></td>
+<td style="text-align: right;">156.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::sprintf&lt;i8&gt;</code></td>
+<td style="text-align: right;">19.15</td>
+<td style="text-align: left;"><code>std::scanf&lt;i8&gt;</code></td>
+<td style="text-align: right;">16.44</td>
+</tr>
+<tr class="even">
+<td
+style="text-align: left;"><code>std::stringstream&lt;i8&gt;</code></td>
+<td style="text-align: right;">3.83</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;i8&gt;</code></td>
+<td style="text-align: right;">3.89</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>write
+<code>uint16_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>uint16_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>c4::to_chars&lt;u16&gt;</code></td>
+<td style="text-align: right;">486.40</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;u16&gt;</code></td>
+<td style="text-align: right;">349.48</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::to_chars&lt;u16&gt;</code></td>
+<td style="text-align: right;">454.24</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;u16&gt;</code></td>
+<td style="text-align: right;">319.13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::sprintf&lt;u16&gt;</code></td>
+<td style="text-align: right;">38.74</td>
+<td style="text-align: left;"><code>std::scanf&lt;u16&gt;</code></td>
+<td style="text-align: right;">28.12</td>
+</tr>
+<tr class="odd">
+<td
+style="text-align: left;"><code>std::stringstream&lt;u16&gt;</code></td>
+<td style="text-align: right;">7.08</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;u16&gt;</code></td>
+<td style="text-align: right;">6.73</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>write
+<code>int16_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>int16_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>c4::to_chars&lt;i16&gt;</code></td>
+<td style="text-align: right;">507.44</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;i16&gt;</code></td>
+<td style="text-align: right;">282.95</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::to_chars&lt;i16&gt;</code></td>
+<td style="text-align: right;">297.49</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;i16&gt;</code></td>
+<td style="text-align: right;">186.18</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::sprintf&lt;i16&gt;</code></td>
+<td style="text-align: right;">39.03</td>
+<td style="text-align: left;"><code>std::scanf&lt;i16&gt;</code></td>
+<td style="text-align: right;">28.45</td>
+</tr>
+<tr class="even">
+<td
+style="text-align: left;"><code>std::stringstream&lt;i16&gt;</code></td>
+<td style="text-align: right;">6.98</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;i16&gt;</code></td>
+<td style="text-align: right;">6.49</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>write
+<code>uint32_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>uint32_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>c4::to_chars&lt;u32&gt;</code></td>
+<td style="text-align: right;">730.12</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;u32&gt;</code></td>
+<td style="text-align: right;">463.95</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::to_chars&lt;u32&gt;</code></td>
+<td style="text-align: right;">514.76</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;u32&gt;</code></td>
+<td style="text-align: right;">329.42</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::sprintf&lt;u32&gt;</code></td>
+<td style="text-align: right;">71.19</td>
+<td style="text-align: left;"><code>std::scanf&lt;u32&gt;</code></td>
+<td style="text-align: right;">44.97</td>
+</tr>
+<tr class="odd">
+<td
+style="text-align: left;"><code>std::stringstream&lt;u32&gt;</code></td>
+<td style="text-align: right;">14.05</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;u32&gt;</code></td>
+<td style="text-align: right;">12.57</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>write
+<code>int32_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>int32_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>c4::to_chars&lt;i32&gt;</code></td>
+<td style="text-align: right;">618.76</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;i32&gt;</code></td>
+<td style="text-align: right;">345.53</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::to_chars&lt;i32&gt;</code></td>
+<td style="text-align: right;">394.72</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;i32&gt;</code></td>
+<td style="text-align: right;">224.46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::sprintf&lt;i32&gt;</code></td>
+<td style="text-align: right;">71.14</td>
+<td style="text-align: left;"><code>std::scanf&lt;i32&gt;</code></td>
+<td style="text-align: right;">43.49</td>
+</tr>
+<tr class="even">
+<td
+style="text-align: left;"><code>std::stringstream&lt;i32&gt;</code></td>
+<td style="text-align: right;">13.91</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;i32&gt;</code></td>
+<td style="text-align: right;">12.03</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>write
+<code>uint64_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>uint64_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>c4::to_chars&lt;u64&gt;</code></td>
+<td style="text-align: right;">1118.87</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;u64&gt;</code></td>
+<td style="text-align: right;">928.49</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::to_chars&lt;u64&gt;</code></td>
+<td style="text-align: right;">886.58</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;u64&gt;</code></td>
+<td style="text-align: right;">759.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::sprintf&lt;u64&gt;</code></td>
+<td style="text-align: right;">140.96</td>
+<td style="text-align: left;"><code>std::scanf&lt;u64&gt;</code></td>
+<td style="text-align: right;">91.60</td>
+</tr>
+<tr class="odd">
+<td
+style="text-align: left;"><code>std::stringstream&lt;u64&gt;</code></td>
+<td style="text-align: right;">28.01</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;u64&gt;</code></td>
+<td style="text-align: right;">25.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>write
+<code>int64_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+<td style="text-align: left;"><strong>read
+<code>int64_t</code></strong></td>
+<td style="text-align: right;"><strong>MB/s</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>c4::to_chars&lt;i64&gt;</code></td>
+<td style="text-align: right;">1198.78</td>
+<td
+style="text-align: left;"><code>c4::from_chars&lt;i64&gt;</code></td>
+<td style="text-align: right;">713.76</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>std::to_chars&lt;i64&gt;</code></td>
+<td style="text-align: right;">882.17</td>
+<td
+style="text-align: left;"><code>std::from_chars&lt;i64&gt;</code></td>
+<td style="text-align: right;">646.18</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>std::sprintf&lt;i64&gt;</code></td>
+<td style="text-align: right;">138.79</td>
+<td style="text-align: left;"><code>std::scanf&lt;i64&gt;</code></td>
+<td style="text-align: right;">90.07</td>
+</tr>
+<tr class="even">
+<td
+style="text-align: left;"><code>std::stringstream&lt;i64&gt;</code></td>
+<td style="text-align: right;">27.62</td>
+<td
+style="text-align: left;"><code>std::stringstream&lt;i64&gt;</code></td>
+<td style="text-align: right;">25.12</td>
+</tr>
+</tbody>
+</table>
+<p>Or here are plots for g++12.1 and VS2019 (from the same
+computer):</p>
+<table>
+<colgroup>
+<col style="width: 48%" />
+<col style="width: 51%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Linux gxx12.1</th>
+<th>Windows VS2019</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atox-mega_bytes_per_second-u32.png"
+title="atox-u32-linux" alt="atox-u32-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atox-mega_bytes_per_second-u32.png"
+title="atox-u32-windows" alt="atox-u32-windows" /></td>
+</tr>
+<tr class="even">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atox-mega_bytes_per_second-i32.png"
+title="atox-i32-linux" alt="atox-i32-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atox-mega_bytes_per_second-i32.png"
+title="atox-i32-windows" alt="atox-i32-windows" /></td>
+</tr>
+<tr class="odd">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atox-mega_bytes_per_second-u64.png"
+title="atox-u64-linux" alt="atox-u64-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atox-mega_bytes_per_second-u64.png"
+title="atox-u64-windows" alt="atox-u64-windows" /></td>
+</tr>
+<tr class="even">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atox-mega_bytes_per_second-i64.png"
+title="atox-i64-linux" alt="atox-i64-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atox-mega_bytes_per_second-i64.png"
+title="atox-i64-windows" alt="atox-i64-windows" /></td>
+</tr>
+<tr class="odd">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atof-mega_bytes_per_second-double.png"
+title="atof-double-linux" alt="atof-double-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atof-mega_bytes_per_second-double.png"
+title="atof-double-windows" alt="atof-double-windows" /></td>
+</tr>
+<tr class="even">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-atof-mega_bytes_per_second-float.png"
+title="atof-float-linux" alt="atof-float-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-atof-mega_bytes_per_second-float.png"
+title="atof-float-windows" alt="atof-float-windows" /></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-u32.png"
+title="xtoa-u32-linux" alt="xtoa-u32-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-u32.png"
+title="xtoa-u32-windows" alt="xtoa-u32-windows" /></td>
+</tr>
+<tr class="odd">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i32.png"
+title="xtoa-i32-linux" alt="xtoa-i32-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i32.png"
+title="xtoa-i32-windows" alt="xtoa-i32-windows" /></td>
+</tr>
+<tr class="even">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-u64.png"
+title="xtoa-u64-linux" alt="xtoa-u64-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-u64.png"
+title="xtoa-u64-windows" alt="xtoa-u64-windows" /></td>
+</tr>
+<tr class="odd">
+<td><img
+src="doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png"
+title="xtoa-i64-linux" alt="xtoa-i64-linux" /></td>
+<td><img
+src="doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png"
+title="xtoa-i64-windows" alt="xtoa-i64-windows" /></td>
+</tr>
+</tbody>
+</table>
+<h3 id="string-formatting-and-parsing">String formatting and
+parsing</h3>
+<ul>
+<li><p><a
+href="src/c4/format.hpp"><code>#include &lt;c4/format.hpp&gt;</code></a></p></li>
+<li><p>There is a <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html#gac2425b515eb552589708cfff70c52b14">useful
+quickstart sample</a> in rapidyaml’s doxygen docs.</p></li>
+</ul>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>cat<span class="op">(),</span> c4<span class="op">::</span>uncat<span class="op">()</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>catsep<span class="op">(),</span> c4<span class="op">::</span>uncatsep<span class="op">()</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>format<span class="op">(),</span> c4<span class="op">::</span>unformat<span class="op">()</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>catrs<span class="op">()</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>catseprs<span class="op">()</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>formatrs<span class="op">()</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">// formatting:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>overflow_checked</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>real</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>boolalpha</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>dec</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>hex</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>oct</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>bin</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>zpad</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>right</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>left</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>raw<span class="op">,</span> c4<span class="op">::</span>fmt<span class="op">::</span>craw</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>fmt<span class="op">::</span>base64<span class="op">,</span> c4<span class="op">::</span>fmt<span class="op">::</span>cbase64</span></code></pre></div>
+<h3 id="c4span-and-c4blob"><code>c4::span</code> and
+<code>c4::blob</code></h3>
+<ul>
+<li><a
+href="src/c4/span.hpp"><code>#include &lt;c4/span.hpp&gt;</code></a></li>
+<li><a
+href="src/c4/blob.hpp"><code>#include &lt;c4/blob.hpp&gt;</code></a></li>
+</ul>
+<h3 id="enums-and-enum-symbols">Enums and enum symbols</h3>
+<p><a
+href="src/c4/enum.hpp"><code>#include &lt;c4/enum.hpp&gt;</code></a></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>e2str<span class="op">(),</span> c4<span class="op">::</span>str2e<span class="op">()</span></span></code></pre></div>
+<h3 id="bitmasks-and-bitmask-symbols">Bitmasks and bitmask symbols</h3>
+<p><a
+href="src/c4/bitmask.hpp"><code>#include &lt;c4/bitmask.hpp&gt;</code></a></p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>bm2str<span class="op">(),</span> c4<span class="op">::</span>str2bm<span class="op">()</span></span></code></pre></div>
+<h3 id="base64-encoding-decoding">Base64 encoding / decoding</h3>
+<p><a
+href="src/c4/base64.hpp"><code>#include &lt;c4/base64.hpp&gt;</code></a></p>
+<h3 id="fuzzy-float-comparison">Fuzzy float comparison</h3>
+<h3 id="multi-platform-multi-compiler-utilities">Multi-platform /
+multi-compiler utilities</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;c4/error.hpp&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>C4_RESTRICT<span class="op">,</span> <span class="er">$</span><span class="op">,</span> c<span class="er">$</span><span class="op">,</span> <span class="er">$$</span><span class="op">,</span> c<span class="er">$$</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;c4/restrict.hpp&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;c4/unrestrict.hpp&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;c4/windows_push.hpp&gt;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;c4/windows_pop.hpp&gt;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>C4_UNREACHABLE<span class="op">()</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>type_name<span class="op">()</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">// portable attributes</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>C4_LIKELY<span class="op">()/</span>C4_UNLIKELY<span class="op">()</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>C4_ALWAYS_INLINE</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>C4_CONST</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>C4_PURE</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>C4_HOT</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>C4_COLD</span></code></pre></div>
+<h3 id="runtime-assertions-and-error-handling">Runtime assertions and
+error handling</h3>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>error callback</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>C4_ASSERT<span class="op">()</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>C4_XASSERT<span class="op">()</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>C4_CHECK<span class="op">()</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>C4_ERROR<span class="op">()</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>C4_NOT_IMPLEMENTED<span class="op">()</span></span></code></pre></div>
+<h3 id="memory-allocation">Memory allocation</h3>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>aalloc<span class="op">(),</span> c4<span class="op">::</span>afree<span class="op">()</span> <span class="co">// aligned allocation</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>MemoryResource <span class="co">// global and scope</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>Allocator</span></code></pre></div>
+<h3 id="mass-initializationconstructiondestruction">Mass
+initialization/construction/destruction</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// </span><span class="al">TODO</span><span class="co">: elaborate on the topics:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>make_room<span class="op">()/</span>c4<span class="op">::</span>destroy_room<span class="op">()</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>construct<span class="op">()/</span>c4<span class="op">::</span>construct_n<span class="op">()</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>destroy<span class="op">()/</span>c4<span class="op">::</span>destroy_n<span class="op">()</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>copy_construct<span class="op">()/</span>c4<span class="op">::</span>copy_construct_n<span class="op">()</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>copy_assign<span class="op">()/</span>c4<span class="op">::</span>copy_assign_n<span class="op">()</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>move_construct<span class="op">()/</span>c4<span class="op">::</span>move_construct_n<span class="op">()</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>c4<span class="op">::</span>move_assign<span class="op">()/</span>c4<span class="op">::</span>move_assign_n<span class="op">()</span></span></code></pre></div>
