@@ -1,0 +1,180 @@
+<h2 id="aws-c-mqtt">AWS C MQTT</h2>
+<p>C99 implementation of the MQTT 3.1.1 and MQTT 5 specifications.</p>
+<h2 id="license">License</h2>
+<p>This library is licensed under the Apache 2.0 License.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="building">Building</h3>
+<p>CMake 3.9+ is required to build.</p>
+<p><code>&lt;install-path&gt;</code> must be an absolute path in the
+following instructions.</p>
+<h4 id="linux-only-dependencies">Linux-Only Dependencies</h4>
+<p>If you are building on Linux, you will need to build aws-lc and
+s2n-tls first.</p>
+<pre><code>git clone git@github.com:awslabs/aws-lc.git
+cmake -S aws-lc -B aws-lc/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt;
+cmake --build aws-lc/build --target install
+
+git clone git@github.com:aws/s2n-tls.git
+cmake -S s2n-tls -B s2n-tls/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build s2n-tls/build --target install</code></pre>
+<h4 id="building-aws-c-mqtt-and-remaining-dependencies">Building
+aws-c-mqtt and Remaining Dependencies</h4>
+<pre><code>git clone git@github.com:awslabs/aws-c-common.git
+cmake -S aws-c-common -B aws-c-common/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt;
+cmake --build aws-c-common/build --target install
+
+git clone git@github.com:awslabs/aws-c-cal.git
+cmake -S aws-c-cal -B aws-c-cal/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-cal/build --target install
+
+git clone git@github.com:awslabs/aws-c-io.git
+cmake -S aws-c-io -B aws-c-io/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-io/build --target install
+
+git clone git@github.com:awslabs/aws-c-compression.git
+cmake -S aws-c-compression -B aws-c-compression/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-compression/build --target install
+
+git clone git@github.com:awslabs/aws-c-http.git
+cmake -S aws-c-http -B aws-c-http/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-http/build --target install
+
+git clone git@github.com:awslabs/aws-c-mqtt.git
+cmake -S aws-c-mqtt -B aws-c-mqtt/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-mqtt/build --target install</code></pre>
+<h3 id="overview">Overview</h3>
+<p>This library contains an MQTT implementation that is simple and easy
+to use, but also quite powerful and low on unnecessary copies. Here is a
+general overview of the API:</p>
+<h3
+id="struct-aws_mqtt_client"><code>struct aws_mqtt_client;</code></h3>
+<p><code>aws_mqtt_client</code> is meant to be created once per
+application to pool common resources required for opening MQTT
+connections. The instance does not need to be allocated, and may be
+managed by the user.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_init<span class="op">(</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client <span class="op">*</span>client<span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_allocator <span class="op">*</span>allocator<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_event_loop_group <span class="op">*</span>elg<span class="op">);</span></span></code></pre></div>
+<p>Initializes an instance of <code>aws_mqtt_client</code> with the
+required parameters. * <code>client</code> is effectively the
+<code>this</code> parameter. * <code>allocator</code> will be used to
+initialize the client (note that the client itself is NOT allocated).
+<em>This resource must outlive <code>client</code></em>. *
+<code>bootstrap</code> will be used to initiate new socket connections
+MQTT. <em>This resource must outlive <code>client</code></em>. See <a
+href="https://github.com/awslabs/aws-c-io">aws-c-io</a> for more
+information about <code>aws_client_bootstrap</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> aws_mqtt_client_clean_up<span class="op">(</span><span class="kw">struct</span> aws_mqtt_client <span class="op">*</span>client<span class="op">);</span></span></code></pre></div>
+<p>Cleans up a client and frees all owned resources.</p>
+<p><strong>NOTE</strong>: DO NOT CALL THIS FUNCTION UNTIL ALL
+OUTSTANDING CONNECTIONS ARE CLOSED.</p>
+<h3
+id="struct-aws_mqtt_client_connection"><code>struct aws_mqtt_client_connection;</code></h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>aws_mqtt_client_connection_new<span class="op">(</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client <span class="op">*</span>client<span class="op">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection_callbacks callbacks<span class="op">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>host_name<span class="op">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint16_t</span> port<span class="op">,</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_socket_options <span class="op">*</span>socket_options<span class="op">,</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_tls_ctx_options <span class="op">*</span>tls_options<span class="op">);</span></span></code></pre></div>
+<p>Allocates and initializes a new connection object (does NOT actually
+connect). You may use the returned object to configure connection
+parameters, and then call
+<code>aws_mqtt_client_connection_connect</code> to actually open the
+connection. * <code>client</code> is required in order to use an
+existing DNS resolver, event loop group, and allocator. *
+<code>callbacks</code> provides the connection-level (not operation
+level) callbacks and the userdata to be given back. *
+<code>host_name</code> lists the end point to connect to. This may be a
+DNS address or an IP address. <em>This resource may be freed immediately
+after return.</em> * <code>port</code> the port to connect to on
+<code>host_name</code>. * <code>socket_options</code> describes how to
+open the connection. See <a
+href="https://github.com/awslabs/aws-c-io">aws-c-io</a> for more
+information about <code>aws_socket_options</code>. *
+<code>tls_options</code> provides TLS credentials to connect with. Pass
+<code>NULL</code> to not use TLS (<strong>NOT RECOMMENDED</strong>). See
+<a href="https://github.com/awslabs/aws-c-io">aws-c-io</a> for more
+information about <code>aws_tls_ctx_options</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> aws_mqtt_client_connection_destroy<span class="op">(</span><span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">);</span></span></code></pre></div>
+<p>Destroys a connection and frees all outstanding resources.</p>
+<p><strong>NOTE</strong>: DO NOT CALL THIS FUNCTION UNTIL THE CONNECTION
+IS CLOSED.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_set_will<span class="op">(</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>topic<span class="op">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">enum</span> aws_mqtt_qos qos<span class="op">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> retain<span class="op">,</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>payload<span class="op">);</span></span></code></pre></div>
+<p>Sets the last will and testament to be distributed by the server upon
+client disconnection. Must be called before
+<code>aws_mqtt_client_connection_connect</code>. See
+<code>aws_mqtt_client_connection_publish</code> for information on the
+parameters. <code>topic</code> and <code>payload</code> must persist
+past the call to <code>aws_mqtt_client_connection_connect</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_set_login<span class="op">(</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>username<span class="op">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>password<span class="op">);</span></span></code></pre></div>
+<p>Sets the username and password to be sent to the server on
+connection. Must be called before
+<code>aws_mqtt_client_connection_connect</code>. <code>username</code>
+and <code>password</code> must persist past the call to
+<code>aws_mqtt_client_connection_connect</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_set_reconnect_timeout<span class="op">(</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint64_t</span> min_timeout<span class="op">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint64_t</span> max_timeout<span class="op">);</span></span></code></pre></div>
+<p>Sets the minimum and maximum reconnect timeouts. The time between
+reconnect attempts will start at min and multipy by 2 until max is
+reached.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_connect<span class="op">(</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>client_id<span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> clean_session<span class="op">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">uint16_t</span> keep_alive_time<span class="op">);</span></span></code></pre></div>
+<p>Connects to the remote endpoint. The parameters here are set in the
+MQTT CONNECT packet directly. <code>client_id</code> must persist until
+the <code>on_connack</code> connection callback is called.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_disconnect<span class="op">(</span><span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">);</span></span></code></pre></div>
+<p>Closes an open connection. Does not clean up any resources, that’s to
+be done by <code>aws_mqtt_client_connection_destroy</code>, probably
+from the <code>on_disconnected</code> connection callback.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">uint16_t</span> aws_mqtt_client_connection_subscribe_single<span class="op">(</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>topic_filter<span class="op">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">enum</span> aws_mqtt_qos qos<span class="op">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    aws_mqtt_client_publish_received_fn <span class="op">*</span>on_publish<span class="op">,</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>on_publish_ud<span class="op">,</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    aws_mqtt_suback_single_fn <span class="op">*</span>on_suback<span class="op">,</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>on_suback_ud<span class="op">);</span></span></code></pre></div>
+<p>Subscribes to the topic filter given with the given QoS.
+<code>on_publish</code> will be called whenever a packet matching
+<code>topic_filter</code> arrives. <code>on_suback</code> will be called
+when the SUBACK packet has been received. <code>topic_filter</code> must
+persist until <code>on_suback</code> is called. The packet_id of the
+SUBSCRIBE packet will be returned, or 0 on error.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">uint16_t</span> aws_mqtt_client_connection_unsubscribe<span class="op">(</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>topic_filter<span class="op">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    aws_mqtt_op_complete_fn <span class="op">*</span>on_unsuback<span class="op">,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>on_unsuback_ud<span class="op">);</span></span></code></pre></div>
+<p>Unsubscribes from the topic filter given. <code>topic_filter</code>
+must persist until <code>on_unsuback</code> is called. The packet_id of
+the UNSUBSCRIBE packet will be returned, or 0 on error.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">uint16_t</span> aws_mqtt_client_connection_publish<span class="op">(</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>topic<span class="op">,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">enum</span> aws_mqtt_qos qos<span class="op">,</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">bool</span> retain<span class="op">,</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> <span class="kw">struct</span> aws_byte_cursor <span class="op">*</span>payload<span class="op">,</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    aws_mqtt_op_complete_fn <span class="op">*</span>on_complete<span class="op">,</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">);</span></span></code></pre></div>
+<p>Publish a payload to the topic specified. For QoS 0,
+<code>on_complete</code> will be called as soon as the packet is sent
+over the wire. For QoS 1, as soon as PUBACK comes back. For QoS 2,
+PUBCOMP. <code>topic</code> and <code>payload</code> must persist until
+<code>on_complete</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> aws_mqtt_client_connection_ping<span class="op">(</span><span class="kw">struct</span> aws_mqtt_client_connection <span class="op">*</span>connection<span class="op">);</span></span></code></pre></div>
+<p>Sends a PINGREQ packet to the server.</p>
