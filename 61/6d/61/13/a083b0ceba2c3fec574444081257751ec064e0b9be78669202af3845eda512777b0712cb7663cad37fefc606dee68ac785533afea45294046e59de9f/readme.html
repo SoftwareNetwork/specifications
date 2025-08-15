@@ -1,0 +1,1235 @@
+<h1 id="glaze">Glaze</h1>
+<p>One of the fastest JSON libraries in the world. Glaze reads and
+writes from object memory, simplifying interfaces and offering
+incredible performance.</p>
+<p>Glaze also supports:</p>
+<ul>
+<li><a href="https://github.com/beve-org/beve">BEVE</a> (binary
+efficient versatile encoding)</li>
+<li><a href="./docs/csv.md">CSV</a> (comma separated value)</li>
+<li><a href="./docs/stencil-mustache.md">Stencil/Mustache</a> (string
+interpolation)</li>
+<li><a href="./docs/EETF/erlang-external-term-format.md">EETF</a>
+(Erlang External Term Format) [optionally included]</li>
+</ul>
+<blockquote>
+<p>[!NOTE]</p>
+<p>Glaze is getting HTTP support with REST servers, clients, websockets,
+and more. The networking side of Glaze is under active development, and
+while it is usable and feedback is desired, the API is likely to be
+changing and improving.</p>
+</blockquote>
+<h2 id="with-compile-time-reflection-for-msvc-clang-and-gcc">With
+compile time reflection for MSVC, Clang, and GCC!</h2>
+<ul>
+<li>Read/write aggregate initializable structs without writing any
+metadata or macros!</li>
+<li>See <a href="https://gcc.godbolt.org/z/T4To5fKfz">example on
+Compiler Explorer</a></li>
+</ul>
+<h2 id="documentation"><a
+href="https://stephenberry.github.io/glaze/">📖 Documentation</a></h2>
+<p>See this README, the <a
+href="https://stephenberry.github.io/glaze/">Glaze Documentation
+Page</a>, or <a
+href="https://github.com/stephenberry/glaze/tree/main/docs">docs
+folder</a> for documentation.</p>
+<h2 id="highlights">Highlights</h2>
+<ul>
+<li>Pure, compile time reflection for structs
+<ul>
+<li>Powerful meta specialization system for custom names and
+behavior</li>
+</ul></li>
+<li>JSON <a href="https://datatracker.ietf.org/doc/html/rfc8259">RFC
+8259</a> compliance with UTF-8 validation</li>
+<li>Standard C++ library support</li>
+<li>Header only</li>
+<li>Direct to memory serialization/deserialization</li>
+<li>Compile time maps with constant time lookups and perfect
+hashing</li>
+<li>Powerful wrappers to modify read/write behavior (<a
+href="./docs/wrappers.md">Wrappers</a>)</li>
+<li>Use your own custom read/write functions (<a
+href="#custom-readwrite">Custom Read/Write</a>)</li>
+<li><a href="./docs/unknown-keys.md">Handle unknown keys</a> in a fast
+and flexible manner</li>
+<li>Direct memory access through <a
+href="./docs/json-pointer-syntax.md">JSON pointer syntax</a></li>
+<li><a href="./docs/JMESPath.md">JMESPath</a> querying</li>
+<li><a href="./docs/binary.md">Binary data</a> through the same API for
+maximum performance</li>
+<li>No exceptions (compiles with <code>-fno-exceptions</code>)
+<ul>
+<li>If you desire helpers that throw for cleaner syntax see <a
+href="./docs/exceptions.md">Glaze Exceptions</a></li>
+</ul></li>
+<li>No runtime type information necessary (compiles with
+<code>-fno-rtti</code>)</li>
+<li>Rapid error handling with short circuiting</li>
+<li><a href="./docs/rpc/json-rpc.md">JSON-RPC 2.0 support</a></li>
+<li><a href="./docs/json-schema.md">JSON Schema generation</a></li>
+<li>Extremely portable, uses carefully optimized SWAR (SIMD Within A
+Register) for broad compatibility</li>
+<li><a href="./docs/partial-read.md">Partial Read</a> and <a
+href="./docs/partial-write.md">Partial Write</a> support</li>
+<li><a href="./docs/csv.md">CSV Reading/Writing</a></li>
+<li><a href="#more-features">Much more!</a></li>
+</ul>
+<h2 id="performance">Performance</h2>
+<table>
+<colgroup>
+<col style="width: 59%" />
+<col style="width: 17%" />
+<col style="width: 11%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Roundtrip Time (s)</th>
+<th>Write (MB/s)</th>
+<th>Read (MB/s)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="https://github.com/stephenberry/glaze"><strong>Glaze</strong></a></td>
+<td><strong>1.01</strong></td>
+<td><strong>1396</strong></td>
+<td><strong>1200</strong></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/simdjson/simdjson"><strong>simdjson (on
+demand)</strong></a></td>
+<td><strong>N/A</strong></td>
+<td><strong>N/A</strong></td>
+<td><strong>1163</strong></td>
+</tr>
+<tr class="odd">
+<td><a
+href="https://github.com/ibireme/yyjson"><strong>yyjson</strong></a></td>
+<td><strong>1.22</strong></td>
+<td><strong>1023</strong></td>
+<td><strong>1106</strong></td>
+</tr>
+<tr class="even">
+<td><a
+href="https://github.com/getml/reflect-cpp"><strong>reflect_cpp</strong></a></td>
+<td><strong>3.15</strong></td>
+<td><strong>488</strong></td>
+<td><strong>365</strong></td>
+</tr>
+<tr class="odd">
+<td><a
+href="https://github.com/beached/daw_json_link"><strong>daw_json_link</strong></a></td>
+<td><strong>3.29</strong></td>
+<td><strong>334</strong></td>
+<td><strong>479</strong></td>
+</tr>
+<tr class="even">
+<td><a
+href="https://github.com/Tencent/rapidjson"><strong>RapidJSON</strong></a></td>
+<td><strong>3.76</strong></td>
+<td><strong>289</strong></td>
+<td><strong>416</strong></td>
+</tr>
+<tr class="odd">
+<td><a
+href="https://github.com/jorgen/json_struct"><strong>json_struct</strong></a></td>
+<td><strong>5.87</strong></td>
+<td><strong>178</strong></td>
+<td><strong>316</strong></td>
+</tr>
+<tr class="even">
+<td><a
+href="https://boost.org/libs/json"><strong>Boost.JSON</strong></a></td>
+<td><strong>5.38</strong></td>
+<td><strong>198</strong></td>
+<td><strong>308</strong></td>
+</tr>
+<tr class="odd">
+<td><a
+href="https://github.com/nlohmann/json"><strong>nlohmann</strong></a></td>
+<td><strong>15.44</strong></td>
+<td><strong>86</strong></td>
+<td><strong>81</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a
+href="https://github.com/stephenberry/json_performance">Performance test
+code available here</a></p>
+<p><em>Performance caveats: <a
+href="https://github.com/simdjson/simdjson">simdjson</a> and <a
+href="https://github.com/ibireme/yyjson">yyjson</a> are great, but they
+experience major performance losses when the data is not in the expected
+sequence or any keys are missing (the problem grows as the file size
+increases, as they must re-iterate through the document).</em></p>
+<p><em>Also, <a href="https://github.com/simdjson/simdjson">simdjson</a>
+and <a href="https://github.com/ibireme/yyjson">yyjson</a> do not
+support automatic escaped string handling, so if any of the currently
+non-escaped strings in this benchmark were to contain an escape, the
+escapes would not be handled.</em></p>
+<p><a href="https://github.com/stephenberry/json_performance">ABC
+Test</a> shows how simdjson has poor performance when keys are not in
+the expected sequence:</p>
+<table>
+<colgroup>
+<col style="width: 84%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Read (MB/s)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a
+href="https://github.com/stephenberry/glaze"><strong>Glaze</strong></a></td>
+<td><strong>1219</strong></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/simdjson/simdjson"><strong>simdjson (on
+demand)</strong></a></td>
+<td><strong>89</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="binary-performance">Binary Performance</h2>
+<p>Tagged binary specification: <a
+href="https://github.com/stephenberry/beve">BEVE</a></p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 29%" />
+<col style="width: 19%" />
+<col style="width: 17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Roundtrip Time (s)</th>
+<th>Write (MB/s)</th>
+<th>Read (MB/s)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raw performance</td>
+<td><strong>0.42</strong></td>
+<td><strong>3235</strong></td>
+<td><strong>2468</strong></td>
+</tr>
+<tr class="even">
+<td>Equivalent JSON data*</td>
+<td><strong>0.42</strong></td>
+<td><strong>3547</strong></td>
+<td><strong>2706</strong></td>
+</tr>
+</tbody>
+</table>
+<p>JSON size: 670 bytes</p>
+<p>BEVE size: 611 bytes</p>
+<p>*BEVE packs more efficiently than JSON, so transporting the same data
+is even faster.</p>
+<h2 id="examples">Examples</h2>
+<blockquote>
+<p>[!TIP]</p>
+<p>See the <a
+href="https://github.com/stephenberry/glaze/blob/main/tests/example_json/example_json.cpp">example_json</a>
+unit test for basic examples of how to use Glaze. See <a
+href="https://github.com/stephenberry/glaze/blob/main/tests/json_test/json_test.cpp">json_test</a>
+for an extensive test of features.</p>
+</blockquote>
+<p>Your struct will automatically get reflected! No metadata is required
+by the user.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> my_struct</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> i <span class="op">=</span> <span class="dv">287</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> d <span class="op">=</span> <span class="fl">3.14</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string hello <span class="op">=</span> <span class="st">&quot;Hello World&quot;</span><span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>array<span class="op">&lt;</span><span class="dt">uint64_t</span><span class="op">,</span> <span class="dv">3</span><span class="op">&gt;</span> arr <span class="op">=</span> <span class="op">{</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> <span class="op">};</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>map<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> map<span class="op">{{</span><span class="st">&quot;one&quot;</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;two&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">}};</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p><strong>JSON</strong> (prettified)</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;i&quot;</span><span class="fu">:</span> <span class="dv">287</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;d&quot;</span><span class="fu">:</span> <span class="fl">3.14</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;hello&quot;</span><span class="fu">:</span> <span class="st">&quot;Hello World&quot;</span><span class="fu">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;arr&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="dv">1</span><span class="ot">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      <span class="dv">2</span><span class="ot">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="dv">3</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>   <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;map&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;one&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;two&quot;</span><span class="fu">:</span> <span class="dv">2</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>   <span class="fu">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Write JSON</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>my_struct s<span class="op">{};</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> glz<span class="op">::</span>write_json<span class="op">(</span>s<span class="op">).</span>value_or<span class="op">(</span><span class="st">&quot;error&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>my_struct s<span class="op">{};</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer<span class="op">{};</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>write_json<span class="op">(</span>s<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>ec<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">// handle error</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Read JSON</strong></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;i&quot;:287,&quot;d&quot;:3.14,&quot;hello&quot;:&quot;Hello World&quot;,&quot;arr&quot;:[1,2,3],&quot;map&quot;:{&quot;one&quot;:1,&quot;two&quot;:2</span><span class="sc">}}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> s <span class="op">=</span> glz<span class="op">::</span>read_json<span class="op">&lt;</span>my_struct<span class="op">&gt;(</span>buffer<span class="op">);</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>s<span class="op">)</span> <span class="co">// check std::expected</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  s<span class="op">.</span>value<span class="op">();</span> <span class="co">// s.value() is a my_struct populated from buffer</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;i&quot;:287,&quot;d&quot;:3.14,&quot;hello&quot;:&quot;Hello World&quot;,&quot;arr&quot;:[1,2,3],&quot;map&quot;:{&quot;one&quot;:1,&quot;two&quot;:2</span><span class="sc">}}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>my_struct s<span class="op">{};</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read_json<span class="op">(</span>s<span class="op">,</span> buffer<span class="op">);</span> <span class="co">// populates s from buffer</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>ec<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">// handle error</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="readwrite-from-file">Read/Write From File</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read_file_json<span class="op">(</span>obj<span class="op">,</span> <span class="st">&quot;./obj.json&quot;</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">{});</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>write_file_json<span class="op">(</span>obj<span class="op">,</span> <span class="st">&quot;./obj.json&quot;</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">{});</span></span></code></pre></div>
+<blockquote>
+<p>[!IMPORTANT]</p>
+<p>The file name (2nd argument), must be null terminated.</p>
+</blockquote>
+<h2 id="compilersystem-support">Compiler/System Support</h2>
+<ul>
+<li>Requires C++23</li>
+<li>Tested for both 64bit and 32bit</li>
+<li>Only supports little-endian systems</li>
+</ul>
+<p><a href="https://github.com/stephenberry/glaze/actions">Actions</a>
+build and test with <a href="https://clang.llvm.org">Clang</a> (17+), <a
+href="https://visualstudio.microsoft.com/vs/features/cplusplus/">MSVC</a>
+(2022), and <a href="https://gcc.gnu.org">GCC</a> (12+) on apple,
+windows, and linux.</p>
+<p><img
+src="https://github.com/stephenberry/glaze/actions/workflows/clang.yml/badge.svg"
+alt="clang build" /> <img
+src="https://github.com/stephenberry/glaze/actions/workflows/gcc.yml/badge.svg"
+alt="gcc build" /> <img
+src="https://github.com/stephenberry/glaze/actions/workflows/msvc.yml/badge.svg"
+alt="msvc build" /></p>
+<blockquote>
+<p>Glaze seeks to maintain compatibility with the latest three versions
+of GCC and Clang, as well as the latest version of MSVC and Apple Clang
+(Xcode). And, we aim to only drop old versions with major releases.</p>
+</blockquote>
+<h3 id="msvc-compiler-flags">MSVC Compiler Flags</h3>
+<p>Glaze requires a C++ standard conformant pre-processor, which
+requires the <code>/Zc:preprocessor</code> flag when building with
+MSVC.</p>
+<h3 id="simd-cmake-options">SIMD CMake Options</h3>
+<p>The CMake has the option <code>glaze_ENABLE_AVX2</code>. This will
+attempt to use <code>AVX2</code> SIMD instructions in some cases to
+improve performance, as long as the system you are configuring on
+supports it. Set this option to <code>OFF</code> to disable the AVX2
+instruction set, such as if you are cross-compiling for Arm. If you
+aren’t using CMake the macro <code>GLZ_USE_AVX2</code> enables the
+feature if defined.</p>
+<h2 id="how-to-use-glaze">How To Use Glaze</h2>
+<h3 id="fetchcontent"><a
+href="https://cmake.org/cmake/help/latest/module/FetchContent.html">FetchContent</a></h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>(<span class="im">FetchContent</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  glaze</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_REPOSITORY</span> https://github.com/stephenberry/glaze.git</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_TAG</span> main</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_SHALLOW</span> <span class="ot">TRUE</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_MakeAvailable</span>(glaze)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${PROJECT_NAME}</span> <span class="bn">PRIVATE</span> <span class="bn">glaze::glaze</span>)</span></code></pre></div>
+<h3 id="conan"><a href="https://conan.io">Conan</a></h3>
+<ul>
+<li>Included in <a href="https://conan.io/center/">Conan Center</a> <img
+src="https://img.shields.io/conan/v/glaze" alt="Conan Center" /></li>
+</ul>
+<pre><code>find_package(glaze REQUIRED)
+
+target_link_libraries(main PRIVATE glaze::glaze)</code></pre>
+<h3 id="build2"><a href="https://build2.org">build2</a></h3>
+<ul>
+<li>Available on <a href="https://cppget.org/libglaze">cppget</a></li>
+</ul>
+<pre><code>import libs = libglaze%lib{glaze}</code></pre>
+<h3 id="arch-linux">Arch Linux</h3>
+<ul>
+<li><a href="https://archlinux.org/packages/extra/any/glaze/">Official
+Arch repository</a></li>
+<li>AUR git package: <a
+href="https://aur.archlinux.org/packages/glaze-git">glaze-git</a></li>
+</ul>
+<h3
+id="see-this-example-repository-for-how-to-use-glaze-in-a-new-project">See
+this <a href="https://github.com/stephenberry/glaze_example">Example
+Repository</a> for how to use Glaze in a new project</h3>
+<hr />
+<h2 id="see-faq-for-frequently-asked-questions">See <a
+href="./docs/FAQ.md">FAQ</a> for Frequently Asked Questions</h2>
+<h1 id="explicit-metadata">Explicit Metadata</h1>
+<p>If you want to specialize your reflection then you can
+<strong>optionally</strong> write the code below:</p>
+<blockquote>
+<p>This metadata is also necessary for non-aggregate initializable
+structs.</p>
+</blockquote>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>my_struct<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> my_struct<span class="op">;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>      <span class="op">&amp;</span>T<span class="op">::</span>i<span class="op">,</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      <span class="op">&amp;</span>T<span class="op">::</span>d<span class="op">,</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>      <span class="op">&amp;</span>T<span class="op">::</span>hello<span class="op">,</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>      <span class="op">&amp;</span>T<span class="op">::</span>arr<span class="op">,</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>      <span class="op">&amp;</span>T<span class="op">::</span>map</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h2 id="local-glaze-meta">Local Glaze Meta</h2>
+<details>
+<summary>
+Glaze also supports metadata within its associated class:
+</summary>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> my_struct</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> i <span class="op">=</span> <span class="dv">287</span><span class="op">;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> d <span class="op">=</span> <span class="fl">3.14</span><span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string hello <span class="op">=</span> <span class="st">&quot;Hello World&quot;</span><span class="op">;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>array<span class="op">&lt;</span><span class="dt">uint64_t</span><span class="op">,</span> <span class="dv">3</span><span class="op">&gt;</span> arr <span class="op">=</span> <span class="op">{</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span> <span class="op">};</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>map<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> map<span class="op">{{</span><span class="st">&quot;one&quot;</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;two&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">}};</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> glaze <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>     <span class="kw">using</span> T <span class="op">=</span> my_struct<span class="op">;</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>     <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> glz<span class="op">::</span>object<span class="op">(</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>T<span class="op">::</span>i<span class="op">,</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>T<span class="op">::</span>d<span class="op">,</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>T<span class="op">::</span>hello<span class="op">,</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>T<span class="op">::</span>arr<span class="op">,</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>T<span class="op">::</span>map</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>     <span class="op">);</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</details>
+<h2 id="custom-key-names-or-unnamed-types">Custom Key Names or Unnamed
+Types</h2>
+<p>When you define Glaze metadata, objects will automatically reflect
+the non-static names of your member object pointers. However, if you
+want custom names or you register lambda functions or wrappers that do
+not provide names for your fields, you can optionally add field names in
+your metadata.</p>
+<p>Example of custom names:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>my_struct<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> my_struct<span class="op">;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;integer&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>i<span class="op">,</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;double&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>d<span class="op">,</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;string&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>hello<span class="op">,</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;array&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>arr<span class="op">,</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;my map&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>map</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<blockquote>
+<p>Each of these strings is optional and can be removed for individual
+fields if you want the name to be reflected.</p>
+<p>Names are required for:</p>
+<ul>
+<li>static constexpr member variables</li>
+<li><a href="./docs/wrappers.md">Wrappers</a></li>
+<li>Lambda functions</li>
+</ul>
+</blockquote>
+<h1 id="reflection-api">Reflection API</h1>
+<p>Glaze provides a compile time reflection API that can be modified via
+<code>glz::meta</code> specializations. This reflection API uses pure
+reflection unless a <code>glz::meta</code> specialization is provided,
+in which case the default behavior is overridden by the developer.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">static_assert</span><span class="op">(</span>glz<span class="op">::</span>reflect<span class="op">&lt;</span>my_struct<span class="op">&gt;::</span>size <span class="op">==</span> <span class="dv">5</span><span class="op">);</span> <span class="co">// Number of fields</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">static_assert</span><span class="op">(</span>glz<span class="op">::</span>reflect<span class="op">&lt;</span>my_struct<span class="op">&gt;::</span>keys<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="st">&quot;i&quot;</span><span class="op">);</span> <span class="co">// Access keys</span></span></code></pre></div>
+<blockquote>
+<p>[!WARNING]</p>
+<p>The <code>glz::reflect</code> fields described above have been
+formalized and are unlikely to change. Other fields may evolve as we
+continue to formalize the spec.</p>
+</blockquote>
+<h2 id="glzfor_each_field">glz::for_each_field</h2>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">test_type</span> <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int32_t</span> int1<span class="op">{};</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int64_t</span> int2<span class="op">{};</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="dt">test_type</span> var<span class="op">{</span><span class="dv">42</span><span class="op">,</span> <span class="dv">43</span><span class="op">};</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>for_each_field<span class="op">(</span>var<span class="op">,</span> <span class="op">[](</span><span class="kw">auto</span><span class="op">&amp;</span> field<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    field <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="op">});</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>var<span class="op">.</span>int1 <span class="op">==</span> <span class="dv">43</span><span class="op">);</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>var<span class="op">.</span>int2 <span class="op">==</span> <span class="dv">44</span><span class="op">);</span></span></code></pre></div>
+<h1 id="custom-readwrite">Custom Read/Write</h1>
+<p>Custom reading and writing can be achieved through the powerful
+<code>to</code>/<code>from</code> specialization approach, which is
+described here: <a
+href="https://github.com/stephenberry/glaze/blob/main/docs/custom-serialization.md">custom-serialization.md</a>.
+However, this only works for user defined types.</p>
+<p>For common use cases or cases where a specific member variable should
+have special reading and writing, you can use <a
+href="https://github.com/stephenberry/glaze/blob/main/docs/wrappers.md#custom">glz::custom</a>
+to register read/write member functions, std::functions, or lambda
+functions.</p>
+<details>
+<summary>
+See example:
+</summary>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> custom_encoding</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">uint64_t</span> x<span class="op">{};</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>string y<span class="op">{};</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>array<span class="op">&lt;</span><span class="dt">uint32_t</span><span class="op">,</span> <span class="dv">3</span><span class="op">&gt;</span> z<span class="op">{};</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>   <span class="dt">void</span> read_x<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      x <span class="op">=</span> <span class="bu">std::</span>stoi<span class="op">(</span>s<span class="op">);</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>   <span class="dt">uint64_t</span> write_x<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> x<span class="op">;</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>   <span class="dt">void</span> read_y<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> s<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>      y <span class="op">=</span> <span class="st">&quot;hello&quot;</span> <span class="op">+</span> s<span class="op">;</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>   <span class="kw">auto</span><span class="op">&amp;</span> write_z<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>      z<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="dv">5</span><span class="op">;</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> z<span class="op">;</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>custom_encoding<span class="op">&gt;</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> custom_encoding<span class="op">;</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span><span class="st">&quot;x&quot;</span><span class="op">,</span> custom<span class="op">&lt;&amp;</span>T<span class="op">::</span>read_x<span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>write_x<span class="op">&gt;,</span> <span class="co">//</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">&quot;y&quot;</span><span class="op">,</span> custom<span class="op">&lt;&amp;</span>T<span class="op">::</span>read_y<span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>y<span class="op">&gt;,</span> <span class="co">//</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">&quot;z&quot;</span><span class="op">,</span> custom<span class="op">&lt;&amp;</span>T<span class="op">::</span>z<span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>write_z<span class="op">&gt;);</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>suite custom_encoding_test <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;custom_reading&quot;</span><span class="op">_test</span> <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>      custom_encoding obj<span class="op">{};</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string s <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;x&quot;:&quot;3&quot;,&quot;y&quot;:&quot;world&quot;,&quot;z&quot;:[1,2,3]}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(!</span>glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">));</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>obj<span class="op">.</span>x <span class="op">==</span> <span class="dv">3</span><span class="op">);</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>obj<span class="op">.</span>y <span class="op">==</span> <span class="st">&quot;helloworld&quot;</span><span class="op">);</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>obj<span class="op">.</span>z <span class="op">==</span> <span class="bu">std::</span>array<span class="op">&lt;</span><span class="dt">uint32_t</span><span class="op">,</span> <span class="dv">3</span><span class="op">&gt;{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">});</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;custom_writing&quot;</span><span class="op">_test</span> <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>      custom_encoding obj<span class="op">{};</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string s <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;x&quot;:&quot;3&quot;,&quot;y&quot;:&quot;world&quot;,&quot;z&quot;:[1,2,3]}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(!</span>glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">));</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string out<span class="op">{};</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> out<span class="op">));</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>out <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;x&quot;:3,&quot;y&quot;:&quot;helloworld&quot;,&quot;z&quot;:[5,2,3]}</span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</details>
+<details>
+<summary>
+Another example with constexpr lambdas:
+</summary>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> custom_buffer_input</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>string str<span class="op">{};</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>custom_buffer_input<span class="op">&gt;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> read_x <span class="op">=</span> <span class="op">[](</span>custom_buffer_input<span class="op">&amp;</span> s<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> input<span class="op">)</span> <span class="op">{</span> s<span class="op">.</span>str <span class="op">=</span> input<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> write_x <span class="op">=</span> <span class="op">[](</span><span class="kw">auto</span><span class="op">&amp;</span> s<span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">auto</span><span class="op">&amp;</span> <span class="op">{</span> <span class="cf">return</span> s<span class="op">.</span>str<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> glz<span class="op">::</span>object<span class="op">(</span><span class="st">&quot;str&quot;</span><span class="op">,</span> glz<span class="op">::</span>custom<span class="op">&lt;</span>read_x<span class="op">,</span> write_x<span class="op">&gt;);</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>suite custom_lambdas_test <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;custom_buffer_input&quot;</span><span class="op">_test</span> <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string s <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;str&quot;:&quot;Hello!&quot;}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>      custom_buffer_input obj<span class="op">{};</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(!</span>glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">));</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>obj<span class="op">.</span>str <span class="op">==</span> <span class="st">&quot;Hello!&quot;</span><span class="op">);</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>      s<span class="op">.</span>clear<span class="op">();</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(!</span>glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">));</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>s <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;str&quot;:&quot;Hello!&quot;}</span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>obj<span class="op">.</span>str <span class="op">==</span> <span class="st">&quot;Hello!&quot;</span><span class="op">);</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</details>
+<h3 id="error-handling-with-glzcustom">Error handling with
+<code>glz::custom</code></h3>
+<p>Developers can throw errors, but for builds that disable exceptions
+or if it is desirable to integrate error handling within Glaze’s
+<code>context</code>, the last argument of custom lambdas may be a
+<code>glz::context&amp;</code>. This enables custom error handling that
+integrates well with the rest of Glaze.</p>
+<details>
+<summary>
+See example:
+</summary>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> age_custom_error_obj</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int</span> age<span class="op">{};</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>age_custom_error_obj<span class="op">&gt;</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> age_custom_error_obj<span class="op">;</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> read_x <span class="op">=</span> <span class="op">[](</span>T<span class="op">&amp;</span> s<span class="op">,</span> <span class="dt">int</span> age<span class="op">,</span> glz<span class="op">::</span>context<span class="op">&amp;</span> ctx<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> <span class="op">(</span>age <span class="op">&lt;</span> <span class="dv">21</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>         ctx<span class="op">.</span>error <span class="op">=</span> glz<span class="op">::</span>error_code<span class="op">::</span>constraint_violated<span class="op">;</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>         ctx<span class="op">.</span>custom_error_message <span class="op">=</span> <span class="st">&quot;age too young&quot;</span><span class="op">;</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>      <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>         s<span class="op">.</span>age <span class="op">=</span> age<span class="op">;</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span><span class="st">&quot;age&quot;</span><span class="op">,</span> glz<span class="op">::</span>custom<span class="op">&lt;</span>read_x<span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>age<span class="op">&gt;);</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>In use:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>age_custom_error_obj obj<span class="op">{};</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string s <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;age&quot;:18}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> err_msg <span class="op">=</span> glz<span class="op">::</span>format_error<span class="op">(</span>ec<span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> err_msg <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span></code></pre></div>
+<p>Console output:</p>
+<pre><code>1:10: constraint_violated
+   {&quot;age&quot;:18}
+            ^ age too young</code></pre>
+</details>
+<h1 id="object-mapping">Object Mapping</h1>
+<p>When using member pointers (e.g. <code>&amp;T::a</code>) the C++
+class structures must match the JSON interface. It may be desirable to
+map C++ classes with differing layouts to the same object interface.
+This is accomplished through registering lambda functions instead of
+member pointers.</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>Thing<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;i&quot;</span><span class="op">,</span> <span class="op">[](</span><span class="kw">auto</span><span class="op">&amp;&amp;</span> self<span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">auto</span><span class="op">&amp;</span> <span class="op">{</span> <span class="cf">return</span> self<span class="op">.</span>subclass<span class="op">.</span>i<span class="op">;</span> <span class="op">}</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>The value <code>self</code> passed to the lambda function will be a
+<code>Thing</code> object, and the lambda function allows us to make the
+subclass invisible to the object interface.</p>
+<p>Lambda functions by default copy returns, therefore the
+<code>auto&amp;</code> return type is typically required in order for
+glaze to write to memory.</p>
+<blockquote>
+<p>Note that remapping can also be achieved through pointers/references,
+as glaze treats values, pointers, and references in the same manner when
+writing/reading.</p>
+</blockquote>
+<h1 id="value-types">Value Types</h1>
+<p>A class can be treated as an underlying value as follows:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> S <span class="op">{</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> x<span class="op">{};</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>S<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value<span class="op">{</span> <span class="op">&amp;</span>S<span class="op">::</span>x <span class="op">};</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>or using a lambda:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>S<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> <span class="op">[](</span><span class="kw">auto</span><span class="op">&amp;</span> self<span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">auto</span><span class="op">&amp;</span> <span class="op">{</span> <span class="cf">return</span> self<span class="op">.</span>x<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h1 id="read-constraints">Read Constraints</h1>
+<p>Glaze provides a wrapper to enable complex reading constraints for
+struct members: <code>glz::read_constraint</code>.</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> constrained_object</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">int</span> age<span class="op">{};</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>string name<span class="op">{};</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>constrained_object<span class="op">&gt;</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> constrained_object<span class="op">;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> limit_age <span class="op">=</span> <span class="op">[](</span><span class="at">const</span> T<span class="op">&amp;,</span> <span class="dt">int</span> age<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="op">(</span>age <span class="op">&gt;=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> age <span class="op">&lt;=</span> <span class="dv">120</span><span class="op">);</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> limit_name <span class="op">=</span> <span class="op">[](</span><span class="at">const</span> T<span class="op">&amp;,</span> <span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> name<span class="op">.</span>size<span class="op">()</span> <span class="op">&lt;=</span> <span class="dv">8</span><span class="op">;</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span><span class="st">&quot;age&quot;</span><span class="op">,</span> read_constraint<span class="op">&lt;&amp;</span>T<span class="op">::</span>age<span class="op">,</span> limit_age<span class="op">,</span> <span class="st">&quot;Age out of range&quot;</span><span class="op">&gt;,</span> <span class="co">//</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">&quot;name&quot;</span><span class="op">,</span> read_constraint<span class="op">&lt;&amp;</span>T<span class="op">::</span>name<span class="op">,</span> limit_name<span class="op">,</span> <span class="st">&quot;Name is too long&quot;</span><span class="op">&gt;);</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>For invalid input such as <code>{"age": -1, "name": "Victor"}</code>,
+Glaze will outut the following formatted error message:</p>
+<pre><code>1:11: constraint_violated
+   {&quot;age&quot;: -1, &quot;name&quot;: &quot;Victor&quot;}
+             ^ Age out of range</code></pre>
+<ul>
+<li>Member functions can also be registered as the constraint.</li>
+<li>The first field of the constraint lambda is the parent object,
+allowing complex constraints to be written by the user.</li>
+</ul>
+<h1 id="readingwriting-private-fields">Reading/Writing Private
+Fields</h1>
+<p>Serialize and deserialize private fields by making a
+<code>glz::meta&lt;T&gt;</code> and adding
+<code>friend struct glz::meta&lt;T&gt;;</code> to your class.</p>
+<details>
+<summary>
+See example:
+</summary>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">private_fields_t</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span><span class="op">:</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>   <span class="dt">double</span> cash <span class="op">=</span> <span class="fl">22.0</span><span class="op">;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>string currency <span class="op">=</span> <span class="st">&quot;$&quot;</span><span class="op">;</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>   <span class="kw">friend</span> <span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span><span class="dt">private_fields_t</span><span class="op">&gt;;</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span><span class="dt">private_fields_t</span><span class="op">&gt;</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> <span class="dt">private_fields_t</span><span class="op">;</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(&amp;</span>T<span class="op">::</span>cash<span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>currency<span class="op">);</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>suite private_fields_tests <span class="op">=</span> <span class="op">[]</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;private fields&quot;</span><span class="op">_test</span> <span class="op">=</span> <span class="op">[]</span> <span class="op">{</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">private_fields_t</span> obj<span class="op">{};</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>string buffer<span class="op">{};</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> buffer<span class="op">));</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>buffer <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;cash&quot;:22,&quot;currency&quot;:&quot;$&quot;}</span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>      buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;cash&quot;:2200.0, &quot;currency&quot;:&quot;¢&quot;}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> buffer<span class="op">));</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>      buffer<span class="op">.</span>clear<span class="op">();</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> buffer<span class="op">));</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>      expect<span class="op">(</span>buffer <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;cash&quot;:2200,&quot;currency&quot;:&quot;¢&quot;}</span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</details>
+<h1 id="error-handling">Error Handling</h1>
+<p>Glaze is safe to use with untrusted messages. Errors are returned as
+error codes, typically within a <code>glz::expected</code>, which
+behaves just like a <code>std::expected</code>.</p>
+<blockquote>
+<p>Glaze works to short circuit error handling, which means the parsing
+exits very rapidly if an error is encountered.</p>
+</blockquote>
+<p>To generate more helpful error messages, call
+<code>format_error</code>:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> pe <span class="op">=</span> glz<span class="op">::</span>read_json<span class="op">(</span>obj<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>pe<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string descriptive_error <span class="op">=</span> glz<span class="op">::</span>format_error<span class="op">(</span>pe<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This test case:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;Hello&quot;</span><span class="fu">:</span><span class="st">&quot;World&quot;</span><span class="er">x</span><span class="fu">,</span> <span class="dt">&quot;color&quot;</span><span class="fu">:</span> <span class="st">&quot;red&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Produces this error:</p>
+<pre><code>1:17: expected_comma
+   {&quot;Hello&quot;:&quot;World&quot;x, &quot;color&quot;: &quot;red&quot;}
+                   ^</code></pre>
+<p>Denoting that x is invalid here.</p>
+<h1 id="input-buffer-null-termination">Input Buffer (Null)
+Termination</h1>
+<p>A non-const <code>std::string</code> is recommended for input
+buffers, as this allows Glaze to improve performance with temporary
+padding and the buffer will be null terminated.</p>
+<h2 id="json">JSON</h2>
+<p>By default the option <code>null_terminated</code> is set to
+<code>true</code> and null-terminated buffers must be used when parsing
+JSON. The option can be turned off with a small loss in performance,
+which allows non-null terminated buffers:</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> glz<span class="op">::</span>opts options<span class="op">{.</span>null_terminated <span class="op">=</span> <span class="kw">false</span><span class="op">};</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read<span class="op">&lt;</span>options<span class="op">&gt;(</span>value<span class="op">,</span> buffer<span class="op">);</span> <span class="co">// read in a non-null terminated buffer</span></span></code></pre></div>
+<h2 id="beve">BEVE</h2>
+<p>Null-termination is not required for BEVE (binary). It makes no
+difference in performance.</p>
+<h2 id="csv">CSV</h2>
+<p>Null-termination is not required for CSV. It makes no difference in
+performance.</p>
+<h1 id="type-support">Type Support</h1>
+<h2 id="array-types">Array Types</h2>
+<p>Array types logically convert to JSON array values. Concepts are used
+to allow various containers and even user containers if they match
+standard library interfaces.</p>
+<ul>
+<li><code>glz::array</code> (compile time mixed types)</li>
+<li><code>std::tuple</code> (compile time mixed types)</li>
+<li><code>std::array</code></li>
+<li><code>std::vector</code></li>
+<li><code>std::deque</code></li>
+<li><code>std::list</code></li>
+<li><code>std::forward_list</code></li>
+<li><code>std::span</code></li>
+<li><code>std::set</code></li>
+<li><code>std::unordered_set</code></li>
+</ul>
+<h2 id="object-types">Object Types</h2>
+<p>Object types logically convert to JSON object values, such as maps.
+Like JSON, Glaze treats object definitions as unordered maps. Therefore
+the order of an object layout does not have to match the same binary
+sequence in C++.</p>
+<ul>
+<li><code>glz::object</code> (compile time mixed types)</li>
+<li><code>std::map</code></li>
+<li><code>std::unordered_map</code></li>
+<li><code>std::pair</code> (enables dynamic keys in stack storage)</li>
+</ul>
+<blockquote>
+<p><code>std::pair</code> is handled as an object with a single key and
+value, but when <code>std::pair</code> is used in an array, Glaze
+concatenates the pairs into a single object.
+<code>std::vector&lt;std::pair&lt;...&gt;&gt;</code> will serialize as a
+single object. If you don’t want this behavior set the compile time
+option <code>.concatenate = false</code>.</p>
+</blockquote>
+<h2 id="variants">Variants</h2>
+<ul>
+<li><code>std::variant</code></li>
+</ul>
+<p>See <a href="./docs/variant-handling.md">Variant Handling</a> for
+more information.</p>
+<h2 id="nullable-types">Nullable Types</h2>
+<ul>
+<li><code>std::unique_ptr</code></li>
+<li><code>std::shared_ptr</code></li>
+<li><code>std::optional</code></li>
+</ul>
+<p>Nullable types may be allocated by valid input or nullified by the
+<code>null</code> keyword.</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>unique_ptr<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> ptr<span class="op">{};</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer<span class="op">{};</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>ptr<span class="op">,</span> buffer<span class="op">));</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>buffer <span class="op">==</span> <span class="st">&quot;null&quot;</span><span class="op">);</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>read_json<span class="op">(</span>ptr<span class="op">,</span> <span class="st">&quot;5&quot;</span><span class="op">));</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(*</span>ptr <span class="op">==</span> <span class="dv">5</span><span class="op">);</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>buffer<span class="op">.</span>clear<span class="op">();</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>ptr<span class="op">,</span> buffer<span class="op">));</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>buffer <span class="op">==</span> <span class="st">&quot;5&quot;</span><span class="op">);</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>read_json<span class="op">(</span>ptr<span class="op">,</span> <span class="st">&quot;null&quot;</span><span class="op">));</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(!</span><span class="dt">bool</span><span class="op">(</span>ptr<span class="op">));</span></span></code></pre></div>
+<h2 id="enums">Enums</h2>
+<p>By default enums will be written and read in integer form. No
+<code>glz::meta</code> is necessary if this is the desired behavior.</p>
+<p>However, if you prefer to use enums as strings in JSON, they can be
+registered in the <code>glz::meta</code> as follows:</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> Color <span class="op">{</span> Red<span class="op">,</span> Green<span class="op">,</span> Blue <span class="op">};</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>Color<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> <span class="kw">enum</span> Color<span class="op">;</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> enumerate<span class="op">(</span>Red<span class="op">,</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>                                           Green<span class="op">,</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>                                           Blue</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>   <span class="op">);</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>In use:</p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>Color color <span class="op">=</span> Color<span class="op">::</span>Red<span class="op">;</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer<span class="op">{};</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>write_json<span class="op">(</span>color<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>buffer <span class="op">==</span> <span class="st">&quot;</span><span class="sc">\&quot;</span><span class="st">Red</span><span class="sc">\&quot;</span><span class="st">&quot;</span><span class="op">);</span></span></code></pre></div>
+<h1 id="json-with-comments-jsonc">JSON With Comments (JSONC)</h1>
+<p>Comments are supported with the specification defined here: <a
+href="https://github.com/stephenberry/JSONC">JSONC</a></p>
+<p>Read support for comments is provided with
+<code>glz::read_jsonc</code> or
+<code>glz::read&lt;glz::opts{.comments = true}&gt;(...)</code>.</p>
+<h1 id="prettify-json">Prettify JSON</h1>
+<p>Formatted JSON can be written out directly via a compile time
+option:</p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>write<span class="op">&lt;</span>glz<span class="op">::</span>opts<span class="op">{.</span>prettify <span class="op">=</span> <span class="kw">true</span><span class="op">}&gt;(</span>obj<span class="op">,</span> buffer<span class="op">);</span></span></code></pre></div>
+<p>Or, JSON text can be formatted with the
+<code>glz::prettify_json</code> function:</p>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;i&quot;:287,&quot;d&quot;:3.14,&quot;hello&quot;:&quot;Hello World&quot;,&quot;arr&quot;:[1,2,3]}</span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> beautiful <span class="op">=</span> glz<span class="op">::</span>prettify_json<span class="op">(</span>buffer<span class="op">);</span></span></code></pre></div>
+<p><code>beautiful</code> is now:</p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;i&quot;</span><span class="fu">:</span> <span class="dv">287</span><span class="fu">,</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;d&quot;</span><span class="fu">:</span> <span class="fl">3.14</span><span class="fu">,</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;hello&quot;</span><span class="fu">:</span> <span class="st">&quot;Hello World&quot;</span><span class="fu">,</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>   <span class="dt">&quot;arr&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>      <span class="dv">1</span><span class="ot">,</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>      <span class="dv">2</span><span class="ot">,</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>      <span class="dv">3</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>   <span class="ot">]</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h1 id="minify-json">Minify JSON</h1>
+<p>To write minified JSON:</p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> buffer<span class="op">);</span> <span class="co">// default is minified</span></span></code></pre></div>
+<p>To minify JSON text call:</p>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string minified <span class="op">=</span> glz<span class="op">::</span>minify_json<span class="op">(</span>buffer<span class="op">);</span></span></code></pre></div>
+<h2 id="minified-json-reading">Minified JSON Reading</h2>
+<p>If you wish require minified JSON or know your input will always be
+minified, then you can gain a little more performance by using the
+compile time option <code>.minified = true</code>.</p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read<span class="op">&lt;</span>glz<span class="op">::</span>opts<span class="op">{.</span>minified <span class="op">=</span> <span class="kw">true</span><span class="op">}&gt;(</span>obj<span class="op">,</span> buffer<span class="op">);</span></span></code></pre></div>
+<h2 id="boolean-flags">Boolean Flags</h2>
+<p>Glaze supports registering a set of boolean flags that behave as an
+array of string options:</p>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">flags_t</span> <span class="op">{</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>   <span class="dt">bool</span> x<span class="op">{</span> <span class="kw">true</span> <span class="op">};</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">bool</span> y<span class="op">{};</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>   <span class="dt">bool</span> z<span class="op">{</span> <span class="kw">true</span> <span class="op">};</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span><span class="dt">flags_t</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> <span class="dt">flags_t</span><span class="op">;</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> flags<span class="op">(</span><span class="st">&quot;x&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>x<span class="op">,</span> <span class="st">&quot;y&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>y<span class="op">,</span> <span class="st">&quot;z&quot;</span><span class="op">,</span> <span class="op">&amp;</span>T<span class="op">::</span>z<span class="op">);</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>Example:</p>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="dt">flags_t</span> s<span class="op">{};</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>glz<span class="op">::</span>write_json<span class="op">(</span>s<span class="op">)</span> <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">[&quot;x&quot;,&quot;z&quot;]</span><span class="st">)&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Only <code>"x"</code> and <code>"z"</code> are written out, because
+they are true. Reading in the buffer will set the appropriate
+booleans.</p>
+<blockquote>
+<p>When writing BEVE, <code>flags</code> only use one bit per boolean
+(byte aligned).</p>
+</blockquote>
+<h2 id="logging-json">Logging JSON</h2>
+<p>Sometimes you just want to write out JSON structures on the fly as
+efficiently as possible. Glaze provides tuple-like structures that allow
+you to stack allocate structures to write out JSON with high speed.
+These structures are named <code>glz::obj</code> for objects and
+<code>glz::arr</code> for arrays.</p>
+<p>Below is an example of building an object, which also contains an
+array, and writing it out.</p>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> obj <span class="op">=</span> glz<span class="op">::</span>obj<span class="op">{</span><span class="st">&quot;pi&quot;</span><span class="op">,</span> <span class="fl">3.14</span><span class="op">,</span> <span class="st">&quot;happy&quot;</span><span class="op">,</span> <span class="kw">true</span><span class="op">,</span> <span class="st">&quot;name&quot;</span><span class="op">,</span> <span class="st">&quot;Stephen&quot;</span><span class="op">,</span> <span class="st">&quot;arr&quot;</span><span class="op">,</span> glz<span class="op">::</span>arr<span class="op">{</span><span class="st">&quot;Hello&quot;</span><span class="op">,</span> <span class="st">&quot;World&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">}};</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string s<span class="op">{};</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span><span class="kw">not</span> glz<span class="op">::</span>write_json<span class="op">(</span>obj<span class="op">,</span> s<span class="op">));</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>s <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;pi&quot;:3.14,&quot;happy&quot;:true,&quot;name&quot;:&quot;Stephen&quot;,&quot;arr&quot;:[&quot;Hello&quot;,&quot;World&quot;,2]}</span><span class="st">)&quot;</span><span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p>This approach is significantly faster than <code>glz::json_t</code>
+for generic JSON. But, may not be suitable for all contexts.</p>
+</blockquote>
+<h2 id="merge">Merge</h2>
+<p><code>glz::merge</code> allows the user to merge multiple JSON object
+types into a single object.</p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>obj o<span class="op">{</span><span class="st">&quot;pi&quot;</span><span class="op">,</span> <span class="fl">3.141</span><span class="op">};</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>map<span class="op">&lt;</span><span class="bu">std::</span>string_view<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span> map <span class="op">=</span> <span class="op">{{</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;b&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">},</span> <span class="op">{</span><span class="st">&quot;c&quot;</span><span class="op">,</span> <span class="dv">3</span><span class="op">}};</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> merged <span class="op">=</span> glz<span class="op">::</span>merge<span class="op">{</span>o<span class="op">,</span> map<span class="op">};</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string s<span class="op">{};</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>write_json<span class="op">(</span>merged<span class="op">,</span> s<span class="op">);</span> <span class="co">// will write out a single, merged object</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="co">// s is now: {&quot;pi&quot;:3.141,&quot;a&quot;:0,&quot;b&quot;:2,&quot;c&quot;:3}</span></span></code></pre></div>
+<blockquote>
+<p><code>glz::merge</code> stores references to lvalues to avoid
+copies</p>
+</blockquote>
+<h2 id="generic-json">Generic JSON</h2>
+<p>See <a href="./docs/generic-json.md">Generic JSON</a> for
+<code>glz::json_t</code>.</p>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span><span class="dt">json_t</span> json<span class="op">{};</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">[5,&quot;Hello World&quot;,{&quot;pi&quot;:3.14}]</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>read_json<span class="op">(</span>json<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="ot">assert</span><span class="op">(</span>json<span class="op">[</span><span class="dv">2</span><span class="op">][</span><span class="st">&quot;pi&quot;</span><span class="op">].</span>get<span class="op">&lt;</span><span class="dt">double</span><span class="op">&gt;()</span> <span class="op">==</span> <span class="fl">3.14</span><span class="op">);</span></span></code></pre></div>
+<h2 id="raw-buffer-performance">Raw Buffer Performance</h2>
+<p>Glaze is just about as fast writing to a <code>std::string</code> as
+it is writing to a raw char buffer. If you have sufficiently allocated
+space in your buffer you can write to the raw buffer, as shown below,
+but it is not recommended.</p>
+<pre><code>glz::read_json(obj, buffer);
+const auto n = glz::write_json(obj, buffer.data()).value_or(0);
+buffer.resize(n);</code></pre>
+<h2 id="compile-time-options">Compile Time Options</h2>
+<p>The <code>glz::opts</code> struct defines the default compile time
+options for reading/writing.</p>
+<p>Instead of calling <code>glz::read_json(...)</code>, you can call
+<code>glz::read&lt;glz::opts{}&gt;(...)</code> and customize the
+options.</p>
+<p>For example:
+<code>glz::read&lt;glz::opts{.error_on_unknown_keys = false}&gt;(...)</code>
+will turn off erroring on unknown keys and simple skip the items.</p>
+<p><code>glz::opts</code> can also switch between formats:</p>
+<ul>
+<li><code>glz::read&lt;glz::opts{.format = glz::BEVE}&gt;(...)</code>
+-&gt; <code>glz::read_beve(...)</code></li>
+<li><code>glz::read&lt;glz::opts{.format = glz::JSON}&gt;(...)</code>
+-&gt; <code>glz::read_json(...)</code></li>
+</ul>
+<blockquote>
+<p>[!IMPORTANT]</p>
+<p>Many options for Glaze are not part of <code>glz::opts</code>. This
+keeps compiler errors shorter and makes options more manageable. See <a
+href="./docs/options.md">Options</a> documentation for more details on
+available compile time options.</p>
+</blockquote>
+<h3 id="available-default-compile-time-options">Available Default
+Compile Time Options</h3>
+<p>The struct below shows the available options in
+<code>glz::opts</code> and the defaults. See <a
+href="./docs/options.md">Options</a> for additional options for user
+customization.</p>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> opts</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">// USER CONFIGURABLE</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint32_t</span> format <span class="op">=</span> JSON<span class="op">;</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> null_terminated <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Whether the input buffer is null terminated</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> comments <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Support reading in JSONC style comments</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> error_on_unknown_keys <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Error when an unknown key is encountered</span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> skip_null_members <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Skip writing out params in an object if the value is null</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> use_hash_comparison <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Will replace some string equality checks with hash checks</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> prettify <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Write out prettified JSON</span></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> minified <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Require minified input for JSON, which results in faster read performance</span></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">char</span> indentation_char <span class="op">=</span> <span class="ch">&#39; &#39;</span><span class="op">;</span> <span class="co">// Prettified JSON indentation char</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint8_t</span> indentation_width <span class="op">=</span> <span class="dv">3</span><span class="op">;</span> <span class="co">// Prettified JSON indentation size</span></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> new_lines_in_arrays <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Whether prettified arrays should have new lines for each element</span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> append_arrays <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// When reading into an array the data will be appended if the type supports it</span></span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> shrink_to_fit <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Shrinks dynamic containers to new size to save memory</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> write_type_info <span class="op">=</span> <span class="kw">true</span><span class="op">;</span> <span class="co">// Write type info for meta objects in variants</span></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> error_on_missing_keys <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Require all non nullable keys to be present in the object. Use</span></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>                                      <span class="co">// skip_null_members = false to require nullable members</span></span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> error_on_const_read <span class="op">=</span></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>     <span class="kw">false</span><span class="op">;</span> <span class="co">// Error if attempt is made to read into a const value, by default the value is skipped without error</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> bools_as_numbers <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Read and write booleans with 1&#39;s and 0&#39;s</span></span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> quoted_num <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// treat numbers as quoted or array-like types as having quoted numbers</span></span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> number <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// treats all types like std::string as numbers: read/write these quoted numbers</span></span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> raw <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// write out string like values without quotes</span></span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> raw_string <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// do not decode/encode escaped characters for strings (improves read/write performance)</span></span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> structs_as_arrays <span class="op">=</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Handle structs (reading/writing) without keys, which applies</span></span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-31"><a href="#cb46-31" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> partial_read <span class="op">=</span></span>
+<span id="cb46-32"><a href="#cb46-32" aria-hidden="true" tabindex="-1"></a>     <span class="kw">false</span><span class="op">;</span> <span class="co">// Reads into the deepest structural object and then exits without parsing the rest of the input</span></span>
+<span id="cb46-33"><a href="#cb46-33" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<blockquote>
+<p>Many of these compile time options have wrappers to apply the option
+to only a single field. See <a href="./docs/wrappers.md">Wrappers</a>
+for more details.</p>
+</blockquote>
+<h2 id="json-conformance">JSON Conformance</h2>
+<p>By default Glaze is strictly conformant with the latest JSON standard
+except in two cases with associated options:</p>
+<ul>
+<li><code>validate_skipped</code> This option does full JSON validation
+for skipped values when parsing. This is not set by default because
+values are typically skipped when the user is unconcerned with them, and
+Glaze still validates for major issues. But, this makes skipping faster
+by not caring if the skipped values are exactly JSON conformant. For
+example, by default Glaze will ensure skipped numbers have all valid
+numerical characters, but it will not validate for issues like leading
+zeros in skipped numbers unless <code>validate_skipped</code> is on.
+Wherever Glaze parses a value to be used it is fully validated.</li>
+<li><code>validate_trailing_whitespace</code> This option validates the
+trailing whitespace in a parsed document. Because Glaze parses C++
+structs, there is typically no need to continue parsing after the object
+of interest has been read. Turn on this option if you want to ensure
+that the rest of the document has valid whitespace, otherwise Glaze will
+just ignore the content after the content of interest has been
+parsed.</li>
+</ul>
+<blockquote>
+<p>[!NOTE]</p>
+<p>By default, Glaze does not unicode escape control characters
+(e.g. <code>"\x1f"</code> to <code>"\u001f"</code>), as this poses a
+risk of embedding null characters and other invisible characters in
+strings. The compile time option <code>escape_control_characters</code>
+is available for those who desire to write out control characters as
+escaped unicode in strings.</p>
+<div class="sourceCode" id="cb47"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Example options for enabling escape_control_characters</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> options <span class="op">:</span> glz<span class="op">::</span>opts <span class="op">{</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>   <span class="dt">bool</span> escape_control_characters <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+</blockquote>
+<h2 id="skip">Skip</h2>
+<p>It can be useful to acknowledge a keys existence in an object to
+prevent errors, and yet the value may not be needed or exist in C++.
+These cases are handled by registering a <code>glz::skip</code> type
+with the meta data.</p>
+<details>
+<summary>
+See example:
+</summary>
+<div class="sourceCode" id="cb48"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> S <span class="op">{</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> i<span class="op">{};</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>S<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span><span class="st">&quot;key_to_skip&quot;</span><span class="op">,</span> skip<span class="op">{},</span> <span class="op">&amp;</span>S<span class="op">::</span>i<span class="op">);</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb49"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string buffer <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{&quot;key_to_skip&quot;: [1,2,3], &quot;i&quot;: 7}</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>S s<span class="op">{};</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>glz<span class="op">::</span>read_json<span class="op">(</span>s<span class="op">,</span> buffer<span class="op">);</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="co">// The value [1,2,3] will be skipped</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>s<span class="op">.</span>i <span class="op">==</span> <span class="dv">7</span><span class="op">);</span> <span class="co">// only the value i will be read into</span></span></code></pre></div>
+</details>
+<h2 id="hide">Hide</h2>
+<p>Glaze is designed to help with building generic APIs. Sometimes a
+value needs to be exposed to the API, but it is not desirable to read in
+or write out the value in JSON. This is the use case for
+<code>glz::hide</code>.</p>
+<p><code>glz::hide</code> hides the value from JSON output while still
+allowing API (and JSON pointer) access.</p>
+<details>
+<summary>
+See example:
+</summary>
+<div class="sourceCode" id="cb50"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> hide_struct <span class="op">{</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> i <span class="op">=</span> <span class="dv">287</span><span class="op">;</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> d <span class="op">=</span> <span class="fl">3.14</span><span class="op">;</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string hello <span class="op">=</span> <span class="st">&quot;Hello World&quot;</span><span class="op">;</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>hide_struct<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>   <span class="kw">using</span> T <span class="op">=</span> hide_struct<span class="op">;</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(&amp;</span>T<span class="op">::</span>i<span class="op">,</span>  <span class="co">//</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>                                        <span class="op">&amp;</span>T<span class="op">::</span>d<span class="op">,</span> <span class="co">//</span></span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">&quot;hello&quot;</span><span class="op">,</span> hide<span class="op">{&amp;</span>T<span class="op">::</span>hello<span class="op">});</span></span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb51"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>hide_struct s<span class="op">{};</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> b <span class="op">=</span> glz<span class="op">::</span>write_json<span class="op">(</span>s<span class="op">);</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>expect<span class="op">(</span>b <span class="op">==</span> <span class="st">R&quot;(</span><span class="vs">{&quot;i&quot;:287,&quot;d&quot;:3.14}</span><span class="st">)&quot;</span><span class="op">);</span> <span class="co">// notice that &quot;hello&quot; is hidden from the output</span></span></code></pre></div>
+</details>
+<h2 id="quoted-numbers">Quoted Numbers</h2>
+<p>You can parse quoted JSON numbers directly to types like
+<code>double</code>, <code>int</code>, etc. by utilizing the
+<code>glz::quoted</code> wrapper.</p>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> A <span class="op">{</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>   <span class="dt">double</span> x<span class="op">;</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint32_t</span><span class="op">&gt;</span> y<span class="op">;</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> glz<span class="op">::</span>meta<span class="op">&lt;</span>A<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>   <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> value <span class="op">=</span> object<span class="op">(</span><span class="st">&quot;x&quot;</span><span class="op">,</span> glz<span class="op">::</span>quoted_num<span class="op">&lt;&amp;</span>A<span class="op">::</span>x<span class="op">&gt;,</span> <span class="st">&quot;y&quot;</span><span class="op">,</span> glz<span class="op">::</span>quoted_num<span class="op">&lt;&amp;</span>A<span class="op">::</span>y<span class="op">&gt;;</span></span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<div class="sourceCode" id="cb53"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;x&quot;</span><span class="fu">:</span> <span class="st">&quot;3.14&quot;</span><span class="fu">,</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;y&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;1&quot;</span><span class="ot">,</span> <span class="st">&quot;2&quot;</span><span class="ot">,</span> <span class="st">&quot;3&quot;</span><span class="ot">]</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The quoted JSON numbers will be parsed directly into the
+<code>double</code> and <code>std::vector&lt;uint32_t&gt;</code>. The
+<code>glz::quoted</code> function works for nested objects and arrays as
+well.</p>
+<h2 id="json-lines-ndjson-support">JSON Lines (NDJSON) Support</h2>
+<p>Glaze supports <a href="https://jsonlines.org">JSON Lines</a> (or
+Newline Delimited JSON) for array-like types
+(e.g. <code>std::vector</code> and <code>std::tuple</code>).</p>
+<div class="sourceCode" id="cb54"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;</span> x <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;Hello&quot;</span><span class="op">,</span> <span class="st">&quot;World&quot;</span><span class="op">,</span> <span class="st">&quot;Ice&quot;</span><span class="op">,</span> <span class="st">&quot;Cream&quot;</span> <span class="op">};</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string s <span class="op">=</span> glz<span class="op">::</span>write_ndjson<span class="op">(</span>x<span class="op">).</span>value_or<span class="op">(</span><span class="st">&quot;error&quot;</span><span class="op">);</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> ec <span class="op">=</span> glz<span class="op">::</span>read_ndjson<span class="op">(</span>x<span class="op">,</span> s<span class="op">);</span></span></code></pre></div>
+<h1 id="more-features">More Features</h1>
+<h3 id="data-recorder"><a href="./docs/recorder.md">Data
+Recorder</a></h3>
+<h3 id="command-line-interface-menu"><a
+href="./docs/cli-menu.md">Command Line Interface Menu</a></h3>
+<h3 id="jmespath"><a href="./docs/JMESPath.md">JMESPath</a></h3>
+<ul>
+<li>Querying JSON</li>
+</ul>
+<h3 id="json-include-system"><a href="./docs/json-include.md">JSON
+Include System</a></h3>
+<h3 id="json-pointer-syntax"><a
+href="./docs/json-pointer-syntax.md">JSON Pointer Syntax</a></h3>
+<h3 id="json-rpc-2.0"><a href="./docs/rpc/json-rpc.md">JSON-RPC
+2.0</a></h3>
+<h3 id="json-schema"><a href="./docs/json-schema.md">JSON
+Schema</a></h3>
+<h3 id="shared-library-api"><a href="./docs/glaze-interfaces.md">Shared
+Library API</a></h3>
+<h3 id="tagged-binary-messages"><a href="./docs/binary.md">Tagged Binary
+Messages</a></h3>
+<h3 id="thread-pool"><a href="./docs/thread-pool.md">Thread
+Pool</a></h3>
+<h3 id="time-trace-profiling"><a href="./docs/time-trace.md">Time Trace
+Profiling</a></h3>
+<ul>
+<li>Output performance profiles to JSON and visualize using <a
+href="https://ui.perfetto.dev">Perfetto</a></li>
+</ul>
+<h3 id="wrappers"><a href="./docs/wrappers.md">Wrappers</a></h3>
+<h1 id="extensions">Extensions</h1>
+<p>See the <code>ext</code> directory for extensions.</p>
+<ul>
+<li><a href="https://gitlab.com/libeigen/eigen">Eigen</a></li>
+<li><a href="./docs/rpc/json-rpc.md">JSON-RPC 2.0</a></li>
+<li><a href="./docs/cli-menu.md">Command Line Interface Menu
+(cli_menu)</a></li>
+</ul>
+<h1 id="license">License</h1>
+<p>Glaze is distributed under the MIT license with an exception for
+embedded forms:</p>
+<blockquote>
+<p>— Optional exception to the license —</p>
+<p>As an exception, if, as a result of your compiling your source code,
+portions of this Software are embedded into a machine-executable object
+form of such source code, you may redistribute such embedded portions in
+such object form without including the copyright and permission
+notices.</p>
+</blockquote>
