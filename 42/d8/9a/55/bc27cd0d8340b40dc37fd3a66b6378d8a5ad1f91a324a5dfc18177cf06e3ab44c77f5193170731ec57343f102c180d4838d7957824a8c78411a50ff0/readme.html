@@ -1,0 +1,126 @@
+<h1 id="boost.redis">Boost.Redis</h1>
+<p>Boost.Redis is a high-level <a href="https://redis.io/">Redis</a>
+client library built on top of <a
+href="https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html">Boost.Asio</a>
+that implements the Redis protocol <a
+href="https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md">RESP3</a>.</p>
+<p>Full documentation is <a
+href="https://www.boost.org/doc/libs/master/libs/redis/index.html">here</a>.</p>
+<h2 id="requirements">Requirements</h2>
+<p>The requirements for using Boost.Redis are:</p>
+<ul>
+<li>Boost 1.84 or higher. Boost.Redis is included in Boost installations
+since Boost 1.84.</li>
+<li>C++17 or higher. Supported compilers include gcc 11 and later, clang
+11 and later, and Visual Studio 16 (2019) and later.</li>
+<li>Redis 6 or higher (must support RESP3).</li>
+<li>OpenSSL.</li>
+</ul>
+<p>The documentation assumes basic-level knowledge about <a
+href="https://redis.io/docs/">Redis</a> and <a
+href="https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html">Boost.Asio</a>.</p>
+<h2 id="building-the-library">Building the library</h2>
+<p>To use the library it is necessary to include the following:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/redis/src.hpp&gt;</span></span></code></pre></div>
+<p>in exactly one source file in your applications. Otherwise, the
+library is header-only.</p>
+<p>Boost.Redis unconditionally requires OpenSSL. Targets using
+Boost.Redis need to link to the OpenSSL libraries.</p>
+<h2 id="tutorial">Tutorial</h2>
+<p>The code below uses a short-lived connection to <a
+href="https://redis.io/commands/ping/">ping</a> a Redis server:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/redis/connection.hpp&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/asio/co_spawn.hpp&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/asio/consign.hpp&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;boost/asio/detached.hpp&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> net <span class="op">=</span> <span class="ex">boost::</span>asio<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="ex">boost::</span>redis::request<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="ex">boost::</span>redis::response<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="ex">boost::</span>redis::config<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="ex">boost::</span>redis::connection<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> co_main<span class="op">(</span>config <span class="at">const</span><span class="op">&amp;</span> cfg<span class="op">)</span> <span class="op">-&gt;</span> net<span class="op">::</span>awaitable<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>   <span class="kw">auto</span> conn <span class="op">=</span> <span class="bu">std::</span>make_shared<span class="op">&lt;</span>connection<span class="op">&gt;(</span><span class="cf">co_await</span> net<span class="op">::</span>this_coro<span class="op">::</span>executor<span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>   conn<span class="op">-&gt;</span>async_run<span class="op">(</span>cfg<span class="op">,</span> <span class="op">{},</span> net<span class="op">::</span>consign<span class="op">(</span>net<span class="op">::</span>detached<span class="op">,</span> conn<span class="op">));</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>   <span class="co">// A request containing only a ping command.</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>   request req<span class="op">;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>   req<span class="op">.</span>push<span class="op">(</span><span class="st">&quot;PING&quot;</span><span class="op">,</span> <span class="st">&quot;Hello world&quot;</span><span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>   <span class="co">// Response object.</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>   response<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">&gt;</span> resp<span class="op">;</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>   <span class="co">// Executes the request.</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>   <span class="cf">co_await</span> conn<span class="op">-&gt;</span>async_exec<span class="op">(</span>req<span class="op">,</span> resp<span class="op">);</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>   conn<span class="op">-&gt;</span>cancel<span class="op">();</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>   <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;PING: &quot;</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>get<span class="op">&lt;</span><span class="dv">0</span><span class="op">&gt;(</span>resp<span class="op">).</span>value<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="bu">std::</span>endl<span class="op">;</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The roles played by the <code>async_run</code> and
+<code>async_exec</code> functions are:</p>
+<ul>
+<li><code>connection::async_exec</code>: executes the commands contained
+in the request and stores the individual responses in the response
+object. Can be called from multiple places in your code
+concurrently.</li>
+<li><code>connection::async_run</code>: keeps the connection healthy. It
+takes care of hostname resolution, session establishment, health-checks,
+reconnection and coordination of low-level read and write operations. It
+should be called only once per connection, regardless of the number of
+requests to execute.</li>
+</ul>
+<h2 id="server-pushes">Server pushes</h2>
+<p>Redis servers can also send a variety of pushes to the client. Some
+of them are:</p>
+<ul>
+<li><a href="https://redis.io/docs/manual/pubsub/">Pubsub
+messages</a>.</li>
+<li><a
+href="https://redis.io/docs/manual/keyspace-notifications/">Keyspace
+notifications</a>.</li>
+<li><a
+href="https://redis.io/docs/manual/client-side-caching/">Client-side
+caching</a>.</li>
+</ul>
+<p>The connection class supports server pushes by means of the
+<code>connection::async_receive</code> function, which can be called in
+the same connection that is being used to execute commands. The
+coroutine below shows how to use it:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>receiver<span class="op">(</span><span class="bu">std::</span>shared_ptr<span class="op">&lt;</span>connection<span class="op">&gt;</span> conn<span class="op">)</span> <span class="op">-&gt;</span> net<span class="op">::</span>awaitable<span class="op">&lt;</span><span class="dt">void</span><span class="op">&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>   request req<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>   req<span class="op">.</span>push<span class="op">(</span><span class="st">&quot;SUBSCRIBE&quot;</span><span class="op">,</span> <span class="st">&quot;channel&quot;</span><span class="op">);</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>   generic_response resp<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>   conn<span class="op">-&gt;</span>set_receive_response<span class="op">(</span>resp<span class="op">);</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>   <span class="co">// Loop while reconnection is enabled</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>   <span class="cf">while</span> <span class="op">(</span>conn<span class="op">-&gt;</span>will_reconnect<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Reconnect to channels.</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      <span class="cf">co_await</span> conn<span class="op">-&gt;</span>async_exec<span class="op">(</span>req<span class="op">,</span> ignore<span class="op">);</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Loop reading Redis pushes.</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> <span class="op">(;;)</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>         error_code ec<span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>         <span class="cf">co_await</span> conn<span class="op">-&gt;</span>async_receive<span class="op">(</span>resp<span class="op">,</span> net<span class="op">::</span>redirect_error<span class="op">(</span>net<span class="op">::</span>use_awaitable<span class="op">,</span> ec<span class="op">));</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span> <span class="op">(</span>ec<span class="op">)</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span><span class="op">;</span> <span class="co">// Connection lost, break so we can reconnect to channels.</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>         <span class="co">// Use the response resp in some way and then clear it.</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>         <span class="op">...</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>         consume_one<span class="op">(</span>resp<span class="op">);</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>   <span class="op">}</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="further-reading">Further reading</h2>
+<p>Full documentation is <a
+href="https://www.boost.org/doc/libs/master/libs/redis/index.html">here</a>.</p>
