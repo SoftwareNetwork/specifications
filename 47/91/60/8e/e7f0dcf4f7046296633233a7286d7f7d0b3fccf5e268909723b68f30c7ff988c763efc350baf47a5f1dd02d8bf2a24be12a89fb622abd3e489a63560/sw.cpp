@@ -52,7 +52,7 @@ void build(Solution &s)
     {
         auto &t = current_project->addTarget<LibraryTarget>(name);
 
-        t += cpp11;
+        t += cpp17;
 
         t.AllowEmptyRegexes = true;
 
@@ -170,6 +170,7 @@ void build(Solution &s)
         add_dispatch_file(core, "sum");
         add_dispatch_file(core, "merge");
         add_dispatch_file(core, "has_non_zero");
+        add_dispatch_file(core, "norm");
 
         core.writeFileOnce("opencv_data_config.hpp",
             "#define OPENCV_INSTALL_PREFIX \"\"\n"
