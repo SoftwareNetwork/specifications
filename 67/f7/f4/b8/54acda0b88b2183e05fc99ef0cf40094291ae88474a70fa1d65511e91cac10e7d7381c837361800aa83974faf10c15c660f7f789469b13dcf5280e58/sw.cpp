@@ -119,6 +119,18 @@ void build(Solution &s)
             t.add("src/core/lib/event_engine/cf_engine/dns_service_resolver.cc", ".mm");
         }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
+
+        t += "src/proto/.*\\.proto"_rr;
+        t -= "src/proto/grpc/.*\\.proto"_rr;
+        t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
+        ProtobufData d;
+        d.public_protobuf = true;
+        for (auto &[p, sf] : t["src/.*\\.proto"_rr])
+        {
+            if (sf->skip)
+                continue;
+            gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, t, p, d);
+        }
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -148,10 +160,9 @@ void build(Solution &s)
     {
         auto &t = proto;
         t += cppstd;
-        t += "src/proto/.*\\.proto"_rr;
+        t += "src/proto/grpc/.*\\.proto"_rr;
         t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t -= "src/proto/grpc/status/.*\\.proto"_rr;
-        t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
         t.Public += core;
         ProtobufData d;
         d.public_protobuf = true;

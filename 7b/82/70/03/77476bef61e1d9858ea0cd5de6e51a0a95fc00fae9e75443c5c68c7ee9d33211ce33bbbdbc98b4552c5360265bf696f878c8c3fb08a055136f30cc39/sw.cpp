@@ -115,6 +115,7 @@ void build(Solution &s)
             t += "Shell32.lib"_slib;
             t += "uuid.lib"_slib;
             t += "ws2_32.lib"_slib;
+            t += "PowrProf.lib"_slib;
         }
         else
         {

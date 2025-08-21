@@ -121,8 +121,7 @@ void build(Solution &s)
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
 
         t += "src/proto/.*\\.proto"_rr;
-        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
-        t -= "src/proto/grpc/status/.*\\.proto"_rr;
+        t -= "src/proto/grpc/.*\\.proto"_rr;
         t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
         ProtobufData d;
         d.public_protobuf = true;
@@ -130,8 +129,7 @@ void build(Solution &s)
         {
             if (sf->skip)
                 continue;
-            //gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
-            gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, "org.sw.demo.google.grpc.cpp.plugin-1.73"_dep, t, p, d);
+            gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, t, p, d);
         }
     }
 
@@ -156,6 +154,24 @@ void build(Solution &s)
         t += "src/compiler/proto_parser_helper.cc";
         t += grpc_plugin_support;
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
+    }
+
+    auto &proto = p.addStaticLibrary("proto");
+    {
+        auto &t = proto;
+        t += cppstd;
+        t += "src/proto/grpc/.*\\.proto"_rr;
+        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        t -= "src/proto/grpc/status/.*\\.proto"_rr;
+        t.Public += core;
+        ProtobufData d;
+        d.public_protobuf = true;
+        for (auto &[p, sf] : t["src/.*\\.proto"_rr])
+        {
+            if (sf->skip)
+                continue;
+            gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
+        }
     }
 
     auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
@@ -196,7 +212,7 @@ void build(Solution &s)
         t.Public += "."_id;
         t += "src/core/ext/upbdefs-gen"_id;
 
-        t.Public += core;
+        t.Public += proto;
         t.Public += grpc_address_sorting;
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.Cyan4973.xxHash"_dep;
@@ -217,6 +233,7 @@ void build(Solution &s)
         t.Public += "."_id;
 
         t.Public += core;
+        t.Public += proto;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
         (core_tsi + core_ext)->IncludeDirectoriesOnly = true;
     }
