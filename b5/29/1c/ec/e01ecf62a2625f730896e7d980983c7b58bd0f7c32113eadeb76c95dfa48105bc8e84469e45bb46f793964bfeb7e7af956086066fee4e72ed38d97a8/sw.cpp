@@ -117,6 +117,7 @@ void build(Solution &s)
         cairo.writeFileOnce("cairo-features.h");
         cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define access _access");
         cairo.deleteInFileOnce("src/cairo-compiler-private.h", "#define vsnprintf _vsnprintf");
+        cairo.patch("src/cairo-compiler-private.h", "#ifndef __GNUC__", "#if !defined(__GNUC__) && !defined (__clang__)");
         cairo.writeFileOnce(cairo.BinaryPrivateDir / "config.h");
         cairo.pushFrontToFileOnce("src/cairo-ft-font.c", "#include <wchar.h>");
 
