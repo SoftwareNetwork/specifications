@@ -53,6 +53,14 @@ void build(Solution &s)
         upb.patch("upb/upb/message/internal/message.c", "const double kUpb_NaN = NAN;", "//const  double kUpb_NaN = NAN;");
     }
 
+    auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
+    {
+        auto &t = grpc_address_sorting;
+        t += cppstd;
+        t += "third_party/address_sorting/.*\\.[hc]"_rr;
+        t.Public += "third_party/address_sorting/include"_idir;
+    }
+
     auto &proto_pb = p.addStaticLibrary("proto.pb");
     {
         auto &t = proto_pb;
@@ -116,8 +124,10 @@ void build(Solution &s)
         t.Public += "org.sw.demo.google.abseil"_dep;
         t.Public += "org.sw.demo.opentelemetry"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
+        t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += upb;
         t.Public += proto_pb;
+        t.Public += grpc_address_sorting;
         //t.Public += "org.sw.demo.google.protobuf.upb"_dep;
 
         t.patch("include/grpc/impl/codegen/port_platform.h",
@@ -163,7 +173,6 @@ void build(Solution &s)
         t += "src/compiler/proto_parser_helper.cc";
         t += grpc_plugin_support;
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
-        t += "org.sw.demo.c_ares"_dep;
     }
 
     auto &proto_grpc = p.addStaticLibrary("proto.grpc");
@@ -189,14 +198,6 @@ void build(Solution &s)
             d.plugin = std::make_shared<Dependency>(grpc_cpp_plugin);
             d.generate("org.sw.demo.google.protobuf.protoc"_dep, t);
         }
-    }
-
-    auto &grpc_address_sorting = p.addStaticLibrary("third_party.address_sorting");
-    {
-        auto &t = grpc_address_sorting;
-        t += cppstd;
-        t += "third_party/address_sorting/.*\\.[hc]"_rr;
-        t.Public += "third_party/address_sorting/include"_idir;
     }
 
     auto &core_plugin_registry = p.addStaticLibrary("core.plugin_registry");
@@ -230,10 +231,8 @@ void build(Solution &s)
         t += "src/core/ext/upbdefs-gen"_id;
 
         t.Public += proto_grpc;
-        t.Public += grpc_address_sorting;
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.Cyan4973.xxHash"_dep;
-        t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += "org.sw.demo.census.opencensus.cpp"_dep;
         (core + core_ext)->IncludeDirectoriesOnly = true;
         (core_plugin_registry + core_ext)->IncludeDirectoriesOnly = true;
