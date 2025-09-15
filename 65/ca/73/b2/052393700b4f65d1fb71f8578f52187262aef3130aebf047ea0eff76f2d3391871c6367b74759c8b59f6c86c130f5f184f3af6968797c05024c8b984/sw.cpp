@@ -53,6 +53,25 @@ void build(Solution &s)
         upb.patch("upb/upb/message/internal/message.c", "const double kUpb_NaN = NAN;", "//const  double kUpb_NaN = NAN;");
     }
 
+    auto &proto_pb = p.addStaticLibrary("proto.pb");
+    {
+        auto &t = proto_pb;
+        t += cppstd;
+        t += "src/proto/.*\\.proto"_rr;
+        //t -= "src/proto/grpc/.*\\.proto"_rr; // we gen for grpc as well
+        t -= "src/proto/grpc/testing/.*\\.proto"_rr;
+        t -= "src/proto/grpc/status/.*\\.proto"_rr;
+        t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
+        ProtobufData d;
+        d.public_protobuf = true;
+        for (auto &[p, sf] : t["src/.*\\.proto"_rr])
+        {
+            if (sf->skip)
+                continue;
+            gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, t, p, d);
+        }
+    }
+
     // core
     {
         auto &t = core;
@@ -98,6 +117,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.opentelemetry"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
         t.Public += upb;
+        t.Public += proto_pb;
         //t.Public += "org.sw.demo.google.protobuf.upb"_dep;
 
         t.patch("include/grpc/impl/codegen/port_platform.h",
@@ -120,17 +140,6 @@ void build(Solution &s)
         }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
 
-        t += "src/proto/.*\\.proto"_rr;
-        t -= "src/proto/grpc/.*\\.proto"_rr;
-        t += "src/core/ext/transport/chaotic_good/chaotic_good_frame.proto"_rr;
-        ProtobufData d;
-        d.public_protobuf = true;
-        for (auto &[p, sf] : t["src/.*\\.proto"_rr])
-        {
-            if (sf->skip)
-                continue;
-            gen_protobuf_cpp("org.sw.demo.google.protobuf"_dep, t, p, d);
-        }
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
@@ -156,21 +165,28 @@ void build(Solution &s)
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
     }
 
-    auto &proto = p.addStaticLibrary("proto");
+    auto &proto_grpc = p.addStaticLibrary("proto.grpc");
     {
-        auto &t = proto;
+        auto &t = proto_grpc;
         t += cppstd;
         t += "src/proto/grpc/.*\\.proto"_rr;
         t -= "src/proto/grpc/testing/.*\\.proto"_rr;
         t -= "src/proto/grpc/status/.*\\.proto"_rr;
         t.Public += core;
-        ProtobufData d;
-        d.public_protobuf = true;
+        ProtobufData data;
+        data.public_protobuf = true;
         for (auto &[p, sf] : t["src/.*\\.proto"_rr])
         {
             if (sf->skip)
                 continue;
-            gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, d);
+            //gen_grpc_cpp("org.sw.demo.google.protobuf"_dep, std::make_shared<Dependency>(grpc_cpp_plugin), t, p, data);
+
+            ProtocData d = data;
+            d.input = p;
+            d.generator = "grpc";
+            d.exts = {".grpc.pb.cc", ".grpc.pb.h"};
+            d.plugin = std::make_shared<Dependency>(grpc_cpp_plugin);
+            d.generate("org.sw.demo.google.protobuf.protoc"_dep, t);
         }
     }
 
@@ -212,7 +228,7 @@ void build(Solution &s)
         t.Public += "."_id;
         t += "src/core/ext/upbdefs-gen"_id;
 
-        t.Public += proto;
+        t.Public += proto_grpc;
         t.Public += grpc_address_sorting;
         t.Public += core_plugin_registry;
         t.Public += "org.sw.demo.Cyan4973.xxHash"_dep;
@@ -233,7 +249,7 @@ void build(Solution &s)
         t.Public += "."_id;
 
         t.Public += core;
-        t.Public += proto;
+        t.Public += proto_grpc;
         (core + core_tsi)->IncludeDirectoriesOnly = true;
         (core_tsi + core_ext)->IncludeDirectoriesOnly = true;
     }
