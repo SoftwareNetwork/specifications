@@ -163,6 +163,7 @@ void build(Solution &s)
         t += "src/compiler/proto_parser_helper.cc";
         t += grpc_plugin_support;
         t += "org.sw.demo.google.protobuf.protoc_lib"_dep;
+        t += "org.sw.demo.c_ares"_dep;
     }
 
     auto &proto_grpc = p.addStaticLibrary("proto.grpc");
