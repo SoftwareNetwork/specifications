@@ -82,8 +82,8 @@ void build(Solution &s)
     {
         c_ares -= "src/lib/ares_sysconfig_mac.c";
         c_ares.add("src/lib/ares_sysconfig_mac.c", ".m");
-        //c_ares -= "src/lib/ares_event_configchg.c";
-        //c_ares.add("src/lib/ares_event_configchg.c", ".m");
+        c_ares -= "src/lib/event/ares_event_configchg.c";
+        c_ares.add("src/lib/event/ares_event_configchg.c", ".m");
     }
 
     c_ares.Public += "include"_idir;
