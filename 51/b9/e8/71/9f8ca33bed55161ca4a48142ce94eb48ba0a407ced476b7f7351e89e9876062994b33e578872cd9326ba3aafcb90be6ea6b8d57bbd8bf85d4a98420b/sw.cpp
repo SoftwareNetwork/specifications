@@ -17,6 +17,6 @@ void build(Solution &s)
     add_repo("hopscotch-map", "2.2.1");
     add_repo("ordered-map", "0.8.1");
     add_repo("hat-trie", "0.6.0");
-    add_repo("sparse-map", "0.6.2");
+    add_repo("sparse-map", "0.7.0");
     add_repo("array-hash", "0.7.0");
 }
