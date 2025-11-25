@@ -180,6 +180,7 @@ void build(Solution &s)
         t += "Source/.*\\.[hc]x?x?"_r;
         t += "Source/.*\\.in"_r;
         t += "Source/.*\\.tcc"_r;
+        t += "Source/.*\\.def"_r;
         t += "Source/CTest/cmCTestTypes.h";
 
         t -= "Source/ctest.cxx";

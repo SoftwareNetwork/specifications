@@ -20,6 +20,11 @@ void build(Solution &s)
 
     t.Public += "org.sw.demo.biojppm.rapidyaml"_dep;
 
+    t.patch("sdk/src/configuration/ryml_document.cc",
+        "auto ryml_loc = parser_->location(node);",
+        "auto ryml_loc = node.location(*parser_);"
+    );
+
     auto &e = t.addStaticLibrary("exporters.ostream");
     e.setRootDirectory("exporters/ostream");
     e.Public += t;
