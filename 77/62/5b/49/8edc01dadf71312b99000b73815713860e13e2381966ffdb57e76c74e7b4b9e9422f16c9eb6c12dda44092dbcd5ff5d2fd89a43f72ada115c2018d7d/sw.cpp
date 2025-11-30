@@ -110,7 +110,8 @@ void build(Solution &s)
         //t -= "src/core/resolver/xds/.*"_rr;
         t += "src/core/load_balancing/.*"_rr;
         //t -= "src/core/load_balancing/xds/.*"_rr;
-        t -= "src/core/filter/fused_filters.cc";
+        t += "GRPC_NO_FILTER_FUSION"_def;
+        //t -= "src/core/filter/fused_filters.cc";
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
             //t.Public += "_WIN32_WINNT=0x0601"_def;
@@ -126,6 +127,7 @@ void build(Solution &s)
         t.Public += "org.sw.demo.google.abseil"_dep;
         t.Public += "org.sw.demo.opentelemetry"_dep;
         t.Public += "org.sw.demo.google.re2"_dep;
+        t.Public += "GRPC_ARES"_def;
         t.Public += "org.sw.demo.c_ares"_dep;
         t.Public += upb;
         t.Public += proto_pb;
@@ -208,6 +210,7 @@ void build(Solution &s)
         t += cppstd;
         t += "src/core/plugin_registry/.*"_rr;
 
+        t += "GRPC_NO_FILTER_FUSION"_def;
         t.Public += "."_id;
 
         t.Public += core;
