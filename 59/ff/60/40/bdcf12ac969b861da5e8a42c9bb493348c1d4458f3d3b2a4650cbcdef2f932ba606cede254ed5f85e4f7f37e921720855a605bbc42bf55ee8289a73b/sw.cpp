@@ -44,6 +44,7 @@ void build(Solution &s)
             "glib/gthread-win32.c",
             "glib/gnulib/isnan.c",
             "glib/gstdio-private.c",
+            "glib/gutilsprivate.c",
             //"glib/gwin32-private.c",
             "glib/.*helper.*"_rr
             ;
