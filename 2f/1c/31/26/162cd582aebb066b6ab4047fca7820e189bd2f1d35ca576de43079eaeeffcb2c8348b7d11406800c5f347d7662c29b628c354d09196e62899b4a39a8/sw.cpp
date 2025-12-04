@@ -979,6 +979,7 @@ void build(Solution &s)
 
         {"dup3", false},
         {"trivial_auto_var_init_pattern", false},
+        {"copy_file_range", false},
                 },
                 // defs
                 {
@@ -2165,7 +2166,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 core -= "io/qwindowspipereader.cpp";
                 core -= "io/qwindowspipewriter_p.h";
                 core -= "io/qwindowspipewriter.cpp";
-                core -= "kernel/qwinregistry.cpp";
+                core -= "kernel/qwinregistry.*"_rr;
             }
 
             core -= "kernel/qjniobject.cpp";
