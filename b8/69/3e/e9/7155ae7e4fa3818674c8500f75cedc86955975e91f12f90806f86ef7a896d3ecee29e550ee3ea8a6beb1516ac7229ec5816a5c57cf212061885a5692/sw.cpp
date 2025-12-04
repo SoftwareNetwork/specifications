@@ -976,6 +976,9 @@ void build(Solution &s)
 
         {"jemalloc", false},
         {"winsdkicu", false},
+
+        {"dup3", false},
+        {"trivial_auto_var_init_pattern", false},
                 },
                 // defs
                 {
@@ -1917,6 +1920,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/io/qstandardpaths_mac.mm"//,
                     //"src/corelib/io/qfilesystemengine_mac.mm"
                     ;
+                bootstrap["src/corelib/kernel/qcore_mac.mm"].args.push_back("-fobjc-weak");
             }
 
             if (bootstrap.getBuildSettings().TargetOS.Type == OSType::Windows) {
@@ -2428,6 +2432,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 core.add("io/qfilesystemengine_unix.cpp", ".mm"s);
                 if (auto f = core["io/qfilesystemengine_unix.cpp"].as<NativeSourceFile *>())
                     f->BuildAs = NativeSourceFile::ObjCpp;
+                core["kernel/qcore_mac.mm"].args.push_back("-fobjc-weak");
             }
             else
             {
