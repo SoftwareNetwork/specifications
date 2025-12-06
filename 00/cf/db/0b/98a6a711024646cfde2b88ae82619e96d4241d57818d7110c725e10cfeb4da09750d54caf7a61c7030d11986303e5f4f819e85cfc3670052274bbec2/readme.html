@@ -1,0 +1,179 @@
+<h1 id="debug-break">Debug Break</h1>
+<p><a
+href="https://github.com/scottt/debugbreak/blob/master/debugbreak.h">debugbreak.h</a>
+allows you to put breakpoints in your C/C++ code with a call to
+<strong>debug_break()</strong>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;debugbreak.h&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    debug_break<span class="op">();</span> <span class="co">/* will break into debugger */</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;hello world</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<ul>
+<li>Include one header file and insert calls to
+<code>debug_break()</code> in the code where you wish to break into the
+debugger.</li>
+<li>Supports GCC, Clang and MSVC.</li>
+<li>Works well on ARM, AArch64, i686, x86-64, POWER and has a fallback
+code path for other architectures.</li>
+<li>Works like the <strong>DebugBreak()</strong> fuction provided by <a
+href="http://msdn.microsoft.com/en-us/library/ea9yy3ey.aspx">Windows</a>
+and <a
+href="http://www.qnx.com/developers/docs/6.3.0SP3/neutrino/lib_ref/d/debugbreak.html">QNX</a>.</li>
+</ul>
+<p><strong>License</strong>: the very permissive <a
+href="https://github.com/scottt/debugbreak/blob/master/COPYING">2-Clause
+BSD</a>.</p>
+<p>Known Problem: if continuing execution after a debugbreak breakpoint
+hit doesn’t work (e.g. on ARM or POWER), see <a
+href="HOW-TO-USE-DEBUGBREAK-GDB-PY.md">HOW-TO-USE-DEBUGBREAK-GDB-PY.md</a>
+for a workaround.</p>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<p>The requirements for the <strong>debug_break()</strong> function are:
+* Act as a compiler code motion barrier * Don’t cause the compiler
+optimizers to think the code following it can be removed * Trigger a
+software breakpoint hit when executed (e.g. <strong>SIGTRAP</strong> on
+Linux) * GDB commands like <strong>continue</strong>,
+<strong>next</strong>, <strong>step</strong>, <strong>stepi</strong>
+must work after a <strong>debug_break()</strong> hit</p>
+<p>Ideally, both GCC and Clang would provide a **__builtin_debugtrap()**
+that satisfies the above on all architectures and operating systems.
+Unfortunately, that is not the case (yet). GCC’s <a
+href="http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftrap-3278">__builtin_trap()</a>
+causes the optimizers to think the code follwing can be removed (<a
+href="https://github.com/scottt/debugbreak/blob/master/test/trap.c">test/trap.c</a>):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    __builtin_trap<span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;hello world</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>compiles to:</p>
+<pre><code>main
+0x0000000000400390 &lt;+0&gt;:     0f 0b  ud2    </code></pre>
+<p>Notice how the call to <code>printf()</code> is not present in the
+assembly output.</p>
+<p>Further, on i386 / x86-64 **__builtin_trap()** generates an
+<strong>ud2</strong> instruction which triggers <strong>SIGILL</strong>
+instead of <strong>SIGTRAP</strong>. This makes it necessary to change
+GDB’s default behavior on <strong>SIGILL</strong> to not terminate the
+process being debugged:</p>
+<pre><code>(gdb) handle SIGILL stop nopass</code></pre>
+<p>Even after this, continuing execution in GDB doesn’t work well on
+some GCC, GDB combinations. See <a
+href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84595">GCC Bugzilla
+84595</a>.</p>
+<p>On ARM, **__builtin_trap()** generates a call to
+<strong>abort()</strong>, making it even less suitable.</p>
+<p><strong>debug_break()</strong> generates an <strong>int3</strong>
+instruction on i386 / x86-64 (<a
+href="https://github.com/scottt/debugbreak/blob/master/test/break.c">test/break.c</a>):</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;debugbreak.h&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    debug_break<span class="op">();</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;hello world</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">);</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>compiles to:</p>
+<pre><code>main
+0x00000000004003d0 &lt;+0&gt;:     50 push   %rax
+0x00000000004003d1 &lt;+1&gt;:     cc int3   
+0x00000000004003d2 &lt;+2&gt;:     bf a0 05 40 00 mov    $0x4005a0,%edi
+0x00000000004003d7 &lt;+7&gt;:     e8 d4 ff ff ff callq  0x4003b0 &lt;puts@plt&gt;
+0x00000000004003dc &lt;+12&gt;:    31 c0  xor    %eax,%eax
+0x00000000004003de &lt;+14&gt;:    5a pop    %rdx
+0x00000000004003df &lt;+15&gt;:    c3 retq   </code></pre>
+<p>which correctly trigges <strong>SIGTRAP</strong> and single-stepping
+in GDB after a <strong>debug_break()</strong> hit works well.</p>
+<p>Clang / LLVM also has a **__builtin_trap()** that generates
+<strong>ud2</strong> but further provides **__builtin_debugtrap()** that
+generates <strong>int3</strong> on i386 / x86-64 (<a
+href="http://lists.llvm.org/pipermail/llvm-commits/Week-of-Mon-20120507/142621.html">original
+LLVM intrinsic</a>, <a
+href="https://reviews.llvm.org/rL166300#96cef7d3">further fixes</a>, <a
+href="https://reviews.llvm.org/rL166298">Clang builtin support</a>).</p>
+<p>On ARM, <strong>debug_break()</strong> generates <strong>.inst
+0xe7f001f0</strong> in ARM mode and <strong>.inst 0xde01</strong> in
+Thumb mode which correctly triggers <strong>SIGTRAP</strong> on Linux.
+Unfortunately, stepping in GDB after a <strong>debug_break()</strong>
+hit doesn’t work and requires a workaround like:</p>
+<pre><code>(gdb) set $l = 2
+(gdb) tbreak *($pc + $l)
+(gdb) jump   *($pc + $l)
+(gdb) # Change $l from 2 to 4 for ARM mode</code></pre>
+<p>to jump over the instruction. A new GDB command,
+<strong>debugbreak-step</strong>, is defined in <a
+href="https://github.com/scottt/debugbreak/blob/master/debugbreak-gdb.py">debugbreak-gdb.py</a>
+to automate the above. See <a
+href="HOW-TO-USE-DEBUGBREAK-GDB-PY.md">HOW-TO-USE-DEBUGBREAK-GDB-PY.md</a>
+for sample usage.</p>
+<pre><code>$ arm-none-linux-gnueabi-gdb -x debugbreak-gdb.py test/break-c++
+&lt;...&gt;
+(gdb) run
+Program received signal SIGTRAP, Trace/breakpoint trap.
+main () at test/break-c++.cc:6
+6       debug_break();
+
+(gdb) debugbreak-step
+
+7       std::cout &lt;&lt; &quot;hello, world\n&quot;;</code></pre>
+<p>On AArch64, <strong>debug_break()</strong> generates <strong>.inst
+0xd4200000</strong>.</p>
+<p>See table below for the behavior of <strong>debug_break()</strong> on
+other architecturs.</p>
+<h2 id="behavior-on-different-architectures">Behavior on Different
+Architectures</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Architecture</th>
+<th>debug_break()</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>x86/x86-64</td>
+<td><code>int3</code></td>
+</tr>
+<tr class="even">
+<td>ARM mode, 32-bit</td>
+<td><code>.inst 0xe7f001f0</code></td>
+</tr>
+<tr class="odd">
+<td>Thumb mode, 32-bit</td>
+<td><code>.inst 0xde01</code></td>
+</tr>
+<tr class="even">
+<td>AArch64, ARMv8</td>
+<td><code>.inst 0xd4200000</code></td>
+</tr>
+<tr class="odd">
+<td>POWER</td>
+<td><code>.4byte 0x7d821008</code></td>
+</tr>
+<tr class="even">
+<td>RISC-V</td>
+<td><code>.4byte 0x00100073</code></td>
+</tr>
+<tr class="odd">
+<td>MSVC compiler</td>
+<td><code>__debugbreak</code></td>
+</tr>
+<tr class="even">
+<td>Apple compiler on AArch64</td>
+<td><code>__builtin_trap()</code></td>
+</tr>
+<tr class="odd">
+<td>Otherwise</td>
+<td><code>raise(SIGTRAP)</code></td>
+</tr>
+</tbody>
+</table>

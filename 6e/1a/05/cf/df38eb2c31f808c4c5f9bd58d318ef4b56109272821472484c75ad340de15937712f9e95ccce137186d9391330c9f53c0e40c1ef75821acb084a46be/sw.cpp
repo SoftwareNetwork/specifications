@@ -4,4 +4,5 @@ void build(Solution &s)
     c += Git("https://github.com/biojppm/c4core");
     c += cpp11;
     c.ApiName = "C4_API";
+    c.Public += "org.sw.demo.biojppm.debugbreak-master"_dep;
 }
