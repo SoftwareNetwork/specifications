@@ -1490,6 +1490,8 @@ void build(Solution &s)
             sentence = "Core5Compat";
         if (custom_name == "WaylandClient")
             sentence = "WaylandClient";
+        if (custom_name == "WaylandCompositor")
+            sentence = "WaylandCompositor";
         if (custom_name == "webenginecore")
             sentence = "WebEngineCore";
         if (custom_name == "qmlmodels")
@@ -1573,7 +1575,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
         t.Public += d;
     };
 
-    auto qt_syncqt = [&](auto &t, String name, auto &&sdir) {
+    auto qt_syncqt = [&](auto &t, String name, auto &&sdir, String private_headers_regex = ".+_p(ch)?\\.h"s) {
         if (t.DryRun) {
             return;
         }
@@ -1587,7 +1589,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
             << "-binaryDir" << t.BinaryDir
             << "-includeDir" << t.BinaryDir / name
             << "-privateIncludeDir" << t.BinaryDir / name / "private"
-            << "-privateHeadersFilter" << ".+_p(ch)?\\.h"
+            << "-privateHeadersFilter" << private_headers_regex
             << "-rhiIncludeDir" << t.BinaryDir
             << "-qpaIncludeDir" << t.BinaryDir
             << "-ssgIncludeDir" << t.BinaryDir
@@ -1595,10 +1597,9 @@ Q_IMPORT_PLUGIN()" + name + R"();
             << "-all"
             << cmd::end()
             << cmd::out(fn.c_str(), cmd::Skip)
-            //<< cmd::out("1.txt")
             ;
-        //t += "QtWaylandClient/qtwaylandclientglobal.h";
-        //c << cmd::out("1.txt");
+        t.Public += IncludeDirectory(t.BinaryDir / name); // not public?
+        t += IncludeDirectory(t.BinaryDir / name / "private");
     };
 
     // base
@@ -2128,6 +2129,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "src/3rdparty/rfc6234/.*\\.[hc]"_rr,
                 "src/3rdparty/sha1/sha1.cpp",
                 "src/3rdparty/sha3/.*"_rr,
+                "src/3rdparty/wayland/.*"_rr,
                 "src/3rdparty/tinycbor/src/.*"_rr
                 ;
             core -=
@@ -4514,6 +4516,49 @@ qt_qml_plugin_outro
                 << "--add-include=" + qtwaylandscanner_code_include + ""
                 << cmd::std_out(qtwaylandscanner_code_output);
         };
+        auto generate_wayland_protocol_server_sources = [&](auto &&t, const path &fn, auto &&dir, bool private_code) {
+            auto protocol_name = fn.stem().string();
+
+            auto waylandscanner_header_output = "wayland-" + protocol_name + "-server-protocol.h";
+            auto waylandscanner_code_output = "wayland-" + protocol_name + "-protocol.c";
+
+            auto qtwaylandscanner_header_output = "qwayland-server-" + protocol_name + ".h";
+            auto qtwaylandscanner_code_output = "qwayland-server-" + protocol_name + ".cpp";
+
+            path idir = dir;
+            auto qtwaylandscanner_code_include = "<QtWaylandClient/private/wayland-wayland-client-protocol.h>"s;
+
+            auto code_type = private_code ? "private-code" : "public-code";
+            t.addCommand()
+                << cmd::prog("wayland-scanner")
+                << "--include-core-only"
+                << "server-header"
+                << cmd::std_in(fn)
+                << cmd::std_out(idir / waylandscanner_header_output);
+            t.addCommand()
+                << cmd::prog("wayland-scanner")
+                << "--include-core-only"
+                << code_type
+                << cmd::std_in(fn)
+                << cmd::std_out(waylandscanner_code_output);
+
+            //auto build_macro = std::format("QT_BUILD_{module_define_infix}_LIB", );
+            t.addCommand()
+                << cmd::prog(qtwaylandscanner)
+                << "server-header"
+                << cmd::in(fn)
+                //<< "--build-macro=" + build_macro + ""
+                << "--header-path=" + idir.string() + ""
+                << cmd::std_out(idir / qtwaylandscanner_header_output);
+            t.addCommand()
+                << cmd::prog(qtwaylandscanner)
+                << "server-code"
+                << cmd::in(fn)
+                //<< "--build-macro=" + build_macro + ""
+                << "--header-path=" + idir.string() + ""
+                //<< "--add-include=" + qtwaylandscanner_code_include + ""
+                << cmd::std_out(qtwaylandscanner_code_output);
+        };
 
         auto &client = base.addLibrary("plugins.platforms.wayland");
         {
@@ -4578,17 +4623,111 @@ qt_qml_plugin_outro
             //client.Protected += IncludeDirectory{client.BinaryPrivateDir / "QtWaylandClient/private"};
         }
 
+        auto &compositor = wayland.addLibrary("compositor");
+        {
+            auto &t = compositor;
+            common_setup(t, "WaylandCompositor");
+
+            qt_syncqt(t, "QtWaylandCompositor", "src/compositor"
+                //, "^qwayland-.*\\.h|^wayland-.*-protocol\\.h"
+            );
+
+            t += "src/shared/.*"_rr;
+            t += "src/compositor/compat/.*"_rr;
+            t += "src/compositor/compositor_api/.*"_rr;
+            t += "src/compositor/extensions/.*"_rr;
+            t += "src/compositor/global/.*"_rr;
+            t += "src/compositor/hardware_integration/.*"_rr;
+            t += "src/compositor/wayland_wrapper/.*"_rr;
+
+            t.Public += "src/compositor"_idir;
+            t += "src/shared"_idir;
+
+            auto process_cmake_sources = [](auto &&op, path dir, auto &&sources) {
+                for (auto &&s : split_string(sources, "\n\t ")) op(dir / s);
+            };
+            process_cmake_sources([&](auto &&f){t -= f;}, "src/compositor",
+                R"(
+        compositor_api/qwaylandcompositorquickextensions.cpp compositor_api/qwaylandcompositorquickextensions_p.h
+        compositor_api/qwaylandmousetracker.cpp compositor_api/qwaylandmousetracker_p.h
+        compositor_api/qwaylandquickchildren.h
+        compositor_api/qwaylandquickcompositor.cpp compositor_api/qwaylandquickcompositor.h
+        compositor_api/qwaylandquickitem.cpp compositor_api/qwaylandquickitem.h compositor_api/qwaylandquickitem_p.h
+        compositor_api/qwaylandquickoutput.cpp compositor_api/qwaylandquickoutput.h
+        compositor_api/qwaylandquicksurface.cpp compositor_api/qwaylandquicksurface.h compositor_api/qwaylandquicksurface_p.h
+        extensions/qwaylandivisurfaceintegration.cpp extensions/qwaylandivisurfaceintegration_p.h
+        extensions/qwaylandquickshellintegration.cpp extensions/qwaylandquickshellintegration.h
+        extensions/qwaylandquickshellsurfaceitem.cpp extensions/qwaylandquickshellsurfaceitem.h extensions/qwaylandquickshellsurfaceitem_p.h
+        extensions/qwaylandquickxdgoutputv1.cpp extensions/qwaylandquickxdgoutputv1.h
+        extensions/qwaylandwlshellintegration.cpp extensions/qwaylandwlshellintegration_p.h
+        extensions/qwaylandxdgshellintegration.cpp extensions/qwaylandxdgshellintegration_p.h
+        extensions/qwaylandpresentationtime.cpp extensions/qwaylandpresentationtime_p.h extensions/qwaylandpresentationtime_p_p.h
+        global/qwaylandquickextension.cpp global/qwaylandquickextension.h
+
+        compositor_api/qwaylandquickhardwarelayer.cpp compositor_api/qwaylandquickhardwarelayer_p.h
+        extensions/qwltexturesharingextension.cpp extensions/qwltexturesharingextension_p.h
+                )"
+            );
+
+            auto mocs = automoc(moc, t);
+            //SW_QT_ADD_MOC_DEPS(t);
+
+            t.Public += client;
+            t.Public += opengl;
+            t.Public += "wayland-server"_slib;
+
+            auto f = [&](auto &&n) {
+                QtLibrary qt_wayland_desc{n};
+                qt_wayland_desc.config.public_.features.insert({"opengl", true});
+                qt_wayland_desc.config.public_.features.insert({"wayland_compositor_quick", false});
+                qt_wayland_desc.print(client);
+            };
+            f("QtWaylandCompositor");
+
+            auto gen = [](auto &&f) {
+
+            };
+            generate_wayland_protocol_server_sources(t, "src/3rdparty/protocol/ivi/ivi-application.xml", "QtWaylandCompositor/private", true);
+            if (!t.DryRun) {
+                for (auto &&f : {
+                    "idle-inhibit/idle-inhibit-unstable-v1.xml",
+                    "presentation-time/presentation-time.xml",
+                    "scaler/scaler.xml",
+                    "text-input/v2/text-input-unstable-v2.xml",
+                    "text-input/v3/text-input-unstable-v3.xml",
+                    "viewporter/viewporter.xml",
+                    "wayland/wayland.xml",
+                    "xdg-decoration/xdg-decoration-unstable-v1.xml",
+                    "xdg-output/xdg-output-unstable-v1.xml",
+                    "xdg-shell/xdg-shell.xml",
+                    "xdg-dialog/xdg-dialog-v1.xml",
+                }) {
+                    generate_wayland_protocol_server_sources(t, t.getFile(core, "src/3rdparty/wayland/protocols") / f, "QtWaylandCompositor/private", true);
+                }
+                for (auto &&f : {
+                    "hardware-integration.xml",
+                    "qt-text-input-method-unstable-v1.xml",
+                    "qt-texture-sharing-unstable-v1.xml",
+                    "qt-windowmanager.xml",
+                    "server-buffer-extension.xml",
+                }) {
+                    generate_wayland_protocol_server_sources(t, t.getFile(core, "src/3rdparty/wayland/extensions") / f, "QtWaylandCompositor/private", true);
+                }
+            }
+        }
+
         auto &hwi_egl = wayland.addLibrary("hardwareintegration.client.wayland.egl");
         {
             common_setup(hwi_egl);
             auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, hwi_egl, { "QtWaylandEglClientHwIntegration" });
 
             hwi_egl += "src/hardwareintegration/compositor/wayland-egl/.*"_rr;
-            hwi_egl.Public += client;
+            //hwi_egl.Public += client;
+            hwi_egl.Public += compositor;
             hwi_egl.Public += opengl;
 
             auto mocs = automoc(moc, hwi_egl);
-            SW_QT_ADD_MOC_DEPS(client);
+            //SW_QT_ADD_MOC_DEPS(hwi_egl);
 
             hwi_egl.Public += "wayland-egl"_slib;
         }
@@ -4611,10 +4750,10 @@ qt_qml_plugin_outro
             make_qt_plugin(adwaita, "QWaylandAdwaitaDecorationPlugin");
         }
 
-        auto &p_egl = wayland.addLibrary("plugins.hardwareintegration.client.wayland_egl");
+        auto &p_egl = client.addLibrary("plugins.hardwareintegration.wayland_egl");
         {
             common_setup(p_egl);
-            p_egl += "src/plugins/hardwareintegration/compositor/wayland-egl/.*"_rr;
+            p_egl += "src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/.*"_rr;
             automoc(moc, p_egl);
             p_egl.Public += hwi_egl;
             make_qt_plugin(p_egl, "QWaylandEglClientBufferPlugin");
@@ -4646,14 +4785,14 @@ qt_qml_plugin_outro
             automoc(moc, generic);
             generic.Public += client;
             make_qt_plugin(generic, "QWaylandIntegrationPlugin");
-        }
-        auto &egl = wayland.addLibrary("plugins.platforms.qwayland.egl");
+        }*/
+        /*auto &egl = client.addLibrary("plugins.hardwareintegration.wayland_egl");
         {
             common_setup(egl);
-            egl += "src/plugins/platforms/qwayland-egl/.*"_rr;
+            egl += "src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/.*"_rr;
             automoc(moc, egl);
             egl.Public += hwi_egl;
-            make_qt_plugin(egl, "QWaylandEglPlatformIntegrationPlugin");
+            make_qt_plugin(egl, "QWaylandEglClientBufferPlugin");
         }*/
     }
 
