@@ -1561,6 +1561,46 @@ Q_IMPORT_PLUGIN()" + name + R"();
         t.Interface += p;
     };
 
+    auto set_qt_version_macros = [](auto &t) {
+        Definition d;
+        d.d = "QT_VERSION_MAJOR=" + t.Variables["PACKAGE_VERSION_MAJOR"].toString();
+        t.Public += d;
+        d.d = "QT_VERSION_MINOR=" + t.Variables["PACKAGE_VERSION_MINOR"].toString();
+        t.Public += d;
+        d.d = "QT_VERSION_PATCH=" + t.Variables["PACKAGE_VERSION_PATCH"].toString();
+        t.Public += d;
+        d.d = "QT_VERSION_STR=\"" + t.getPackage().getVersion().toString() + "\"";
+        t.Public += d;
+    };
+
+    auto qt_syncqt = [&](auto &t, String name, auto &&sdir) {
+        if (t.DryRun) {
+            return;
+        }
+
+        auto lower = boost::to_lower_copy(name);
+        auto fn = name + "/"s + lower + "global.h";
+
+        auto c = t.addCommand();
+        c << cmd::prog(syncqt_target)
+            << "-sourceDir" << t.SourceDir / sdir
+            << "-binaryDir" << t.BinaryDir
+            << "-includeDir" << t.BinaryDir / name
+            << "-privateIncludeDir" << t.BinaryDir / name / "private"
+            << "-privateHeadersFilter" << ".+_p(ch)?\\.h"
+            << "-rhiIncludeDir" << t.BinaryDir
+            << "-qpaIncludeDir" << t.BinaryDir
+            << "-ssgIncludeDir" << t.BinaryDir
+            << "-module" << name
+            << "-all"
+            << cmd::end()
+            << cmd::out(fn.c_str(), cmd::Skip)
+            //<< cmd::out("1.txt")
+            ;
+        //t += "QtWaylandClient/qtwaylandclientglobal.h";
+        //c << cmd::out("1.txt");
+    };
+
     // base
     {
         auto &third_party = base.addDirectory("third_party");
@@ -1788,15 +1828,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     ;
             }
 
-            Definition d;
-            d.d = "QT_VERSION_MAJOR=" + bootstrap.Variables["PACKAGE_VERSION_MAJOR"].toString();
-            bootstrap.Public += d;
-            d.d = "QT_VERSION_MINOR=" + bootstrap.Variables["PACKAGE_VERSION_MINOR"].toString();
-            bootstrap.Public += d;
-            d.d = "QT_VERSION_PATCH=" + bootstrap.Variables["PACKAGE_VERSION_PATCH"].toString();
-            bootstrap.Public += d;
-            d.d = "QT_VERSION_STR=\"" + bootstrap.getPackage().getVersion().toString() + "\"";
-            bootstrap.Public += d;
+            set_qt_version_macros(bootstrap);
 
             //bootstrap += "QT_BUILD_BOOTSTRAP_LIB"_d;
             //bootstrap += "QT_BUILD_CORE_LIB"_d;
@@ -1962,6 +1994,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
         // syncqt_target
         {
             common_setup(syncqt_target);
+            set_qt_version_macros(syncqt_target);
             syncqt_target += "src/tools/syncqt/main.cpp";
         }
 
@@ -2201,15 +2234,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                 "global"_id;
             core += IncludeDirectory(core.SourceDir);
 
-            Definition d;
-            d.d = "QT_VERSION_MAJOR=" + core.Variables["PACKAGE_VERSION_MAJOR"].toString();
-            core.Public += d;
-            d.d = "QT_VERSION_MINOR=" + core.Variables["PACKAGE_VERSION_MINOR"].toString();
-            core.Public += d;
-            d.d = "QT_VERSION_PATCH=" + core.Variables["PACKAGE_VERSION_PATCH"].toString();
-            core.Public += d;
-            d.d = "QT_VERSION_STR=\"" + core.getPackage().getVersion().toString() + "\"";
-            core.Public += d;
+            set_qt_version_macros(core);
 
             core.Interface += sw::Shared, "QT_NO_VERSION_TAGGING"_d;
             core.Public += "QT_COMPILER_SUPPORTS_SIMD_ALWAYS"_d;
@@ -2534,6 +2559,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             gui -= "rhi/qrhivulkan.*"_rr;
             gui -= "rhi/qrhimetal.*"_rr;
             gui -= "rhi/qrhid3.*"_rr;
+            gui -= "vulkan.*"_rr;
             if (gui.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                 //gui += "accessible/windows/.*"_rr;
@@ -4440,12 +4466,12 @@ qt_qml_plugin_outro
 
     auto &wayland = add_subproject<Project>(qt, "wayland");
     {
-        /*auto &scanner = wayland.addExecutable("scanner");
+        auto &qtwaylandscanner = base_tools.addExecutable("scanner");
         {
-            common_setup(scanner);
-            scanner += "src/qtwaylandscanner/qtwaylandscanner.cpp";
-            scanner += core;
-        }*/
+            common_setup(qtwaylandscanner);
+            qtwaylandscanner += "src/tools/qtwaylandscanner/qtwaylandscanner.cpp";
+            qtwaylandscanner += core;
+        }
 
         auto generate_wayland_protocol_client_sources = [&](auto &&t, const path &fn, auto &&dir) {
             auto protocol_name = fn.stem().string();
@@ -4474,40 +4500,46 @@ qt_qml_plugin_outro
                 << cmd::std_in(fn)
                 << cmd::std_out(waylandscanner_code_output);
 
-            /*t.addCommand()
-                << cmd::prog(scanner)
+            t.addCommand()
+                << cmd::prog(qtwaylandscanner)
                 << "client-header"
                 << cmd::in(fn)
                 << idir
                 << cmd::std_out(idir / qtwaylandscanner_header_output);
             t.addCommand()
-                << cmd::prog(scanner)
+                << cmd::prog(qtwaylandscanner)
                 << "client-code"
                 << cmd::in(fn)
                 << "--header-path=" + idir.string() + ""
                 << "--add-include=" + qtwaylandscanner_code_include + ""
-                << cmd::std_out(qtwaylandscanner_code_output);*/
+                << cmd::std_out(qtwaylandscanner_code_output);
         };
 
-        auto &client = wayland.addLibrary("client");
+        auto &client = base.addLibrary("plugins.platforms.wayland");
         {
             common_setup(client, "WaylandClient");
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, client, { "QtWaylandClient" });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, client, { "QtWaylandClient" });
 
-            client += "src/shared/.*"_rr;
-            client += "src/client/.*"_rr;
-            //client -= "src/client/qwaylandvulkan.*"_rr;
+            qt_syncqt(client, "QtWaylandClient", "src/plugins/platforms/wayland");
 
-            client += "src/client"_idir;
-            client += "src/shared"_idir;
-            client += "src/plugins/hardwareintegration"_idir; // without plugins?
-            //client += "src/client/inputdeviceintegration"_idir;
-            client += "src/plugins/shellintegration"_idir;
-            client.Protected += "src"_idir;
+            client += "src/plugins/platforms/wayland/global/.*"_rr;
+            client += "src/plugins/platforms/wayland/hardwareintegration/.*"_rr;
+            client += "src/plugins/platforms/wayland/inputdeviceintegration/.*"_rr;
+            client += "src/plugins/platforms/wayland/shellintegration/.*"_rr;
+            client += "src/plugins/platforms/wayland/shared/.*"_rr;
+            client += "src/plugins/platforms/wayland/.*"_r;
+            client -= "src/plugins/platforms/wayland/qwaylandvulkan.*"_rr;
+
+            client += "src/plugins/platforms/wayland"_idir;
+            client += "src/plugins/platforms/wayland/shared"_idir;
+            client += "src/plugins/platforms/wayland/plugins/hardwareintegration"_idir; // without plugins?
+            //client += "client/inputdeviceintegration"_idir;
+            client += "src/plugins/platforms/wayland/plugins/shellintegration"_idir;
+            client.Protected += "src/plugins/platforms/wayland"_idir;
 
             //client -= "src/client/qwaylandtextinputv4.cpp";
-            client -= "src/3rdparty/protocol/.*xml"_rr;
-            client -= "src/extensions/.*xml"_rr;
+            client -= "src/3rdparty/wayland/protocols/.*xml"_rr;
+            client -= "src/3rdparty/wayland/extensions/.*xml"_rr;
 
             client.Public += gui;
 
@@ -4515,7 +4547,7 @@ qt_qml_plugin_outro
             client.Public += "wayland-cursor"_slib;
 
             auto mocs = automoc(moc, client);
-            SW_QT_ADD_MOC_DEPS(client);
+            //SW_QT_ADD_MOC_DEPS(client);
 
             auto f = [&](auto &&n) {
                 QtLibrary qt_wayland_desc{n};
@@ -4527,17 +4559,19 @@ qt_qml_plugin_outro
                 qt_wayland_desc.config.public_.features.insert({"wayland_datadevice", true});
                 qt_wayland_desc.config.public_.features.insert({"wayland_client_primary_selection", true});
                 qt_wayland_desc.config.public_.features.insert({"draganddrop", true});
+                qt_wayland_desc.config.public_.features.insert({"wayland_egl", true});
+                qt_wayland_desc.config.public_.features.insert({"wayland_brcm", false});
                 //qt_wayland_desc.config.public_.features.insert({"xkbcommon", true});
                 qt_wayland_desc.print(client);
             };
             f("QtWaylandClient");
             f("QtWaylandGlobal");
 
-            for (auto &&[f,_] : client["src/3rdparty/protocol/.*xml"_rr]) {
+            for (auto &&[f,_] : client["src/3rdparty/wayland/protocols/.*xml"_rr]) {
                 generate_wayland_protocol_client_sources(client, f, "QtWaylandClient/private");
                 generate_wayland_protocol_client_sources(client, f, "");
             }
-            for (auto &&[f,_] : client["src/extensions/.*xml"_rr]) {
+            for (auto &&[f,_] : client["src/3rdparty/wayland/extensions/.*xml"_rr]) {
                 generate_wayland_protocol_client_sources(client, f, "QtWaylandClient/private");
                 generate_wayland_protocol_client_sources(client, f, "");
             }
@@ -4559,6 +4593,15 @@ qt_qml_plugin_outro
             hwi_egl.Public += "wayland-egl"_slib;
         }
 
+        auto &bradient = client.addLibrary("plugins.decorations.bradient");
+        {
+            common_setup(bradient);
+            bradient += "src/plugins/platforms/wayland/plugins/decorations/bradient/.*"_rr;
+            automoc(moc, bradient);
+            bradient.Public += client;
+            make_qt_plugin(bradient, "QWaylandBradientDecorationPlugin");
+        }
+
         auto &adwaita = wayland.addLibrary("plugins.decorations.adwaita");
         {
             common_setup(adwaita);
@@ -4577,23 +4620,26 @@ qt_qml_plugin_outro
             make_qt_plugin(p_egl, "QWaylandEglClientBufferPlugin");
         }
 
-        /*auto &xdg = wayland.addLibrary("plugins.shellintegration.xdg");
+        auto &xdg = client.addLibrary("plugins.shellintegration.xdg");
         {
             common_setup(xdg);
-            xdg += "src/plugins/shellintegration/xdg-shell/.*"_rr;
+            xdg += "src/plugins/platforms/wayland/plugins/shellintegration/xdg-shell/.*"_rr;
             automoc(moc, xdg);
             xdg.Public += client;
 
             for (auto &&f : {
-                "src/3rdparty/protocol/xdg-decoration/xdg-decoration-unstable-v1.xml",
-                "src/3rdparty/protocol/xdg-shell/xdg-shell.xml",
-                //"src/3rdparty/protocol/xdg-shell/xdg-shell-unstable-v6.xml",
+                "src/3rdparty/wayland/protocols/xdg-decoration/xdg-decoration-unstable-v1.xml",
+                "src/3rdparty/wayland/protocols/xdg-shell/xdg-shell.xml",
+                "src/3rdparty/wayland/protocols/xdg-activation/xdg-activation-v1.xml",
+                "src/3rdparty/wayland/protocols/xdg-foreign/xdg-foreign-unstable-v2.xml",
+                "src/3rdparty/wayland/protocols/xdg-dialog/xdg-dialog-v1.xml",
+                "src/3rdparty/wayland/protocols/xdg-toplevel-icon/xdg-toplevel-icon-v1.xml",
             }) {
                 generate_wayland_protocol_client_sources(xdg, f, ".");
             }
             make_qt_plugin(xdg, "QWaylandXdgShellIntegrationPlugin");
         }
-        auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
+        /*auto &generic = wayland.addLibrary("plugins.platforms.qwayland.generic");
         {
             common_setup(generic);
             generic += "src/plugins/platforms/qwayland-generic/.*"_rr;
