@@ -40,6 +40,7 @@ void build(Solution &s)
         t += "apps"_idir;
 
         t += "third_party/fast_float/.*"_rr;
+        t += "third_party/libdivide/.*"_rr;
 
         t += "GDAL_COMPILATION"_def;
         t.Public += "CPL_INTERNAL="_def;
