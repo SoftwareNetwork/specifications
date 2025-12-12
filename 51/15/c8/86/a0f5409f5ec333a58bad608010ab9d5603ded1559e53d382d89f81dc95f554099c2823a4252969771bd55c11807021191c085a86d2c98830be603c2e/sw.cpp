@@ -143,6 +143,7 @@ void build(Solution &s)
         file2string("src/xml/wt.xml", "Wt_xml");
         file2string("src/xml/auth_strings.xml", "AuthStrings_xml");
         file2string("src/xml/bootstrap_theme.xml", "BootstrapTheme_xml");
+        file2string("src/xml/bootstrap2_theme.xml", "Bootstrap2Theme_xml");
         file2string("src/xml/bootstrap3_theme.xml", "Bootstrap3Theme_xml");
         file2string("src/xml/bootstrap5_theme.xml", "Bootstrap5Theme_xml");
         file2string("src/xml/auth_css_theme.xml", "AuthCssTheme_xml");
@@ -157,6 +158,8 @@ void build(Solution &s)
         wt.Variables["WT_THREADED"] = "1";
 
         wt.Variables["WT_ANY_IS_STD_ANY"] = 1;
+        wt.Variables["WT_FILESYSTEM_IMPL_STD"] = 1;
+        wt.Variables["WT_FILESYSTEM_IMPL_STD_CLOCK_17"] = 1;
         wt.Variables["WT_DATE_TZ_USE_DATE"] = 1;
 
         wt.Variables["VERSION_SERIES"] = wt.Variables["PACKAGE_VERSION_MAJOR"];
