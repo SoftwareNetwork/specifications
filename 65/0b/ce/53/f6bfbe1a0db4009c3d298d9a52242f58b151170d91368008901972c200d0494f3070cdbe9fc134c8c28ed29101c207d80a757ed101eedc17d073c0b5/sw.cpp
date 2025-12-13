@@ -525,7 +525,8 @@ HMODULE glib_dll;
         }
 
         // special library to init gobject/glib on windows with static linking
-        auto &wi = gobject.addStaticLibrary("wininit");
+        // not needed anymore?
+        /*auto &wi = gobject.addStaticLibrary("wininit");
         {
             wi.AutoDetectOptions = false;
             wi.WholeArchive = true;
@@ -544,7 +545,7 @@ static SW_GOBJECT_INITIALIZER ___________SW_GOBJECT_INITIALIZER;
             )
         {
             gobject += wi;
-        }
+        }*/
     }
 
     auto &gmodule = p.addTarget<LibraryTarget>("gmodule");
