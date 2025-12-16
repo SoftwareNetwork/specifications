@@ -1,0 +1,183 @@
+<h1 id="charconv">CharConv</h1>
+<p>This library is a C++11 compatible implementation of
+<code>&lt;charconv&gt;</code>. The full documentation can be found here:
+https://www.boost.org/doc/libs/master/libs/charconv/doc/html/charconv.html</p>
+<h1 id="build-status">Build Status</h1>
+<table>
+<colgroup>
+<col style="width: 4%" />
+<col style="width: 48%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr>
+<th></th>
+<th>Master</th>
+<th>Develop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Github Actions</td>
+<td><a
+href="https://github.com/boostorg/charconv/actions/workflows/ci.yml"><img
+src="https://github.com/boostorg/charconv/actions/workflows/ci.yml/badge.svg?branch=master"
+alt="CI" /></a></td>
+<td><a
+href="https://github.com/boostorg/charconv/actions/workflows/ci.yml"><img
+src="https://github.com/boostorg/charconv/workflows/CI/badge.svg?branch=develop"
+alt="Build Status" /></a></td>
+</tr>
+<tr>
+<td>Drone</td>
+<td><a href="https://drone.cpp.al/boostorg/charconv"><img
+src="https://drone.cpp.al/api/badges/boostorg/charconv/status.svg?ref=refs/heads/master"
+alt="Build Status" /></a></td>
+<td><a href="https://drone.cpp.al/boostorg/charconv"><img
+src="https://drone.cpp.al/api/badges/boostorg/charconv/status.svg?ref=refs/heads/develop"
+alt="Build Status" /></a></td>
+</tr>
+<tr>
+<td>Codecov</td>
+<td><a href="https://codecov.io/gh/boostorg/charconv/branch/master"><img
+src="https://codecov.io/gh/boostorg/charconv/branch/master/graph/badge.svg"
+alt="codecov" /></a></td>
+<td><a
+href="https://codecov.io/gh/boostorg/charconv/branch/develop"><img
+src="https://codecov.io/gh/boostorg/charconv/branch/develop/graph/badge.svg"
+alt="codecov" /></a></td>
+</tr>
+<tr>
+<td>Fuzzing</td>
+<td><a
+href="https://github.com/boostorg/charconv/actions/workflows/fuzz.yml"><img
+src="https://github.com/boostorg/charconv/actions/workflows/fuzz.yml/badge.svg?branch=master"
+alt="Fuzz" /></a></td>
+<td><a
+href="https://github.com/boostorg/charconv/actions/workflows/fuzz.yml"><img
+src="https://github.com/boostorg/charconv/actions/workflows/fuzz.yml/badge.svg"
+alt="Fuzz" /></a></td>
+</tr>
+</tbody>
+</table>
+<h1 id="how-to-build-the-library">How to build the library</h1>
+<h2 id="b2">B2</h2>
+<pre><code>git clone https://github.com/boostorg/boost
+cd boost
+git submodule update --init
+cd ..
+./bootstrap
+./b2 cxxstd=11</code></pre>
+<p>This sets up a complete boost development and allows the tests to be
+run. To install the development environment run:</p>
+<pre><code>sudo ./b2 install cxxstd=11</code></pre>
+<h1 id="synopsis">Synopsis</h1>
+<p>Charconv is a collection of parsing functions that are
+locale-independent, non-allocating, and non-throwing.</p>
+<pre><code>namespace boost { namespace charconv {
+
+enum class chars_format : unsigned
+{
+    scientific = 1 &lt;&lt; 0,
+    fixed = 1 &lt;&lt; 1,
+    hex = 1 &lt;&lt; 2,
+    general = fixed | scientific
+};
+
+struct from_chars_result
+{
+    const char* ptr;
+    std::errc ec;
+
+    friend constexpr bool operator==(const from_chars_result&amp; lhs, const from_chars_result&amp; rhs) noexcept
+    friend constexpr bool operator!=(const from_chars_result&amp; lhs, const from_chars_result&amp; rhs) noexcept
+    constexpr explicit operator bool() const noexcept
+}
+
+template &lt;typename Integral&gt;
+BOOST_CXX14_CONSTEXPR from_chars_result from_chars(const char* first, const char* last, Integral&amp; value, int base = 10) noexcept;
+
+BOOST_CXX14_CONSTEXPR from_chars_result from_chars&lt;bool&gt;(const char* first, const char* last, bool&amp; value, int base) = delete;
+
+template &lt;typename Real&gt;
+from_chars_result from_chars(const char* first, const char* last, Real&amp; value, chars_format fmt = chars_format::general) noexcept;
+
+template &lt;typename Real&gt;
+from_chars_result from_chars_erange(const char* first, const char* last, Real&amp; value, chars_format fmt = chars_format::general) noexcept;
+
+struct to_chars_result
+{
+    char* ptr;
+    std::errc ec;
+
+    friend constexpr bool operator==(const to_chars_result&amp; lhs, const to_chars_result&amp; rhs) noexcept;
+    friend constexpr bool operator!=(const to_chars_result&amp; lhs, const to_chars_result&amp; rhs) noexcept;
+    constexpr explicit operator bool() const noexcept
+};
+
+template &lt;typename Integral&gt;
+BOOST_CHARCONV_CONSTEXPR to_chars_result to_chars(char* first, char* last, Integral value, int base = 10) noexcept;
+
+template &lt;typename Integral&gt;
+BOOST_CHARCONV_CONSTEXPR to_chars_result to_chars&lt;bool&gt;(char* first, char* last, Integral value, int base) noexcept = delete;
+
+template &lt;typename Real&gt;
+to_chars_result to_chars(char* first, char* last, Real value, chars_format fmt = chars_format::general, int precision) noexcept;
+
+}} // Namespace boost::charconv</code></pre>
+<h2 id="notes">Notes</h2>
+<ul>
+<li><p><code>BOOST_CXX14_CONSTEXPR</code> is defined as
+<code>constexpr</code> when compiling with C++14 or newer.</p></li>
+<li><p><code>BOOST_CHARCONV_CONSTEXPR</code> is defined as
+<code>constexpr</code> when compiling with C++14 or newer, and the
+compiler has <code>__builtin_is_constant_evaluated</code></p></li>
+<li><p>For explanation of <code>from_chars_erange</code> see docs under
+heading: <em>Usage notes for from_chars for floating point
+types</em></p></li>
+</ul>
+<h1 id="examples">Examples</h1>
+<h2 id="from_chars"><code>from_chars</code></h2>
+<pre><code>const char* buffer = &quot;42&quot;;
+int v = 0;
+from_chars_result r = boost::charconv::from_chars(buffer, buffer + std::strlen(buffer), v);
+assert(r.ec == std::errc());
+assert(r); // Equivalent to the above
+assert(v == 42);
+
+const char* buffer = &quot;1.2345&quot;
+double v = 0;
+auto r = boost::charconv::from_chars(buffer, buffer + std::strlen(buffer), v);
+assert(r.ec == std::errc());
+assert(v == 1.2345);
+
+const char* buffer = &quot;2a&quot;;
+unsigned v = 0;
+auto r = boost::charconv::from_chars(buffer, buffer + std::strlen(buffer), v, 16);
+assert(r); // from_chars_result has operator bool()
+assert(v == 42);
+
+const char* buffer = &quot;1.3a2bp-10&quot;;
+double v = 0;
+auto r = boost::charconv::from_chars(buffer, buffer + std::strlen(buffer), v, boost::charconv::chars_format::hex);
+assert(r);
+assert(v == 8.0427e-18);</code></pre>
+<h2 id="to_chars"><code>to_chars</code></h2>
+<pre><code>char buffer[64] {};
+int v = 42;
+to_chars_result r = boost::charconv::to_chars(buffer, buffer + sizeof(buffer), v);
+assert(r.ec == std::errc());
+assert(!strcmp(buffer, &quot;42&quot;)); // strcmp returns 0 on match
+
+char buffer[64] {};
+double v = 1e300;
+to_chars_result r = boost::charconv::to_chars(buffer, buffer + sizeof(buffer), v);
+assert(r.ec == std::errc());
+assert(!strcmp(buffer, &quot;1e+300&quot;));
+
+char buffer[64] {};
+int v = 42;
+to_chars_result r = boost::charconv::to_chars(buffer, buffer + sizeof(buffer), v, 16);
+assert(r); // to_chars_result has operator bool()
+assert(!strcmp(buffer, &quot;2a&quot;)); // strcmp returns 0 on match
+</code></pre>
