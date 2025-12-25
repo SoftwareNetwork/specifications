@@ -6,5 +6,5 @@ void build(Solution &s)
     t += "include/.*"_rr;
     t.Public += "sol2.natvis";
 
-    t.Public += "org.sw.demo.lua"_dep;
+    t.Public += "org.sw.demo.lua-5.4"_dep;
 }
