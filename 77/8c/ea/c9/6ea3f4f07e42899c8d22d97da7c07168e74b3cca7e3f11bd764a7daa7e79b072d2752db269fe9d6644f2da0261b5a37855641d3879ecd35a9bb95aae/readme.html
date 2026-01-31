@@ -1,0 +1,876 @@
+<p><img src="docs/images/json_link_logo_128.png" alt="logo image" /> #
+JSON Link v3</p>
+<h2 id="content">Content</h2>
+<ul>
+<li><a href="#intro">Intro</a></li>
+<li><a href="#default-mapping-of-types">Default Mapping of
+Types</a></li>
+<li><a href="https://beached.github.io/daw_json_link/">API
+Documentation</a> - Member mapping classes and methods</li>
+<li><a href="docs/cookbook/readme.md">Cookbook</a> Get cooking and
+putting it all together
+<ul>
+<li><a href="docs/cookbook/mapping_overview.md">Mapping
+Overview</a></li>
+<li><a href="docs/cookbook/aliases.md">Aliases</a></li>
+<li><a href="docs/cookbook/array.md">Arrays</a></li>
+<li><a href="docs/cookbook/class.md">Classes</a></li>
+<li><a href="docs/cookbook/class_from_array.md">Classes from Array/JSON
+Tuples</a></li>
+<li><a href="docs/cookbook/dates.md">Dates</a></li>
+<li><a href="docs/cookbook/enums.md">Enums</a></li>
+<li><a href="docs/cookbook/graphs.md">Graphs</a></li>
+<li><a href="docs/cookbook/inserting_extracting_raw_json.md">Inserting
+and Extracting Raw JSON</a></li>
+<li><a href="docs/cookbook/json_lines.md">JSON Lines/NDJSON</a></li>
+<li><a href="docs/cookbook/json_schema.md">JSON Schema Output</a></li>
+<li><a href="docs/cookbook/key_values.md">Key Values</a> - Map and
+Dictionary like things</li>
+<li><a href="docs/cookbook/mapping_deduction.md">Mapping
+Deduction</a></li>
+<li><a href="docs/cookbook/member_options.md">Member Options</a> -
+Options for the parse mappings</li>
+<li><a href="docs/cookbook/nullable_value_concept.md">Nullable
+Concept</a> - Trait for mapping Option/Nullable types used in
+deduction</li>
+<li><a href="docs/cookbook/json_nullable.md">Nullable JSON
+Values</a></li>
+<li><a href="docs/cookbook/numbers.md">Numbers</a></li>
+<li><a href="docs/cookbook/output_options.md">Output Options</a> -
+Options for serialization</li>
+<li><a href="docs/cookbook/parser_policies.md">Parser Options</a> -
+Options for parsing</li>
+<li><a href="docs/cookbook/parsing_individual_members.md">Parsing
+Individual Members</a></li>
+<li><a href="docs/cookbook/strings.md">Strings</a></li>
+<li><a href="docs/cookbook/unknown_types_and_raw_parsing.md">Unknown
+JSON and Raw Parsing</a> - Browsing the JSON Document and delaying of
+parsing of specified members</li>
+<li><a href="docs/cookbook/variant.md">Variant</a></li>
+<li><a href="docs/cookbook/automated_code_generation.md">Automatic Code
+Generation</a></li>
+</ul></li>
+<li><a href="#intro">Intro</a></li>
+<li><a href="#installingusing">Installing/Using</a></li>
+<li><a href="#performance-considerations">Performance
+considerations</a></li>
+<li><a href="#benchmarks">Benchmarks</a></li>
+<li><a href="#escapingunescaping-of-member-names">Escaping/Unescaping of
+member names</a></li>
+<li><a href="#differences-between-c17-and-c20">Differences between C++17
+and C++20</a>
+<ul>
+<li><a href="#naming-of-json-members">C++ 17 Naming of members</a></li>
+<li><a href="#c-20-naming-of-json-members">C++ 20 Naming of
+members</a></li>
+</ul></li>
+<li><a href="#using-mapped-data-types">Using data types</a></li>
+<li><a href="#error-handling">Error Handling</a></li>
+<li><a href="#parsing-call">Parsing call</a></li>
+<li><a href="#global">Global</a></li>
+<li><a href="#deserializingparsing">Deserializing/Parsing</a></li>
+<li><a href="#member-paths">Member Paths</a></li>
+<li><a href="#serialization">Serialization</a></li>
+<li><a href="#build-configuration-points">Build Configuration
+Points</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#for-building-tests">For building tests</a></li>
+<li><a href="#limitations">Limitations</a></li>
+</ul>
+<h2 id="intro">Intro</h2>
+<h6 id="top"><a href="#content">Top</a></h6>
+<p>The JSON Link library is a high performance, no allocation, C++ JSON
+Library supporting: * Direct parsing of JSON to your own data structures
+via simple declarative mappings * Earlier error reporting of unexpected
+data and errors * Low memory requirement, parser requires a small amount
+of stack but does not allocate itself. * Optimizations based on data
+types * Does not require owning the mapped types and is not
+intrusive</p>
+<p>The library supports other parsing modes that can be mixed too. *
+Direct parsing into data structures * A lazy(PULL) JSON dom parser that
+allows for exploration of the document and selective parsing * A
+SAX(PUSH) event based parser for tasks like minimization * For large
+JSON array documents, one can use the <code>json_array_iterator</code>
+or <code>json_array_range</code> types. * For dynamic situations, a
+<code>json_value</code> type that allows iteration/lazy parsing of
+document</p>
+<p>Some other notable features are: * Support for JSON
+tuple(heterogeneous arrays) and variant/tagged variant like mappings. *
+Automatic mapping of Containers, including the Map based Associative
+Structures * Able to parse to/from other numeric types like
+<code>boost::multiprecision::cpp_int</code> or GNU BigNum/Rational
+<code>mpq_t</code> * Optional Comment support * Trailing comma support *
+JSON Lines/NDJSON support with a thread partitioning helper * JSON
+Schema output support * Easy integration with reflection like libraries
+e.g <a
+href="https://github.com/beached/daw_json_link_describe">Boost.Describe
+Support</a> * JSON Path support * Minified and optional formatted
+output</p>
+<p>The library is using the <a href="LICENSE">BSL</a> license</p>
+<p>When the structure of the JSON document is known, parsing is like the
+following:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>MyThing thing <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>from_json<span class="op">&lt;</span>MyThing<span class="op">&gt;(</span> json_string <span class="op">);</span></span></code></pre></div>
+<p>or for array documents, where the root of the document is an array,
+there is a helper method to make it easier, and it can be parsed like
+the following:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>MyThing<span class="op">&gt;</span> things <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>from_json_array<span class="op">&lt;</span>MyThing<span class="op">&gt;(</span> json_string2 <span class="op">);</span></span></code></pre></div>
+<p>If the structure of the JSON document is unknown, one can construct a
+<code>json_value</code> that acts as a view and allows iteration and
+pull parsing on demand. The following is an example of opening a
+<code>json_value</code> from JSON data:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>json_value val <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>json_value<span class="op">(</span> json_string <span class="op">);</span></span></code></pre></div>
+<p>The <code>from_json</code> and <code>to_json</code> methods allow
+access most of the parsing and serializing needs.</p>
+<p>The event based parser(SAX) can be called via
+<code>daw::json::json_event_parser</code>. It takes two arguments, a
+json document and an event handler. The event handler can opt into
+events by having any of the following members: * handle_on_value *
+handle_on_array_start * handle_on_array_end * handle_on_class_start *
+handle_on_class_end * handle_on_number * handle_on_bool *
+handle_on_string * handle_on_null * handle_on_error</p>
+<h2 id="code-examples">Code Examples</h2>
+<ul>
+<li>The <a href="docs/cookbook/readme.md">Cookbook</a> section has
+pre-canned tasks and working code examples</li>
+<li><a href="tests">Tests</a> provide another source of working code
+samples.</li>
+<li>Some video walkthroughs:
+<ul>
+<li><a href="https://youtu.be/iiRDn0CR_sU">Making a config
+parser</a></li>
+<li><a href="https://www.youtube.com/watch?v=mhlrYvd1qso">I Like
+BigInt’s</a></li>
+</ul></li>
+<li>Links to other examples
+<ul>
+<li><a
+href="https://github.com/beached/daw_json_link_config_parser">Parsing a
+Config File</a></li>
+<li><a
+href="https://github.com/beached/daw_json_link_bigint_mp_numbers">Parsing
+BigInt/Multiprecision Numbers</a></li>
+</ul></li>
+<li>Small samples below</li>
+</ul>
+<p>Mapping of your classes to JSON documents is done by specializing the
+trait <code>daw::json::json_data_contract</code>. A class that is mapped
+does not need to be mapped again if it is a member of another mapped
+class. There are two parts to the trait <code>json_data_contract</code>,
+first is a type alias named <code>type</code> that maps the JSON members
+to our class’s constructor. This gets around needing private access to
+the class, assuming that data we would serialize would also be needed to
+construct the class. For example:
+<code>c++ struct Thing {   int a;   int b; };</code> The construct for
+<code>Thing</code> requires 2 integers and if we had the following
+JSON:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;a&quot;</span><span class="fu">:</span> <span class="dv">42</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;b&quot;</span><span class="fu">:</span> <span class="dv">1234</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>We could do the mapping like the following:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>Thing<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;a&quot;</span><span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;b&quot;</span><span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>a<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>b<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This says that the JSON class, in the document, will have at least
+two members “a”, and “b” that will be numbers that are integers. They
+will be passed to the constructor of <code>Thing</code> when
+<code>daw::json::from_json&lt;Thing&gt;( json_doc );</code> is called,
+or that another class has a
+<code>json_class&lt;MemberName, Thing&gt;</code> member mapping. The
+above is the C++17 mapping method for the names, it works in future C++
+versions too. But, in C++20 and later the names can be inline in the
+mapping e.g. <code>json_number&lt;"a", int&gt;</code>. The above is all
+that is needed for parsing JSON, for serializing a static member
+function is needed in the trait. Taking the previous example and
+extending it we could serialize <code>Thing</code> with:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>Thing<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;a&quot;</span><span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;b&quot;</span><span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>a<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>b<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">static</span> <span class="kw">auto</span> to_json_data<span class="op">(</span> Thing <span class="at">const</span> <span class="op">&amp;</span> v <span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple<span class="op">(</span> v<span class="op">.</span>a<span class="op">,</span> v<span class="op">.</span>b <span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The ordering of the members returned as a tuple need to match the
+mapping in the type alias <code>type</code>. This allows for passing the
+result of accessor methods too, if the data members are not public.
+Also, the class <code>Thing</code> must be constructible from
+<code>int, int</code>. The library supports both regular constructors
+and aggregate init ( <code>Thing{ int, int }</code> and
+<code>Thing( int, int )</code> ) in C++17. * Note: The return type of
+<code>to_json_data</code> does not have to return a tuple of references
+to the existing object members, but can return calculated values too. It
+does not allow rvalues through as they are often temporaries, and it can
+result in long distance debugging. The library will static_assert on
+this and suggest including <code>&lt;daw/daw_tuple_forward.h&gt;</code>
+and calling <code>daw::forward_nonrvalue_as_tuple( ... )</code> which
+store temporaries and forward other reference types.</p>
+<p>The parsers work by constructing each argument in place in the call
+to the class’s constructor. The individual argument parsers can be tuned
+for the specified circumstances of the data(e.g. floating point and
+integral numbers). Then with our type trait defining the arguments
+needed to construct the C++ class and their order we are able to look at
+each member in the JSON. Now we construct the value with the result of
+each parser; similar to
+<code>T{ parse&lt;0, json_string&lt;"name"&gt;&gt;( data ), parse&lt;1, json_number&lt;"age", unsigned&gt;&gt;( data ), parse&lt;json_number&lt;2, "number&gt;&gt;( data )}</code>.
+For each member, the data stream will be moved forward until we find the
+member we need to parse, storing interested locations for later parsing.
+This process allows us to parse other classes as members too via the
+<code>json_class&lt;"member_name", Type&gt;</code> mapping type. So that
+each mapping trait only has to deal with its specific members and not
+their details. <img src="docs/images/parse_flow.jpg"
+alt="general parsing flow" /></p>
+<h2 id="default-mapping-of-types">Default mapping of types</h2>
+<h6 id="top-1"><a href="#content">Top</a></h6>
+<p>In unnamed contexts, such as the root value, array elements, some key
+value types, and variant element lists where the name would be
+<code>no_name</code>, one can use some native C++ data types instead of
+the JSON mapping types. This includes, integer, floating point, bool,
+std::string, std::string_view, associative containers, sequence
+containers, Nullable/Optional like types and previously mapped
+classes.</p>
+<p>For example, to map an array of string’s.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> daw<span class="op">::</span>json<span class="op">::</span>json_data_contract<span class="op">&lt;</span>MyType<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span>json_array<span class="op">&lt;</span><span class="st">&quot;member_name&quot;</span><span class="op">,</span> <span class="bu">std::</span>string<span class="op">&gt;&gt;;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<h2 id="installingusing">Installing/Using</h2>
+<h6 id="top-2"><a href="#content">Top</a></h6>
+<h3 id="vcpkg">vcpkg</h3>
+<p>One can use <a href="https://github.com/microsoft/vcpkg/">vcpkg</a>
+to grab the latest release, the port is called
+<code>daw-json-link</code></p>
+<h3 id="using-in-cmake">Using in cmake</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>( daw-json-link )</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#...</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>( <span class="bn">MyTarget</span> <span class="bn">daw::daw-json-link</span> )</span></code></pre></div>
+<h3 id="as-header-only">As header only</h3>
+<p>The library is header only and can be cloned, along with it’s two
+dependencies, followed by adding the <code>include/</code> subfolders of
+each to the compiler’s include path</p>
+<h3 id="including-in-cmake-project-via-fetchcontent">Including in cmake
+project via FetchContent</h3>
+<p>To use daw_json_link in your cmake projects, adding the following
+should allow it to pull it in along with the dependencies:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">include</span>( <span class="im">FetchContent</span> )</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_Declare</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  daw_json_link</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_REPOSITORY</span> https://github.com/beached/daw_json_link</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">GIT_TAG</span> release</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">FetchContent_MakeAvailable</span>(daw_json_link)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#...</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>( <span class="bn">MyTarget</span> <span class="bn">daw::daw-json-link</span> )</span></code></pre></div>
+<h3 id="installing">Installing</h3>
+<p>On a system with bash, it is similar on other systems too, the
+following can install for the system</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/beached/daw_json_link</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> daw_json_link</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> ..</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--install</span> . </span></code></pre></div>
+<p>This will allow for a cmake find_package install or using it as a
+regular header as long as the install prefix’s include folder is
+included in the include paths of the compiler</p>
+<h3 id="testing">Testing</h3>
+<p>The following will build and run the tests.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/beached/daw_json_link</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> daw_json_link</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DDAW_ENABLE_TESTING</span><span class="op">=</span>On ..</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">--build</span> . </span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">ctest</span> .</span></code></pre></div>
+<p>After the build there the individual examples can be tested too.
+<code>city_test_bin</code> requires the path to the cities JSON
+file.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./tests/city_test_bin</span> ../test_data/cities.json</span></code></pre></div>
+<h2 id="performance-considerations">Performance considerations</h2>
+<h6 id="top-3"><a href="#content">Top</a></h6>
+<p>The order of the members in the data structures should generally
+match that of the JSON data, if possible. The parser is faster if it
+doesn’t have to back track for values. Optional values, when missing in
+the JSON data, can slow down the parsing too. If possible have them sent
+as null. The parser does not allocate. The parsed to data types may and
+this allows one to use custom allocators or a mix as their data
+structures will do the allocation. The defaults for arrays is to use the
+std::vector<T> and if this isn’t desirable, you must supply the
+type.</p>
+<h3 id="benchmarks">Benchmarks</h3>
+<ul>
+<li><a href="docs/kostya_benchmark_results.md">Kostya results</a> using
+<a href="tests/src/test_dawjsonlink.cpp">test_dawjsonlink.cpp</a> See <a
+href="https://github.com/kostya/benchmarks#json">Kostya Benchmarks</a>
+for latest results.</li>
+</ul>
+<figure>
+<img src="docs/images/kostya_bench_chart_2021_04_03.png"
+alt="chart describing Kostya benchmark results" />
+<figcaption aria-hidden="true">chart describing Kostya benchmark
+results</figcaption>
+</figure>
+<h2 id="escapingunescaping-of-member-names">Escaping/Unescaping of
+member names</h2>
+<h6 id="top-4"><a href="#content">Top</a></h6>
+<p>The library, currently, does not unescape/escape member names when
+serializing, they are expected to be valid and unescaped. This may be a
+future optional addition, as it does have a cost.</p>
+<h2 id="differences-between-c17-and-c20">Differences between C++17 and
+C++20</h2>
+<h6 id="top-5"><a href="#content">Top</a></h6>
+<p>There are slight differences between C++17 and C++20 where C++20
+allows for some code not available in C++17.</p>
+<h1 id="naming-of-json-members">Naming of JSON members</h1>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>MyType<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> member_name<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;memberName&quot;</span><span class="op">;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span>json_number<span class="op">&lt;</span>member_name<span class="op">&gt;&gt;;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Both versions of C++ support this method for naming members.</p>
+<h1 id="c-20-naming-of-json-members">C++ 20 Naming of JSON members</h1>
+<p>When compiled within C++20 compiler, in addition to passing a
+<code>char const *</code> as in C++17, the member names can be specified
+as string literals directly. C++20 compiler support is still really
+early and here be dragons. There are known issues with g++9.x in C++20
+mode, and it’s only tested with g++10/11. Here be dragons</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>MyType<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span>json_number<span class="op">&lt;</span><span class="st">&quot;member_name&quot;</span><span class="op">&gt;&gt;;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="using-mapped-data-types">Using mapped data types</h1>
+<h6 id="top-6"><a href="#content">Top</a></h6>
+<p>Once a data type has been mapped with a
+<code>json_data_contract</code>, the library provides methods to parse
+JSON to them</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>MyClass my_class <span class="op">=</span> from_json<span class="op">&lt;</span>MyClass<span class="op">&gt;(</span> json_str <span class="op">);</span></span></code></pre></div>
+<p>Alternatively, if the input is trusted, the less checked version can
+be faster</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>MyClass my_class <span class="op">=</span> from_json<span class="op">&lt;</span>MyClass<span class="op">,</span> options<span class="op">::</span>parse_flags<span class="op">&lt;</span>options<span class="op">::</span>CheckedParseMode<span class="op">::</span>no<span class="op">&gt;&gt;(</span> json_str <span class="op">);</span></span></code></pre></div>
+<p>JSON documents with array root’s use the <code>from_json_array</code>
+function to parse</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>MyClass<span class="op">&gt;</span> my_data <span class="op">=</span> from_json_array<span class="op">&lt;</span>MyClass<span class="op">&gt;(</span> json_str <span class="op">);</span></span></code></pre></div>
+<p>Alternatively, if the input is trusted, the less checked version can
+be faster</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>MyClass<span class="op">&gt;</span> my_data <span class="op">=</span> from_json_array<span class="op">&lt;</span>MyClass<span class="op">,</span> <span class="bu">std::</span>vector<span class="op">&lt;</span>MyClass<span class="op">&gt;,</span> options<span class="op">::</span>parse_flags<span class="op">&lt;</span>options<span class="op">::</span>CheckedParseMode<span class="op">::</span>no<span class="op">&gt;&gt;(</span> json_str <span class="op">);</span></span></code></pre></div>
+<h3 id="json_array_iterator"><code>json_array_iterator</code></h3>
+<p>If you want to work from JSON array data you can get an iterator and
+use the std algorithms to Iterating over array’s in JSON data can be
+done via the <code>json_array_iterator</code></p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="dt">iterator_t</span> <span class="op">=</span> json_array_iterator<span class="op">&lt;</span>MyClass<span class="op">&gt;;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> pos <span class="op">=</span> <span class="bu">std::</span>find<span class="op">(</span> <span class="dt">iterator_t</span><span class="op">(</span> json_str <span class="op">),</span> <span class="dt">iterator_t</span><span class="op">(</span> <span class="op">),</span> MyClass<span class="op">(</span> <span class="op">...</span> <span class="op">)</span> <span class="op">);</span></span></code></pre></div>
+<p>Alternatively, if the input is trusted you can call the less checked
+version</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="dt">iterator_t</span> <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>json_array_iterator<span class="op">&lt;</span>MyClass<span class="op">,</span> options<span class="op">::</span>CheckedParseMode<span class="op">::</span>no<span class="op">&gt;;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> pos <span class="op">=</span> <span class="bu">std::</span>find<span class="op">(</span> <span class="dt">iterator_t</span><span class="op">(</span> json_str <span class="op">),</span> <span class="dt">iterator_t</span><span class="op">(</span> <span class="op">),</span> MyClass<span class="op">(</span> <span class="op">...</span> <span class="op">)</span> <span class="op">);</span></span></code></pre></div>
+<h3 id="json_value"><code>json_value</code></h3>
+<p>For a DOM like api, often used for things like GUI’s and providing
+code when the mappings are inadequate, one can use
+<code>json_value</code>. This is used in the <a
+href="https://github.com/beached/json_to_cpp">json_to_cpp</a> tool.</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">auto</span> jv <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>json_value<span class="op">(</span> json_doc <span class="op">);</span></span></code></pre></div>
+<p>One can use a JSON Path to extract an integer</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> foo <span class="op">=</span> as<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span> jv<span class="op">[</span><span class="st">&quot;path.to.int&quot;</span><span class="op">]</span> <span class="op">);</span></span></code></pre></div>
+<p>Here, <code>"path.to.int"</code> is a JSON Path that represents
+drilling into a JSON class like</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;int&quot;</span><span class="fu">:</span> <span class="dv">5</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>One can, also, select via an array like syntax in the JSON path too,
+<code>"path[5]"</code> would select the 5th element/member of
+<code>"path"</code>. If you want to serialize to JSON. The JSON Path
+syntax works with <code>from_json</code>, <code>from_json_array</code>,
+and <code>json_array_iterator</code> too.</p>
+<h3 id="to_json"><code>to_json</code></h3>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string my_json_data <span class="op">=</span> to_json<span class="op">(</span> MyClass<span class="op">{}</span> <span class="op">);</span></span></code></pre></div>
+<p>Or serialize an array, collection, range, or view of things. Only
+requires <code>std::begin(...)</code> and <code>std::end(...)</code> to
+work for the type. This allows serialization when the type isn’t a
+constructible collection of things.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>MyClass<span class="op">&gt;</span> arry <span class="op">=</span> <span class="op">...;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string my_json_data <span class="op">=</span> to_json_array<span class="op">(</span> arry <span class="op">);</span></span></code></pre></div>
+<h1 id="error-handling">Error Handling</h1>
+<h2 id="exceptions">Exceptions</h2>
+<p>Parsing errors default to throwing a
+<code>daw::json::json_exception</code> that includes information about
+the reason and location of failure.</p>
+<h2 id="fno-exception">-fno-exception</h2>
+<p>If exceptions are disabled the library will call
+<code>std::terminate</code> upon a parse error by default.</p>
+<h2 id="custom-error-handling">Custom Error Handling</h2>
+<p>While, the error handling defaults to throwing a
+<code>daw::json::json_exception</code> on errors, or calling
+<code>std::terminate</code> if exceptions are disabled. One can change
+this behaviour by setting the function pointer
+<code>daw::json::daw_json_error_handler</code>. The only requirement is
+that the function does not return. An example that utilizes this is in
+<a
+href="tests/src/error_handling_bench_test.cpp">error_handling_bench_test.cpp</a></p>
+<h2 id="parsing-call">Parsing call</h2>
+<h6 id="top-7"><a href="#content">Top</a></h6>
+<p>Error checking can be modified on a per-parse basis.
+<code>from_json</code>, <code>from_json_array</code>,
+<code>json_value</code>, <code>json_array_iterator</code>, and alike all
+support parsing options. calls can be supplied a Parser Option. The
+available options are documented in the <a
+href="docs/cookbook/parser_policies.md">parser_policies</a> cookbook
+item.</p>
+<h2 id="global">Global</h2>
+<h6 id="top-8"><a href="#content">Top</a></h6>
+<p><code>daw::json::json_exception</code> has a member function
+<code>std::string_view reason( ) const</code> akin to
+<code>std::exception</code>’s <code>what( )</code> but returns a
+<code>std::string</code> with more context than <code>what( )</code>
+does. If you want to disable exceptions in an environment that has them,
+you can define <code>DAW_JSON_DONT_USE_EXCEPTIONS</code> to disable
+exception throwing by the library or set the handler, this is no longer
+recommended as the handler can be set to one of the two defaults
+<code>daw::json::default_error_handling_throwing</code> or
+<code>daw::json::default_error_handling_terminating</code>.</p>
+<h1 id="deserializingparsing">Deserializing/Parsing</h1>
+<h6 id="top-9"><a href="#content">Top</a></h6>
+<p>This can be accomplished by writing a specialization of
+<code>json_data_contract</code> in the <code>daw::json</code> namespace.
+For example:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string_view&gt;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> TestClass <span class="op">{</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> d <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> b <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string s<span class="op">{};</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> y<span class="op">{};</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  TestClass<span class="op">(</span><span class="dt">int</span> Int<span class="op">,</span> <span class="dt">double</span> Double<span class="op">,</span> <span class="dt">bool</span> Bool<span class="op">,</span> <span class="bu">std::</span>string S<span class="op">,</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> Y<span class="op">)</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>      <span class="op">:</span> i<span class="op">(</span>Int<span class="op">),</span> d<span class="op">(</span>Double<span class="op">),</span> b<span class="op">(</span>Bool<span class="op">),</span> s<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span> S <span class="op">)</span> <span class="op">),</span> y<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span> Y <span class="op">))</span> <span class="op">{}</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;&gt;</span> </span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>TestClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> type <span class="op">=</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    json_member_list<span class="op">&lt;</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;i&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span> </span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;d&quot;</span><span class="op">&gt;,</span> </span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>      json_bool<span class="op">&lt;</span><span class="st">&quot;b&quot;</span><span class="op">&gt;,</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>      json_string<span class="op">&lt;</span><span class="st">&quot;s&quot;</span><span class="op">&gt;,</span> </span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>      json_array<span class="op">&lt;</span><span class="st">&quot;y&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace daw::json</span></span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string_view test_001_t_json_data <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">{</span></span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;i&quot;:5,</span></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;d&quot;:2.2e4,</span></span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;b&quot;:false,</span></span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;s&quot;:&quot;hello world&quot;,</span></span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;y&quot;:[1,2,3,4] </span></span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a><span class="vs">    }</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string_view json_array_data <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">[{</span></span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;i&quot;:5,</span></span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;d&quot;:2.2e4,</span></span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;b&quot;:false,</span></span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;s&quot;:&quot;hello world&quot;,</span></span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;y&quot;:[1,2,3,4] </span></span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a><span class="vs">    },{</span></span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;i&quot;:4,</span></span>
+<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;d&quot;:122e4,</span></span>
+<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;b&quot;:true,</span></span>
+<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;s&quot;:&quot;goodbye world&quot;,</span></span>
+<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a><span class="vs">    &quot;y&quot;:[4,3,1,4] </span></span>
+<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a><span class="vs">    }]</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a>  TestClass test_class <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>from_json<span class="op">&lt;</span>TestClass<span class="op">&gt;(</span>test_001_t_json_data<span class="op">);</span></span>
+<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span>TestClass<span class="op">&gt;</span> arry_of_test_class <span class="op">=</span></span>
+<span id="cb26-57"><a href="#cb26-57" aria-hidden="true" tabindex="-1"></a>      daw<span class="op">::</span>json<span class="op">::</span>from_json_array<span class="op">&lt;</span>TestClass<span class="op">&gt;(</span>test_001_t_json_data<span class="op">);</span></span>
+<span id="cb26-58"><a href="#cb26-58" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>See on Compiler Explorer * <a
+href="https://gcc.godbolt.org/z/33Y6Tca34">C++ 20 - gcc</a> * <a
+href="https://gcc.godbolt.org/z/raPnK78zo">C++ 17 - clang</a></p>
+<p>Both aggregate and user constructors are supported. The description
+provides the values needed to construct your type and the order. The
+order specified is the order they are placed into the constructor. There
+are customization points to provide a way of constructing your type too.
+A class like:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AggClass <span class="op">{</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> a<span class="op">{};</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b<span class="op">{};</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>AggClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;b&quot;</span><span class="op">&gt;</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Works too. Same but C++17</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AggClass <span class="op">{</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> a<span class="op">{};</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b<span class="op">{};</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>AggClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> a<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;a&quot;</span><span class="op">;</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> b<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;b&quot;</span><span class="op">;</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>a<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span>b<span class="op">&gt;</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The class descriptions are recursive with their submembers. Using the
+previous <code>AggClass</code> one can include it as a member of another
+class</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// See above for AggClass</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> MyClass <span class="op">{</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  AggClass other<span class="op">;</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string_view some_name<span class="op">;</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>MyClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>      json_class<span class="op">&lt;</span><span class="st">&quot;other&quot;</span><span class="op">,</span> AggClass<span class="op">&gt;,</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>      json_string<span class="op">&lt;</span><span class="st">&quot;id&quot;</span><span class="op">,</span> <span class="bu">std::</span>string_view<span class="op">&gt;</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The above maps a class <code>MyClass</code> that has another class
+that is described AggClass. Also, you can see that the member names of
+the C++ class do not have to match that of the mapped JSON names and
+that strings can use <code>std::string_view</code> as the result type.
+This is an important performance enhancement if you can guarantee the
+buffer containing the JSON file will exist as long as the class
+does.</p>
+<p>Iterating over JSON arrays. The input iterator
+<code>daw::json::json_array_iterator&lt;JsonElement&gt;</code> allows
+one to iterator over the array of JSON elements. It is technically an
+input iterator but can be stored and reused like a forward iterator. It
+does not return a reference but a value.</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_iterator.h&gt;</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AggClass <span class="op">{</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> a<span class="op">{};</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b<span class="op">{};</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>AggClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>    json_number<span class="op">&lt;</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>    json_number<span class="op">&lt;</span><span class="st">&quot;b&quot;</span><span class="op">&gt;</span></span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>  <span class="op">&gt;;</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="co">// namespace daw::json</span></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>string json_array_data <span class="op">=</span> <span class="st">R&quot;(</span><span class="vs">[</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a><span class="vs">    {&quot;a&quot;:5,&quot;b&quot;:2.2},</span></span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a><span class="vs">    {&quot;a&quot;:5,&quot;b&quot;:3.14},</span></span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a><span class="vs">    {&quot;a&quot;:5,&quot;b&quot;:0.122e44},</span></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a><span class="vs">    {&quot;a&quot;:5334,&quot;b&quot;:34342.2}</span></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a><span class="vs">     ]</span><span class="st">)&quot;</span><span class="op">;</span></span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> <span class="dt">iterator_t</span> <span class="op">=</span> daw<span class="op">::</span>json<span class="op">::</span>json_array_iterator<span class="op">&lt;</span>AggClass<span class="op">&gt;;</span></span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> pos <span class="op">=</span></span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>      <span class="bu">std::</span>find_if<span class="op">(</span></span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>        <span class="dt">iterator_t</span><span class="op">(</span>json_array_data<span class="op">),</span></span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>        <span class="dt">iterator_t</span><span class="op">(),</span></span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">[](</span>AggClass <span class="at">const</span> <span class="op">&amp;</span>element<span class="op">)</span> <span class="op">{</span> </span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>          <span class="cf">return</span> element<span class="op">.</span>b <span class="op">&gt;</span> <span class="fl">1000.0</span><span class="op">;</span></span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a>      <span class="op">);</span></span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span><span class="op">(</span>pos <span class="op">==</span> <span class="dt">iterator_t</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb30-39"><a href="#cb30-39" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Not found</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb30-41"><a href="#cb30-41" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Found</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb30-43"><a href="#cb30-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="member-paths">Member Paths</h2>
+<p>Parsing can begin at a specific member or element. An optional member
+path to <code>from_json</code>, <code>from_json_array</code>,
+<code>json_value</code>, <code>json_array_iterator</code>, and alike can
+be specified. The format is a dot separated list of member names and
+optionally an array index such as <code>member0.member1</code> which is
+like parsing from:</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;member0&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;member1&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>or <code>member0[5].member1</code> which would start parsing at
+“member1” in a document like:</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;member0&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;a&quot;</span><span class="ot">,</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;b&quot;</span><span class="ot">,</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;c&quot;</span><span class="ot">,</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;d&quot;</span><span class="ot">,</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;e&quot;</span><span class="ot">,</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;member1&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>or</p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;member0&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;a&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;b&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;c&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;d&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;e&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;f&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;member1&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="comments">Comments</h2>
+<p>Comments are supported when the parser policy for them is used.
+Currently, there are two forms of comment policies. * C++ style
+<code>//</code> line comments and C style <code>/* */</code>
+comments.</p>
+<pre><code>{ // This is a comment
+    &quot;a&quot; /*this is also a comment*/: &quot;a&#39;s value&quot;
+}</code></pre>
+<ul>
+<li>Hash style <code>#</code> line comments</li>
+</ul>
+<pre><code>{ # This is a comment
+    &quot;a&quot; #this is also a comment
+      : &quot;a&#39;s value&quot;
+}</code></pre>
+<p>The comment policy can be set via <code>PolicyCommentTypes</code>.
+See <a href="docs/cookbook/parser_policies.md">parser_policies</a> for
+more info.</p>
+<h2 id="serialization">Serialization</h2>
+<h6 id="top-10"><a href="#content">Top</a></h6>
+<p>To enable serialization one must create an additional static function
+in your specialization of <code>json_data_contract</code> called
+<code>to_json_data( Thing const &amp; );</code> that returns a tuple of
+members. It will provide a mapping from your type to the arguments
+provided in the class description. To serialize to a JSON string, one
+calls <code>to_json( my_thing );</code> where <code>my_thing</code> is a
+registered type or one of the fundamental types like Containers, Maps,
+Strings, bool, and numbers. The result of the
+<code>to_json_data( Thing const &amp; )</code> static method is a
+<code>tuple</code> who’s elements match order in the accompanying
+<code>json_data_contract</code> type alias <code>type</code>. Because of
+the way the method is used, tuple’s with rvalue elements will result in
+a use after destruction bug. The compiler will error if this happens.
+Including <code>&lt;daw/daw_tuple_forward.h&gt;</code> and the method
+<code>daw::forward_nonrvalue_as_tuple</code> instead will store the
+rvalues instead of passing them by reference. Often it is the result of
+calculated tuple elements. Using the example above lets add a
+<code>to_json_data</code> method</p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AggClass <span class="op">{</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> a<span class="op">;</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b<span class="op">;</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>AggClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;b&quot;</span><span class="op">&gt;</span></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">constexpr</span> <span class="kw">auto</span> to_json_data<span class="op">(</span> AggClass <span class="at">const</span> <span class="op">&amp;</span> value <span class="op">)</span> <span class="op">{</span></span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple<span class="op">(</span> value<span class="op">.</span>a<span class="op">,</span> value<span class="op">.</span>b <span class="op">);</span></span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a><span class="co">//...</span></span>
+<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a>AggData value <span class="op">=</span> <span class="co">//...;</span></span>
+<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string test_001_t_json_data <span class="op">=</span> to_json<span class="op">(</span> value <span class="op">);</span></span>
+<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a><span class="co">// or</span></span>
+<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>AggData<span class="op">&gt;</span> values <span class="op">=</span> <span class="co">//...;</span></span>
+<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>string json_array_data <span class="op">=</span> to_json_array<span class="op">(</span> values <span class="op">);</span></span></code></pre></div>
+<p>Alternatively, one can output to any <a
+href="include/daw/json/concepts/daw_writable_output_fwd.h">WritableOutput</a>
+type, by default this includes FILE*, iostreams, containers of
+Characters, and Character pointers. In your type’s
+<code>json_data_constract</code>. Or if opted-into, one can get an
+ostream operator&lt;&lt; for their type that inserts the json into the
+output stream by adding a type alias named
+<code>opt_into_iostreams</code> the type it aliases doesn’t matter, and
+include <code>daw/json/daw_json_iostream.h</code> . For example</p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_link.h&gt;</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;daw/json/daw_json_iostream.h&gt;</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;tuple&gt;</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AggClass <span class="op">{</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> a<span class="op">{};</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b<span class="op">{};</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> daw<span class="op">::</span>json <span class="op">{</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">template</span><span class="op">&lt;&gt;</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">struct</span> json_data_contract<span class="op">&lt;</span>AggClass<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> opt_into_iostreams <span class="op">=</span> <span class="dt">void</span><span class="op">;</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> type <span class="op">=</span> json_member_list<span class="op">&lt;</span></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;a&quot;</span><span class="op">,</span> <span class="dt">int</span><span class="op">&gt;,</span></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>      json_number<span class="op">&lt;</span><span class="st">&quot;b&quot;</span><span class="op">&gt;</span></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;;</span></span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">static</span> <span class="kw">inline</span> <span class="kw">auto</span> to_json_data<span class="op">(</span> AggClass <span class="at">const</span> <span class="op">&amp;</span> value <span class="op">)</span> <span class="op">{</span></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="bu">std::</span>forward_as_tuple<span class="op">(</span> value<span class="op">.</span>a<span class="op">,</span> value<span class="op">.</span>b <span class="op">);</span></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a><span class="co">//...</span></span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>AggData value <span class="op">=</span> <span class="co">//...;</span></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> value <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a><span class="co">// or</span></span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span>AggData<span class="op">&gt;</span> values <span class="op">=</span> <span class="co">//...;</span></span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> values <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span></code></pre></div>
+<p>A working example can be found at <a
+href="tests/src/daw_json_iostream_test.cpp">daw_json_iostream_test.cpp</a>
+or on <a href="https://gcc.godbolt.org/z/qGGnvvYsd">compiler
+explorer</a></p>
+<h2 id="common-errors">Common errors</h2>
+<ul>
+<li><code>error: pointer to subobject of string literal is not allowed in a template argument</code>
+<ul>
+<li>Your compiler does not support Class Non-Type Template Parameters,
+or is not in C++20 mode. If you do not have compiler support, you can
+the C++17 naming style above e.g. </li>
+</ul>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> <span class="dt">char</span> <span class="at">const</span> member_name<span class="op">[]</span> <span class="op">=</span> <span class="st">&quot;member_name&quot;</span><span class="op">;</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="co">//...</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>json_link<span class="op">&lt;</span>member_name<span class="op">,</span> Type<span class="op">&gt;</span></span></code></pre></div></li>
+</ul>
+<h2 id="build-configuration-points">Build configuration points</h2>
+<p>There are a few defines that affect how JSON Link operates *
+<code>DAW_JSON_DONT_USE_EXCEPTIONS</code> - Controls if exceptions are
+allowed. If they are not, a <code>std::terminate()</code> on errors will
+occur. This is automatic if exceptions are disabled(e.g
+<code>-fno-exceptions</code>) * <code>DAW_ALLOW_SSE42</code> - Allow
+experimental SSE42 mode, generally the constexpr mode is faster *
+<code>DAW_JSON_NO_CONST_EXPR</code> - This can be used to allow classes
+without move/copy special members to be constructed from JSON data prior
+to C++ 20. This mode does not work in a constant expression prior to
+C++20 when this flag is no longer needed.</p>
+<h2 id="requirements">Requirements</h2>
+<h6 id="top-11"><a href="#content">Top</a></h6>
+<ul>
+<li>C++ 17 compiler</li>
+<li>GCC(9/10/11/12) have been tested</li>
+<li>Clang(8/9/10/11/12/13/14) have been tested.</li>
+<li>MSVC 19.29 has been tested.</li>
+</ul>
+<p>Older compilers may still work but in testing some resulted in ICE’s
+or compile errors due to buggy C++17 support. Often not using constexpr
+can help too.</p>
+<h3 id="for-building-tests">For building tests</h3>
+<ul>
+<li>git</li>
+<li>cmake</li>
+<li>c++17 compiler</li>
+</ul>
+<h4 id="contact">Contact</h4>
+<ul>
+<li>Darrell Wright</li>
+<li>json_link@dawdevel.ca</li>
+</ul>
+<h1 id="limitations">Limitations</h1>
+<ul>
+<li>When parsing classes, the default is unspecified when duplicate
+names are encounters as to which is used.<br />
+One can guarantee that both can be parsed or order by using
+<code>json_key_value</code> parse type.<br />
+When used with <code>std::multimap&lt;std::string, T&gt;</code> or
+<code>std::vector&lt;std::pair&lt;std::string, T&gt;&gt;</code> all
+members are preserved with the former in order. Alternatively, the
+<code>json_value</code> type will allow iteration over the class members
+and lazy parsing of the correct one. See <a
+href="docs/cookbook/key_values.md">Cookbook Key Values</a> which
+demonstrates these methods.</li>
+<li>Trailing commas, the parser makes no effort to detect trailing
+commas.</li>
+</ul>
