@@ -28,6 +28,10 @@ static void perl_dirs(auto &&f) {
 
         // VMS
         "ext/VMS-Filespec/lib",
+
+        // openssl
+        "ext/DynaLoader",
+        "dist/XSLoader",
     };
     for (auto &&p : paths) {
         f(p);
@@ -38,9 +42,12 @@ struct PerlExecutable : ExecutableTarget
 {
     using ExecutableTarget::ExecutableTarget;
 
+    path libsdir;
+
     void setupCommand(builder::Command &c) const override
     {
         std::vector<path> paths;
+        paths.push_back(libsdir / "lib");
         perl_dirs([&](auto &&p) {paths.push_back(SourceDir / p);});
         String s;
         for (auto &&p : paths)
@@ -440,6 +447,8 @@ void build(Solution &s)
 
     auto &perl = p.addTarget<PerlExecutable>("perl");
     {
+        perl.libsdir = lib.SourceDir;
+
         perl += "win32/runperl.c";
         perl.Public += lib;
 
