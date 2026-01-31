@@ -1,0 +1,228 @@
+<h1 id="libpqxx">libpqxx</h1>
+<p>Welcome to libpqxx, the C++ API to the PostgreSQL database management
+system.</p>
+<p>Home page: <a
+href="http://pqxx.org/development/libpqxx/">http://pqxx.org/development/libpqxx</a></p>
+<p>Find libpqxx on Github: <a
+href="https://github.com/jtv/libpqxx">https://github.com/jtv/libpqxx</a></p>
+<p>Documentation on Read The Docs: <a
+href="https://libpqxx.readthedocs.io">https://libpqxx.readthedocs.io</a></p>
+<p>Compiling this package requires PostgreSQL to be installed – or at
+least the C headers and library for client development. The library
+builds on top of PostgreSQL’s standard C API, libpq, though your code
+won’t notice.</p>
+<p>If you’re getting the code straight from the Git repo, the head of
+the <code>master</code> branch represents the current <em>development
+version.</em> Releases are tags on commits in <code>master</code>. For
+example, to get version 7.1.1:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">git</span> checkout 7.1.1</span></code></pre></div>
+<h2 id="thank-you">Thank you!</h2>
+<p>Somebody who deserves special mention here: our first Donor-level
+sponsor is Klaus (<a href="https://github.com/klaussilveira"><span
+class="citation" data-cites="klaussilveira">@klaussilveira</span></a>).
+Thank you, Klaus!</p>
+<h2 id="upgrade-notes">Upgrade notes</h2>
+<p><strong>The 7.x versions require at least C++17.</strong> Make sure
+your compiler is up to date. For libpqxx 8.x you will need at least
+C++20.</p>
+<p>Also, <strong>7.0 makes some breaking changes in rarely used
+APIs:</strong></p>
+<ul>
+<li>There is just a single <code>connection</code> class. It connects
+immediately.</li>
+<li>Custom <code>connection</code> classes are no longer supported.</li>
+<li>It’s no longer possible to reactivate a connection once it’s been
+closed.</li>
+<li>The API for defining string conversions has changed.</li>
+</ul>
+<p>If you’re defining your own type conversions, <strong>7.1 requires
+one additional field in your <code>nullness</code> traits.</strong></p>
+<h2 id="building-libpqxx">Building libpqxx</h2>
+<p>There are two different ways of building libpqxx from the command
+line:</p>
+<ol type="1">
+<li>Using CMake, on any system which supports it.</li>
+<li>On Unix-like systems, using a <code>configure</code> script.</li>
+</ol>
+<p>“Unix-like” systems include GNU/Linux, Apple macOS and the BSD
+family, AIX, HP-UX, Irix, Solaris, etc. Even on Microsoft Windows, a
+Unix-like environment such as WSL, Cygwin, or MinGW should work.</p>
+<p>You’ll find detailed build and install instructions in <a
+href="./BUILDING-configure.md"><code>BUILDING-configure.md</code></a>
+and <a href="./BUILDING-cmake.md"><code>BUILDING-cmake.md</code></a>,
+respectively.</p>
+<p>And if you’re working with Microsoft Visual Studio, have a look at
+Gordon Elliott’s <a
+href="https://github.com/GordonLElliott/Easy-PQXX-Build-for-Windows-Visual-Studio">Easy-PQXX
+Build for Windows Visual Studio</a> project.</p>
+<h2 id="documentation">Documentation</h2>
+<p>Building the library, if you have the right tools installed,
+generates HTML documentation in the <code>doc/</code> directory. It is
+based on the headers in <code>include/pqxx/</code> and text in
+<code>include/pqxx/doc/</code>. This documentation is also available
+online at <a href="https://libpqxx.readthedocs.io">readthedocs</a>.</p>
+<h2 id="programming-with-libpqxx">Programming with libpqxx</h2>
+<p>Your first program will involve the libpqxx classes
+<code>connection</code> (see the <code>pqxx/connection.hxx</code>
+header), and <code>work</code> (a convenience alias for
+<code>transaction&lt;&gt;</code> which conforms to the interface defined
+in <code>pqxx/transaction_base.hxx</code>).</p>
+<p>These <code>*.hxx</code> headers are not the ones you include in your
+program. Instead, include the versions without filename suffix
+(e.g. <code>pqxx/connection</code>). Those will include the actual .hxx
+files for you. This was done so that includes are in standard C++ style
+(as in <code>&lt;iostream&gt;</code> etc.), but an editor will still
+recognize them as files containing C++ code.</p>
+<p>Continuing the list of classes, you may also need the result class
+(<code>pqxx/result.hxx</code>). In a nutshell, you create a
+pqxx::connection based on a Postgres connection string (see below),
+create a pqxx::work (a transaction object) in the context of that
+connection, and run one or more queries and/or SQL commands on that.</p>
+<p>Depending on how you execute a query, it can return a stream of
+<code>std::tuple</code> (each representing one row); or a pqxx::result
+object which holds both the result data and additional metadata: how
+many rows your query returned and/or modified, what the column names
+are, and so on. A pqxx::result is a container of pqxx::row, and a
+pqxx::row is a container of pqxx::field.</p>
+<p>Here’s an example with all the basics to get you going:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>    <span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="pp">#include </span><span class="im">&lt;pqxx/pqxx&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Connect to the database.  You can have multiple connections open</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// at the same time, even to the same database.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            pqxx<span class="op">::</span>connection c<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Connected to &quot;</span> <span class="op">&lt;&lt;</span> c<span class="op">.</span>dbname<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Start a transaction.  A connection can only have one transaction</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="co">// open at the same time, but after you finish a transaction, you</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// can start a new one on the same connection.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            pqxx<span class="op">::</span>work tx<span class="op">{</span>c<span class="op">};</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Query data of two columns, converting them to std::string and</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            <span class="co">// int respectively.  Iterate the rows.</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span> <span class="op">[</span>name<span class="op">,</span> salary<span class="op">]</span> <span class="op">:</span> tx<span class="op">.</span>query<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;(</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;SELECT name, salary FROM employee ORDER BY name&quot;</span><span class="op">))</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> name <span class="op">&lt;&lt;</span> <span class="st">&quot; earns &quot;</span> <span class="op">&lt;&lt;</span> salary <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            <span class="co">// For large amounts of data, &quot;streaming&quot; the results is more</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>            <span class="co">// efficient.  It does not work for all types of queries though.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            <span class="co">//</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            <span class="co">// You can read fields as std::string_view here, which is not</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>            <span class="co">// something you can do in most places.  A string_view becomes</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>            <span class="co">// meaningless when the underlying string ceases to exist.  In this</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            <span class="co">// one situation, you can convert a field to string_view and it</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>            <span class="co">// will be valid for just that one iteration of the loop.  The next</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            <span class="co">// iteration may overwrite or deallocate its buffer space.</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> <span class="op">(</span><span class="kw">auto</span> <span class="op">[</span>name<span class="op">,</span> salary<span class="op">]</span> <span class="op">:</span> tx<span class="op">.</span>stream<span class="op">&lt;</span><span class="bu">std::</span>string_view<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;(</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;SELECT name, salary FROM employee&quot;</span><span class="op">))</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>                <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> name <span class="op">&lt;&lt;</span> <span class="st">&quot; earns &quot;</span> <span class="op">&lt;&lt;</span> salary <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Execute a statement, and check that it returns 0 rows of data.</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>            <span class="co">// This will throw pqxx::unexpected_rows if the query returns rows.</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Doubling all employees&#39; salaries...</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>            tx<span class="op">.</span>exec<span class="op">(</span><span class="st">&quot;UPDATE employee SET salary = salary*2&quot;</span><span class="op">).</span>no_rows<span class="op">();</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Shorthand: conveniently query a single value from the database.</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>            <span class="dt">int</span> my_salary <span class="op">=</span> tx<span class="op">.</span>query_value<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;(</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;SELECT salary FROM employee WHERE name = &#39;Me&#39;&quot;</span><span class="op">);</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;I now earn &quot;</span> <span class="op">&lt;&lt;</span> my_salary <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Or, query one whole row.  This function will throw an exception</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>            <span class="co">// unless the result contains exactly 1 row.</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            <span class="kw">auto</span> <span class="op">[</span>top_name<span class="op">,</span> top_salary<span class="op">]</span> <span class="op">=</span> tx<span class="op">.</span>query1<span class="op">&lt;</span><span class="bu">std::</span>string<span class="op">,</span> <span class="dt">int</span><span class="op">&gt;(</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>                <span class="st">R&quot;(</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="vs">                    SELECT name, salary</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="vs">                    FROM employee</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="vs">                    WHERE salary = max(salary)</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a><span class="vs">                    LIMIT 1</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="vs">                </span><span class="st">)&quot;</span><span class="op">);</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Top earner is &quot;</span> <span class="op">&lt;&lt;</span> top_name <span class="op">&lt;&lt;</span> <span class="st">&quot; with a salary of &quot;</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>                      <span class="op">&lt;&lt;</span> top_salary <span class="op">&lt;&lt;</span> <span class="st">&quot;.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>            <span class="co">// If you need to access the result metadata, not just the actual</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>            <span class="co">// field values, use the &quot;exec&quot; functions.  Most of them return</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>            <span class="co">// pqxx::result objects.</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>            pqxx<span class="op">::</span>result res <span class="op">=</span> tx<span class="op">.</span>exec<span class="op">(</span><span class="st">&quot;SELECT * FROM employee&quot;</span><span class="op">);</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Columns:</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> <span class="op">(</span>pqxx<span class="op">::</span><span class="dt">row_size_type</span> col <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> col <span class="op">&lt;</span> res<span class="op">.</span>columns<span class="op">();</span> <span class="op">++</span>col<span class="op">)</span></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>                <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> res<span class="op">.</span>column_name<span class="op">(</span>col<span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Commit the transaction.  If you don&#39;t do this, the database will</span></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>            <span class="co">// undo any changes you made in the transaction.</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;Making changes definite: &quot;</span><span class="op">;</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>            tx<span class="op">.</span>commit<span class="op">();</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cout <span class="op">&lt;&lt;</span> <span class="st">&quot;OK.</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">catch</span> <span class="op">(</span><span class="bu">std::</span>exception <span class="at">const</span> <span class="op">&amp;</span>e<span class="op">)</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>            <span class="bu">std::</span>cerr <span class="op">&lt;&lt;</span> <span class="st">&quot;ERROR: &quot;</span> <span class="op">&lt;&lt;</span> e<span class="op">.</span>what<span class="op">()</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<h2 id="connection-strings">Connection strings</h2>
+<p>Postgres connection strings state which database server you wish to
+connect to, under which username, using which password, and so on. Their
+format is defined in the documentation for libpq, the C client interface
+for PostgreSQL. Alternatively, these values may be defined by setting
+certain environment variables as documented in e.g. the manual for psql,
+the command line interface to PostgreSQL. Again the definitions are the
+same for libpqxx-based programs.</p>
+<p>The connection strings and variables are not fully and definitively
+documented here; this document will tell you just enough to get going.
+Check the PostgreSQL documentation for authoritative information.</p>
+<p>The connection string consists of attribute=value pairs separated by
+spaces, e.g. “user=john password=1x2y3z4”. The valid attributes
+include:</p>
+<ul>
+<li><code>host</code> — Name of server to connect to, or the full file
+path (beginning with a slash) to a Unix-domain socket on the local
+machine. Defaults to “/tmp”. Equivalent to (but overrides) environment
+variable PGHOST.</li>
+<li><code>hostaddr</code> — IP address of a server to connect to;
+mutually exclusive with “host”.</li>
+<li><code>port</code> — Port number at the server host to connect to, or
+socket file name extension for Unix-domain connections. Equivalent to
+(but overrides) environment variable PGPORT.</li>
+<li><code>dbname</code> — Name of the database to connect to. A single
+server may host multiple databases. Defaults to the same name as the
+current user’s name. Equivalent to (but overrides) environment variable
+PGDATABASE.</li>
+<li><code>user</code> — User name to connect under. This defaults to the
+name of the current user, although PostgreSQL users are not necessarily
+the same thing as system users.</li>
+<li><code>requiressl</code> — If set to 1, demands an encrypted SSL
+connection (and fails if no SSL connection can be created).</li>
+</ul>
+<p>Settings in the connection strings override the environment
+variables, which in turn override the default, on a variable-by-variable
+basis. You only need to define those variables that require non-default
+values.</p>
+<h2 id="linking-with-libpqxx">Linking with libpqxx</h2>
+<p>To link your final program, make sure you link to both the C-level
+libpq library and the actual C++ library, libpqxx. With most Unix-style
+compilers, you’d do this using these options:
+<code>-lpqxx -lpq</code></p>
+<p>while linking. Both libraries must be in your link path, so the
+linker knows where to find them. Any dynamic libraries you use must also
+be in a place where the loader can find them when loading your program
+at runtime.</p>
+<p>Some users have reported problems using the above syntax, however,
+particularly when multiple versions of libpqxx are partially or
+incorrectly installed on the system. If you get massive link errors, try
+removing the “-lpqxx” argument from the command line and replacing it
+with the name of the libpqxx library binary instead. That’s typically
+libpqxx.a, but you’ll have to add the path to its location as well,
+e.g. /usr/local/pqxx/lib/libpqxx.a. This will ensure that the linker
+will use that exact version of the library rather than one found
+elsewhere on the system, and eliminate worries about the exact right
+version of the library being installed with your program..</p>

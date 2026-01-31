@@ -1,0 +1,398 @@
+<h1 id="windows-implementation-libraries-wil">Windows Implementation
+Libraries (WIL)</h1>
+<p><a
+href="https://dev.azure.com/msft-wil/Windows%20Implementation%20Library/_build/latest?definitionId=1&amp;branchName=master"><img
+src="https://dev.azure.com/msft-wil/Windows%20Implementation%20Library/_apis/build/status/Microsoft.wil?branchName=master"
+alt="Build Status" /></a></p>
+<p>The Windows Implementation Libraries (WIL) is a header-only C++
+library created to make life easier for developers on Windows through
+readable type-safe C++ interfaces for common Windows coding
+patterns.</p>
+<p>Some things that WIL includes to whet your appetite:</p>
+<ul>
+<li><a
+href="include/wil/resource.h"><code>include/wil/resource.h</code></a>
+(<a
+href="https://github.com/Microsoft/wil/wiki/RAII-resource-wrappers">documentation</a>):
+Smart pointers and auto-releasing resource wrappers to let you manage
+Windows API HANDLEs, HWNDs, and other resources and resource handles
+with <a href="https://en.cppreference.com/w/cpp/language/raii">RAII</a>
+semantics.</li>
+<li><a
+href="include/wil/win32_helpers.h"><code>include/wil/win32_helpers.h</code></a>
+(<a
+href="https://github.com/microsoft/wil/wiki/Win32-helpers">documentation</a>):
+Wrappers for API functions that save you the work of manually specifying
+buffer sizes, calling a function twice to get the needed buffer size and
+then allocate and pass the right-size buffer, casting or converting
+between types, and so on.</li>
+<li><a
+href="include/wil/registry.h"><code>include/wil/registry.h</code></a>
+(<a
+href="https://github.com/microsoft/wil/wiki/Registry-Helpers">documentation</a>):
+Type-safe functions to read from, write to, and watch the registry.
+Also, registry watchers that can call a lambda function or a callback
+function you provide whenever a certain tree within the Windows registry
+changes.</li>
+<li><a
+href="include/wil/network.h"><code>include/wil/network.h</code></a>: (<a
+href="https://github.com/microsoft/wil/wiki/Network-Helpers">documentation</a>)
+Supports Winsock and network APIs by providing a header-include list
+which addresses the inter-header include dependendies; provides RAII
+objects for WSAStartup refcounts as well as the various addrinfo* types
+returned from the family of getaddrinfo* functions; provides a type-safe
+class for managing the entire family of sockaddr-related
+structures.</li>
+<li><a href="include/wil/result.h"><code>include/wil/result.h</code></a>
+(<a
+href="https://github.com/Microsoft/wil/wiki/Error-handling-helpers">documentation</a>):
+Preprocessor macros to help you check for errors from Windows API
+functions, in many of the myriad ways those errors are reported, and
+surface them as error codes or C++ exceptions in your code.</li>
+<li><a
+href="include/wil/Tracelogging.h"><code>include/wil/Tracelogging.h</code></a>:
+This file contains the convenience macros that enable developers define
+and log telemetry. These macros use <a
+href="https://docs.microsoft.com/en-us/windows/win32/tracelogging/trace-logging-portal"><code>TraceLogging API</code></a>
+to log data. This data can be viewed in tools such as <a
+href="https://docs.microsoft.com/en-us/windows-hardware/test/wpt/windows-performance-analyzer"><code>Windows Performance Analyzer</code></a>.</li>
+</ul>
+<p>WIL can be used by C++ code that uses C++ exceptions as well as code
+that uses returned error codes to report errors. All of WIL can be used
+from user-space Windows code, and some (such as the RAII resource
+wrappers) can even be used in kernel mode.</p>
+<h1 id="documentation">Documentation</h1>
+<p>This project is documented in <a
+href="https://github.com/Microsoft/wil/wiki">its GitHub wiki</a>. Feel
+free to contribute to it!</p>
+<h1 id="consuming-wil">Consuming WIL</h1>
+<p>WIL follows the “live at head” philosophy, so you should feel free to
+consume WIL directly from the GitHub repo however you please: as a GIT
+submodule, symbolic link, download and copy files, etc. and update to
+the latest version at your own cadence. Alternatively, WIL is available
+using a few package managers, mentioned below. These packages will be
+updated periodically, likely to average around once or twice per
+month.</p>
+<h2 id="consuming-wil-via-nuget">Consuming WIL via NuGet</h2>
+<p>WIL is available on nuget.org under the name <a
+href="https://www.nuget.org/packages/Microsoft.Windows.ImplementationLibrary/">Microsoft.Windows.ImplementationLibrary</a>.
+This package includes the header files under the <a
+href="include">include</a> directory as well as a <a
+href="packaging/nuget/Microsoft.Windows.ImplementationLibrary.targets">.targets</a>
+file.</p>
+<h2 id="consuming-wil-via-vcpkg">Consuming WIL via vcpkg</h2>
+<p>WIL is also available using <a
+href="https://github.com/microsoft/vcpkg">vcpkg</a> under the name <a
+href="https://github.com/microsoft/vcpkg/blob/master/ports/wil/portfile.cmake">wil</a>.
+Instructions for installing packages can be found in the <a
+href="https://github.com/microsoft/vcpkg/blob/master/docs/examples/installing-and-using-packages.md">vcpkg
+GitHub docs</a>. In general, once vcpkg is set up on the system, you can
+run:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>C:\vcpkg<span class="kw">&gt;</span> vcpkg install wil:x86<span class="at">-windows</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>C:\vcpkg<span class="kw">&gt;</span> vcpkg install wil:x64<span class="at">-windows</span></span></code></pre></div>
+<p>Note that even though WIL is a header-only library, you still need to
+install the package for all architectures/platforms you wish to use it
+with. Otherwise, WIL won’t be added to the include path for the missing
+architectures/platforms. Execute <code>vcpkg help triplet</code> for a
+list of available options.</p>
+<h1 id="buildingtesting">Building/Testing</h1>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To get started contributing to WIL, first make sure that you
+have:</p>
+<ul>
+<li>The latest version of <a
+href="https://visualstudio.microsoft.com/downloads/">Visual Studio</a>
+or Build Tools for Visual Studio with the latest MSVC C++ build tools
+and Address Sanitizer components included. In Visual Studio Installer’s
+Import Configuration tool, pick <a href=".vsconfig">.vsconfig</a> to the
+necessary workloads installed.</li>
+<li>The most recent <a
+href="https://developer.microsoft.com/windows/downloads/windows-sdk">Windows
+SDK</a></li>
+<li><a href="https://www.nuget.org/downloads">Nuget</a> downloaded and
+added to <code>PATH</code> - see <a
+href="https://learn.microsoft.com/nuget/install-nuget-client-tools">Install
+NuGet client tools</a></li>
+<li><a href="https://vcpkg.io">vcpkg</a> available on your system.
+Follow their <a href="https://vcpkg.io/en/getting-started">getting
+started</a> guide to get set up. Make sure the <code>VCKPKG_ROOT</code>
+environment variable is set, and the path to <code>vcpkg.exe</code> is
+in your <code>%PATH%</code>.</li>
+<li>A recent version of <a
+href="http://releases.llvm.org/download.html">Clang</a></li>
+</ul>
+<p>You can install these with WinGet in a console command line:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>winget install Microsoft<span class="op">.</span><span class="fu">VisualStudio</span><span class="op">.</span><span class="dv">2022.</span><span class="dt">Community</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>winget install Microsoft<span class="op">.</span><span class="fu">WindowsSDK</span><span class="op">.</span><span class="dv">10.0</span><span class="op">.</span><span class="dv">22621</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">winget</span> install Microsoft<span class="op">.</span><span class="fu">NuGet</span> <span class="op">-</span>e</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>winget install Kitware<span class="op">.</span><span class="fu">CMake</span> <span class="op">-</span>e</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>winget install Ninja-build<span class="op">.</span><span class="fu">Ninja</span> <span class="op">-</span>e</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Select &quot;Add LLVM to the system path for all users&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>i llvm<span class="op">.</span><span class="fu">llvm</span></span></code></pre></div>
+<p>By default, <code>init.cmd</code> and <code>cmake</code> attempt to
+find vcpkg’s cmake integration toolchain file on their own, by looking
+in the <code>VCPKG_ROOT</code> environment variable. After
+bootstrapping, you can use <code>setx</code> to have this variable
+across shell sessions. Make sure the directory containing
+<code>vcpkg.exe</code> is in your <code>PATH</code>.</p>
+<p>If <code>VCPKG_ROOT</code> is not set you can pass its location to
+CMake or the <code>init.cmd</code> script with one of these:</p>
+<ul>
+<li><code>cmake [...] --toolchain [path to vcpkg]/scripts/buildsystems/vcpkg.cmake</code></li>
+<li><code>scripts\init.cmd [...] --vcpkg &lt;path to vcpkg&gt;</code></li>
+</ul>
+<p>Note that if you use the <code>init.cmd</code> script (mentioned
+below), this path can be specified or auto-detected if you: 1. Have the
+<code>VCPKG_ROOT</code> environment variable set to the root of your
+vcpkg clone. You can use the <code>setx</code> command to have this
+variable persist across shell sessions, 1. Have the path to the root of
+your vcpkg clone added to your <code>PATH</code> (i.e. the path to
+<code>vcpkg.exe</code>), or 1. If your vcpkg clone is located at the
+root of the same drive as your WIL clone (e.g. <code>C:\vcpkg</code> if
+your WIL clone is on the <code>C:</code> drive)</p>
+<h2 id="visual-studio-2022">Visual Studio 2022</h2>
+<p>Visual Studio 2022 has <a
+href="https://learn.microsoft.com/cpp/build/cmake-projects-in-visual-studio">fully
+integrated CMake support</a>. Opening this directory in Visual Studio
+2022 uses the default “clang Debug” configurations. Other configurations
+for “clang Release,” “msvc Debug,” and “msvc Release” are available in
+the Configuration drop-down.</p>
+<p>Use “Build &gt; Build All” to compile all targets.</p>
+<h2 id="visual-studio-code">Visual Studio Code</h2>
+<p>Microsoft’s <a
+href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools">CMake
+Tools for Visual Studio Code</a> make working in VSCode easy.</p>
+<ol type="1">
+<li>Start a “Native Tools Command Prompt” (see below)</li>
+<li>Launch VS Code from the prompt, giving it the path to this repo
+(like <code>code c:\wil</code>)</li>
+<li>Use “CMake: Select Configure Preset” to pick <code>clang</code>,
+then “CMake: Select Build Preset” to pick <code>clang Debug</code>, then
+“CMake: Select Build Target” and pick <code>all</code></li>
+<li>Use “CMake: Build” to compile all targets</li>
+</ol>
+<h2 id="command-line">Command Line</h2>
+<p>Once everything is installed (you’ll need to restart Terminal if you
+updated <code>PATH</code> and don’t have <a
+href="https://github.com/microsoft/terminal/pull/14999">this 2023
+fix</a>), open a VS native command window
+(e.g. <code>x64 Native Tools Command Prompt for VS 2022</code>
+[<em>not</em> <code>Developer Command Prompt for VS2022</code>]).</p>
+<p>You can use a <a href="./CMakePresets.json">CMake preset</a> to
+configure the environment:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Configure for clang compiler, then build clang-debug</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> cmake <span class="op">--</span>preset <span class="st">&quot;clang&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> cmake <span class="op">--</span>build <span class="op">--</span>preset <span class="st">&quot;clang-debug&quot;</span></span></code></pre></div>
+<p>You can also use <a
+href="./scripts/init.cmd"><code>scripts/init.cmd</code></a> to pick the
+configuration:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\init.cmd <span class="at">-c</span> clang <span class="at">-g</span> ninja <span class="at">-b</span> debug</span></code></pre></div>
+<p>This script supports using msbuild as the generator/build-tool (pass
+<code>-g msbuild</code>) and the other <a
+href="https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html"><code>CMAKE_BUILD_TYPE</code>
+values</a> (pass <code>-b minsizerel</code>). You can execute
+<code>init.cmd --help</code> for a summary of available options.</p>
+<p>The <code>scripts/init_all.cmd</code> script will run the
+<code>init.cmd</code> script for all combinations of Clang/MSVC and
+Debug/RelWithDebInfo.</p>
+<blockquote>
+<p><strong>Note</strong>: For either script, projects will only be
+generated for the architecture of the current VS command window.</p>
+</blockquote>
+<h2 id="inner-loop">Inner loop</h2>
+<p>In Visual Studio 2022, select a startup item
+(e.g. <code>witest.exe</code>) and use “Debug &gt; Start Debugging”.
+Targets will be rebuilt as needed. Use “Build &gt; Rebuild All” to
+rebuild all tests. Use the Visual Studio Test Explorer to run the
+tests.</p>
+<p>In VS Code, use “CMake: Set Launch/Debug Target” and select a target
+(e.g. <code>witest.exe</code>). Use “CMake: Debug” (default keybind
+<code>Shift-F5</code>) to run the selected test <a
+href="https://code.visualstudio.com/docs/cpp/cpp-debug">in VS Code’s
+debugger environment.</a>. Switch to <a
+href="https://code.visualstudio.com/docs/debugtest/testing">VS Code’s
+“testing” tab,</a> and click the “Run Tests” option.</p>
+<p>For command-line CMake (configured with
+<code>cmake --preset ...</code>) build use, some examples:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build for MSVC release, all targets</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> cmake <span class="op">--</span>build <span class="op">--</span>preset <span class="st">&quot;msvc-release&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Build only one test (e.g. for improved compile times)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> cmake <span class="op">--</span>build <span class="op">--</span>preset <span class="st">&quot;msvc-release&quot;</span> <span class="op">--</span>target <span class="st">&quot;witest.noexcept&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean outputs, then build one target</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> cmake <span class="op">--</span>build <span class="op">--</span>preset <span class="st">&quot;msvc-release&quot;</span> <span class="op">--</span>clean-first <span class="op">--</span>target <span class="st">&quot;witest&quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tests</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> ctest <span class="op">--</span>preset <span class="st">&quot;msvc-release&quot;</span></span></code></pre></div>
+<p>For command-line Ninja (configured with
+<code>init.cmd -c clang -b debug</code>) build use, some examples:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build all tests</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> ninja <span class="op">-</span>C build\clang-x64-debug</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Build only one test</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> ninja <span class="op">-</span>C build\clang-x64-debug witest</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean outputs, then build one target</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> ninja <span class="op">-</span>C build\clang-x64-debug <span class="op">-</span>j <span class="dv">0</span> clean witest<span class="op">.</span><span class="fu">app</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the tests (PowerShell)</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> <span class="fu">Get-ChildItem</span> <span class="op">-</span>Recurse <span class="op">-</span>File build\clang-x64-debug\witest<span class="op">*.</span><span class="fu">exe</span> <span class="op">|</span> <span class="op">%{</span> <span class="fu">Write-Host</span> <span class="va">$_</span> <span class="op">;</span> <span class="op">&amp;</span> <span class="va">$_</span> <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the tests (cmd)</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>C<span class="op">:</span>\wil<span class="op">&gt;</span> <span class="cf">for</span> <span class="op">/</span>F <span class="op">%</span>f <span class="kw">IN</span> <span class="op">(</span><span class="st">&#39;dir /s /b build\clang\tests\witest*.exe&#39;</span><span class="op">)</span> <span class="cf">do</span> <span class="op">%</span>f</span></code></pre></div>
+<p>The output is a number of test executables. If you used the
+initialization script(s) mentioned above, or if you followed the same
+directory naming convention of those scripts, you can use the <a
+href="scripts/runtests.cmd">runtests.cmd</a> script, which will execute
+any test executables that have been built, erroring out - and preserving
+the exit code - if any test fails. Note that MSBuild will modify the
+output directory names, so this script is only compatible with using
+Ninja as the generator.</p>
+<blockquote>
+<p><strong>Note:</strong> The <code>witest.app</code> test is
+significantly slower than the other tests. You can use Test Explorer or
+the Testing tab to hide it while doing quick validation.</p>
+</blockquote>
+<h2 id="build-everything">Build everything</h2>
+<p>If you are at the tail end of of a change, you can execute the
+following to get a wide range of coverage:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\init_all.cmd</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\build_all.cmd</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\runtests.cmd</span></code></pre></div>
+<h2 id="formatting">Formatting</h2>
+<p>This project has adopted <code>clang-format</code> as the tool for
+formatting our code. Please note that the <code>.clang-format</code> at
+the root of the repo is a copy from the internal Windows repo with few
+additions. In general, please do not modify it. If you find that a macro
+is causing bad formatting of code, you can add that macro to one of the
+corresponding arrays in the <code>.clang-format</code> file
+(e.g. <code>AttributeMacros</code>, etc.), format the code, and submit a
+PR.</p>
+<blockquote>
+<p><em>NOTE: Different versions of <code>clang-format</code> may format
+the same code differently. In an attempt to maintain consistency between
+changes, we’ve standardized on using the version of
+<code>clang-format</code> that ships with the latest version of Visual
+Studio. If you have LLVM installed and added to your <code>PATH</code>,
+the version of <code>clang-format</code> that gets picked up by default
+may not be the one we expect. If you leverage the formatting scripts we
+have provided in the <code>scripts</code> directory, these should
+automatically pick up the proper version provided you are using a Visual
+Studio command window.</em></p>
+</blockquote>
+<p>Before submitting a PR to the WIL repo we ask that you first run
+<code>clang-format</code> on your changes. There is a CI check in place
+that will fail the build for your PR if you have not run
+<code>clang-format</code>. There are a few different ways to format your
+code:</p>
+<h3 id="formatting-with-git-clang-format">1. Formatting with
+<code>git clang-format</code></h3>
+<blockquote>
+<p><strong>Important!</strong> Git integration with
+<code>clang-format</code> is only available through the LLVM
+distribution. You can install LLVM through their <a
+href="https://github.com/llvm/llvm-project/releases">GibHub releases
+page</a>, via <code>winget install llvm.llvm</code>, or through the
+package manager of your choice.</p>
+</blockquote>
+<blockquote>
+<p><strong>Important!</strong> The use of <code>git clang-format</code>
+additionally requires Python to be installed and available on your
+<code>PATH</code>.</p>
+</blockquote>
+<p>The simplest way to format just your changes is to use
+<code>clang-format</code>’s <code>git</code> integration. You have the
+option to do this continuously as you make changes, or at the very end
+when you’re ready to submit a PR. To format code continuously as you
+make changes, you run <code>git clang-format</code> after staging your
+changes. For example:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> git add *</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> git clang<span class="at">-format</span> -<span class="at">-style</span> file</span></code></pre></div>
+<p>At this point, the formatted changes will be unstaged. You can review
+them, stage them, and then commit. Please note that this will use
+whichever version of <code>clang-format</code> is configured to run with
+this command. You can pass <code>--binary &lt;path&gt;</code> to specify
+the path to <code>clang-format.exe</code> you would like the command to
+use.</p>
+<p>If you’d like to format changes at the end of development, you can
+run <code>git clang-format</code> against a specific commit/label. The
+simplest is to run against <code>upstream/master</code> or
+<code>origin/master</code> depending on whether or not you are
+developing in a fork. Please note that you likely want to sync/merge
+with the master branch prior to doing this step. You can leverage the
+<code>format-changes.cmd</code> script we provide, which will use the
+version of <code>clang-format</code> that ships with Visual Studio:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> git fetch upstream</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> git merge upstream<span class="at">/master</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\format-changes.cmd upstream<span class="at">/master</span></span></code></pre></div>
+<h3 id="formatting-with-clang-format">2. Formatting with
+<code>clang-format</code></h3>
+<blockquote>
+<p><strong>Important!</strong> The path to <code>clang-format.exe</code>
+is not added to <code>PATH</code> automatically, even when using a
+Visual Studio command window. The LLVM installer has the option to add
+itself to the system or user <code>PATH</code> if you’d like. If you
+would like the path to the version of <code>clang-format</code> that
+ships with Visual Studio added to your path, you will need to do so
+manually. Otherwise, the <code>run-clang-format.cmd</code> script
+mentioned below (or, equivalently, building the <code>format</code>
+target) will manually invoke the <code>clang-format.exe</code> under
+your Visual Studio install path.</p>
+</blockquote>
+<p>An alternative, and generally easier option, is to run
+<code>clang-format</code> either on all source files or on all source
+files you’ve modified. Note, however, that depending on how
+<code>clang-format</code> is invoked, the version used may not be the
+one that ships with Visual Studio. Some tools such as Visual Studio Code
+allow you to specify the path to the version of
+<code>clang-format</code> that you wish to use when formatting code,
+however this is not always the case. The
+<code>run-clang-format.cmd</code> script we provide will ensure that the
+version of <code>clang-format</code> used is the version that shipped
+with your Visual Studio install:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>C:\wil<span class="kw">&gt;</span> scripts\run-clang-format.cmd</span></code></pre></div>
+<p>Additionally, we’ve added a build target that will invoke this
+script, named <code>format</code>:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode cmd"><code class="sourceCode dosbat"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>C:\wil\build\clang-x64-debug<span class="kw">&gt;</span> ninja format</span></code></pre></div>
+<p>Please note that this all assumes that your Visual Studio
+installation is up to date. If it’s out of date, code unrelated to your
+changes may get formatted unexpectedly. If that’s the case, you may need
+to manually revert some modifications that are unrelated to your
+changes.</p>
+<blockquote>
+<p><em>NOTE: Occasionally, Visual Studio will update without us knowing
+and the version installed for you may be newer than the version
+installed the last time we ran the format all script. If that’s the
+case, please let us know so that we can re-format the code.</em></p>
+</blockquote>
+<h1 id="contributing">Contributing</h1>
+<p>This project welcomes contributions and suggestions. Most
+contributions require you to agree to a Contributor License Agreement
+(CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit
+https://cla.microsoft.com.</p>
+<p>When you submit a pull request, a CLA-bot will automatically
+determine whether you need to provide a CLA and decorate the PR
+appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos
+using our CLA.</p>
+<p>This project has adopted the <a
+href="https://opensource.microsoft.com/codeofconduct/">Microsoft Open
+Source Code of Conduct</a>. For more information see the <a
+href="https://opensource.microsoft.com/codeofconduct/faq/">Code of
+Conduct FAQ</a> or contact <a
+href="mailto:opencode@microsoft.com">opencode@microsoft.com</a> with any
+additional questions or comments.</p>
