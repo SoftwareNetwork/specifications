@@ -259,8 +259,16 @@ void build(Solution &s)
         "BOOST_HANA_INLINE_VARIABLE constexpr auto is_literal_type",
         "//BOOST_HANA_INLINE_VARIABLE  constexpr auto is_literal_type");
 
+    // Unreal Engine fix
+    auto ue_fix = [&](auto &&tgt, auto &&fn) {
+        boost_targets[tgt]->patch(fn, "check", "check_UE_fix");
+    };
+    ue_fix("iterator", "include/boost/iterator/is_iterator.hpp");
+    ue_fix("type_traits", "include/boost/type_traits/is_complete.hpp");
+    ue_fix("mp11", "include/boost/mp11/detail/mp_defer.hpp");
+
     // iterator
-    boost_targets["iterator"]->patch("include/boost/iterator/is_iterator.hpp",
+    /*boost_targets["iterator"]->patch("include/boost/iterator/is_iterator.hpp",
     "typedef char yes_type;", R"(
 #ifdef check
 #pragma push_macro("check")
@@ -271,14 +279,13 @@ void build(Solution &s)
 typedef char  yes_type;
     )");
     boost_targets["iterator"]->patch("include/boost/iterator/is_iterator.hpp",
-    "sizeof(has_iterator_category_detail::check< T >(0)) == sizeof(has_iterator_category_detail::yes_type)", R"(
-sizeof(has_iterator_category_detail::check< T >(0)) ==  sizeof(has_iterator_category_detail::yes_type)
+    "yes_type)", R"(yes_type )
 
 #ifdef check_macro_pushed
 #undef check_macro_pushed
 #pragma pop_macro("check")
 #endif
-    )");
+    )");*/
 
     // mpl
     for (auto f : {
@@ -398,7 +405,7 @@ sizeof(has_iterator_category_detail::check< T >(0)) ==  sizeof(has_iterator_cate
     *boost_targets["filesystem"] += "BOOST_FILESYSTEM_NO_CXX20_ATOMIC_REF"_def;
     if (boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Windows || boost_targets["filesystem"]->getBuildSettings().TargetOS.Type == OSType::Mingw)
         *boost_targets["filesystem"] += "advapi32.lib"_slib;
-    boost_targets["filesystem"]->patch("include/boost/filesystem/detail/path_traits.hpp",
+    /*boost_targets["filesystem"]->patch("include/boost/filesystem/detail/path_traits.hpp",
     "yes_type check(const char*);", R"(
 #ifdef check
 #pragma push_macro("check")
@@ -416,7 +423,7 @@ sizeof(is_convertible_to_path_source_impl::check(boost::declval< T const& >())) 
 #undef check_macro_pushed
 #pragma pop_macro("check")
 #endif
-    )");
+    )");*/
     *boost_targets["iostreams"] += "org.sw.demo.xz_utils.lzma-*"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.bzip2-1"_dep;
     *boost_targets["iostreams"] += "org.sw.demo.madler.zlib-1"_dep;
