@@ -42,6 +42,8 @@ void build(Solution &s)
         t += "third_party/fast_float/.*"_rr;
         t += "third_party/libdivide/.*"_rr;
 
+        t += "OGR_P_WITH_SRS_CACHE"_def;
+
         t += "GDAL_COMPILATION"_def;
         t.Public += "CPL_INTERNAL="_def;
         t.Public += "CPL_UNSTABLE_API="_def;
