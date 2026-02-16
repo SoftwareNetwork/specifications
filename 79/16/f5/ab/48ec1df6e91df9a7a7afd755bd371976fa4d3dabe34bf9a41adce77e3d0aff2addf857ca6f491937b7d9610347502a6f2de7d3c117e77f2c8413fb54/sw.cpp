@@ -1,5 +1,5 @@
-static void perl_dirs(auto &&f) {
-    std::vector<path> paths {
+static std::vector<path> &perl_dirs1() {
+    static std::vector<path> paths {
         "cpan/AutoLoader/lib",
         "dist/base/lib",
         "dist/Carp/lib",
@@ -32,8 +32,34 @@ static void perl_dirs(auto &&f) {
         // openssl
         "ext/DynaLoader",
         "dist/XSLoader",
+        "cpan/Pod-Usage/lib",
+        "cpan/podlators/lib",
+        "cpan/Pod-Simple/lib",
+        "cpan/Pod-Escapes/lib",
+        "dist/if",
+        "cpan/Encode",
+        "cpan/Encode/lib",
+        "dist/Storable/lib",
+        "ext/Fcntl",
+        "dist/FindBin/lib",
+        "cpan/Win32",
+        "ext/File",
+        "ext/File-Glob",
+        "cpan/IPC-Cmd/lib",
+        "cpan/Params-Check/lib",
+        "cpan/Locale-Maketext-Simple/lib",
+        "cpan/Module-Load/lib",
+        "cpan/Module-Load-Conditional/lib",
+        "dist/IO",
+        "dist/IO/lib",
+        "cpan/Module-Metadata/lib",
+        "ext/POSIX",
+        "ext/POSIX/lib",
     };
-    for (auto &&p : paths) {
+    return paths;
+}
+static void perl_dirs(auto &&f) {
+    for (auto &&p : perl_dirs1()) {
         f(p);
     }
 }
@@ -43,14 +69,22 @@ struct PerlExecutable : ExecutableTarget
     using ExecutableTarget::ExecutableTarget;
 
     path libsdir;
+    std::vector<path> extra_paths;
 
     void setupCommand(builder::Command &c) const override
     {
+        c.use_response_files = false;
+
         std::vector<path> paths;
         paths.push_back(libsdir / "lib");
-        perl_dirs([&](auto &&p) {paths.push_back(SourceDir / p);});
+        perl_dirs([&](auto &&p) {
+            paths.push_back(SourceDir / p);
+            // we add binary dir manually when making modules
+        });
         String s;
         for (auto &&p : paths)
+            s += p.string() + ";";
+        for (auto &&p : extra_paths)
             s += p.string() + ";";
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
@@ -70,6 +104,7 @@ void build(Solution &s)
 {
     auto &p = s.addProject("perl", "5.43.7");
     p += Git("https://github.com/Perl/perl5", "v{v}");
+    auto &packages = p.addDirectory("packages");
     //p += RemoteFile("https://github.com/Perl/perl5/archive/refs/tags/v{v}.tar.gz");
 
     Files base =
@@ -245,7 +280,61 @@ void build(Solution &s)
         }
     }
 
-    auto &lib = p.addTarget<SharedLibrary>("lib"); // for now, sw mixes static and shared builds
+    using lib_build_type = SharedLibrary;
+
+    auto &perl = p.addTarget<PerlExecutable>("perl");
+    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
+
+    auto copy_file = [](auto &&from, auto &&to) {
+        //std::error_code ec;
+        fs::copy_file(from, to, fs::copy_options::update_existing);
+    };
+    auto fix_perl_path_old2 = [&](auto &c) {
+        c << "-I" << lib.BinaryDir;
+        c << "-I" << lib.BinaryDir / "lib";
+    };
+    auto fix_perl_path_old = [&](auto &c) {
+        perl_dirs([&](auto &&p) {
+            c << "-I" << lib.SourceDir / p;
+            c << "-I" << lib.BinaryDir / p;
+        });
+    };
+    auto fix_perl_path = [&](auto &c) {
+        c << cmd::in(lib.BinaryDir / "lib/buildcustomize.pl");
+    };
+    auto xsubpp = [&](auto &t, auto &&fn, auto &&typemaps, const Files &depfiles = {}) {
+        path out = fn;
+        if (!out.is_absolute()) {
+            out = t.BinaryDir / fn;
+        }
+        out += ".c";
+        auto c = t.addCommand();
+        c << cmd::prog(mp);
+        path p{fn};
+        //c << cmd::wdir(p.is_absolute() ? p.parent_path() : t.SourceDir / p.parent_path());
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            // add lib dep, use lib.getFile()?
+            << cmd::in(lib.SourceDir / "dist/ExtUtils-ParseXS/lib/ExtUtils/xsubpp")
+            << "-noprototypes"
+            ;
+        for (auto &&tm : typemaps) {
+            c << "-typemap" << tm;
+        }
+        c
+            << cmd::in(fn)
+            << cmd::std_out(out)
+            ;
+        c << cmd::end();
+        for (auto &&f : depfiles) {
+            c << cmd::in(f);
+        }
+        //lib -= out;
+        t += out; // how this works with sw upload?
+        return out;
+    };
+
     {
         (lib.Public + mp)->IncludeDirectoriesOnly = true;
 
@@ -268,6 +357,48 @@ void build(Solution &s)
 
         lib.Protected += "."_idir;
 
+        lib.Protected += "win32"_idir;
+        lib.Protected += "win32/include"_idir;
+
+        lib += "PERL_CALLCONV"_api;
+
+        lib.Public += "WIN32"_def;
+        lib.Public += "WIN64"_def;
+
+        lib += "ws2_32.lib"_slib;
+        lib += "user32.lib"_slib;
+        lib += "Advapi32.lib"_slib;
+        lib += "Comctl32.lib"_slib;
+
+        lib += "ext/Win32CORE/Win32CORE.c";
+
+        lib.Public += sw::Static, "PERL_STATIC_SYMS"_def;
+        lib += sw::Shared, "PERLDLL"_def;
+        lib += "PERL_CORE"_def;
+
+        // some conf
+        lib.Public += "PERL_TEXTMODE_SCRIPTS"_def;
+        lib.Public += "PERL_IMPLICIT_SYS"_def;
+        // comment out?
+        //lib.Public += "PERL_IMPLICIT_CONTEXT"_def; // but PERL_IMPLICIT_CONTEXT was removed from core perl. It does not do anything. Undeffing it for compilation
+        lib.Public += "MULTIPLICITY"_def; // needed for PERL_IMPLICIT_CONTEXT
+        // we need both
+        lib.Public += "USE_ITHREADS"_def; // same as USE_THREADS? looks like no
+        lib.Public += "USE_THREADS"_def;
+        //
+
+        // for dynamic xsubpp modules
+        lib.Public += "USE_DYNAMIC_LOADING"_def;
+        // for noreturn dllexport functions
+        lib.patch("win32/win32.h", "#      define PERL_CALLCONV_NO_RET", "//#       define PERL_CALLCONV_NO_RET");
+        // for linking xsubpp modules to perl.dll
+        lib.patch("INTERN.h", "defined(WIN32) && defined(__MINGW32__)", "(defined(WIN32) || defined(__MINGW32__))");
+        // for xsubpp modules exports
+        lib.patch("XSUB.h", "defined(__CYGWIN__)", "(defined( __CYGWIN__) || defined(WIN32))");
+        //
+        lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "WNOHANG", "WNOHANG()");
+        lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "_exit 1", "_exit(1)");
+
         {
             auto c = lib.addCommand();
             c << cmd::prog(gu)
@@ -276,6 +407,7 @@ void build(Solution &s)
                 << cmd::out("mg_data.h")
                 ;
         }
+        // generate things
         {
             auto config_sh = lib.addCommand();
             config_sh << cmd::prog(mp)
@@ -307,8 +439,10 @@ void build(Solution &s)
                 << "LINK_FLAGS=-nologo -nodefaultlib -debug -opt:ref,icf -ltcg -libpath:\\\"c:\\perl\\lib\\CORE\\\" -machine:AMD64"
                 << "optimize=-O1 -MD -Zi -DNDEBUG -GL -fp:precise"*/
 
-                << cmd::in("win32/config.vc")
-                << cmd::std_out(lib.SourceDir / "config.sh");
+                << cmd::in("win32/config.vc");
+                ;
+            auto config_sh_idir = lib.BinaryDir;
+            config_sh << cmd::std_out(config_sh_idir / "config.sh");
 
             /*
             "INST_TOP=c:\\perl"
@@ -318,34 +452,60 @@ void build(Solution &s)
             "libperl=perl529.lib"
             */
 
+            auto make_patchnum_pl = lib.BinaryDir / "make_patchnum.pl";
+            auto config_git_pl = lib.BinaryDir / "Config_git.pl";
+            //lib.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(lib.Source / "make_patchnum.pl") << cmd::out(make_patchnum_pl);
+            if (!lib.DryRun) {
+                fs::create_directories(lib.BinaryDir / "lib");
+                copy_file(lib.SourceDir / "make_patchnum.pl", make_patchnum_pl);
+
+                // out to .in.h and copy after?
+                lib.patch(make_patchnum_pl, "git_version.h", normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string());
+                // was lib/Config_git.pl
+                lib.patch(make_patchnum_pl, "lib/Config_git.pl", normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string());
+            }
+
             auto make_patchnum = lib.addCommand();
             make_patchnum << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
-                << cmd::in("make_patchnum.pl")
+                << cmd::in(make_patchnum_pl)
                 << cmd::end()
-                //<< cmd::out("git_version.h")
-                << cmd::out(lib.SourceDir / "lib" / "Config_git.pl")
+                << cmd::out("git_version.h")
+                << cmd::out(config_git_pl)
                 ;
-            //make_patchnum.c->record_inputs_mtime = true;
+
+            if (!lib.DryRun) {
+                copy_file(lib.SourceDir / "myconfig.SH", lib.BinaryDir / "myconfig.SH");
+                fs::create_directories(lib.BinaryDir / "Porting");
+                copy_file(lib.SourceDir / "Porting/Glossary", lib.BinaryDir / "Porting/Glossary");
+            }
+
+            auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
             auto configpm = lib.addCommand();
             configpm << cmd::prog(mp)
+                << cmd::wdir(lib.BinaryDir)
+                << "-I" << lib.SourceDir
                 << "-I" << lib.SourceDir / "lib"
                 << cmd::in("configpm")
                 << cmd::end()
-                << cmd::in(lib.SourceDir / "config.sh")
-                << cmd::in(lib.SourceDir / "lib" / "Config_git.pl")
-                << cmd::out(lib.SourceDir / "lib" / "Config.pod")
-                << cmd::out(lib.SourceDir / "lib" / "Config.pm")
+                << cmd::in(config_sh_idir / "config.sh")
+                << cmd::in(config_git_pl)
+                << cmd::out(lib.BinaryDir / "lib" / "Config.pod")
+                << cmd::out(config_pm)
                 ;
 
+            if (!lib.DryRun) {
+                copy_file(lib.SourceDir / "write_buildcustomize.pl", lib.BinaryDir / "write_buildcustomize.pl");
+                lib.patch(lib.BinaryDir / "write_buildcustomize.pl", "my $file = 'lib/buildcustomize.pl';", std::format("my $file = '{}/lib/buildcustomize.pl';", normalize_path(lib.BinaryDir).string()));
+            }
             auto buildcustomize = lib.addCommand();
             buildcustomize << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
                 << "-f"
-                << cmd::in("write_buildcustomize.pl")
+                << cmd::in(lib.BinaryDir / "write_buildcustomize.pl")
                 << cmd::end()
-                << cmd::out(lib.SourceDir / "lib" / "buildcustomize.pl")
+                << cmd::out("lib/buildcustomize.pl")
                 ;
 
             /*auto config_h = lib.addCommand();
@@ -371,12 +531,14 @@ void build(Solution &s)
             auto perllibst = lib.addCommand();
             perllibst << cmd::prog(mp)
                 << cmd::wdir(lib.BinaryDir);
-            perl_dirs([&](auto &&p) {perllibst << "-I" << lib.SourceDir / p;});
+            fix_perl_path_old2(perllibst);
+            fix_perl_path_old(perllibst);
             perllibst
+                //<< cmd::in(lib.BinaryDir / "lib/buildcustomize.pl")
                 << cmd::in(lib.SourceDir / "win32" / "create_perllibst_h.pl")
                 << cmd::end()
                 << cmd::out("perllibst.h")
-                << cmd::in(lib.SourceDir / "lib" / "Config.pm")
+                << cmd::in(config_pm)
                 ;
 
             /*auto perldll = lib.addCommand();
@@ -398,11 +560,13 @@ void build(Solution &s)
 
             //PLATFORM=win32 -O1 -MD -Zi -DNDEBUG -GL -fp:precise -DWIN32 -D_CONSOLE -DNO_STRICT -DWIN64 -DCONSERVATIVE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS  -DPERL_TEXTMODE_SCRIPTS -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS  CCTYPE=MSVC141 TARG_DIR=..\ > perldll.def
 
+            {
             auto dyna = lib.addCommand();
             dyna << cmd::prog(mp)
                 //<< cmd::wdir(lib.SourceDir / "win32")
                 ;
-            perl_dirs([&](auto &&p) {dyna << "-I" << lib.SourceDir / p;});
+            fix_perl_path_old2(dyna);
+            fix_perl_path_old(dyna);
             dyna
                 << cmd::in("dist/ExtUtils-ParseXS/lib/ExtUtils/xsubpp")
                 << "-noprototypes"
@@ -411,41 +575,144 @@ void build(Solution &s)
                 << cmd::in("ext/DynaLoader/dl_win32.xs")
                 << cmd::std_out("DynaLoader.c")
                 << cmd::end()
-                << cmd::in(lib.SourceDir / "lib" / "Config.pm")
+                << cmd::in(config_pm)
                 //<< cmd::in(lib.SourceDir / "win32" / "config.h")
                 ;
+            lib += "DynaLoader.c";
+            lib += "ext/DynaLoader"_idir;
+            }
+
+            auto copy_and_patch = [&](auto &&t, auto &&fn, auto &&from, auto &&to) {
+                path in = fn;
+                path out = fn;
+                if (!in.is_absolute()) {
+                    in = t.SourceDir / fn;
+                }
+                if (!out.is_absolute()) {
+                    out = t.BinaryDir / fn;
+                }
+                t -= in;
+                if (t.DryRun)
+                    return out;
+                fs::create_directories(out.parent_path());
+                copy_file(in, out);
+                auto patch_fn = out;
+                patch_fn += ".patch";
+                //if (!fs::exists(patch_fn)) {
+                    t.patch(out, from, to);
+                    //write_file(patch_fn, "");
+                //}
+                return out;
+            };
+            auto fix_local_require = [&](auto &&file, auto &&outfn) {
+                return copy_and_patch(lib, file, "./"s + path{outfn}.filename().string(), ""s + normalize_path(outfn).string());
+            };
+            auto fix_local_output = [&](auto &&file, auto &&outfn) {
+                //return copy_and_patch(lib, file, "\">"s + path{outfn}.filename().string(), "\">"s + out.string());
+            };
+
+            perl.extra_paths.push_back(lib.SourceDir / "lib");
+            perl.extra_paths.push_back(lib.BinaryDir);
+            perl.extra_paths.push_back(lib.BinaryDir / "lib");
+            //
+            perl.extra_paths.push_back(lib.BinaryDir / "ext");
+            perl.extra_paths.push_back(lib.BinaryDir / "dist");
+            perl.extra_paths.push_back(lib.BinaryDir / "cpan");
+            // some modules depends on previous ones
+            // we did not keep tracking of it yet
+            auto PL_to_file = [&](auto &&fn) {
+                auto in = fn;
+                auto f = path{in}.string();
+                while (!f.empty() && f.back() != '.') f.pop_back();
+                f.pop_back();
+                for (auto i = f.size() - 1; i != -1; --i) {
+                    if (f[i] == '_') {
+                        f[i] = '.';
+                        break;
+                    }
+                }
+                auto outcopy = fn;
+                path out = f;
+                //copy_and_patch(lib, outcopy, "\">"s + path{out}.filename().string(), "\">"s + normalize_path(lib.BinaryDir / out).string());
+                copy_and_patch(lib, outcopy, ""s + path{out}.filename().string(), ""s + normalize_path(lib.BinaryDir / out).string());
+                if (lib.DryRun)
+                    return out;
+                auto c = lib.addCommand()
+                    << cmd::prog(mp)
+                    << cmd::wdir((lib.SourceDir / in).parent_path())
+                    << "-I" << lib.SourceDir / "lib"
+                    << "-I" << lib.BinaryDir
+                    << "-I" << lib.BinaryDir / "lib"
+                    ;
+                fix_perl_path_old2(c);
+                fix_perl_path_old(c);
+                c
+                    << cmd::in(lib.BinaryDir / outcopy)
+                    << cmd::out(lib.BinaryDir / out)
+                    << cmd::end()
+                    << cmd::in(config_pm)
+                    ;
+                //fix_and_add_output_file(c, "dist/Devel-PPPort/RealPPPort_xs.PL", "dist/Devel-PPPort/RealPPPort.xs");
+                perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
+                return lib.BinaryDir / out;
+            };
+            auto make_module_simple = [&](auto &&disposition, auto &&name) {
+                PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name));
+            };
+            auto make_module_simple1 = [&](const path &name) {
+                make_module_simple(name.parent_path().string(), name.filename().string());
+            };
+            make_module_simple1("dist/XSLoader");
+            lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "croak(\"Can't locate", "$file = dl_findfile_sw($modfname) unless $file; croak( \"Can't locate");
+            lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "sub dl_findfile {", std::format(R"(
+sub dl_findfile_sw {{
+    my $output = @_[0];
+    my $output = qx({} list org.sw.demo.perl.packages.*.$output 2>&1);
+    my @output = split /\n/, $output;
+    my @output = split / /, $output;
+    $output = "$output[0]-$output[1]";
+    return dl_findfile(map("-L$_",@dirs,@INC), $output);
+}}
+
+sub dl_findfile {{
+            )", normalize_string_copy(sw::getSwExecutableName().string())));
+            make_module_simple1("ext/DynaLoader");
+            make_module_simple1("dist/lib");
+
+            // for modules
+            {
+                auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL");
+                auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL");
+                {
+                    auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "ppport.h", normalize_path(lib.BinaryDir / "ppport.h").string());
+
+                    auto ppport = lib.addCommand();
+                    ppport << cmd::prog(mp)
+                        << "-I" << lib.SourceDir / "lib"
+                        << "-I" << pport_pm.parent_path()
+                        << cmd::in(ppport_pl)
+                        << cmd::out("ppport.h")
+                        << cmd::end()
+                        << cmd::in(pport_pm)
+                        ;
+                }
+
+                auto &pp = packages.addTarget<lib_build_type>("dist.Devel.PPPort");
+                {
+                    auto &t = pp;
+                    t += lib;
+                    //t += "PERL_EXT_RE_BUILD"_def;
+                    xsubpp(t, RealPPPort_xs, std::vector<path>{
+                        lib.SourceDir / "lib/ExtUtils/typemap",
+                        lib.SourceDir / "dist/Devel-PPPort/typemap",
+                    });
+                    //t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(out) << cmd::out(t.BinaryDir / out.filename() += ".c");
+                    t += "dist/Devel-PPPort/.*\\.c"_r;
+                }
+            }
         }
-
-        lib += sw::Shared, "PERLDLL"_def;
-        lib += "PERL_CORE"_def;
-
-        lib += "PERL_TEXTMODE_SCRIPTS"_def;
-        lib += "PERL_IMPLICIT_CONTEXT"_def;
-        lib += "PERL_IMPLICIT_SYS"_def;
-
-        lib.Protected += "win32"_idir;
-        lib.Protected += "win32/include"_idir;
-
-        lib.Public += sw::Shared, "WIN32"_def;
-        lib.Public += sw::Shared, "WIN64"_def;
-
-        lib += "ws2_32.lib"_slib;
-        lib += "user32.lib"_slib;
-        lib += "Advapi32.lib"_slib;
-        lib += "Comctl32.lib"_slib;
-
-        lib += "ext/Win32CORE/Win32CORE.c";
-        lib += "DynaLoader.c";
-        lib += "ext/DynaLoader"_idir;
-
-        //lib ^= lib.SourceDir / "git_version.h";
-        /*lib.writeFileOnce("git_version.h", R"(
-        #define PERL_PATCHNUM "v5.31.7"
-        #define PERL_GIT_UNPUSHED_COMMITS
-        )");*/
     }
 
-    auto &perl = p.addTarget<PerlExecutable>("perl");
     {
         perl.libsdir = lib.SourceDir;
 
@@ -456,5 +723,248 @@ void build(Solution &s)
         perl -= "dist/.*"_rr;
         perl -= "ext/.*"_rr;
         perl -= "cpan/.*"_rr;
+    }
+
+    auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
+    {
+        auto &t = enc;
+        t += lib;
+        t += "cpan/Encode/.*\\.c"_r;
+        t += "cpan/Encode/Encode"_idir;
+        t.writeFileOnce("def_t.fnm", R"(
+ucm/ascii.ucm
+ucm/8859-1.ucm
+ucm/cp1252.ucm
+ucm/null.ucm
+ucm/ctrl.ucm
+)");
+
+        auto c = t.addCommand();
+        c
+            << cmd::prog(mp)
+            << cmd::wdir("cpan/Encode")
+            << "-I" << lib.SourceDir / "lib"
+            << "-I" << lib.BinaryDir
+            << "-I" << lib.BinaryDir / "lib"
+            ;
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            << "bin/enc2xs"
+            << "-\"Q\""
+            << "-\"O\""
+            << "-o"
+            << cmd::out(normalize_path(t.BinaryDir / "def_t.c"))
+            << "-f" << normalize_path(t.BinaryDir / "def_t.fnm")
+            ;
+
+        xsubpp(t, "cpan/Encode/Encode.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto &cwd = packages.addTarget<lib_build_type>("dist.PathTools.Cwd");
+    {
+        auto &t = cwd;
+        t += lib;
+        t += "DOUBLE_SLASHES_SPECIAL=0"_def;
+
+        xsubpp(t, "dist/PathTools/Cwd.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto &storable = packages.addTarget<lib_build_type>("dist.Storable");
+    {
+        auto &t = storable;
+        t += lib;
+        t += "VERSION=\"3.39\""_def;
+        t += "XS_VERSION=\"3.39\""_def;
+
+        xsubpp(t, "dist/Storable/Storable.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto &fcntl = packages.addTarget<lib_build_type>("ext.Fcntl");
+    {
+        auto &t = fcntl;
+        t += lib;
+        t += "VERSION=\"1.20\""_def;
+        t += "XS_VERSION=\"1.20\""_def;
+        t += IncludeDirectory{lib.BinaryDir / "ext/Fcntl"};
+
+        if (!lib.DryRun) {
+            fs::create_directories(lib.BinaryDir / "ext/Fcntl");
+            copy_file(lib.SourceDir / "ext/Fcntl/Fcntl.pm", lib.BinaryDir / "ext/Fcntl/Fcntl.pm");
+            copy_file(lib.SourceDir / "ext/Fcntl/Fcntl.xs", lib.BinaryDir / "ext/Fcntl/Fcntl.xs");
+        }
+        auto c = lib.addCommand();
+        c
+            << cmd::prog(mp)
+            << cmd::wdir(lib.BinaryDir / "ext/Fcntl")
+            << "-I" << lib.SourceDir / "lib"
+            << "-I" << lib.BinaryDir
+            << "-I" << lib.BinaryDir / "lib"
+            ;
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            << cmd::in("ext/Fcntl/Makefile.PL")
+            << cmd::end()
+            << cmd::out("ext/Fcntl/const-xs.inc")
+            << cmd::out("ext/Fcntl/const-c.inc")
+            ;
+        //lib -= "ext/Fcntl/const-xs.inc";
+        //lib -= "ext/Fcntl/const-c.inc";
+
+        xsubpp(t, lib.BinaryDir / "ext/Fcntl/Fcntl.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        }
+        //, Files{lib.BinaryDir / "ext/Fcntl/const-xs.inc", lib.BinaryDir / "ext/Fcntl/const-c.inc"}
+        );
+    }
+
+    auto &win32 = packages.addTarget<lib_build_type>("cpan.Win32");
+    {
+        auto &t = win32;
+        t += lib;
+        t += IncludeDirectory{lib.SourceDir / "cpan/Win32"};
+        t += IncludeDirectory{lib.BinaryDir / "cpan/Win32"};
+        t += "advapi32.lib"_slib;
+        t += "User32.lib"_slib;
+        t += "Winhttp.lib"_slib;
+        t += "Version.lib"_slib;
+        t += "ole32.lib"_slib;
+        t += "Netapi32.lib"_slib;
+        t += "Userenv.lib"_slib;
+        t += "Shell32.lib"_slib;
+
+        if (!lib.DryRun) {
+            //fs::create_directories(lib.BinaryDir / "cpan/Win32");
+            //copy_file(lib.SourceDir / "cpan/Win32/longpath.inc", lib.BinaryDir / "cpan/Win32/longpath.inc");
+        }
+
+        xsubpp(t, "cpan/Win32/Win32.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto &file_glob = packages.addTarget<lib_build_type>("ext.File.Glob");
+    {
+        auto &t = file_glob;
+        t += lib;
+        t += "ext/File-Glob/bsd_glob.c";
+        t += IncludeDirectory{lib.SourceDir / "ext/File-Glob"};
+        t += IncludeDirectory{lib.BinaryDir / "ext/File-Glob"};
+
+        if (!lib.DryRun) {
+            fs::create_directories(lib.BinaryDir / "ext/File-Glob");
+            copy_file(lib.SourceDir / "ext/File-Glob/Glob.pm", lib.BinaryDir / "ext/File-Glob/Glob.pm");
+            copy_file(lib.SourceDir / "ext/File-Glob/Glob.xs", lib.BinaryDir / "ext/File-Glob/Glob.xs");
+
+            fs::create_directories(lib.BinaryDir / "ext/File");
+            copy_file(lib.SourceDir / "ext/File-Glob/Glob.pm", lib.BinaryDir / "ext/File/Glob.pm");
+        }
+
+        auto c = lib.addCommand();
+        c
+            << cmd::prog(mp)
+            << cmd::wdir(lib.BinaryDir / "ext/File-Glob")
+            << "-I" << lib.SourceDir / "lib"
+            << "-I" << lib.BinaryDir
+            << "-I" << lib.BinaryDir / "lib"
+            << "-I" << lib.SourceDir / "ext/File-Glob"
+            << "-I" << lib.BinaryDir / "ext/File-Glob"
+            ;
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            << cmd::in("ext/File-Glob/Makefile.PL")
+            << cmd::end()
+            << cmd::out("ext/File-Glob/const-xs.inc")
+            << cmd::out("ext/File-Glob/const-c.inc")
+            ;
+
+        xsubpp(t, lib.BinaryDir / "ext/File-Glob/Glob.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto process_module = [&](auto &t, const path &dir) {
+
+        t += IncludeDirectory{lib.SourceDir / dir};
+        t += IncludeDirectory{lib.BinaryDir / dir};
+
+        auto s = dir.filename().string();
+        auto p = s.rfind('-');
+        auto has_dash = p == -1;
+        auto fn = has_dash ? s : s.substr(p + 1);
+        auto prefix = s.substr(0, p);
+
+        if (!lib.DryRun) {
+            fs::create_directories(lib.BinaryDir / dir);
+            auto pm = lib.SourceDir / dir / (fn + ".pm"s);
+            auto has_pm = fs::exists(pm);
+            if (has_pm) {
+                copy_file(pm, lib.BinaryDir / dir / (fn + ".pm"s));
+            }
+            copy_file(lib.SourceDir / dir / (fn + ".xs"s), lib.BinaryDir / dir / (fn + ".xs"s));
+
+            if (has_dash) {
+                fs::create_directories(lib.BinaryDir / prefix);
+                if (has_pm) {
+                    copy_file(pm, lib.BinaryDir / prefix / (fn + ".pm"s));
+                }
+            }
+        }
+
+        if (!lib.DryRun && fs::exists(lib.SourceDir / dir / "Makefile.PL") && read_file(lib.SourceDir / dir / "Makefile.PL").contains("WriteConstants"sv)) {
+            if (fs::exists(lib.SourceDir / dir / "lib")) {
+                fs::copy(lib.SourceDir / dir / "lib", lib.BinaryDir / dir / "lib", fs::copy_options::recursive | fs::copy_options::update_existing);
+            }
+            auto c = lib.addCommand();
+            c
+                << cmd::prog(mp)
+                << cmd::wdir(lib.BinaryDir / dir)
+                << "-I" << lib.SourceDir / "lib"
+                << "-I" << lib.BinaryDir
+                << "-I" << lib.BinaryDir / "lib"
+                << "-I" << lib.SourceDir / dir
+                << "-I" << lib.SourceDir / dir / "lib"
+                << "-I" << lib.BinaryDir / dir
+                ;
+            fix_perl_path_old2(c);
+            fix_perl_path_old(c);
+            c
+                << cmd::in(dir / "Makefile.PL")
+                << cmd::end()
+                << cmd::out(dir / "const-xs.inc")
+                << cmd::out(dir / "const-c.inc")
+                ;
+        }
+
+        std::vector<path> typemaps{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        };
+        if (!lib.DryRun && fs::exists(lib.SourceDir / dir / "typemap")) {
+            typemaps.push_back(lib.SourceDir / dir / "typemap");
+        }
+        xsubpp(t, lib.BinaryDir / dir / (fn + ".xs"s), typemaps);
+    };
+
+    auto &dist_io = packages.addTarget<lib_build_type>("dist.IO");
+    {
+        auto &t = dist_io;
+        t += lib;
+        t += "dist/IO/poll.c";
+        process_module(t, "dist/IO");
+    }
+
+    auto &ext_posix = packages.addTarget<lib_build_type>("ext.POSIX");
+    {
+        auto &t = ext_posix;
+        t += lib;
+        process_module(t, "ext/POSIX");
     }
 }
