@@ -799,6 +799,7 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
 
             auto ppport = lib.addCommand();
             ppport << cmd::prog(mp)
+                << cmd::wdir(lib.BinaryDir / "dist/Devel-PPPort")
                 << "-I" << lib.SourceDir / "lib"
                 << "-I" << pport_pm.parent_path()
                 << cmd::in(ppport_pl)

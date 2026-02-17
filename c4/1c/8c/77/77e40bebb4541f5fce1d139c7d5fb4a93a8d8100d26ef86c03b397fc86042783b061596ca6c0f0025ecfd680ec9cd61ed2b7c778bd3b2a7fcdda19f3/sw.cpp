@@ -703,15 +703,34 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
         perl -= "cpan/.*"_rr;
     }
 
+    struct perl_module_data {
+        path dir;
+        std::string name;
+        std::string version;
+    };
+
     // dedup with PL_to_file()
-    auto process_module = [&](auto &t, const path &dir) {
+    auto process_module = [&](auto &t, const perl_module_data &d) {
+        const path &dir = d.dir;
+        const std::string &module = d.name;
+
+        if (!d.version.empty()) {
+            t += Definition{"VERSION=\"" + d.version + "\""};
+            t += Definition{"XS_VERSION=\"" + d.version + "\""};
+        }
+
         t += IncludeDirectory{lib.SourceDir / dir};
         t += IncludeDirectory{lib.BinaryDir / dir};
+
+        t += lib;
 
         auto s = dir.filename().string();
         auto p = s.rfind('-');
         auto has_dash = p == -1;
         auto fn = has_dash ? s : s.substr(p + 1);
+        if (!module.empty()) {
+            fn = module;
+        }
         auto fn_upper = boost::to_upper_copy(fn);
         auto prefix = s.substr(0, p);
 
@@ -772,17 +791,17 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
         }
         xsubpp(t, lib.BinaryDir / dir / (fn + ".xs"s), typemaps);
     };
-    auto process_module2 = [&](const path &dir) -> decltype(auto) {
-        auto n = dir.string();
+    auto process_module2 = [&](const perl_module_data &d) -> decltype(auto) {
+        auto n = d.dir.string();
         boost::replace_all(n, "/", ".");
         boost::replace_all(n, "-", ".");
         auto &t = packages.addTarget<lib_build_type>(n);
-        t += lib;
+        process_module(t, d);
         return t;
     };
-    auto process_module_with_c_files = [&](const path &dir) -> decltype(auto) {
-        auto &t = process_module2(dir);
-        t += FileRegex{dir, ".*\\.c", false};
+    auto process_module_with_c_files = [&](const perl_module_data &d) -> decltype(auto) {
+        auto &t = process_module2(d);
+        t += FileRegex{d.dir, ".*\\.[hc]", false};
         return t;
     };
 
@@ -799,6 +818,7 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
 
             auto ppport = lib.addCommand();
             ppport << cmd::prog(mp)
+                << cmd::wdir(lib.BinaryDir / "dist/Devel-PPPort")
                 << "-I" << lib.SourceDir / "lib"
                 << "-I" << pport_pm.parent_path()
                 << cmd::in(ppport_pl)
@@ -812,14 +832,12 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
             lib.SourceDir / "lib/ExtUtils/typemap",
             lib.SourceDir / "dist/Devel-PPPort/typemap",
         });
-        //t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(out) << cmd::out(t.BinaryDir / out.filename() += ".c");
         t += "dist/Devel-PPPort/.*\\.c"_r;
     }
 
     auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
     {
         auto &t = enc;
-        t += lib;
         t += "cpan/Encode/.*\\.c"_r;
         t += "cpan/Encode/Encode"_idir;
         t.writeFileOnce("def_t.fnm", R"(
@@ -849,24 +867,12 @@ ucm/ctrl.ucm
             << "-f" << normalize_path(t.BinaryDir / "def_t.fnm")
             ;
 
-        process_module(t, "cpan/Encode");
-    }
-
-    auto &cwd = packages.addTarget<lib_build_type>("dist.PathTools.Cwd");
-    {
-        auto &t = cwd;
-        t += lib;
-        t += "DOUBLE_SLASHES_SPECIAL=0"_def;
-
-        xsubpp(t, "dist/PathTools/Cwd.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
+        process_module(t, {"cpan/Encode"});
     }
 
     auto &ext_re = packages.addTarget<lib_build_type>("ext.re");
     {
         auto &t = ext_re;
-        t += lib;
         //t += "dquote.c";
         t += "regcomp.c";
         t += "regcomp_invlist.c";
@@ -882,22 +888,17 @@ ucm/ctrl.ucm
         // so we force allow multiple same symbols across dll
         t.LinkOptions.push_back("/FORCE:MULTIPLE");
 
-        process_module(t, "ext/re");
+        process_module(t, {"ext/re"});
     }
 
     // simpler modules
 
-    process_module2("dist/Storable") +=
-        "VERSION=\"3.39\""_def,
-        "XS_VERSION=\"3.39\""_def
-        ;
+    process_module2({"dist/PathTools", "Cwd"}) += "DOUBLE_SLASHES_SPECIAL=0"_def;
 
-    process_module2("ext/Fcntl") +=
-        "VERSION=\"1.20\""_def,
-        "XS_VERSION=\"1.20\""_def
-        ;
+    process_module2({.dir = "dist/Storable", .version = "3.39"});
+    process_module2({.dir = "ext/Fcntl", .version = "1.20"});
 
-    process_module2("cpan/Win32") +=
+    process_module2({"cpan/Win32"}) +=
        "advapi32.lib"_slib,
        "User32.lib"_slib,
        "Winhttp.lib"_slib,
@@ -908,7 +909,7 @@ ucm/ctrl.ucm
        "Shell32.lib"_slib
        ;
 
-    process_module_with_c_files("ext/File-Glob");
-    process_module_with_c_files("dist/IO");
-    process_module2("ext/POSIX");
+    process_module_with_c_files({"ext/File-Glob"});
+    process_module_with_c_files({"dist/IO"});
+    process_module2({"ext/POSIX"});
 }
