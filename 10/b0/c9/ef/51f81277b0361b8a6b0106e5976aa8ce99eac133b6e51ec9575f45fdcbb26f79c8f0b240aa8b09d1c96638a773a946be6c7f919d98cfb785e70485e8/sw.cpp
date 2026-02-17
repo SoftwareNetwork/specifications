@@ -28,7 +28,7 @@ void build(Solution &s)
     libssh2.pushBackToFileOnce("src/libssh2_config_cmake.h.in", "#include <stdint.h>");
     libssh2.configureFile("src/libssh2_config_cmake.h.in", "libssh2_config.h");
 
-    libssh2.Public += "org.sw.demo.openssl.ssl-1.*.*.*"_dep;
+    libssh2.Public += "org.sw.demo.openssl.ssl"_dep;
 }
 
 void check(Checker &c)
