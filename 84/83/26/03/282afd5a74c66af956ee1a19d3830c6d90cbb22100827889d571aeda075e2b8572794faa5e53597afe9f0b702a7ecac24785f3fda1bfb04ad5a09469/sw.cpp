@@ -237,8 +237,17 @@ void build(Solution &s)
 
         mp += "PERLDLL"_def;
         mp += "PERL_CORE"_def;
-        mp += "PERL_EXTERNAL_GLOB"_def;
-        mp += "PERL_IS_MINIPERL"_def;
+        //mp += "PERL_EXTERNAL_GLOB"_def;
+        //mp += "PERL_IS_MINIPERL"_def;
+
+        for (auto &&f : {
+            "perl.c",
+            //"opmini.c",
+            //"perlmini.c",
+            //"universalmini.c",
+            })
+        for (auto &&d : {"-DPERL_IS_MINIPERL","-DPERL_EXTERNAL_GLOB",})
+            mp[f].args.push_back(d);
 
         if (mp.getBuildSettings().TargetOS.Type == OSType::Windows)
         {
@@ -284,6 +293,7 @@ void build(Solution &s)
 
     auto &perl = p.addTarget<PerlExecutable>("perl");
     auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
+    auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
     auto copy_file = [](auto &&from, auto &&to) {
         //std::error_code ec;
@@ -333,6 +343,70 @@ void build(Solution &s)
         //lib -= out;
         t += out; // how this works with sw upload?
         return out;
+    };
+    auto copy_and_patch = [&](auto &&t, auto &&fn, auto &&from, auto &&to) {
+        path in = fn;
+        path out = fn;
+        if (!in.is_absolute()) {
+            in = t.SourceDir / fn;
+        }
+        if (!out.is_absolute()) {
+            out = t.BinaryDir / fn;
+        }
+        t -= in;
+        if (t.DryRun)
+            return out;
+        fs::create_directories(out.parent_path());
+        copy_file(in, out);
+        auto patch_fn = out;
+        patch_fn += ".patch";
+        //if (!fs::exists(patch_fn)) {
+            t.patch(out, from, to);
+            //write_file(patch_fn, "");
+        //}
+        return out;
+    };
+    auto fix_local_require = [&](auto &&file, auto &&outfn) {
+        return copy_and_patch(lib, file, "./"s + path{outfn}.filename().string(), ""s + normalize_path(outfn).string());
+    };
+    auto fix_local_output = [&](auto &&file, auto &&outfn) {
+        //return copy_and_patch(lib, file, "\">"s + path{outfn}.filename().string(), "\">"s + out.string());
+    };
+    auto PL_to_file = [&](auto &&fn) {
+        auto in = fn;
+        auto f = path{in}.string();
+        while (!f.empty() && f.back() != '.') f.pop_back();
+        f.pop_back();
+        for (auto i = f.size() - 1; i != -1; --i) {
+            if (f[i] == '_') {
+                f[i] = '.';
+                break;
+            }
+        }
+        auto outcopy = fn;
+        path out = f;
+        //copy_and_patch(lib, outcopy, "\">"s + path{out}.filename().string(), "\">"s + normalize_path(lib.BinaryDir / out).string());
+        copy_and_patch(lib, outcopy, ""s + path{out}.filename().string(), ""s + normalize_path(lib.BinaryDir / out).string());
+        if (lib.DryRun)
+            return out;
+        auto c = lib.addCommand()
+            << cmd::prog(mp)
+            << cmd::wdir((lib.SourceDir / in).parent_path())
+            << "-I" << lib.SourceDir / "lib"
+            << "-I" << lib.BinaryDir
+            << "-I" << lib.BinaryDir / "lib"
+            ;
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            << cmd::in(lib.BinaryDir / outcopy)
+            << cmd::out(lib.BinaryDir / out)
+            << cmd::end()
+            << cmd::in(config_pm)
+            ;
+        //fix_and_add_output_file(c, "dist/Devel-PPPort/RealPPPort_xs.PL", "dist/Devel-PPPort/RealPPPort.xs");
+        perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
+        return lib.BinaryDir / out;
     };
 
     {
@@ -396,7 +470,9 @@ void build(Solution &s)
         // for xsubpp modules exports
         lib.patch("XSUB.h", "defined(__CYGWIN__)", "(defined( __CYGWIN__) || defined(WIN32))");
         //
-        lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "WNOHANG", "WNOHANG()");
+        //lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "POSIX::WNOHANG", "$sw::POSIX_WNOHANG");
+        //lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "POSIX->import();", "POSIX->import( ); $sw::POSIX_WNOHANG = POSIX::WNOHANG();");
+        lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", ", POSIX::WNOHANG", ",  POSIX::WNOHANG()");
         lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "_exit 1", "_exit(1)");
 
         {
@@ -479,8 +555,6 @@ void build(Solution &s)
                 fs::create_directories(lib.BinaryDir / "Porting");
                 copy_file(lib.SourceDir / "Porting/Glossary", lib.BinaryDir / "Porting/Glossary");
             }
-
-            auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
             auto configpm = lib.addCommand();
             configpm << cmd::prog(mp)
@@ -582,35 +656,6 @@ void build(Solution &s)
             lib += "ext/DynaLoader"_idir;
             }
 
-            auto copy_and_patch = [&](auto &&t, auto &&fn, auto &&from, auto &&to) {
-                path in = fn;
-                path out = fn;
-                if (!in.is_absolute()) {
-                    in = t.SourceDir / fn;
-                }
-                if (!out.is_absolute()) {
-                    out = t.BinaryDir / fn;
-                }
-                t -= in;
-                if (t.DryRun)
-                    return out;
-                fs::create_directories(out.parent_path());
-                copy_file(in, out);
-                auto patch_fn = out;
-                patch_fn += ".patch";
-                //if (!fs::exists(patch_fn)) {
-                    t.patch(out, from, to);
-                    //write_file(patch_fn, "");
-                //}
-                return out;
-            };
-            auto fix_local_require = [&](auto &&file, auto &&outfn) {
-                return copy_and_patch(lib, file, "./"s + path{outfn}.filename().string(), ""s + normalize_path(outfn).string());
-            };
-            auto fix_local_output = [&](auto &&file, auto &&outfn) {
-                //return copy_and_patch(lib, file, "\">"s + path{outfn}.filename().string(), "\">"s + out.string());
-            };
-
             perl.extra_paths.push_back(lib.SourceDir / "lib");
             perl.extra_paths.push_back(lib.BinaryDir);
             perl.extra_paths.push_back(lib.BinaryDir / "lib");
@@ -618,44 +663,9 @@ void build(Solution &s)
             perl.extra_paths.push_back(lib.BinaryDir / "ext");
             perl.extra_paths.push_back(lib.BinaryDir / "dist");
             perl.extra_paths.push_back(lib.BinaryDir / "cpan");
+
             // some modules depends on previous ones
             // we did not keep tracking of it yet
-            auto PL_to_file = [&](auto &&fn) {
-                auto in = fn;
-                auto f = path{in}.string();
-                while (!f.empty() && f.back() != '.') f.pop_back();
-                f.pop_back();
-                for (auto i = f.size() - 1; i != -1; --i) {
-                    if (f[i] == '_') {
-                        f[i] = '.';
-                        break;
-                    }
-                }
-                auto outcopy = fn;
-                path out = f;
-                //copy_and_patch(lib, outcopy, "\">"s + path{out}.filename().string(), "\">"s + normalize_path(lib.BinaryDir / out).string());
-                copy_and_patch(lib, outcopy, ""s + path{out}.filename().string(), ""s + normalize_path(lib.BinaryDir / out).string());
-                if (lib.DryRun)
-                    return out;
-                auto c = lib.addCommand()
-                    << cmd::prog(mp)
-                    << cmd::wdir((lib.SourceDir / in).parent_path())
-                    << "-I" << lib.SourceDir / "lib"
-                    << "-I" << lib.BinaryDir
-                    << "-I" << lib.BinaryDir / "lib"
-                    ;
-                fix_perl_path_old2(c);
-                fix_perl_path_old(c);
-                c
-                    << cmd::in(lib.BinaryDir / outcopy)
-                    << cmd::out(lib.BinaryDir / out)
-                    << cmd::end()
-                    << cmd::in(config_pm)
-                    ;
-                //fix_and_add_output_file(c, "dist/Devel-PPPort/RealPPPort_xs.PL", "dist/Devel-PPPort/RealPPPort.xs");
-                perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
-                return lib.BinaryDir / out;
-            };
             auto make_module_simple = [&](auto &&disposition, auto &&name) {
                 PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name));
             };
@@ -664,55 +674,23 @@ void build(Solution &s)
             };
             make_module_simple1("dist/XSLoader");
             lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "croak(\"Can't locate", "$file = dl_findfile_sw($modfname) unless $file; croak( \"Can't locate");
-            lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "sub dl_findfile {", std::format(R"(
-sub dl_findfile_sw {{
+            lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "sub dl_findfile {", std::format(R"(sub dl_findfile_sw {{
     my $output = @_[0];
-    my $output = qx({} list org.sw.demo.perl.packages.*.$output 2>&1);
+    my $output = qx({} list org.sw.demo.perl.packages.*.$output 2>&1); # -bt
+    #print STDERR "$output";
     my @output = split /\n/, $output;
     my @output = split / /, $output;
     $output = "$output[0]-$output[1]";
     return dl_findfile(map("-L$_",@dirs,@INC), $output);
 }}
 
-sub dl_findfile {{
-            )", normalize_string_copy(sw::getSwExecutableName().string())));
+sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())));
             make_module_simple1("ext/DynaLoader");
             make_module_simple1("dist/lib");
-
-            // for modules
-            {
-                auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL");
-                auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL");
-                {
-                    auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "ppport.h", normalize_path(lib.BinaryDir / "ppport.h").string());
-
-                    auto ppport = lib.addCommand();
-                    ppport << cmd::prog(mp)
-                        << "-I" << lib.SourceDir / "lib"
-                        << "-I" << pport_pm.parent_path()
-                        << cmd::in(ppport_pl)
-                        << cmd::out("ppport.h")
-                        << cmd::end()
-                        << cmd::in(pport_pm)
-                        ;
-                }
-
-                auto &pp = packages.addTarget<lib_build_type>("dist.Devel.PPPort");
-                {
-                    auto &t = pp;
-                    t += lib;
-                    //t += "PERL_EXT_RE_BUILD"_def;
-                    xsubpp(t, RealPPPort_xs, std::vector<path>{
-                        lib.SourceDir / "lib/ExtUtils/typemap",
-                        lib.SourceDir / "dist/Devel-PPPort/typemap",
-                    });
-                    //t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(out) << cmd::out(t.BinaryDir / out.filename() += ".c");
-                    t += "dist/Devel-PPPort/.*\\.c"_r;
-                }
-            }
         }
     }
 
+    // perl
     {
         perl.libsdir = lib.SourceDir;
 
@@ -725,174 +703,8 @@ sub dl_findfile {{
         perl -= "cpan/.*"_rr;
     }
 
-    auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
-    {
-        auto &t = enc;
-        t += lib;
-        t += "cpan/Encode/.*\\.c"_r;
-        t += "cpan/Encode/Encode"_idir;
-        t.writeFileOnce("def_t.fnm", R"(
-ucm/ascii.ucm
-ucm/8859-1.ucm
-ucm/cp1252.ucm
-ucm/null.ucm
-ucm/ctrl.ucm
-)");
-
-        auto c = t.addCommand();
-        c
-            << cmd::prog(mp)
-            << cmd::wdir("cpan/Encode")
-            << "-I" << lib.SourceDir / "lib"
-            << "-I" << lib.BinaryDir
-            << "-I" << lib.BinaryDir / "lib"
-            ;
-        fix_perl_path_old2(c);
-        fix_perl_path_old(c);
-        c
-            << "bin/enc2xs"
-            << "-\"Q\""
-            << "-\"O\""
-            << "-o"
-            << cmd::out(normalize_path(t.BinaryDir / "def_t.c"))
-            << "-f" << normalize_path(t.BinaryDir / "def_t.fnm")
-            ;
-
-        xsubpp(t, "cpan/Encode/Encode.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
-    }
-
-    auto &cwd = packages.addTarget<lib_build_type>("dist.PathTools.Cwd");
-    {
-        auto &t = cwd;
-        t += lib;
-        t += "DOUBLE_SLASHES_SPECIAL=0"_def;
-
-        xsubpp(t, "dist/PathTools/Cwd.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
-    }
-
-    auto &storable = packages.addTarget<lib_build_type>("dist.Storable");
-    {
-        auto &t = storable;
-        t += lib;
-        t += "VERSION=\"3.39\""_def;
-        t += "XS_VERSION=\"3.39\""_def;
-
-        xsubpp(t, "dist/Storable/Storable.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
-    }
-
-    auto &fcntl = packages.addTarget<lib_build_type>("ext.Fcntl");
-    {
-        auto &t = fcntl;
-        t += lib;
-        t += "VERSION=\"1.20\""_def;
-        t += "XS_VERSION=\"1.20\""_def;
-        t += IncludeDirectory{lib.BinaryDir / "ext/Fcntl"};
-
-        if (!lib.DryRun) {
-            fs::create_directories(lib.BinaryDir / "ext/Fcntl");
-            copy_file(lib.SourceDir / "ext/Fcntl/Fcntl.pm", lib.BinaryDir / "ext/Fcntl/Fcntl.pm");
-            copy_file(lib.SourceDir / "ext/Fcntl/Fcntl.xs", lib.BinaryDir / "ext/Fcntl/Fcntl.xs");
-        }
-        auto c = lib.addCommand();
-        c
-            << cmd::prog(mp)
-            << cmd::wdir(lib.BinaryDir / "ext/Fcntl")
-            << "-I" << lib.SourceDir / "lib"
-            << "-I" << lib.BinaryDir
-            << "-I" << lib.BinaryDir / "lib"
-            ;
-        fix_perl_path_old2(c);
-        fix_perl_path_old(c);
-        c
-            << cmd::in("ext/Fcntl/Makefile.PL")
-            << cmd::end()
-            << cmd::out("ext/Fcntl/const-xs.inc")
-            << cmd::out("ext/Fcntl/const-c.inc")
-            ;
-        //lib -= "ext/Fcntl/const-xs.inc";
-        //lib -= "ext/Fcntl/const-c.inc";
-
-        xsubpp(t, lib.BinaryDir / "ext/Fcntl/Fcntl.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        }
-        //, Files{lib.BinaryDir / "ext/Fcntl/const-xs.inc", lib.BinaryDir / "ext/Fcntl/const-c.inc"}
-        );
-    }
-
-    auto &win32 = packages.addTarget<lib_build_type>("cpan.Win32");
-    {
-        auto &t = win32;
-        t += lib;
-        t += IncludeDirectory{lib.SourceDir / "cpan/Win32"};
-        t += IncludeDirectory{lib.BinaryDir / "cpan/Win32"};
-        t += "advapi32.lib"_slib;
-        t += "User32.lib"_slib;
-        t += "Winhttp.lib"_slib;
-        t += "Version.lib"_slib;
-        t += "ole32.lib"_slib;
-        t += "Netapi32.lib"_slib;
-        t += "Userenv.lib"_slib;
-        t += "Shell32.lib"_slib;
-
-        if (!lib.DryRun) {
-            //fs::create_directories(lib.BinaryDir / "cpan/Win32");
-            //copy_file(lib.SourceDir / "cpan/Win32/longpath.inc", lib.BinaryDir / "cpan/Win32/longpath.inc");
-        }
-
-        xsubpp(t, "cpan/Win32/Win32.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
-    }
-
-    auto &file_glob = packages.addTarget<lib_build_type>("ext.File.Glob");
-    {
-        auto &t = file_glob;
-        t += lib;
-        t += "ext/File-Glob/bsd_glob.c";
-        t += IncludeDirectory{lib.SourceDir / "ext/File-Glob"};
-        t += IncludeDirectory{lib.BinaryDir / "ext/File-Glob"};
-
-        if (!lib.DryRun) {
-            fs::create_directories(lib.BinaryDir / "ext/File-Glob");
-            copy_file(lib.SourceDir / "ext/File-Glob/Glob.pm", lib.BinaryDir / "ext/File-Glob/Glob.pm");
-            copy_file(lib.SourceDir / "ext/File-Glob/Glob.xs", lib.BinaryDir / "ext/File-Glob/Glob.xs");
-
-            fs::create_directories(lib.BinaryDir / "ext/File");
-            copy_file(lib.SourceDir / "ext/File-Glob/Glob.pm", lib.BinaryDir / "ext/File/Glob.pm");
-        }
-
-        auto c = lib.addCommand();
-        c
-            << cmd::prog(mp)
-            << cmd::wdir(lib.BinaryDir / "ext/File-Glob")
-            << "-I" << lib.SourceDir / "lib"
-            << "-I" << lib.BinaryDir
-            << "-I" << lib.BinaryDir / "lib"
-            << "-I" << lib.SourceDir / "ext/File-Glob"
-            << "-I" << lib.BinaryDir / "ext/File-Glob"
-            ;
-        fix_perl_path_old2(c);
-        fix_perl_path_old(c);
-        c
-            << cmd::in("ext/File-Glob/Makefile.PL")
-            << cmd::end()
-            << cmd::out("ext/File-Glob/const-xs.inc")
-            << cmd::out("ext/File-Glob/const-c.inc")
-            ;
-
-        xsubpp(t, lib.BinaryDir / "ext/File-Glob/Glob.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
-    }
-
+    // dedup with PL_to_file()
     auto process_module = [&](auto &t, const path &dir) {
-
         t += IncludeDirectory{lib.SourceDir / dir};
         t += IncludeDirectory{lib.BinaryDir / dir};
 
@@ -900,7 +712,14 @@ ucm/ctrl.ucm
         auto p = s.rfind('-');
         auto has_dash = p == -1;
         auto fn = has_dash ? s : s.substr(p + 1);
+        auto fn_upper = boost::to_upper_copy(fn);
         auto prefix = s.substr(0, p);
+
+        t += Definition{"PERL_EXT_" + fn_upper + "_BUILD"};
+        //t += Definition{"PERL_EXT_" + fn_upper + "_DEBUG"};
+        t += Definition{"PERL_IN_XSUB_" + fn_upper};
+        t.Public += sw::Static, Definition{"PERL_EXT_" + fn_upper + "_STATIC"};
+        t += "PERL_EXT"_def;
 
         if (!lib.DryRun) {
             fs::create_directories(lib.BinaryDir / dir);
@@ -941,6 +760,7 @@ ucm/ctrl.ucm
                 << cmd::end()
                 << cmd::out(dir / "const-xs.inc")
                 << cmd::out(dir / "const-c.inc")
+                << cmd::in(config_pm)
                 ;
         }
 
@@ -952,19 +772,143 @@ ucm/ctrl.ucm
         }
         xsubpp(t, lib.BinaryDir / dir / (fn + ".xs"s), typemaps);
     };
-
-    auto &dist_io = packages.addTarget<lib_build_type>("dist.IO");
-    {
-        auto &t = dist_io;
+    auto process_module2 = [&](const path &dir) -> decltype(auto) {
+        auto n = dir.string();
+        boost::replace_all(n, "/", ".");
+        boost::replace_all(n, "-", ".");
+        auto &t = packages.addTarget<lib_build_type>(n);
         t += lib;
-        t += "dist/IO/poll.c";
-        process_module(t, "dist/IO");
+        return t;
+    };
+    auto process_module_with_c_files = [&](const path &dir) -> decltype(auto) {
+        auto &t = process_module2(dir);
+        t += FileRegex{dir, ".*\\.c", false};
+        return t;
+    };
+
+    // some tricky modules
+    auto &pp = packages.addTarget<lib_build_type>("dist.Devel.PPPort");
+    {
+        auto &t = pp;
+        t += lib;
+
+        auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL");
+        auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL");
+        {
+            auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "ppport.h", normalize_path(lib.BinaryDir / "ppport.h").string());
+
+            auto ppport = lib.addCommand();
+            ppport << cmd::prog(mp)
+                << "-I" << lib.SourceDir / "lib"
+                << "-I" << pport_pm.parent_path()
+                << cmd::in(ppport_pl)
+                << cmd::out("ppport.h")
+                << cmd::end()
+                << cmd::in(pport_pm)
+                ;
+        }
+
+        xsubpp(t, RealPPPort_xs, std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+            lib.SourceDir / "dist/Devel-PPPort/typemap",
+        });
+        //t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(out) << cmd::out(t.BinaryDir / out.filename() += ".c");
+        t += "dist/Devel-PPPort/.*\\.c"_r;
     }
 
-    auto &ext_posix = packages.addTarget<lib_build_type>("ext.POSIX");
+    auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
     {
-        auto &t = ext_posix;
+        auto &t = enc;
         t += lib;
-        process_module(t, "ext/POSIX");
+        t += "cpan/Encode/.*\\.c"_r;
+        t += "cpan/Encode/Encode"_idir;
+        t.writeFileOnce("def_t.fnm", R"(
+ucm/ascii.ucm
+ucm/8859-1.ucm
+ucm/cp1252.ucm
+ucm/null.ucm
+ucm/ctrl.ucm
+)");
+
+        auto c = t.addCommand();
+        c
+            << cmd::prog(mp)
+            << cmd::wdir("cpan/Encode")
+            << "-I" << lib.SourceDir / "lib"
+            << "-I" << lib.BinaryDir
+            << "-I" << lib.BinaryDir / "lib"
+            ;
+        fix_perl_path_old2(c);
+        fix_perl_path_old(c);
+        c
+            << "bin/enc2xs"
+            << "-\"Q\""
+            << "-\"O\""
+            << "-o"
+            << cmd::out(normalize_path(t.BinaryDir / "def_t.c"))
+            << "-f" << normalize_path(t.BinaryDir / "def_t.fnm")
+            ;
+
+        process_module(t, "cpan/Encode");
     }
+
+    auto &cwd = packages.addTarget<lib_build_type>("dist.PathTools.Cwd");
+    {
+        auto &t = cwd;
+        t += lib;
+        t += "DOUBLE_SLASHES_SPECIAL=0"_def;
+
+        xsubpp(t, "dist/PathTools/Cwd.xs", std::vector<path>{
+            lib.SourceDir / "lib/ExtUtils/typemap",
+        });
+    }
+
+    auto &ext_re = packages.addTarget<lib_build_type>("ext.re");
+    {
+        auto &t = ext_re;
+        t += lib;
+        //t += "dquote.c";
+        t += "regcomp.c";
+        t += "regcomp_invlist.c";
+        t += "regcomp_study.c";
+        t += "regcomp_trie.c";
+        t += "regcomp_debug.c";
+        t += "regexec.c";
+
+        t += "VERSION=\"0.48\""_def;
+        t += "XS_VERSION=\"0.48\""_def;
+
+        // perl has some symbols with visibility hidden - it is missing on msvc
+        // so we force allow multiple same symbols across dll
+        t.LinkOptions.push_back("/FORCE:MULTIPLE");
+
+        process_module(t, "ext/re");
+    }
+
+    // simpler modules
+
+    process_module2("dist/Storable") +=
+        "VERSION=\"3.39\""_def,
+        "XS_VERSION=\"3.39\""_def
+        ;
+
+    process_module2("ext/Fcntl") +=
+        "VERSION=\"1.20\""_def,
+        "XS_VERSION=\"1.20\""_def
+        ;
+
+    process_module2("cpan/Win32") +=
+       "advapi32.lib"_slib,
+       "User32.lib"_slib,
+       "Winhttp.lib"_slib,
+       "Version.lib"_slib,
+       "ole32.lib"_slib,
+       "Netapi32.lib"_slib,
+       "Userenv.lib"_slib,
+       "Shell32.lib"_slib
+       ;
+
+    process_module_with_c_files("ext/File-Glob");
+    process_module_with_c_files("dist/IO");
+    process_module2("ext/POSIX");
 }
