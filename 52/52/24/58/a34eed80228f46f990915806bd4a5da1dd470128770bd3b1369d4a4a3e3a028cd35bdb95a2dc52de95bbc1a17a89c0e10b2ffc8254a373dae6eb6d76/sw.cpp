@@ -76,7 +76,9 @@ struct PerlExecutable : ExecutableTarget
         c.use_response_files = false;
 
         std::vector<path> paths;
-        paths.push_back(libsdir / "lib");
+        if (!libsdir.empty()) {
+            paths.push_back(libsdir / "lib");
+        }
         perl_dirs([&](auto &&p) {
             paths.push_back(SourceDir / p);
             // we add binary dir manually when making modules
@@ -88,6 +90,7 @@ struct PerlExecutable : ExecutableTarget
             s += p.string() + ";";
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
+        //c.environment["PERL_LIB"] = s;
 
         ExecutableTarget::setupCommand(c);
     }
@@ -164,7 +167,7 @@ void build(Solution &s)
     gu += "generate_uudmap.c";
     gu += "mg_raw.h";
 
-    auto &mp = p.addTarget<Executable>("miniperl");
+    auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
         const String cfg_add = R"(
 #ifndef _config_h_footer_
