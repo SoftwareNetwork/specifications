@@ -744,8 +744,8 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
 
         auto s = dir.filename().string();
         auto p = s.rfind('-');
-        auto has_dash = p == -1;
-        auto fn = has_dash ? s : s.substr(p + 1);
+        auto has_dash = p != -1;
+        auto fn = has_dash ? s.substr(p + 1) : s;
         if (!module.empty()) {
             fn = module;
         }
