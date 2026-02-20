@@ -73,10 +73,12 @@ struct PerlExecutable : ExecutableTarget
 
     void setupCommand(builder::Command &c) const override
     {
-        c.use_response_files = false;
+        //c.use_response_files = false;
 
         std::vector<path> paths;
-        paths.push_back(libsdir / "lib");
+        if (!libsdir.empty()) {
+            paths.push_back(libsdir / "lib");
+        }
         perl_dirs([&](auto &&p) {
             paths.push_back(SourceDir / p);
             // we add binary dir manually when making modules
@@ -88,6 +90,14 @@ struct PerlExecutable : ExecutableTarget
             s += p.string() + ";";
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
+
+        c.environment["PERL_SRC"] = normalize_path(libsdir).string();
+        // or this?                                  vvvvvvvvvvvvvvvvv
+        //c.environment["PERL_SRC"] = normalize_path(SourceDir / "lib").string();
+
+        //c.environment["PERL_LIB"] = normalize_path(SourceDir / "lib").string();
+        //c.environment["PERL_INC"] = s;
+        //c.environment["PERL_ARCHLIB"] = s;
 
         ExecutableTarget::setupCommand(c);
     }
@@ -164,7 +174,11 @@ void build(Solution &s)
     gu += "generate_uudmap.c";
     gu += "mg_raw.h";
 
-    auto &mp = p.addTarget<Executable>("miniperl");
+    using lib_build_type = SharedLibrary;
+
+    auto &perl = p.addTarget<PerlExecutable>("perl");
+    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
+    auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
         const String cfg_add = R"(
 #ifndef _config_h_footer_
@@ -226,6 +240,8 @@ void build(Solution &s)
 #endif
 )";
 
+        mp.libsdir = lib.SourceDir;
+
         mp -= ".*\\.[hc]"_r;
         mp -= ".*\\.inc"_r;
         mp -= ".*\\.tab"_r;
@@ -279,20 +295,18 @@ void build(Solution &s)
             mp.configureFile("win32/config_H.gc", "config.h");
         }
 
-        {
-            auto c = mp.addCommand();
-            c << cmd::prog(gu)
-                << cmd::out("uudmap.h")
-                << cmd::out("bitcount.h")
-                << cmd::out("mg_data.h")
-                ;
-        }
+        mp += "pub.egorpugin.primitives.response_file_handler"_dep;
+        mp.patch("miniperlmain.c", "int exitstatus, i;", "process_response_file(&argc, &argv); int  exitstatus, i;");
+        mp.patch("miniperlmain.c", "static PerlInterpreter *my_perl;", "static  PerlInterpreter *my_perl;\n#include <primitives/response_file_handler.h>");
+
+        mp.addCommand()
+            << cmd::prog(gu)
+            << cmd::out("uudmap.h")
+            << cmd::out("bitcount.h")
+            << cmd::out("mg_data.h")
+            ;
     }
 
-    using lib_build_type = SharedLibrary;
-
-    auto &perl = p.addTarget<PerlExecutable>("perl");
-    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
     auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
     auto copy_file = [](auto &&from, auto &&to) {
@@ -320,6 +334,7 @@ void build(Solution &s)
         out += ".c";
         auto c = t.addCommand();
         c << cmd::prog(mp);
+        c << cmd::wdir(out.parent_path());
         path p{fn};
         //c << cmd::wdir(p.is_absolute() ? p.parent_path() : t.SourceDir / p.parent_path());
         fix_perl_path_old2(c);
@@ -340,6 +355,7 @@ void build(Solution &s)
         for (auto &&f : depfiles) {
             c << cmd::in(f);
         }
+        //c << cmd::in(config_pm);
         //lib -= out;
         t += out; // how this works with sw upload?
         return out;
@@ -404,7 +420,6 @@ void build(Solution &s)
             << cmd::end()
             << cmd::in(config_pm)
             ;
-        //fix_and_add_output_file(c, "dist/Devel-PPPort/RealPPPort_xs.PL", "dist/Devel-PPPort/RealPPPort.xs");
         perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         return lib.BinaryDir / out;
     };
@@ -428,6 +443,9 @@ void build(Solution &s)
         lib += base, "win32/perllib.c";
         if (auto nsf = lib["win32/perllib.c"].as<NativeSourceFile*>())
             nsf->BuildAs = NativeSourceFile::CPP;
+        lib += "pub.egorpugin.primitives.response_file_handler"_dep;
+        lib.patch("win32/perllib.c", "EXTERN_C HANDLE w32_perldll_handle;", "EXTERN_C  HANDLE w32_perldll_handle;\n#include <primitives/response_file_handler.h>");
+        lib.patch("win32/perllib.c", "int exitstatus;", "process_response_file(&argc, &argv); int  exitstatus;");
 
         lib.Protected += "."_idir;
 
@@ -536,13 +554,13 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "make_patchnum.pl", make_patchnum_pl);
 
                 // out to .in.h and copy after?
-                lib.patch(make_patchnum_pl, "git_version.h", normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string());
+                lib.patch(make_patchnum_pl, "'git_version.h'", "'"s + normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string() + "'");
                 // was lib/Config_git.pl
-                lib.patch(make_patchnum_pl, "lib/Config_git.pl", normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string());
+                lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string() + "'");
             }
 
-            auto make_patchnum = lib.addCommand();
-            make_patchnum << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
                 << cmd::in(make_patchnum_pl)
                 << cmd::end()
@@ -556,8 +574,8 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "Porting/Glossary", lib.BinaryDir / "Porting/Glossary");
             }
 
-            auto configpm = lib.addCommand();
-            configpm << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << cmd::wdir(lib.BinaryDir)
                 << "-I" << lib.SourceDir
                 << "-I" << lib.SourceDir / "lib"
@@ -573,8 +591,8 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "write_buildcustomize.pl", lib.BinaryDir / "write_buildcustomize.pl");
                 lib.patch(lib.BinaryDir / "write_buildcustomize.pl", "my $file = 'lib/buildcustomize.pl';", std::format("my $file = '{}/lib/buildcustomize.pl';", normalize_path(lib.BinaryDir).string()));
             }
-            auto buildcustomize = lib.addCommand();
-            buildcustomize << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
                 << "-f"
                 << cmd::in(lib.BinaryDir / "write_buildcustomize.pl")
@@ -703,15 +721,34 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
         perl -= "cpan/.*"_rr;
     }
 
+    struct perl_module_data {
+        path dir;
+        std::string name;
+        std::string version;
+    };
+
     // dedup with PL_to_file()
-    auto process_module = [&](auto &t, const path &dir) {
+    auto process_module = [&](auto &t, const perl_module_data &d) {
+        const path &dir = d.dir;
+        const std::string &module = d.name;
+
+        if (!d.version.empty()) {
+            t += Definition{"VERSION=\"" + d.version + "\""};
+            t += Definition{"XS_VERSION=\"" + d.version + "\""};
+        }
+
         t += IncludeDirectory{lib.SourceDir / dir};
         t += IncludeDirectory{lib.BinaryDir / dir};
 
+        t += lib;
+
         auto s = dir.filename().string();
         auto p = s.rfind('-');
-        auto has_dash = p == -1;
-        auto fn = has_dash ? s : s.substr(p + 1);
+        auto has_dash = p != -1;
+        auto fn = has_dash ? s.substr(p + 1) : s;
+        if (!module.empty()) {
+            fn = module;
+        }
         auto fn_upper = boost::to_upper_copy(fn);
         auto prefix = s.substr(0, p);
 
@@ -772,17 +809,20 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
         }
         xsubpp(t, lib.BinaryDir / dir / (fn + ".xs"s), typemaps);
     };
-    auto process_module2 = [&](const path &dir) -> decltype(auto) {
-        auto n = dir.string();
+    auto process_module2 = [&](const perl_module_data &d) -> decltype(auto) {
+        auto n = d.dir.string();
         boost::replace_all(n, "/", ".");
         boost::replace_all(n, "-", ".");
+        if (!d.name.empty()) {
+            n += "."s + d.name;
+        }
         auto &t = packages.addTarget<lib_build_type>(n);
-        t += lib;
+        process_module(t, d);
         return t;
     };
-    auto process_module_with_c_files = [&](const path &dir) -> decltype(auto) {
-        auto &t = process_module2(dir);
-        t += FileRegex{dir, ".*\\.c", false};
+    auto process_module_with_c_files = [&](const perl_module_data &d) -> decltype(auto) {
+        auto &t = process_module2(d);
+        t += FileRegex{d.dir, ".*\\.[hc]", false};
         return t;
     };
 
@@ -813,14 +853,13 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
             lib.SourceDir / "lib/ExtUtils/typemap",
             lib.SourceDir / "dist/Devel-PPPort/typemap",
         });
-        //t.addCommand(SW_VISIBLE_BUILTIN_FUNCTION(copy_file)) << cmd::in(out) << cmd::out(t.BinaryDir / out.filename() += ".c");
         t += "dist/Devel-PPPort/.*\\.c"_r;
     }
 
     auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
     {
         auto &t = enc;
-        t += lib;
+        t -= "cpan/Encode/.*"_rr;
         t += "cpan/Encode/.*\\.c"_r;
         t += "cpan/Encode/Encode"_idir;
         t.writeFileOnce("def_t.fnm", R"(
@@ -850,24 +889,12 @@ ucm/ctrl.ucm
             << "-f" << normalize_path(t.BinaryDir / "def_t.fnm")
             ;
 
-        process_module(t, "cpan/Encode");
-    }
-
-    auto &cwd = packages.addTarget<lib_build_type>("dist.PathTools.Cwd");
-    {
-        auto &t = cwd;
-        t += lib;
-        t += "DOUBLE_SLASHES_SPECIAL=0"_def;
-
-        xsubpp(t, "dist/PathTools/Cwd.xs", std::vector<path>{
-            lib.SourceDir / "lib/ExtUtils/typemap",
-        });
+        process_module(t, {"cpan/Encode"});
     }
 
     auto &ext_re = packages.addTarget<lib_build_type>("ext.re");
     {
         auto &t = ext_re;
-        t += lib;
         //t += "dquote.c";
         t += "regcomp.c";
         t += "regcomp_invlist.c";
@@ -883,22 +910,17 @@ ucm/ctrl.ucm
         // so we force allow multiple same symbols across dll
         t.LinkOptions.push_back("/FORCE:MULTIPLE");
 
-        process_module(t, "ext/re");
+        process_module(t, {"ext/re"});
     }
 
     // simpler modules
 
-    process_module2("dist/Storable") +=
-        "VERSION=\"3.39\""_def,
-        "XS_VERSION=\"3.39\""_def
-        ;
+    process_module2({"dist/PathTools", "Cwd"}) += "DOUBLE_SLASHES_SPECIAL=0"_def;
 
-    process_module2("ext/Fcntl") +=
-        "VERSION=\"1.20\""_def,
-        "XS_VERSION=\"1.20\""_def
-        ;
+    process_module2({.dir = "dist/Storable", .version = "3.39"});
+    process_module2({.dir = "ext/Fcntl", .version = "1.20"});
 
-    process_module2("cpan/Win32") +=
+    process_module2({"cpan/Win32"}) +=
        "advapi32.lib"_slib,
        "User32.lib"_slib,
        "Winhttp.lib"_slib,
@@ -909,7 +931,7 @@ ucm/ctrl.ucm
        "Shell32.lib"_slib
        ;
 
-    process_module_with_c_files("ext/File-Glob");
-    process_module_with_c_files("dist/IO");
-    process_module2("ext/POSIX");
+    process_module_with_c_files({"ext/File-Glob"});
+    process_module_with_c_files({"dist/IO"});
+    process_module2({"ext/POSIX"});
 }

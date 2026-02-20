@@ -355,7 +355,7 @@ void build(Solution &s)
         for (auto &&f : depfiles) {
             c << cmd::in(f);
         }
-        c << cmd::in(config_pm);
+        //c << cmd::in(config_pm);
         //lib -= out;
         t += out; // how this works with sw upload?
         return out;
@@ -420,7 +420,6 @@ void build(Solution &s)
             << cmd::end()
             << cmd::in(config_pm)
             ;
-        //fix_and_add_output_file(c, "dist/Devel-PPPort/RealPPPort_xs.PL", "dist/Devel-PPPort/RealPPPort.xs");
         perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         return lib.BinaryDir / out;
     };
@@ -575,8 +574,8 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "Porting/Glossary", lib.BinaryDir / "Porting/Glossary");
             }
 
-            auto configpm = lib.addCommand();
-            configpm << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << cmd::wdir(lib.BinaryDir)
                 << "-I" << lib.SourceDir
                 << "-I" << lib.SourceDir / "lib"
@@ -592,8 +591,8 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "write_buildcustomize.pl", lib.BinaryDir / "write_buildcustomize.pl");
                 lib.patch(lib.BinaryDir / "write_buildcustomize.pl", "my $file = 'lib/buildcustomize.pl';", std::format("my $file = '{}/lib/buildcustomize.pl';", normalize_path(lib.BinaryDir).string()));
             }
-            auto buildcustomize = lib.addCommand();
-            buildcustomize << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
                 << "-f"
                 << cmd::in(lib.BinaryDir / "write_buildcustomize.pl")
@@ -814,6 +813,9 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
         auto n = d.dir.string();
         boost::replace_all(n, "/", ".");
         boost::replace_all(n, "-", ".");
+        if (!d.name.empty()) {
+            n += "."s + d.name;
+        }
         auto &t = packages.addTarget<lib_build_type>(n);
         process_module(t, d);
         return t;
