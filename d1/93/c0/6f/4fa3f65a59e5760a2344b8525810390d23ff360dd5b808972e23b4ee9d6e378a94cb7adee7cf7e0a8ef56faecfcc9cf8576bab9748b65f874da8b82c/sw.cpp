@@ -537,6 +537,10 @@ void build(Solution &s)
         create_git_rev += command, sw_main;
     }
 
+    auto &response_file_handler = p.addTarget<StaticLibraryTarget>("response_file_handler");
+    setup_primitives(response_file_handler);
+
+    //
     auto &test = p.addDirectory("test");
     test.Scope = TargetScope::Test;
 
@@ -580,6 +584,7 @@ void build(Solution &s)
 
     auto &test_csv = add_test("csv");
     test_csv += csv;
+
 
     /*auto &test_cl = add_test("cl");
     test_cl += cl;*/
