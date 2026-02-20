@@ -355,6 +355,7 @@ void build(Solution &s)
         for (auto &&f : depfiles) {
             c << cmd::in(f);
         }
+        c << cmd::in(config_pm);
         //lib -= out;
         t += out; // how this works with sw upload?
         return out;
