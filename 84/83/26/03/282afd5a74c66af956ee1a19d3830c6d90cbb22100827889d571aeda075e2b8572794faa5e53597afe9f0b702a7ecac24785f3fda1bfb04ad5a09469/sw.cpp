@@ -90,7 +90,14 @@ struct PerlExecutable : ExecutableTarget
             s += p.string() + ";";
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
-        //c.environment["PERL_LIB"] = s;
+
+        c.environment["PERL_SRC"] = normalize_path(libsdir).string();
+        // or this?                                  vvvvvvvvvvvvvvvvv
+        //c.environment["PERL_SRC"] = normalize_path(SourceDir / "lib").string();
+
+        //c.environment["PERL_LIB"] = normalize_path(SourceDir / "lib").string();
+        //c.environment["PERL_INC"] = s;
+        //c.environment["PERL_ARCHLIB"] = s;
 
         ExecutableTarget::setupCommand(c);
     }
@@ -167,6 +174,10 @@ void build(Solution &s)
     gu += "generate_uudmap.c";
     gu += "mg_raw.h";
 
+    using lib_build_type = SharedLibrary;
+
+    auto &perl = p.addTarget<PerlExecutable>("perl");
+    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
         const String cfg_add = R"(
@@ -228,6 +239,8 @@ void build(Solution &s)
 #undef USE_CPLUSPLUS
 #endif
 )";
+
+        mp.libsdir = lib.SourceDir;
 
         mp -= ".*\\.[hc]"_r;
         mp -= ".*\\.inc"_r;
@@ -294,10 +307,6 @@ void build(Solution &s)
             ;
     }
 
-    using lib_build_type = SharedLibrary;
-
-    auto &perl = p.addTarget<PerlExecutable>("perl");
-    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
     auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
     auto copy_file = [](auto &&from, auto &&to) {
@@ -325,6 +334,7 @@ void build(Solution &s)
         out += ".c";
         auto c = t.addCommand();
         c << cmd::prog(mp);
+        c << cmd::wdir(out.parent_path());
         path p{fn};
         //c << cmd::wdir(p.is_absolute() ? p.parent_path() : t.SourceDir / p.parent_path());
         fix_perl_path_old2(c);
@@ -846,6 +856,7 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
     auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
     {
         auto &t = enc;
+        t -= "cpan/Encode/.*"_rr;
         t += "cpan/Encode/.*\\.c"_r;
         t += "cpan/Encode/Encode"_idir;
         t.writeFileOnce("def_t.fnm", R"(

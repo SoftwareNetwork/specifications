@@ -73,7 +73,7 @@ struct PerlExecutable : ExecutableTarget
 
     void setupCommand(builder::Command &c) const override
     {
-        c.use_response_files = false;
+        //c.use_response_files = false;
 
         std::vector<path> paths;
         if (!libsdir.empty()) {
@@ -90,7 +90,14 @@ struct PerlExecutable : ExecutableTarget
             s += p.string() + ";";
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
-        //c.environment["PERL_LIB"] = s;
+
+        c.environment["PERL_SRC"] = normalize_path(libsdir).string();
+        // or this?                                  vvvvvvvvvvvvvvvvv
+        //c.environment["PERL_SRC"] = normalize_path(SourceDir / "lib").string();
+
+        //c.environment["PERL_LIB"] = normalize_path(SourceDir / "lib").string();
+        //c.environment["PERL_INC"] = s;
+        //c.environment["PERL_ARCHLIB"] = s;
 
         ExecutableTarget::setupCommand(c);
     }
@@ -167,6 +174,10 @@ void build(Solution &s)
     gu += "generate_uudmap.c";
     gu += "mg_raw.h";
 
+    using lib_build_type = SharedLibrary;
+
+    auto &perl = p.addTarget<PerlExecutable>("perl");
+    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
         const String cfg_add = R"(
@@ -229,6 +240,8 @@ void build(Solution &s)
 #endif
 )";
 
+        mp.libsdir = lib.SourceDir;
+
         mp -= ".*\\.[hc]"_r;
         mp -= ".*\\.inc"_r;
         mp -= ".*\\.tab"_r;
@@ -282,20 +295,18 @@ void build(Solution &s)
             mp.configureFile("win32/config_H.gc", "config.h");
         }
 
-        {
-            auto c = mp.addCommand();
-            c << cmd::prog(gu)
-                << cmd::out("uudmap.h")
-                << cmd::out("bitcount.h")
-                << cmd::out("mg_data.h")
-                ;
-        }
+        mp += "pub.egorpugin.primitives.response_file_handler"_dep;
+        mp.patch("miniperlmain.c", "int exitstatus, i;", "process_response_file(&argc, &argv); int  exitstatus, i;");
+        mp.patch("miniperlmain.c", "static PerlInterpreter *my_perl;", "static  PerlInterpreter *my_perl;\n#include <primitives/response_file_handler.h>");
+
+        mp.addCommand()
+            << cmd::prog(gu)
+            << cmd::out("uudmap.h")
+            << cmd::out("bitcount.h")
+            << cmd::out("mg_data.h")
+            ;
     }
 
-    using lib_build_type = SharedLibrary;
-
-    auto &perl = p.addTarget<PerlExecutable>("perl");
-    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
     auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
 
     auto copy_file = [](auto &&from, auto &&to) {
@@ -323,6 +334,7 @@ void build(Solution &s)
         out += ".c";
         auto c = t.addCommand();
         c << cmd::prog(mp);
+        c << cmd::wdir(out.parent_path());
         path p{fn};
         //c << cmd::wdir(p.is_absolute() ? p.parent_path() : t.SourceDir / p.parent_path());
         fix_perl_path_old2(c);
@@ -431,6 +443,9 @@ void build(Solution &s)
         lib += base, "win32/perllib.c";
         if (auto nsf = lib["win32/perllib.c"].as<NativeSourceFile*>())
             nsf->BuildAs = NativeSourceFile::CPP;
+        lib += "pub.egorpugin.primitives.response_file_handler"_dep;
+        lib.patch("win32/perllib.c", "EXTERN_C HANDLE w32_perldll_handle;", "EXTERN_C  HANDLE w32_perldll_handle;\n#include <primitives/response_file_handler.h>");
+        lib.patch("win32/perllib.c", "int exitstatus;", "process_response_file(&argc, &argv); int  exitstatus;");
 
         lib.Protected += "."_idir;
 
@@ -539,13 +554,13 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "make_patchnum.pl", make_patchnum_pl);
 
                 // out to .in.h and copy after?
-                lib.patch(make_patchnum_pl, "git_version.h", normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string());
+                lib.patch(make_patchnum_pl, "'git_version.h'", "'"s + normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string() + "'");
                 // was lib/Config_git.pl
-                lib.patch(make_patchnum_pl, "lib/Config_git.pl", normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string());
+                lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string() + "'");
             }
 
-            auto make_patchnum = lib.addCommand();
-            make_patchnum << cmd::prog(mp)
+            lib.addCommand()
+                << cmd::prog(mp)
                 << "-I" << lib.SourceDir / "lib"
                 << cmd::in(make_patchnum_pl)
                 << cmd::end()
@@ -841,6 +856,7 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())
     auto &enc = packages.addTarget<lib_build_type>("cpan.Encode");
     {
         auto &t = enc;
+        t -= "cpan/Encode/.*"_rr;
         t += "cpan/Encode/.*\\.c"_r;
         t += "cpan/Encode/Encode"_idir;
         t.writeFileOnce("def_t.fnm", R"(
