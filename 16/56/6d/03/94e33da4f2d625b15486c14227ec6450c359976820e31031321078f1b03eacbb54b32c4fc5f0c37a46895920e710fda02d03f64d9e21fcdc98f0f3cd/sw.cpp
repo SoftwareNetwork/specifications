@@ -8,8 +8,30 @@ void build(Solution &s)
 
     auto &crypto = openssl.addTarget<LibraryTarget>("crypto");
     {
-        crypto +=
+        // perl scripts, data and other files required by Configure
+        // Configure read build.info files. Maybe we can remove perl dep if we read them ourselves?
+        // build.info uses perl insertions, probably no we can't
+        crypto -=
             "Configurations/.*"_rr,
+            //"test/.*"_rr,
+            "ssl/.*"_rr,
+
+            "external/.*"_rr,
+            "util/.*"_rr,
+            "ssl/.*"_rr,
+
+            "crypto/.*"_rr,
+            "engines/.*"_rr,
+            "providers/.*"_rr,
+
+            "ms/.*"_rr,
+            "config.*"_r,
+            ".*\\.in"_r,
+            "VERSION.dat",
+            ".*build\\.info"_rr
+            ;
+
+        crypto +=
             "crypto/.*\\.[hc]"_rr,
             "engines/.*\\.[hc]"_rr,
             "providers/.*\\.[hc]"_rr,
@@ -111,6 +133,9 @@ void build(Solution &s)
         };
 
         {
+            crypto.patch("build.info", "crypto ssl apps util tools fuzz providers doc", "crypto ssl providers");
+            crypto.patch("build.info", "SUBDIRS=test", "# SUBDIRS= test");
+
             crypto.patch("Configure", "system($cmd);", "#system( $cmd);");
             crypto.patch("Configure", "exit 1 if $? != 0;", "#exit  1 if $? != 0;");
             crypto.patch("Configure", "elsif (/^--libdir=(.*)$/)", "elsif (/^--configdata_outname=(.*)$/) { $config{configdata_outname}=$1; } elsif  (/^--libdir=(.*)$/)");
