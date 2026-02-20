@@ -100,6 +100,10 @@ void build(Solution &s)
         libcurl.Public += "CURL_HIDDEN_SYMBOLS"_d;
         libcurl.Public += sw::Static, "CURL_STATICLIB"_d;
 
+        // pasify curl for openssl 1
+        libcurl += "HAVE_BORINGSSL_LIKE"_d;
+        libcurl += "OPENSSL_VERSION_STRING=\"1.1.1\""_def;
+
         if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
             libcurl.Public += "HAVE_GSSAPI"_d;
