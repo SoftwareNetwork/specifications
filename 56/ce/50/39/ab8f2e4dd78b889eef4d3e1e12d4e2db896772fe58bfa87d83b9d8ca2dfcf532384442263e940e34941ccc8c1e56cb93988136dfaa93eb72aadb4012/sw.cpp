@@ -1,7 +1,9 @@
 void build(Solution &s)
 {
     auto &grep = s.addProject("gnu.grep", "3.6.0");
-    grep += RemoteFile("https://ftp.gnu.org/gnu/grep/grep-{M}.{m}.tar.xz");
+    //grep += RemoteFile("https://ftp.gnu.org/gnu/grep/grep-{M}.{m}.tar.gz");
+    grep += RemoteFile("https://mirror.tochlab.net/pub/gnu/grep/grep-{M}.{m}.tar.gz");
+    //grep += Git("https://https.git.savannah.gnu.org/git/grep.git", "v{M}.{m}");
 
     auto &gnulib = grep.addTarget<StaticLibraryTarget>("gnulib");
     {
@@ -339,7 +341,7 @@ void * rawmemchr(void const *__s, int __c_in);
         gnulib.configureFile("lib/langinfo.in.h", "langinfo.h");
         gnulib.patch("lib/setlocale_null.c",
             "extern __declspec(dllimport)",
-            "/*extern __declspec(dllimport)*/");
+            "/*extern  __declspec(dllimport)*/");
 
         gnulib.replaceInFileOnce("lib/getprogname.c", "# else", "#elif _WIN32\nreturn __argv[0]; \n# else\n");
         gnulib.replaceInFileOnce("lib/regcomp.c",
