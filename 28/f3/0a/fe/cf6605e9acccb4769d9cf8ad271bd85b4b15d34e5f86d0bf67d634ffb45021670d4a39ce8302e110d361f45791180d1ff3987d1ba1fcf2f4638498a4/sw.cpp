@@ -139,11 +139,17 @@ void build(Solution &s)
             crypto.patch("Configure", "system($cmd);", "#system( $cmd);");
             crypto.patch("Configure", "exit 1 if $? != 0;", "#exit  1 if $? != 0;");
             crypto.patch("Configure", "elsif (/^--libdir=(.*)$/)", "elsif (/^--configdata_outname=(.*)$/) { $config{configdata_outname}=$1; } elsif  (/^--libdir=(.*)$/)");
+            crypto.patch("Configure", "elsif  (/^--libdir=(.*)$/)", "elsif (/^--target=(.*)$/) { $target=$1; } elsif   (/^--libdir=(.*)$/)");
             crypto.patch("Configure", "'configdata.pm'", "$config{configdata_outname}");
+            crypto.patch("Configure", "if (! do $checker_path) {", "if (0 && !  do $checker_path) {");
 
             auto c = perl_command();
             c << "Configure";
             c << cmd::out("configdata.pm", cmd::Prefix{"--configdata_outname="});
+            // during cross compilation Configure cannot determine correct config
+            if (!win_or_mingw) {
+                c << "--target=linux-x86_64";
+            }
 
             // win only?
             if (!crypto.DryRun) {
@@ -334,9 +340,11 @@ void build(Solution &s)
             "providers/implementations/skeymgmt/generic.c",
             "providers/implementations/storemgmt/file_store.c",
             "providers/implementations/storemgmt/file_store_any2obj.c",
-            "providers/implementations/storemgmt/winstore_store.c",
             }) {
             generate2(i);
+        }
+        if (win_or_mingw) {
+            generate2("providers/implementations/storemgmt/winstore_store.c");
         }
 
         crypto.Private += "NO_WINDOWS_BRAINDEATH"_d;
@@ -387,10 +395,18 @@ void build(Solution &s)
             "crypto/ec/ecp_nistz256_table.c"
             ;
 
-        if (crypto.getBuildSettings().TargetOS.Type == OSType::Windows)
+        if (win_or_mingw)
         {
             crypto -= "crypto/poly1305/poly1305_ieee754.c";
             // gcc/clang
+            crypto -=
+                "crypto/ec/ecp_nistp224.c",
+                "crypto/ec/ecp_nistp256.c",
+                "crypto/ec/ecp_nistp384.c",
+                "crypto/ec/ecp_nistp521.c",
+                "crypto/ec/ecp_nistputil.c"
+            ;
+        } else {
             crypto -=
                 "crypto/ec/ecp_nistp224.c",
                 "crypto/ec/ecp_nistp256.c",
