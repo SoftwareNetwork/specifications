@@ -702,7 +702,7 @@ void build(Solution &s)
     return dl_findfile(map("-L$_",@dirs,@INC), $output);
 }}
 
-sub dl_findfile  {{)", normalize_string_copy(sw::getSwExecutableName().string())));
+sub dl_findfile  {{)", normalize_string_copy(sw::getProgramLocation().string())));
             make_module_simple1("ext/DynaLoader");
             make_module_simple1("dist/lib");
         }
