@@ -208,6 +208,8 @@ void build(Solution &s)
     {
         mp.libsdir = lib.SourceDir;
 
+        mp -= "config_h.SH";
+        mp -= "Porting/config.sh";
         mp -= ".*\\.[hc]"_r;
         mp -= ".*\\.inc"_r;
         mp -= ".*\\.tab"_r;
