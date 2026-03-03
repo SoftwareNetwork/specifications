@@ -27,16 +27,18 @@ void build(Solution &s)
         //t -= "random/mocking_bit_gen.cc";
         //t -= "synchronization/internal/waiter.cc";
         t += "random/internal/distribution_test_util.cc";
+        t -= "time/internal/cctz/src/time_zone_name_win.cc";
 
-        abseil.Public += "ABSL_LEGACY_THREAD_ANNOTATIONS"_def;
+        t.Public += "ABSL_LEGACY_THREAD_ANNOTATIONS"_def;
 
-        if (abseil.getBuildSettings().TargetOS.is(OSType::Windows) || abseil.getBuildSettings().TargetOS.is(OSType::Mingw))
+        if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {
-            abseil.Public += "NOMINMAX"_def;
-            abseil += "advapi32.lib"_slib;
-            abseil += "Dbghelp.lib"_slib;
-            abseil += "com.Microsoft.Windows.SDK.winrt"_dep;
+            t += "time/internal/cctz/src/time_zone_name_win.cc";
+            t.Public += "NOMINMAX"_def;
+            t += "advapi32.lib"_slib;
+            t += "Dbghelp.lib"_slib;
+            t += "com.Microsoft.Windows.SDK.winrt"_dep;
         }
-        abseil += "CoreFoundation"_framework;
+        t += "CoreFoundation"_framework;
     }
 }
