@@ -332,7 +332,7 @@ void build(Solution &s)
                 auto e = f.find(a, b);
                 auto file = f.substr(b, e-b);
                 auto lines = read_lines(mp.SourceDir / "Porting/config.sh");
-                std::vector<std::pair<std::string, std::string>> m;
+                std::map<std::string, std::string> m1;
                 for (auto &&line : lines) {
                     if (line[0] == '#' || line[0] == ':' || line[0] == ' ') {
                         continue;
@@ -343,7 +343,7 @@ void build(Solution &s)
                     if (line[off] == '\'') ++off;
                     if (line.back() == '\'') line.pop_back();
                     auto v = line.substr(off);
-                    m.emplace_back("$"s + k, v);
+                    m1.emplace(k, v);
                     //for (auto &&repl : {" "s, "\t"s, "\""s}) {
                     //    if (!(v.empty() && repl == " "s)) {
                     //        v += repl;
@@ -353,9 +353,16 @@ void build(Solution &s)
                     //boost::replace_all(file, "$"s + k + "\t", v + "\t");
                     //boost::replace_all(file, "$"s + k + "\"", v + "\"");
                 }
-                std::ranges::sort(m, [](auto &&v1, auto &&v2) {return v1.first.size() > v2.first.size(); });
-                for (auto &&[k,v] : m) {
-                    boost::replace_all(file, k, v);
+                if (mp.getBuildSettings().TargetOS.isApple()) {
+                    m1["i_quadmath"] = "undef";
+                }
+                std::vector<std::pair<std::string, std::string>> m2;
+                for (auto &&[k,v] : m1) {
+                    m2.emplace_back(k, v);
+                }
+                std::ranges::sort(m2, [](auto &&v1, auto &&v2) {return v1.first.size() > v2.first.size(); });
+                for (auto &&[k,v] : m2) {
+                    boost::replace_all(file, "$"s + k, v);
                 }
                 mp.writeFileOnce("config.h", file);
             }
