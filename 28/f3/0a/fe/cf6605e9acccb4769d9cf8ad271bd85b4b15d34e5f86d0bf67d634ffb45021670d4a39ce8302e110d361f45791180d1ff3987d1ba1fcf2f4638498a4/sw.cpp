@@ -105,30 +105,33 @@ void build(Solution &s)
             crypto.getBuildSettings().TargetOS.Type == OSType::Mingw
             ;
 
-        auto add_perl_dep = [&](auto &&c, auto &&dep) {
-            auto d = crypto.addProgDependency(dep);
-            auto fn = crypto.getObjFile(d, "bin");
-            c << "-I" + fn.string();
-            //return
-        };
+        //auto add_perl_dep = [&](auto &&c, auto &&dep) {
+        //    auto d = crypto.addProgDependency(dep);
+        //    auto fn = crypto.getObjFile(d, "bin");
+        //    c << "-I" + fn.string();
+        //    //return
+        //};
         auto perl_command = [&]() {
             auto c = crypto.addCommand();
-            c << cmd::prog("org.sw.demo.perl.perl"_dep);
-            c << "-I" + crypto.SourceDir.string();
-            c << "-I" + crypto.BinaryDir.string();
-            c << "-I" + crypto.SourceDir.string() + "/util/perl";
-            c << "-I" + crypto.SourceDir.string() + "/external/perl/Text-Template-1.56/lib";
-            add_perl_dep(c, "org.sw.demo.perl.packages.dist.PathTools.Cwd"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Encode"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.dist.Storable"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.ext.Fcntl"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Win32"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.ext.File.Glob"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.dist.IO"_dep);
-            add_perl_dep(c, "org.sw.demo.perl.packages.ext.POSIX"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Text.Template"_dep);
-            // for generate2()
-            add_perl_dep(c, "org.sw.demo.perl.packages.ext.re"_dep);
+            c << cmd::prog("perl");
+            //c << cmd::prog("org.sw.demo.perl.perl"_dep);
+            //c << "-I" + crypto.SourceDir.string();
+            //c << "-I" + crypto.BinaryDir.string();
+            //c << "-I" + crypto.SourceDir.string() + "/util/perl";
+            //c << "-I" + crypto.SourceDir.string() + "/external/perl/Text-Template-1.56/lib";
+            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.PathTools.Cwd"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Encode"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.Storable"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.Fcntl"_dep);
+            //if (win_or_mingw) {
+            //    add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Win32"_dep);
+            //}
+            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.File.Glob"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.IO"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.POSIX"_dep);
+            ////add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Text.Template"_dep);
+            //// for generate2()
+            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.re"_dep);
             return c;
         };
 
@@ -148,7 +151,16 @@ void build(Solution &s)
             c << cmd::out("configdata.pm", cmd::Prefix{"--configdata_outname="});
             // during cross compilation Configure cannot determine correct config
             if (!win_or_mingw) {
-                c << "--target=linux-x86_64";
+                auto os = "linux"s;
+                auto arch = "x86_64"s;
+                if (crypto.getBuildSettings().TargetOS.isApple()) {
+                    os = "darwin64";
+                }
+                if (crypto.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+                    arch = "arm64";
+                }
+                auto target = std::format("--target={}-{}", os, arch);
+                c << target;
             }
 
             // win only?
@@ -159,27 +171,28 @@ void build(Solution &s)
                 }
                 c << cmd::env("CC", prog->file.string());
             }
-            auto nasm = "org.sw.demo.nasm-2"_dep;
-            nasm = crypto.addProgDependency(nasm);
+            auto nasm = "org.sw.demo.nasm-2"_dep; // try v3
+            //nasm = crypto.addProgDependency(nasm);
             // win only?
             if (!crypto.DryRun) {
-                auto dep = nasm;
-                auto exe = crypto.getObjFile(dep, "bin");
-                exe /= crypto.getMainBuild().getContext().resolve(dep->getPackage()).toString();
-                if (win_or_mingw) {
-                    exe += ".exe";
-                }
-                crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exe.string()));
-                crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exe.string()));
-                crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exe.string()) + "\""s);
-                crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exe.string()) + "\"");
-                crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exe.string()) + "\"");
+                //auto dep = nasm;
+                //auto exe = crypto.getObjFile(dep, "bin");
+                //exe /= crypto.getMainBuild().getContext().resolve(dep->getPackage()).toString();
+                //if (win_or_mingw) {
+                //    exe += ".exe";
+                //}
+                //crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exe.string()));
+                //crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exe.string()));
+                //crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exe.string()) + "\""s);
+                //crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exe.string()) + "\"");
+                //crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exe.string()) + "\"");
             }
             //c << cmd::dep(nasm);
         }
 
         auto generate = [&](const std::string &f) {
             auto c = perl_command();
+            c << "-I" << crypto.BinaryDir; // for configdata.pm
             c << "-Mconfigdata";
             c << "-MOpenSSL::paramnames";
             c << cmd::in("util/dofile.pl");
@@ -203,6 +216,7 @@ void build(Solution &s)
             }
 
             auto c = perl_command();
+            c << "-I" << crypto.BinaryDir; // for configdata.pm
             c << "-I" << crypto.SourceDir / "providers/common/der";
             c << "-Mconfigdata";
             c << "-Moids_to_c";

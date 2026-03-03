@@ -55,6 +55,9 @@ static std::vector<path> &perl_dirs1() {
         "cpan/Module-Metadata/lib",
         "ext/POSIX",
         "ext/POSIX/lib",
+
+        // perlmain.c
+        "ext/ExtUtils-Miniperl/lib",
     };
     return paths;
 }
@@ -117,57 +120,76 @@ void build(Solution &s)
     auto &packages = p.addDirectory("packages");
     //p += RemoteFile("https://github.com/Perl/perl5/archive/refs/tags/v{v}.tar.gz");
 
-    Files base =
+    auto base = [&](auto &t)
     {
-        "av.c",
-        "builtin.c",
-        "caretx.c",
-        "class.c",
-        "deb.c",
-        "doio.c",
-        "doop.c",
-        "dquote.c",
-        "dump.c",
-        "globals.c",
-        "gv.c",
-        "mro_core.c",
-        "hv.c",
-        "locale.c",
-        "keywords.c",
-        "mathoms.c",
-        "mg.c",
-        "numeric.c",
-        "op.c",
-        "pad.c",
-        "peep.c",
-        "perl.c",
-        "perly.c",
-        "pp.c",
-        "pp_ctl.c",
-        "pp_hot.c",
-        "pp_pack.c",
-        "pp_sort.c",
-        "pp_sys.c",
-        "reentr.c",
-        "regcomp.c",
-        "regcomp_invlist.c",
-        "regcomp_study.c",
-        "regcomp_trie.c",
-        "regexec.c",
-        "run.c",
-        "scope.c",
-        "sv.c",
-        "taint.c",
-        "time64.c",
-        "toke.c",
-        "universal.c",
-        "utf8.c",
-        "util.c",
-        "perlio.c",
-        "win32/win32.c",
-        "win32/win32sck.c",
-        "win32/win32thread.c",
-        "win32/fcrypt.c",
+        t +=
+            "av.c",
+            "builtin.c",
+            "caretx.c",
+            "class.c",
+            "deb.c",
+            "doio.c",
+            "doop.c",
+            "dquote.c",
+            "dump.c",
+            "globals.c",
+            "gv.c",
+            "mro_core.c",
+            "hv.c",
+            "locale.c",
+            "keywords.c",
+            "mathoms.c",
+            "mg.c",
+            "numeric.c",
+            "op.c",
+            "pad.c",
+            "peep.c",
+            "perl.c",
+            "perly.c",
+            "pp.c",
+            "pp_ctl.c",
+            "pp_hot.c",
+            "pp_pack.c",
+            "pp_sort.c",
+            "pp_sys.c",
+            "reentr.c",
+            "regcomp.c",
+            "regcomp_invlist.c",
+            "regcomp_study.c",
+            "regcomp_trie.c",
+            "regexec.c",
+            "run.c",
+            "scope.c",
+            "sv.c",
+            "taint.c",
+            "time64.c",
+            "toke.c",
+            "universal.c",
+            "utf8.c",
+            "util.c",
+            "perlio.c"
+            ;
+        if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            t +=
+            "win32/win32.c",
+            "win32/win32sck.c",
+            "win32/win32thread.c",
+            "win32/fcrypt.c"
+            ;
+        } else {
+            t += "crypt"_slib;
+        }
+
+        // for noreturn dllexport functions
+        t.patch("win32/win32.h", "#      define PERL_CALLCONV_NO_RET", "//#define PERL_CALLCONV_NO_RET");
+        // for linking xsubpp modules to perl.dll
+        t.patch("INTERN.h", "defined(WIN32) && defined(__MINGW32__)", "(defined(WIN32) || defined(__MINGW32__))");
+        // for xsubpp modules exports
+        // (needed for *nix + SharedLibrary perl.lib)
+        //t.patch("XSUB.h", "__declspec(dllexport)", "SW_PERL_API"); //????
+        //t.patch("XSUB.h", "#  define XS_EXTERNAL(name) extern \"C\" XSPROTO(name)", "#  define XS_EXTERNAL(name) extern \"C\" SW_PERL_API XSPROTO(name)");
+        //t.patch("XSUB.h", "#  define XS_EXTERNAL(name) XSPROTO(name)", "#  define XS_EXTERNAL(name) SW_PERL_API XSPROTO(name)");
+        t.patch("XSUB.h", "defined(__CYGWIN__)", "(defined( __CYGWIN__) || defined(WIN32))");
     };
 
     auto &gu = p.addTarget<Executable>("generate_uudmap");
@@ -177,10 +199,48 @@ void build(Solution &s)
     using lib_build_type = SharedLibrary;
 
     auto &perl = p.addTarget<PerlExecutable>("perl");
-    auto &lib = p.addTarget<lib_build_type>("lib"); // for now, sw mixes static and shared builds
+     // for now, sw mixes static and shared builds
+    auto &lib = perl.getBuildSettings().TargetOS.Type == OSType::Windows
+        ? (Library &)p.addTarget<SharedLibrary>("lib")
+        : (Library &)p.addTarget<StaticLibrary>("lib")
+        ;
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
-        const String cfg_add = R"(
+        mp.libsdir = lib.SourceDir;
+
+        mp -= ".*\\.[hc]"_r;
+        mp -= ".*\\.inc"_r;
+        mp -= ".*\\.tab"_r;
+        mp -= ".*\\.act"_r;
+        mp -= "win32/.*"_rr;
+        base(mp);
+        mp += "miniperlmain.c";
+
+        mp += "."_idir;
+
+        if (mp.getBuildSettings().TargetOS.Type != OSType::Windows) {
+            mp += "SW_PERL_API"_api;
+        }
+        mp += "PERLDLL"_def;
+        mp += "PERL_CORE"_def;
+        //mp += "PERL_EXTERNAL_GLOB"_def;
+        //mp += "PERL_IS_MINIPERL"_def;
+
+        for (auto &&f : {
+            "perl.c",
+            //"opmini.c",
+            //"perlmini.c",
+            //"universalmini.c",
+            })
+        for (auto &&d : {"-DPERL_IS_MINIPERL","-DPERL_EXTERNAL_GLOB",})
+            mp[f].args.push_back(d);
+
+        if (mp.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            mp += "win32"_idir;
+            mp += "win32/include"_idir;
+
+            const String cfg_add = R"(
 #ifndef _config_h_footer_
 #define _config_h_footer_
 #undef Off_t
@@ -239,37 +299,6 @@ void build(Solution &s)
 #undef USE_CPLUSPLUS
 #endif
 )";
-
-        mp.libsdir = lib.SourceDir;
-
-        mp -= ".*\\.[hc]"_r;
-        mp -= ".*\\.inc"_r;
-        mp -= ".*\\.tab"_r;
-        mp -= ".*\\.act"_r;
-        mp -= "win32/.*"_rr;
-        mp += base, "miniperlmain.c";
-
-        mp += "."_idir;
-
-        mp += "PERLDLL"_def;
-        mp += "PERL_CORE"_def;
-        //mp += "PERL_EXTERNAL_GLOB"_def;
-        //mp += "PERL_IS_MINIPERL"_def;
-
-        for (auto &&f : {
-            "perl.c",
-            //"opmini.c",
-            //"perlmini.c",
-            //"universalmini.c",
-            })
-        for (auto &&d : {"-DPERL_IS_MINIPERL","-DPERL_EXTERNAL_GLOB",})
-            mp[f].args.push_back(d);
-
-        if (mp.getBuildSettings().TargetOS.Type == OSType::Windows)
-        {
-            mp += "win32"_idir;
-            mp += "win32/include"_idir;
-
             mp.pushBackToFileOnce("win32/config_H.vc", cfg_add);
             mp.configureFile("win32/config_H.vc", "config.h");
 
@@ -288,11 +317,47 @@ void build(Solution &s)
             mp += "_CONSOLE"_def;
             mp += "NO_STRICT"_def;
             mp += "CONSERVATIVE"_def;*/
-        }
-        else
-        {
-            mp.pushBackToFileOnce("win32/config_H.gc", cfg_add);
-            mp.configureFile("win32/config_H.gc", "config.h");
+        } else {
+            mp += "quadmath"_slib;
+            if (!mp.DryRun) {
+                auto f = read_file(mp.SourceDir / "config_h.SH");
+                auto a = "!GROK!THIS!"s;
+                auto p = f.find(a);
+                if (p == -1) {
+                    throw std::runtime_error{"cannot find perl anchor "s + a};
+                }
+                auto b = f.find('\n', p) + 1;
+                auto e = f.find(a, b);
+                auto file = f.substr(b, e-b);
+                auto lines = read_lines(mp.SourceDir / "Porting/config.sh");
+                std::vector<std::pair<std::string, std::string>> m;
+                for (auto &&line : lines) {
+                    if (line[0] == '#' || line[0] == ':' || line[0] == ' ') {
+                        continue;
+                    }
+                    auto equ = line.find('=');
+                    auto k = line.substr(0,equ);
+                    auto off = equ+1;
+                    if (line[off] == '\'') ++off;
+                    if (line.back() == '\'') line.pop_back();
+                    auto v = line.substr(off);
+                    m.emplace_back("$"s + k, v);
+                    //for (auto &&repl : {" "s, "\t"s, "\""s}) {
+                    //    if (!(v.empty() && repl == " "s)) {
+                    //        v += repl;
+                    //    }
+                    //    boost::replace_all(file, "$"s + k + repl, v);
+                    //}
+                    //boost::replace_all(file, "$"s + k + "\t", v + "\t");
+                    //boost::replace_all(file, "$"s + k + "\"", v + "\"");
+                }
+                std::ranges::sort(m, [](auto &&v1, auto &&v2) {return v1.first.size() > v2.first.size(); });
+                for (auto &&[k,v] : m) {
+                    boost::replace_all(file, k, v);
+                }
+                mp.writeFileOnce("config.h", file);
+            }
+            //mp.configureFile("Porting/config_H", "config.h");
         }
 
         mp += "pub.egorpugin.primitives.response_file_handler"_dep;
@@ -388,7 +453,14 @@ void build(Solution &s)
     auto fix_local_output = [&](auto &&file, auto &&outfn) {
         //return copy_and_patch(lib, file, "\">"s + path{outfn}.filename().string(), "\">"s + out.string());
     };
-    auto PL_to_file = [&](auto &&fn) {
+    struct patch_data {
+        std::string from;
+        std::string to;
+    };
+    struct pl_patch_options {
+        std::vector<patch_data> patches;
+    };
+    auto PL_to_file = [&](auto &&fn, pl_patch_options popts = {}) {
         auto in = fn;
         auto f = path{in}.string();
         while (!f.empty() && f.back() != '.') f.pop_back();
@@ -401,8 +473,18 @@ void build(Solution &s)
         }
         auto outcopy = fn;
         path out = f;
-        //copy_and_patch(lib, outcopy, "\">"s + path{out}.filename().string(), "\">"s + normalize_path(lib.BinaryDir / out).string());
-        copy_and_patch(lib, outcopy, ""s + path{out}.filename().string(), ""s + normalize_path(lib.BinaryDir / out).string());
+        auto patch_from = path{out}.filename().string();
+        auto patch_to = normalize_path(lib.BinaryDir / out).string();
+        if (popts.patches.empty()) {
+            popts.patches.emplace_back(patch_from, patch_to);
+        } else {
+            for (auto &&[f,t] : popts.patches) {
+                boost::replace_all(t, patch_from, patch_to);
+            }
+        }
+        for (auto &&[f,t] : popts.patches) {
+            copy_and_patch(lib, outcopy, f, t);
+        }
         if (lib.DryRun)
             return out;
         auto c = lib.addCommand()
@@ -440,29 +522,44 @@ void build(Solution &s)
 
         lib -= ".*"_r;
         lib -= "win32/.*"_rr;
-        lib += base, "win32/perllib.c";
-        if (auto nsf = lib["win32/perllib.c"].as<NativeSourceFile*>())
-            nsf->BuildAs = NativeSourceFile::CPP;
+        base(lib);
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            lib += "win32/perllib.c";
+            if (auto nsf = lib["win32/perllib.c"].as<NativeSourceFile*>())
+                nsf->BuildAs = NativeSourceFile::CPP;
+        }
         lib += "pub.egorpugin.primitives.response_file_handler"_dep;
         lib.patch("win32/perllib.c", "EXTERN_C HANDLE w32_perldll_handle;", "EXTERN_C  HANDLE w32_perldll_handle;\n#include <primitives/response_file_handler.h>");
         lib.patch("win32/perllib.c", "int exitstatus;", "process_response_file(&argc, &argv); int  exitstatus;");
 
         lib.Protected += "."_idir;
 
-        lib.Protected += "win32"_idir;
-        lib.Protected += "win32/include"_idir;
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
+        {
+            lib += "ext/Win32CORE/Win32CORE.c";
+
+            lib.Public += "WIN32"_def;
+            lib.Public += "WIN64"_def;
+
+            lib.Protected += "win32"_idir;
+            lib.Protected += "win32/include"_idir;
+
+            lib += "ws2_32.lib"_slib;
+            lib += "user32.lib"_slib;
+            lib += "Advapi32.lib"_slib;
+            lib += "Comctl32.lib"_slib;
+        } else {
+            lib += "SOCKET=int"_def;
+            lib += "quadmath"_slib;
+        }
 
         lib += "PERL_CALLCONV"_api;
-
-        lib.Public += "WIN32"_def;
-        lib.Public += "WIN64"_def;
-
-        lib += "ws2_32.lib"_slib;
-        lib += "user32.lib"_slib;
-        lib += "Advapi32.lib"_slib;
-        lib += "Comctl32.lib"_slib;
-
-        lib += "ext/Win32CORE/Win32CORE.c";
+        if (lib.getBuildSettings().TargetOS.Type != OSType::Windows) {
+            lib += "SW_PERL_API"_api;
+        }
+        // for nix
+        lib.patch("perl.h", "#  define __attribute__visibility__(x) __attribute__((visibility(x)))", "//#   define __attribute__visibility__(x) __attribute__((visibility(x)))");
 
         lib.Public += sw::Static, "PERL_STATIC_SYMS"_def;
         lib += sw::Shared, "PERLDLL"_def;
@@ -470,23 +567,23 @@ void build(Solution &s)
 
         // some conf
         lib.Public += "PERL_TEXTMODE_SCRIPTS"_def;
-        lib.Public += "PERL_IMPLICIT_SYS"_def;
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            lib.Public += "PERL_IMPLICIT_SYS"_def;
+        }
         // comment out?
         //lib.Public += "PERL_IMPLICIT_CONTEXT"_def; // but PERL_IMPLICIT_CONTEXT was removed from core perl. It does not do anything. Undeffing it for compilation
         lib.Public += "MULTIPLICITY"_def; // needed for PERL_IMPLICIT_CONTEXT
-        // we need both
-        lib.Public += "USE_ITHREADS"_def; // same as USE_THREADS? looks like no
-        lib.Public += "USE_THREADS"_def;
+        // on nix they are set via config
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            // we need both
+            lib.Public += "USE_ITHREADS"_def; // same as USE_THREADS? looks like no
+            lib.Public += "USE_THREADS"_def;
+
+            // for dynamic xsubpp modules
+            lib.Public += "USE_DYNAMIC_LOADING"_def;
+        }
         //
 
-        // for dynamic xsubpp modules
-        lib.Public += "USE_DYNAMIC_LOADING"_def;
-        // for noreturn dllexport functions
-        lib.patch("win32/win32.h", "#      define PERL_CALLCONV_NO_RET", "//#       define PERL_CALLCONV_NO_RET");
-        // for linking xsubpp modules to perl.dll
-        lib.patch("INTERN.h", "defined(WIN32) && defined(__MINGW32__)", "(defined(WIN32) || defined(__MINGW32__))");
-        // for xsubpp modules exports
-        lib.patch("XSUB.h", "defined(__CYGWIN__)", "(defined( __CYGWIN__) || defined(WIN32))");
         //
         //lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "POSIX::WNOHANG", "$sw::POSIX_WNOHANG");
         //lib.patch("cpan/IPC-Cmd/lib/IPC/Cmd.pm", "POSIX->import();", "POSIX->import( ); $sw::POSIX_WNOHANG = POSIX::WNOHANG();");
@@ -503,48 +600,51 @@ void build(Solution &s)
         }
         // generate things
         {
-            auto config_sh = lib.addCommand();
-            config_sh << cmd::prog(mp)
-                << cmd::wdir(lib.SourceDir / "win32")
-                << "-I" << lib.SourceDir / "lib"
-                << cmd::in("win32/config_sh.PL")
-                << "archname=MSWin32-x64-multi-thread"
-                << "WIN64=define"
-                << "d_mymalloc=undef"
-                << "use64bitint=define"
-                << "usethreads=define"
-                << "useithreads=define"
-                << "usemultiplicity=define"
-                << "uselargefiles=define"
-                << "usecplusplus="
-                << "uselongdouble=undef"
-                << "usesitecustomize=undef" // !
-                << "default_inc_excludes_dot=define"
-                << "cc=cl"
-                << "ld=link"
-                << "static_ext=Win32CORE"
+            auto config_sh = lib.BinaryDir / "config.sh";
 
-                /*<< "ccflags=-nologo -GF -W3 -O1 -MD -Zi -DNDEBUG -GL -fp:precise -DWIN32 -D_CONSOLE -DNO_STRICT -DWIN64 -DCONSERVATIVE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS  -DPERL_TEXTMODE_SCRIPTS -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS"
-                << "libs=oldnames.lib kernel32.lib user32.lib gdi32.lib winspool.lib  comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib  netapi32.lib uuid.lib ws2_32.lib mpr.lib winmm.lib  version.lib odbc32.lib odbccp32.lib comctl32.lib msvcrt.lib vcruntime.lib ucrt.lib"
-                << "incpath=c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Tools\\MSVC\\14.16.27023\\include"
-                << "libpth=c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Tools\\MSVC\\14.16.27023\\lib\\x64;"
-                << "libc=ucrt.lib"
-                << "make=nmake"
-                << "LINK_FLAGS=-nologo -nodefaultlib -debug -opt:ref,icf -ltcg -libpath:\\\"c:\\perl\\lib\\CORE\\\" -machine:AMD64"
-                << "optimize=-O1 -MD -Zi -DNDEBUG -GL -fp:precise"*/
+            if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
+            {
+               lib.addCommand()
+                    << cmd::prog(mp)
+                    << cmd::wdir(lib.SourceDir / "win32")
+                    << "-I" << lib.SourceDir / "lib"
+                    << cmd::in("win32/config_sh.PL")
+                    << "archname=MSWin32-x64-multi-thread"
+                    << "WIN64=define"
+                    << "d_mymalloc=undef"
+                    << "use64bitint=define"
+                    << "usethreads=define"
+                    << "useithreads=define"
+                    << "usemultiplicity=define"
+                    << "uselargefiles=define"
+                    << "usecplusplus="
+                    << "uselongdouble=undef"
+                    << "usesitecustomize=undef" // !
+                    << "default_inc_excludes_dot=define"
+                    << "cc=cl"
+                    << "ld=link"
+                    << "static_ext=Win32CORE"
 
-                << cmd::in("win32/config.vc");
-                ;
-            auto config_sh_idir = lib.BinaryDir;
-            config_sh << cmd::std_out(config_sh_idir / "config.sh");
+                    /*<< "ccflags=-nologo -GF -W3 -O1 -MD -Zi -DNDEBUG -GL -fp:precise -DWIN32 -D_CONSOLE -DNO_STRICT -DWIN64 -DCONSERVATIVE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS  -DPERL_TEXTMODE_SCRIPTS -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS"
+                    << "libs=oldnames.lib kernel32.lib user32.lib gdi32.lib winspool.lib  comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib  netapi32.lib uuid.lib ws2_32.lib mpr.lib winmm.lib  version.lib odbc32.lib odbccp32.lib comctl32.lib msvcrt.lib vcruntime.lib ucrt.lib"
+                    << "incpath=c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Tools\\MSVC\\14.16.27023\\include"
+                    << "libpth=c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Tools\\MSVC\\14.16.27023\\lib\\x64;"
+                    << "libc=ucrt.lib"
+                    << "make=nmake"
+                    << "LINK_FLAGS=-nologo -nodefaultlib -debug -opt:ref,icf -ltcg -libpath:\\\"c:\\perl\\lib\\CORE\\\" -machine:AMD64"
+                    << "optimize=-O1 -MD -Zi -DNDEBUG -GL -fp:precise"*/
 
-            /*
-            "INST_TOP=c:\\perl"
-            "INST_VER="
-            "INST_ARCH="
-            "cf_email="
-            "libperl=perl529.lib"
-            */
+                    << cmd::in("win32/config.vc")
+                    << cmd::std_out(config_sh)
+                    ;
+            } else {
+                //config_sh = lib.SourceDir / "Porting" / "config.sh";
+                if (!lib.DryRun) {
+                    fs::create_directories(lib.BinaryDir);
+                    copy_file(lib.SourceDir / "Porting" / "config.sh", config_sh);
+                }
+                //lib.configureFile("Porting/config_H", lib.BinaryDir / "config.h");
+            }
 
             auto make_patchnum_pl = lib.BinaryDir / "make_patchnum.pl";
             auto config_git_pl = lib.BinaryDir / "Config_git.pl";
@@ -553,10 +653,14 @@ void build(Solution &s)
                 fs::create_directories(lib.BinaryDir / "lib");
                 copy_file(lib.SourceDir / "make_patchnum.pl", make_patchnum_pl);
 
+                // prevent errors on ./abs/path
+                lib.patch(make_patchnum_pl, "$file= path_to($file);", "#$file = path_to($file);");
                 // out to .in.h and copy after?
-                lib.patch(make_patchnum_pl, "'git_version.h'", "'"s + normalize_path((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir)).string() + "'");
+                //lib.patch(make_patchnum_pl, "'git_version.h'", "'"s + normalize_path(fs::absolute((lib.BinaryDir / "git_version.h").lexically_relative(lib.SourceDir))).string() + "'");
+                lib.patch(make_patchnum_pl, "'git_version.h'", "'"s + normalize_path(lib.BinaryDir / "git_version.h").string() + "'");
                 // was lib/Config_git.pl
-                lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path((config_git_pl).lexically_relative(lib.SourceDir)).string() + "'");
+                //lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path(fs::absolute(config_git_pl.lexically_relative(lib.SourceDir))).string() + "'");
+                lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path(config_git_pl).string() + "'");
             }
 
             lib.addCommand()
@@ -581,7 +685,7 @@ void build(Solution &s)
                 << "-I" << lib.SourceDir / "lib"
                 << cmd::in("configpm")
                 << cmd::end()
-                << cmd::in(config_sh_idir / "config.sh")
+                << cmd::in(config_sh)
                 << cmd::in(config_git_pl)
                 << cmd::out(lib.BinaryDir / "lib" / "Config.pod")
                 << cmd::out(config_pm)
@@ -599,26 +703,6 @@ void build(Solution &s)
                 << cmd::end()
                 << cmd::out("lib/buildcustomize.pl")
                 ;
-
-            /*auto config_h = lib.addCommand();
-            config_h << cmd::prog(mp)
-            << cmd::wdir(lib.SourceDir / "win32")
-            << "-I" << lib.SourceDir / "lib"
-            << cmd::in("win32/config_h.PL")
-            //<< "CONFIG_H=config.h.in"
-            << cmd::end()
-            //<< cmd::out(lib.SourceDir / "win32" / "config.h.in")
-            << cmd::out(lib.SourceDir / "win32" / "config.h")
-            << cmd::in("lib/buildcustomize.pl")
-            ;*/
-
-            /*SW_MAKE_EXECUTE_BUILTIN_COMMAND_AND_ADD(copy_cmd, lib, "sw_copy_file");
-            copy_cmd->args.push_back((mp.BinaryDir / "config.h").u8string());
-            copy_cmd->args.push_back((lib.SourceDir / "win32" / "config.h").u8string());
-            copy_cmd->addInput((mp.BinaryDir / "config.h"));
-            copy_cmd->addOutput((lib.SourceDir / "win32" / "config.h"));
-            copy_cmd->maybe_unused = builder::Command::MU_ALWAYS;
-            lib += lib.SourceDir / "win32" / "config.h";*/
 
             auto perllibst = lib.addCommand();
             perllibst << cmd::prog(mp)
@@ -653,25 +737,33 @@ void build(Solution &s)
             //PLATFORM=win32 -O1 -MD -Zi -DNDEBUG -GL -fp:precise -DWIN32 -D_CONSOLE -DNO_STRICT -DWIN64 -DCONSERVATIVE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS  -DPERL_TEXTMODE_SCRIPTS -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS  CCTYPE=MSVC141 TARG_DIR=..\ > perldll.def
 
             {
-            auto dyna = lib.addCommand();
-            dyna << cmd::prog(mp)
-                //<< cmd::wdir(lib.SourceDir / "win32")
-                ;
-            fix_perl_path_old2(dyna);
-            fix_perl_path_old(dyna);
-            dyna
-                << cmd::in("dist/ExtUtils-ParseXS/lib/ExtUtils/xsubpp")
-                << "-noprototypes"
-                << "-typemap"
-                << cmd::in("lib/ExtUtils/typemap")
-                << cmd::in("ext/DynaLoader/dl_win32.xs")
-                << cmd::std_out("DynaLoader.c")
-                << cmd::end()
-                << cmd::in(config_pm)
-                //<< cmd::in(lib.SourceDir / "win32" / "config.h")
-                ;
-            lib += "DynaLoader.c";
-            lib += "ext/DynaLoader"_idir;
+                auto dyna = lib.addCommand();
+                dyna << cmd::prog(mp)
+                    //<< cmd::wdir(lib.SourceDir / "win32")
+                    ;
+                fix_perl_path_old2(dyna);
+                fix_perl_path_old(dyna);
+                dyna
+                    << cmd::in("dist/ExtUtils-ParseXS/lib/ExtUtils/xsubpp")
+                    << "-noprototypes"
+                    << "-typemap"
+                    << cmd::in("lib/ExtUtils/typemap")
+                    ;
+                if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+                    dyna << cmd::in("ext/DynaLoader/dl_win32.xs");
+                } else if (lib.getBuildSettings().TargetOS.isApple()) {
+                    dyna << cmd::in("ext/DynaLoader/dl_dyld.xs");
+                } else {
+                    dyna << cmd::in("ext/DynaLoader/dl_dlopen.xs");
+                }
+                dyna
+                    << cmd::std_out("DynaLoader.c")
+                    << cmd::end()
+                    << cmd::in(config_pm)
+                    //<< cmd::in(lib.SourceDir / "win32" / "config.h")
+                    ;
+                lib += "DynaLoader.c";
+                lib += "ext/DynaLoader"_idir;
             }
 
             perl.extra_paths.push_back(lib.SourceDir / "lib");
@@ -684,11 +776,11 @@ void build(Solution &s)
 
             // some modules depends on previous ones
             // we did not keep tracking of it yet
-            auto make_module_simple = [&](auto &&disposition, auto &&name) {
-                PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name));
+            auto make_module_simple = [&](auto &&disposition, auto &&name, pl_patch_options popts = {}) {
+                PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name), popts);
             };
-            auto make_module_simple1 = [&](const path &name) {
-                make_module_simple(name.parent_path().string(), name.filename().string());
+            auto make_module_simple1 = [&](const path &name, pl_patch_options popts = {}) {
+                make_module_simple(name.parent_path().string(), name.filename().string(), popts);
             };
             make_module_simple1("dist/XSLoader");
             lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "croak(\"Can't locate", "$file = dl_findfile_sw($modfname) unless $file; croak( \"Can't locate");
@@ -702,8 +794,15 @@ void build(Solution &s)
     return dl_findfile(map("-L$_",@dirs,@INC), $output);
 }}
 
-sub dl_findfile  {{)", normalize_string_copy(sw::getProgramLocation().string())));
-            make_module_simple1("ext/DynaLoader");
+sub dl_findfile  {{)",
+                //normalize_string_copy(sw::getProgramLocation().string())) // we still have more changes, so ignore
+                normalize_string_copy(sw::getSwExecutableName().string()))
+            );
+            make_module_simple1("ext/DynaLoader", {{
+                {"DynaLoader.pm\" if","DynaLoader.pm\"  if"},
+                {"DynaLoader.pm\" or","DynaLoader.pm\"  or"},
+                {"DynaLoader.pm\";","DynaLoader.pm\" ;"},
+            }});
             make_module_simple1("dist/lib");
         }
     }
@@ -712,8 +811,37 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getProgramLocation().string()))
     {
         perl.libsdir = lib.SourceDir;
 
-        perl += "win32/runperl.c";
+        //perl += "SW_PERL_API"_api;
+        perl -= "win32/runperl.c";
         perl.Public += lib;
+
+        if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            perl += "win32/runperl.c";
+        } else {
+            perl.writeFileOnce("makemain.pl", R"(
+use ExtUtils::Miniperl;
+writemain(\"perlmain.c", 'DynaLoader');
+)");
+
+            //  -MExtUtils::Miniperl -e 'writemain(\"perlmain.c", @ARGV)' DynaLoader
+
+            auto makeperl = perl.addCommand();
+            makeperl << cmd::prog(mp) << cmd::wdir(perl.BinaryDir);
+            fix_perl_path_old2(makeperl);
+            fix_perl_path_old(makeperl);
+            makeperl
+                << cmd::in("makemain.pl")
+                //<< "-MExtUtils::Miniperl"
+                //<< "-e"
+                //<< "'writemain(\\perlmain.c, @ARGV)'"
+                //<< "DynaLoader"
+                // add more static exts here
+                << cmd::end()
+                //<< cmd::std_out(perl.BinaryDir / "perlmain.c")
+                << cmd::out(perl.BinaryDir / "perlmain.c")
+                ;
+            //perl += perl.BinaryDir / "perlmain.c";
+        }
 
         perl -= "lib/.*"_rr;
         perl -= "dist/.*"_rr;
@@ -740,7 +868,11 @@ sub dl_findfile  {{)", normalize_string_copy(sw::getProgramLocation().string()))
         t += IncludeDirectory{lib.SourceDir / dir};
         t += IncludeDirectory{lib.BinaryDir / dir};
 
-        t += lib;
+        //if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
+            t += lib;
+        //} else {
+        //    t += perl;
+        //}
 
         auto s = dir.filename().string();
         auto p = s.rfind('-');
@@ -908,7 +1040,11 @@ ucm/ctrl.ucm
 
         // perl has some symbols with visibility hidden - it is missing on msvc
         // so we force allow multiple same symbols across dll
-        t.LinkOptions.push_back("/FORCE:MULTIPLE");
+        if (lib.getCompilerType() == CompilerType::MSVC) {
+            t.LinkOptions.push_back("/FORCE:MULTIPLE");
+        } else {
+            t.LinkOptions.push_back("-Wl,-z,muldefs");
+        }
 
         process_module(t, {"ext/re"});
     }
@@ -932,6 +1068,9 @@ ucm/ctrl.ucm
        ;
 
     process_module_with_c_files({"ext/File-Glob"});
-    process_module_with_c_files({"dist/IO"});
+    auto &io = process_module_with_c_files({"dist/IO"});
+    if (io.getBuildSettings().TargetOS.Type != OSType::Windows) {
+        io -= IncludeDirectory{io.SourceDir / "dist/IO"};
+    }
     process_module2({"ext/POSIX"});
 }
