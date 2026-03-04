@@ -924,8 +924,8 @@ writemain(\"perlmain.c", 'DynaLoader');
             t += Definition{"XS_VERSION=\"" + d.version + "\""};
         }
 
-        t += IncludeDirectory{lib.SourceDir / dir};
-        t += IncludeDirectory{lib.BinaryDir / dir};
+        t += IncludeDirectory{t.SourceDir / dir};
+        t += IncludeDirectory{t.BinaryDir / dir};
 
         //if (t.getBuildSettings().TargetOS.Type == OSType::Windows) {
             t += lib;
