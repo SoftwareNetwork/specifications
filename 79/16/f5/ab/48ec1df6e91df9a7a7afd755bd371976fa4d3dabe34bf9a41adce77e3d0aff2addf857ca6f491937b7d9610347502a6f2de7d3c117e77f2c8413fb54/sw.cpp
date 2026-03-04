@@ -88,7 +88,9 @@ struct PerlExecutable : ExecutableTarget
         });
         String s;
         for (auto &&p : paths)
-            s += p.string() + ";";
+            s += p.string() + (getBuildSettings().TargetOS.Type == OSType::Windows
+                                //|| getBuildSettings().TargetOS.Type == OSType::Mingw
+                                ? ";" : ":");
         for (auto &&p : extra_paths)
             s += p.string() + ";";
         s.resize(s.size() - 1);
