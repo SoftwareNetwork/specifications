@@ -77,6 +77,10 @@ struct PerlExecutable : ExecutableTarget
     void setupCommand(builder::Command &c) const override
     {
         //c.use_response_files = false;
+        static auto path_delim = getBuildSettings().TargetOS.Type == OSType::Windows
+                                //|| getBuildSettings().TargetOS.Type == OSType::Mingw
+                                ? ";" : ":"
+                                ;
 
         std::vector<path> paths;
         if (!libsdir.empty()) {
@@ -88,11 +92,9 @@ struct PerlExecutable : ExecutableTarget
         });
         String s;
         for (auto &&p : paths)
-            s += p.string() + (getBuildSettings().TargetOS.Type == OSType::Windows
-                                //|| getBuildSettings().TargetOS.Type == OSType::Mingw
-                                ? ";" : ":");
+            s += p.string() + path_delim;
         for (auto &&p : extra_paths)
-            s += p.string() + ";";
+            s += p.string() + path_delim;
         s.resize(s.size() - 1);
         c.environment["PERL5LIB"] = s;
 
@@ -189,8 +191,8 @@ void build(Solution &s)
         // for xsubpp modules exports
         // (needed for *nix + SharedLibrary perl.lib)
         //t.patch("XSUB.h", "__declspec(dllexport)", "SW_PERL_API"); //????
-        //t.patch("XSUB.h", "#  define XS_EXTERNAL(name) extern \"C\" XSPROTO(name)", "#  define XS_EXTERNAL(name) extern \"C\" SW_PERL_API XSPROTO(name)");
-        //t.patch("XSUB.h", "#  define XS_EXTERNAL(name) XSPROTO(name)", "#  define XS_EXTERNAL(name) SW_PERL_API XSPROTO(name)");
+        t.patch("XSUB.h", "#  define XS_EXTERNAL(name) extern \"C\" XSPROTO(name)", "#  define XS_EXTERNAL(name) extern \"C\" SW_EXPORT XSPROTO(name)");
+        t.patch("XSUB.h", "#  define XS_EXTERNAL(name) XSPROTO(name)", "#  define XS_EXTERNAL(name) SW_EXPORT XSPROTO(name)");
         t.patch("XSUB.h", "defined(__CYGWIN__)", "(defined( __CYGWIN__) || defined(WIN32))");
     };
 
