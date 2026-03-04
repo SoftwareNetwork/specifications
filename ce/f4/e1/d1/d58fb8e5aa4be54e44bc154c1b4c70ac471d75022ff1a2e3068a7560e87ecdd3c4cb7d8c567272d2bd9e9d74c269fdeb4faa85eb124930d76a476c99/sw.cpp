@@ -1086,6 +1086,7 @@ ucm/ctrl.ucm
     auto &ext_re = packages.addTarget<lib_build_type>("ext.re");
     {
         auto &t = ext_re;
+        t += FileRegex{"ext/re", ".*\\.[hc]", false};
         //t += "dquote.c";
         t += "regcomp.c";
         t += "regcomp_invlist.c";
