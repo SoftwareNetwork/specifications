@@ -176,7 +176,7 @@ void build(Solution &s)
             "win32/win32thread.c",
             "win32/fcrypt.c"
             ;
-        } else {
+        } else if (!t.getBuildSettings().TargetOS.isApple()) {
             t += "crypt"_slib;
         }
 
@@ -320,7 +320,9 @@ void build(Solution &s)
             mp += "NO_STRICT"_def;
             mp += "CONSERVATIVE"_def;*/
         } else {
-            mp += "quadmath"_slib;
+            if (!mp.getBuildSettings().TargetOS.isApple()) {
+                mp += "quadmath"_slib;
+            }
             if (!mp.DryRun) {
                 auto f = read_file(mp.SourceDir / "config_h.SH");
                 auto a = "!GROK!THIS!"s;
@@ -354,7 +356,47 @@ void build(Solution &s)
                     //boost::replace_all(file, "$"s + k + "\"", v + "\"");
                 }
                 if (mp.getBuildSettings().TargetOS.isApple()) {
+                    m1["usequadmath"] = "undef";
                     m1["i_quadmath"] = "undef";
+                    m1["d_crypt"] = "undef";
+                    m1["i_crypt"] = "undef";
+                    m1["i_shadow"] = "undef";
+                    m1["d_off64_t"] = "undef";
+                    m1["d_getspnam"] = "undef";
+                    m1["d_getspnam_r"] = "undef";
+                    m1["d_union_semun"] = "define";
+                    m1["d_strerror_l"] = "undef";
+                    m1["strerror_r_proto"] = "REENTRANT_PROTO_I_IBI"; // IBW?
+                    m1["nvtype"] = "double";
+                    m1["d_setresuid"] = "undef";
+                    m1["d_readdir64_r"] = "undef";
+                    m1["d_prctl_set_name"] = "undef";
+                    //m1["d_strxfrm"] = "undef";
+                    m1["d_strxfrm_l"] = "undef";
+                    m1["d_memrchr"] = "undef";
+                    m1["d_setregid"] = "undef";
+                    m1["d_setresgid"] = "undef";
+                    m1["d_dup3"] = "undef";
+                    m1["d_pipe2"] = "undef";
+                    m1["d_gethostbyaddr_r"] = "undef";
+                    m1["d_gethostbyname_r"] = "undef";
+                    m1["d_getprotobyname_r"] = "undef";
+                    m1["d_getprotobynumber_r"] = "undef";
+                    m1["d_getprotoent_r"] = "undef";
+                    m1["d_getservbyname_r"] = "undef";
+                    m1["d_getservbyport_r"] = "undef";
+                    m1["d_getservent_r"] = "undef";
+                    m1["d_getpwent_r"] = "undef";
+                    m1["d_getgrent_r"] = "undef";
+                    m1["d_getnetbyaddr_r"] = "undef";
+                    m1["d_getnetbyname_r"] = "undef";
+                    m1["d_gethostent_r"] = "undef";
+                    m1["d_getnetent_r"] = "undef";
+                    m1["d_syscall"] = "undef";
+                    m1["d_clearenv"] = "undef";
+                    m1["d_clearerr"] = "undef";
+                    m1["d_eaccess"] = "undef";
+                    m1["d_cuserid"] = "undef";
                 }
                 std::vector<std::pair<std::string, std::string>> m2;
                 for (auto &&[k,v] : m1) {
@@ -560,7 +602,9 @@ void build(Solution &s)
             lib += "Comctl32.lib"_slib;
         } else {
             lib += "SOCKET=int"_def;
-            lib += "quadmath"_slib;
+            if (!lib.getBuildSettings().TargetOS.isApple()) {
+                lib += "quadmath"_slib;
+            }
         }
 
         lib += "PERL_CALLCONV"_api;
@@ -1051,7 +1095,7 @@ ucm/ctrl.ucm
         // so we force allow multiple same symbols across dll
         if (lib.getCompilerType() == CompilerType::MSVC) {
             t.LinkOptions.push_back("/FORCE:MULTIPLE");
-        } else {
+        } else if (!t.getBuildSettings().TargetOS.isApple()) {
             t.LinkOptions.push_back("-Wl,-z,muldefs");
         }
 
