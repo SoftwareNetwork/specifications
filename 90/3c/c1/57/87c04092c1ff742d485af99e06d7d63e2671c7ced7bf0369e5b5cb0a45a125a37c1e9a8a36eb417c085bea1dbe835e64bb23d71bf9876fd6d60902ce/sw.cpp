@@ -320,7 +320,8 @@ void build(Solution &s)
             mp += "NO_STRICT"_def;
             mp += "CONSERVATIVE"_def;*/
         } else {
-            if (!mp.getBuildSettings().TargetOS.isApple()) {
+            //if (!mp.getBuildSettings().TargetOS.isApple()) {
+            if (mp.getCompilerType() == CompilerType::GNU) {
                 mp += "quadmath"_slib;
             }
             if (!mp.DryRun) {
@@ -355,9 +356,13 @@ void build(Solution &s)
                     //boost::replace_all(file, "$"s + k + "\t", v + "\t");
                     //boost::replace_all(file, "$"s + k + "\"", v + "\"");
                 }
+                m1["usequadmath"] = "undef";
+                m1["i_quadmath"] = "undef";
+                if (mp.getCompilerType() == CompilerType::GNU) {
+                    m1["usequadmath"] = "define";
+                    m1["i_quadmath"] = "define";
+                }
                 if (mp.getBuildSettings().TargetOS.isApple()) {
-                    m1["usequadmath"] = "undef";
-                    m1["i_quadmath"] = "undef";
                     m1["d_crypt"] = "undef";
                     m1["i_crypt"] = "undef";
                     m1["i_shadow"] = "undef";
@@ -602,7 +607,7 @@ void build(Solution &s)
             lib += "Comctl32.lib"_slib;
         } else {
             lib += "SOCKET=int"_def;
-            if (!lib.getBuildSettings().TargetOS.isApple()) {
+            if (lib.getCompilerType() == CompilerType::GNU) {
                 lib += "quadmath"_slib;
             }
         }
@@ -805,6 +810,7 @@ void build(Solution &s)
                 if (lib.getBuildSettings().TargetOS.Type == OSType::Windows) {
                     dyna << cmd::in("ext/DynaLoader/dl_win32.xs");
                 } else if (lib.getBuildSettings().TargetOS.isApple()) {
+                    lib.patch("ext/DynaLoader/dl_dyld.xs", "return handle;", "return (char *)handle;");
                     dyna << cmd::in("ext/DynaLoader/dl_dyld.xs");
                 } else {
                     dyna << cmd::in("ext/DynaLoader/dl_dlopen.xs");
