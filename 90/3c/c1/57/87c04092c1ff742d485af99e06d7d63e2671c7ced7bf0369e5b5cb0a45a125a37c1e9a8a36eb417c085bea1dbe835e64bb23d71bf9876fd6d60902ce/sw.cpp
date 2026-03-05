@@ -188,6 +188,10 @@ void build(Solution &s)
         t.patch("win32/win32.h", "#      define PERL_CALLCONV_NO_RET", "//#define PERL_CALLCONV_NO_RET");
         // for linking xsubpp modules to perl.dll
         t.patch("INTERN.h", "defined(WIN32) && defined(__MINGW32__)", "(defined(WIN32) || defined(__MINGW32__))");
+        t.patch("INTERN.h", "#      define EXT\n", "#      define EXT SW_EXPORT\n");
+        //t.patch("INTERN.h", "#      define dEXT\n", "#      define dEXT SW_EXPORT\n");
+        t.patch("INTERN.h", "#      define EXTCONST EXTERN_C const\n", "#      define EXTCONST EXTERN_C SW_EXPORT const\n");
+        t.patch("INTERN.h", "#      define dEXTCONST const\n", "#      define dEXTCONST SW_EXPORT const\n");
         // for xsubpp modules exports
         // (needed for *nix + SharedLibrary perl.lib)
         //t.patch("XSUB.h", "__declspec(dllexport)", "SW_PERL_API"); //????
@@ -204,9 +208,11 @@ void build(Solution &s)
 
     auto &perl = p.addTarget<PerlExecutable>("perl");
      // for now, sw mixes static and shared builds
-    auto &lib = perl.getBuildSettings().TargetOS.Type == OSType::Windows
-        ? (Library &)p.addTarget<SharedLibrary>("lib")
-        : (Library &)p.addTarget<StaticLibrary>("lib")
+    auto &lib =
+        //perl.getBuildSettings().TargetOS.Type == OSType::Windows
+        //?
+        (Library &)p.addTarget<SharedLibrary>("lib")
+        //: (Library &)p.addTarget<StaticLibrary>("lib")
         ;
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
     {
@@ -365,8 +371,14 @@ void build(Solution &s)
                 if (mp.getCompilerType() == CompilerType::GNU) {
                     m1["usequadmath"] = "define";
                     m1["i_quadmath"] = "define";
+                } else {
+                    m1["nvtype"] = "long double";
+                    m1["uselongdouble"] = "define";
                 }
                 if (mp.getBuildSettings().TargetOS.isApple()) {
+                    m1["nvtype"] = "long double";
+                    m1["uselongdouble"] = "define";
+
                     m1["d_crypt"] = "undef";
                     m1["i_crypt"] = "undef";
                     m1["i_shadow"] = "undef";
@@ -376,7 +388,6 @@ void build(Solution &s)
                     m1["d_union_semun"] = "define";
                     m1["d_strerror_l"] = "undef";
                     m1["strerror_r_proto"] = "REENTRANT_PROTO_I_IBI"; // IBW?
-                    m1["nvtype"] = "double";
                     m1["d_setresuid"] = "undef";
                     m1["d_readdir64_r"] = "undef";
                     m1["d_prctl_set_name"] = "undef";
@@ -622,6 +633,9 @@ void build(Solution &s)
         }
         // for nix
         lib.patch("perl.h", "#  define __attribute__visibility__(x) __attribute__((visibility(x)))", "//#   define __attribute__visibility__(x) __attribute__((visibility(x)))");
+        lib.patch("perl.h", "EXTERN_C int perl_tsa_mutex_lock(perl_mutex* mutex)", "EXTERN_C SW_EXPORT int perl_tsa_mutex_lock(perl_mutex* mutex)");
+        lib.patch("perl.h", "EXTERN_C int perl_tsa_mutex_unlock(perl_mutex* mutex)", "EXTERN_C SW_EXPORT int perl_tsa_mutex_unlock(perl_mutex* mutex)");
+        lib.patch("thread.h", "extern PERL_THREAD_LOCAL", "extern SW_EXPORT PERL_THREAD_LOCAL");
 
         lib.Public += sw::Static, "PERL_STATIC_SYMS"_def;
         lib += sw::Shared, "PERLDLL"_def;
