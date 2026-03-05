@@ -62,6 +62,7 @@ static std::vector<path> &perl_dirs1() {
         // nasm
         "cpan/IO-Compress/lib",
         "cpan/Scalar-List-Utils/lib",
+        "cpan/Compress-Raw-Zlib/lib",
     };
     return paths;
 }
@@ -103,6 +104,7 @@ struct PerlExecutable : ExecutableTarget
         c.environment["PERL5LIB"] = s;
 
         c.environment["PERL_SRC"] = normalize_path(libsdir).string();
+        c.environment["PERL_CORE"] = normalize_path(libsdir).string(); // needed for some modules
         // or this?                                  vvvvvvvvvvvvvvvvv
         //c.environment["PERL_SRC"] = normalize_path(SourceDir / "lib").string();
 
@@ -578,6 +580,7 @@ void build(Solution &s)
             << cmd::end()
             << cmd::in(config_pm)
             ;
+        mp.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         return lib.BinaryDir / out;
     };
@@ -585,6 +588,7 @@ void build(Solution &s)
     {
         (lib.Public + mp)->IncludeDirectoriesOnly = true;
 
+        lib += "MANIFEST";
         lib -= "lib/.*"_rr;
         lib -= "dist/.*"_rr;
         lib -= "ext/.*"_rr;
@@ -937,6 +941,25 @@ writemain(\"perlmain.c", 'DynaLoader');
         std::string package_name;
         std::string xs_name;
         std::string version;
+        struct fixup {
+            std::string filename;
+            std::string from_format;
+            std::string to_format_; // maybe default to "'{}'" ?
+
+            auto from() const {
+                return std::vformat(from_format, std::make_format_args(filename));
+            }
+            auto to_format() const {
+                return to_format_.empty() ? from_format : to_format_;
+            }
+            auto to(const path &dir) const {
+                auto s = normalize_path(dir / filename).string();
+                return std::vformat(to_format(), std::make_format_args(s));
+            }
+        };
+        std::vector<fixup> fixup_filenames;
+        bool makefile_PL_wdir_source_dir{};
+        std::vector<std::string> constants_outputs{"const-c.inc"s,"const-xs.inc"s};
     };
 
     // dedup with PL_to_file()
@@ -996,10 +1019,13 @@ writemain(\"perlmain.c", 'DynaLoader');
             if (fs::exists(lib.SourceDir / dir / "lib")) {
                 fs::copy(lib.SourceDir / dir / "lib", lib.BinaryDir / dir / "lib", fs::copy_options::recursive | fs::copy_options::update_existing);
             }
+            for (auto &&f : d.fixup_filenames) {
+                lib.patch(dir / "Makefile.PL", f.from(), f.to(lib.SourceDir / dir));
+            }
             auto c = lib.addCommand();
             c
                 << cmd::prog(mp)
-                << cmd::wdir(lib.BinaryDir / dir)
+                << cmd::wdir(d.makefile_PL_wdir_source_dir ? lib.SourceDir / dir : lib.BinaryDir / dir)
                 << "-I" << lib.SourceDir / "lib"
                 << "-I" << lib.BinaryDir
                 << "-I" << lib.BinaryDir / "lib"
@@ -1012,8 +1038,11 @@ writemain(\"perlmain.c", 'DynaLoader');
             c
                 << cmd::in(dir / "Makefile.PL")
                 << cmd::end()
-                << cmd::out(dir / "const-xs.inc")
-                << cmd::out(dir / "const-c.inc")
+                ;
+            for (auto &&f : d.constants_outputs) {
+                c << cmd::out(dir / f);
+            }
+            c
                 << cmd::in(config_pm)
                 ;
         }
@@ -1163,4 +1192,7 @@ ucm/ctrl.ucm
     }
     process_module2({"ext/POSIX"});
     process_module_with_c_files({.dir = "cpan/Scalar-List-Utils", .package_name = "cpan.Util", .xs_name = "ListUtil"});
+    auto &cpan_zlib = process_module2({.dir = "cpan/Compress-Raw-Zlib", .fixup_filenames = {{"config.in","'{}'"},{"zlib-src","'./{}'","'{}'"}},.constants_outputs = {"constants.h"s, "constants.xs"s}});
+    cpan_zlib += "Perl_crz_BUILD_ZLIB=1"_def, "org.sw.demo.madler.zlib"_dep;
+    lib.patch("cpan/Compress-Raw-Zlib/config.in", "= ./zlib-src", "= " + normalize_path(lib.SourceDir / "cpan/Compress-Raw-Zlib/zlib-src").string());
 }
