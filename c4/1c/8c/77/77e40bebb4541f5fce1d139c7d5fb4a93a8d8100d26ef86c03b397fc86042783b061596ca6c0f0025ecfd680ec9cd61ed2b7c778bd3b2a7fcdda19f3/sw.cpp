@@ -191,7 +191,8 @@ void build(Solution &s)
         t.patch("INTERN.h", "#      define EXT\n", "#      define EXT SW_EXPORT\n");
         //t.patch("INTERN.h", "#      define dEXT\n", "#      define dEXT SW_EXPORT\n");
         t.patch("INTERN.h", "#      define EXTCONST EXTERN_C const\n", "#      define EXTCONST EXTERN_C SW_EXPORT const\n");
-        t.patch("INTERN.h", "#      define dEXTCONST const\n", "#      define dEXTCONST SW_EXPORT const\n");
+        t.patch("INTERN.h", "#      define EXTCONST const\n", "#      define EXTCONST SW_EXPORT const\n");
+        //t.patch("INTERN.h", "#      define dEXTCONST const\n", "#      define dEXTCONST SW_EXPORT const\n"); // not needed?
         // for xsubpp modules exports
         // (needed for *nix + SharedLibrary perl.lib)
         //t.patch("XSUB.h", "__declspec(dllexport)", "SW_PERL_API"); //????
@@ -623,7 +624,7 @@ void build(Solution &s)
         } else {
             lib += "SOCKET=int"_def;
             if (lib.getCompilerType() == CompilerType::GNU) {
-                lib += "quadmath"_slib;
+                lib.Public += "quadmath"_slib;
             }
         }
 
