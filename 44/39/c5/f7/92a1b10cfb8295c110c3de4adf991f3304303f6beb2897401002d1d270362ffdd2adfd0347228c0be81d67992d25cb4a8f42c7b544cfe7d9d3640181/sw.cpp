@@ -414,7 +414,7 @@ void build(Solution &s)
                     setup_nvtype();
 
                     m1["d_setlocale_r"] = "define";
-                    //m1["d_has_C_UTF8"] = "false";
+                    m1["d_has_C_UTF8"] = "false";
                     m1["d_isinfl"] = "undef";
                     m1["d_crypt"] = "undef";
                     m1["i_crypt"] = "undef";
