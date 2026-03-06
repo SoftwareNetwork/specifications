@@ -180,13 +180,14 @@ void build(Solution &s)
                 auto exe = crypto.getObjFile(dep, "bin");
                 exe /= crypto.getMainBuild().getContext().resolve(dep->getPackage()).toString();
                 if (win_or_mingw) {
-                    exe += ".exe";
+                    //exe += ".exe";
                 }
-                crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exe.string()));
-                crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exe.string()));
-                crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exe.string()) + "\""s);
-                crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exe.string()) + "\"");
-                crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exe.string()) + "\"");
+                auto exename = exe.filename().string();
+                crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exename));
+                crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exename));
+                crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exename) + "\""s);
+                crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exename) + "\"");
+                crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exename) + "\"");
             }
             //c << cmd::dep(nasm);
             std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(nasm);

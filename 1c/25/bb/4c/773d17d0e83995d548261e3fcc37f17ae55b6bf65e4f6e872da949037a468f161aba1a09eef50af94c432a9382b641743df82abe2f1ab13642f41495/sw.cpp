@@ -451,6 +451,7 @@ void build(Solution &s)
     }
 
     auto config_pm = lib.BinaryDir / "lib" / "Config.pm";
+    path dist_lib;
 
     auto copy_file = [](auto &&from, auto &&to) {
         //std::error_code ec;
@@ -863,10 +864,10 @@ void build(Solution &s)
             // some modules depends on previous ones
             // we did not keep tracking of it yet
             auto make_module_simple = [&](auto &&disposition, auto &&name, pl_patch_options popts = {}) {
-                PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name), popts);
+                return PL_to_file(std::format("{0}/{1}/{1}_pm.PL", disposition, name), popts);
             };
             auto make_module_simple1 = [&](const path &name, pl_patch_options popts = {}) {
-                make_module_simple(name.parent_path().string(), name.filename().string(), popts);
+                return make_module_simple(name.parent_path().string(), name.filename().string(), popts);
             };
             make_module_simple1("dist/XSLoader");
             lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "croak(\"Can't locate", "$file = dl_findfile_sw($modfname) unless $file; croak( \"Can't locate");
@@ -889,7 +890,7 @@ sub dl_findfile  {{)",
                 {"DynaLoader.pm\" or","DynaLoader.pm\"  or"},
                 {"DynaLoader.pm\";","DynaLoader.pm\" ;"},
             }});
-            make_module_simple1("dist/lib");
+            dist_lib = make_module_simple1("dist/lib");
         }
     }
 
@@ -1044,6 +1045,7 @@ writemain(\"perlmain.c", 'DynaLoader');
             }
             c
                 << cmd::in(config_pm)
+                << cmd::in(dist_lib)
                 ;
         }
 
