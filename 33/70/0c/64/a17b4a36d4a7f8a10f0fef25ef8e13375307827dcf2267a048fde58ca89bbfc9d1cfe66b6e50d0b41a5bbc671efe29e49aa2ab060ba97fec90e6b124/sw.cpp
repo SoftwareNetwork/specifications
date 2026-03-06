@@ -413,6 +413,8 @@ void build(Solution &s)
                 if (t.getBuildSettings().TargetOS.isApple()) {
                     setup_nvtype();
 
+                    m1["d_querylocale"] = "define";
+                    m1["xlocale_needed"] = "define";
                     m1["d_setlocale_r"] = "define";
                     m1["d_has_C_UTF8"] = "false";
                     m1["d_isinfl"] = "undef";
