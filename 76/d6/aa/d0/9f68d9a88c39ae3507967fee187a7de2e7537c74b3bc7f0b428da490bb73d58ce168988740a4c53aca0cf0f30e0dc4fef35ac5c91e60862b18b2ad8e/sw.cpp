@@ -882,8 +882,8 @@ void build(Solution &s)
 }}
 
 sub dl_findfile  {{)",
-                //normalize_string_copy(sw::getProgramLocation().string())) // we still have more changes, so ignore
-                normalize_string_copy(sw::getSwExecutableName().string()))
+                normalize_string_copy(sw::getProgramLocation().string())) // we still have more changes, so ignore
+                //normalize_string_copy(sw::getSwExecutableName().string())) // not exported from sw lol
             );
             make_module_simple1("ext/DynaLoader", {{
                 {"DynaLoader.pm\" if","DynaLoader.pm\"  if"},

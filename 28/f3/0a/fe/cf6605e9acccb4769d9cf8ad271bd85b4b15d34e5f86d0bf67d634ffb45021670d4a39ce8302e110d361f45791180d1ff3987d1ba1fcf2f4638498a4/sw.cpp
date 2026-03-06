@@ -182,6 +182,7 @@ void build(Solution &s)
                 if (win_or_mingw) {
                     //exe += ".exe";
                 }
+                c->addPathDirectory(exe.parent_path()); // until sw changes are pushed
                 auto exename = exe.filename().string();
                 crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exename));
                 crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exename));
@@ -191,6 +192,7 @@ void build(Solution &s)
             }
             //c << cmd::dep(nasm);
             std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(nasm);
+            // c->addRuntimeDependency(nasm); // TODO:
         }
 
         auto generate = [&](const std::string &f) {
