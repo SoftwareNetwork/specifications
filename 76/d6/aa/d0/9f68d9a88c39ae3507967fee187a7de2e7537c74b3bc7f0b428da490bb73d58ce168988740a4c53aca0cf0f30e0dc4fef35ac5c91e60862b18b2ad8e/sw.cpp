@@ -63,6 +63,9 @@ static std::vector<path> &perl_dirs1() {
         "cpan/IO-Compress/lib",
         "cpan/Scalar-List-Utils/lib",
         "cpan/Compress-Raw-Zlib/lib",
+
+        // for macos Compress-Raw-Zlib (and probably many others)
+        "dist/lib",
     };
     return paths;
 }
@@ -373,18 +376,41 @@ void build(Solution &s)
                     //boost::replace_all(file, "$"s + k + "\t", v + "\t");
                     //boost::replace_all(file, "$"s + k + "\"", v + "\"");
                 }
+                auto setup_nvtype = [&]() {
+                    //m1["nvtype"] = "long double";
+                    //m1["nvsize"] = "sizeof(long double)";
+                    //m1["uselongdouble"] = "define";
+
+                    // __float128 in gcc has Q prefix, long double - L
+                    //m1["nvEUformat"] = "\"LE\"";
+                    //m1["nvFUformat"] = "\"LF\"";
+                    //m1["nvGUformat"] = "\"LG\"";
+                    //m1["nveformat"] = "\"Le\"";
+                    //m1["nvfformat"] = "\"Lf\"";
+                    //m1["nvgformat"] = "\"Lg\"";
+
+                    m1["nvtype"] = "double";
+                    m1["nvsize"] = "8";
+                    m1["nvmantbits"] = "52";
+                    m1["uselongdouble"] = "undef";
+
+                    m1["nvEUformat"] = "\"E\"";
+                    m1["nvFUformat"] = "\"F\"";
+                    m1["nvGUformat"] = "\"G\"";
+                    m1["nveformat"] = "\"e\"";
+                    m1["nvfformat"] = "\"f\"";
+                    m1["nvgformat"] = "\"g\"";
+                };
                 m1["usequadmath"] = "undef";
                 m1["i_quadmath"] = "undef";
                 if (mp.getCompilerType() == CompilerType::GNU) {
                     m1["usequadmath"] = "define";
                     m1["i_quadmath"] = "define";
                 } else {
-                    m1["nvtype"] = "long double";
-                    m1["uselongdouble"] = "define";
+                    setup_nvtype();
                 }
                 if (mp.getBuildSettings().TargetOS.isApple()) {
-                    m1["nvtype"] = "long double";
-                    m1["uselongdouble"] = "define";
+                    setup_nvtype();
 
                     m1["d_isinfl"] = "undef";
                     m1["d_crypt"] = "undef";
