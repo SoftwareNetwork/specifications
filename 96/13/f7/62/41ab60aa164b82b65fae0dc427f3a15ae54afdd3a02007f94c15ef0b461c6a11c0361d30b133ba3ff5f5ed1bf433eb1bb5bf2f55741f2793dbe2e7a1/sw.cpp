@@ -1195,7 +1195,13 @@ ucm/ctrl.ucm
     }
     process_module2({"ext/POSIX"});
     process_module_with_c_files({.dir = "cpan/Scalar-List-Utils", .package_name = "cpan.Util", .xs_name = "ListUtil"});
-    auto &cpan_zlib = process_module2({.dir = "cpan/Compress-Raw-Zlib", .fixup_filenames = {{"config.in","'{}'"},{"zlib-src","'./{}'","'{}'"}},.constants_outputs = {"constants.h"s, "constants.xs"s}});
+    auto &cpan_zlib = process_module2({.dir = "cpan/Compress-Raw-Zlib"
+        ,.fixup_filenames = {{"config.in","'{}'"}
+            //,{"zlib-src","'./{}'","'{}'"}
+        }
+        ,.constants_outputs = {"constants.h"s, "constants.xs"s}
+    });
     cpan_zlib += "Perl_crz_BUILD_ZLIB=1"_def, "org.sw.demo.madler.zlib"_dep;
-    lib.patch("cpan/Compress-Raw-Zlib/config.in", "= ./zlib-src", "= " + normalize_path(lib.SourceDir / "cpan/Compress-Raw-Zlib/zlib-src").string());
+    //lib.patch("cpan/Compress-Raw-Zlib/config.in", "= ./zlib-src", "= " + normalize_path(lib.SourceDir / "cpan/Compress-Raw-Zlib/zlib-src").string());
+    lib.patch("cpan/Compress-Raw-Zlib/config.in", "BUILD_ZLIB      = True", "BUILD_ZLIB      = False");
 }
