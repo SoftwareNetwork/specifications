@@ -96,8 +96,12 @@ void build(Solution &s)
     nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}"); // requires perl to generate files
     //nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}rc2"); // requires perl to generate files
 
-    //nasm += c23; // after sw update is pushed
-    nasm.CVersion = CLanguageStandard::C23;
+    if (nasm.getBuildSettings().TargetOS.isApple()) {
+        nasm += c89;
+    } else {
+        //nasm += c23; // after sw update is pushed
+        nasm.CVersion = CLanguageStandard::C23;
+    }
 
     nasm.setChecks("nasm", true);
 
@@ -123,8 +127,6 @@ void build(Solution &s)
         "output"_idir
         ;
     nasm += "output/.*\\.c"_rr;
-
-    auto zlib = (nasm + "org.sw.demo.madler.zlib"_dep);
 
     auto add_perl_dep = [&](auto &&c, auto &&dep) {
         auto d = nasm.addProgDependency(dep);
@@ -273,6 +275,7 @@ void build(Solution &s)
         m << cmd::in(f);
     m
         << cmd::end()
+        << cmd::in("asm/pptok.ph")
         << cmd::out("macros/macros.c")
         ;
 
@@ -282,16 +285,21 @@ void build(Solution &s)
     //if (mp.getCompilerType() == CompilerType::GNU) {
     if (nasm.getBuildSettings().TargetOS.Type != OSType::Windows) {
         nasm += "HAVE_STDNORETURN_H"_def;
-        //nasm += "HAVE_STDC_INLINE"_def;
-        nasm += "HAVE_STDC_LEADING_ZEROS"_def;
-        nasm += "HAVE___BUILTIN_CLZ"_def;
-        nasm += "HAVE__BUILTIN_CLZLL"_def;
 
         nasm += "_GNU_SOURCE"_def;
-        // in endian.h
-        nasm += "HAVE_HTOLE16"_def;
-        nasm += "HAVE_HTOLE32"_def;
-        nasm += "HAVE_HTOLE64"_def;
+
+        if (!nasm.getBuildSettings().TargetOS.isApple()) {
+            nasm += "HAVE_STDC_LEADING_ZEROS"_def;
+            nasm += "HAVE___BUILTIN_CLZ"_def;
+            nasm += "HAVE__BUILTIN_CLZLL"_def;
+
+            // in endian.h
+            nasm += "HAVE_HTOLE16"_def;
+            nasm += "HAVE_HTOLE32"_def;
+            nasm += "HAVE_HTOLE64"_def;
+        } else {
+            //nasm += "HAVE_GNU_INLINE"_def;
+        }
     }
 
     nasm.Public += "include"_id;
@@ -301,6 +309,13 @@ void build(Solution &s)
     nasm.setProgram(C);
 
     nasm.pushFrontToFileOnce("include/compiler.h", "#include <stdint.h>");
+    nasm.patch("include/compiler.h", "#ifdef HAVE_STDC_INLINE", "#if 0");
+    nasm.patch("include/compiler.h", "#elif defined(HAVE_GNU_INLINE)", "#elif 0");
+    nasm.patch("include/compiler.h", "|| !HAVE_DECL_", "|| 0 //!HAVE_DECL_");
+    nasm.patch("include/compiler.h", "&& !HAVE_DECL_", "&& 1 //!HAVE_DECL_");
+    //nasm.patch("nasmlib/filename.c", "strrchrnul", "strchrnul");
+
+    nasm += "org.sw.demo.madler.zlib"_dep;
 }
 
 void check(Checker &c)
@@ -314,11 +329,12 @@ void check(Checker &c)
     s.checkFunctionExists("strcasecmp");
     s.checkFunctionExists("strcspn");
     s.checkFunctionExists("stricmp");
-    s.checkFunctionExists("strlcpy");
+    s.checkFunctionExists("strlcpy").Parameters.Includes.push_back("string.h");
     s.checkFunctionExists("strncasecmp");
     s.checkFunctionExists("strnicmp");
     s.checkFunctionExists("strsep");
     s.checkFunctionExists("strspn");
+    //s.checkFunctionExists("strchrnul").Parameters.Includes.push_back("string.h"); // errors on macos
     s.checkFunctionExists("vsnprintf");
     s.checkFunctionExists("_fullpath");
     s.checkFunctionExists("_snprintf");
