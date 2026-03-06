@@ -225,6 +225,10 @@ void build(Solution &s)
         //: (Library &)p.addTarget<StaticLibrary>("lib")
         ;
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
+
+    auto config_sh = lib.BinaryDir / "config.sh";
+
+    // miniperl
     {
         mp.libsdir = lib.SourceDir;
 
@@ -344,17 +348,14 @@ void build(Solution &s)
             if (mp.getCompilerType() == CompilerType::GNU) {
                 mp += "quadmath"_slib;
             }
-            if (!mp.DryRun) {
-                auto f = read_file(mp.SourceDir / "config_h.SH");
-                auto a = "!GROK!THIS!"s;
-                auto p = f.find(a);
-                if (p == -1) {
-                    throw std::runtime_error{"cannot find perl anchor "s + a};
+
+            auto make_config_sh = [&](auto &t) {
+                t -= "Porting/config.sh";
+                std::vector<std::pair<std::string, std::string>> m2;
+                if (t.DryRun) {
+                    return m2;
                 }
-                auto b = f.find('\n', p) + 1;
-                auto e = f.find(a, b);
-                auto file = f.substr(b, e-b);
-                auto lines = read_lines(mp.SourceDir / "Porting/config.sh");
+                auto lines = read_lines(t.SourceDir / "Porting/config.sh");
                 std::map<std::string, std::string> m1;
                 for (auto &&line : lines) {
                     if (line[0] == '#' || line[0] == ':' || line[0] == ' ') {
@@ -403,15 +404,17 @@ void build(Solution &s)
                 };
                 m1["usequadmath"] = "undef";
                 m1["i_quadmath"] = "undef";
-                if (mp.getCompilerType() == CompilerType::GNU) {
+                if (t.getCompilerType() == CompilerType::GNU) {
                     m1["usequadmath"] = "define";
                     m1["i_quadmath"] = "define";
                 } else {
                     setup_nvtype();
                 }
-                if (mp.getBuildSettings().TargetOS.isApple()) {
+                if (t.getBuildSettings().TargetOS.isApple()) {
                     setup_nvtype();
 
+                    m1["d_setlocale_r"] = "define";
+                    //m1["d_has_C_UTF8"] = "false";
                     m1["d_isinfl"] = "undef";
                     m1["d_crypt"] = "undef";
                     m1["i_crypt"] = "undef";
@@ -452,15 +455,36 @@ void build(Solution &s)
                     m1["d_eaccess"] = "undef";
                     m1["d_cuserid"] = "undef";
                 }
-                std::vector<std::pair<std::string, std::string>> m2;
                 for (auto &&[k,v] : m1) {
                     m2.emplace_back(k, v);
                 }
                 std::ranges::sort(m2, [](auto &&v1, auto &&v2) {return v1.first.size() > v2.first.size(); });
+                return m2;
+            };
+
+            if (!mp.DryRun) {
+                auto m2 = make_config_sh(mp);
+                auto f = read_file(mp.SourceDir / "config_h.SH");
+                auto a = "!GROK!THIS!"s;
+                auto p = f.find(a);
+                if (p == -1) {
+                    throw std::runtime_error{"cannot find perl anchor "s + a};
+                }
+                auto b = f.find('\n', p) + 1;
+                auto e = f.find(a, b);
+                auto file = f.substr(b, e-b);
                 for (auto &&[k,v] : m2) {
                     boost::replace_all(file, "$"s + k, v);
                 }
                 mp.writeFileOnce("config.h", file);
+            }
+            if (!lib.DryRun) {
+                std::string s;
+                auto m2 = make_config_sh(mp);
+                for (auto &&[k,v] : m2) {
+                    s += std::format("{}='{}'\n",k,v);
+                }
+                lib.writeFileOnce(config_sh, s);
             }
             //mp.configureFile("Porting/config_H", "config.h");
         }
@@ -713,8 +737,6 @@ void build(Solution &s)
         }
         // generate things
         {
-            auto config_sh = lib.BinaryDir / "config.sh";
-
             if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
                lib.addCommand()
@@ -753,8 +775,8 @@ void build(Solution &s)
             } else {
                 //config_sh = lib.SourceDir / "Porting" / "config.sh";
                 if (!lib.DryRun) {
-                    fs::create_directories(lib.BinaryDir);
-                    copy_file(lib.SourceDir / "Porting" / "config.sh", config_sh);
+                    //fs::create_directories(lib.BinaryDir);
+                    //copy_file(lib.SourceDir / "Porting" / "config.sh", config_sh);
                 }
                 //lib.configureFile("Porting/config_H", lib.BinaryDir / "config.h");
             }
