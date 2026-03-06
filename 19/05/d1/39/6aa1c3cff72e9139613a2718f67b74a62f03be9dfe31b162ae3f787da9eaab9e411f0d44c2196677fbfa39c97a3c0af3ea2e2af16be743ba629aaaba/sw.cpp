@@ -386,6 +386,7 @@ void build(Solution &s)
                     m1["nvtype"] = "long double";
                     m1["uselongdouble"] = "define";
 
+                    m1["d_isinfl"] = "undef";
                     m1["d_crypt"] = "undef";
                     m1["i_crypt"] = "undef";
                     m1["i_shadow"] = "undef";
