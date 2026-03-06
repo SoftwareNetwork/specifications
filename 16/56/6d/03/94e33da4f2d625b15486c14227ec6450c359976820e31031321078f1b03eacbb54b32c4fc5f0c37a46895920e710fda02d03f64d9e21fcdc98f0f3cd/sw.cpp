@@ -105,33 +105,34 @@ void build(Solution &s)
             crypto.getBuildSettings().TargetOS.Type == OSType::Mingw
             ;
 
-        //auto add_perl_dep = [&](auto &&c, auto &&dep) {
-        //    auto d = crypto.addProgDependency(dep);
-        //    auto fn = crypto.getObjFile(d, "bin");
-        //    c << "-I" + fn.string();
-        //    //return
-        //};
+        auto add_perl_dep = [&](auto &&c, auto &&dep) {
+            auto d = crypto.addProgDependency(dep);
+            auto fn = crypto.getObjFile(d, "bin");
+            c << "-I" + fn.string();
+            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(d);
+            return d;
+        };
         auto perl_command = [&]() {
             auto c = crypto.addCommand();
-            c << cmd::prog("perl");
-            //c << cmd::prog("org.sw.demo.perl.perl"_dep);
-            //c << "-I" + crypto.SourceDir.string();
-            //c << "-I" + crypto.BinaryDir.string();
-            //c << "-I" + crypto.SourceDir.string() + "/util/perl";
-            //c << "-I" + crypto.SourceDir.string() + "/external/perl/Text-Template-1.56/lib";
-            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.PathTools.Cwd"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Encode"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.Storable"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.Fcntl"_dep);
-            //if (win_or_mingw) {
-            //    add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Win32"_dep);
-            //}
-            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.File.Glob"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.dist.IO"_dep);
-            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.POSIX"_dep);
-            ////add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Text.Template"_dep);
-            //// for generate2()
-            //add_perl_dep(c, "org.sw.demo.perl.packages.ext.re"_dep);
+            //c << cmd::prog("perl");
+            c << cmd::prog("org.sw.demo.perl.perl"_dep);
+            c << "-I" + crypto.SourceDir.string();
+            c << "-I" + crypto.BinaryDir.string();
+            c << "-I" + crypto.SourceDir.string() + "/util/perl";
+            c << "-I" + crypto.SourceDir.string() + "/external/perl/Text-Template-1.56/lib";
+            add_perl_dep(c, "org.sw.demo.perl.packages.dist.PathTools.Cwd"_dep);
+            add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Encode"_dep);
+            add_perl_dep(c, "org.sw.demo.perl.packages.dist.Storable"_dep);
+            add_perl_dep(c, "org.sw.demo.perl.packages.ext.Fcntl"_dep);
+            if (win_or_mingw) {
+                add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Win32"_dep);
+            }
+            add_perl_dep(c, "org.sw.demo.perl.packages.ext.File.Glob"_dep);
+            add_perl_dep(c, "org.sw.demo.perl.packages.dist.IO"_dep);
+            add_perl_dep(c, "org.sw.demo.perl.packages.ext.POSIX"_dep);
+            //add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Text.Template"_dep);
+            // for generate2()
+            add_perl_dep(c, "org.sw.demo.perl.packages.ext.re"_dep);
             return c;
         };
 
@@ -171,23 +172,24 @@ void build(Solution &s)
                 }
                 c << cmd::env("CC", prog->file.string());
             }
-            auto nasm = "org.sw.demo.nasm-2"_dep; // try v3
-            //nasm = crypto.addProgDependency(nasm);
+            auto nasm = "org.sw.demo.nasm"_dep;
+            nasm = crypto.addProgDependency(nasm);
             // win only?
             if (!crypto.DryRun) {
-                //auto dep = nasm;
-                //auto exe = crypto.getObjFile(dep, "bin");
-                //exe /= crypto.getMainBuild().getContext().resolve(dep->getPackage()).toString();
-                //if (win_or_mingw) {
-                //    exe += ".exe";
-                //}
-                //crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exe.string()));
-                //crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exe.string()));
-                //crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exe.string()) + "\""s);
-                //crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exe.string()) + "\"");
-                //crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exe.string()) + "\"");
+                auto dep = nasm;
+                auto exe = crypto.getObjFile(dep, "bin");
+                exe /= crypto.getMainBuild().getContext().resolve(dep->getPackage()).toString();
+                if (win_or_mingw) {
+                    exe += ".exe";
+                }
+                crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exe.string()));
+                crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exe.string()));
+                crypto.patch("Configurations/10-main.conf", "AS        => \"nasm\"", "AS => \"" + normalize_string_copy(exe.string()) + "\""s);
+                crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exe.string()) + "\"");
+                crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exe.string()) + "\"");
             }
             //c << cmd::dep(nasm);
+            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(nasm);
         }
 
         auto generate = [&](const std::string &f) {

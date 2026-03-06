@@ -563,6 +563,8 @@ void build(Solution &s)
         for (auto &&[f,t] : popts.patches) {
             copy_and_patch(lib, outcopy, f, t);
         }
+        mp.extra_paths.push_back((lib.BinaryDir / out).parent_path());
+        perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         if (lib.DryRun)
             return out;
         auto c = lib.addCommand()
@@ -580,8 +582,6 @@ void build(Solution &s)
             << cmd::end()
             << cmd::in(config_pm)
             ;
-        mp.extra_paths.push_back((lib.BinaryDir / out).parent_path());
-        perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         return lib.BinaryDir / out;
     };
 
@@ -1071,7 +1071,10 @@ writemain(\"perlmain.c", 'DynaLoader');
     };
     auto process_module_with_c_files = [&](const perl_module_data &d) -> decltype(auto) {
         auto &t = process_module2(d);
+        t.AllowEmptyRegexes = true;
+        t -= FileRegex{d.dir, ".*", false};
         t += FileRegex{d.dir, ".*\\.[hc]", false};
+        t.AllowEmptyRegexes = false;
         return t;
     };
 
@@ -1174,7 +1177,7 @@ ucm/ctrl.ucm
     process_module2({.dir = "dist/Storable", .version = "3.39"});
     process_module2({.dir = "ext/Fcntl", .version = "1.20"});
 
-    process_module2({"cpan/Win32"}) +=
+    process_module_with_c_files({"cpan/Win32"}) +=
        "advapi32.lib"_slib,
        "User32.lib"_slib,
        "Winhttp.lib"_slib,

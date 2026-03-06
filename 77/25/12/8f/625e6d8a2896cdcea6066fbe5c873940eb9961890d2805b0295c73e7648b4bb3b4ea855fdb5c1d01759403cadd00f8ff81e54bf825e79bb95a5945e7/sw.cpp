@@ -202,6 +202,7 @@ void build(Solution &s)
             "utf8_validity.h"
             ;
         utf8_validity.Public += "org.sw.demo.google.abseil"_dep;
+        utf8_validity.Public += utf8_range;
         //utf8_validity.CompileOptions.push_back("/arch:AVX");
     }
 
