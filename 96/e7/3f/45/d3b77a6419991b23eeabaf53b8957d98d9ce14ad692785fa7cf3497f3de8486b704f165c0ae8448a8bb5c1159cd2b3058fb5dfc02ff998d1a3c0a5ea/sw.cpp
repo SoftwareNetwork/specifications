@@ -17,6 +17,7 @@ auto make_perl_command(auto &t) {
 auto add_perl_dependency(auto &t, auto &&c, auto &&dep) {
     if (use_system_perl(t)) {
         t -= dep;
+        return dep;
     } else {
         auto d = t.addProgDependency(dep);
         auto fn = t.getObjFile(d, "bin");
