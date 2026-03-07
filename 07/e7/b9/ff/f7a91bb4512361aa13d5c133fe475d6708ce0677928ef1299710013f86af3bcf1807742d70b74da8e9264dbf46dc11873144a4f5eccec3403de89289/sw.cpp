@@ -611,6 +611,8 @@ void build(Solution &s)
             popts.patches.emplace_back(patch_from, patch_to);
         } else {
             for (auto &&[f,t] : popts.patches) {
+                if (t.empty())
+                    t = f;
                 boost::replace_all(t, patch_from, patch_to);
             }
         }
@@ -1137,8 +1139,8 @@ writemain(\"perlmain.c", 'DynaLoader');
         auto &t = pp;
         t += lib;
 
-        auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL");
-        auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL");
+        auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL", {{{"\">RealPPPort.xs\""s}}});
+        auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL", {{{"\">PPPort.pm\""s}}});
         {
             auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "ppport.h", normalize_path(lib.BinaryDir / "ppport.h").string());
 
