@@ -100,16 +100,19 @@ void build(Solution &s)
 
         crypto.ExportAllSymbols = true;
 
-        auto win_or_mingw =
-            crypto.getBuildSettings().TargetOS.Type == OSType::Windows ||
-            crypto.getBuildSettings().TargetOS.Type == OSType::Mingw
+        auto is_win_or_mingw = [](auto &os) {
+            return
+                os.Type == OSType::Windows ||
+                os.Type == OSType::Mingw
             ;
+        };
+        auto win_or_mingw = is_win_or_mingw(crypto.getBuildSettings().TargetOS);
 
         auto add_perl_dep = [&](auto &&c, auto &&dep) {
             auto d = crypto.addProgDependency(dep);
             auto fn = crypto.getObjFile(d, "bin");
             c << "-I" + fn.string();
-            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(d);
+            c.addRuntimeDependency(d);
             return d;
         };
         auto perl_command = [&]() {
@@ -124,8 +127,10 @@ void build(Solution &s)
             add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Encode"_dep);
             add_perl_dep(c, "org.sw.demo.perl.packages.dist.Storable"_dep);
             add_perl_dep(c, "org.sw.demo.perl.packages.ext.Fcntl"_dep);
-            if (win_or_mingw) {
+            if (is_win_or_mingw(::sw::getHostOS())) {
                 add_perl_dep(c, "org.sw.demo.perl.packages.cpan.Win32"_dep);
+            } else {
+                crypto -= "org.sw.demo.perl.packages.cpan.Win32"_dep;
             }
             add_perl_dep(c, "org.sw.demo.perl.packages.ext.File.Glob"_dep);
             add_perl_dep(c, "org.sw.demo.perl.packages.dist.IO"_dep);
@@ -182,7 +187,6 @@ void build(Solution &s)
                 if (win_or_mingw) {
                     //exe += ".exe";
                 }
-                c->addPathDirectory(exe.parent_path()); // until sw changes are pushed
                 auto exename = exe.filename().string();
                 crypto.patch("Configurations/10-main.conf", "`nasmw", "`"s + normalize_string_copy(exename));
                 crypto.patch("Configurations/10-main.conf", "`nasm", "`"s + normalize_string_copy(exename));
@@ -190,9 +194,7 @@ void build(Solution &s)
                 crypto.patch("Configurations/10-main.conf", "? \"nasm\"", "? \"" + normalize_string_copy(exename) + "\"");
                 crypto.patch("Configurations/10-main.conf", ": \"nasmw\"", ": \"" + normalize_string_copy(exename) + "\"");
             }
-            //c << cmd::dep(nasm);
-            std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(nasm);
-            // c->addRuntimeDependency(nasm); // TODO:
+            c.addRuntimeDependency(nasm);
         }
 
         auto generate = [&](const std::string &f) {
