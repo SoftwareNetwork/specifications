@@ -155,6 +155,14 @@ void build(Solution &s)
         }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
 
+        t.pushFrontToFileOnce("src/core/util/shared_bit_gen.cc", "#include <mutex>");
+        t.patch("src/core/util/shared_bit_gen.cc", "thread_local absl::BitGen SharedBitGen::bit_gen_;", R"(//thread_local absl::BitGen SharedBitGen::bit_gen_ ;
+thread_local auto SharedBitGen::bit_gen_ = [](){
+    static std::mutex m;
+    std::unique_lock lk{m};
+    return absl::BitGen{};
+}();
+)");
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
