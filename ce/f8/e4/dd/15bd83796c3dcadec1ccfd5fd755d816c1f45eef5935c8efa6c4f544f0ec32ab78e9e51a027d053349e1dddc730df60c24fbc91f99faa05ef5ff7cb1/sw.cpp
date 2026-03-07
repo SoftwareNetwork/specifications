@@ -1,3 +1,33 @@
+#pragma sw header on
+
+auto use_system_perl(auto &t) {
+    return ::sw::getHostOS().isApple();
+}
+auto make_perl_command(auto &t) {
+    auto perl = "org.sw.demo.perl.perl"_dep;
+    auto c = t.addCommand();
+    if (use_system_perl(t)) {
+        c << cmd::prog("perl");
+        t -= perl;
+    } else {
+        c << cmd::prog(perl);
+    }
+    return c;
+}
+auto add_perl_dependency(auto &t, auto &&c, auto &&dep) {
+    if (use_system_perl(t)) {
+        t -= dep;
+    } else {
+        auto d = t.addProgDependency(dep);
+        auto fn = t.getObjFile(d, "bin");
+        c << "-I" + fn.string();
+        c.addRuntimeDependency(d);
+        return d;
+    }
+}
+
+#pragma sw header off
+
 static std::vector<path> &perl_dirs1() {
     static std::vector<path> paths {
         "cpan/AutoLoader/lib",
@@ -922,7 +952,10 @@ void build(Solution &s)
             auto make_module_simple1 = [&](const path &name, pl_patch_options popts = {}) {
                 return make_module_simple(name.parent_path().string(), name.filename().string(), popts);
             };
-            make_module_simple1("dist/XSLoader");
+            make_module_simple1("dist/XSLoader", {{
+                {"\"XSLoader.pm\"","\"XSLoader.pm\""},
+                {"'XSLoader.pm'","'XSLoader.pm'"},
+            }});
             lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "croak(\"Can't locate", "$file = dl_findfile_sw($modfname) unless $file; croak( \"Can't locate");
             lib.patch(lib.SourceDir / "ext/DynaLoader/DynaLoader_pm.PL", "sub dl_findfile {", std::format(R"(sub dl_findfile_sw {{
     my $output = @_[0];
@@ -1142,7 +1175,8 @@ writemain(\"perlmain.c", 'DynaLoader');
         auto RealPPPort_xs = PL_to_file("dist/Devel-PPPort/RealPPPort_xs.PL", {{{"\">RealPPPort.xs\""s}}});
         auto pport_pm = PL_to_file("dist/Devel-PPPort/PPPort_pm.PL", {{{"\">PPPort.pm\""s}}});
         {
-            auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "ppport.h", normalize_path(lib.BinaryDir / "ppport.h").string());
+            auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "'ppport.h", "'"s + normalize_path(lib.BinaryDir / "ppport.h").string());
+            lib.patch(ppport_pl, "\"ppport.h", "\""s + normalize_path(lib.BinaryDir / "ppport.h").string());
 
             auto ppport = lib.addCommand();
             ppport << cmd::prog(mp)
