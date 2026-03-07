@@ -1,10 +1,9 @@
+#pragma sw require header org.sw.demo.perl.perl
+
 void build(Solution &s)
 {
     auto &openssl = s.addProject("openssl", "3.6.1");
     openssl += RemoteFile("https://github.com/openssl/openssl/releases/download/openssl-{v}/openssl-{v}.tar.gz");
-
-    // perl Configure
-    // make -n > 1.txt
 
     auto &crypto = openssl.addTarget<LibraryTarget>("crypto");
     {
@@ -109,16 +108,10 @@ void build(Solution &s)
         auto win_or_mingw = is_win_or_mingw(crypto.getBuildSettings().TargetOS);
 
         auto add_perl_dep = [&](auto &&c, auto &&dep) {
-            auto d = crypto.addProgDependency(dep);
-            auto fn = crypto.getObjFile(d, "bin");
-            c << "-I" + fn.string();
-            c.addRuntimeDependency(d);
-            return d;
+            return add_perl_dependency(crypto, c, dep);
         };
         auto perl_command = [&]() {
-            auto c = crypto.addCommand();
-            //c << cmd::prog("perl");
-            c << cmd::prog("org.sw.demo.perl.perl"_dep);
+            auto c = make_perl_command(crypto);
             c << "-I" + crypto.SourceDir.string();
             c << "-I" + crypto.BinaryDir.string();
             c << "-I" + crypto.SourceDir.string() + "/util/perl";

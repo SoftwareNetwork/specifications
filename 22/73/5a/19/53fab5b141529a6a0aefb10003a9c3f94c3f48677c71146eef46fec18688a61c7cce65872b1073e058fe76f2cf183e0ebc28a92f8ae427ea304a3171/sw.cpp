@@ -1,3 +1,5 @@
+#pragma sw require header org.sw.demo.perl.perl
+
 struct NasmAssemblerOptions
 {
     COMMAND_LINE_OPTION(ObjectFile, path)
@@ -99,8 +101,7 @@ void build(Solution &s)
     if (nasm.getBuildSettings().TargetOS.isApple()) {
         nasm += c89;
     } else {
-        //nasm += c23; // after sw update is pushed
-        nasm.CVersion = CLanguageStandard::C23;
+        nasm += c23;
     }
 
     nasm.setChecks("nasm", true);
@@ -129,15 +130,10 @@ void build(Solution &s)
     nasm += "output/.*\\.c"_rr;
 
     auto add_perl_dep = [&](auto &&c, auto &&dep) {
-        auto d = nasm.addProgDependency(dep);
-        auto fn = nasm.getObjFile(d, "bin");
-        c << "-I" + fn.string();
-        std::dynamic_pointer_cast<::sw::driver::Command>(c.getCommand())->addProgramDependency(d);
-        return d;
+        return add_perl_dependency(nasm, c, dep);
     };
     auto perl_command = [&]() {
-        auto c = nasm.addCommand();
-        c << cmd::prog("org.sw.demo.perl.perl"_dep);
+        auto c = make_perl_command(nasm);
         c << "-I" + (nasm.SourceDir / "perllib").string();
         c << "-I" + nasm.SourceDir.string();
         c << "-I" + nasm.BinaryDir.string();
