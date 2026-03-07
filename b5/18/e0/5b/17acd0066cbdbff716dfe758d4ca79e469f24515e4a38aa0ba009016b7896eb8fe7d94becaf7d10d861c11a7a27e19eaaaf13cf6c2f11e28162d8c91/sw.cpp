@@ -157,7 +157,7 @@ void build(Solution &s)
 
         t.pushFrontToFileOnce("src/core/util/shared_bit_gen.cc", "#include <mutex>");
         t.patch("src/core/util/shared_bit_gen.cc", "thread_local absl::BitGen SharedBitGen::bit_gen_;", R"(//thread_local absl::BitGen SharedBitGen::bit_gen_ ;
-thread_local auto SharedBitGen::bit_gen_ = [](){
+thread_local absl::BitGen SharedBitGen::bit_gen_ = [](){
     static std::mutex m;
     std::unique_lock lk{m};
     return absl::BitGen{};
