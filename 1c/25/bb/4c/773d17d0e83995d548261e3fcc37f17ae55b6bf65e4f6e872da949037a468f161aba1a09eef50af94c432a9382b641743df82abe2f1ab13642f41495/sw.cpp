@@ -259,6 +259,10 @@ void build(Solution &s)
 
     auto config_sh = lib.BinaryDir / "config.sh";
 
+    auto should_use_quadmath = [](auto &t) {
+        return false; //t.getCompilerType() == CompilerType::GNU;
+    };
+
     // miniperl
     {
         mp.libsdir = lib.SourceDir;
@@ -376,7 +380,7 @@ void build(Solution &s)
             mp += "CONSERVATIVE"_def;*/
         } else {
             //if (!mp.getBuildSettings().TargetOS.isApple()) {
-            if (mp.getCompilerType() == CompilerType::GNU) {
+            if (should_use_quadmath(mp)) {
                 mp += "quadmath"_slib;
             }
 
@@ -421,6 +425,9 @@ void build(Solution &s)
                     //m1["nvfformat"] = "\"Lf\"";
                     //m1["nvgformat"] = "\"Lg\"";
 
+                    m1["usequadmath"] = "undef";
+                    m1["i_quadmath"] = "undef";
+
                     m1["nvtype"] = "double";
                     m1["nvsize"] = "8";
                     m1["nvmantbits"] = "52";
@@ -435,7 +442,7 @@ void build(Solution &s)
                 };
                 m1["usequadmath"] = "undef";
                 m1["i_quadmath"] = "undef";
-                if (t.getCompilerType() == CompilerType::GNU) {
+                if (should_use_quadmath(t)) {
                     m1["usequadmath"] = "define";
                     m1["i_quadmath"] = "define";
                 } else {
@@ -718,7 +725,7 @@ void build(Solution &s)
             lib += "Comctl32.lib"_slib;
         } else {
             lib += "SOCKET=int"_def;
-            if (lib.getCompilerType() == CompilerType::GNU) {
+            if (should_use_quadmath(lib)) {
                 lib.Public += "quadmath"_slib;
             }
         }
