@@ -16,6 +16,7 @@ void build(Solution &s)
     t.Public += "org.sw.demo.jpeg"_dep;
 
     //t += "DLIB_NO_GUI_SUPPORT"_def;
+    t += "DLIB_HAVE_AVX"_def;
 
     if (t.getCompilerType() == CompilerType::MSVC) {
         t.Public.CompileOptions.push_back("/bigobj");

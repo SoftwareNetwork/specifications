@@ -1496,15 +1496,9 @@ void build(Solution &s)
             sentence = "WebEngineCore";
         if (custom_name == "qmlmodels")
             sentence = "QmlModels";
+        if (custom_name == "qmltyperegistrar")
+            sentence = "QmlTypeRegistrar";
         auto upper = boost::to_upper_copy(name);
-        //t += sw::ApiNameType{"Q_" + upper + "_EXPORT"};
-        //t += sw::ApiNameType{"Q_" + upper + "_PRIVATE_EXPORT"};
-        /*t.writeFileOnce("Qt" + sentence + "/qt" + lower + "exports.h",
-                "#pragma once\n"
-                "#define QT_" + upper + "_REMOVED_SINCE(x,y) QT_DEPRECATED_SINCE(x,y)\n"
-                "#define QT_" + upper + "_INLINE_SINCE(x,y) QT_IF_DEPRECATED_SINCE(x,y, inline, / * not inline * /)\n"
-                "#define QT_" + upper + "_INLINE_IMPL_SINCE(x,y) QT_IF_DEPRECATED_SINCE(x,y, 1, 0)\n"
-        );*/
         t.Variables["module_include_name"] = "Qt" + sentence;
         auto header_base_name = "qt"s + lower + "exports";
         t.Variables["header_base_name"] = header_base_name;
@@ -1581,7 +1575,8 @@ Q_IMPORT_PLUGIN()" + name + R"();
         }
 
         auto lower = boost::to_lower_copy(name);
-        auto fn = name + "/"s + lower + "global.h";
+        //auto fn = name + "/"s + lower + "global.h";
+        auto fn = name + "/"s + name;
 
         auto c = t.addCommand();
         c << cmd::prog(syncqt_target)
@@ -1784,6 +1779,7 @@ Q_IMPORT_PLUGIN()" + name + R"();
                     "src/corelib/time/qromancalendar.cpp",
                     "src/corelib/time/qtimezone.cpp",
                     "src/corelib/tools/qarraydata.cpp",
+                    "src/corelib/tools/qbitarray.cpp",
                     "src/corelib/tools/qcommandlineoption.cpp",
                     "src/corelib/tools/qcommandlineparser.cpp",
                     //"src/corelib/tools/qcryptographichash.cpp",
@@ -3816,19 +3812,45 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
     {
         auto &third_party = declarative.addDirectory("third_party");
         auto &qml = declarative.addLibrary("qml");
+        common_setup(qml);
 
         auto &integration = qml.addLibrary("integration");
         {
-            common_setup(integration);
+            auto &t = integration;
+            common_setup(t);
             String module = "QtQmlIntegration";
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, integration, { module });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, integration, { module });
             integration.SourceDir /= "src/qmlintegration";
             integration.Public += core;
+            qt_syncqt(t, module, ".");
         }
 
-        auto &masm = third_party.addStaticLibrary("masm");
+        auto &qmltyperegistrar = qml.addExecutable("qmltyperegistrar");
+        auto &qmltyperegistrarprivate = qmltyperegistrar.addStaticLibrary("private");
         {
-            common_setup(masm);
+            auto &t = qmltyperegistrarprivate;
+            common_setup(t, "qmltyperegistrar");
+            String module = "QtQmlTypeRegistrar";
+            t += "src/qmltyperegistrar/.*"_r;
+            t.Public += core;
+            qt_syncqt(t, module, "src/qmltyperegistrar");
+
+            RccData d;
+            d.files["src/qmltyperegistrar/jsroot_metatypes.json"] = "jsroot_metatypes.json";
+            d.name = "jsRootMetaTypes";
+            d.prefix = "/qt-project.org/meta_types";
+            ::rcc(rcc, t, d);
+        }
+        {
+            auto &t = qmltyperegistrar;
+            common_setup(t);
+            String module = "QmlTypeRegistrar";
+            t += "tools/qmltyperegistrar/qmltyperegistrar.cpp";
+            t.Public += qmltyperegistrarprivate;
+        }
+
+        auto &masm = qml;
+        {
             masm.ApiNames.insert("WTF_EXPORT_PRIVATE");
             masm.ApiNames.insert("JS_EXPORT_PRIVATE");
             masm += "src/3rdparty/masm/.*"_rr;
@@ -3856,7 +3878,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             masm.Public += core;
             masm.Public += integration;
-            (masm + qml)->IncludeDirectoriesOnly = true;
 
             if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
@@ -3866,45 +3887,11 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             {
                 masm += "src/3rdparty/masm/wtf/OSAllocatorPosix.cpp"_rr;
             }
-
-            masm -= "org.sw.demo.python.exe-2"_dep;
-            masm -= "org.sw.demo.python.exe-3"_dep;
-            {
-                auto c = masm.addCommand();
-                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
-                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
-                else
-                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
-                c
-                    << cmd::wdir(masm.BinaryDir)
-                    << "-B" // prevent .pyc
-                    << cmd::in("src/3rdparty/masm/disassembler/udis86/itab.py")
-                    << cmd::in("src/3rdparty/masm/disassembler/udis86/optable.xml")
-                    << cmd::end()
-                    << cmd::out("udis86_itab.c")
-                    << cmd::out("udis86_itab.h")
-                    ;
-            }
-
-            {
-                auto c = masm.addCommand();
-                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
-                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
-                else
-                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
-                c
-                    << "-B" // prevent .pyc
-                    << cmd::in("src/3rdparty/masm/yarr/create_regex_tables")
-                    << cmd::std_out("RegExpJitTables.h")
-                    ;
-            }
         }
-
         // qml
         {
-            common_setup(qml);
             String module = "QtQml";
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, qml, { module });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, qml, { module });
             //masm += sqt; // masm needs this sqt dependency, but creates cyclic dep
             //qml ^= sqt; // so we remove sqt from qml
 
@@ -3912,6 +3899,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             qml += "qtqmlglobal.*"_rr;
             qml += "animations/.*"_rr;
             qml -= "compiler/.*"_rr;
+            qml += "common/.*"_rr;
             qml += "debugger/.*"_rr;
             qml += "jit/.*"_rr;
             qml += "jsapi/.*"_rr;
@@ -3928,7 +3916,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "compiler/qv4bytecodegenerator.cpp",
                 "compiler/qv4bytecodehandler.cpp",
                 "jsruntime/qv4compilationunitmapper.cpp",
-                //"jsruntime/qv4compileddata.cpp",
+                //"common/qv4compileddata.cpp",
                 "compiler/qv4compiler.cpp",
                 "compiler/qv4compilercontext.cpp",
                 "compiler/qv4compilerscanfunctions.cpp",
@@ -3940,7 +3928,11 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 "qml/qqmlpropertyvalidator.cpp"
                 ;
             qml -=
-                "jsruntime/qv4compilationunitmapper_.*.cpp"_rr;
+                "jsruntime/qv4compilationunitmapper_.*.cpp"_rr,
+                "qml/ftw/qqmlthread_stub.cpp"
+                ;
+
+            qt_syncqt(qml, "QtQml", ".");
 
             qml += "."_idir;
             //qml += "qml/v8"_idir;
@@ -3963,7 +3955,6 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                 qml += "jsruntime/qv4compilationunitmapper_unix.cpp";
             }
 
-            qml += masm;
             qml.Public += integration;
             qml.Public += network;
 
@@ -3974,7 +3965,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
             platform_files(qml);
             auto mocs = automoc(moc, qml);
-            SW_QT_ADD_MOC_DEPS(qml);
+            //SW_QT_ADD_MOC_DEPS(qml);
 
             // after moc
             write_tracepoints(qml);
@@ -3995,6 +3986,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             #define QT_FEATURE_qml_list_model 1
             #define QT_FEATURE_qml_locale 1
             #define QT_FEATURE_qml_tracing 1
+            #define QT_FEATURE_qml_type_loader_thread 1
 
             #define QT_FEATURE_qml_jit 1
 )xxx");
@@ -4026,22 +4018,66 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
                     << cmd::out(qml.BinaryDir / "private" / "qqmljsgrammar_p.h")
                     ;
             }
+            {
+                qml.addCommand()
+                    << cmd::prog(qmltyperegistrar)
+                    << cmd::wdir(qml.SourceDir)
+                    << "--jsroot" << "--generate-qmltypes"
+                    << cmd::out("jsroot.qmltypes")
+                    ;
+            }
+        }
+        // post qml
+        {
+            masm -= "org.sw.demo.python.exe-2"_dep;
+            masm -= "org.sw.demo.python.exe-3"_dep;
+            {
+                auto c = masm.addCommand();
+                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
+                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
+                else
+                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
+                c
+                    << cmd::wdir(masm.BinaryDir)
+                    << "-B" // prevent .pyc
+                    << cmd::in("src/3rdparty/masm/disassembler/udis86/itab.py")
+                    << cmd::in("src/3rdparty/masm/disassembler/udis86/optable.xml")
+                    << cmd::end()
+                    << cmd::out("udis86_itab.c", cmd::Skip) // it is included in some other file
+                    << cmd::out("udis86_itab.h")
+                    ;
+            }
+
+            {
+                auto c = masm.addCommand();
+                if (masm.getBuildSettings().TargetOS.Type == OSType::Windows)
+                    c << cmd::prog("org.sw.demo.python.exe-2"_dep);
+                else
+                    c << cmd::prog("org.sw.demo.python.exe-3"_dep);
+                c
+                    << "-B" // prevent .pyc
+                    << cmd::in("src/3rdparty/masm/yarr/create_regex_tables")
+                    << cmd::std_out("RegExpJitTables.h")
+                    ;
+            }
         }
 
         auto &qml_models = qml.addLibrary("models");
         {
-            common_setup(qml_models, "qmlmodels");
+            auto &t = qml_models;
+            common_setup(t, "qmlmodels");
+
             String module = "QtQmlModels";
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, qml_models, { module });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, qml_models, { module });
             qml_models.SourceDir /= "src/qmlmodels";
             qml_models += ".*"_r;
             qml_models.Public += qml;
+            qt_syncqt(t, module, ".");
             auto mocs = automoc(moc, qml_models);
-            SW_QT_ADD_MOC_DEPS(qml_models);
+            //SW_QT_ADD_MOC_DEPS(qml_models);
 
             String module_lower = module;
             std::transform(module_lower.begin(), module_lower.end(), module_lower.begin(), tolower);
-            auto &t = qml_models;
 
             t.writeFileOnce(module + "/" + module_lower + "-config.h", R"xxx(
             #define QT_FEATURE_qml_object_model 1
@@ -4061,12 +4097,13 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
 
         auto &qml_workerscript = qml.addLibrary("workerscript");
         {
-            common_setup(qml_workerscript);
             auto &t = qml_workerscript;
+            common_setup(t);
 
             String module = "QtQmlWorkerScript";
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, t, { module });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, t, { module });
             t.SourceDir /= "src/qmlworkerscript";
+            qt_syncqt(t, module, ".");
 
             t += ".*"_r;
             t += "QT_BUILD_QMLWORKERSCRIPT_LIB"_def;
@@ -4074,7 +4111,7 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
             t.Public += qml, masm;
 
             auto mocs = automoc(moc, t);
-            SW_QT_ADD_MOC_DEPS(t);
+            //SW_QT_ADD_MOC_DEPS(t);
 
             String module_lower = module;
             std::transform(module_lower.begin(), module_lower.end(), module_lower.begin(), tolower);
@@ -4096,10 +4133,13 @@ static constexpr auto qt_configure_strs = QT_PREPEND_NAMESPACE(qOffsetStringArra
         auto &quick = declarative.addLibrary("quick");
         pquick = &quick;
         {
-            common_setup(quick);
+            auto &t = quick;
+            common_setup(t);
+
             String module = "QtQuick";
-            auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, quick, { module });
+            //auto sqt = syncqt("pub.egorpugin.primitives.tools.syncqt"_dep, quick, { module });
             quick.SourceDir /= "src/quick";
+            qt_syncqt(t, module, ".");
 
             quick += "[^/]*"_rr;
             quick += "util/.*"_rr;
@@ -4167,7 +4207,7 @@ qt_qml_plugin_outro
             //make_qml_plugin(quick, "QtQuick");
 
             auto mocs = automoc(moc, quick);
-            SW_QT_ADD_MOC_DEPS(quick);
+            //SW_QT_ADD_MOC_DEPS(quick);
             //::rcc(rcc, quick, quick.SourceDir / "items/items.qrc");
             //::rcc(rcc, quick, quick.SourceDir / "scenegraph/scenegraph.qrc");
 
@@ -4183,13 +4223,13 @@ qt_qml_plugin_outro
 
             String module_lower = module;
             std::transform(module_lower.begin(), module_lower.end(), module_lower.begin(), tolower);
-            auto &t = quick;
 
             t.writeFileOnce(module + "/" + module_lower + "-config.h", R"xxx(
             #define QT_FEATURE_d3d12 1
             #define QT_FEATURE_opengl 1
 
             #define QT_FEATURE_quick_draganddrop 1
+            #define QT_FEATURE_quick_shadereffect 1
 )xxx");
 
             t.writeFileOnce(module + "/private/" + module_lower + "-config_p.h", R"xxx(
@@ -4209,6 +4249,7 @@ qt_qml_plugin_outro
             #define QT_FEATURE_quick_repeater 1
             #define QT_FEATURE_quick_viewtransitions 1
             #define QT_FEATURE_quick_tableview 1
+            #define QT_FEATURE_quick_pixmap_cache_threaded_download 1
 )xxx");
 
             t.writeFileOnce(module + "/" + module + "Depends", R"xxx(
