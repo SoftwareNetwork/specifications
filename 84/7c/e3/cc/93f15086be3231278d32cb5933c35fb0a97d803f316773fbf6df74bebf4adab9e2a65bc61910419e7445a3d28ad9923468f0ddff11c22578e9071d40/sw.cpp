@@ -4,7 +4,7 @@ void build(Solution &s)
     asio += Git("https://github.com/chriskohlhoff/asio", "asio-{M}-{m}-{p}");
 
     asio.setRootDirectory("asio");
-    asio += "include/.*\\.[hi]pp"_rr;
+    asio += "include/.*"_rr;
     asio.Public += "ASIO_STANDALONE"_d;
 
     if (asio.getBuildSettings().TargetOS.Type == OSType::Windows)
