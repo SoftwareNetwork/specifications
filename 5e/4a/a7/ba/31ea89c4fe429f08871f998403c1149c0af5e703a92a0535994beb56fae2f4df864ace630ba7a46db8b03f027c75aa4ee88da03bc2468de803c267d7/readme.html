@@ -1,0 +1,267 @@
+<h1 id="wepoll---epoll-for-windows">wepoll - epoll for windows</h1>
+<p><a
+href="https://ci.appveyor.com/project/piscisaureus/wepoll/branch/master"><img
+src="https://ci.appveyor.com/api/projects/status/github/piscisaureus/wepoll?branch=master&amp;svg=true" /></a></p>
+<p>This library implements the <a
+href="http://man7.org/linux/man-pages/man7/epoll.7.html">epoll</a> API
+for Windows applications. It is fast and scalable, and it closely
+resembles the API and behavior of Linux’ epoll.</p>
+<h2 id="rationale">Rationale</h2>
+<p>Unlike Linux, OS X, and many other operating systems, Windows doesn’t
+have a good API for receiving socket state notifications. It only
+supports the <code>select</code> and <code>WSAPoll</code> APIs, but they
+<a href="https://daniel.haxx.se/docs/poll-vs-select.html">don’t
+scale</a> and suffer from <a
+href="https://daniel.haxx.se/blog/2012/10/10/wsapoll-is-broken/">other
+issues</a>.</p>
+<p>Using I/O completion ports isn’t always practical when software is
+designed to be cross-platform. Wepoll offers an alternative that is much
+closer to a drop-in replacement for software that was designed to run on
+Linux.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Can poll 100000s of sockets efficiently.</li>
+<li>Fully thread-safe.</li>
+<li>Multiple threads can poll the same epoll port.</li>
+<li>Sockets can be added to multiple epoll sets.</li>
+<li>All epoll events (<code>EPOLLIN</code>, <code>EPOLLOUT</code>,
+<code>EPOLLPRI</code>, <code>EPOLLRDHUP</code>) are supported.</li>
+<li>Level-triggered and one-shot (<code>EPOLLONESTHOT</code>) modes are
+supported</li>
+<li>Trivial to embed: you need <a
+href="https://github.com/piscisaureus/wepoll/tree/dist">only two
+files</a>.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Only works with sockets.</li>
+<li>Edge-triggered (<code>EPOLLET</code>) mode isn’t supported.</li>
+</ul>
+<h2 id="how-to-use">How to use</h2>
+<p>The library is <a
+href="https://github.com/piscisaureus/wepoll/tree/dist">distributed</a>
+as a single source file (<a
+href="https://github.com/piscisaureus/wepoll/blob/dist/wepoll.c">wepoll.c</a>)
+and a single header file (<a
+href="https://github.com/piscisaureus/wepoll/blob/dist/wepoll.h">wepoll.h</a>).<br>
+Compile the .c file as part of your project, and include the header
+wherever needed.</p>
+<h2 id="compatibility">Compatibility</h2>
+<ul>
+<li>Requires Windows Vista or higher.</li>
+<li>Can be compiled with recent versions of MSVC, Clang, and GCC.</li>
+</ul>
+<h2 id="api">API</h2>
+<h3 id="general-remarks">General remarks</h3>
+<ul>
+<li>The epoll port is a <code>HANDLE</code>, not a file descriptor.</li>
+<li>All functions set both <code>errno</code> and
+<code>GetLastError()</code> on failure.</li>
+<li>For more extensive documentation, see the <a
+href="http://man7.org/linux/man-pages/man7/epoll.7.html">epoll(7) man
+page</a>, and the per-function man pages that are linked below.</li>
+</ul>
+<h3 id="epoll_createepoll_create1">epoll_create/epoll_create1</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>HANDLE epoll_create<span class="op">(</span><span class="dt">int</span> size<span class="op">);</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>HANDLE epoll_create1<span class="op">(</span><span class="dt">int</span> flags<span class="op">);</span></span></code></pre></div>
+<ul>
+<li>Create a new epoll instance (port).</li>
+<li><code>size</code> is ignored but most be greater than zero.</li>
+<li><code>flags</code> must be zero as there are no supported
+flags.</li>
+<li>Returns <code>NULL</code> on failure.</li>
+<li><a
+href="http://man7.org/linux/man-pages/man2/epoll_create.2.html">Linux
+man page</a></li>
+</ul>
+<h3 id="epoll_close">epoll_close</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> epoll_close<span class="op">(</span>HANDLE ephnd<span class="op">);</span></span></code></pre></div>
+<ul>
+<li>Close an epoll port.</li>
+<li>Do not attempt to close the epoll port with <code>close()</code>,
+<code>CloseHandle()</code> or <code>closesocket()</code>.</li>
+</ul>
+<h3 id="epoll_ctl">epoll_ctl</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> epoll_ctl<span class="op">(</span>HANDLE ephnd<span class="op">,</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>              <span class="dt">int</span> op<span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>              SOCKET sock<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>              <span class="kw">struct</span> epoll_event<span class="op">*</span> event<span class="op">);</span></span></code></pre></div>
+<ul>
+<li>Control which socket events are monitored by an epoll port.</li>
+<li><code>ephnd</code> must be a HANDLE created by <a
+href="#epoll_createepoll_create1"><code>epoll_create()</code></a> or <a
+href="#epoll_createepoll_create1"><code>epoll_create1()</code></a>.</li>
+<li><code>op</code> must be one of <code>EPOLL_CTL_ADD</code>,
+<code>EPOLL_CTL_MOD</code>, <code>EPOLL_CTL_DEL</code>.</li>
+<li><code>sock</code> must be a valid socket created by <a
+href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms740506(v=vs.85).aspx"><code>socket()</code></a>,
+<a
+href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms742212(v=vs.85).aspx"><code>WSASocket()</code></a>,
+or <a
+href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms737526(v=vs.85).aspx"><code>accept()</code></a>.</li>
+<li><code>event</code> should be a pointer to a <a
+href="#struct-epoll_event"><code>struct epoll_event</code></a>.<br> If
+<code>op</code> is <code>EPOLL_CTL_DEL</code> then the
+<code>event</code> parameter is ignored, and it may be
+<code>NULL</code>.</li>
+<li>Returns 0 on success, -1 on failure.</li>
+<li>It is recommended to always explicitly remove a socket from its
+epoll set using <code>EPOLL_CTL_DEL</code> <em>before</em> closing
+it.<br> As on Linux, closed sockets are automatically removed from the
+epoll set, but wepoll may not be able to detect that a socket was closed
+until the next call to <a
+href="#epoll_wait"><code>epoll_wait()</code></a>.</li>
+<li><a
+href="http://man7.org/linux/man-pages/man2/epoll_ctl.2.html">Linux man
+page</a></li>
+</ul>
+<h3 id="epoll_wait">epoll_wait</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> epoll_wait<span class="op">(</span>HANDLE ephnd<span class="op">,</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>               <span class="kw">struct</span> epoll_event<span class="op">*</span> events<span class="op">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>               <span class="dt">int</span> maxevents<span class="op">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>               <span class="dt">int</span> timeout<span class="op">);</span></span></code></pre></div>
+<ul>
+<li>Receive socket events from an epoll port.</li>
+<li><code>events</code> should point to a caller-allocated array of <a
+href="#struct-epoll_event"><code>epoll_event</code></a> structs, which
+will receive the reported events.</li>
+<li><code>maxevents</code> is the maximum number of events that will be
+written to the <code>events</code> array, and must be greater than
+zero.</li>
+<li><code>timeout</code> specifies whether to block when no events are
+immediately available.
+<ul>
+<li><code>&lt;0</code> block indefinitely</li>
+<li><code>0</code> report any events that are already waiting, but don’t
+block</li>
+<li><code>≥1</code> block for at most N milliseconds</li>
+</ul></li>
+<li>Return value:
+<ul>
+<li><code>-1</code> an error occurred</li>
+<li><code>0</code> timed out without any events to report</li>
+<li><code>≥1</code> the number of events stored in the
+<code>events</code> buffer</li>
+</ul></li>
+<li><a
+href="http://man7.org/linux/man-pages/man2/epoll_wait.2.html">Linux man
+page</a></li>
+</ul>
+<h3 id="struct-epoll_event">struct epoll_event</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">union</span> epoll_data <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span><span class="op">*</span> ptr<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> fd<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint32_t</span> u32<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint64_t</span> u64<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  SOCKET sock<span class="op">;</span>        <span class="co">/* Windows specific */</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  HANDLE hnd<span class="op">;</span>         <span class="co">/* Windows specific */</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> epoll_data_t<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> epoll_event <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint32_t</span> events<span class="op">;</span>    <span class="co">/* Epoll events and flags */</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  epoll_data_t data<span class="op">;</span>  <span class="co">/* User data variable */</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<ul>
+<li>The <code>events</code> field is a bit mask containing the events
+being monitored/reported, and optional flags.<br> Flags are accepted by
+<a href="#epoll_ctl"><code>epoll_ctl()</code></a>, but they are not
+reported back by <a
+href="#epoll_wait"><code>epoll_wait()</code></a>.</li>
+<li>The <code>data</code> field can be used to associate
+application-specific information with a socket; its value will be
+returned unmodified by <a
+href="#epoll_wait"><code>epoll_wait()</code></a>.</li>
+<li><a
+href="http://man7.org/linux/man-pages/man2/epoll_ctl.2.html">Linux man
+page</a></li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 82%" />
+</colgroup>
+<thead>
+<tr>
+<th>Event</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EPOLLIN</code></td>
+<td>incoming data available, or incoming connection ready to be
+accepted</td>
+</tr>
+<tr>
+<td><code>EPOLLOUT</code></td>
+<td>ready to send data, or outgoing connection successfully
+established</td>
+</tr>
+<tr>
+<td><code>EPOLLRDHUP</code></td>
+<td>remote peer initiated graceful socket shutdown</td>
+</tr>
+<tr>
+<td><code>EPOLLPRI</code></td>
+<td>out-of-band data available for reading</td>
+</tr>
+<tr>
+<td><code>EPOLLERR</code></td>
+<td>socket error<sup>1</sup></td>
+</tr>
+<tr>
+<td><code>EPOLLHUP</code></td>
+<td>socket hang-up<sup>1</sup></td>
+</tr>
+<tr>
+<td><code>EPOLLRDNORM</code></td>
+<td>same as <code>EPOLLIN</code></td>
+</tr>
+<tr>
+<td><code>EPOLLRDBAND</code></td>
+<td>same as <code>EPOLLPRI</code></td>
+</tr>
+<tr>
+<td><code>EPOLLWRNORM</code></td>
+<td>same as <code>EPOLLOUT</code></td>
+</tr>
+<tr>
+<td><code>EPOLLWRBAND</code></td>
+<td>same as <code>EPOLLOUT</code></td>
+</tr>
+<tr>
+<td><code>EPOLLMSG</code></td>
+<td>never reported</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EPOLLONESHOT</code></td>
+<td>report event(s) only once</td>
+</tr>
+<tr>
+<td><code>EPOLLET</code></td>
+<td>not supported by wepoll</td>
+</tr>
+<tr>
+<td><code>EPOLLEXCLUSIVE</code></td>
+<td>not supported by wepoll</td>
+</tr>
+<tr>
+<td><code>EPOLLWAKEUP</code></td>
+<td>not supported by wepoll</td>
+</tr>
+</tbody>
+</table>
+<p><sup>1</sup>: the <code>EPOLLERR</code> and <code>EPOLLHUP</code>
+events may always be reported by <a
+href="#epoll_wait"><code>epoll_wait()</code></a>, regardless of the
+event mask that was passed to <a
+href="#epoll_ctl"><code>epoll_ctl()</code></a>.</p>
