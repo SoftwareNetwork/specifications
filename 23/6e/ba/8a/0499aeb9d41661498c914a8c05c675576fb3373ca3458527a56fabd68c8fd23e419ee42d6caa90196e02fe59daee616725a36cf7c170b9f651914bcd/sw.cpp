@@ -9,7 +9,9 @@ void build(Solution &s)
     t -=
         "source/android/.*"_rr,
         "source/windows/.*"_rr,
+        "source/linux/.*"_rr,
         "source/posix/.*"_rr;
+
     t -= "source/arch/.*"_rr;
     t -= "source/platform_fallback_stubs/.*"_rr;
     t += "source/arch/intel/.*"_r;
@@ -37,10 +39,13 @@ void build(Solution &s)
         t += "source/posix/.*"_rr;
         t += "source/arch/intel/asm/.*"_r;
         t -= "source/arch/intel/encoding_avx2.c";
-        if (t.getBuildSettings().TargetOS.isApple())
+        if (t.getBuildSettings().TargetOS.isApple()) {
+            t += "source/platform_fallback_stubs/.*"_rr;
             t += "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_NONE"_def;
-        else
+        } else {
+            t += "source/linux/.*"_rr;
             t += "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR"_def;
+        }
         t += "dl"_slib;
         t += "pthread"_slib;
         t += "CoreFoundation"_framework;
