@@ -1271,8 +1271,12 @@ ucm/ctrl.ucm
 
     process_module2({"dist/PathTools", "Cwd"}) += "DOUBLE_SLASHES_SPECIAL=0"_def;
 
-    process_module2({.dir = "dist/Storable", .version = "3.39"});
-    process_module2({.dir = "ext/Fcntl", .version = "1.20"});
+    process_module2({.dir = "dist/Storable"
+        , .version = "3.40"
+    });
+    process_module2({.dir = "ext/Fcntl"
+        //, .version = "1.20"
+    });
 
     process_module_with_c_files({"cpan/Win32"}) +=
        "advapi32.lib"_slib,
