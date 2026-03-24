@@ -155,14 +155,23 @@ void build(Solution &s)
         }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
 
-        t.pushFrontToFileOnce("src/core/util/shared_bit_gen.cc", "#include <mutex>");
+        // or use GRPC_CPU_INTENSIVE_BITGEN?
+        t.patch("src/core/util/shared_bit_gen.h", "return bit_gen_();", "return bit_gen_()();");
+        t.patch("src/core/util/shared_bit_gen.h", "static thread_local absl::BitGen bit_gen_;", "static absl::BitGen &bit_gen_();");
         t.patch("src/core/util/shared_bit_gen.cc", "thread_local absl::BitGen SharedBitGen::bit_gen_;", R"(//thread_local absl::BitGen SharedBitGen::bit_gen_ ;
+absl::BitGen &SharedBitGen::bit_gen_() {
+    thread_local absl::BitGen g;
+    return g;
+}
+)");
+        //t.pushFrontToFileOnce("src/core/util/shared_bit_gen.cc", "#include <mutex>");
+        /*t.patch("src/core/util/shared_bit_gen.cc", "thread_local absl::BitGen SharedBitGen::bit_gen_;", R"(//thread_local absl::BitGen SharedBitGen::bit_gen_ ;
 thread_local absl::BitGen SharedBitGen::bit_gen_ = [](){
     static std::mutex m;
     std::unique_lock lk{m};
     return absl::BitGen{};
 }();
-)");
+)");*/
     }
 
     auto &grpc_plugin_support = p.addStaticLibrary("plugin_support");
