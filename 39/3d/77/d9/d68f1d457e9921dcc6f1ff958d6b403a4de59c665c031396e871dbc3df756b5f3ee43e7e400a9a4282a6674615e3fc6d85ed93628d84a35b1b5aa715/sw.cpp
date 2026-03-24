@@ -18,7 +18,7 @@ void build(Solution &s)
     t.Public += "sdk/include"_idir;
     t += "sdk"_idir;
 
-    t.Public += "org.sw.demo.biojppm.rapidyaml"_dep;
+    t.Public += "org.sw.demo.biojppm.rapidyaml-0.10"_dep;
 
     t.patch("sdk/src/configuration/ryml_document.cc",
         "auto ryml_loc = parser_->location(node);",
