@@ -396,11 +396,12 @@ void build(Solution &s)
 
             "providers/implementations/storemgmt/file_store.inc",
             "providers/implementations/storemgmt/file_store_any2obj.inc",
+            "providers/implementations/storemgmt/winstore_store.inc",
             }) {
             generate2(i);
         }
-        if (win_or_mingw) {
-            generate2("providers/implementations/storemgmt/winstore_store.inc");
+        if (!win_or_mingw) {
+            crypto -= "providers/implementations/storemgmt/winstore_store.c";
         }
 
         crypto.Private += "NO_WINDOWS_BRAINDEATH"_d;
