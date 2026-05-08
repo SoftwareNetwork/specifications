@@ -98,7 +98,7 @@ void build(Solution &s)
     nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}"); // requires perl to generate files
     //nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}rc2"); // requires perl to generate files
 
-    if (nasm.getBuildSettings().TargetOS.isApple()) {
+    if (nasm.getBuildSettings().TargetOS.isApple() && nasm.getCompilerType() != CompilerType::GNU) {
         nasm += c89;
     } else {
         nasm += c23;
@@ -307,8 +307,9 @@ void build(Solution &s)
     nasm.pushFrontToFileOnce("include/compiler.h", "#include <stdint.h>");
     nasm.patch("include/compiler.h", "#ifdef HAVE_STDC_INLINE", "#if 0");
     nasm.patch("include/compiler.h", "#elif defined(HAVE_GNU_INLINE)", "#elif 0");
-    nasm.patch("include/compiler.h", "|| !HAVE_DECL_", "|| 0 //!HAVE_DECL_");
-    nasm.patch("include/compiler.h", "&& !HAVE_DECL_", "&& 1 //!HAVE_DECL_");
+    //nasm.patch("include/compiler.h", "|| !HAVE_DECL_", "|| 0\n//!HAVE_DECL_");
+    //nasm.patch("include/compiler.h", "&& !HAVE_DECL_", "&& 1\n//!HAVE_DECL_");
+
     //nasm.patch("nasmlib/filename.c", "strrchrnul", "strchrnul");
 
     nasm += "org.sw.demo.madler.zlib"_dep;
@@ -325,6 +326,7 @@ void check(Checker &c)
     s.checkFunctionExists("strcasecmp");
     s.checkFunctionExists("strcspn");
     s.checkFunctionExists("stricmp");
+    s.checkDeclarationExists("strlcpy").Parameters.Includes.push_back("string.h");
     s.checkFunctionExists("strlcpy").Parameters.Includes.push_back("string.h");
     s.checkFunctionExists("strncasecmp");
     s.checkFunctionExists("strnicmp");
