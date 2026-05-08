@@ -21,9 +21,23 @@ void build(Solution &s)
     expat.Public += sw::Static, "XML_STATIC"_d;
     expat.Public += "XML_ATTR_INFO"_d;
 
-    if (expat.getBuildSettings().TargetOS.Type == OSType::Windows)
+    expat -= "lib/random_getentropy.c";
+    expat -= "lib/random_dev_urandom.c";
+    expat -= "lib/random_getrandom.c";
+    expat -= "lib/random_arc4random.c";
+    expat -= "lib/random_arc4random_buf.c";
+    expat -= "lib/random_rand_s.c";
+    if (expat.getBuildSettings().TargetOS.isApple()) {
+        expat += "lib/random_dev_urandom.c";
+    }
+    if (expat.getBuildSettings().TargetOS.Type == OSType::Linux) {
+        expat += "lib/random_getentropy.c";
+        expat += "lib/random_dev_urandom.c";
+    }
+    if (expat.getBuildSettings().TargetOS.Type == OSType::Windows) {
         expat += "WIN32"_d;
-    else
+        expat += "lib/random_rand_s.c";
+    } else
     {
         expat += "XML_ENABLE_VISIBILITY"_def;
         expat += "XML_DEV_URANDOM"_d;
