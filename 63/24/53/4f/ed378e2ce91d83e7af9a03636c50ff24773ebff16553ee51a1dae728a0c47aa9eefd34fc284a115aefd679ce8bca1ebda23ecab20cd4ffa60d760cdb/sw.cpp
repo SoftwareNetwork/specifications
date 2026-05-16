@@ -36,6 +36,8 @@ void build(Solution &s)
         "."_id,
         "include"_id;
 
+    opus -= "celt/mini_kfft.c";
+
     opus.Private += "OPUS_BUILD"_d;
     opus.Private += "USE_ALLOCA"_d;
     opus.Private += "CPU_INFO_BY_C"_d;
