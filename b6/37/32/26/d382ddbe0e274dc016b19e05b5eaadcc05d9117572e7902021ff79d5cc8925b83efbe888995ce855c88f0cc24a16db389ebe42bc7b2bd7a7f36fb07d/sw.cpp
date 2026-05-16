@@ -19,10 +19,12 @@ void build(Solution &s)
     auto &hpke = add_lib("hpke");
     hpke.Public += bytes;
     hpke.Public += "org.sw.demo.openssl.crypto"_dep;
+    hpke.Public += "WITH_OPENSSL3"_def;
     hpke.Public += "org.sw.demo.nlohmann.json.natvis"_dep;
 
     mlspp += cpp17;
     mlspp.Public += hpke;
+    mlspp.Public += "WITH_PQ"_def;
 
     auto &mls_ds = add_lib("mls_ds");
     mls_ds.Public += mlspp;
