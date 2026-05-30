@@ -5,6 +5,8 @@ void build(Solution &s)
     //fontconfig += RemoteFile("https://www.freedesktop.org/software/fontconfig/release/fontconfig-{v}.tar.gz");
     fontconfig += Git("https://gitlab.freedesktop.org/fontconfig/fontconfig");
 
+    fontconfig += c99;
+
     fontconfig.ApiName = "SW_FONTCONFIG_LIBRARY_API";
     fontconfig.setChecks("fontconfig", true);
 
@@ -31,10 +33,18 @@ void build(Solution &s)
     fontconfig += "FC_GPERF_SIZE_T=size_t"_d;
     fontconfig += "FC_TEMPLATEDIR=\"fontconfig/conf.avail\""_d;
     fontconfig += "CONFIGDIR=\".\""_d;
+    fontconfig += "ENABLE_FREETYPE"_d;
+
+    fontconfig += Definition{"FC_VERSION_MAJOR="s + fontconfig.Variables["PACKAGE_VERSION_MAJOR"].toString()};
+    fontconfig += Definition{"FC_VERSION_MINOR="s + fontconfig.Variables["PACKAGE_VERSION_MINOR"].toString()};
+    fontconfig += Definition{"FC_VERSION_MICRO="s + fontconfig.Variables["PACKAGE_VERSION_PATCH"].toString()};
+
     if (fontconfig.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
         fontconfig.Public += "FC_CACHEDIR=\"LOCAL_APPDATA_FONTCONFIG_CACHE\""_d;
         fontconfig.Public += "FC_DEFAULT_FONTS=\"WINDOWSFONTDIR\""_d;
+        //fontconfig += "HAVE_VASPRINTF_L=1"_d;
+        fontconfig += "HAVE__VSNPRINTF_L=1"_d;
     }
     else
     {
@@ -43,6 +53,8 @@ void build(Solution &s)
         fontconfig.Public += "FONTCONFIG_PATH=\"/etc/fonts\""_d;
         fontconfig.Public += "HAVE_STDATOMIC_PRIMITIVES"_d;
         //fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
+        fontconfig += "HAVE_C99_VSNPRINTF=1"_d;
+        //fontconfig += "HAVE_VSNPRINTF=1"_d;
     }
 
     fontconfig.Public += "org.sw.demo.expat"_dep;
@@ -138,6 +150,16 @@ void build(Solution &s)
             << cmd::out("fc-case/fccase.h");
         fontconfig.patch("src/fcstr.c", "../fc-case/fccase.h", "fc-case/fccase.h");
     }
+    {
+        fontconfig.addCommand()
+            << cmd::prog("org.sw.demo.python.exe"_dep)
+            << cmd::in("fc-const/fc-const.py")
+            << cmd::in("fc-const/fcconst.list")
+            << cmd::in("src/fcobjs.h")
+            << "--output"
+            << cmd::out("fcconst.h");
+    }
+
     {
         // keep order
         const char *files[] = {
@@ -413,6 +435,9 @@ void build(Solution &s)
 
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h.in", "#  define FcPublic", "#define   FcPublic extern SW_FONTCONFIG_LIBRARY_API");
     fontconfig.Variables["CACHE_VERSION"] = "9";
+    //fontconfig.Variables["FC_VERSION_MAJOR"] = fontconfig.Variables["PACKAGE_VERSION_MAJOR"];
+    //fontconfig.Variables["FC_VERSION_MINOR"] = fontconfig.Variables["PACKAGE_VERSION_MINOR"];
+    //fontconfig.Variables["FC_VERSION_MICRO"] = fontconfig.Variables["PACKAGE_VERSION_PATCH"];
     fontconfig.configureFile("fontconfig/fontconfig.h.in", "fontconfig/fontconfig.h");
 
     if (fontconfig.getBuildSettings().TargetOS.Type == OSType::Windows)
