@@ -19,7 +19,7 @@ void build(Solution &s)
         t -= "gcore/embedded_resources.c";
         t.Public += "gcore"_idir;
         t += "gcore/multidim/.*"_r;
-        t += "gcore/multidim"_idir;
+        t.Public += "gcore/multidim"_idir;
 
         t += "ogr/.*"_r;
         t += "ogr/ogrsf_frmts/.*"_r;
