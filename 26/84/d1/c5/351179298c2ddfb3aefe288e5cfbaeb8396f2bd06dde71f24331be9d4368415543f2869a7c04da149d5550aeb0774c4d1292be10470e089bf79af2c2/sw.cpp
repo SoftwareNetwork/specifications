@@ -226,6 +226,7 @@ void build(Solution &s)
 
         // for noreturn dllexport functions
         t.patch("win32/win32.h", "#      define PERL_CALLCONV_NO_RET", "//#define PERL_CALLCONV_NO_RET");
+        t.patch("win32/win32.h", "#      define PERL_CALLCONV_NON_VOID_NO_RET", "//#define PERL_CALLCONV_NON_VOID_NO_RET");
         // for linking xsubpp modules to perl.dll
         t.patch("INTERN.h", "defined(WIN32) && defined(__MINGW32__)", "(defined(WIN32) || defined(__MINGW32__))");
         t.patch("INTERN.h", "#      define EXT\n", "#      define EXT SW_EXPORT\n");
@@ -1272,7 +1273,7 @@ ucm/ctrl.ucm
     process_module2({"dist/PathTools", "Cwd"}) += "DOUBLE_SLASHES_SPECIAL=0"_def;
 
     process_module2({.dir = "dist/Storable"
-        , .version = "3.40"
+        , .version = "3.41"
     });
     process_module2({.dir = "ext/Fcntl"
         //, .version = "1.20"
