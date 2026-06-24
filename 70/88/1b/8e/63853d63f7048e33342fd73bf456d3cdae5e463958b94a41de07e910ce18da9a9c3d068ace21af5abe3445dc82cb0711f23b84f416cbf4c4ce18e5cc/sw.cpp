@@ -18,6 +18,8 @@ void build(Solution &s)
         t += "gcore/mdreader/.*"_r;
         t -= "gcore/embedded_resources.c";
         t.Public += "gcore"_idir;
+        t += "gcore/multidim/.*"_r;
+        t += "gcore/multidim"_idir;
 
         t += "ogr/.*"_r;
         t += "ogr/ogrsf_frmts/.*"_r;
@@ -75,6 +77,7 @@ void build(Solution &s)
         add_dir("ogr/ogrsf_frmts/kml");
         //add_dir("ogr/ogrsf_frmts/mem");
         add_dir("ogr/ogrsf_frmts/mitab");
+        add_dir("ogr/ogrsf_frmts/gmlutils");
 
         // formats
         {
@@ -185,6 +188,10 @@ void build(Solution &s)
             t += "NOMINMAX"_def;
             t += "VSI_STAT64=_stat64"_def;
             t += "VSI_STAT64_T=__stat64"_def;
+
+            // except arm
+            t += "HAVE_AVX_AT_COMPILE_TIME"_def;
+            t += "HAVE_AVX2_AT_COMPILE_TIME"_def;
 
             if (t.getBuildSettings().Native.ConfigurationType != ConfigurationType::Debug)
                 t += "comsuppw.lib"_slib;
