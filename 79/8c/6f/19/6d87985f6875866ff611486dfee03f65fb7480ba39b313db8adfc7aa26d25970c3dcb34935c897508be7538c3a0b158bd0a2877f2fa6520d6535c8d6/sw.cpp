@@ -35,6 +35,7 @@ void build(Solution &s)
         upb -= "upb/upb/.*benchmark.*"_rr;
         upb -= "upb/upb/cmake/.*"_rr;
         upb -= "upb/upb/conformance/.*"_rr;
+        upb -= "upb/upb/wire/decode_fast/.*"_rr;
         //upb -= "upb/upb/reflection/.*"_rr;
         //upb -= "upb/upb/reflection/internal/.*"_rr;
         upb -= "upb/upb/reflection/stage0/google/protobuf/descriptor.upb.c";
@@ -155,6 +156,8 @@ void build(Solution &s)
         }
         t += "src/core/lib/event_engine/posix_engine/timer.*"_rr;
 
+        // openssl 4
+        //t.patch("src/core/credentials/transport/tls/grpc_tls_crl_provider.cc", "X509_NAME*", "auto");
         // or use GRPC_CPU_INTENSIVE_BITGEN?
         t.patch("src/core/util/shared_bit_gen.h", "return bit_gen_();", "return bit_gen_()();");
         t.patch("src/core/util/shared_bit_gen.h", "static thread_local absl::BitGen bit_gen_;", "static absl::BitGen &bit_gen_();");
