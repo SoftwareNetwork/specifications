@@ -13,8 +13,16 @@ void build(Solution &s)
 
     rhash += Definition("RHASH_XVERSION=" + rhash.Variables["PACKAGE_VERSION_NUM"].toString());
 
+    // clang cl
+    rhash.patch("librhash/util.h",
+        "InterlockedCompareExchange(ptr, newval, oldval)",
+        "InterlockedCompareExchange((LONG*)ptr, newval, oldval)"
+    );
+
     rhash.patch("librhash/byte_order.h",
         "defined(_ARM_) || defined(__arm__)",
         "defined(_ARM_) ||  defined(__arm__) || defined(_M_ARM64) || defined(_M_ARM64EC)"
     );
+
+    //rhash += "_WIN32_WINNT=0x0502"_def;
 }
