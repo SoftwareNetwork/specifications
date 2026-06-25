@@ -161,9 +161,12 @@ void build(Solution &s)
         libarchive.Variables["HAVE_WCHAR_T"] = 1;
     }
 
-    // TODO: detect it properly with check
-    if (win_or_mingw)
+    // TODO: detect it properly with check?
+    if (win_or_mingw) {
         libarchive.Variables["HAVE_WINCRYPT_H"] = 1;
+
+        libarchive += "bcrypt.lib"_slib;
+    }
 
     // TODO: add 'or cygwin'
     // IF(NOT WIN32 OR CYGWIN)
