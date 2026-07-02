@@ -157,10 +157,12 @@ void build(Solution &s)
         libcurl += "org.sw.demo.gnu.gss"_dep;
 
         libcurl.Public -= "org.sw.demo.openldap.ldap"_dep;
-        if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows || libcurl.getBuildSettings().TargetOS.Type == OSType::Mingw)
+        if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows || libcurl.getBuildSettings().TargetOS.Type == OSType::Mingw) {
             libcurl.Public += "Wldap32.lib"_slib;
-        else
+            libcurl.Public += "volatileaccessu.lib"_slib;
+        } else {
             libcurl.Public += "org.sw.demo.openldap.ldap"_dep;
+        }
 
         libcurl.Variables["OPERATING_SYSTEM"] = "${CMAKE_SYSTEM_NAME}";
         libcurl.Variables["OS"] = "\"${CMAKE_SYSTEM_NAME}\"";
@@ -275,6 +277,7 @@ void build(Solution &s)
         curl -= "src/curlinfo.c";
         curl += "lib/curlx/.*"_rr;
         curl += "lib/curlx"_idir;
+        curl += "src"_idir;
           /*"lib/strparse.c",
           "lib/timediff.c",
           "lib/nonblock.c",
