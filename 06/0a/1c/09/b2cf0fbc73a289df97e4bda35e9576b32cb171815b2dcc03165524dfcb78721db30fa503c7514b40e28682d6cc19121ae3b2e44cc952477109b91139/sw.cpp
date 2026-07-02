@@ -115,12 +115,13 @@ void build(Solution &s)
             libcurl += "USE_WINDOWS_SSPI"_def;
             libcurl += "Secur32.lib"_slib;
         }
-        libcurl.Public += "HAVE_LIBSSH2_H"_d;
         libcurl.Public += "HAVE_SOCKET"_d;
-        libcurl.Public += "USE_OPENSSL"_d;
+
         libcurl += "CURL_WITH_MULTI_SSL"_d; // allow multiple ssl backends
+        libcurl.Public += "USE_OPENSSL"_d;
         if (libcurl.getBuildSettings().TargetOS.Type != OSType::Windows && libcurl.getBuildSettings().TargetOS.Type != OSType::Mingw)
         {
+            libcurl.Public += "USE_OPENSSL"_d;
             libcurl.Private += "HAVE_CONFIG_H"_d;
         }
         else
@@ -138,19 +139,27 @@ void build(Solution &s)
 
         libcurl.Public += "USE_ARES"_d;
         libcurl.Public += "org.sw.demo.c_ares"_dep;
+
         libcurl.Public += "USE_NGHTTP2"_d;
         libcurl.Public += "org.sw.demo.nghttp2"_dep;
+
         //libcurl.Public += "USE_NGTCP2"_d;
-        //libcurl.Public += "org.sw.demo.ngtcp2"_dep;
+        //libcurl.Public += "org.sw.demo.ngtcp2.crypto.openssl"_dep;
+
         //libcurl.Public += "USE_NGHTTP3"_d;
         //libcurl.Public += "org.sw.demo.nghttp3"_dep;
+
+        libcurl.Public += "HAVE_LIBSSH2_H"_d;
         libcurl.Public += "USE_LIBSSH2"_d;
         libcurl.Public += "org.sw.demo.libssh2"_dep;
+
         libcurl.Public += "HAVE_LIBZ"_d;
         libcurl.Public += "HAVE_ZLIB_H"_d;
         libcurl.Public += "org.sw.demo.madler.zlib"_dep;
+
         libcurl.Public += "HAVE_ZSTD"_d;
         libcurl.Public += "org.sw.demo.facebook.zstd.zstd"_dep;
+
         libcurl.Public += "HAVE_BROTLI"_d;
         libcurl.Public += "org.sw.demo.google.brotli"_dep;
 
