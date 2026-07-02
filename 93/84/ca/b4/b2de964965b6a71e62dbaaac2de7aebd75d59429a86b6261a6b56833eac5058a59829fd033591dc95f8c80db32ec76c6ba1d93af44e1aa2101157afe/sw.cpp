@@ -5,6 +5,8 @@ void build(Solution &s)
 
     t.setChecks("nghttp2");
 
+    t += c17;
+
     t +=
         "cmakeconfig.h.in",
         "lib/.*\\.c"_rr,
@@ -19,6 +21,8 @@ void build(Solution &s)
     t.Public += sw::Static, "NGHTTP3_STATICLIB"_d;
 
     t += "HAVE_CONFIG_H"_d;
+
+    t.Public += "org.sw.demo.ngtcp2.sfparse-main"_dep;
 
     t.Definitions["PACKAGE"] = "\"" + t.getPackage().getPath().toString() + "\"";
     t.Variables["PACKAGE_VERSION"] = t.getPackage().getVersion().toString();

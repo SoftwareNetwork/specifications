@@ -7,6 +7,8 @@ void build(Solution &s)
         auto &t = ngtcp2;
         t.setChecks("nghttp2");
 
+        t += c17;
+
         t +=
             "cmakeconfig.h.in",
             "lib/.*\\.c"_rr,
@@ -50,9 +52,12 @@ void build(Solution &s)
         auto &t = ossl;
         t.setRootDirectory("crypto");
 
+        t += c17;
+
         t +=
-            "quictls/.*"_rr,
-            "shared.*"_rr,
+            //"quictls/.*"_rr,
+            "ossl/.*"_rr,
+            "shared\\..*"_rr,
             "includes/.*\\.h"_rr
             ;
         t.Protected +=

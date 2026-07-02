@@ -101,8 +101,9 @@ void build(Solution &s)
     if (nasm.getBuildSettings().TargetOS.isApple() && nasm.getCompilerType() != CompilerType::GNU) {
         nasm += c89;
     } else {
-        nasm += c23;
+        nasm += c17;
     }
+    nasm += c17;
 
     nasm.setChecks("nasm", true);
 
