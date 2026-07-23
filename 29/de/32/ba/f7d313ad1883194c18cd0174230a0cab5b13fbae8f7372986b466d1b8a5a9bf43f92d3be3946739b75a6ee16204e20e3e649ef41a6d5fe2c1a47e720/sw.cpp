@@ -100,10 +100,13 @@ void build(Solution &s)
 
     if (nasm.getBuildSettings().TargetOS.isApple() && nasm.getCompilerType() != CompilerType::GNU) {
         nasm += c89;
+    //if (nasm.getBuildSettings().TargetOS.isApple()) {
+    //    nasm += c23;
+    //    nasm += c89;
     } else {
         nasm += c17;
     }
-    nasm += c17;
+    //nasm += c17;
 
     nasm.setChecks("nasm", true);
 
@@ -296,9 +299,17 @@ void build(Solution &s)
             nasm += "HAVE_HTOLE64"_def;
         } else {
             //nasm += "HAVE_GNU_INLINE"_def;
+            //nasm += "HAVE_STDC_INLINE"_def;
+            //nasm.LinkOptions.push_back("-Wl,-z,muldefs");
+            //nasm.LinkOptions.push_back("-Wl,-no_warn_duplicate_libraries");
+            //nasm.LinkOptions.push_back("-Wl,--allow-multiple-definition");
         }
     } else {
-        nasm.pushFrontToFileOnce("nasmlib/file.c", "# include <windows.h>");
+        nasm.pushFrontToFileOnce("nasmlib/file.c", R"(
+#ifdef _WIN32
+# include <windows.h>
+#endif
+)");
     }
 
     nasm.Public += "include"_id;
@@ -345,7 +356,11 @@ void check(Checker &c)
 
     //s.checkIncludeExists("stdnoreturn.h"); // causes build errors on msvc
     //s.checkIncludeExists("windows.h");
+
     s.checkIncludeExists("endian.h");
+    s.checkIncludeExists("sys/endian.h");
+    s.checkIncludeExists("machine/endian.h");
+
     s.checkIncludeExists("io.h");
     s.checkIncludeExists("fcntl.h");
     s.checkIncludeExists("inttypes.h");
