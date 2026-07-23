@@ -98,17 +98,19 @@ void build(Solution &s)
     nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}"); // requires perl to generate files
     //nasm += Git("https://github.com/netwide-assembler/nasm", "nasm-{M}.{m:02}rc2"); // requires perl to generate files
 
+    nasm.setChecks("nasm", true);
+
     if (nasm.getBuildSettings().TargetOS.isApple() && nasm.getCompilerType() != CompilerType::GNU) {
         nasm += c89;
-    //if (nasm.getBuildSettings().TargetOS.isApple()) {
-    //    nasm += c23;
-    //    nasm += c89;
+    //} else if (nasm.getCompilerType() == CompilerType::GNU) {
+        //nasm += c23;
+        //nasm += "HAVE_STDBIT_H"_def;
+        //nasm += "HAVE_STDC_LEADING_ZEROS"_def;
+    //} else if (nasm.getBuildSettings().TargetOS.Type != OSType::Windows) {
+        //nasm += c23;
     } else {
         nasm += c17;
     }
-    //nasm += c17;
-
-    nasm.setChecks("nasm", true);
 
     nasm +=
         ".*\\.h"_rr,
@@ -297,20 +299,51 @@ void build(Solution &s)
             nasm += "HAVE_HTOLE16"_def;
             nasm += "HAVE_HTOLE32"_def;
             nasm += "HAVE_HTOLE64"_def;
+
+            //nasm += "extern_inline=inline"_def;
+            nasm += "inline_prototypes="_def;
         } else {
+            //nasm += "HAVE_STDC_LEADING_ZEROS"_def;
+            nasm += "HAVE___BUILTIN_CLZ"_def;
+            nasm += "HAVE__BUILTIN_CLZLL"_def;
+
+            // in endian.h
+            nasm += "HAVE_HTOLE16"_def;
+            nasm += "HAVE_HTOLE32"_def;
+            nasm += "HAVE_HTOLE64"_def;
+
             //nasm += "HAVE_GNU_INLINE"_def;
-            //nasm += "HAVE_STDC_INLINE"_def;
+            nasm += "HAVE_STDC_INLINE"_def;
             //nasm.LinkOptions.push_back("-Wl,-z,muldefs");
             //nasm.LinkOptions.push_back("-Wl,-no_warn_duplicate_libraries");
             //nasm.LinkOptions.push_back("-Wl,--allow-multiple-definition");
+
+            //nasm += "extern_inline=inline"_def;
+            nasm += "inline_prototypes="_def;
         }
     } else {
+        nasm += "inline_prototypes="_def;
         nasm.pushFrontToFileOnce("nasmlib/file.c", R"(
 #ifdef _WIN32
 # include <windows.h>
 #endif
 )");
     }
+
+    /*
+#ifdef HAVE_STDC_INLINE
+# define extern_inline inline
+#elif defined(HAVE_GNU_INLINE)
+# define extern_inline extern inline
+#define inline_prototypes
+#else
+#define inline_prototypes
+#endif
+
+    # define extern_inline inline
+    # define extern_inline extern inline
+    #define inline_prototypes
+    */
 
     nasm.Public += "include"_id;
 
@@ -319,8 +352,10 @@ void build(Solution &s)
     nasm.setProgram(C);
 
     nasm.pushFrontToFileOnce("include/compiler.h", "#include <stdint.h>");
-    nasm.patch("include/compiler.h", "#ifdef HAVE_STDC_INLINE", "#if 0");
-    nasm.patch("include/compiler.h", "#elif defined(HAVE_GNU_INLINE)", "#elif 0");
+    //nasm.patch("include/compiler.h", "#ifdef HAVE_STDC_INLINE", "#if 0");
+    //nasm.patch("include/compiler.h", "#elif defined(HAVE_GNU_INLINE)", "#elif 0");
+    nasm.patch("include/compiler.h", "# define extern_inline", "//#define extern_inline");
+    nasm.patch("include/compiler.h", "# define inline_prototypes", "//#define inline_prototypes");
     //nasm.patch("include/compiler.h", "|| !HAVE_DECL_", "|| 0\n//!HAVE_DECL_");
     //nasm.patch("include/compiler.h", "&& !HAVE_DECL_", "&& 1\n//!HAVE_DECL_");
 
