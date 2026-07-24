@@ -1,10 +1,16 @@
 #pragma sw header on
 
 auto use_system_perl(auto &t) {
-    return false
+    bool b = false
         || ::sw::getHostOS().isApple()
         || t.getBuildSettings().TargetOS.Type == OSType::Linux
     ;
+    //static std::once_flag f;
+    //std::call_once(f, [&]() {
+    //    if (b)
+    //        std::cerr << "using system perl\n";
+    //});
+    return b;
 }
 auto make_perl_command(auto &t) {
     auto perl = "org.sw.demo.perl.perl"_dep;
@@ -31,6 +37,13 @@ auto add_perl_dependency(auto &t, auto &&c, auto &&dep) {
 }
 
 #pragma sw header off
+
+auto use_system_miniperl(auto &t) {
+    bool b = false
+        || t.getBuildSettings().TargetOS.Type == OSType::Linux
+    ;
+    return b;
+}
 
 static std::vector<path> &perl_dirs1() {
     static std::vector<path> paths {
@@ -260,6 +273,16 @@ void build(Solution &s)
         //: (Library &)p.addTarget<StaticLibrary>("lib")
         ;
     auto &mp = p.addTarget<PerlExecutable>("miniperl");
+
+    auto make_miniperl_command = [&](auto &t) {
+        auto c = t.addCommand();
+        if (use_system_miniperl(t)) {
+            c << cmd::prog("perl");
+        } else {
+            c << cmd::prog(mp);
+        }
+        return c;
+    };
 
     auto config_sh = lib.BinaryDir / "config.sh";
 
@@ -571,8 +594,7 @@ void build(Solution &s)
             out = t.BinaryDir / fn;
         }
         out += ".c";
-        auto c = t.addCommand();
-        c << cmd::prog(mp);
+        auto c = make_miniperl_command(t);
         c << cmd::wdir(out.parent_path());
         path p{fn};
         //c << cmd::wdir(p.is_absolute() ? p.parent_path() : t.SourceDir / p.parent_path());
@@ -665,8 +687,7 @@ void build(Solution &s)
         perl.extra_paths.push_back((lib.BinaryDir / out).parent_path());
         if (lib.DryRun)
             return out;
-        auto c = lib.addCommand()
-            << cmd::prog(mp)
+        auto c = make_miniperl_command(lib)
             << cmd::wdir((lib.SourceDir / in).parent_path())
             << "-I" << lib.SourceDir / "lib"
             << "-I" << lib.BinaryDir
@@ -785,8 +806,7 @@ void build(Solution &s)
         {
             if (lib.getBuildSettings().TargetOS.Type == OSType::Windows)
             {
-               lib.addCommand()
-                    << cmd::prog(mp)
+               make_miniperl_command(lib)
                     << cmd::wdir(lib.SourceDir / "win32")
                     << "-I" << lib.SourceDir / "lib"
                     << cmd::in("win32/config_sh.PL")
@@ -844,8 +864,7 @@ void build(Solution &s)
                 lib.patch(make_patchnum_pl, "'lib/Config_git.pl'", "'"s + normalize_path(config_git_pl).string() + "'");
             }
 
-            lib.addCommand()
-                << cmd::prog(mp)
+            make_miniperl_command(lib)
                 << "-I" << lib.SourceDir / "lib"
                 << cmd::in(make_patchnum_pl)
                 << cmd::end()
@@ -859,8 +878,7 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "Porting/Glossary", lib.BinaryDir / "Porting/Glossary");
             }
 
-            lib.addCommand()
-                << cmd::prog(mp)
+            make_miniperl_command(lib)
                 << cmd::wdir(lib.BinaryDir)
                 << "-I" << lib.SourceDir
                 << "-I" << lib.SourceDir / "lib"
@@ -876,8 +894,7 @@ void build(Solution &s)
                 copy_file(lib.SourceDir / "write_buildcustomize.pl", lib.BinaryDir / "write_buildcustomize.pl");
                 lib.patch(lib.BinaryDir / "write_buildcustomize.pl", "my $file = 'lib/buildcustomize.pl';", std::format("my $file = '{}/lib/buildcustomize.pl';", normalize_path(lib.BinaryDir).string()));
             }
-            lib.addCommand()
-                << cmd::prog(mp)
+            make_miniperl_command(lib)
                 << "-I" << lib.SourceDir / "lib"
                 << "-f"
                 << cmd::in(lib.BinaryDir / "write_buildcustomize.pl")
@@ -885,8 +902,8 @@ void build(Solution &s)
                 << cmd::out("lib/buildcustomize.pl")
                 ;
 
-            auto perllibst = lib.addCommand();
-            perllibst << cmd::prog(mp)
+            auto perllibst = make_miniperl_command(lib);
+            perllibst
                 << cmd::wdir(lib.BinaryDir);
             fix_perl_path_old2(perllibst);
             fix_perl_path_old(perllibst);
@@ -898,8 +915,8 @@ void build(Solution &s)
                 << cmd::in(config_pm)
                 ;
 
-            /*auto perldll = lib.addCommand();
-            perldll << cmd::prog(mp)
+            /*auto perldll = make_miniperl_command(lib);
+            perldll
             << cmd::wdir(lib.SourceDir / "win32")
             << "-I" << lib.SourceDir / "lib"
             << cmd::in("makedef.pl")
@@ -918,8 +935,8 @@ void build(Solution &s)
             //PLATFORM=win32 -O1 -MD -Zi -DNDEBUG -GL -fp:precise -DWIN32 -D_CONSOLE -DNO_STRICT -DWIN64 -DCONSERVATIVE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS  -DPERL_TEXTMODE_SCRIPTS -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS  CCTYPE=MSVC141 TARG_DIR=..\ > perldll.def
 
             {
-                auto dyna = lib.addCommand();
-                dyna << cmd::prog(mp)
+                auto dyna = make_miniperl_command(lib);
+                dyna
                     //<< cmd::wdir(lib.SourceDir / "win32")
                     ;
                 fix_perl_path_old2(dyna);
@@ -1010,8 +1027,8 @@ writemain(\"perlmain.c", 'DynaLoader');
 
             //  -MExtUtils::Miniperl -e 'writemain(\"perlmain.c", @ARGV)' DynaLoader
 
-            auto makeperl = perl.addCommand();
-            makeperl << cmd::prog(mp) << cmd::wdir(perl.BinaryDir);
+            auto makeperl = make_miniperl_command(perl);
+            makeperl << cmd::wdir(perl.BinaryDir);
             fix_perl_path_old2(makeperl);
             fix_perl_path_old(makeperl);
             makeperl
@@ -1121,9 +1138,8 @@ writemain(\"perlmain.c", 'DynaLoader');
             for (auto &&f : d.fixup_filenames) {
                 lib.patch(dir / "Makefile.PL", f.from(), f.to(lib.SourceDir / dir));
             }
-            auto c = lib.addCommand();
+            auto c = make_miniperl_command(lib);
             c
-                << cmd::prog(mp)
                 << cmd::wdir(d.makefile_PL_wdir_source_dir ? lib.SourceDir / dir : lib.BinaryDir / dir)
                 << "-I" << lib.SourceDir / "lib"
                 << "-I" << lib.BinaryDir
@@ -1190,8 +1206,8 @@ writemain(\"perlmain.c", 'DynaLoader');
             auto ppport_pl = copy_and_patch(lib, "dist/Devel-PPPort/ppport_h.PL", "'ppport.h", "'"s + normalize_path(lib.BinaryDir / "ppport.h").string());
             lib.patch(ppport_pl, "\"ppport.h", "\""s + normalize_path(lib.BinaryDir / "ppport.h").string());
 
-            auto ppport = lib.addCommand();
-            ppport << cmd::prog(mp)
+            auto ppport = make_miniperl_command(lib);
+            ppport
                 << cmd::wdir(lib.BinaryDir / "dist/Devel-PPPort")
                 << "-I" << lib.SourceDir / "lib"
                 << "-I" << pport_pm.parent_path()
@@ -1223,9 +1239,8 @@ ucm/null.ucm
 ucm/ctrl.ucm
 )");
 
-        auto c = t.addCommand();
+        auto c = make_miniperl_command(t);
         c
-            << cmd::prog(mp)
             << cmd::wdir("cpan/Encode")
             << "-I" << lib.SourceDir / "lib"
             << "-I" << lib.BinaryDir
