@@ -1,7 +1,10 @@
 #pragma sw header on
 
 auto use_system_perl(auto &t) {
-    return ::sw::getHostOS().isApple();
+    return false
+        || ::sw::getHostOS().isApple()
+        || t.getBuildSettings().TargetOS.Type == OSType::Linux
+    ;
 }
 auto make_perl_command(auto &t) {
     auto perl = "org.sw.demo.perl.perl"_dep;
