@@ -38,6 +38,7 @@ auto add_perl_dependency(auto &t, auto &&c, auto &&dep) {
 
 #pragma sw header off
 
+// TODO: actualy we did not setup a config for linux
 auto use_system_miniperl(auto &t) {
     bool b = false
         || t.getBuildSettings().TargetOS.Type == OSType::Linux
@@ -475,6 +476,10 @@ void build(Solution &s)
                 } else {
                     setup_nvtype();
                 }
+                // TODO: actualy we did not setup a config for linux
+                if (t.getBuildSettings().TargetOS.Type == OSType::Linux) {
+                    // ...
+                }
                 if (t.getBuildSettings().TargetOS.isApple()) {
                     setup_nvtype();
 
@@ -554,6 +559,11 @@ void build(Solution &s)
                 lib.writeFileOnce(config_sh, s);
             }
             //mp.configureFile("Porting/config_H", "config.h");
+        }
+
+        // fix for miniperl build
+        if (mp.getBuildSettings().TargetOS.Type == OSType::Linux) {
+            mp.CompileOptions.push_back("-O0");
         }
 
         mp += "pub.egorpugin.primitives.response_file_handler"_dep;
