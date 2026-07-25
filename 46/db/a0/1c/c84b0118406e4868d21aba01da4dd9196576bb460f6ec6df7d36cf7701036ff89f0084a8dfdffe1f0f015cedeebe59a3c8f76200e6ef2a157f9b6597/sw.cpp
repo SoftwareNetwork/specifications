@@ -133,8 +133,9 @@ struct PerlExecutable : ExecutableTarget
     void setupCommand(builder::Command &c) const override
     {
         //c.use_response_files = false;
-        static auto path_delim = getBuildSettings().TargetOS.Type == OSType::Windows
-                                //|| getBuildSettings().TargetOS.Type == OSType::Mingw
+        auto &os = ::sw::getHostOS();
+        static auto path_delim = os.Type == OSType::Windows
+                                //|| os.Type == OSType::Mingw
                                 ? ";" : ":"
                                 ;
 
