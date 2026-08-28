@@ -88,6 +88,8 @@ void build(Solution &s) {
 
         //
         t += "src/sksl/.*"_rr;
+        t -= "src/sksl/lex/Main.cpp";
+
         t -= "src/sksl/codegen/SkSLWGSLValidator.cpp";
         t -= "src/sksl/codegen/SkSLSPIRVtoHLSL.cpp";
         t -= "src/sksl/codegen/SkSLSPIRVValidator.cpp";
