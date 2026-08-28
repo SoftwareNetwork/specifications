@@ -29,6 +29,9 @@ void build(Solution &s) {
         t += "src/sfnt/.*"_rr;
         t += "src/opts/.*"_rr;
         t += "src/lazy/.*"_rr;
+        t += "src/partition_alloc/.*"_rr;
+        t += "src/capture/.*"_rr; // -=?
+        t -= "src/gpu/.*"_rr;
 
         t += "src/utils/.*"_r;
         t += "src/utils/win/.*"_r;
@@ -40,12 +43,16 @@ void build(Solution &s) {
         t += "src/ports/.*"_rr;
         t -= "src/ports/SkOSFile_posix.cpp";
 
+        t -= "src/ports/SkFontMgr_fontconfig.cpp";
         t -= "src/ports/SkFontMgr_FontConfigInterface.cpp";
         t -= "src/ports/SkFontConfigInterface.cpp";
         t -= "src/ports/SkFontConfigInterface_direct.cpp";
         t -= "src/ports/SkFontConfigInterface_direct_factory.cpp";
+        //t.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig"_dep;
 
         t -= "src/ports/SkFontHost_FreeType.cpp";
+        t -= "src/ports/SkFontHost_FreeType_common.cpp";
+        //t.Public += "org.sw.demo.freetype"_dep;
 
         t -= "src/ports/SkImageGeneratorCG.cpp"; // mac
 
@@ -77,7 +84,7 @@ void build(Solution &s) {
         t -= "src/codec/SkCrabbyAvifCodec.cpp";
         t -= "src/codec/SkAvifCodec.cpp";
         t -= "src/codec/SkRawCodec.cpp";
-        t -= "src/codec/SkJpegCodec.cpp"; // jpeg turbo
+        t -= "src/codec/SkJpegCodec.cpp"; // jpeg turbo?
 
         //
         t += "src/sksl/.*"_rr;
@@ -88,16 +95,26 @@ void build(Solution &s) {
         t -= "src/sksl/SkSLModuleDataDefault.cpp";
         t -= "src/sksl/SkSLGraphiteModules.cpp";
 
-        t += "."_idir;
+        t += "SK_CODEC_DECODES_PNG_WITH_LIBPNG"_def;
+        //t += "SK_CODEC_DECODES_JPEG"_def; // static only
+        t += "SK_CODEC_DECODES_WEBP"_def;
+        //t += "SK_CODEC_DECODES_GIF"_def;
+        t += "SK_CODEC_DECODES_ICO"_def;
+        t += "SK_CODEC_DECODES_BMP"_def;
+        t += "SK_CODEC_DECODES_WBMP"_def;
+        //t += "SK_CODEC_DECODES_AVIF"_def;
+        //t += "SK_CODEC_DECODES_JPEGXL"_def;
+
+        t.Public += "."_idir;
         //t.Public += "include"_idir;
 
         t.Public += skcms;
 
-        t.Public += "org.sw.demo.freedesktop.fontconfig.fontconfig"_dep;
-        t.Public += "org.sw.demo.freetype"_dep;
         t.Public += "org.sw.demo.webmproject.webp"_dep;
         t.Public += "org.sw.demo.jpeg"_dep;
         t.Public += "org.sw.demo.jxl"_dep;
+        t.Public += "org.sw.demo.glennrp.png"_dep;
+        t.Public += "org.sw.demo.expat"_dep;
 
         // win32
         t.Public += "WIN32_LEAN_AND_MEAN"_def;
