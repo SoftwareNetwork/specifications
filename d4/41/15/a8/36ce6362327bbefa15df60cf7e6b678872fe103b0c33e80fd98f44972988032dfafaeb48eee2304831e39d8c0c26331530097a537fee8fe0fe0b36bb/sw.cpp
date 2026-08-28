@@ -95,6 +95,15 @@ void build(Solution &s) {
         t -= "src/sksl/SkSLModuleDataDefault.cpp";
         t -= "src/sksl/SkSLGraphiteModules.cpp";
 
+        //
+        t += "src/encode/.*"_rr;
+        t -= "src/encode/SkPngRustEncoderImpl.cpp";
+        t -= "src/encode/SkJpeg.*"_rr;
+        t -= "src/encode/SkPngRustEncoder.cpp";
+        //
+        t -= "src/encode/SkPngEncoder_none.cpp";
+        t -= "src/encode/SkWebpEncoder_none.cpp";
+
         t += "SK_CODEC_DECODES_PNG_WITH_LIBPNG"_def;
         //t += "SK_CODEC_DECODES_JPEG"_def; // static only
         t += "SK_CODEC_DECODES_WEBP"_def;
