@@ -167,6 +167,7 @@ void build(Solution &s)
 
         libcurl.Public -= "org.sw.demo.openldap.ldap"_dep;
         if (libcurl.getBuildSettings().TargetOS.Type == OSType::Windows || libcurl.getBuildSettings().TargetOS.Type == OSType::Mingw) {
+            libcurl.Variables["USE_WIN32_LDAP"] = "1";
             libcurl.Public += "Wldap32.lib"_slib;
             libcurl.Public += "volatileaccessu.lib"_slib;
         } else {
@@ -272,6 +273,13 @@ void build(Solution &s)
         libcurl.Variables["CURL_OS"] = "\"CURL_OS sw\"";
         libcurl.Variables["CURL_EXTERN_SYMBOL"] = "SW_EXPORT";
 
+        if (libcurl.getBuildSettings().TargetOS.Arch == ArchType::x86_64 || libcurl.getBuildSettings().TargetOS.Arch == ArchType::aarch64) {
+            libcurl.Variables["ssize_t"] = "int64_t";
+        } else {
+            libcurl.Variables["ssize_t"] = "int";
+        }
+
+        libcurl += "HAVE_CONFIG_H"_def;
         libcurl.configureFile("lib/curl_config-cmake.h.in", "curl_config.h");
 
         //libcurl.patch("lib/vtls/sectransp.c", "SecTrustEvaluateAsync", "SecTrustEvaluateWithError");
