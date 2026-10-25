@@ -38,6 +38,10 @@ void build(Solution &s)
             ;
 
         crypto +=
+            "crypto/.*\\.inc"_rr,
+            "include/.*\\.inc"_rr,
+            "providers/.*\\.inc"_rr,
+
             "crypto/.*\\.[hc]"_rr,
             //"engines/.*\\.[hc]"_rr,
             "providers/.*\\.[hc]"_rr,
@@ -160,6 +164,7 @@ void build(Solution &s)
             auto c = perl_command();
             c << "Configure";
             c << cmd::out("configdata.pm", cmd::Prefix{"--configdata_outname="});
+            c << "-no-tests";
             // during cross compilation Configure cannot determine correct config
             if (!win_or_mingw) {
                 auto os = "linux"s;
