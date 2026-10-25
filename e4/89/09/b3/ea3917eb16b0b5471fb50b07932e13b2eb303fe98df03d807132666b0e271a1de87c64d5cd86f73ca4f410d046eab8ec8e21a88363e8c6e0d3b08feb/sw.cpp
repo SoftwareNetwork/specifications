@@ -202,6 +202,16 @@ void build(Solution &s)
             c.addRuntimeDependency(nasm);
         }
 
+        auto perl_command_with_configdata_pm = [&]() {
+            auto c = perl_command();
+            c << "-I" << crypto.BinaryDir; // for configdata.pm
+            //c.stopped = true;
+            //c << cmd::in("configdata.pm");
+            //c.stopped = false;
+            c.getCommand()->addInput(crypto.BinaryDir / "configdata.pm");
+            return c;
+        };
+
         // errs
         {
             t -= "crypto/err/openssl.ec";
@@ -210,7 +220,7 @@ void build(Solution &s)
                     if (f == "NONE"sv) {
                         return;
                     }
-                    auto c = perl_command();
+                    auto c = perl_command_with_configdata_pm();
                     c << cmd::in("util/mkerr.pl");
                     c << "-internal";
                     c << "-emit";
@@ -241,7 +251,7 @@ void build(Solution &s)
 
         // obj_mac.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/objects/objects.pl");
             c << "-a";
             c << cmd::in("crypto/objects/obj_compat.h");
@@ -252,7 +262,7 @@ void build(Solution &s)
         }
         // obj_dat.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/objects/obj_dat.pl");
             c << cmd::in("openssl/obj_mac.h");
             c << cmd::end();
@@ -262,7 +272,7 @@ void build(Solution &s)
         }
         // obj_xref.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/objects/objxref.pl");
             c << cmd::in("crypto/objects/obj_mac.num");
             c << cmd::in("crypto/objects/obj_xref.txt");
@@ -271,29 +281,28 @@ void build(Solution &s)
         }
         // bn_prime.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/bn/bn_prime.pl");
             c << cmd::end();
             c << cmd::std_out("bn_prime.h");
         }
         // conf_def.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/conf/keysets.pl");
             c << cmd::end();
             c << cmd::std_out("conf_def.h");
         }
         // charmap.h
         {
-            auto c = perl_command();
+            auto c = perl_command_with_configdata_pm();
             c << cmd::in("crypto/asn1/charmap.pl");
             c << cmd::end();
             c << cmd::std_out("charmap.h");
         }
 
         auto generate = [&](const std::string &f) {
-            auto c = perl_command();
-            c << "-I" << crypto.BinaryDir; // for configdata.pm
+            auto c = perl_command_with_configdata_pm();
             c << "-Mconfigdata";
             c << "-MOpenSSL::paramnames";
             c << cmd::in("util/dofile.pl");
@@ -303,7 +312,6 @@ void build(Solution &s)
             c << cmd::in("util/perl/OpenSSL/paramnames.pm");
             c << cmd::std_out(path{f}.lexically_relative("include"));
             c << cmd::end();
-            c << cmd::in("configdata.pm");
             // /usr/bin/perl "-I." "-Mconfigdata" "util/dofile.pl" "-oMakefile" include/crypto/bn_conf.h.in > include/crypto/bn_conf.h
             // /usr/bin/perl "-I." "-Iutil/perl" "-Mconfigdata" "-MOpenSSL::paramnames" "util/dofile.pl" "-oMakefile" include/openssl/core_names.h.in > include/openssl/core_names.h
         };
@@ -316,8 +324,7 @@ void build(Solution &s)
                 out = out.substr(p + inc.size());
             }
 
-            auto c = perl_command();
-            c << "-I" << crypto.BinaryDir; // for configdata.pm
+            auto c = perl_command_with_configdata_pm();
             c << "-I" << crypto.SourceDir / "providers/common/der";
             c << "-Mconfigdata";
             c << "-Moids_to_c";
@@ -327,7 +334,6 @@ void build(Solution &s)
             c << cmd::end();
             c << cmd::std_out(out);
             c << cmd::end();
-            c << cmd::in("configdata.pm");
             // /usr/bin/perl "-I." "-Iproviders/common/der" "-Mconfigdata" "-Mconfigdata" "-Mconfigdata" "-Moids_to_c" "util/dofile.pl" "-oMakefile" providers/common/der/der_digests_gen.c.in > providers/common/der/der_digests_gen.c
         };
         for (auto &&i : {
