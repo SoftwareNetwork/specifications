@@ -1,0 +1,411 @@
+<h1 id="rapid-yaml">Rapid YAML</h1>
+<p><a
+href="https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt"><img
+src="https://img.shields.io/badge/License-MIT-green.svg"
+alt="MIT Licensed" /></a> <a
+href="https://github.com/biojppm/rapidyaml/releases"><img
+src="https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&amp;include_prereleases&amp;label=release%20&amp;sort=semver"
+alt="release" /></a>
+<!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml) -->
+<a href="https://codecov.io/gh/biojppm/rapidyaml"><img
+src="https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master"
+alt="Codecov" /></a> <a
+href="https://rapidyaml.readthedocs.io/latest/?badge=latest"><img
+src="https://readthedocs.org/projects/rapidyaml/badge/?version=latest"
+alt="Documentation Status" /></a></p>
+<!-- [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/) -->
+<p>Or ryml, for short. ryml is a C++ library to parse and emit YAML, and
+do it fast, on everything from x64 to bare-metal chips without operating
+system.</p>
+<p>The library is fully conformant to the YAML 1.2 spec, and passes 100%
+of the cases in the YAML test suite. The parser is state-machine based
+and not recursive. No known vulnerabilities exist. The code is robust
+and extremely tested and fuzzed.</p>
+<p>ryml parses both read-only and in-place source buffers; the resulting
+tree holds only views to sub-ranges of the source buffer. No string
+copies or duplications are done, and no virtual functions are used.
+Unlike parsing models that build heavy dictionary trees, ryml parses
+data into a flat, index-based data tree, making it highly efficient for
+massive datasets, and bare-metal systems.</p>
+<p>With the tree, (de)serialization happens only at your direct request,
+after parsing / before emitting. Internally, the tree representation
+stores only string views and assumes nothing on user types. And it is
+not just parsing or emitting which is fast; the serialization is
+extremely fast, in many cases faster than the fastest C++ facilities
+like <code>std::to_chars()</code>. ryml makes it easy and fast to read
+and modify the data tree.</p>
+<p>ryml can use custom global and per-tree memory allocators and error
+handler callbacks, and is exception-agnostic. ryml provides a default
+implementation for the allocator (using <code>std::malloc()</code>) and
+error handlers (using using either exceptions, <code>longjmp()</code> or
+<code>std::abort()</code>), but you can opt out and provide your own
+memory allocation and eg, exception-throwing callbacks.</p>
+<p>ryml does not depend on the STL, ie, it does not use any std
+container as part of its data structures, but it can serialize and
+deserialize these containers into the data tree. ryml ships with parts
+of <a href="https://github.com/biojppm/c4core">c4core</a>, a small C++
+utilities multiplatform library, but you can ignore the in-source
+version of c4core and use a custom or system-installed c4core
+version.</p>
+<p>ryml is written in C++11, and compiles cleanly with: * Visual Studio
+2015 and later * clang++ 3.9 and later * g++ 4.8 and later * Intel
+Compiler</p>
+<p>ryml’s <a href="https://github.com/biojppm/rapidyaml/actions">CI
+pipeline is merciless</a> and extremely demanding, covering Linux,
+Windows and MacOS. The tests include analysing ryml with valgrind,
+clang-tidy, and gcc/clang sanitizers (asan, ubsan, lsan), and cover most
+architectures: x64, x86, wasm (emscripten), aarch64, armv7, armv6,
+armv5, armv4, loongarch64, mips, mipsel, mips64, mips64el, riscv64,
+s390x, ppc, ppc64, ppc64le and sparc64. ryml also <a
+href="https://github.com/biojppm/rapidyaml/issues/193">runs in
+bare-metal</a>.</p>
+<p>ryml is <a href="https://pypi.org/project/rapidyaml/">available in
+Python</a> (secondary repo is <a
+href="https://github.com/biojppm/rapidyaml-python">rapidyaml-python</a>),
+and can very easily be compiled to JavaScript through emscripten (see
+below).</p>
+<p>See also <a
+href="https://github.com/biojppm/rapidyaml/tree/master/changelog">the
+changelog</a> and <a
+href="https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md">the
+roadmap</a>.</p>
+<!-- endpythonreadme -->
+<h2 id="license">License</h2>
+<p>ryml is permissively licensed under the <a href="LICENSE.txt">MIT
+license</a>.</p>
+<h2 id="yaml-standard-conformance">YAML standard conformance</h2>
+<p>ryml is fully conformant to the YAML specification, and it passes all
+of the cases in the YAML test suite. There are some minor deliberate
+deviations in default behavior; <a
+href="https://rapidyaml.readthedocs.io/latest/sphinx_yaml_standard.html">refer
+to the relevant page</a> for more information.</p>
+<h2 id="is-it-rapid">Is it rapid?</h2>
+<p>Talk is cheap, so here are some performance plots with <a
+href="./bm/cases/travis.yml">an example yaml file</a> using <a
+href="./bm/bm_parse.cpp">parse</a> and <a
+href="./bm/bm_emit.cpp">emit</a> benchmarks, comparing ryml with <a
+href="https://github.com/jbeder/yaml-cpp">yamlcpp</a>, <a
+href="https://github.com/yaml/libyaml">libyaml</a> and <a
+href="https://github.com/pantoniou/libfyaml">fyaml</a> (click the image
+to see the data):</p>
+<p><a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-travis.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-travis-mega_bytes_per_second.png?raw=true" width="400" height="314"></a>
+<a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-travis.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-travis-mega_bytes_per_second.png?raw=true" width="400" height="314"></a></p>
+<p>To prove that this is not coincidence for a particular file, here are
+scatter plots across YAML files with different styles and sizes. The
+ryml variants are <code>ryml_yaml_inplace_reuse_reserve</code> and
+<code>ryml_yaml_str_reserve</code> from the plots above (again, click
+the image to see the data):</p>
+<p><a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-scatter-mega_bytes_per_second.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-scatter-mega_bytes_per_second-vals.png?raw=true" width="400" height="314"></a>
+<a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-scatter-mega_bytes_per_second.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-scatter-mega_bytes_per_second-vals.png?raw=true" width="400" height="314"></a>
+<br>
+<a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-scatter-mega_bytes_per_second.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-parse-scatter-mega_bytes_per_second-rel.png?raw=true" width="400" height="314"></a>
+<a href="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-scatter-mega_bytes_per_second.txt"><img src="https://github.com/biojppm/rapidyaml-data/blob/master/bm/results/0.16.0-pre/linux-release/ryml-bm-emit-scatter-mega_bytes_per_second-rel.png?raw=true" width="400" height="314"></a></p>
+<p>In absolute terms, ryml parses at ~200MB/s and emits at ~600MB/s, and
+is generally 30x (parse) / 150x (emit) faster than yamlcpp, and never
+less than 10x (parse) / 50x (emit). These are stark numbers, and justify
+the library name. For more details, <a
+href="https://rapidyaml.readthedocs.io/latest/sphinx_is_it_rapid.html">refer
+to this page</a>.</p>
+<h3 id="json-performance">JSON performance</h3>
+<p>ryml is also among the fastest JSON handlers. It may not be the
+fastest, but is well ahead of the pack; here are some performance
+results. The benchmark code is the same as above, and it is reading a <a
+href="./bm/cases/compile_commands.json">compile_commands.json</a> file.
+The json libraries are <a
+href="https://github.com/Tencent/rapidjson">rapidjson</a>, <a
+href="https://github.com/chadaustin/sajson">sajson</a>, <a
+href="https://github.com/open-source-parsers/jsoncpp">jsoncpp</a> and <a
+href="https://github.com/nlohmann/json">nlohmann</a>:</p>
+<table>
+<tr>
+<th>
+Parse performance
+</th>
+<th>
+Emit performance
+</th>
+</tr>
+<tr>
+<td>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">parse</th>
+<th style="text-align: right;">MB/s</th>
+<th style="text-align: right;">MB/s(x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">ryml_json</td>
+<td style="text-align: right;">908.00</td>
+<td style="text-align: right;">40.31x</td>
+</tr>
+<tr>
+<td style="text-align: left;">ryml_yaml</td>
+<td style="text-align: right;">881.58</td>
+<td style="text-align: right;">39.13x</td>
+</tr>
+<tr>
+<td style="text-align: left;">libyaml_arena</td>
+<td style="text-align: right;">135.06</td>
+<td style="text-align: right;">6.00x</td>
+</tr>
+<tr>
+<td style="text-align: left;">libfyaml_arena</td>
+<td style="text-align: right;">149.15</td>
+<td style="text-align: right;">6.62x</td>
+</tr>
+<tr>
+<td style="text-align: left;">yamlcpp_arena</td>
+<td style="text-align: right;">22.53</td>
+<td style="text-align: right;">1.00x</td>
+</tr>
+<tr>
+<td style="text-align: left;">rapidjson_arena</td>
+<td style="text-align: right;">756.93</td>
+<td style="text-align: right;">33.60x</td>
+</tr>
+<tr>
+<td style="text-align: left;">rapidjson_inplace</td>
+<td style="text-align: right;">1741.62</td>
+<td style="text-align: right;">77.31x</td>
+</tr>
+<tr>
+<td style="text-align: left;">sajson_arena</td>
+<td style="text-align: right;">592.57</td>
+<td style="text-align: right;">26.30x</td>
+</tr>
+<tr>
+<td style="text-align: left;">sajson_inplace</td>
+<td style="text-align: right;">599.41</td>
+<td style="text-align: right;">26.61x</td>
+</tr>
+<tr>
+<td style="text-align: left;">jsoncpp_arena</td>
+<td style="text-align: right;">298.60</td>
+<td style="text-align: right;">13.25x</td>
+</tr>
+<tr>
+<td style="text-align: left;">nlohmann_arena</td>
+<td style="text-align: right;">197.17</td>
+<td style="text-align: right;">8.75x</td>
+</tr>
+</tbody>
+</table>
+</td>
+<td>
+<table>
+<thead>
+<tr>
+<th>emit</th>
+<th style="text-align: right;">MB/s</th>
+<th style="text-align: right;">MB/s(x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ryml_yaml_str</td>
+<td style="text-align: right;">805.03</td>
+<td style="text-align: right;">128.36x</td>
+</tr>
+<tr>
+<td>ryml_json_str</td>
+<td style="text-align: right;">1034.93</td>
+<td style="text-align: right;">165.01x</td>
+</tr>
+<tr>
+<td>fyaml_str</td>
+<td style="text-align: right;">425.42</td>
+<td style="text-align: right;">67.83x</td>
+</tr>
+<tr>
+<td>yamlcpp</td>
+<td style="text-align: right;">6.27</td>
+<td style="text-align: right;">1.00x</td>
+</tr>
+<tr>
+<td>rapidjson</td>
+<td style="text-align: right;">751.47</td>
+<td style="text-align: right;">119.82x</td>
+</tr>
+<tr>
+<td>jsoncpp</td>
+<td style="text-align: right;">562.65</td>
+<td style="text-align: right;">89.71x</td>
+</tr>
+<tr>
+<td>nlohmann</td>
+<td style="text-align: right;">299.40</td>
+<td style="text-align: right;">47.74x</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</table>
+<p>So ryml beats most json parsers at their own game, with the only
+exception of rapidjson. As for emitting, rapidyaml is hands-down the
+fastest, exceeding all JSON libraries. Even parsing full YAML is at
+~200MB/s, which is still in the JSON performance ballpark, albeit at its
+lower end. This is something to be proud of, as the YAML specification
+is much more complex than JSON: <a
+href="https://www.arp242.net/yaml-config.html#its-pretty-complex">23449
+vs 1969 words</a>.</p>
+<h3 id="serialization-performance">Serialization performance</h3>
+<p>Serialization speed also matters for overall speed. For
+(de)serialization ryml uses the <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__charconv.html">charconv
+facilities</a> from <a
+href="https://github.com/biojppm/c4core">c4core</a>; these functions are
+blazing fast, and generally outperform the fastest equivalent facilities
+in the standard library by a significant margin. Refer to its <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__charconv.html">documentation</a>.
+For example, here are some results for <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__xtoa.html"><code>c4::xtoa&lt;int64&gt;()</code></a>:</p>
+<table>
+<tr>
+<th>
+gcc 12.1
+</th>
+<th>
+Visual Studio 2019
+</th>
+</tr>
+<tr>
+<td>
+<p><a href="https://github.com/biojppm/c4core/blob/master/doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png?raw=true"><img src="https://github.com/biojppm/c4core/blob/master/doc/img/linux-x86_64-gxx12.1-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png?raw=true" width="400" height="314"></a></p>
+</td>
+<td>
+<p><a href="https://github.com/biojppm/c4core/blob/master/doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png?raw=true"><img src="https://github.com/biojppm/c4core/blob/master/doc/img/windows-x86_64-vs2019-Release/c4core-bm-charconv-xtoa-mega_bytes_per_second-i64.png?raw=true" width="400" height="314"></a></p>
+</td>
+</tr>
+</table>
+<table style="width:8%;">
+<colgroup>
+<col style="width: 8%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: center;">## Companies and institutions using
+rapidyaml</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">## Quick start</td>
+</tr>
+<tr>
+<td style="text-align: center;">If you’re wondering whether ryml’s speed
+comes at a convenience cost, you need not. ryml was written with easy
+and efficient usage in mind:</td>
+</tr>
+<tr>
+<td style="text-align: center;">```cpp // Parse YAML code in place,
+potentially mutating the buffer: char yml_buf[] = “{foo: 1, bar: [2, 3],
+john: doe}”; ryml::Tree tree = ryml::parse_in_place(yml_buf);</td>
+</tr>
+<tr>
+<td style="text-align: center;">// read from the tree: ryml::NodeRef bar
+= tree[“bar”]; CHECK(bar[0].val() == “2”); CHECK(bar[1].val() == “3”);
+CHECK(bar[0].val().str == yml_buf + 15); // points at the source buffer
+CHECK(bar[1].val().str == yml_buf + 18);</td>
+</tr>
+<tr>
+<td style="text-align: center;">// deserializing: int bar0 = 0, bar1 =
+0; bar[0].load(&amp;bar0); // also checks the node is readable, and
+conversion succeeded bar[1].load(&amp;bar1); // see also .deserialize()
+CHECK(bar0 == 2); CHECK(bar1 == 3);</td>
+</tr>
+<tr>
+<td style="text-align: center;">// serializing: bar[0].save(10); //
+creates a string in the tree’s arena bar[1].save(11); // see also
+.set_serialized() CHECK(bar[0].val() == “10”); CHECK(bar[1].val() ==
+“11”);</td>
+</tr>
+<tr>
+<td style="text-align: center;">// add nodes
+tree[“new”].set_val(“node”); bar.append_child().save(12);
+CHECK(bar[2].val() == “12”);</td>
+</tr>
+<tr>
+<td style="text-align: center;">// emit tree std::string expected =
+“{foo: 1,bar: [10,11,12],john: doe,new: node}”; // emit tree to
+std::string CHECK(ryml::emitrs_yaml<std::string>(tree) == expected); //
+emit tree to FILE* ryml::emit_yaml(tree, stdout); printf(“”); // emit
+tree to ostream std::cout &lt;&lt; tree &lt;&lt; “”;</td>
+</tr>
+<tr>
+<td style="text-align: center;">// emit node ryml::ConstNodeRef foo =
+tree[“foo”]; expected = “foo: 1”; // emit node to std::string
+CHECK(ryml::emitrs_yaml<std::string>(foo) == expected); // emit node to
+FILE* ryml::emit_yaml(foo, stdout); // emit node to ostream std::cout
+&lt;&lt; foo; ```</td>
+</tr>
+<tr>
+<td style="text-align: center;">&gt; [!TIP] &gt; Do see <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart.html">the
+quickstart sample</a>, which covers everything in the library. In
+particular, do not start writing code without first <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/group__doc__quickstart__overview.html">reading
+the quickstart overview</a>.</td>
+</tr>
+<tr>
+<td style="text-align: center;">## Using ryml in your project</td>
+</tr>
+<tr>
+<td style="text-align: center;">There are <a
+href="https://rapidyaml.readthedocs.io/latest/sphinx_using.html">many
+ways you can use ryml in your project</a>:</td>
+</tr>
+<tr>
+<td style="text-align: center;">- As a library with cmake: - using
+<code>add_subdirectory()</code> - using <code>fetch_content()</code> -
+using <code>find_package()</code>, via system install or using package
+managers (eg, <a href="https://github.com/cpm-cmake/cpm.cmake">CPM</a>,
+<a href="https://github.com/conan-io/conan">Conan</a>, <a
+href="https://vcpkg.io/en/">vcpkg</a>, etc) - Amalgamated
+(customizable): - Single-header file - Single-header file +
+single-source file: faster to compile than single header - There is a <a
+href="./tools/amalgamate.py">tool to amalgamate</a> which you can use to
+customize the result, by opting in or out of different features, or
+picking a custom commit</td>
+</tr>
+<tr>
+<td style="text-align: center;">### CMake build settings for ryml</td>
+</tr>
+<tr>
+<td style="text-align: center;">See the <a
+href="https://rapidyaml.readthedocs.io/latest/sphinx_cmake_build_settings.html">relevant
+documentation page</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="other-languages">Other languages</h2>
+<p>One of the aims of ryml is to provide an efficient YAML API for other
+languages. JavaScript is fully available, and there is already a cursory
+implementation for Python using only the low-level API. After ironing
+out the general approach, other languages are likely to follow suit.</p>
+<h3 id="event-buffer-int-handler">Event buffer int handler</h3>
+<p>Recently we added an optional parser event handler. This enables
+parsing the YAML source into a linear buffer of integers, which contains
+events encoded as bitmasks, interleaved with strings encoded as an
+offset (from the beginning of the source buffer) and length.</p>
+<p>This handler is fully compliant (ie it can handle container keys,
+unlike the ryml tree). It is meant to be used in other programming
+languages while also minimizing speed-killing inter-language calls, by
+creating a full linear representation of the YAML tree that can be
+processed at once in the target programming language.</p>
+<p>You can find the ints event handler in the <a
+href="https://github.com/biojppm/rapidyaml/tree/master/src_extra"><code>src_extra</code>
+source folder</a>. See the Detailed Description in <a
+href="https://rapidyaml.readthedocs.io/latest/doxygen/structc4_1_1yml_1_1extra_1_1EventHandlerInts.html">its
+doxygen documentation</a> for details on how to use it, and how to
+process the event array.</p>
+<h3 id="javascript">JavaScript</h3>
+<p>A JavaScript+WebAssembly port is available, compiled through <a
+href="https://emscripten.org/">emscripten</a>.</p>
+<h3 id="python">Python</h3>
+<p>There is a blazing fast rapidyaml Python package; it now lives in its
+own <a href="https://github.com/biojppm/rapidyaml-python">dedicated
+repo</a>.</p>
