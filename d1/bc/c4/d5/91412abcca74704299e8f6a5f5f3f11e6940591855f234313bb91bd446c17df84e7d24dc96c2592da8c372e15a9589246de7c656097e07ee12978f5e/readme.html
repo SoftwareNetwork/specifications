@@ -1,0 +1,483 @@
+<h1 id="xxhash---extremely-fast-hash-algorithm">xxHash - Extremely fast
+hash algorithm</h1>
+<p><a href="https://xxhash.com/">Website</a> · <a href="xxhash.h">API
+documentation</a> · <a href="cli/xxhsum.1.md"><code>xxhsum</code>
+manual</a> · <a href="doc/xxhash_spec.md">Format specification</a></p>
+<p>xxHash is an extremely fast non-cryptographic hash algorithm, working
+at RAM speed limits. It is highly portable and produces identical hashes
+on all platforms, including little- and big-endian systems. Once
+finalized, algorithm outputs remain stable across xxHash releases.</p>
+<p>The library includes the following algorithms:</p>
+<ul>
+<li>XXH32 generates 32-bit hashes, using 32-bit arithmetic.</li>
+<li>XXH64 generates 64-bit hashes, using 64-bit arithmetic.</li>
+<li>XXH3, available since v0.8.0, generates 64-bit or 128-bit hashes
+using vectorized arithmetic. The 128-bit variant is called XXH128.</li>
+</ul>
+<p>For new applications, <code>XXH3_64bits()</code> is the recommended
+default. Use <code>XXH3_128bits()</code> when a 128-bit hash is
+required.</p>
+<h2 id="benchmarks">Benchmarks</h2>
+<p>The benchmarked reference system uses an Intel i7-9700K CPU running
+Ubuntu x64 20.04. The <a href="tests/bench">open source benchmark
+program</a> is compiled with Clang v10.0 using <code>-O3</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Hash Name</th>
+<th style="text-align: right;">Width</th>
+<th style="text-align: right;">Bandwidth</th>
+<th style="text-align: right;">Small Data Velocity</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>XXH3</strong> (AVX2)</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">59.4 GB/s</td>
+<td style="text-align: right;">133.1</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>XXH128</strong> (AVX2)</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">57.9 GB/s</td>
+<td style="text-align: right;">118.1</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>XXH3</strong> (SSE2)</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">31.5 GB/s</td>
+<td style="text-align: right;">133.1</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>XXH128</strong> (SSE2)</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">29.6 GB/s</td>
+<td style="text-align: right;">118.1</td>
+<td></td>
+</tr>
+<tr>
+<td><em>memcpy</em>, from RAM</td>
+<td style="text-align: right;">N/A</td>
+<td style="text-align: right;">28.0 GB/s</td>
+<td style="text-align: right;">N/A</td>
+<td><em>for reference</em></td>
+</tr>
+<tr>
+<td>City64</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">22.0 GB/s</td>
+<td style="text-align: right;">76.6</td>
+<td></td>
+</tr>
+<tr>
+<td>T1ha2</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">22.0 GB/s</td>
+<td style="text-align: right;">99.0</td>
+<td>Slightly worse <a
+href="https://github.com/Cyan4973/xxHash/wiki/Collision-ratio-comparison#collision-study">collisions</a></td>
+</tr>
+<tr>
+<td>City128</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">21.7 GB/s</td>
+<td style="text-align: right;">57.7</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>XXH64</strong></td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">19.4 GB/s</td>
+<td style="text-align: right;">71.0</td>
+<td></td>
+</tr>
+<tr>
+<td>SpookyHash</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">19.3 GB/s</td>
+<td style="text-align: right;">53.2</td>
+<td></td>
+</tr>
+<tr>
+<td>Mum</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">18.0 GB/s</td>
+<td style="text-align: right;">67.0</td>
+<td>Slightly worse <a
+href="https://github.com/Cyan4973/xxHash/wiki/Collision-ratio-comparison#collision-study">collisions</a></td>
+</tr>
+<tr>
+<td><strong>XXH32</strong></td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">9.7 GB/s</td>
+<td style="text-align: right;">71.9</td>
+<td></td>
+</tr>
+<tr>
+<td>City32</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">9.1 GB/s</td>
+<td style="text-align: right;">66.0</td>
+<td></td>
+</tr>
+<tr>
+<td>Murmur3</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">3.9 GB/s</td>
+<td style="text-align: right;">56.1</td>
+<td></td>
+</tr>
+<tr>
+<td>SipHash</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">3.0 GB/s</td>
+<td style="text-align: right;">43.2</td>
+<td></td>
+</tr>
+<tr>
+<td>FNV64</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">1.2 GB/s</td>
+<td style="text-align: right;">62.7</td>
+<td>Poor avalanche properties</td>
+</tr>
+<tr>
+<td>Blake2</td>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">1.1 GB/s</td>
+<td style="text-align: right;">5.1</td>
+<td>Cryptographic</td>
+</tr>
+<tr>
+<td>SHA1</td>
+<td style="text-align: right;">160</td>
+<td style="text-align: right;">0.8 GB/s</td>
+<td style="text-align: right;">5.6</td>
+<td>Cryptographic but broken</td>
+</tr>
+<tr>
+<td>MD5</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">0.6 GB/s</td>
+<td style="text-align: right;">7.8</td>
+<td>Cryptographic but broken</td>
+</tr>
+</tbody>
+</table>
+<p>For current measurements on additional platforms, see the <a
+href="https://xxhash.com/#benchmarks">benchmarks on xxhash.com</a>.</p>
+<p>Note 1: Small data velocity is a <em>rough</em> evaluation of an
+algorithm’s efficiency on small data. For more detailed analysis, see
+the next section.</p>
+<p>Note 2: Some algorithms feature <em>faster than RAM</em> speed. They
+can only reach their full speed potential when input is already in CPU
+cache (L3 or better). Otherwise, they are limited by RAM speed.</p>
+<h3 id="small-data">Small data</h3>
+<p>Performance on large data is only one part of the picture. Hashing is
+also very useful in constructions like hash tables and bloom filters. In
+these use cases, it is common to hash many small inputs, sometimes only
+a few bytes long. An algorithm’s performance can be very different in
+such scenarios, since initialization and finalization become fixed
+costs. Branch misprediction also has a much greater impact.</p>
+<p>XXH3 has been designed for excellent performance on both long and
+small inputs, which can be observed in the following graph:</p>
+<figure>
+<img
+src="https://user-images.githubusercontent.com/750081/61976089-aedeab00-af9f-11e9-9239-e5375d6c080f.png"
+alt="XXH3, latency, random size" />
+<figcaption aria-hidden="true">XXH3, latency, random size</figcaption>
+</figure>
+<p>For a more detailed analysis, see the <a
+href="https://github.com/Cyan4973/xxHash/wiki/Performance-comparison#benchmarks-concentrating-on-small-data-">performance
+comparison on the wiki</a>.</p>
+<p><strong>xxHash is not a cryptographic hash function.</strong> Do not
+use it for signatures, password storage, or any other purpose that
+requires resistance to attacks.</p>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>release</td>
+<td><a
+href="https://github.com/Cyan4973/xxHash/actions?query=branch%3Arelease+"><img
+src="https://github.com/Cyan4973/xxHash/actions/workflows/ci.yml/badge.svg?branch=release"
+alt="Build Status" /></a></td>
+</tr>
+<tr>
+<td>dev</td>
+<td><a
+href="https://github.com/Cyan4973/xxHash/actions?query=branch%3Adev+"><img
+src="https://github.com/Cyan4973/xxHash/actions/workflows/ci.yml/badge.svg?branch=dev"
+alt="Build Status" /></a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="getting-started">Getting started</h2>
+<p>The default <code>make</code> target builds both the library and the
+<code>xxhsum</code> command line utility:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./xxhsum</span> <span class="at">-H3</span> README.md</span></code></pre></div>
+<p>The library can then be linked as <code>libxxhash</code>, or compiled
+directly from <code>xxhash.c</code>. For a header-only integration,
+define <code>XXH_INLINE_ALL</code> before including
+<code>xxhash.h</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define XXH_INLINE_ALL</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;xxhash.h&quot;</span></span></code></pre></div>
+<p>For CMake integration, see the <a href="build/cmake/README.md">CMake
+guide</a>. The <a href="cli/xxhsum.1.md"><code>xxhsum</code> manual</a>
+documents checksum generation, verification, benchmarking and advanced
+command line options.</p>
+<h3 id="example">Example</h3>
+<p>The simplest API hashes a contiguous block of memory in a single
+call:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stddef.h&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;xxhash.h&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>XXH64_hash_t hash_buffer<span class="op">(</span><span class="dt">const</span> <span class="dt">void</span><span class="op">*</span> buffer<span class="op">,</span> <span class="dt">size_t</span> size<span class="op">)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> XXH3_64bits<span class="op">(</span>buffer<span class="op">,</span> size<span class="op">);</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The API also supports incremental hashing of streams of unknown size.
+Complete single-shot and streaming examples are provided in the
+documented <a href="xxhash.h">API header</a>.</p>
+<h2 id="quality">Quality</h2>
+<p>Speed is not the only property that matters. For non-adversarial
+inputs, xxHash aims to produce a uniform distribution so that any subset
+of the output bits can spread entries evenly in a table or index. Like
+any fixed-width hash, it is still subject to collisions and the <a
+href="https://en.wikipedia.org/wiki/Birthday_problem">birthday
+paradox</a>.</p>
+<p>All variants successfully complete Austin Appleby’s <a
+href="https://www.google.com/search?q=SMHasher">SMHasher</a> test suite,
+providing a baseline measure of statistical quality. Additional tests
+that evaluate speed and collision properties more thoroughly are <a
+href="tests">also provided</a>.</p>
+<p>Finally, xxHash provides its own <a href="tests/collisions">massive
+collision tester</a>, able to generate and compare billions of hashes to
+test the limits of 64-bit hash algorithms. On this front too, xxHash
+features good results, in line with the <a
+href="https://en.wikipedia.org/wiki/Birthday_problem">birthday
+paradox</a>. A more detailed analysis is documented <a
+href="https://github.com/Cyan4973/xxHash/wiki/Collision-ratio-comparison">in
+the wiki</a>.</p>
+<h2 id="packages">Packages</h2>
+<p>xxHash is available from many package managers. With <a
+href="https://github.com/microsoft/vcpkg">vcpkg</a>, install the library
+with:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vcpkg</span> install xxhash</span></code></pre></div>
+<p>Add the <code>xxhsum</code> feature to install the command line
+utility as well:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vcpkg</span> install <span class="st">&quot;xxhash[xxhsum]&quot;</span></span></code></pre></div>
+<p>The current package versions available across distributions are
+tracked by <a
+href="https://repology.org/project/xxhash/versions">Repology</a>.</p>
+<p><a href="https://repology.org/project/xxhash/versions"><img
+src="https://repology.org/badge/vertical-allrepos/xxhash.svg"
+alt="Packaging status" /></a></p>
+<h2 id="advanced-build-options">Advanced build options</h2>
+<h3 id="library-macros">Library macros</h3>
+<p>The following macros can be set at compilation time to modify
+<code>libxxhash</code>’s behavior. They are generally disabled by
+default.</p>
+<ul>
+<li><code>XXH_INLINE_ALL</code>: Make all functions <code>inline</code>,
+implementation is directly included within <code>xxhash.h</code>.
+Inlining functions is beneficial for speed, notably for small keys. It’s
+<em>extremely effective</em> when key’s length is expressed as <em>a
+compile time constant</em>, with performance improvements observed in
+the +200% range . See <a
+href="https://fastcompression.blogspot.com/2018/03/xxhash-for-small-keys-impressive-power.html">this
+article</a> for details.</li>
+<li><code>XXH_PRIVATE_API</code>: same outcome as
+<code>XXH_INLINE_ALL</code>. Still available for legacy support. The
+name underlines that <code>XXH_*</code> symbol names will not be
+exported.</li>
+<li><code>XXH_STATIC_LINKING_ONLY</code>: gives access to internal state
+declaration, required for static allocation. Incompatible with dynamic
+linking, due to risks of ABI changes.</li>
+<li><code>XXH_NAMESPACE</code>: Prefixes all symbols with the value of
+<code>XXH_NAMESPACE</code>. This macro can only use compilable character
+set. Useful to evade symbol naming collisions, in case of multiple
+inclusions of xxHash’s source code. Client applications still use the
+regular function names, as symbols are automatically translated through
+<code>xxhash.h</code>.</li>
+<li><code>XXH_FORCE_ALIGN_CHECK</code>: Use a faster direct read path
+when input is aligned. This option can result in dramatic performance
+improvement on architectures unable to load memory from unaligned
+addresses when input to hash happens to be aligned on 32 or 64-bit
+boundaries. It is (slightly) detrimental on platform with good unaligned
+memory access performance (same instruction for both aligned and
+unaligned accesses). This option is automatically disabled on
+<code>x86</code>, <code>x64</code> and <code>aarch64</code>, and enabled
+on all other platforms.</li>
+<li><code>XXH_FORCE_MEMORY_ACCESS</code>: The default method
+<code>0</code> uses a portable <code>memcpy()</code> notation. Method
+<code>1</code> uses a gcc-specific <code>packed</code> attribute, which
+can provide better performance for some targets. Method <code>2</code>
+forces unaligned reads, which is not standard compliant, but might
+sometimes be the only way to extract better read performance. Method
+<code>3</code> uses a byteshift operation, which is best for old
+compilers which don’t inline <code>memcpy()</code> or big-endian systems
+without a byteswap instruction.</li>
+<li><code>XXH_CPU_LITTLE_ENDIAN</code>: By default, endianness is
+determined by a runtime test resolved at compile time. If, for some
+reason, the compiler cannot simplify the runtime test, it can cost
+performance. It’s possible to skip auto-detection and simply state that
+the architecture is little-endian by setting this macro to 1. Setting it
+to 0 states big-endian.</li>
+<li><code>XXH_ENABLE_AUTOVECTORIZE</code>: Auto-vectorization may be
+triggered for XXH32 and XXH64, depending on cpu vector capabilities and
+compiler version. Note: auto-vectorization tends to be triggered more
+easily with recent versions of <code>clang</code>. For XXH32, SSE4.1 or
+equivalent (NEON) is enough, while XXH64 requires AVX512. Unfortunately,
+auto-vectorization is generally detrimental to XXH performance. For this
+reason, the xxhash source code tries to prevent auto-vectorization by
+default. That being said, systems evolve, and this conclusion may
+change. For example, it has been reported that recent Zen4 cpus are more
+likely to improve performance with vectorization. Therefore, should you
+prefer or want to test vectorized code, you can enable this flag: it
+will remove the no-vectorization protection code, thus making it more
+likely for XXH32 and XXH64 to be auto-vectorized.</li>
+<li><code>XXH32_ENDJMP</code>: Switch multi-branch finalization stage of
+XXH32 by a single jump. This is generally undesirable for performance,
+especially when hashing inputs of random sizes. But depending on exact
+architecture and compiler, a jump might provide slightly better
+performance on small inputs. Disabled by default.</li>
+<li><code>XXH_IMPORT</code>: MSVC specific: should only be defined for
+dynamic linking, as it prevents linkage errors.</li>
+<li><code>XXH_NO_STDLIB</code>: Disable invocation of
+<code>&lt;stdlib.h&gt;</code> functions, notably <code>malloc()</code>
+and <code>free()</code>. <code>libxxhash</code>’s
+<code>XXH*_createState()</code> will always fail and return
+<code>NULL</code>. But one-shot hashing (like <code>XXH32()</code>) or
+streaming using statically allocated states still work as expected. This
+build flag is useful for embedded environments without dynamic
+allocation.</li>
+<li><code>XXH_memcpy</code>, <code>XXH_memset</code>,
+<code>XXH_memcmp</code> : redirect <code>memcpy()</code>,
+<code>memset()</code> and <code>memcmp()</code> to some user-selected
+symbol at compile time. Redirecting all 3 removes the need to include
+<code>&lt;string.h&gt;</code> standard library.</li>
+<li><code>XXH_NO_EXTERNC_GUARD</code>: When <code>xxhash.h</code> is
+compiled in C++ mode, removes the <code>extern "C" { .. }</code> block
+guard.</li>
+<li><code>XXH_DEBUGLEVEL</code> : When set to any value &gt;= 1, enables
+<code>assert()</code> statements. This (slightly) slows down execution,
+but may help finding bugs during debugging sessions.</li>
+</ul>
+<h3 id="binary-size-control">Binary size control</h3>
+<ul>
+<li><code>XXH_NO_XXH3</code> : removes symbols related to
+<code>XXH3</code> (both 64 &amp; 128 bits) from generated binary.
+<code>XXH3</code> is by far the largest contributor to
+<code>libxxhash</code> size, so it’s useful to reduce binary size for
+applications which do not employ <code>XXH3</code>.</li>
+<li><code>XXH_NO_LONG_LONG</code>: removes compilation of algorithms
+relying on 64-bit <code>long long</code> types which include
+<code>XXH3</code> and <code>XXH64</code>. Only <code>XXH32</code> will
+be compiled. Useful for targets (architectures and compilers) without
+64-bit support.</li>
+<li><code>XXH_NO_STREAM</code>: Disables the streaming API, limiting the
+library to single shot variants only.</li>
+<li><code>XXH_NO_INLINE_HINTS</code>: By default, xxHash uses
+<code>__attribute__((always_inline))</code> and
+<code>__forceinline</code> to improve performance at the cost of code
+size. Defining this macro to 1 will mark all internal functions as
+<code>static</code>, allowing the compiler to decide whether to inline a
+function or not. This is very useful when optimizing for smallest binary
+size, and is automatically defined when compiling with <code>-O0</code>,
+<code>-Os</code>, <code>-Oz</code>, or <code>-fno-inline</code> on GCC
+and Clang. It may also be required to successfully compile using
+<code>-Og</code>, depending on compiler version.</li>
+<li><code>XXH_SIZE_OPT</code>: <code>0</code>: default, optimize for
+speed <code>1</code>: default for <code>-Os</code> and <code>-Oz</code>:
+disables some speed hacks for size optimization <code>2</code>: makes
+code as small as possible, performance may cry</li>
+</ul>
+<h3 id="build-modifiers-specific-to-xxh3">Build modifiers specific to
+XXH3</h3>
+<ul>
+<li><code>XXH_VECTOR</code> : manually select a vector instruction set
+(default: auto-selected at compilation time). Available instruction sets
+are <code>XXH_SCALAR</code>, <code>XXH_SSE2</code>,
+<code>XXH_AVX2</code>, <code>XXH_AVX512</code>, <code>XXH_NEON</code>
+and <code>XXH_VSX</code>. Compiler may require additional flags to
+ensure proper support (for example, <code>gcc</code> on x86_64 requires
+<code>-mavx2</code> for <code>AVX2</code>, or <code>-mavx512f</code> for
+<code>AVX512</code>).</li>
+<li><code>XXH_PREFETCH_DIST</code> : select prefetching distance. For
+close-to-metal adaptation to specific hardware platforms. XXH3
+only.</li>
+<li><code>XXH_NO_PREFETCH</code> : disable prefetching. Some platforms
+or situations may perform better without prefetching. XXH3 only.</li>
+</ul>
+<h3 id="build-modifiers-for-the-xxhsum-cli">Build modifiers for the
+<code>xxhsum</code> CLI</h3>
+<ul>
+<li><code>XXH_1ST_SPEED_TARGET</code> : select an initial speed target,
+expressed in MiB/s, for the first speed test in benchmark mode.
+Benchmark will adjust the target at subsequent iterations, but the first
+test is made “blindly” by targeting this speed. Currently conservatively
+set to 10 MiB/s, to support very slow (emulated) platforms.</li>
+</ul>
+<h3 id="makefile-variables">Makefile variables</h3>
+<p>The following variables control runtime dispatch when building with
+<code>make</code>: - <code>DISPATCH=1</code> : use
+<code>xxh_x86dispatch.c</code> in the Command Line Interface
+<code>xxhsum</code>, selecting at runtime between <code>scalar</code>,
+<code>sse2</code>, <code>avx2</code> or <code>avx512</code> instruction
+sets. This option is only valid for <code>x86</code>/<code>x64</code>
+systems. It is enabled by default when an
+<code>x86</code>/<code>x64</code> target is detected. It can be
+forcefully turned off using <code>DISPATCH=0</code>. -
+<code>LIBXXH_DISPATCH=1</code> : enable the same runtime dispatch in
+both the static and dynamic <code>libxxhash</code> libraries. This
+option is only valid for <code>x86</code>/<code>x64</code> systems and
+is disabled by default. It is generally expected that library users will
+frequently hash short inputs, for which inlining is important and
+runtime dispatch may be detrimental, so this variable is disabled by
+default. It can nonetheless be explicitly selected. When enabled, the
+symbols declared in <code>xxh_x86dispatch.h</code> are included in the
+libraries and the header is installed. Applications must include this
+header to redirect the XXH3 entry points to their dispatched variants. -
+<code>NODE_JS=1</code> : When compiling <code>xxhsum</code> for Node.js
+with Emscripten, this links the <code>NODERAWFS</code> library for
+unrestricted filesystem access and patches <code>isatty</code> to make
+the command line utility correctly detect the terminal. This does make
+the binary specific to Node.js.</p>
+<h2 id="license">License</h2>
+<p>The library files <code>xxhash.c</code> and <code>xxhash.h</code> are
+licensed under the <a href="LICENSE">BSD 2-Clause License</a>. The
+<code>xxhsum</code> command line utility is licensed under <a
+href="cli/COPYING">GPLv2</a>.</p>
+<h2 id="other-programming-languages">Other programming languages</h2>
+<p>Beyond the C reference version, xxHash is also available from many
+different programming languages, thanks to great contributors. They are
+<a href="https://xxhash.com/#other-languages">listed on the xxHash
+website</a>.</p>
+<h2 id="special-thanks">Special thanks</h2>
+<ul>
+<li>Takayuki Matsuoka, aka <span class="citation"
+data-cites="t-mat">@t-mat</span>, for creating <code>xxhsum -c</code>
+and great support during early xxh releases</li>
+<li>Mathias Westerdahl, aka <span class="citation"
+data-cites="JCash">@JCash</span>, for introducing the first version of
+<code>XXH64</code></li>
+<li>Devin Hussey, aka <span class="citation"
+data-cites="easyaspi314">@easyaspi314</span>, for incredible low-level
+optimizations on <code>XXH3</code> and <code>XXH128</code></li>
+</ul>
