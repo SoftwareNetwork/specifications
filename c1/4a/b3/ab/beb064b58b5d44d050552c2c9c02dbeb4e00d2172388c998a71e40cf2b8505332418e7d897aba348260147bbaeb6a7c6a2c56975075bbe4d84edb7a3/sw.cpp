@@ -28,6 +28,7 @@ void build(Solution &s)
     t.Public += sw::Shared, "AWS_COMMON_USE_IMPORT_EXPORT"_d;
     if (t.getBuildSettings().TargetOS.Type == OSType::Windows)
     {
+        t += "source/platform_fallback_stubs/.*"_rr;
         t += "source/windows/.*"_rr;
         t += "source/arch/intel/msvc/.*"_r;
         t.Public += "WIN32"_def; // some libs still missing _WIN32 def and use WIN32
