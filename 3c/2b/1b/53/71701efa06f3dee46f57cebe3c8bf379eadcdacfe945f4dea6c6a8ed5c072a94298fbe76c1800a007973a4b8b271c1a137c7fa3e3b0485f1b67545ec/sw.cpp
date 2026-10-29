@@ -306,6 +306,11 @@ thread_local absl::BitGen SharedBitGen::bit_gen_ = [](){
         t -= "src/cpp/ext/otel.*"_rr;
         t -= "src/cpp/ext/csm.*"_rr;
 
+        t -= "src/cpp/ext/proto_server_reflection.cc";
+        t -= "src/cpp/ext/proto_server_reflection_plugin.cc";
+        t -= "src/cpp/server/channelz/channelz_service.cc";
+        t -= "src/cpp/server/channelz/channelz_service_plugin.cc";
+
         t.Public += "."_id;
         t.Public += "src"_id;
 

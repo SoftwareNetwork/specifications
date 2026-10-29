@@ -4,6 +4,6 @@ void build(Solution &s)
     wr += Git("https://github.com/GiovanniDicanio/WinReg", "v{v}");
     wr.setRootDirectory("Include/WinReg");
     //wr.ApiName = "WINREG_API";
-    wr += "WinReg.hpp";
+    wr += ".*"_rr;
     wr += "advapi32.lib"_slib;
 }
