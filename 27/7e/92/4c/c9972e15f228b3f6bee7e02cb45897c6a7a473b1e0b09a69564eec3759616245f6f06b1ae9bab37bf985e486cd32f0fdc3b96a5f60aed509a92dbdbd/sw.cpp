@@ -60,7 +60,8 @@ void build(Solution &s)
         "src/psnames/psnames.c", "src/raster/raster.c", "src/sfnt/sfnt.c", "src/smooth/smooth.c",
         "src/truetype/truetype.c", "src/type1/type1.c", "src/type42/type42.c", "src/winfonts/winfnt.c",
         "src/sdf/sdf.c",
-        "src/svg/ftsvg.c"
+        "src/svg/ftsvg.c",
+        "src/hvf/hvf.c"
         ;
 }
 
