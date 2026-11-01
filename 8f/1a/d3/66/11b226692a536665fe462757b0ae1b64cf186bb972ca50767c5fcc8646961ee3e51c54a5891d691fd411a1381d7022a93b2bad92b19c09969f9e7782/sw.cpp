@@ -56,6 +56,7 @@ void build(Solution &s)
         //fontconfig.Public += "HAVE_INTEL_ATOMIC_PRIMITIVES"_d;
         fontconfig += "HAVE_C99_VSNPRINTF=1"_d;
         //fontconfig += "HAVE_VSNPRINTF=1"_d;
+        fontconfig += "HAVE_USELOCALE"_d;
     }
 
     fontconfig.Public += "org.sw.demo.expat"_dep;
