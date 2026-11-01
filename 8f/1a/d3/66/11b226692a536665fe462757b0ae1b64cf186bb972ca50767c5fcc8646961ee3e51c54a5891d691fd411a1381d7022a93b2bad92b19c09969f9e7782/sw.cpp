@@ -15,6 +15,7 @@ void build(Solution &s)
         "src/.*\\.c"_rr,
         "src/.*\\.h"_rr;
     fontconfig -= "src/fcarch.c";
+    fontconfig -= "fc-genericfamily/.*"_rr;
 
     fontconfig.Public +=
         "."_id;
@@ -132,7 +133,7 @@ void build(Solution &s)
                 << cmd::prog("org.sw.demo.gnu.gperf"_dep)
                 << cmd::wdir(fontconfig.BinaryDir)
                 << "--pic"
-                << "-m100"
+                << "-m" << "100"
                 << cmd::in(o3)
                 << cmd::std_out("fcobjshash.h")
                 ;
@@ -158,6 +159,25 @@ void build(Solution &s)
             << cmd::in("src/fcobjs.h")
             << "--output"
             << cmd::out("fcconst.h");
+    }
+
+    {
+        fontconfig.addCommand()
+            << cmd::prog("org.sw.demo.python.exe"_dep)
+            << cmd::in("fc-genericfamily/fc-genericfamily.py")
+            << "-d"
+            << fontconfig.SourceDir / "fc-genericfamily"
+            << "-o"
+            << cmd::out("fcgenericfamily.gperf")
+            ;
+        fontconfig.addCommand()
+            << cmd::prog("org.sw.demo.gnu.gperf"_dep)
+            << cmd::wdir(fontconfig.BinaryDir)
+            << "--pic"
+            << "-m" << "100"
+            << cmd::in("fcgenericfamily.gperf")
+            << cmd::std_out("fcgenericfamily.h")
+            ;
     }
 
     {
@@ -434,7 +454,10 @@ void build(Solution &s)
     fontconfig.writeFileOnce("fcstdint.h", "#include <stdint.h>");
 
     fontconfig.replaceInFileOnce("fontconfig/fontconfig.h.in", "#  define FcPublic", "#define   FcPublic extern SW_FONTCONFIG_LIBRARY_API");
-    fontconfig.Variables["CACHE_VERSION"] = "9";
+    fontconfig.Variables["CACHE_VERSION"] = "12";
+    fontconfig.Variables["CACHE_SNAP_VERSION"] = "0";
+    fontconfig.Variables["NEXT_CACHE_VERSION"] = "0";
+    fontconfig.Variables["CACHE_MIN_COMPAT_VERSION"] = "9";
     //fontconfig.Variables["FC_VERSION_MAJOR"] = fontconfig.Variables["PACKAGE_VERSION_MAJOR"];
     //fontconfig.Variables["FC_VERSION_MINOR"] = fontconfig.Variables["PACKAGE_VERSION_MINOR"];
     //fontconfig.Variables["FC_VERSION_MICRO"] = fontconfig.Variables["PACKAGE_VERSION_PATCH"];
