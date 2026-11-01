@@ -31,4 +31,5 @@ void build(Solution &s)
     }
 
     t.Public += "org.sw.demo.openssl.crypto"_dep;
+    t += "S2N_LIBCRYPTO_SUPPORTS_ASN1_STRING_GET0_DATA"_def; // after 4.0
 }
