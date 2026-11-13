@@ -3,7 +3,7 @@ void build(Solution &s)
     auto &t = s.addLibrary("jxl", "0.12.0");
     t += Git("https://github.com/libjxl/libjxl", "v{v}");
 
-    t += cpp11;
+    t += cpp17;
     t += "JXL_EXPORT"_api;
     t += "JXL_CMS_EXPORT"_api;
 
