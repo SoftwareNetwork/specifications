@@ -1,0 +1,271 @@
+<h2 id="aws-c-s3">AWS C S3</h2>
+<p>The AWS-C-S3 library is an asynchronous AWS S3 client focused on
+maximizing throughput and network utilization.</p>
+<h3 id="key-features">Key features:</h3>
+<ul>
+<li><strong>Automatic Request Splitting</strong>: Improves throughput by
+automatically splitting the request into part-sized chunks and
+performing parallel uploads/downloads of these chunks over multiple
+connections. There’s a cap on the throughput of single S3 connection,
+the only way to go faster is multiple parallel connections.</li>
+<li><strong>Automatic Retries</strong>: Increases resilience by retrying
+individual failed chunks of a file transfer, eliminating the need to
+restart transfers from scratch after an intermittent error.</li>
+<li><strong>DNS Load Balancing</strong>: DNS resolver continuously
+harvests Amazon S3 IP addresses. When load is spread across the S3
+fleet, overall throughput more reliable than if all connections are
+going to a single IP.</li>
+<li><strong>Advanced Network Management</strong>: The client
+incorporates automatic request parallelization, effective timeouts and
+retries, and efficient connection reuse. This approach helps to maximize
+throughput and network utilization, and to avoid network overloads.</li>
+<li><strong>Thread Pools and Async I/O</strong>: Avoids bottlenecks
+associated with single-thread processing.</li>
+<li><strong>Parallel Reads</strong>: When uploading a large file from
+disk, reads from multiple parts of the file in parallel. This is faster
+than reading the file sequentially from beginning to end.</li>
+</ul>
+<h3 id="documentation">Documentation</h3>
+<ul>
+<li><a href="docs/GetObject.md">GetObject</a>: A visual representation
+of the GetObject request flow.</li>
+<li><a href="docs/memory_aware_request_execution.md">Memory Aware
+Requests Execution</a>: An in-depth guide on optimizing memory usage
+during request executions.</li>
+</ul>
+<h3 id="configuration">Configuration</h3>
+<h4 id="environment-variables">Environment Variables</h4>
+<ol type="1">
+<li><p><strong>Memory Limit -
+<code>AWS_CRT_S3_MEMORY_LIMIT_IN_GIB</code> and
+<code>AWS_CRT_S3_MEMORY_LIMIT_IN_MB</code></strong></p>
+<p>The S3 client uses a buffer pool to manage memory for concurrent
+transfers.</p>
+<p>Example Usage:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_MEMORY_LIMIT_IN_GIB</span><span class="op">=</span>4  <span class="co"># 4 GiB limit</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># or</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_MEMORY_LIMIT_IN_MB</span><span class="op">=</span>256 <span class="co"># 256 MiB limit</span></span></code></pre></div>
+<p><strong>Default Behavior</strong>: When nothing is set, the client
+sets a default memory limit based on the target throughput.</p>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>If both are set <code>AWS_CRT_S3_MEMORY_LIMIT_IN_MB</code> is used
+and <code>AWS_CRT_S3_MEMORY_LIMIT_IN_GIB</code> is ignored.</li>
+<li>The limit applies per client. If multiple clients created, limit
+will apply to each separately.</li>
+<li>The environment variable value must be a valid positive integer
+representing gigabytes (GiB) or megabytes (MiB).</li>
+<li>The value is converted from GiB or MiB to bytes internally.</li>
+<li>Invalid values or overflow conditions will cause client creation to
+fail with <code>AWS_ERROR_INVALID_ARGUMENT</code>.</li>
+</ul></li>
+</ol>
+<blockquote>
+<p>[!TIP] You can also control memory limit <em>in bytes</em> using
+client config. The client config takes precedence over the environment
+variable (memory_limit_in_bytes needs to be set to a non-zero
+value).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>   <span class="kw">struct</span> aws_s3_client_config config <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>       <span class="op">.</span>memory_limit_in_bytes <span class="op">=</span> GB_TO_BYTES<span class="op">(</span><span class="dv">4</span><span class="op">),</span> <span class="co">// 4 GiB limit</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>       <span class="co">// ... other configuration</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span></code></pre></div>
+</blockquote>
+<ol start="2" type="1">
+<li><p><strong>Maximum Parts Pending Read -
+<code>AWS_CRT_S3_MAX_PARTS_PENDING_READ</code></strong></p>
+<p>Controls the maximum number of parts that can be pending read from
+the input stream during an individual multipart upload. Higher values
+may improve upload throughput for large files by allowing more parts to
+be read in parallel, only if the disk read speed can benefit from more
+concurrent reading of parts.</p>
+<p>Example Usage:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_MAX_PARTS_PENDING_READ</span><span class="op">=</span>20</span></code></pre></div>
+<p><strong>Default Behavior</strong>: If not set, the default value is
+5.</p>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>Only affects multipart uploads. Small files that fit in a single
+part are not affected.</li>
+<li>If there are multiple parallel multipart upload requests, each
+upload is limited by the value individually (not cumulatively).</li>
+<li>Setting this too low may introduce delays between reads, as the
+meta-request waits for the client to schedule more work.</li>
+<li>Setting this too high may cause a single upload to hog work tokens,
+starving other concurrent uploads.</li>
+<li>The value must be a positive integer (1–4294967295). Invalid or zero
+values are ignored with a warning, and the default is used.</li>
+<li>The value is read once on first use and cached for the lifetime of
+the process.</li>
+<li>If the network bandwidth of the device is too low, even a higher
+value of pending read might not be respected due to having maximum
+allowed requests in flight.</li>
+</ul></li>
+<li><p><strong>Ordered Delivery -
+<code>AWS_CRT_S3_ORDERED_DELIVERY</code></strong></p>
+<p>Makes a download deliver its body in object order when it has not
+asked for a delivery order of its own.</p>
+<p>Example Usage:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_ORDERED_DELIVERY</span><span class="op">=</span>1</span></code></pre></div>
+<p><strong>Default Behavior</strong>: When nothing is set, a download to
+a file delivers out of object order (each part is written at its own
+offset as it arrives) and a download through <code>body_callback</code>
+delivers in object order.</p>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>Any non-empty value turns it on; the value itself is not read.</li>
+<li>It changes the default, it does not overrule the caller. A
+<code>out_of_order_delivery</code> set on the meta request wins over one
+set on the client, and either wins over this variable. Only a download
+that expressed no preference is affected.</li>
+<li>It can only ask for ordered delivery. There is deliberately no way
+to turn <em>out-of-order</em> delivery on from the environment: for a
+<code>body_callback</code> sink that would change what the caller’s own
+code sees, since <code>range_start</code> stops advancing
+contiguously.</li>
+<li>Setting it means an interrupted download to a file leaves a valid
+prefix rather than a file with gaps, at the cost of parts waiting on the
+part ahead of them.</li>
+<li>Read once per client, when the client is created.</li>
+</ul></li>
+<li><p><strong>Sequential Requests -
+<code>AWS_CRT_S3_FORCE_SEQUENTIAL_REQUESTS</code></strong></p>
+<p>Makes every download request its parts in object order instead of
+spreading them across several far-apart regions of the object at
+once.</p>
+<p>Example Usage:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_FORCE_SEQUENTIAL_REQUESTS</span><span class="op">=</span>1</span></code></pre></div>
+<p><strong>Default Behavior</strong>: When nothing is set, a download
+that delivers out of order also issues its range requests across as many
+far-apart regions of the object as it has connections, one region per
+connection. A download that delivers in object order already requests in
+object order and is unaffected.</p>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>Any non-empty value turns it on; the value itself is not read.</li>
+<li>It only changes what is requested, not how it is delivered. Parts
+can still be written to the file at their own offsets as they arrive,
+depending on the delivery order setting.</li>
+<li>Setting it makes an interrupted download’s file size bound how many
+of its bytes are valid, and makes resuming cheaper, because there are no
+gaps for the download to be ahead of.</li>
+<li>Read once per client, when the client is created.</li>
+</ul></li>
+<li><p><strong>File I/O Threads -
+<code>AWS_CRT_S3_NUM_FILE_IO_THREADS</code></strong></p>
+<p>Sets the number of threads dedicated to file I/O (reading files for
+upload, writing files for download). These threads keep blocking disk
+operations off the client’s networking and callback threads.</p>
+<p>Example Usage:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">AWS_CRT_S3_NUM_FILE_IO_THREADS</span><span class="op">=</span>16</span></code></pre></div>
+<p><strong>Default Behavior</strong>: When neither the config field nor
+the environment variable is set, the default is
+<code>min(DEFAULT_MAX, N)</code> where DEFAULT_MAX is currently 8 (see
+<code>s_default_max_num_file_io_threads</code> in
+<code>s3_client.c</code>) and N is the number of event loops in the
+client bootstrap’s event loop group.</p>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>The <code>num_file_io_threads</code> config field takes priority.
+The environment variable is only consulted when the config field is 0
+(the default).</li>
+<li>The value must be a positive integer (1–65535). Invalid or zero
+values are ignored with a warning, and the default is used.</li>
+<li>The thread count is also the number of file descriptors a single
+parallel download can keep open at once (one per write worker), and the
+number of parts that can be in flight to disk simultaneously.</li>
+<li>Raising it past the point where the disk saturates buys nothing and
+costs threads. Lowering it below the disk’s concurrency leaves
+throughput on the table.</li>
+<li>Read once per client, when the client is created.</li>
+</ul></li>
+</ol>
+<blockquote>
+<p>[!TIP] You can also control this in code using the client config:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>   <span class="kw">struct</span> aws_s3_client_config config <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>       <span class="op">.</span>num_file_io_threads <span class="op">=</span> <span class="dv">16</span><span class="op">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>       <span class="co">// ... other configuration</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>   <span class="op">};</span></span></code></pre></div>
+</blockquote>
+<ol start="6" type="1">
+<li><p><strong>Test Bucket -
+<code>CRT_S3_TEST_BUCKET_NAME</code></strong></p>
+<p>The S3 bucket name used for running unit tests. See the <a
+href="./tests/test_helper/">test_helper documentation</a> for setup
+instructions.</p></li>
+</ol>
+<h2 id="versioning">Versioning</h2>
+<p>This library uses a three-part <code>Major.Minor.Patch</code> version
+scheme. See <a href="VERSIONING.md">VERSIONING.md</a> for what each part
+means and our API/ABI stability policy.</p>
+<h2 id="license">License</h2>
+<p>This library is licensed under the Apache 2.0 License.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="building">Building</h3>
+<p>CMake 3.9+ is required to build.</p>
+<p><code>&lt;install-path&gt;</code> must be an absolute path in the
+following instructions.</p>
+<h4 id="linux-only-dependencies">Linux-Only Dependencies</h4>
+<p>If you are building on Linux, you will need to build aws-lc and
+s2n-tls first.</p>
+<pre><code>git clone git@github.com:aws/aws-lc.git
+cmake -S aws-lc -B aws-lc/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt;
+cmake --build aws-lc/build --target install
+
+git clone git@github.com:aws/s2n-tls.git
+cmake -S s2n-tls -B s2n-tls/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build s2n-tls/build --target install</code></pre>
+<h4 id="building-aws-c-s3-and-remaining-dependencies">Building aws-c-s3
+and Remaining Dependencies</h4>
+<pre><code>git clone git@github.com:awslabs/aws-c-common.git
+cmake -S aws-c-common -B aws-c-common/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt;
+cmake --build aws-c-common/build --target install
+
+git clone git@github.com:awslabs/aws-checksums.git
+cmake -S aws-checksums -B aws-checksums/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-checksums/build --target install
+
+git clone git@github.com:awslabs/aws-c-cal.git
+cmake -S aws-c-cal -B aws-c-cal/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-cal/build --target install
+
+git clone git@github.com:awslabs/aws-c-io.git
+cmake -S aws-c-io -B aws-c-io/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-io/build --target install
+
+git clone git@github.com:awslabs/aws-c-compression.git
+cmake -S aws-c-compression -B aws-c-compression/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-compression/build --target install
+
+git clone git@github.com:awslabs/aws-c-http.git
+cmake -S aws-c-http -B aws-c-http/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-http/build --target install
+
+git clone git@github.com:awslabs/aws-c-sdkutils.git
+cmake -S aws-c-sdkutils -B aws-c-sdkutils/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-sdkutils/build --target install
+
+git clone git@github.com:awslabs/aws-c-auth.git
+cmake -S aws-c-auth -B aws-c-auth/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-auth/build --target install
+
+git clone git@github.com:awslabs/aws-c-s3.git
+cmake -S aws-c-s3 -B aws-c-s3/build -DCMAKE_INSTALL_PREFIX=&lt;install-path&gt; -DCMAKE_PREFIX_PATH=&lt;install-path&gt;
+cmake --build aws-c-s3/build --target install</code></pre>
+<h4 id="running-s3-sample">Running S3 sample</h4>
+<p>After installing all the dependencies, and building aws-c-s3, you can
+run the sample directly from the s3 build directory.</p>
+<p>To download:</p>
+<pre><code>aws-c-s3/build/samples/s3/s3 cp s3://&lt;bucket-name&gt;/&lt;object-name&gt; &lt;download-path&gt; --region &lt;region&gt;</code></pre>
+<p>To upload:</p>
+<pre><code>aws-c-s3/build/samples/s3/s3 cp &lt;upload-path&gt; s3://&lt;bucket-name&gt;/&lt;object-name&gt; --region &lt;region&gt;</code></pre>
+<p>To list objects:</p>
+<pre><code>aws-c-s3/build/samples/s3/s3 ls s3://&lt;bucket-name&gt; --region &lt;region&gt;</code></pre>
+<h2 id="testing">Testing</h2>
+<p>The unit tests require an AWS account with S3 buckets set up in a
+particular way. Use the <a href="./tests/test_helper/">test_helper
+script</a> to set this up.</p>
