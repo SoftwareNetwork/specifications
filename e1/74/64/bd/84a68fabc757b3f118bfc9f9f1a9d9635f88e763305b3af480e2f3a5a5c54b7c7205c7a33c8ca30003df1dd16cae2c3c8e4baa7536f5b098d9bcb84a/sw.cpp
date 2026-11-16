@@ -11,7 +11,7 @@ struct GawkExecutable : ExecutableTarget
 void build(Solution &s)
 {
     auto &p = s.addProject("gnu.gawk", "5.1.0");
-    p += RemoteFile("https://git.savannah.gnu.org/cgit/gawk.git/snapshot/gawk-{v}.tar.gz");
+    p += RemoteFile("https://ftp.gnu.org/gnu/gawk/gawk-{v}.tar.gz");
 
     auto &getopt = p.addTarget<StaticLibraryTarget>("getopt");
     {
@@ -90,6 +90,7 @@ void build(Solution &s)
 # include <config.h>
 #define __glibc_likely(x) x
 #define __glibc_unlikely(x) x
+#define __GNUC_PREREQ(...) 0
 )");
 
             gawk.patch("support/regex.c", "#ifdef __cplusplus", R"(
