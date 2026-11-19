@@ -208,15 +208,28 @@ void build(Solution &s)
         //t -= "Utilities/cmlibarchive/libarchive/archive_getdate.h";
         t.patch("Utilities/cmlibarchive/libarchive/archive_parse_date.c", R"(#include "archive.h")", R"(
 #ifndef CM_PARSE_DATE
-#include "archive.h"
+#include  "archive.h"
 #endif
     )");
         t.patch("Utilities/cmlibarchive/libarchive/archive_parse_date.c", R"(#include "archive_integer.h")", R"(
 #ifndef CM_PARSE_DATE
-#include "archive_integer.h"
+#include  "archive_integer.h"
 #endif
 
 #include <stdint.h>
+
+static inline int archive_ckd_add_u64(uint64_t *result, uint64_t a, uint64_t b) {
+	if (a > UINT64_MAX - b)
+		return 1;
+	*result = a + b;
+	return 0;
+}
+static inline int archive_ckd_mul_u64(uint64_t *result, uint64_t a, uint64_t b) {
+	if (b != 0 && a > UINT64_MAX / b)
+		return 1;
+	*result = a * b;
+	return 0;
+}
     )");
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
