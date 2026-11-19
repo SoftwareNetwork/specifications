@@ -211,6 +211,13 @@ void build(Solution &s)
 #include "archive.h"
 #endif
     )");
+        t.patch("Utilities/cmlibarchive/libarchive/archive_parse_date.c", R"(#include "archive_integer.h")", R"(
+#ifndef CM_PARSE_DATE
+#include "archive_integer.h"
+#endif
+
+#include <stdint.h>
+    )");
 
         if (t.getBuildSettings().TargetOS.is(OSType::Windows) || t.getBuildSettings().TargetOS.is(OSType::Mingw))
         {

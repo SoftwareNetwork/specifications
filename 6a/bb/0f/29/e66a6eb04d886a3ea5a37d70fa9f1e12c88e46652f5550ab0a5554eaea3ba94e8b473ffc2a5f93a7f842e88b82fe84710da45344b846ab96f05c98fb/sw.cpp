@@ -26,7 +26,7 @@ void build(Solution &s)
     libarchive.Public += "ARCHIVE_CRYPTO_SHA384_NETTLE"_d;
     libarchive.Public += "ARCHIVE_CRYPTO_SHA512_NETTLE"_d;
     libarchive.Public += "HAVE_BZLIB_H"_d;
-    libarchive.Public += "HAVE_CONFIG_H"_d;
+    libarchive += "HAVE_CONFIG_H"_d;
     libarchive.Public += "HAVE_ICONV"_d;
     libarchive.Public += "HAVE_ICONV_H"_d;
     //libarchive += "ICONV_CONST=const"_v;
