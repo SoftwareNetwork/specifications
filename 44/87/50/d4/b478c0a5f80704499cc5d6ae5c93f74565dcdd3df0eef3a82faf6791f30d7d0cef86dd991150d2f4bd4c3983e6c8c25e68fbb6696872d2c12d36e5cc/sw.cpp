@@ -14,6 +14,7 @@ void build(Solution &s)
         uv += "src/win/.*"_rr;
         uv += "_WIN32_WINNT=_WIN32_WINNT_WIN8"_def;
         uv.Public +=
+            "Synchronization.lib"_slib,
             "ws2_32.lib"_slib,
             "user32.lib"_slib,
             "Advapi32.lib"_slib,

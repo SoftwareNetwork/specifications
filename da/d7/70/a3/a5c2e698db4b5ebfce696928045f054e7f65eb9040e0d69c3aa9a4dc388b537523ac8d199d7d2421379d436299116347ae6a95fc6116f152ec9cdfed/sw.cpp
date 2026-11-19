@@ -14,6 +14,7 @@ void build(Solution &s)
         t += "cm3p/.*"_rr;
         t += "cmvssetup/.*"_rr;
         t += "cmelf/.*"_rr;
+        t += "cmrapidhash/.*"_rr;
 
         t.Public += iml;
 
